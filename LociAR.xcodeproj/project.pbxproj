@@ -1,0 +1,993 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B673A12AAA93EA6AEF0A6476 /* AppSession.swift */; };
+		15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */; };
+		1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */; };
+		1BA718A73957DE66A7B47E27 /* SocialViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDF99EB769190C5D43A4E /* SocialViews.swift */; };
+		223F8D8EBAF58FE925638A36 /* LociTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D39885DA91A93735B60CAD0 /* LociTheme.swift */; };
+		2C502B87EF1C9F5985ECFE17 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E3D29D96E27984134D0C362 /* libsqlite3.tbd */; };
+		3B2CE130FB8E9BF469423264 /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60777F871AC0C3EE1BFD38F3 /* ARKit.framework */; };
+		3B5BFD9AA99D8A7E9B4C81A7 /* UITestFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7210EE62943F978879FE37 /* UITestFixtures.swift */; };
+		43B96545756282CA639C2CC8 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E4C13C9339C31F48DD7E6E /* MapKit.framework */; };
+		49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */; };
+		4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E26683A2CA08CEF5A8E794 /* AppRouter.swift */; };
+		4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26517046B2409888717CB325 /* PersistenceModels.swift */; };
+		59F6095DAD6C3F9659393C55 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B8CE05A07DBFC412918542 /* MainTabView.swift */; };
+		5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */; };
+		5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8263073D47812D536F4369 /* GeoPoseCaptureService.swift */; };
+		60C720C4226E7EADD4D73BD5 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C46B83A003BDC6A241B3BDD /* NotificationService.swift */; };
+		6E537DA4B254594AFBFAF0D8 /* ARPostViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */; };
+		6EE96CC69E25FE252051A562 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5172273B7111934A8D310E05 /* Models.swift */; };
+		71D8EF88107A94968844A33E /* BackendPostContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = E144FD8B340551FC39132078 /* BackendPostContract.swift */; };
+		739AF19D1B2BE599C056D81A /* PublishPostCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51711F0650606E15028C1A33 /* PublishPostCoordinator.swift */; };
+		7478793DCB1CF6E75F8A2455 /* ConnectivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32443B79810E5CE2F38FB099 /* ConnectivityMonitor.swift */; };
+		788505617997733A088C4578 /* DomainContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */; };
+		7AA9C729CA3EE96B5C04423F /* RealityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 987F6BC9079EB6C718144F0D /* RealityKit.framework */; };
+		7C93C386BBED1A627FFB4055 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91796412E039918F3D1C5ECB /* FirebaseCore */; };
+		7463ED0218C262411253B844 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 82A322B7DE2196E63F95954B /* FirebaseAuth */; };
+		CB3D86B12CEE77A5AA19F233 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 0665AD5B75590E1CD42FB74A /* FirebaseFirestore */; };
+		9216319956D103F80164A521 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 5A20BD633C3EF1E042E5EA92 /* FirebaseStorage */; };
+		FD5CF85E972C8AAB6A922657 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = F47AED1477B5976D45B48CF1 /* FirebaseFunctions */; };
+		1FE4231A75C7EE8F6B9B3106 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 04FC0931B0AAC08F3489AAF7 /* FirebaseAppCheck */; };
+		7E19FD03007EFC653D77E9B8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F3FB818959D6EA5ADDE7F1E /* RootView.swift */; };
+		802D0F1A682E49E233E5475B /* PostRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C09DE1100E41CE6D5859D9 /* PostRepository.swift */; };
+		881A6413A9230C295BDBD795 /* LegacyAsyncStorageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */; };
+		89009A411211647CBFFD0CC1 /* ARExperienceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */; };
+		92CB2579F9A4D9FA6136AF3D /* BackendAndPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A27A11D2DC46B7BCDA5DC4 /* BackendAndPolicyTests.swift */; };
+		93FD42006BCC639A5349A74B /* ProfileEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB27EE9BF00970A9F3F149F /* ProfileEditView.swift */; };
+		97D70CD03EAFF18EC6D08976 /* MapFeatureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37856005A051A853781DFDA3 /* MapFeatureView.swift */; };
+		9884BD8EC7A396BCCEBBD93A /* StoreReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29542377FC89A2155057D35C /* StoreReadinessTests.swift */; };
+		98C217A811653B8F23CF0F8D /* ArchitectureAndPublishTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67595FAB2CD41468A70ED743 /* ArchitectureAndPublishTests.swift */; };
+		98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */; };
+		A332B937E77E814DAE2988B0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */; };
+		A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9040568E1C52462B68579B20 /* AuthView.swift */; };
+		B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */; };
+		B392B96F3820C075F8BF6136 /* ProximityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041909C4E5F7479357846A3E /* ProximityPolicy.swift */; };
+		B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9309C5EFBE40B5DE193B3ECF /* LocationController.swift */; };
+		B4E3F30C661575D41B716ED9 /* LociARApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */; };
+		B6F3EBAAC27911AD21899F0F /* AuthGateUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA24E9E41EA62BF05C10DAA6 /* AuthGateUITests.swift */; };
+		B93C26B18250AC79DE3E8C22 /* CreatePostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF5BC023488AB03C976EEEC /* CreatePostView.swift */; };
+		B9506EFFBDF4A5BAD96C8B74 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B129A3E99190C979B9AC105 /* AppContainer.swift */; };
+		C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */; };
+		CF38CD57A83674691699A5B0 /* AuthenticationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACB2AEF3923D50E72B4765F9 /* AuthenticationServices.framework */; };
+		D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */; };
+		D79733A2FF29F7EC54C148D0 /* WorldMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */; };
+		DD0E0196DE875097001E3BFD /* AuthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */; };
+		E23AD1CF6B59B2236CD7C0A1 /* MediaAssetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8A0BF94835F851681A368D /* MediaAssetStore.swift */; };
+		E7692203B338A88B9E0405B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */; };
+		F06E6E1085B1AE5E8DC2A43A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */; };
+		F3C20A7CF79DC0951AC69910 /* ARViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498692924241AE844FFA8949 /* ARViewContainer.swift */; };
+		F567D19C9A5E95A449120669 /* SocialRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7055B38D2FFD5B204D38A244 /* SocialRepository.swift */; };
+		FD2F451360B9988017E2BFFF /* PublicSafetyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52470082EDD9AD2FC77F69EB /* PublicSafetyPolicy.swift */; };
+		E0D81CBC522B43CEAB3A6058 /* FirebaseBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82B8784CDE176C594059EF7 /* FirebaseBackend.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0459745680D312B66EAE71E4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F0CA53C02271F44718813571 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6485F52892F235D93959A1FE;
+			remoteInfo = LociAR;
+		};
+		C202A29740633A0687715025 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F0CA53C02271F44718813571 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6485F52892F235D93959A1FE;
+			remoteInfo = LociAR;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		041909C4E5F7479357846A3E /* ProximityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityPolicy.swift; sourceTree = "<group>"; };
+		0656173096F4B80612408176 /* LociARTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialContentRenderer.swift; sourceTree = "<group>"; };
+		0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinStateMachineTests.swift; sourceTree = "<group>"; };
+		26517046B2409888717CB325 /* PersistenceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceModels.swift; sourceTree = "<group>"; };
+		29542377FC89A2155057D35C /* StoreReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreReadinessTests.swift; sourceTree = "<group>"; };
+		2CA48A253CF4AF4E0438F347 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		32443B79810E5CE2F38FB099 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
+		35E4C13C9339C31F48DD7E6E /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		37856005A051A853781DFDA3 /* MapFeatureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapFeatureView.swift; sourceTree = "<group>"; };
+		39E26683A2CA08CEF5A8E794 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
+		3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPinningEngine.swift; sourceTree = "<group>"; };
+		498692924241AE844FFA8949 /* ARViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARViewContainer.swift; sourceTree = "<group>"; };
+		4D9F628611DF77BEA62DDC3E /* LociAR.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LociAR.entitlements; sourceTree = "<group>"; };
+		51711F0650606E15028C1A33 /* PublishPostCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishPostCoordinator.swift; sourceTree = "<group>"; };
+		5172273B7111934A8D310E05 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		5221467DB942FC077BF19BEB /* LociAR.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LociAR.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		52470082EDD9AD2FC77F69EB /* PublicSafetyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicSafetyPolicy.swift; sourceTree = "<group>"; };
+		53B8CE05A07DBFC412918542 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyImporterTests.swift; sourceTree = "<group>"; };
+		5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainContractTests.swift; sourceTree = "<group>"; };
+		5F3FB818959D6EA5ADDE7F1E /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		60777F871AC0C3EE1BFD38F3 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
+		61A27A11D2DC46B7BCDA5DC4 /* BackendAndPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendAndPolicyTests.swift; sourceTree = "<group>"; };
+		67595FAB2CD41468A70ED743 /* ArchitectureAndPublishTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchitectureAndPublishTests.swift; sourceTree = "<group>"; };
+		6B129A3E99190C979B9AC105 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
+		6B8263073D47812D536F4369 /* GeoPoseCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoPoseCaptureService.swift; sourceTree = "<group>"; };
+		6C46B83A003BDC6A241B3BDD /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldMapStore.swift; sourceTree = "<group>"; };
+		6E3D29D96E27984134D0C362 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		6EF5BC023488AB03C976EEEC /* CreatePostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePostView.swift; sourceTree = "<group>"; };
+		7055B38D2FFD5B204D38A244 /* SocialRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialRepository.swift; sourceTree = "<group>"; };
+		76F73B5A562ADDC78C00D204 /* LociARUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A8A0BF94835F851681A368D /* MediaAssetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAssetStore.swift; sourceTree = "<group>"; };
+		7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyAsyncStorageImporter.swift; sourceTree = "<group>"; };
+		8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9040568E1C52462B68579B20 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		9309C5EFBE40B5DE193B3ECF /* LocationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationController.swift; sourceTree = "<group>"; };
+		987F6BC9079EB6C718144F0D /* RealityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealityKit.framework; path = System/Library/Frameworks/RealityKit.framework; sourceTree = SDKROOT; };
+		9D39885DA91A93735B60CAD0 /* LociTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LociTheme.swift; sourceTree = "<group>"; };
+		9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPostViewerView.swift; sourceTree = "<group>"; };
+		A490648EDF65B459DC92A21A /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		A84DDF99EB769190C5D43A4E /* SocialViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialViews.swift; sourceTree = "<group>"; };
+		ACB2AEF3923D50E72B4765F9 /* AuthenticationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AuthenticationServices.framework; path = System/Library/Frameworks/AuthenticationServices.framework; sourceTree = SDKROOT; };
+		AEB27EE9BF00970A9F3F149F /* ProfileEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditView.swift; sourceTree = "<group>"; };
+		B673A12AAA93EA6AEF0A6476 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
+		B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRepository.swift; sourceTree = "<group>"; };
+		BA24E9E41EA62BF05C10DAA6 /* AuthGateUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateUITests.swift; sourceTree = "<group>"; };
+		D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARExperienceView.swift; sourceTree = "<group>"; };
+		DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LociARApp.swift; sourceTree = "<group>"; };
+		E144FD8B340551FC39132078 /* BackendPostContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendPostContract.swift; sourceTree = "<group>"; };
+		E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyMigrationCoordinator.swift; sourceTree = "<group>"; };
+		E3C09DE1100E41CE6D5859D9 /* PostRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostRepository.swift; sourceTree = "<group>"; };
+		E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueueProcessor.swift; sourceTree = "<group>"; };
+		F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinPlacementPolicy.swift; sourceTree = "<group>"; };
+		FC7210EE62943F978879FE37 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestFixtures.swift; sourceTree = "<group>"; };
+		C82B8784CDE176C594059EF7 /* FirebaseBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseBackend.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		36C6297DD96EEA93BDFE746C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7C93C386BBED1A627FFB4055 /* FirebaseCore in Frameworks */,
+				7463ED0218C262411253B844 /* FirebaseAuth in Frameworks */,
+				CB3D86B12CEE77A5AA19F233 /* FirebaseFirestore in Frameworks */,
+				9216319956D103F80164A521 /* FirebaseStorage in Frameworks */,
+				FD5CF85E972C8AAB6A922657 /* FirebaseFunctions in Frameworks */,
+				1FE4231A75C7EE8F6B9B3106 /* FirebaseAppCheck in Frameworks */,
+				3B2CE130FB8E9BF469423264 /* ARKit.framework in Frameworks */,
+				7AA9C729CA3EE96B5C04423F /* RealityKit.framework in Frameworks */,
+				43B96545756282CA639C2CC8 /* MapKit.framework in Frameworks */,
+				CF38CD57A83674691699A5B0 /* AuthenticationServices.framework in Frameworks */,
+				2C502B87EF1C9F5985ECFE17 /* libsqlite3.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		01827D999149EBDC62F08619 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				AEB27EE9BF00970A9F3F149F /* ProfileEditView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		0A911B641A6093F0650884E9 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				9D39885DA91A93735B60CAD0 /* LociTheme.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		15017F9A87A93878CAFC5308 = {
+			isa = PBXGroup;
+			children = (
+				7D79699762AD4BBEB088C9C4 /* Config */,
+				2DBFB8EB68E2EDAD77B35F31 /* LociAR */,
+				4E31BDE8E1BFA1A97B311776 /* LociARTests */,
+				6E035B012469C9041DE7CD9B /* LociARUITests */,
+				421675575FBD0200BDF0CD58 /* Frameworks */,
+				54A6E039CB7077D9405A9D6F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		2DBFB8EB68E2EDAD77B35F31 /* LociAR */ = {
+			isa = PBXGroup;
+			children = (
+				33FB733D1914511AB1CC09A1 /* AppCore */,
+				AC9F05A20F0B2AC1702FE8DC /* Application */,
+				CF54CDF084143F44DB665715 /* ARCore */,
+				D3C5EF3EF785B4256FC15F62 /* Data */,
+				0A911B641A6093F0650884E9 /* DesignSystem */,
+				72635B762C879640906F431E /* Domain */,
+				6C412865047C5CB67101FE00 /* Features */,
+				A8254823E336DDB9F39F254A /* Resources */,
+			);
+			path = LociAR;
+			sourceTree = "<group>";
+		};
+		33FB733D1914511AB1CC09A1 /* AppCore */ = {
+			isa = PBXGroup;
+			children = (
+				891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */,
+				6B129A3E99190C979B9AC105 /* AppContainer.swift */,
+				39E26683A2CA08CEF5A8E794 /* AppRouter.swift */,
+				B673A12AAA93EA6AEF0A6476 /* AppSession.swift */,
+				32443B79810E5CE2F38FB099 /* ConnectivityMonitor.swift */,
+				9309C5EFBE40B5DE193B3ECF /* LocationController.swift */,
+				DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */,
+				6C46B83A003BDC6A241B3BDD /* NotificationService.swift */,
+				5F3FB818959D6EA5ADDE7F1E /* RootView.swift */,
+			);
+			path = AppCore;
+			sourceTree = "<group>";
+		};
+		3C9B59E539E42ABECA246B45 /* Create */ = {
+			isa = PBXGroup;
+			children = (
+				6EF5BC023488AB03C976EEEC /* CreatePostView.swift */,
+			);
+			path = Create;
+			sourceTree = "<group>";
+		};
+		421675575FBD0200BDF0CD58 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				60777F871AC0C3EE1BFD38F3 /* ARKit.framework */,
+				ACB2AEF3923D50E72B4765F9 /* AuthenticationServices.framework */,
+				6E3D29D96E27984134D0C362 /* libsqlite3.tbd */,
+				35E4C13C9339C31F48DD7E6E /* MapKit.framework */,
+				987F6BC9079EB6C718144F0D /* RealityKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4E31BDE8E1BFA1A97B311776 /* LociARTests */ = {
+			isa = PBXGroup;
+			children = (
+				67595FAB2CD41468A70ED743 /* ArchitectureAndPublishTests.swift */,
+				61A27A11D2DC46B7BCDA5DC4 /* BackendAndPolicyTests.swift */,
+				5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */,
+				597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */,
+				0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */,
+				29542377FC89A2155057D35C /* StoreReadinessTests.swift */,
+			);
+			path = LociARTests;
+			sourceTree = "<group>";
+		};
+		54A6E039CB7077D9405A9D6F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5221467DB942FC077BF19BEB /* LociAR.app */,
+				0656173096F4B80612408176 /* LociARTests.xctest */,
+				76F73B5A562ADDC78C00D204 /* LociARUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5BAD707C8BF85AE1CB054616 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				9040568E1C52462B68579B20 /* AuthView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		60BA309920734B7F6EB28229 /* Social */ = {
+			isa = PBXGroup;
+			children = (
+				A84DDF99EB769190C5D43A4E /* SocialViews.swift */,
+			);
+			path = Social;
+			sourceTree = "<group>";
+		};
+		6C412865047C5CB67101FE00 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				F89911943F5AEA31962B349D /* AR */,
+				5BAD707C8BF85AE1CB054616 /* Auth */,
+				3C9B59E539E42ABECA246B45 /* Create */,
+				8956537571B2846D9ECEFEC4 /* Main */,
+				E41B794880A7FE771C655E98 /* Map */,
+				FBCBEEAECC0DFF73F6E125E5 /* Onboarding */,
+				01827D999149EBDC62F08619 /* Profile */,
+				60BA309920734B7F6EB28229 /* Social */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		6E035B012469C9041DE7CD9B /* LociARUITests */ = {
+			isa = PBXGroup;
+			children = (
+				BA24E9E41EA62BF05C10DAA6 /* AuthGateUITests.swift */,
+			);
+			path = LociARUITests;
+			sourceTree = "<group>";
+		};
+		72635B762C879640906F431E /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				5172273B7111934A8D310E05 /* Models.swift */,
+				F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */,
+				041909C4E5F7479357846A3E /* ProximityPolicy.swift */,
+				52470082EDD9AD2FC77F69EB /* PublicSafetyPolicy.swift */,
+				FC7210EE62943F978879FE37 /* UITestFixtures.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		7D79699762AD4BBEB088C9C4 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				A490648EDF65B459DC92A21A /* Base.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		8956537571B2846D9ECEFEC4 /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				53B8CE05A07DBFC412918542 /* MainTabView.swift */,
+			);
+			path = Main;
+			sourceTree = "<group>";
+		};
+		A8254823E336DDB9F39F254A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */,
+				2CA48A253CF4AF4E0438F347 /* Info.plist */,
+				4D9F628611DF77BEA62DDC3E /* LociAR.entitlements */,
+				E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		AC9F05A20F0B2AC1702FE8DC /* Application */ = {
+			isa = PBXGroup;
+			children = (
+				51711F0650606E15028C1A33 /* PublishPostCoordinator.swift */,
+			);
+			path = Application;
+			sourceTree = "<group>";
+		};
+		CF54CDF084143F44DB665715 /* ARCore */ = {
+			isa = PBXGroup;
+			children = (
+				3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */,
+				498692924241AE844FFA8949 /* ARViewContainer.swift */,
+				6B8263073D47812D536F4369 /* GeoPoseCaptureService.swift */,
+				06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */,
+			);
+			path = ARCore;
+			sourceTree = "<group>";
+		};
+		D3C5EF3EF785B4256FC15F62 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */,
+				E144FD8B340551FC39132078 /* BackendPostContract.swift */,
+				C82B8784CDE176C594059EF7 /* FirebaseBackend.swift */,
+				8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */,
+				E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */,
+				7A8A0BF94835F851681A368D /* MediaAssetStore.swift */,
+				26517046B2409888717CB325 /* PersistenceModels.swift */,
+				E3C09DE1100E41CE6D5859D9 /* PostRepository.swift */,
+				7055B38D2FFD5B204D38A244 /* SocialRepository.swift */,
+				E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */,
+				6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		E41B794880A7FE771C655E98 /* Map */ = {
+			isa = PBXGroup;
+			children = (
+				37856005A051A853781DFDA3 /* MapFeatureView.swift */,
+			);
+			path = Map;
+			sourceTree = "<group>";
+		};
+		F89911943F5AEA31962B349D /* AR */ = {
+			isa = PBXGroup;
+			children = (
+				D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */,
+				9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */,
+			);
+			path = AR;
+			sourceTree = "<group>";
+		};
+		FBCBEEAECC0DFF73F6E125E5 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3DB22E903E83877432067F9F /* LociARUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 767674108BDDCFA4AB5CF676 /* Build configuration list for PBXNativeTarget "LociARUITests" */;
+			buildPhases = (
+				38CC8A6E12B3610DE7829113 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				415B78CD414E6EED46F39C69 /* PBXTargetDependency */,
+			);
+			name = LociARUITests;
+			packageProductDependencies = (
+			);
+			productName = LociARUITests;
+			productReference = 76F73B5A562ADDC78C00D204 /* LociARUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		6485F52892F235D93959A1FE /* LociAR */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 963343A8595BE8420AE8B1BE /* Build configuration list for PBXNativeTarget "LociAR" */;
+			buildPhases = (
+				83FB5A134EE599509A3583D1 /* Sources */,
+				EE1509D64816DD5059A2E31C /* Resources */,
+				36C6297DD96EEA93BDFE746C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LociAR;
+			packageProductDependencies = (
+				91796412E039918F3D1C5ECB /* FirebaseCore */,
+				82A322B7DE2196E63F95954B /* FirebaseAuth */,
+				0665AD5B75590E1CD42FB74A /* FirebaseFirestore */,
+				5A20BD633C3EF1E042E5EA92 /* FirebaseStorage */,
+				F47AED1477B5976D45B48CF1 /* FirebaseFunctions */,
+				04FC0931B0AAC08F3489AAF7 /* FirebaseAppCheck */,
+			);
+			productName = LociAR;
+			productReference = 5221467DB942FC077BF19BEB /* LociAR.app */;
+			productType = "com.apple.product-type.application";
+		};
+		66CAA27C4874A4EC8EF888B9 /* LociARTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6568396FB9D32110C8A7DB97 /* Build configuration list for PBXNativeTarget "LociARTests" */;
+			buildPhases = (
+				6F99BED16F2FAF971493766E /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CA42105E688530D165772891 /* PBXTargetDependency */,
+			);
+			name = LociARTests;
+			packageProductDependencies = (
+			);
+			productName = LociARTests;
+			productReference = 0656173096F4B80612408176 /* LociARTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F0CA53C02271F44718813571 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					3DB22E903E83877432067F9F = {
+						DevelopmentTeam = ZSRUTGX74S;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 6485F52892F235D93959A1FE;
+					};
+					6485F52892F235D93959A1FE = {
+						DevelopmentTeam = ZSRUTGX74S;
+						ProvisioningStyle = Automatic;
+					};
+					66CAA27C4874A4EC8EF888B9 = {
+						DevelopmentTeam = ZSRUTGX74S;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 119DF4F7E05BB05D586476E9 /* Build configuration list for PBXProject "LociAR" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 15017F9A87A93878CAFC5308;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8B3D3B5A7203FBF7C1D4B32C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 54A6E039CB7077D9405A9D6F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6485F52892F235D93959A1FE /* LociAR */,
+				66CAA27C4874A4EC8EF888B9 /* LociARTests */,
+				3DB22E903E83877432067F9F /* LociARUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EE1509D64816DD5059A2E31C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E7692203B338A88B9E0405B1 /* Assets.xcassets in Resources */,
+				A332B937E77E814DAE2988B0 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		38CC8A6E12B3610DE7829113 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B6F3EBAAC27911AD21899F0F /* AuthGateUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6F99BED16F2FAF971493766E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98C217A811653B8F23CF0F8D /* ArchitectureAndPublishTests.swift in Sources */,
+				92CB2579F9A4D9FA6136AF3D /* BackendAndPolicyTests.swift in Sources */,
+				788505617997733A088C4578 /* DomainContractTests.swift in Sources */,
+				49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */,
+				5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */,
+				9884BD8EC7A396BCCEBBD93A /* StoreReadinessTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		83FB5A134EE599509A3583D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				89009A411211647CBFFD0CC1 /* ARExperienceView.swift in Sources */,
+				B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */,
+				6E537DA4B254594AFBFAF0D8 /* ARPostViewerView.swift in Sources */,
+				F3C20A7CF79DC0951AC69910 /* ARViewContainer.swift in Sources */,
+				1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */,
+				B9506EFFBDF4A5BAD96C8B74 /* AppContainer.swift in Sources */,
+				4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */,
+				07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */,
+				DD0E0196DE875097001E3BFD /* AuthRepository.swift in Sources */,
+				E0D81CBC522B43CEAB3A6058 /* FirebaseBackend.swift in Sources */,
+				A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */,
+				71D8EF88107A94968844A33E /* BackendPostContract.swift in Sources */,
+				7478793DCB1CF6E75F8A2455 /* ConnectivityMonitor.swift in Sources */,
+				B93C26B18250AC79DE3E8C22 /* CreatePostView.swift in Sources */,
+				5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */,
+				881A6413A9230C295BDBD795 /* LegacyAsyncStorageImporter.swift in Sources */,
+				98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */,
+				B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */,
+				B4E3F30C661575D41B716ED9 /* LociARApp.swift in Sources */,
+				223F8D8EBAF58FE925638A36 /* LociTheme.swift in Sources */,
+				59F6095DAD6C3F9659393C55 /* MainTabView.swift in Sources */,
+				97D70CD03EAFF18EC6D08976 /* MapFeatureView.swift in Sources */,
+				E23AD1CF6B59B2236CD7C0A1 /* MediaAssetStore.swift in Sources */,
+				6EE96CC69E25FE252051A562 /* Models.swift in Sources */,
+				60C720C4226E7EADD4D73BD5 /* NotificationService.swift in Sources */,
+				F06E6E1085B1AE5E8DC2A43A /* OnboardingView.swift in Sources */,
+				4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */,
+				C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */,
+				802D0F1A682E49E233E5475B /* PostRepository.swift in Sources */,
+				93FD42006BCC639A5349A74B /* ProfileEditView.swift in Sources */,
+				B392B96F3820C075F8BF6136 /* ProximityPolicy.swift in Sources */,
+				FD2F451360B9988017E2BFFF /* PublicSafetyPolicy.swift in Sources */,
+				739AF19D1B2BE599C056D81A /* PublishPostCoordinator.swift in Sources */,
+				7E19FD03007EFC653D77E9B8 /* RootView.swift in Sources */,
+				F567D19C9A5E95A449120669 /* SocialRepository.swift in Sources */,
+				1BA718A73957DE66A7B47E27 /* SocialViews.swift in Sources */,
+				D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */,
+				15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */,
+				3B5BFD9AA99D8A7E9B4C81A7 /* UITestFixtures.swift in Sources */,
+				D79733A2FF29F7EC54C148D0 /* WorldMapStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		415B78CD414E6EED46F39C69 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6485F52892F235D93959A1FE /* LociAR */;
+			targetProxy = 0459745680D312B66EAE71E4 /* PBXContainerItemProxy */;
+		};
+		CA42105E688530D165772891 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6485F52892F235D93959A1FE /* LociAR */;
+			targetProxy = C202A29740633A0687715025 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1EB681EA4B1072A40FB97640 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A490648EDF65B459DC92A21A /* Base.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = LociAR/Resources/LociAR.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZSRUTGX74S;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LociAR/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LociAR;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.khankartal.lociar;
+				PRODUCT_NAME = LociAR;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		30241E9A9EDD4C2441081502 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZSRUTGX74S;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.khankartal.LociARTests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LociAR.app/LociAR";
+			};
+			name = Debug;
+		};
+		45358E87A79E4E2DF531936F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5E705B8112338EAD68B286CA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		5F82C60CA1EF5C565D07F327 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZSRUTGX74S;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.khankartal.LociARTests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LociAR.app/LociAR";
+			};
+			name = Release;
+		};
+		B4D3656FFAA12D50DE0E823A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A490648EDF65B459DC92A21A /* Base.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = LociAR/Resources/LociAR.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZSRUTGX74S;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LociAR/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LociAR;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.khankartal.lociar;
+				PRODUCT_NAME = LociAR;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		C15A8A46F86546A544DAB4A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZSRUTGX74S;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.khankartal.LociARUITests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = LociAR;
+			};
+			name = Release;
+		};
+		F27827E92FEAF911494FD37E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZSRUTGX74S;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.khankartal.LociARUITests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = LociAR;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		119DF4F7E05BB05D586476E9 /* Build configuration list for PBXProject "LociAR" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				45358E87A79E4E2DF531936F /* Debug */,
+				5E705B8112338EAD68B286CA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6568396FB9D32110C8A7DB97 /* Build configuration list for PBXNativeTarget "LociARTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				30241E9A9EDD4C2441081502 /* Debug */,
+				5F82C60CA1EF5C565D07F327 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		767674108BDDCFA4AB5CF676 /* Build configuration list for PBXNativeTarget "LociARUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F27827E92FEAF911494FD37E /* Debug */,
+				C15A8A46F86546A544DAB4A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		963343A8595BE8420AE8B1BE /* Build configuration list for PBXNativeTarget "LociAR" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1EB681EA4B1072A40FB97640 /* Debug */,
+				B4D3656FFAA12D50DE0E823A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8B3D3B5A7203FBF7C1D4B32C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.19.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		91796412E039918F3D1C5ECB /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B3D3B5A7203FBF7C1D4B32C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		82A322B7DE2196E63F95954B /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B3D3B5A7203FBF7C1D4B32C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		0665AD5B75590E1CD42FB74A /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B3D3B5A7203FBF7C1D4B32C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		5A20BD633C3EF1E042E5EA92 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B3D3B5A7203FBF7C1D4B32C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		F47AED1477B5976D45B48CF1 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B3D3B5A7203FBF7C1D4B32C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		04FC0931B0AAC08F3489AAF7 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B3D3B5A7203FBF7C1D4B32C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = F0CA53C02271F44718813571 /* Project object */;
+}

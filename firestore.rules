@@ -1,0 +1,170 @@
+rules_version = '2';
+
+// LociAR Firestore rules — server-authoritative design.
+// Posts, profiles (creation), counters, activity, analytics and admin data are written only by
+// Cloud Functions / Admin SDK (which bypass these rules). Clients write only their own social
+// edges, comments, collections and reports, always bound to the `luid` custom claim that the
+// `ensureProfile` callable sets.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null && request.auth.token.luid is string; }
+    function me() { return request.auth.token.luid; }
+    function onlyKeys(keys) { return request.resource.data.keys().hasOnly(keys) && request.resource.data.keys().hasAll(keys); }
+    function createdNow() { return request.resource.data.created_at == request.time; }
+    function postExists(postId) { return exists(/databases/$(database)/documents/posts/$(postId)); }
+    function postIsActive(postId) {
+      return get(/databases/$(database)/documents/posts/$(postId)).data.status == 'active';
+    }
+
+    match /profiles/{luid} {
+      allow read: if true;
+      allow create, delete: if false;
+      allow update: if signedIn() && me() == luid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['handle', 'avatar_url', 'bio', 'display_name', 'updated_at'])
+        && request.resource.data.updated_at == request.time
+        && request.resource.data.handle is string
+        && request.resource.data.handle.matches('^[a-z0-9_.]{3,30}$')
+        && (!('bio' in request.resource.data) || request.resource.data.bio == null
+            || (request.resource.data.bio is string && request.resource.data.bio.size() <= 300))
+        && (!('display_name' in request.resource.data) || request.resource.data.display_name == null
+            || (request.resource.data.display_name is string && request.resource.data.display_name.size() <= 60))
+        && (!('avatar_url' in request.resource.data) || request.resource.data.avatar_url == null
+            || (request.resource.data.avatar_url is string && request.resource.data.avatar_url.size() <= 1024));
+    }
+
+    match /users_private/{luid} {
+      allow read: if signedIn() && me() == luid;
+      allow write: if false;
+    }
+
+    match /posts/{postId} {
+      allow read: if (resource.data.status == 'active' && resource.data.visibility == 'public')
+        || (signedIn() && resource.data.creator_id == me());
+      allow write: if false;
+    }
+
+    match /likes/{likeId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && likeId == request.resource.data.post_id + '_' + me()
+        && onlyKeys(['post_id', 'user_id', 'created_at'])
+        && request.resource.data.user_id == me()
+        && createdNow()
+        && postExists(request.resource.data.post_id);
+      allow update: if false;
+      allow delete: if signedIn() && (resource == null || resource.data.user_id == me());
+    }
+
+    match /post_saves/{saveId} {
+      allow get: if signedIn() && (resource == null || resource.data.user_id == me());
+      allow list: if signedIn() && resource.data.user_id == me();
+      allow create: if signedIn()
+        && saveId == me() + '_' + request.resource.data.post_id
+        && onlyKeys(['post_id', 'user_id', 'created_at'])
+        && request.resource.data.user_id == me()
+        && createdNow()
+        && postExists(request.resource.data.post_id);
+      allow update: if false;
+      allow delete: if signedIn() && (resource == null || resource.data.user_id == me());
+    }
+
+    match /follows/{followId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && onlyKeys(['follower_id', 'following_id', 'created_at'])
+        && request.resource.data.follower_id == me()
+        && request.resource.data.following_id is string
+        && request.resource.data.following_id != me()
+        && followId == me() + '_' + request.resource.data.following_id
+        && createdNow();
+      allow update: if false;
+      allow delete: if signedIn() && (resource == null || resource.data.follower_id == me());
+    }
+
+    match /user_blocks/{blockId} {
+      allow get: if signedIn() && (resource == null || resource.data.blocker_id == me());
+      allow list: if signedIn() && resource.data.blocker_id == me();
+      allow create: if signedIn()
+        && onlyKeys(['blocker_id', 'blocked_id', 'created_at'])
+        && request.resource.data.blocker_id == me()
+        && request.resource.data.blocked_id is string
+        && request.resource.data.blocked_id != me()
+        && blockId == me() + '_' + request.resource.data.blocked_id
+        && createdNow();
+      allow update: if false;
+      allow delete: if signedIn() && (resource == null || resource.data.blocker_id == me());
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && onlyKeys(['id', 'post_id', 'user_id', 'username', 'text', 'created_at'])
+        && request.resource.data.id == commentId
+        && request.resource.data.user_id == me()
+        && request.resource.data.username is string && request.resource.data.username.size() <= 30
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 500
+        && createdNow()
+        && postIsActive(request.resource.data.post_id);
+      allow update, delete: if false;
+    }
+
+    match /collections/{collectionId} {
+      allow read: if signedIn() && resource.data.owner_id == me();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['id', 'owner_id', 'title', 'description', 'visibility', 'created_at', 'updated_at'])
+        && request.resource.data.id == collectionId
+        && request.resource.data.owner_id == me()
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1 && request.resource.data.title.size() <= 80
+        && request.resource.data.visibility in ['private', 'public'];
+      allow update: if signedIn() && resource.data.owner_id == me()
+        && request.resource.data.owner_id == me()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'visibility', 'updated_at']);
+      allow delete: if signedIn() && resource.data.owner_id == me();
+    }
+
+    match /collection_items/{itemId} {
+      allow read: if signedIn() && resource.data.owner_id == me();
+      allow create: if signedIn()
+        && onlyKeys(['collection_id', 'post_id', 'owner_id', 'sort_order', 'created_at'])
+        && request.resource.data.owner_id == me()
+        && itemId == request.resource.data.collection_id + '_' + request.resource.data.post_id
+        && request.resource.data.sort_order is int
+        && createdNow()
+        && get(/databases/$(database)/documents/collections/$(request.resource.data.collection_id)).data.owner_id == me();
+      allow update: if false;
+      allow delete: if signedIn() && (resource == null || resource.data.owner_id == me());
+    }
+
+    match /moderation_flags/{flagId} {
+      allow read, update, delete: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['post_id', 'user_id', 'reason', 'status', 'metadata', 'created_at'])
+        && request.resource.data.user_id == me()
+        && request.resource.data.status == 'open'
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() >= 1 && request.resource.data.reason.size() <= 500
+        && createdNow();
+    }
+
+    match /activity_events/{eventId} {
+      allow read: if signedIn() && resource.data.recipient_id == me();
+      allow update: if signedIn() && resource.data.recipient_id == me()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read_at']);
+      allow create, delete: if false;
+    }
+
+    match /protected_zones/{zoneId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // analytics_events, admin_*, users_private writes, rate limits … server only.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

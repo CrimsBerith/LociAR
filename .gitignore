@@ -2,14 +2,15 @@
 
 # dependencies
 node_modules/
+.next/
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+# Native iOS
+ios/build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
 
-# Native
+# Native secrets
 .kotlin/
 *.orig.*
 *.jks
@@ -17,9 +18,6 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
-
-# Metro
-.metro-health-check*
 
 # debug
 npm-debug.*
@@ -30,12 +28,39 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# Machine-local config and Firebase client config
+Config/Local.xcconfig
+GoogleService-Info.plist
+.firebaserc.local
+functions/lib/
+.firebase/
+*-debug.log
+
 # local env files
+.env
+.env.*
+!.env.example
 .env*.local
+
 
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
 /android
+
+# local build caches
+.gradle/
+.tmp/
+
+# Local Supabase CLI temp secrets
+supabase/.temp/
+
+# AI agent / editor tool folders
+.agents/
+.continue
+.continue/
+.grok/
+.kilo/
+.kilocode/
+.cursor/
+.fuse_hidden*

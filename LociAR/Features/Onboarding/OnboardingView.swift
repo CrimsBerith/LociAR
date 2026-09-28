@@ -1,0 +1,150 @@
+import AVFoundation
+import CoreLocation
+import SwiftUI
+
+struct OnboardingView: View {
+    let onComplete: () -> Void
+    @State private var currentStep = 0
+
+    private struct OnboardingStep {
+        let title: String
+        let subtitle: String
+        let description: String
+        let symbol: String
+        let accentColor: Color
+    }
+
+    private let steps: [OnboardingStep] = [
+        OnboardingStep(
+            title: "Fiziksel Dünyaya Sabitle",
+            subtitle: "Mekânsal İçerik Üretimi",
+            description: "Fotoğraf, video ve düşüncelerini gerçek duvarlara, masalara ve mekânlara ARKit yüzey kilitleme ile sabitle.",
+            symbol: "location.viewfinder",
+            accentColor: LociTheme.accent
+        ),
+        OnboardingStep(
+            title: "Mekânları Keşfet",
+            subtitle: "Çevrendeki Dijital İzler",
+            description: "Şehrinde yürürken diğer kaşiflerin bıraktığı mekânsal paylaşımları tam konumlarında AR kameranla keşfet.",
+            symbol: "map.fill",
+            accentColor: Color.blue
+        ),
+        OnboardingStep(
+            title: "Güvenli ve Kontrolünde",
+            subtitle: "Kamera ve Konum İzinleri",
+            description: "Kameran sadece yüzey algılamak, konumun ise yakındaki postları açmak için kullanılır. Gizliliğin daima koruma altında.",
+            symbol: "shield.checkered",
+            accentColor: Color.purple
+        )
+    ]
+
+    var body: some View {
+        ZStack {
+            LociTheme.spatialGradient.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    if currentStep < steps.count - 1 {
+                        Button("Atla") {
+                            withAnimation(.easeInOut) { onComplete() }
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(LociTheme.secondaryText)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
+                    }
+                }
+
+                TabView(selection: $currentStep) {
+                    ForEach(0..<steps.count, id: \.self) { index in
+                        stepView(steps[index])
+                            .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .always))
+
+                bottomControlBar
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 36)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .accessibilityIdentifier("screen-onboarding")
+    }
+
+    private func stepView(_ step: OnboardingStep) -> some View {
+        VStack(spacing: 28) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(step.accentColor.opacity(0.12))
+                    .frame(width: 140, height: 140)
+                    .blur(radius: 20)
+
+                Circle()
+                    .stroke(step.accentColor.opacity(0.3), lineWidth: 1.5)
+                    .frame(width: 110, height: 110)
+
+                Image(systemName: step.symbol)
+                    .font(.system(size: 52, weight: .semibold))
+                    .foregroundStyle(step.accentColor)
+            }
+
+            VStack(spacing: 10) {
+                Text(step.subtitle.uppercased())
+                    .font(.caption.weight(.bold))
+                    .tracking(2)
+                    .foregroundStyle(step.accentColor)
+
+                Text(step.title)
+                    .font(.title.bold())
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+
+                Text(step.description)
+                    .font(.body)
+                    .foregroundStyle(LociTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 16)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var bottomControlBar: some View {
+        VStack(spacing: 12) {
+            if currentStep == steps.count - 1 {
+                Button {
+                    requestPermissionsAndFinish()
+                } label: {
+                    Label("Başlayalım", systemImage: "arrow.right.circle.fill")
+                }
+                .buttonStyle(LociPrimaryButtonStyle())
+                .accessibilityIdentifier("onboarding-finish")
+            } else {
+                Button {
+                    withAnimation(.easeInOut) {
+                        currentStep += 1
+                    }
+                } label: {
+                    Text("Devam Et")
+                }
+                .buttonStyle(LociPrimaryButtonStyle())
+                .accessibilityIdentifier("onboarding-next")
+            }
+        }
+    }
+
+    private func requestPermissionsAndFinish() {
+        AVCaptureDevice.requestAccess(for: .video) { _ in }
+        CLLocationManager().requestWhenInUseAuthorization()
+        withAnimation(.easeInOut) {
+            onComplete()
+        }
+    }
+}

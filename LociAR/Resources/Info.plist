@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>$(DEVELOPMENT_LANGUAGE)</string>
+  <key>CFBundleDisplayName</key>
+  <string>LociAR</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.social-networking</string>
+  <key>CFBundleExecutable</key>
+  <string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleIdentifier</key>
+  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>$(PRODUCT_NAME)</string>
+  <key>CFBundlePackageType</key>
+  <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$(MARKETING_VERSION)</string>
+  <key>CFBundleVersion</key>
+  <string>$(CURRENT_PROJECT_VERSION)</string>
+  <key>LSRequiresIPhoneOS</key>
+  <true/>
+  <key>NSCameraUsageDescription</key>
+	<string>LociAR, gerçek yüzeyleri algılamak ve postları seçtiğiniz yüzeye yerleştirmek için kamerayı kullanır.</string>
+  <key>NSLocationWhenInUseUsageDescription</key>
+	<string>LociAR, yakındaki postları göstermek ve AR içeriğini doğru konumda açmak için konumunuzu kullanır.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+	<string>LociAR, seçtiğiniz fotoğraf ve videoları kilitlenen yüzeye yerleştirmek için fotoğraf kitaplığını kullanır.</string>
+  <key>LSApplicationQueriesSchemes</key>
+  <array>
+    <string>spotify</string>
+    <string>youtube</string>
+    <string>youtube-unbranded</string>
+    <string>fb</string>
+    <string>facebook</string>
+    <string>instagram</string>
+    <string>twitter</string>
+  </array>
+  <key>UIRequiredDeviceCapabilities</key>
+  <array>
+    <string>arm64</string>
+    <string>arkit</string>
+  </array>
+  <key>UILaunchScreen</key>
+  <dict/>
+  <key>UISupportedInterfaceOrientations</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+  </array>
+  <key>UIRequiresFullScreen</key>
+  <true/>
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>com.khankartal.lociar.auth</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>lociar</string>
+      </array>
+    </dict>
+  </array>
+  <key>LOCIAR_FIREBASE_API_KEY</key>
+  <string>$(LOCIAR_FIREBASE_API_KEY)</string>
+  <key>LOCIAR_FIREBASE_GOOGLE_APP_ID</key>
+  <string>$(LOCIAR_FIREBASE_GOOGLE_APP_ID)</string>
+  <key>LOCIAR_FIREBASE_GCM_SENDER_ID</key>
+  <string>$(LOCIAR_FIREBASE_GCM_SENDER_ID)</string>
+  <key>LOCIAR_FIREBASE_PROJECT_ID</key>
+  <string>$(LOCIAR_FIREBASE_PROJECT_ID)</string>
+  <key>LOCIAR_FIREBASE_STORAGE_BUCKET</key>
+  <string>$(LOCIAR_FIREBASE_STORAGE_BUCKET)</string>
+  <key>LOCIAR_FIREBASE_FUNCTIONS_REGION</key>
+  <string>$(LOCIAR_FIREBASE_FUNCTIONS_REGION)</string>
+  <key>LOCIAR_APPLE_AUTH_ENABLED</key>
+  <true/>
+  <key>LOCIAR_PRIVACY_URL</key>
+  <string>$(LOCIAR_PRIVACY_URL)</string>
+  <key>LOCIAR_TERMS_URL</key>
+  <string>$(LOCIAR_TERMS_URL)</string>
+  <key>LOCIAR_SUPPORT_URL</key>
+  <string>$(LOCIAR_SUPPORT_URL)</string>
+</dict>
+</plist>

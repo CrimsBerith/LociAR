@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Single bucket; top-level folders mirror the former Supabase buckets.
+// Layout: {folder}/{luid}/{postId}/... — only the owner (luid claim) may write.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null && request.auth.token.luid is string; }
+    function owner(luid) { return signedIn() && request.auth.token.luid == luid; }
+    function under(mb) { return request.resource.size < mb * 1024 * 1024; }
+    function isImage() { return request.resource.contentType.matches('image/(jpeg|png|heic|webp)'); }
+
+    match /post-layer-assets/{luid}/{rest=**} {
+      allow read: if signedIn();
+      allow create, update: if owner(luid) && under(5) && isImage();
+      allow delete: if owner(luid);
+    }
+    match /post-video-assets/{luid}/{rest=**} {
+      allow read: if signedIn();
+      allow create, update: if owner(luid) && under(80)
+        && request.resource.contentType.matches('video/(mp4|quicktime)');
+      allow delete: if owner(luid);
+    }
+    match /post-world-maps/{luid}/{postId}/{file} {
+      allow read: if signedIn();
+      allow create, update: if owner(luid) && under(50) && file.matches('.*\\.lociarmap')
+        && request.resource.contentType == 'application/x-lociarmap';
+      allow delete: if owner(luid);
+    }
+    match /post-reference-images/{luid}/{rest=**} {
+      allow read: if signedIn();
+      allow create, update: if owner(luid) && under(10) && isImage();
+      allow delete: if owner(luid);
+    }
+    match /post-surface-textures/{luid}/{rest=**} {
+      allow read: if signedIn();
+      allow create, update: if owner(luid) && under(10) && isImage();
+      allow delete: if owner(luid);
+    }
+    match /avatars/{luid}/{rest=**} {
+      allow read: if signedIn();
+      allow create, update: if owner(luid) && under(3) && isImage();
+      allow delete: if owner(luid);
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

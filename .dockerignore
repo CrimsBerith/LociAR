@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+npm-debug.log
+*.log
+.git
+.gitignore
+.next
+**/.next
+dist
+artifacts
+.tmp
+DerivedData
+.build
+*.xcresult
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+

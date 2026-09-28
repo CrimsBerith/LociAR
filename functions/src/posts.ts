@@ -1,0 +1,231 @@
+import { randomUUID } from 'node:crypto';
+import { onCall } from 'firebase-functions/v2/https';
+import {
+  bucket, db, deleteStoragePrefix, FieldValue, HttpsError, identityVerified, isUUID, logEvent,
+  requireCaller, Timestamp,
+} from './core';
+import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
+import { evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
+
+/**
+ * High-quality world locks used to go live without review in the Supabase build. App Review
+ * notes promise that every post is reviewed first, so this defaults to off.
+ */
+const AUTO_PUBLISH_HIGH_QUALITY = process.env.LOCIAR_AUTO_PUBLISH_HIGH_QUALITY === 'true';
+
+type ProtectedZone = { name: string; category: string; lat: number; lng: number; radius_meters: number };
+let zoneCache: { at: number; zones: ProtectedZone[] } | null = null;
+
+async function protectedZoneAt(lat: number, lng: number): Promise<ProtectedZone | null> {
+  if (!zoneCache || Date.now() - zoneCache.at > 5 * 60 * 1000) {
+    const snap = await db.collection('protected_zones').where('active', '==', true).limit(5000).get();
+    zoneCache = {
+      at: Date.now(),
+      zones: snap.docs.map((d) => d.data() as ProtectedZone).filter((z) => typeof z.lat === 'number'),
+    };
+  }
+  let best: { zone: ProtectedZone; distance: number } | null = null;
+  for (const zone of zoneCache.zones) {
+    const distance = distanceMeters(lat, lng, zone.lat, zone.lng);
+    if (distance <= zone.radius_meters && (!best || distance < best.distance)) best = { zone, distance };
+  }
+  return best?.zone ?? null;
+}
+
+async function storageObjectExists(path: string | null): Promise<boolean> {
+  if (!path) return false;
+  const [exists] = await bucket().file(path).exists();
+  return exists;
+}
+
+async function activeDensity(lat: number, lng: number, radius: number): Promise<number> {
+  const prefixes = geohashCoverPrefixes(lat, lng, radius);
+  let count = 0;
+  for (const prefix of prefixes) {
+    const snap = await db.collection('posts')
+      .where('status', 'in', ['active', 'pending_review'])
+      .orderBy('geohash')
+      .startAt(prefix)
+      .endAt(`${prefix}~`)
+      .limit(50)
+      .get();
+    count += snap.docs.filter((d) => {
+      const p = d.data();
+      return distanceMeters(lat, lng, p.lat, p.lng) <= radius;
+    }).length;
+  }
+  return count;
+}
+
+function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
+  return { id, placement_state: data.placement_state ?? null, status: data.status };
+}
+
+export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60 }, async (request) => {
+  const caller = requireCaller(request);
+  const body = request.data as CreatePostBody;
+  const validationError = validateCreatePostBody(body);
+  if (validationError) throw new HttpsError('invalid-argument', validationError);
+  if (!identityVerified(caller)) {
+    throw new HttpsError('permission-denied', 'A verified Apple or email identity is required');
+  }
+
+  const profileSnap = await db.collection('profiles').doc(caller.luid).get();
+  if (!profileSnap.exists) throw new HttpsError('failed-precondition', 'Profile missing; call ensureProfile first');
+  const profile = profileSnap.data()!;
+  if (profile.suspended === true || profile.deleted_at) {
+    throw new HttpsError('permission-denied', 'This account cannot publish');
+  }
+
+  const postId = body.clientMutationId!.toLowerCase();
+  const postRef = db.collection('posts').doc(postId);
+  const existing = await postRef.get();
+  if (existing.exists) {
+    const data = existing.data()!;
+    if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
+    return { post: serializePost(postId, data), publishStatus: data.status, idempotentReplay: true };
+  }
+
+  const { latitude: lat, longitude: lng } = body.pose;
+  const zone = await protectedZoneAt(lat, lng);
+  if (zone) {
+    await logEvent({ userId: caller.luid, name: 'protected_zone_blocked', properties: { zone: zone.name }, lat, lng });
+    throw new HttpsError('permission-denied', `Creation is blocked in protected zone: ${zone.name}`);
+  }
+
+  const now = Date.now();
+  const recent = db.collection('posts').where('creator_id', '==', caller.luid);
+  const [hourly, daily, density] = await Promise.all([
+    recent.where('created_at', '>=', Timestamp.fromMillis(now - 3_600_000)).count().get(),
+    recent.where('created_at', '>=', Timestamp.fromMillis(now - 86_400_000)).count().get(),
+    activeDensity(lat, lng, 25),
+  ]);
+  const hourlyCount = hourly.data().count;
+  const dailyCount = daily.data().count;
+  if (hourlyCount >= 10 || dailyCount >= 50 || density >= 5) {
+    await db.collection('moderation_flags').doc(randomUUID()).set({
+      post_id: null,
+      user_id: caller.luid,
+      reason: 'rate_or_density_limit',
+      status: 'open',
+      metadata: { hourly: hourlyCount, daily: dailyCount, density },
+      created_at: FieldValue.serverTimestamp(),
+    });
+    throw new HttpsError('resource-exhausted', 'Creation limit reached for this area or account');
+  }
+
+  const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
+  const publishStatus = AUTO_PUBLISH_HIGH_QUALITY && placement.autoPublishEligible ? 'active' : 'pending_review';
+
+  const document = {
+    id: postId,
+    creator_id: caller.luid,
+    creator_handle: String(profile.handle ?? ''),
+    lat,
+    lng,
+    geohash: encodeGeohash(lat, lng, 10),
+    pose_json: JSON.stringify(body.pose),
+    ref_image_url: body.refImageUri,
+    edit_data_json: JSON.stringify(body.editData),
+    content_source_json: body.contentSource ? JSON.stringify(body.contentSource) : null,
+    anchor_bundle_json: body.anchorBundle ? JSON.stringify(body.anchorBundle) : null,
+    calibration_json: JSON.stringify(placement.calibration),
+    caption: body.caption.trim(),
+    age_rating: body.ageRating,
+    visibility: body.visibility,
+    status: publishStatus,
+    placement_state: placement.placementState,
+    placement_quality: placement.placementQuality,
+    resolver_strategy: placement.resolverStrategy,
+    native_provider: placement.nativeProvider,
+    multi_user_ready: placement.hasPersistentResolver,
+    views_count: 0,
+    likes_count: 0,
+    comments_count: 0,
+    saves_count: 0,
+    engagement_score: 0,
+    client_mutation_id: postId,
+    deleted_at: null,
+    created_at: FieldValue.serverTimestamp(),
+    updated_at: FieldValue.serverTimestamp(),
+  };
+
+  try {
+    await postRef.create(document);
+  } catch (error) {
+    const again = await postRef.get();
+    if (again.exists && again.data()!.creator_id === caller.luid) {
+      return { post: serializePost(postId, again.data()!), publishStatus: again.data()!.status, idempotentReplay: true };
+    }
+    throw error;
+  }
+
+  await logEvent({
+    userId: caller.luid,
+    postId,
+    name: publishStatus === 'active' ? 'post_published_active' : 'post_pending_review_created',
+    properties: {
+      layerCount: (body.editData as { layers: unknown[] }).layers.length,
+      placementState: placement.placementState,
+      placementQuality: placement.placementQuality,
+      nativeProvider: placement.nativeProvider,
+      publishStatus,
+      multiUserReady: placement.hasPersistentResolver,
+    },
+    lat,
+    lng,
+  });
+
+  return { post: serializePost(postId, document), publishStatus, idempotentReplay: false };
+});
+
+export const deleteOwnPost = onCall(async (request) => {
+  const caller = requireCaller(request);
+  const postId = (request.data as { postId?: unknown })?.postId;
+  if (!isUUID(postId)) throw new HttpsError('invalid-argument', 'Invalid post ID');
+  const ref = db.collection('posts').doc(postId.toLowerCase());
+  const removed = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return false;
+    const post = snap.data()!;
+    if (post.creator_id !== caller.luid || post.deleted_at) return false;
+    if (!['active', 'pending_review', 'flagged', 'draft'].includes(post.status)) return false;
+    tx.update(ref, { status: 'removed', deleted_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
+    return true;
+  });
+  if (removed) await deleteStoragePrefix(`${caller.luid}/${postId.toLowerCase()}/`);
+  return { removed };
+});
+
+export const recordPostView = onCall(async (request) => {
+  const caller = requireCaller(request);
+  const postId = (request.data as { postId?: unknown })?.postId;
+  if (!isUUID(postId)) throw new HttpsError('invalid-argument', 'Invalid post ID');
+  const id = postId.toLowerCase();
+  const postRef = db.collection('posts').doc(id);
+  const day = new Date().toISOString().slice(0, 10);
+  const receiptRef = db.collection('post_view_receipts').doc(`${id}_${caller.luid}_${day}`);
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(postRef);
+    if (!snap.exists) throw new HttpsError('permission-denied', 'post_not_viewable');
+    const post = snap.data()!;
+    const viewable = post.creator_id === caller.luid
+      || (post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
+    if (!viewable) throw new HttpsError('permission-denied', 'post_not_viewable');
+    const [blockA, blockB] = await Promise.all([
+      tx.get(db.collection('user_blocks').doc(`${caller.luid}_${post.creator_id}`)),
+      tx.get(db.collection('user_blocks').doc(`${post.creator_id}_${caller.luid}`)),
+    ]);
+    if (blockA.exists || blockB.exists) throw new HttpsError('permission-denied', 'post_not_viewable');
+    const receipt = await tx.get(receiptRef);
+    const current = Number(post.views_count ?? 0);
+    if (receipt.exists) return { views: current };
+    tx.create(receiptRef, { post_id: id, user_id: caller.luid, viewed_on: day, created_at: FieldValue.serverTimestamp() });
+    tx.update(postRef, {
+      views_count: FieldValue.increment(1),
+      engagement_score: FieldValue.increment(1),
+    });
+    return { views: current + 1 };
+  });
+});

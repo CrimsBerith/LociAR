@@ -1,0 +1,14 @@
+// Firebase client identifiers (Firebase console → Project settings → Your apps → iOS).
+// Real values go in Config/Local.xcconfig, which is git-ignored.
+LOCIAR_FIREBASE_API_KEY =
+LOCIAR_FIREBASE_GOOGLE_APP_ID =
+LOCIAR_FIREBASE_GCM_SENDER_ID =
+LOCIAR_FIREBASE_PROJECT_ID =
+LOCIAR_FIREBASE_STORAGE_BUCKET =
+LOCIAR_FIREBASE_FUNCTIONS_REGION = us-central1
+LOCIAR_PRIVACY_URL = https:/$()/lociar-admin.vercel.app/privacy
+LOCIAR_TERMS_URL = https:/$()/lociar-admin.vercel.app/terms
+LOCIAR_SUPPORT_URL = https:/$()/lociar-admin.vercel.app/support
+
+// Machine-local credentials. This file is intentionally excluded from source control.
+#include? "Local.xcconfig"

@@ -1,0 +1,1002 @@
+import CoreLocation
+import AVFoundation
+import CoreTransferable
+import PhotosUI
+import SwiftData
+import SwiftUI
+import UIKit
+import UniformTypeIdentifiers
+
+struct CreatePostView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.openURL) private var openURL
+    @Environment(AppSession.self) private var session
+    @Environment(AppContainer.self) private var container
+    @Environment(ARPinningEngine.self) private var engine
+    @State private var selectedAnchor: SurfaceAnchor?
+    @State private var caption = ""
+    @State private var externalMediaURL = ""
+    @State private var selectedExternalPlatform: ExternalMediaPlatform?
+    @State private var showExternalMediaPicker = false
+    @State private var externalPickerDetent: PresentationDetent = .large
+    @State private var externalImportMessage: String?
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedImageData: Data?
+    @State private var selectedVideoURL: URL?
+    @State private var videoThumbnail: UIImage?
+    @State private var selectedMediaIsVideo = false
+    @State private var isPublishing = false
+    @State private var message: String?
+    @State private var dismissAfterAlert = false
+    @State private var offerLocationSettings = false
+    @State private var offerFallbackToApproximate = false
+    @State private var mappingWaitExpired = false
+    @FocusState private var isCaptionFocused: Bool
+
+    init(anchor: SurfaceAnchor? = nil) {
+        _selectedAnchor = State(initialValue: anchor)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let anchor = selectedAnchor { editor(anchor: anchor) }
+                else { placementStep }
+            }
+            .navigationTitle(selectedAnchor == nil ? "Yüzey seç" : "İçerik oluştur")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Bitti") {
+                        isCaptionFocused = false
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
+                    .fontWeight(.semibold)
+                    .accessibilityIdentifier("keyboard-done-button")
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+        .alert("LociAR", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+            if offerLocationSettings {
+                Button("Konum ayarlarını aç") {
+                    offerLocationSettings = false
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        openURL(url)
+                    }
+                }
+            }
+            if offerFallbackToApproximate {
+                Button("Yaklaşık olarak devam et") {
+                    offerFallbackToApproximate = false
+                    engine.offerApproximatePlacement()
+                    engine.placeApproximate()
+                    if let anchor = engine.currentAnchor {
+                        selectedAnchor = anchor
+                        engine.stopSession()
+                    }
+                }
+                Button("Tekrar dene", role: .cancel) {
+                    offerFallbackToApproximate = false
+                    mappingWaitExpired = false
+                    engine.restartTracking()
+                }
+            } else {
+                Button("Tamam", role: .cancel) { if dismissAfterAlert { dismiss() } }
+            }
+        } message: { Text(message ?? "") }
+        .sheet(isPresented: $showExternalMediaPicker) { externalMediaPicker }
+        .task(id: engine.currentAnchor?.id) {
+            mappingWaitExpired = false
+            guard engine.currentAnchor?.pinQuality.isPhysicalSurface == true,
+                  !physicalPlacementReady else { return }
+            try? await Task.sleep(for: .seconds(45))
+            if engine.currentAnchor?.pinQuality.isPhysicalSurface == true,
+               !physicalPlacementReady {
+                mappingWaitExpired = true
+            }
+        }
+        .onDisappear {
+            if selectedAnchor == nil {
+                engine.stopSession()
+            }
+        }
+    }
+
+    private var placementStep: some View {
+        ZStack {
+            ARViewContainer(engine: engine).ignoresSafeArea()
+            if !engine.hasRecentCameraFrame {
+                ARCameraBackdrop(failed: engine.state == .failed, message: engine.statusMessage)
+            }
+            Circle().stroke(engine.candidateQuality != nil ? LociTheme.accent : .white, lineWidth: 3).frame(width: 54, height: 54)
+            VStack {
+                LociCard {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: placementSymbol)
+                            Text(placementTitle).font(.caption.bold())
+                        }
+                        .foregroundStyle(engine.candidateQuality == nil ? Color.white : LociTheme.accent)
+                        Text(engine.statusMessage).font(.footnote).foregroundStyle(.secondary)
+                        if engine.currentAnchor == nil {
+                            Text(engine.mappingDiagnosticSummary)
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .accessibilityIdentifier("ar-mapping-diagnostic")
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                Spacer()
+                VStack(spacing: 10) {
+                    if engine.state == .approximateOffered {
+                        Button("Yaklaşık yerleştir · 0,8 m") {
+                            engine.placeApproximate()
+                            if let anchor = engine.currentAnchor {
+                                Task { await commitPlacement(anchor) }
+                            }
+                        }
+                        .buttonStyle(.borderedProminent).tint(.orange)
+                    }
+                    if engine.state == .failed {
+                        if placementUnsupported {
+                            Label("AR bu cihazda desteklenmiyor", systemImage: "iphone.slash")
+                                .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, minHeight: 48)
+                        } else if cameraPermissionDenied {
+                            Button("Kamera ayarlarını aç", systemImage: "gear") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    openURL(url)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+                        } else {
+                            Button("Tekrar dene", systemImage: "arrow.clockwise") { Task { _ = await engine.prepareNewPinSession() } }
+                                .frame(maxWidth: .infinity, minHeight: 48)
+                                .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+                        }
+                    } else if let anchor = engine.currentAnchor {
+                        Text(anchor.pinQuality == .freeSpaceApproximate ? "Yaklaşık yerleştirme" : "Yüzey bulundu")
+                            .font(.caption.bold()).foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
+                        if anchor.pinQuality.isPhysicalSurface && !physicalPlacementReady {
+                            VStack(spacing: 5) {
+                                Label(mappingStatusTitle, systemImage: "viewfinder")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Text(mappingStatusGuidance)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                                Text(engine.mappingDiagnosticSummary)
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .accessibilityIdentifier("ar-mapping-diagnostic")
+                            }
+                            HStack(spacing: 12) {
+                                Button("Tekrar tara", systemImage: "arrow.clockwise") {
+                                    mappingWaitExpired = false
+                                    engine.restartTracking()
+                                }
+                                .buttonStyle(.bordered)
+                                Button("Yaklaşık devam et") {
+                                    engine.offerApproximatePlacement()
+                                    engine.placeApproximate()
+                                    if let approx = engine.currentAnchor {
+                                        Task { await commitPlacement(approx) }
+                                    }
+                                }
+                                .buttonStyle(.bordered).tint(.orange)
+                            }
+                        }
+                        Button("Bu yerleşimi kullan") { Task { await commitPlacement(anchor) } }
+                            .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
+                            .disabled(!canUsePlacement(anchor))
+                            .accessibilityIdentifier("create-use-placement")
+                    } else {
+                        Button("Yüzeye sabitle") { engine.requestPin() }
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+                            .accessibilityIdentifier("create-pin-surface")
+                        Button {
+                            engine.offerApproximatePlacement()
+                            engine.placeApproximate()
+                            if let anchor = engine.currentAnchor {
+                                Task { await commitPlacement(anchor) }
+                            }
+                        } label: {
+                            Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.85))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 4)
+                        .accessibilityIdentifier("create-place-approximate")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
+            }
+            .padding()
+        }
+        .task { _ = await engine.prepareNewPinSession() }
+        .onDisappear { if selectedAnchor == nil { engine.stopSession() } }
+    }
+
+    private var placementTitle: String {
+        if engine.state == .failed { return placementUnsupported ? "AR desteklenmiyor" : "Kamera açılamadı" }
+        if engine.currentAnchor != nil { return "Yerleştirme hazır" }
+        if engine.candidateQuality == .planeGeometry { return "Kesin yüzey hazır" }
+        if engine.candidateQuality == .estimatedPlane { return "Tahmini yüzey bulundu" }
+        if engine.candidateQuality != nil { return "Yüzey hazır" }
+        if engine.state == .approximateOffered { return "Yüzey bulunamadı" }
+        return "Yüzey aranıyor"
+    }
+
+    private var trackingUsableForPlacement: Bool {
+        engine.trackingQuality == .normal || engine.trackingQuality == .limited
+    }
+
+    private var physicalPlacementReady: Bool {
+        trackingUsableForPlacement && engine.mappingQuality.canPersist
+    }
+
+    private var mappingStatusTitle: String {
+        switch engine.mappingQuality {
+        case .notAvailable: return "Çevre haritası başlatılıyor"
+        case .limited: return "Çevre haritası sınırlı"
+        case .extending: return "Çevre haritası genişletiliyor"
+        case .mapped: return "Çevre haritası hazır"
+        }
+    }
+
+    private var mappingStatusGuidance: String {
+        if engine.statusMessage.localizedCaseInsensitiveContains("sıcaklığı yüksek") {
+            return "Cihazı serin ve gölgeli bir yerde beklet. Sıcaklık normale dönünce AR taraması otomatik devam eder."
+        }
+        if mappingWaitExpired {
+            return "Harita hazır olmadı. Daha iyi ışıkta dokulu yüzeyi farklı açılardan tara; sonra Tekrar tara'yı seç veya Kapat ile iptal et."
+        }
+        switch engine.mappingQuality {
+        case .notAvailable:
+            return "Devam etmek için telefonu dokulu yüzeyin çevresinde yavaşça gezdir ve ışığı artır."
+        case .limited:
+            return "Yüzey kaydı sınırlı da olsa kullanılabilir. Daha sağlam kilit için telefonu yavaş gezdir."
+        case .extending:
+            return "Çevre haritası genişliyor. Yerleşimi şimdi kullanabilirsin."
+        case .mapped:
+            return "Yüzey kaydı hazır."
+        }
+    }
+
+    private func canUsePlacement(_ anchor: SurfaceAnchor) -> Bool {
+        guard trackingUsableForPlacement else { return false }
+        return !anchor.pinQuality.isPhysicalSurface || engine.mappingQuality.canPersist
+    }
+
+    private var placementSymbol: String {
+        if engine.state == .failed { return "exclamationmark.triangle.fill" }
+        if engine.currentAnchor != nil { return "checkmark.seal.fill" }
+        if engine.candidateQuality != nil { return "viewfinder.circle.fill" }
+        return "viewfinder"
+    }
+
+    private var placementUnsupported: Bool {
+        engine.state == .failed && engine.statusMessage.localizedCaseInsensitiveContains("desteklemiyor")
+    }
+
+    private var cameraPermissionDenied: Bool {
+        if UITestFixtures.cameraPermissionDenied { return true }
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        return status == .denied || status == .restricted
+    }
+
+    private func editor(anchor: SurfaceAnchor) -> some View {
+        let mediaLabel = MediaSelectionLabel(
+            isVideo: selectedMediaIsVideo,
+            hasSelection: selectedPhoto != nil || selectedImageData != nil
+        )
+        return ScrollView {
+            VStack(spacing: 16) {
+                LociCard {
+                    HStack(spacing: 12) {
+                        Image(systemName: anchor.pinQuality.isPhysicalSurface ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                            .font(.title2)
+                            .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
+                        VStack(alignment: .leading) {
+                            Text(anchor.pinQuality.isPhysicalSurface ? surfaceTitle(anchor.surfaceAlignment) : "Yaklaşık yerleştirme")
+                                .font(.headline)
+                            Text(anchor.pinQuality.isPhysicalSurface ? "İçerik bu fiziksel yüzeye sabitlenecek." : "İçerik kameranın 0,8 m önünde görünecek.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Değiştir") { selectedAnchor = nil }
+                            .buttonStyle(.bordered).controlSize(.small)
+                    }
+                }
+
+                LociCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        LociSectionLabel(title: "Caption", symbol: "text.quote")
+                        TextField("Bu yüzeyde ne var?", text: $caption, axis: .vertical)
+                            .lineLimit(2...6)
+                            .padding(12)
+                            .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .focused($isCaptionFocused)
+                            .accessibilityIdentifier("create-caption")
+                            .onChange(of: caption) { _, newCaption in
+                                detectExternalMediaInCaptionIfNeeded(newCaption)
+                            }
+                        HStack {
+                            Text("Harita, Keşfet, arama ve VoiceOver’da kullanılır.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                            Spacer(minLength: 8)
+                            Text("\(caption.count)/220").font(.caption.monospacedDigit())
+                                .foregroundStyle(caption.count <= 220 ? Color.secondary : Color.red)
+                        }
+                        if caption.count > 220 {
+                            Label("Caption 220 karakteri geçemez.", systemImage: "exclamationmark.circle.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.red)
+                        }
+
+                        Divider().overlay(LociTheme.hairline)
+                        LociSectionLabel(title: "İçerik", symbol: "rectangle.stack.badge.plus")
+
+                        PhotosPicker(selection: $selectedPhoto, matching: .any(of: [.images, .videos])) {
+                            mediaLabel
+                        }
+                        .buttonStyle(.plain)
+                        .onChange(of: selectedPhoto) { _, item in
+                            if item != nil {
+                                externalMediaURL = ""
+                                selectedExternalPlatform = nil
+                            }
+                            Task { await loadMedia(item) }
+                        }
+                        selectedMediaPreview
+
+                        HStack(spacing: 10) {
+                            Rectangle().fill(LociTheme.hairline).frame(height: 1)
+                            Text("veya").font(.caption2.weight(.semibold)).foregroundStyle(LociTheme.tertiaryText)
+                            Rectangle().fill(LociTheme.hairline).frame(height: 1)
+                        }
+
+                        Button {
+                            presentExternalMediaPicker()
+                        } label: {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 11)
+                                        .fill((selectedExternalPlatform.map(platformColor) ?? LociTheme.accent).opacity(0.16))
+                                        .frame(width: 40, height: 40)
+                                    if let selectedExternalPlatform {
+                                        BrandLogoView(platform: selectedExternalPlatform, size: 27)
+                                    } else {
+                                        Image(systemName: "link.badge.plus").foregroundStyle(LociTheme.accent)
+                                    }
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(selectedExternalPlatform?.rawValue ?? "Sosyal medya postu ekle")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(selectedExternalPlatform == nil ? "Spotify · YouTube · Facebook · Instagram · X" : "Platformu değiştirmek için dokun")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(.secondary)
+                            }
+                            .frame(minHeight: 46)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("create-external-media-picker")
+
+                        if let selectedExternalPlatform {
+                            HStack(spacing: 8) {
+                                TextField(selectedExternalPlatform.linkHint, text: $externalMediaURL)
+                                    .keyboardType(.URL)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .accessibilityIdentifier("create-external-media")
+                                    .onChange(of: externalMediaURL) { _, value in
+                                        if let parsedPlatform = ExternalMediaParser.parse(value)?.externalMedia?.platform {
+                                             if self.selectedExternalPlatform != parsedPlatform {
+                                                self.selectedExternalPlatform = parsedPlatform
+                                            }
+                                            selectedPhoto = nil
+                                            selectedImageData = nil
+                                            selectedVideoURL = nil
+                                            selectedMediaIsVideo = false
+                                        }
+                                    }
+                                Button("Yapıştır", systemImage: "doc.on.clipboard") {
+                                    if let copied = UIPasteboard.general.string { externalMediaURL = copied }
+                                }
+                                .labelStyle(.iconOnly)
+                                .foregroundStyle(LociTheme.accent)
+                                if !externalMediaURL.isEmpty {
+                                    Button("Temizle", systemImage: "xmark.circle.fill") { externalMediaURL = "" }
+                                        .labelStyle(.iconOnly)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(12)
+                            .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                            if parsedExternalMedia?.externalMedia?.platform == selectedExternalPlatform {
+                                LociStatusPill(title: "\(selectedExternalPlatform.rawValue) paylaşımı hazır", symbol: "checkmark", color: platformColor(selectedExternalPlatform))
+                                if let external = parsedExternalMedia?.externalMedia {
+                                    HStack(spacing: 12) {
+                                        BrandLogoView(platform: external.platform, size: 30)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("\(external.platform.rawValue) içeriği eklendi")
+                                                .font(.subheadline.weight(.semibold))
+                                            Text(external.url.absoluteString)
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                                .truncationMode(.middle)
+                                        }
+                                        Spacer()
+                                        Link(destination: external.url) {
+                                            Image(systemName: "arrow.up.right")
+                                        }
+                                        .accessibilityLabel("Seçilen içeriği aç")
+                                    }
+                                    .padding(12)
+                                    .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .accessibilityIdentifier("external-media-selection-preview")
+                                }
+                            } else if !externalMediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Label("Geçerli bir \(selectedExternalPlatform.rawValue) paylaşım bağlantısı yapıştır.", systemImage: "exclamationmark.circle")
+                                    .font(.caption).foregroundStyle(.orange)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(LociTheme.background)
+        .scrollDismissesKeyboard(.immediately)
+        .safeAreaInset(edge: .bottom) { publishBar(anchor: anchor) }
+        .onAppear { attachSampleImageIfNeeded() }
+    }
+
+    private func publishBar(anchor: SurfaceAnchor) -> some View {
+        VStack(spacing: 6) {
+            Button {
+                Task { await publish(anchor: anchor) }
+            } label: {
+                if isPublishing { ProgressView().tint(.black) }
+                else { Label("Yüzeyde yayınla", systemImage: "paperplane.fill") }
+            }
+            .buttonStyle(LociPrimaryButtonStyle())
+            .disabled(!canPublish)
+            .accessibilityIdentifier("create-publish")
+            if !hasMeaningfulContent {
+                Text("Caption, medya veya geçerli bir sosyal bağlantı ekle.")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 6)
+        .background(.ultraThinMaterial)
+    }
+
+    private var canPublish: Bool {
+        !isPublishing && hasMeaningfulContent && caption.count <= 220
+    }
+
+    private func surfaceTitle(_ alignment: SurfaceAlignment) -> String {
+        switch alignment {
+        case .horizontal: "Yatay yüzey hazır"
+        case .vertical: "Dikey yüzey hazır"
+        case .angled: "Açılı yüzey hazır"
+        default: "Yüzey hazır"
+        }
+    }
+
+    private func loadMedia(_ item: PhotosPickerItem?) async {
+        guard let item else {
+            selectedImageData = nil
+            selectedVideoURL = nil
+            selectedMediaIsVideo = false
+            return
+        }
+        selectedMediaIsVideo = item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) })
+        do {
+            if selectedMediaIsVideo {
+                selectedImageData = nil
+                selectedVideoURL = try await item.loadTransferable(type: PickedVideo.self)?.url
+                if let url = selectedVideoURL {
+                    await generateVideoThumbnail(from: url)
+                } else {
+                    message = "Seçilen video okunamadı. Farklı bir video deneyin."
+                }
+            } else {
+                selectedVideoURL = nil
+                videoThumbnail = nil
+                selectedImageData = try await item.loadTransferable(type: PickedImage.self)?.data
+                if selectedImageData == nil { message = "Seçilen fotoğraf okunamadı. Farklı bir dosya deneyin." }
+            }
+        } catch {
+            selectedImageData = nil
+            selectedVideoURL = nil
+            videoThumbnail = nil
+            message = "Seçilen medya okunamadı. Farklı bir fotoğraf veya video dene."
+        }
+    }
+
+    private func publish(anchor: SurfaceAnchor) async {
+        guard case .signedIn(let user) = session.phase else {
+            message = "Yayınlamak için tekrar giriş yapın."
+            return
+        }
+        isPublishing = true
+        defer { isPublishing = false }
+
+        var anchor = anchor
+        if anchor.geoPose == nil {
+            if let captured = await GeoPoseCaptureService().capture() {
+                anchor.geoPose = captured
+            }
+        }
+        if var geoPose = anchor.geoPose {
+            geoPose.heading = GeoPoseCaptureService.validHeading(geoPose.heading) ?? 0
+            anchor.geoPose = geoPose
+        }
+        if anchor.geoPose == nil {
+            let status = CLLocationManager().authorizationStatus
+            if status == .denied || status == .restricted {
+                offerLocationSettings = true
+            }
+            dismissAfterAlert = false
+            message = offerLocationSettings
+                ? "Post yayınlamak için konum iznini Ayarlar'dan açın."
+                : "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin."
+            return
+        }
+
+        let postID = UUID()
+        var layers: [EditLayer] = []
+        let finalCaption = resolvedCaption
+        if !finalCaption.isEmpty {
+            layers.append(EditLayer(id: UUID(), kind: .text, text: finalCaption, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0))
+        }
+        var source: ContentSource? = parsedExternalMedia
+        if let selectedVideoURL {
+            do {
+                let staged = try await MediaAssetStore.stage(fileURL: selectedVideoURL, id: postID)
+                source = .video(staged)
+                if layers.isEmpty {
+                    layers.append(EditLayer(id: UUID(), kind: .text, text: finalCaption, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0))
+                }
+            } catch {
+                message = (error as? LocalizedError)?.errorDescription ?? "Video yayına hazırlanamadı. Farklı bir dosya dene."
+                return
+            }
+        } else if let selectedImageData {
+            do {
+                let staged = try await MediaAssetStore.stage(data: selectedImageData, id: postID, isVideo: false)
+                layers.append(EditLayer(id: UUID(), kind: .image, text: nil, assetURL: staged, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0))
+            } catch {
+                message = (error as? LocalizedError)?.errorDescription ?? "Medya yayına hazırlanamadı. Farklı bir dosya dene."
+                return
+            }
+        }
+        let post = LociPost(
+            id: postID, creatorID: user.id, creatorHandle: user.handle, createdAt: Date(), caption: finalCaption,
+            status: .pendingReview, visibility: .public, ageRating: .all,
+            anchorBundle: AnchorBundle(anchor: anchor), editData: EditData(layers: layers), contentSource: source,
+            counts: PostCounts()
+        )
+        do {
+            let outcome = try await container.publisher.submit(
+                post,
+                attemptRemote: !session.isLocalPreview && container.isBackendConfigured && container.connectivity.isOnline,
+                modelContext: modelContext
+            )
+            dismissAfterAlert = true
+            switch outcome {
+            case .published(let receipt):
+                switch receipt.status {
+                case .active:
+                    message = "Post yayınlandı. Keşfet ve profilinde görünür."
+                case .pendingReview:
+                    message = "Post gönderildi ve incelemeye alındı. Durumu Profil > Postlarım'dan takip edebilirsin."
+                default:
+                    message = "Post sunucuya kaydedildi. Durumu Profil > Postlarım'da görünür."
+                }
+            case .queued(.offline):
+                message = session.isLocalPreview
+                    ? "Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir."
+                    : "İnternet bağlantısı yok. Post cihazda sıraya alındı ve bağlantı geri geldiğinde yeniden denenecek."
+            case .queued(.backendUnavailable):
+                message = "Yayın ilk denemede tamamlanamadı. Post Profil > Postlarım’da görünür; uygulama 15 saniyede bir yeniden dener veya ‘Şimdi yayınla’ ile hemen gönderebilirsin."
+            case .rejected(let reason):
+                dismissAfterAlert = false
+                message = reason
+            }
+        } catch {
+            dismissAfterAlert = false
+            message = "Post cihazda güvenle saklanamadı. Alanı boşaltıp tekrar deneyin."
+        }
+    }
+
+    private var hasMeaningfulContent: Bool {
+        !caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedImageData != nil || selectedVideoURL != nil || parsedExternalMedia != nil
+    }
+
+    private var parsedExternalMedia: ContentSource? {
+        guard let selectedExternalPlatform,
+              let parsed = ExternalMediaParser.parse(externalMediaURL),
+              parsed.externalMedia?.platform == selectedExternalPlatform else { return nil }
+        return parsed
+    }
+
+    private var externalMediaPicker: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("Uygulama simgesine dokun. İçeriği seçip Paylaş → Bağlantıyı kopyala yap; LociAR’a dönünce Tamam’a dokun.")
+                        .font(.subheadline)
+                        .foregroundStyle(LociTheme.secondaryText)
+
+                    let platforms = ExternalMediaPlatform.allCases
+                    let columnCount = 3
+                    VStack(spacing: 12) {
+                        ForEach(0..<((platforms.count + columnCount - 1) / columnCount), id: \.self) { row in
+                            HStack(spacing: 12) {
+                                ForEach(0..<columnCount, id: \.self) { column in
+                                    let index = row * columnCount + column
+                                    if index < platforms.count {
+                                        let platform = platforms[index]
+                                        Button {
+                                            selectAndOpenExternalPlatform(platform)
+                                        } label: {
+                                            VStack(spacing: 10) {
+                                                ZStack(alignment: .topTrailing) {
+                                                    RoundedRectangle(cornerRadius: 18)
+                                                        .fill(platform.brandColor.opacity(0.13))
+                                                        .frame(width: 66, height: 66)
+                                                    BrandLogoView(platform: platform, size: 42)
+                                                        .frame(width: 66, height: 66)
+                                                    if selectedExternalPlatform == platform {
+                                                        Image(systemName: "checkmark.circle.fill")
+                                                            .foregroundStyle(LociTheme.accent)
+                                                            .background(.black, in: Circle())
+                                                    }
+                                                }
+                                                Text(platform.rawValue)
+                                                    .font(.caption.weight(.semibold))
+                                                    .foregroundStyle(.white)
+                                            }
+                                            .frame(maxWidth: .infinity, minHeight: 108)
+                                            .background(LociTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(
+                                                selectedExternalPlatform == platform ? platform.brandColor.opacity(0.75) : LociTheme.hairline,
+                                                lineWidth: selectedExternalPlatform == platform ? 1.5 : 1
+                                            ))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityIdentifier("external-platform-\(platform.rawValue.lowercased())")
+                                    } else {
+                                        Color.clear.frame(maxWidth: .infinity, minHeight: 108)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if let selectedExternalPlatform {
+                        LociInlineNotice(
+                            title: "\(selectedExternalPlatform.rawValue) içeriğini seç",
+                            message: "İçeriği aç, Paylaş menüsünden bağlantıyı kopyala ve bu ekrana dön. Tamam bağlantıyı doğrulayıp karta ekler.",
+                            symbol: "arrowshape.turn.up.right.fill",
+                            color: selectedExternalPlatform.brandColor
+                        )
+                        .accessibilityIdentifier("external-import-instruction")
+
+                        Button("\(selectedExternalPlatform.rawValue) uygulamasını aç", systemImage: "arrow.up.forward.app") {
+                            openExternalPlatform(selectedExternalPlatform)
+                        }
+                        .buttonStyle(LociPrimaryButtonStyle())
+                        .accessibilityIdentifier("external-open-selected-app")
+                    }
+
+                    if let externalImportMessage {
+                        Label(externalImportMessage, systemImage: "exclamationmark.circle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                            .accessibilityIdentifier("external-import-error")
+                    }
+
+                    LociInlineNotice(
+                        title: "Bağlantı güvenli biçimde eklenir",
+                        message: "Yalnız seçtiğin platforma ait geçerli paylaşım bağlantısı kabul edilir.",
+                        symbol: "checkmark.seal.fill"
+                    )
+                }
+                .padding(20)
+            }
+            .background(LociScreenBackground())
+            .navigationTitle("Platform seç")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Vazgeç") { showExternalMediaPicker = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Tamam") { completeExternalMediaImport() }
+                        .disabled(selectedExternalPlatform == nil)
+                        .accessibilityIdentifier("external-import-complete")
+                }
+            }
+        }
+        .ignoresSafeArea(.keyboard)
+        .presentationDetents([.medium, .large], selection: $externalPickerDetent)
+        .presentationContentInteraction(.scrolls)
+        .presentationDragIndicator(.visible)
+        .onAppear { dismissKeyboard() }
+    }
+
+    private func attachSampleImageIfNeeded() {
+        guard UITestFixtures.attachSampleImageEnabled, selectedImageData == nil else { return }
+        let size = CGSize(width: 480, height: 320)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        selectedImageData = renderer.image { context in
+            UIColor(red: 0.22, green: 0.88, blue: 0.72, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            UIColor.black.withAlphaComponent(0.28).setFill()
+            context.fill(CGRect(x: 24, y: 210, width: 432, height: 86))
+        }.pngData()
+        selectedMediaIsVideo = false
+    }
+
+    private func presentExternalMediaPicker() {
+        isCaptionFocused = false
+        dismissKeyboard()
+        externalImportMessage = nil
+        externalPickerDetent = .large
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            showExternalMediaPicker = true
+        }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    private func selectAndOpenExternalPlatform(_ platform: ExternalMediaPlatform) {
+        if selectedExternalPlatform != platform { externalMediaURL = "" }
+        selectedExternalPlatform = platform
+        externalImportMessage = nil
+        openExternalPlatform(platform)
+    }
+
+    private func openExternalPlatform(_ platform: ExternalMediaPlatform) {
+        guard !ProcessInfo.processInfo.arguments.contains("UITEST_DISABLE_EXTERNAL_APP_LAUNCH") else { return }
+        openURL(platform.appLaunchURL) { accepted in
+            if !accepted { openURL(platform.webLaunchURL) }
+        }
+    }
+
+    private func completeExternalMediaImport() {
+        guard let platform = selectedExternalPlatform else { return }
+        var candidates = [externalMediaURL]
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("UITEST_DISABLE_EXTERNAL_APP_LAUNCH") {
+            if let fixture = ProcessInfo.processInfo.environment["UITEST_EXTERNAL_MEDIA_URL"] {
+                candidates.append(fixture)
+            }
+        }
+#endif
+        if candidates.compactMap({ validatedExternalMedia($0, platform: platform) }).first == nil,
+           let copied = UIPasteboard.general.string {
+            candidates.append(copied)
+        }
+        guard let source = candidates.compactMap({ validatedExternalMedia($0, platform: platform) }).first,
+              let external = source.externalMedia else {
+            if let anyCopied = UIPasteboard.general.string,
+               let anyParsed = ExternalMediaParser.parseSharedText(anyCopied),
+               let anyExternal = anyParsed.externalMedia {
+                selectedExternalPlatform = anyExternal.platform
+                externalMediaURL = anyExternal.url.absoluteString
+                clearDeviceMedia()
+                externalImportMessage = nil
+                showExternalMediaPicker = false
+                return
+            }
+            externalImportMessage = "Panoda geçerli bir \(platform.rawValue) paylaşım bağlantısı bulunamadı. İçerikte Paylaş → Bağlantıyı kopyala adımını kullan."
+            return
+        }
+        externalMediaURL = external.url.absoluteString
+        clearDeviceMedia()
+        externalImportMessage = nil
+        showExternalMediaPicker = false
+    }
+
+    private func validatedExternalMedia(_ input: String, platform: ExternalMediaPlatform) -> ContentSource? {
+        guard let parsed = ExternalMediaParser.parseSharedText(input),
+              parsed.externalMedia?.platform == platform else { return nil }
+        return parsed
+    }
+
+    @ViewBuilder private var selectedMediaPreview: some View {
+        if let selectedImageData, let image = UIImage(data: selectedImageData) {
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 190)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                Button("Medyayı kaldır", systemImage: "xmark") { clearDeviceMedia() }
+                    .labelStyle(.iconOnly)
+                    .padding(9)
+                    .background(.black.opacity(0.72), in: Circle())
+                    .padding(10)
+            }
+            .accessibilityElement(children: .contain)
+        } else if selectedVideoURL != nil {
+            HStack(spacing: 12) {
+                ZStack {
+                    if let videoThumbnail {
+                        Image(uiImage: videoThumbnail)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 54, height: 54)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        RoundedRectangle(cornerRadius: 12).fill(LociTheme.accent.opacity(0.14)).frame(width: 54, height: 54)
+                    }
+                    Circle().fill(.black.opacity(0.55)).frame(width: 26, height: 26)
+                    Image(systemName: "play.fill").font(.caption2.bold()).foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Video hazır").font(.subheadline.weight(.semibold))
+                    Text("Yüzeyde oynatılmak üzere eklendi").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Videoyu kaldır", systemImage: "xmark.circle.fill") { clearDeviceMedia() }
+                    .labelStyle(.iconOnly).foregroundStyle(.secondary)
+            }
+            .padding(12)
+            .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        }
+    }
+
+    private func clearDeviceMedia() {
+        selectedPhoto = nil
+        selectedImageData = nil
+        selectedVideoURL = nil
+        selectedMediaIsVideo = false
+        videoThumbnail = nil
+    }
+
+    private func detectExternalMediaInCaptionIfNeeded(_ input: String) {
+        guard selectedExternalPlatform == nil, selectedImageData == nil, selectedVideoURL == nil else { return }
+        guard let parsed = ExternalMediaParser.parseSharedText(input),
+              let external = parsed.externalMedia else { return }
+        selectedExternalPlatform = external.platform
+        externalMediaURL = external.url.absoluteString
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed == external.url.absoluteString || ExternalMediaParser.parse(trimmed) != nil {
+            caption = ""
+        }
+    }
+
+    private func generateVideoThumbnail(from url: URL) async {
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        let time = CMTime(seconds: 0.1, preferredTimescale: 600)
+        if let cgImage = try? await generator.image(at: time).image {
+            videoThumbnail = UIImage(cgImage: cgImage)
+        }
+    }
+
+    private func platformColor(_ platform: ExternalMediaPlatform) -> Color {
+        platform.brandColor
+    }
+
+    private var resolvedCaption: String {
+        let clean = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !clean.isEmpty { return clean }
+        if selectedMediaIsVideo { return "Video" }
+        if selectedImageData != nil { return "Fotoğraf" }
+        if let platform = parsedExternalMedia?.externalMedia?.platform { return "\(platform.rawValue) paylaşımı" }
+        return "Mekânsal post"
+    }
+
+    private func commitPlacement(_ anchor: SurfaceAnchor) async {
+        if !anchor.pinQuality.isPhysicalSurface {
+            selectedAnchor = engine.currentAnchor ?? anchor
+            engine.stopSession()
+            return
+        }
+        if session.isLocalPreview {
+            selectedAnchor = engine.currentAnchor ?? anchor
+            engine.stopSession()
+            return
+        }
+        do {
+            let package = try await engine.saveWorldMap()
+            engine.attachPersistence(package.persistence)
+            selectedAnchor = engine.currentAnchor ?? anchor
+            engine.stopSession()
+        } catch {
+            offerFallbackToApproximate = true
+            message = "Fiziksel çevre haritası kaydedilemedi. Dilersen 'Yaklaşık olarak devam et' ile postunu hemen oluşturabilir veya tekrar tarayabilirsin."
+            return
+        }
+    }
+}
+
+private struct MediaSelectionLabel: View {
+    let isVideo: Bool
+    let hasSelection: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 11)
+                    .fill(LociTheme.accent.opacity(0.14))
+                    .frame(width: 40, height: 40)
+                Image(systemName: isVideo ? "video.fill" : "photo.on.rectangle.angled")
+                    .foregroundStyle(LociTheme.accent)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(hasSelection ? "Cihaz medyası seçildi" : "Fotoğraf veya video")
+                    .font(.subheadline.weight(.semibold))
+                Text(hasSelection ? "Değiştirmek için dokun" : "Fotoğraf arşivinden seç")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(minHeight: 46)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct PickedImage: Transferable {
+    let data: Data
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(importedContentType: .image) { data in
+            PickedImage(data: data)
+        }
+        DataRepresentation(importedContentType: .jpeg) { data in
+            PickedImage(data: data)
+        }
+        DataRepresentation(importedContentType: .heic) { data in
+            PickedImage(data: data)
+        }
+        DataRepresentation(importedContentType: .png) { data in
+            PickedImage(data: data)
+        }
+    }
+}
+
+private struct PickedVideo: Transferable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(importedContentType: .movie) { received in
+            let fileExtension = received.file.pathExtension.isEmpty ? "mov" : received.file.pathExtension
+            let destination = FileManager.default.temporaryDirectory
+                .appendingPathComponent("lociar-picked-\(UUID().uuidString).\(fileExtension)")
+            try FileManager.default.copyItem(at: received.file, to: destination)
+            return PickedVideo(url: destination)
+        }
+    }
+}

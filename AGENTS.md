@@ -1,3 +1,34 @@
-# Expo HAS CHANGED
+# LociAR Agent Instructions
 
-Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+LociAR mobile is the **native iOS app** (SwiftUI + ARKit + RealityKit). No Expo, Metro, or React Native.
+
+Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen generate`.
+
+## Backend: Firebase (since 27 Sep 2026) — Supabase is retired
+
+- Project `lociar-2f38c`, Firestore `nam5`, Cloud Functions **`us-central1`** (must match Firestore; do not change).
+- Setup/deploy guide: `docs/FIREBASE_SETUP.md`. Deploy from a Mac with internet: `scripts/firebase-deploy.command`.
+- The Supabase version is archived in `../_backups/` — do not re-introduce Supabase code, env keys or docs.
+
+## Security contract (non-negotiable — do NOT add "Spark/free-tier fallbacks")
+
+- **Server-authoritative writes.** Posts, profile creation, counters (`likes_count`, `views_count`, `saves_count`,
+  `comments_count`, `follower_count`, `following_count`, `public_post_count`), activity events, account deletion
+  and moderation are written **only** by Cloud Functions / Admin SDK. The iOS client never writes `posts` or
+  counter fields and never falls back to direct Firestore writes when a callable fails — surface the error instead.
+- Identity is the `luid` custom claim (UUIDv5 of the Firebase UID) set by the `ensureProfile` callable.
+  Rules and Storage paths key on `request.auth.token.luid`.
+- New posts default to `pending_review`; protected zones, 18+ checks, rate/density limits run in `createPost`.
+- `deleteAccount` is a full hard delete (Firestore, Storage, Auth user). Apple sign-in token revocation failure
+  aborts deletion (App Store guideline 5.1.1(v)).
+- `firestore.rules` / `storage.rules` are default-deny; changes must keep `functions/test/rules/*` passing.
+- Blaze plan is required (Storage + Functions). Never weaken rules to work around Spark limits.
+- Service-account keys and Admin SDK credentials never ship in the iOS app or in `NEXT_PUBLIC_*`.
+
+## Product decisions
+
+- SMS auth is disabled unless the owner re-enables it.
+- **iOS only.** Do not add Android, Expo, Metro, or React Native.
+- Protected zones and 18+ content are hard-blocked in the MVP.
+- Pin uses the center reticle against detected plane geometry. Approximate placement is explicit.
+- Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + TOTP MFA + static RBAC).

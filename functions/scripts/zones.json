@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Anıtkabir",
+    "category": "heritage",
+    "lat": 39.925054,
+    "lng": 32.836956,
+    "radius_meters": 300,
+    "policy": "hard_block"
+  },
+  {
+    "name": "Sultanahmet Camii",
+    "category": "worship",
+    "lat": 41.005409,
+    "lng": 28.976813,
+    "radius_meters": 180,
+    "policy": "hard_block"
+  },
+  {
+    "name": "Topkapı Sarayı",
+    "category": "museum",
+    "lat": 41.011520,
+    "lng": 28.983380,
+    "radius_meters": 220,
+    "policy": "hard_block"
+  },
+  {
+    "name": "TBMM",
+    "category": "government",
+    "lat": 39.910770,
+    "lng": 32.854110,
+    "radius_meters": 220,
+    "policy": "hard_block"
+  },
+  {
+    "name": "Ayasofya-i Kebir Cami-i Şerifi",
+    "category": "worship",
+    "lat": 41.008583,
+    "lng": 28.980175,
+    "radius_meters": 180,
+    "policy": "hard_block"
+  },
+  {
+    "name": "Taksim Meydanı & Atatürk Anıtı",
+    "category": "monument",
+    "lat": 41.037000,
+    "lng": 28.985090,
+    "radius_meters": 150,
+    "policy": "hard_block"
+  }
+]
