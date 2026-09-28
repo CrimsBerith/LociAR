@@ -12,7 +12,16 @@ else
   git remote add origin "$REPO_URL"
 fi
 echo "==> $REPO_URL adresine gönderiliyor (ilk seferde GitHub girişi istenebilir)…"
-git push -u origin HEAD:main
+LOG="scripts/.github-push.log"
+set +e
+git push -u origin HEAD:main 2>&1 | tee "$LOG"
+status=${PIPESTATUS[0]}
+set -e
 echo ""
-echo "✅ Bitti: ${REPO_URL%.git}"
+if [ "$status" -eq 0 ]; then
+  echo "✅ Bitti: ${REPO_URL%.git}"
+else
+  echo "❌ Gönderim başarısız (kod $status). Ayrıntı: $LOG"
+  echo "   Şifre yerine GitHub token'ı (repo izinli) girildiğinden emin ol."
+fi
 read -r -p "Kapatmak için Enter…"

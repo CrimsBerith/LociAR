@@ -64,3 +64,4 @@ supabase/.temp/
 .kilocode/
 .cursor/
 .fuse_hidden*
+scripts/.github-push.log
