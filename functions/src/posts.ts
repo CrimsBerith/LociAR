@@ -6,6 +6,7 @@ import {
 } from './core';
 import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
 import { evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
+import { reasonError } from './errors';
 
 /**
  * High-quality world locks used to go live without review in the Supabase build. App Review
@@ -67,14 +68,14 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   const validationError = validateCreatePostBody(body);
   if (validationError) throw new HttpsError('invalid-argument', validationError);
   if (!identityVerified(caller)) {
-    throw new HttpsError('permission-denied', 'A verified Apple or email identity is required');
+    throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
   }
 
   const profileSnap = await db.collection('profiles').doc(caller.luid).get();
-  if (!profileSnap.exists) throw new HttpsError('failed-precondition', 'Profile missing; call ensureProfile first');
+  if (!profileSnap.exists) throw reasonError('failed-precondition', 'Profile missing; call ensureProfile first', 'profile_missing');
   const profile = profileSnap.data()!;
   if (profile.suspended === true || profile.deleted_at) {
-    throw new HttpsError('permission-denied', 'This account cannot publish');
+    throw reasonError('permission-denied', 'This account cannot publish', 'account_suspended');
   }
 
   const postId = body.clientMutationId!.toLowerCase();
@@ -90,7 +91,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   const zone = await protectedZoneAt(lat, lng);
   if (zone) {
     await logEvent({ userId: caller.luid, name: 'protected_zone_blocked', properties: { zone: zone.name }, lat, lng });
-    throw new HttpsError('permission-denied', `Creation is blocked in protected zone: ${zone.name}`);
+    throw reasonError('permission-denied', `Creation is blocked in protected zone: ${zone.name}`, 'protected_zone');
   }
 
   const now = Date.now();
@@ -111,7 +112,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
       metadata: { hourly: hourlyCount, daily: dailyCount, density },
       created_at: FieldValue.serverTimestamp(),
     });
-    throw new HttpsError('resource-exhausted', 'Creation limit reached for this area or account');
+    throw reasonError('resource-exhausted', 'Creation limit reached for this area or account', 'rate_limited');
   }
 
   const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);

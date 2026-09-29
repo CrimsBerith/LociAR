@@ -1,5 +1,6 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { auth, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller } from './core';
+import { reasonError } from './errors';
 
 export const HANDLE_PATTERN = /^[a-z0-9_.]{3,30}$/;
 
@@ -115,11 +116,11 @@ export const updateHandle = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async
   const profileRef = db.collection('profiles').doc(caller.luid);
   await db.runTransaction(async (tx) => {
     const [profile, reservation] = await Promise.all([tx.get(profileRef), tx.get(handleRef(handle))]);
-    if (!profile.exists || profile.data()!.deleted_at) throw new HttpsError('failed-precondition', 'Profile missing; call ensureProfile first');
-    if (profile.data()!.suspended === true) throw new HttpsError('permission-denied', 'This account cannot publish');
+    if (!profile.exists || profile.data()!.deleted_at) throw reasonError('failed-precondition', 'Profile missing; call ensureProfile first', 'profile_missing');
+    if (profile.data()!.suspended === true) throw reasonError('permission-denied', 'This account cannot publish', 'account_suspended');
     const current = String(profile.data()!.handle ?? '');
     if (current === handle) return;
-    if (!isFree(reservation, caller.luid)) throw new HttpsError('already-exists', 'Handle is taken');
+    if (!isFree(reservation, caller.luid)) throw reasonError('already-exists', 'Handle is taken', 'handle_taken');
     const previous = current ? await tx.get(handleRef(current)) : null;
     if (previous?.exists && previous.data()!.luid === caller.luid) tx.delete(previous.ref);
     tx.set(handleRef(handle), { luid: caller.luid, created_at: FieldValue.serverTimestamp() });

@@ -183,7 +183,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             struct Response: Decodable, Sendable { let handle: String }
             do {
                 let _: Response = try await callables.call("updateHandle", payload: Payload(handle: clean))
-            } catch BackendCallError.rejected(let code, _) where code == FunctionsErrorCode.alreadyExists.rawValue {
+            } catch BackendCallError.rejected(let code, _, let reason) where reason == "handle_taken" || code == FunctionsErrorCode.alreadyExists.rawValue {
                 throw AuthFlowError.handleTaken
             }
         }

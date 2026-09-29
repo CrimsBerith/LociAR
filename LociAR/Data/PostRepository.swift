@@ -141,20 +141,20 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             anchorBundle: post.anchorBundle
         )
         do {
-            let response: CreatePostResponse = try await callables.call("createPost", payload: payload)
+            let response: CreatePostResponse = try await callables.call("createPost", payload: payload, timeout: 60)
             return PostPublishReceipt(
                 postID: response.post.id,
                 status: response.publishStatus,
                 placementState: response.post.placementState,
                 idempotentReplay: response.idempotentReplay ?? false
             )
-        } catch BackendCallError.rejected(_, let message) where message.contains("Profile missing") {
+        } catch BackendCallError.rejected(_, let message, let reason) where reason == "profile_missing" || message.contains("Profile missing") {
             // First-sign-in race: ensureProfile has not finished yet. Retryable, keep the uploads.
             throw PostContractError.profileNotReady
-        } catch BackendCallError.rejected(_, let message) {
+        } catch BackendCallError.rejected(_, let message, let reason) {
             // Server refused (validation, protected zone, rate limit): uploaded media is orphaned.
             await MediaAssetStore.removeRemoteAssets(ownerID: post.creatorID, postID: post.id)
-            throw PostPublishError.rejected(Self.serverMessage(message))
+            throw PostPublishError.rejected(Self.serverMessage(message, reason: reason))
         }
         // Network/transient errors propagate untouched; the call is idempotent on clientMutationId,
         // so a retry reuses the already-uploaded media.
@@ -227,7 +227,16 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         }
     }
 
-    nonisolated static func serverMessage(_ raw: String) -> String {
+    nonisolated static func serverMessage(_ raw: String, reason: String? = nil) -> String {
+        // Prefer the server's machine-readable reason; the English-text checks below stay as the
+        // fallback for older server versions and for errors that carry no reason.
+        switch reason {
+        case "identity_unverified": return "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor."
+        case "account_suspended": return "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin."
+        case "protected_zone": return "Bu korumalı bölgede post yayınlanamaz."
+        case "rate_limited": return "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin."
+        default: break
+        }
         if raw.contains("verified Apple") || raw.contains("verified Apple, Google, or email identity") {
             return "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor."
         }

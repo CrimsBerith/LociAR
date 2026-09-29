@@ -482,4 +482,42 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertNil(AvatarReference.presetURL("https://example.org/a.jpg"))
         XCTAssertNil(AvatarReference.presetName(URL(string: "https://example.org/a.jpg")))
     }
+
+    // gRPC status codes used by FunctionsErrorCode: invalidArgument 3, notFound 5, alreadyExists 6,
+    // permissionDenied 7, resourceExhausted 8, failedPrecondition 9, aborted 10, unavailable 14, unauthenticated 16.
+    func testPermanentFunctionsErrorsMapToRejectedWithServerReason() throws {
+        let details: [String: Any] = ["details": ["reason": "profile_missing"]]
+        let mapped = try XCTUnwrap(BackendErrorPolicy.map(code: 9, message: "Profile missing; call ensureProfile first", userInfo: details))
+        XCTAssertEqual(mapped.reason, "profile_missing")
+        XCTAssertEqual(mapped.errorDescription, "Profile missing; call ensureProfile first")
+
+        let noReason = try XCTUnwrap(BackendErrorPolicy.map(code: 7, message: "denied", userInfo: [:]))
+        XCTAssertNil(noReason.reason)
+        for code in [3, 5, 6, 7, 8, 9] {
+            XCTAssertNotNil(BackendErrorPolicy.map(code: code, message: "x", userInfo: [:]), "code \(code) is permanent")
+        }
+    }
+
+    func testTransientFunctionsErrorsAreNotMapped() {
+        // aborted, unavailable, deadline exceeded, internal and unauthenticated must stay retryable.
+        for code in [4, 10, 13, 14, 16] {
+            XCTAssertNil(BackendErrorPolicy.map(code: code, message: "x", userInfo: [:]), "code \(code) is retryable")
+        }
+    }
+
+    func testServerReasonBeatsMessageText() {
+        XCTAssertEqual(
+            FirestorePostRepository.serverMessage("Creation limit reached for this area or account", reason: "rate_limited"),
+            "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin."
+        )
+        XCTAssertEqual(
+            FirestorePostRepository.serverMessage("anything", reason: "protected_zone"),
+            "Bu korumalı bölgede post yayınlanamaz."
+        )
+        // Old servers send no reason: the text fallback still works.
+        XCTAssertEqual(
+            FirestorePostRepository.serverMessage("Creation is blocked in protected zone: X"),
+            "Bu korumalı bölgede post yayınlanamaz."
+        )
+    }
 }
