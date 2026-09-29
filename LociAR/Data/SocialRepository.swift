@@ -135,15 +135,29 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         return snapshot.count.intValue
     }
 
-    func setLiked(_ liked: Bool, postID: UUID, userID: UUID) async throws {
-        let ref = db.collection("likes").document("\(key(postID))_\(key(userID))")
-        // Counters are maintained by Cloud Functions triggers (clients cannot write posts).
-        if liked {
+    /// Idempotent edge write. Document IDs encode the pair (`<a>_<b>`), so creating an edge that
+    /// already exists is a no-op and deleting a missing one is harmless. Counters and activity
+    /// events are maintained by Cloud Functions triggers; clients never write them.
+    private func setEdge(
+        _ present: Bool,
+        collection: String,
+        id: String,
+        data: @autoclosure () -> [String: Any]
+    ) async throws {
+        let ref = db.collection(collection).document(id)
+        if present {
             guard try await !ref.getDocument().exists else { return }
-            try await ref.setData(["post_id": key(postID), "user_id": key(userID), "created_at": FieldValue.serverTimestamp()])
+            try await ref.setData(data())
         } else {
             try await ref.delete()
         }
+    }
+
+    func setLiked(_ liked: Bool, postID: UUID, userID: UUID) async throws {
+        try await setEdge(
+            liked, collection: "likes", id: "\(key(postID))_\(key(userID))",
+            data: ["post_id": key(postID), "user_id": key(userID), "created_at": FieldValue.serverTimestamp()]
+        )
     }
 
     func recordView(postID: UUID, userID: UUID) async throws -> Int {
@@ -155,24 +169,18 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
     }
 
     func setSaved(_ saved: Bool, postID: UUID, userID: UUID) async throws {
-        let ref = db.collection("post_saves").document("\(key(userID))_\(key(postID))")
-        if saved {
-            guard try await !ref.getDocument().exists else { return }
-            try await ref.setData(["post_id": key(postID), "user_id": key(userID), "created_at": FieldValue.serverTimestamp()])
-        } else {
-            try await ref.delete()
-        }
+        try await setEdge(
+            saved, collection: "post_saves", id: "\(key(userID))_\(key(postID))",
+            data: ["post_id": key(postID), "user_id": key(userID), "created_at": FieldValue.serverTimestamp()]
+        )
     }
 
     func setFollowing(_ following: Bool, targetID: UUID, userID: UUID) async throws {
         guard targetID != userID else { return }
-        let ref = db.collection("follows").document("\(key(userID))_\(key(targetID))")
-        if following {
-            guard try await !ref.getDocument().exists else { return }
-            try await ref.setData(["follower_id": key(userID), "following_id": key(targetID), "created_at": FieldValue.serverTimestamp()])
-        } else {
-            try await ref.delete()
-        }
+        try await setEdge(
+            following, collection: "follows", id: "\(key(userID))_\(key(targetID))",
+            data: ["follower_id": key(userID), "following_id": key(targetID), "created_at": FieldValue.serverTimestamp()]
+        )
     }
 
     func followingIDs(for userID: UUID) async throws -> [UUID] {
@@ -187,15 +195,11 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
 
     func setBlocked(_ blocked: Bool, targetID: UUID, userID: UUID) async throws {
         guard targetID != userID else { return }
-        let ref = db.collection("user_blocks").document("\(key(userID))_\(key(targetID))")
-        if blocked {
-            if try await !ref.getDocument().exists {
-                try await ref.setData(["blocker_id": key(userID), "blocked_id": key(targetID), "created_at": FieldValue.serverTimestamp()])
-            }
-            try await setFollowing(false, targetID: targetID, userID: userID)
-        } else {
-            try await ref.delete()
-        }
+        try await setEdge(
+            blocked, collection: "user_blocks", id: "\(key(userID))_\(key(targetID))",
+            data: ["blocker_id": key(userID), "blocked_id": key(targetID), "created_at": FieldValue.serverTimestamp()]
+        )
+        if blocked { try await setFollowing(false, targetID: targetID, userID: userID) }
         await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
     }
 
