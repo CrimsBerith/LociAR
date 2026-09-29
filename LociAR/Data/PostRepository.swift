@@ -34,7 +34,7 @@ protocol PostRepository: Sendable {
 /// caller's own posts); writes go through the createPost / deleteOwnPost Cloud Functions.
 final class FirestorePostRepository: PostRepository, @unchecked Sendable {
     private let callables: CallableClient
-    private let blockCache = BlockListCache()
+    private let blockCache = BlockListCache.shared
 
     init(callables: CallableClient) { self.callables = callables }
 
@@ -84,7 +84,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             }
         }
 
-        let blocked = await blockCache.blockedIDs()
+        let blocked = try await blockCache.blockedIDs()
         let me = FirebaseIdentity.currentLUID().map(FirebaseIdentity.key)
         let ranked = documents.compactMap { id, data -> (String, [String: Any], Double, Double)? in
             guard let lat = data["lat"] as? Double, let lng = data["lng"] as? Double else { return nil }
@@ -108,7 +108,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             .order(by: "created_at", descending: true)
             .limit(to: 50)
             .getDocuments()
-        let blocked = await blockCache.blockedIDs()
+        let blocked = try await blockCache.blockedIDs()
         let rows = snapshot.documents
             .map { ($0.documentID, $0.data()) }
             .filter { FirestorePostMapper.isPubliclyListed($0.1) && !blocked.contains($0.1["creator_id"] as? String ?? "") }
@@ -116,6 +116,11 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
     }
 
     func publish(_ post: LociPost) async throws -> PostPublishReceipt {
+        // Posts queued before photo/video removal (29 Sep 2026) would be refused by Storage and
+        // createPost; fail them permanently instead of retrying uploads.
+        if post.containsDeviceMedia {
+            throw PostPublishError.rejected("Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin veya sosyal bağlantı ile yeniden oluştur.")
+        }
         let worldMapReadyPost = try await WorldMapStore().uploadLocalPersistenceIfNeeded(in: post)
         let post = try await MediaAssetStore.uploadLocalAssets(in: worldMapReadyPost)
         guard let geo = post.anchorBundle.anchor.geoPose else { throw PostContractError.missingGeoPose }
@@ -143,6 +148,9 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
                 placementState: response.post.placementState,
                 idempotentReplay: response.idempotentReplay ?? false
             )
+        } catch BackendCallError.rejected(_, let message) where message.contains("Profile missing") {
+            // First-sign-in race: ensureProfile has not finished yet. Retryable, keep the uploads.
+            throw PostContractError.profileNotReady
         } catch BackendCallError.rejected(_, let message) {
             // Server refused (validation, protected zone, rate limit): uploaded media is orphaned.
             await MediaAssetStore.removeRemoteAssets(ownerID: post.creatorID, postID: post.id)
@@ -164,7 +172,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
 
     func publicPosts(creatorID: UUID, limit: Int = 60) async throws -> [LociPost] {
         let creator = FirebaseIdentity.key(creatorID)
-        guard !(await blockCache.blockedIDs()).contains(creator) else { return [] }
+        guard !(try await blockCache.blockedIDs()).contains(creator) else { return [] }
         let snapshot = try await posts
             .whereField("creator_id", isEqualTo: creator)
             .whereField("status", isEqualTo: PostStatus.active.rawValue)
@@ -178,15 +186,19 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
 
     func publicProfile(creatorID: UUID) async throws -> PublicProfileProjection? {
         let id = FirebaseIdentity.key(creatorID)
-        guard !(await blockCache.blockedIDs()).contains(id) else { return nil }
+        guard !(try await blockCache.blockedIDs()).contains(id) else { return nil }
         let snapshot = try await Firestore.firestore().collection("profiles").document(id).getDocument()
         guard let data = snapshot.data(),
               data["deleted_at"] == nil || data["deleted_at"] is NSNull,
               (data["suspended"] as? Bool) != true else { return nil }
+        let avatar = await AvatarReference.resolve(
+            avatarURL: data["avatar_url"] as? String,
+            preset: data["avatar_preset"] as? String
+        )
         return PublicProfileProjection(
             id: creatorID,
             handle: data["handle"] as? String ?? "loci",
-            avatarURL: (data["avatar_url"] as? String).flatMap(URL.init(string:)),
+            avatarURL: avatar,
             bio: data["bio"] as? String,
             publicPostCount: (data["public_post_count"] as? NSNumber)?.intValue ?? 0,
             followerCount: (data["follower_count"] as? NSNumber)?.intValue ?? 0,
@@ -200,6 +212,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
               let data = snapshot.data(),
               FirestorePostMapper.isPubliclyListed(data),
               let row = try? FirestorePostMapper.row(id: snapshot.documentID, data: data) else { return nil }
+        if try await blockCache.blockedIDs().contains(data["creator_id"] as? String ?? "") { return nil }
         return await MediaAssetStore.materializeRemoteAssets(in: row.domainPost())
     }
 
@@ -222,7 +235,13 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         if raw.contains("Invalid pose") || raw.contains("GPS accuracy") {
             return "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin."
         }
-        if raw.contains("At least one edit layer") { return "Yayın için caption, medya veya sosyal bağlantı ekleyin." }
+        if raw.contains("protected zone") { return "Bu korumalı bölgede post yayınlanamaz." }
+        if raw.contains("Only text posts") { return "Postlar yalnızca metin ve sosyal medya bağlantısı içerebilir; fotoğraf ve video desteklenmiyor." }
+        if raw.contains("Only social media links") { return "Yalnızca Spotify, YouTube, Instagram, X ve Facebook bağlantıları eklenebilir." }
+        if raw.contains("Invalid social media link") { return "Sosyal medya bağlantısı geçersiz. Paylaşım bağlantısını uygulamadan tekrar kopyala." }
+        if raw.contains("18+ content") { return "18+ içerik bu sürümde kabul edilmez." }
+        if raw.contains("Invalid reference image") { return "AR referans görüntüsü geçersiz. Yüzeyi yeniden tarayıp tekrar dene." }
+        if raw.contains("At least one edit layer") { return "Yayın için caption veya sosyal bağlantı ekleyin." }
         if raw.contains("Physical AR world lock evidence is incomplete") {
             return "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun."
         }
@@ -246,25 +265,42 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
     }
 }
 
-/// Short-lived cache of the users the current user has blocked (their posts are hidden).
+/// Short-lived cache of the users the current user has blocked (their posts, profiles and comments
+/// are hidden). Shared by the post and social repositories so a block takes effect immediately.
+/// Fails closed: if the list cannot be loaded and nothing is cached, callers get an error instead
+/// of unfiltered content.
 actor BlockListCache {
+    static let shared = BlockListCache()
     private var cached: (owner: String, at: Date, ids: Set<String>)?
 
-    func blockedIDs() async -> Set<String> {
+    func blockedIDs() async throws -> Set<String> {
         guard let me = FirebaseIdentity.currentLUID().map(FirebaseIdentity.key) else { return [] }
         if let cached, cached.owner == me, Date().timeIntervalSince(cached.at) < 60 { return cached.ids }
-        let ids = await Self.fetch(blocker: me)
-        cached = (me, Date(), ids)
-        return ids
+        do {
+            let ids = try await Self.fetch(blocker: me)
+            cached = (me, Date(), ids)
+            return ids
+        } catch {
+            if let cached, cached.owner == me { return cached.ids }
+            throw error
+        }
     }
 
     func invalidate() { cached = nil }
 
-    private nonisolated static func fetch(blocker: String) async -> Set<String> {
-        let snapshot = try? await Firestore.firestore().collection("user_blocks")
+    /// Applies a block/unblock locally right away (the server write already succeeded).
+    func record(blocked: Bool, targetID: String) {
+        guard let me = FirebaseIdentity.currentLUID().map(FirebaseIdentity.key) else { return }
+        guard var current = cached, current.owner == me else { return }
+        if blocked { current.ids.insert(targetID) } else { current.ids.remove(targetID) }
+        cached = current
+    }
+
+    private nonisolated static func fetch(blocker: String) async throws -> Set<String> {
+        let snapshot = try await Firestore.firestore().collection("user_blocks")
             .whereField("blocker_id", isEqualTo: blocker)
             .getDocuments()
-        return Set(snapshot?.documents.compactMap { $0.data()["blocked_id"] as? String } ?? [])
+        return Set(snapshot.documents.compactMap { $0.data()["blocked_id"] as? String })
     }
 }
 

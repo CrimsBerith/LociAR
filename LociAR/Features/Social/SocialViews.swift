@@ -733,12 +733,15 @@ struct PublicProfileView: View {
     @State private var isLoading = true
     @State private var isFollowMutating = false
     @State private var isBlockMutating = false
+    @State private var isBlocked = false
+    @State private var confirmBlock = false
+    @State private var reportingUser = false
 
     var body: some View {
         List {
             Section {
                 VStack(spacing: 14) {
-                    LociAvatar(handle: profile?.handle ?? user.handle, size: 78)
+                    LociAvatar(handle: profile?.handle ?? user.handle, avatarURL: isBlocked ? nil : profile?.avatarURL, size: 78)
                     VStack(spacing: 5) {
                         Text("@\(profile?.handle ?? user.handle)").font(.title2.bold())
                         if let bio = profile?.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center) }
@@ -750,11 +753,23 @@ struct PublicProfileView: View {
                     Button(following ? "Takibi bırak" : "Takip et") { Task { await toggleFollow() } }
                         .buttonStyle(.borderedProminent).tint(following ? .white.opacity(0.16) : LociTheme.accent)
                         .foregroundStyle(following ? .white : .black).frame(maxWidth: .infinity)
-                        .disabled(isFollowMutating || isBlockMutating)
-                    Button("Kullanıcıyı engelle", role: .destructive) { Task { await block() } }
+                        .disabled(isFollowMutating || isBlockMutating || isBlocked)
+                    if isBlocked {
+                        Text("Bu kullanıcıyı engelledin. İçerikleri gizlendi; engeli Profil > Engellenenler'den kaldırabilirsin.")
+                            .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    } else {
+                        Button("Kullanıcıyı engelle", role: .destructive) { confirmBlock = true }
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .disabled(isFollowMutating || isBlockMutating)
+                            .accessibilityIdentifier("profile-block-user")
+                    }
+                    Button("Kullanıcıyı bildir") { reportingUser = true }
+                        .font(.footnote)
                         .frame(maxWidth: .infinity, minHeight: 44)
-                        .disabled(isFollowMutating || isBlockMutating)
-                        .accessibilityIdentifier("profile-block-user")
+                        .accessibilityIdentifier("profile-report-user")
+                    if let message, !posts.isEmpty {
+                        Text(message).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -771,6 +786,28 @@ struct PublicProfileView: View {
         .navigationTitle("Profil")
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
         .task { await load() }
+        .confirmationDialog("Kullanıcı engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
+            Button("Engelle", role: .destructive) { Task { await block() } }
+            Button("Vazgeç", role: .cancel) {}
+        } message: {
+            Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
+        }
+        .confirmationDialog("Neden bildiriyorsun?", isPresented: $reportingUser, titleVisibility: .visible) {
+            ForEach(ReportReason.allCases) { reason in
+                Button(reason.rawValue) { Task { await reportUser(reason) } }
+            }
+            Button("Vazgeç", role: .cancel) {}
+        }
+    }
+
+    private func reportUser(_ reason: ReportReason) async {
+        guard case let .signedIn(viewer) = session.phase, container.isBackendConfigured else { return }
+        do {
+            try await container.social.reportUser(targetID: user.id, userID: viewer.id, reason: reason.rawValue)
+            message = "Bildirimin incelemeye gönderildi. Teşekkürler."
+        } catch {
+            message = "Bildirim gönderilemedi."
+        }
     }
 
     private func load() async {
@@ -811,8 +848,15 @@ struct PublicProfileView: View {
         guard case let .signedIn(viewer) = session.phase, container.isBackendConfigured else { return }
         isBlockMutating = true
         defer { isBlockMutating = false }
-        do { try await container.social.setBlocked(true, targetID: user.id, userID: viewer.id); message = "Kullanıcı engellendi." }
-        catch { message = "Hesap engellenemedi. Tekrar dene." }
+        do {
+            try await container.social.setBlocked(true, targetID: user.id, userID: viewer.id)
+            isBlocked = true
+            following = false
+            posts = []
+            message = "Kullanıcı engellendi."
+        } catch {
+            message = "Hesap engellenemedi. Tekrar dene."
+        }
     }
 
     private func profileMetric(value: Int, label: String) -> some View {
@@ -820,10 +864,33 @@ struct PublicProfileView: View {
     }
 }
 
+/// Reasons offered when reporting a post, comment or user (Guideline 1.2).
+enum ReportReason: String, CaseIterable, Identifiable {
+    case spam = "Spam veya yanıltıcı"
+    case harassment = "Taciz veya zorbalık"
+    case hate = "Nefret söylemi"
+    case sexual = "Cinsel içerik"
+    case violence = "Şiddet veya tehlikeli içerik"
+    case other = "Diğer"
+    var id: String { rawValue }
+}
+
+enum ReportTarget: Identifiable {
+    case post
+    case comment(LociComment)
+    var id: String {
+        switch self {
+        case .post: "post"
+        case .comment(let comment): comment.id.uuidString
+        }
+    }
+}
+
 struct PostPreviewView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
     let post: LociPost
     @State private var comments: [LociComment] = []
     @State private var commentText = ""
@@ -840,6 +907,8 @@ struct PostPreviewView: View {
     @State private var isSaveMutating = false
     @State private var isCommentSending = false
     @State private var isReporting = false
+    @State private var reportTarget: ReportTarget?
+    @State private var confirmBlock = false
 
     init(post: LociPost) {
         self.post = post
@@ -894,14 +963,14 @@ struct PostPreviewView: View {
                     .buttonStyle(.plain)
                     .disabled(isSaveMutating)
                     .accessibilityIdentifier("post-save-button")
-                    Button { Task { await report() } } label: {
+                    Button { reportTarget = .post } label: {
                         PostActionLabel(title: "Bildir", symbol: "exclamationmark.bubble", color: .white)
                     }
                     .buttonStyle(.plain)
                     .disabled(isReporting)
                     .accessibilityIdentifier("post-report")
                     Menu {
-                        Button(role: .destructive) { Task { await blockCreator() } } label: {
+                        Button(role: .destructive) { confirmBlock = true } label: {
                             Label("Kullanıcıyı engelle", systemImage: "person.crop.circle.badge.xmark")
                         }
                         .accessibilityIdentifier("post-block-user")
@@ -933,8 +1002,29 @@ struct PostPreviewView: View {
                                 HStack { Text("@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary) }
                                 Text(comment.text).font(.subheadline)
                             }
+                            Spacer(minLength: 0)
+                            Menu {
+                                if !isMine(comment) {
+                                    Button { reportTarget = .comment(comment) } label: {
+                                        Label("Yorumu bildir", systemImage: "exclamationmark.bubble")
+                                    }
+                                }
+                                if canDelete(comment) {
+                                    Button(role: .destructive) { Task { await deleteComment(comment) } } label: {
+                                        Label("Yorumu sil", systemImage: "trash")
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .foregroundStyle(.secondary)
+                                    .frame(minWidth: 44, minHeight: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel("Yorum seçenekleri")
+                            .accessibilityIdentifier("comment-actions")
                         }
                         .padding(.vertical, 4)
+                        .accessibilityElement(children: .combine)
                     }
                 }
                 VStack(alignment: .trailing, spacing: 6) {
@@ -981,6 +1071,46 @@ struct PostPreviewView: View {
                 .accessibilityIdentifier("post-open-ar")
         }
         .fullScreenCover(isPresented: $showAR) { ARPostViewerView(post: post) }
+        .confirmationDialog(
+            "Neden bildiriyorsun?",
+            isPresented: Binding(get: { reportTarget != nil }, set: { if !$0 { reportTarget = nil } }),
+            titleVisibility: .visible,
+            presenting: reportTarget
+        ) { target in
+            ForEach(ReportReason.allCases) { reason in
+                Button(reason.rawValue) { Task { await report(target, reason: reason) } }
+            }
+            Button("Vazgeç", role: .cancel) {}
+        } message: { _ in
+            Text("Bildirimler 24 saat içinde incelenir. İçeriği görmek istemiyorsan kullanıcıyı engelleyebilirsin.")
+        }
+        .confirmationDialog("@\(creatorUser.handle) engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
+            Button("Engelle", role: .destructive) { Task { await blockCreator() } }
+            Button("Vazgeç", role: .cancel) {}
+        } message: {
+            Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
+        }
+    }
+
+    private func isMine(_ comment: LociComment) -> Bool {
+        if case let .signedIn(user) = session.phase { return comment.userID == user.id }
+        return false
+    }
+
+    private func canDelete(_ comment: LociComment) -> Bool {
+        guard case let .signedIn(user) = session.phase else { return false }
+        return comment.userID == user.id || post.creatorID == user.id
+    }
+
+    private func deleteComment(_ comment: LociComment) async {
+        guard container.isBackendConfigured || session.isLocalPreview else { return }
+        do {
+            try await container.social.deleteComment(id: comment.id)
+            withAnimation { comments.removeAll { $0.id == comment.id } }
+            message = "Yorum silindi."
+        } catch {
+            message = "Yorum silinemedi."
+        }
     }
 
     private func load() async {
@@ -1056,12 +1186,23 @@ struct PostPreviewView: View {
             commentText = ""
         } catch { message = "Yorum gönderilemedi." }
     }
-    private func report() async {
+    private func report(_ target: ReportTarget, reason: ReportReason) async {
         guard !isReporting else { return }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else { return }
         isReporting = true
         defer { isReporting = false }
-        do { try await container.social.report(postID: post.id, userID: user.id, reason: "user_reported"); message = "Bildirim incelemeye gönderildi." } catch { message = "Bildirim gönderilemedi." }
+        do {
+            switch target {
+            case .post:
+                try await container.social.report(postID: post.id, userID: user.id, reason: reason.rawValue)
+            case .comment(let comment):
+                try await container.social.reportComment(comment, userID: user.id, reason: reason.rawValue)
+                withAnimation { comments.removeAll { $0.id == comment.id } }
+            }
+            message = "Bildirimin incelemeye gönderildi. Teşekkürler."
+        } catch {
+            message = "Bildirim gönderilemedi."
+        }
     }
     private func blockCreator() async {
         guard !isReporting else { return }
@@ -1070,7 +1211,8 @@ struct PostPreviewView: View {
         defer { isReporting = false }
         do {
             try await container.social.setBlocked(true, targetID: post.creatorID, userID: user.id)
-            message = "Kullanıcı engellendi. Bu kullanıcının içerikleri artık gösterilmeyecek."
+            // The creator's content must disappear right away, including this screen.
+            dismiss()
         } catch {
             message = "Kullanıcı engellenemedi."
         }

@@ -403,8 +403,11 @@ final class ARPinningEngine: NSObject {
         )
     }
 
+    /// Also valid after a physical pin whose world map could not be saved (`.placed`/`.mapping`):
+    /// the physical anchor is then replaced by a new approximate one without persistence.
     func offerApproximatePlacement() {
-        guard state == .scanning || state == .candidateReady || state == .approximateOffered else { return }
+        let allowed: [PinSessionState] = [.scanning, .candidateReady, .approximateOffered, .placed, .mapping]
+        guard allowed.contains(state) else { return }
         transition(to: .approximateOffered, message: "Yaklaşık yerleştirme seçildi. İçerik kameranın 0,8 m önünde konumlanacak.")
     }
 
@@ -802,6 +805,8 @@ final class ARPinningEngine: NSObject {
             Task { @MainActor in
                 guard let self else { return }
                 if ProcessInfo.processInfo.thermalState == .critical {
+                    // Nothing to pause (and nothing to resume later) when AR is not running.
+                    guard self.state != .idle else { return }
                     self.pausedForThermalPressure = true
                     self.arView.session.pause()
                     self.transition(to: .interrupted, message: "Cihaz sıcaklığı yüksek; AR geçici olarak duraklatıldı.")

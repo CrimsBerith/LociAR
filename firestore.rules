@@ -26,7 +26,7 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/user_blocks/$(owner + '_' + me()));
     }
     function avatarPreset(value) {
-      return value == null || value in ['fox', 'owl', 'cat', 'dog', 'bear', 'bird', 'fish', 'leaf', 'star', 'moon', 'sun', 'bolt'];
+      return value == null || value in ['hare', 'tortoise', 'cat', 'dog', 'bear', 'bird', 'fish', 'leaf', 'star', 'moon', 'sun', 'bolt'];
     }
 
     match /profiles/{luid} {

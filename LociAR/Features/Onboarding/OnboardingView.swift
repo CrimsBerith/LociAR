@@ -1,5 +1,3 @@
-import AVFoundation
-import CoreLocation
 import SwiftUI
 
 struct OnboardingView: View {
@@ -140,9 +138,9 @@ struct OnboardingView: View {
         }
     }
 
+    /// Camera and location are requested in context (AR screen, map, publish), where the system
+    /// prompt makes sense to the user; asking here out of context invites a denial.
     private func requestPermissionsAndFinish() {
-        AVCaptureDevice.requestAccess(for: .video) { _ in }
-        CLLocationManager().requestWhenInUseAuthorization()
         withAnimation(.easeInOut) {
             onComplete()
         }

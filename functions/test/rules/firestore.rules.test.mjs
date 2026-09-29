@@ -84,7 +84,7 @@ test('follows and blocks cannot target self or impersonate', async () => {
 test('profile: owner edits bio/preset only; handle and photo avatar are server-only', async () => {
   const db = as(ALICE);
   await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { bio: 'merhaba', updated_at: serverTimestamp() }));
-  await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { avatar_preset: 'fox', updated_at: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { avatar_preset: 'hare', updated_at: serverTimestamp() }));
   await assertFails(updateDoc(doc(db, 'profiles', ALICE), { avatar_preset: 'https://x.example/a.jpg', updated_at: serverTimestamp() }));
   await assertFails(updateDoc(doc(db, 'profiles', ALICE), { handle: 'bob', updated_at: serverTimestamp() }));
   await assertFails(updateDoc(doc(db, 'profiles', ALICE), { avatar_url: 'https://x.example/a.jpg', updated_at: serverTimestamp() }));

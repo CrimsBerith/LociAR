@@ -55,6 +55,11 @@ final class PublishPostCoordinator: PublishPostUseCase {
             queue = SyncQueueRecord(id: postID, ownerID: post.creatorID, operation: "publish_post", payload: payload)
             modelContext.insert(queue)
         }
+        if attemptRemote {
+            // This call publishes right now; keep the 15 s background sync loop from picking the
+            // same record up concurrently (double upload, then both paths deleting the record).
+            queue.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.inFlightLease)
+        }
         try modelContext.save()
         logger.info("Publish intent persisted post=\(postID.uuidString, privacy: .public)")
 
@@ -66,6 +71,7 @@ final class PublishPostCoordinator: PublishPostUseCase {
             let receipt = try await postRepository.publish(post)
             await MediaAssetStore.removeLocalAssets(in: post)
             removePersistedWork(postID: postID, modelContext: modelContext)
+            // `queue` may already be gone if a forced sync finished first; don't touch it below.
             try modelContext.save()
             logger.info("Publish committed post=\(postID.uuidString, privacy: .public)")
             return .published(receipt)

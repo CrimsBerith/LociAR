@@ -15,6 +15,13 @@ final class PinStateMachineTests: XCTestCase {
         XCTAssertTrue(PinSessionState.approximateOffered.canTransition(to: .placed))
     }
 
+    func testFailedWorldMapSaveCanFallBackToApproximate() {
+        // CreatePostView offers "Yaklaşık olarak devam et" after saveWorldMap fails in .mapping/.placed.
+        XCTAssertTrue(PinSessionState.mapping.canTransition(to: .approximateOffered))
+        XCTAssertTrue(PinSessionState.placed.canTransition(to: .approximateOffered))
+        XCTAssertFalse(PinSessionState.publishReady.canTransition(to: .approximateOffered))
+    }
+
     func testRelocalizedContentPath() {
         XCTAssertTrue(PinSessionState.placed.canTransition(to: .relocalizing))
         XCTAssertTrue(PinSessionState.scanning.canTransition(to: .relocalizing))
@@ -48,6 +55,8 @@ final class PinStateMachineTests: XCTestCase {
         XCTAssertTrue(viewerSource?.contains("ar-aim-guidance") == true)
         XCTAssertFalse(viewerSource?.contains("Yüzeye bağla") == true)
         XCTAssertFalse(viewerSource?.contains("Bu yüzeye bağla") == true)
-        XCTAssertFalse(viewerSource?.contains("restoreWorldMap") == true)
+        // Multi-user world-map relocalization is attempted first, but a failed or timed-out
+        // relocalization must always fall back to aim-assisted reveal, never block the post.
+        XCTAssertTrue(viewerSource?.contains("if await relocalizeFromWorldMap() { return }\n                await revealWithAimGuidance()") == true)
     }
 }

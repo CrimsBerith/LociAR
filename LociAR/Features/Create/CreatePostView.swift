@@ -325,10 +325,10 @@ struct CreatePostView: View {
                             Text("Harita, Keşfet, arama ve VoiceOver’da kullanılır.")
                                 .font(.caption2).foregroundStyle(.secondary)
                             Spacer(minLength: 8)
-                            Text("\(caption.count)/220").font(.caption.monospacedDigit())
-                                .foregroundStyle(caption.count <= 220 ? Color.secondary : Color.red)
+                            Text("\(captionLength)/220").font(.caption.monospacedDigit())
+                                .foregroundStyle(captionLength <= 220 ? Color.secondary : Color.red)
                         }
-                        if caption.count > 220 {
+                        if captionLength > 220 {
                             Label("Caption 220 karakteri geçemez.", systemImage: "exclamationmark.circle.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.red)
@@ -457,7 +457,13 @@ struct CreatePostView: View {
     }
 
     private var canPublish: Bool {
-        !isPublishing && hasMeaningfulContent && caption.count <= 220
+        !isPublishing && hasMeaningfulContent && captionLength <= 220
+    }
+
+    /// The server limits captions to 220 UTF-16 code units (JavaScript string length), so emoji
+    /// count double here exactly as they do in createPost.
+    private var captionLength: Int {
+        caption.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count
     }
 
     private func surfaceTitle(_ alignment: SurfaceAlignment) -> String {
@@ -481,6 +487,18 @@ struct CreatePostView: View {
         if anchor.geoPose == nil {
             if let captured = await GeoPoseCaptureService().capture() {
                 anchor.geoPose = captured
+            }
+        }
+        if let accuracy = anchor.geoPose?.accuracy, accuracy > GeoPoseCaptureService.maximumPublishAccuracyMeters {
+            // createPost rejects fixes worse than 100 m; ask for a better one instead of queueing a
+            // post that would be dead-lettered on the server.
+            if let retry = await GeoPoseCaptureService().capture(),
+               (retry.accuracy ?? .infinity) <= GeoPoseCaptureService.maximumPublishAccuracyMeters {
+                anchor.geoPose = retry
+            } else {
+                dismissAfterAlert = false
+                message = "Konum doğruluğu yayın için yeterli değil (\(Int(accuracy)) m). Açık bir alanda birkaç saniye bekleyip tekrar dene."
+                return
             }
         }
         if var geoPose = anchor.geoPose {

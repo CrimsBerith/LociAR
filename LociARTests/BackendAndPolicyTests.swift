@@ -452,4 +452,34 @@ final class BackendAndPolicyTests: XCTestCase {
             editData: EditData(), counts: PostCounts()
         )
     }
+
+    func testServerRejectionsAreShownInTurkish() {
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Creation is blocked in protected zone: Ayasofya"), "Bu korumalı bölgede post yayınlanamaz.")
+        XCTAssertTrue(FirestorePostRepository.serverMessage("Only text posts and social media links are allowed").contains("fotoğraf ve video desteklenmiyor"))
+        XCTAssertTrue(FirestorePostRepository.serverMessage("Only social media links are allowed").contains("Spotify"))
+        XCTAssertTrue(FirestorePostRepository.serverMessage("Invalid social media link").contains("bağlantısı geçersiz"))
+        XCTAssertFalse(FirestorePostRepository.serverMessage("At least one edit layer is required").contains("medya"))
+    }
+
+    func testQueuedDeviceMediaPostsAreDetected() {
+        var post = UITestFixtures.post
+        post.contentSource = .spotify(URL(string: "https://open.spotify.com/track/1")!)
+        post.editData = EditData(layers: [])
+        XCTAssertFalse(post.containsDeviceMedia)
+        post.contentSource = .video(URL(fileURLWithPath: "/tmp/v.mov"))
+        XCTAssertTrue(post.containsDeviceMedia)
+        post.contentSource = nil
+        post.editData = EditData(layers: [
+            EditLayer(id: UUID(), kind: .image, text: nil, assetURL: URL(fileURLWithPath: "/tmp/a.jpg"), points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0)
+        ])
+        XCTAssertTrue(post.containsDeviceMedia)
+    }
+
+    func testAvatarPresetsRoundTripAndMatchRules() throws {
+        for name in AvatarReference.presets {
+            XCTAssertEqual(AvatarReference.presetName(AvatarReference.presetURL(name)), name)
+        }
+        XCTAssertNil(AvatarReference.presetURL("https://example.org/a.jpg"))
+        XCTAssertNil(AvatarReference.presetName(URL(string: "https://example.org/a.jpg")))
+    }
 }

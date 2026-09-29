@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 struct ProfileEditView: View {
@@ -6,37 +7,29 @@ struct ProfileEditView: View {
     let user: LociUser
 
     @State private var handle: String
-    @State private var avatarURLString: String
+    @State private var avatarChoice: AvatarChoice = .unchanged
+    @State private var pickedPhoto: PhotosPickerItem?
+    @State private var photoPreview: UIImage?
     @State private var isSaving = false
     @State private var errorMessage: String?
-    @State private var selectedPresetAvatar: String?
-
-    private static let presetAvatars: [String] = [
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80"
-    ]
+    @State private var photoSubmitted = false
 
     init(user: LociUser) {
         self.user = user
         _handle = State(initialValue: user.handle)
-        _avatarURLString = State(initialValue: user.avatarURL?.absoluteString ?? "")
-    }
-
-    private var parsedAvatarURL: URL? {
-        let trimmed = avatarURLString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return URL(string: trimmed)
     }
 
     private var cleanHandle: String {
-        handle.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "@")))
+        handle.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "@"))).lowercased()
     }
 
     private var isValid: Bool {
-        cleanHandle.count >= 3 && cleanHandle.count <= 30
+        cleanHandle.range(of: "^[a-z0-9_.]{3,30}$", options: .regularExpression) != nil
+    }
+
+    private var previewURL: URL? {
+        if case .preset(let name) = avatarChoice { return AvatarReference.presetURL(name) }
+        return user.avatarURL
     }
 
     var body: some View {
@@ -48,6 +41,7 @@ struct ProfileEditView: View {
                         avatarPreviewSection
                         fieldsSection
                         presetAvatarsSection
+                        photoSection
                         if let errorMessage {
                             LociInlineNotice(
                                 title: "Profil Güncellenemedi",
@@ -83,16 +77,30 @@ struct ProfileEditView: View {
                     .accessibilityIdentifier("profile-edit-save")
                 }
             }
+            .onChange(of: pickedPhoto) { _, item in
+                Task { await loadPhoto(item) }
+            }
+            .alert("Fotoğraf incelemeye gönderildi", isPresented: $photoSubmitted) {
+                Button("Tamam") { dismiss() }
+            } message: {
+                Text("Profil fotoğrafın otomatik güvenlik kontrolünden geçtikten sonra görünecek. Uygunsuz içerik reddedilir.")
+            }
         }
     }
 
     private var avatarPreviewSection: some View {
         VStack(spacing: 12) {
-            LociAvatar(
-                handle: cleanHandle.isEmpty ? "loci" : cleanHandle,
-                avatarURL: parsedAvatarURL,
-                size: 88
-            )
+            Group {
+                if let photoPreview {
+                    Image(uiImage: photoPreview)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 88, height: 88)
+                        .clipShape(Circle())
+                } else {
+                    LociAvatar(handle: cleanHandle.isEmpty ? "loci" : cleanHandle, avatarURL: previewURL, size: 88)
+                }
+            }
             .shadow(color: LociTheme.accent.opacity(0.2), radius: 12)
 
             Text("@\(cleanHandle.isEmpty ? "kullanıcı" : cleanHandle)")
@@ -104,38 +112,25 @@ struct ProfileEditView: View {
 
     private var fieldsSection: some View {
         LociCard {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Kullanıcı Adı")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(LociTheme.secondaryText)
-                    HStack {
-                        Text("@")
-                            .foregroundStyle(LociTheme.accent)
-                            .font(.headline)
-                        TextField("kullanıcı_adı", text: $handle)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .font(.body)
-                    }
-                    .padding(12)
-                    .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(LociTheme.hairline))
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Avatar Görsel URL (İsteğe bağlı)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(LociTheme.secondaryText)
-                    TextField("https://...", text: $avatarURLString)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Kullanıcı Adı")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(LociTheme.secondaryText)
+                HStack {
+                    Text("@")
+                        .foregroundStyle(LociTheme.accent)
+                        .font(.headline)
+                    TextField("kullanıcı_adı", text: $handle)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .keyboardType(.URL)
                         .font(.body)
-                        .padding(12)
-                        .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(LociTheme.hairline))
                 }
+                .padding(12)
+                .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(LociTheme.hairline))
+                Text("3–30 karakter; küçük harf, rakam, alt çizgi ve nokta.")
+                    .font(.caption2)
+                    .foregroundStyle(LociTheme.tertiaryText)
             }
         }
     }
@@ -147,43 +142,52 @@ struct ProfileEditView: View {
                 .foregroundStyle(LociTheme.secondaryText)
                 .padding(.horizontal, 4)
 
-            HStack(spacing: 14) {
-                ForEach(Self.presetAvatars, id: \.self) { urlString in
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 6), spacing: 12) {
+                ForEach(AvatarReference.presets, id: \.self) { name in
+                    let selected = avatarChoice == .preset(name)
                     Button {
-                        avatarURLString = urlString
+                        avatarChoice = .preset(name)
+                        pickedPhoto = nil
+                        photoPreview = nil
                     } label: {
-                        AsyncImage(url: URL(string: urlString)) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            ProgressView()
-                        }
-                        .frame(width: 48, height: 48)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(avatarURLString == urlString ? LociTheme.accent : Color.clear, lineWidth: 3)
-                        )
+                        LociAvatar(handle: name, avatarURL: AvatarReference.presetURL(name), size: 46)
+                            .overlay(Circle().stroke(selected ? LociTheme.accent : .clear, lineWidth: 3))
                     }
                     .buttonStyle(.plain)
-                }
-
-                if !avatarURLString.isEmpty {
-                    Button {
-                        avatarURLString = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 48, height: 48)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Avatarı temizle")
+                    .accessibilityLabel("Hazır avatar \(name)")
+                    .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
             .padding(.horizontal, 4)
         }
+    }
+
+    private var photoSection: some View {
+        LociCard {
+            VStack(alignment: .leading, spacing: 8) {
+                PhotosPicker(selection: $pickedPhoto, matching: .images) {
+                    Label("Fotoğraf seç", systemImage: "photo.on.rectangle")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .accessibilityIdentifier("profile-edit-photo")
+                Text("Fotoğraflar yayınlanmadan önce otomatik olarak incelenir; çıplaklık, müstehcenlik veya şiddet içerenler reddedilir.")
+                    .font(.caption2)
+                    .foregroundStyle(LociTheme.tertiaryText)
+            }
+        }
+    }
+
+    private func loadPhoto(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: data) else {
+            errorMessage = AuthFlowError.invalidPhoto.localizedDescription
+            return
+        }
+        errorMessage = nil
+        photoPreview = image
+        avatarChoice = .photo(data)
     }
 
     private func saveProfile() async {
@@ -193,10 +197,14 @@ struct ProfileEditView: View {
         defer { isSaving = false }
 
         do {
-            try await session.updateProfile(handle: cleanHandle, avatarURL: parsedAvatarURL)
-            dismiss()
+            try await session.updateProfile(handle: cleanHandle, avatar: avatarChoice)
+            if case .photo = avatarChoice {
+                photoSubmitted = true
+            } else {
+                dismiss()
+            }
         } catch {
-            errorMessage = "Profil güncellenemedi: \(error.localizedDescription)"
+            errorMessage = error.localizedDescription
         }
     }
 }

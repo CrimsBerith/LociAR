@@ -53,8 +53,10 @@ Apple'ın zorunlu kıldığı `PrivacyInfo.xcprivacy` dosyasıyla birebir uyumlu
 | **Kesin Konum (Precise Location)** | Evet (İçerik üretenler için) | Hayır | Uygulama İşlevselliği (Yakındaki AR gönderilerini gösterme ve yüzeye bağlama) |
 | **Kullanıcı Kimliği (User ID)** | Evet | Hayır | Uygulama İşlevselliği (Hesap yönetimi ve kimlik doğrulama) |
 | **E-posta Adresi (Email Address)** | Evet | Hayır | Hesap Doğrulama ve İletişim |
-| **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (yalnızca AR yerleşimi için yüzey referans görüntüsü; kullanıcı fotoğraf/video paylaşamaz) |
+| **Ad (Name)** | Evet | Hayır | Uygulama İşlevselliği (Apple ile girişte paylaşılan ad; profil görünen adı) |
+| **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (AR yerleşimi için yüzey referans görüntüsü ve isteğe bağlı profil fotoğrafı; post olarak fotoğraf/video paylaşılamaz) |
 | **Diğer Kullanıcı İçerikleri** | Evet | Hayır | Uygulama İşlevselliği (Başlıklar, yorumlar, beğeniler, AR kayıtları) |
+| **Ürün Etkileşimi (Product Interaction)** | Evet | Hayır | Uygulama İşlevselliği + Analitik (görüntülenme/beğeni sayaçları, `analytics_events`, 180 gün saklama) |
 
 ---
 
@@ -64,8 +66,9 @@ Uygulama Kullanıcı Tarafından Üretilen İçerik (UGC) barındırdığı içi
 * **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar metin ve sosyal medya bağlantısı paylaşabilir)
 * **Konum Paylaşımı:** Evet (Gönderiler gerçek koordinatlara sabitlenir)
 * **Kısıtlanmamış Web Erişimi:** Hayır
-* **18+ / Müstehcenlik:** Hayır (Sunucu ve istemci tarafında hard-block vardır)
-* **Sonuç Yaş Derecesi:** Genellikle **12+** veya **17+** (UGC için standart).
+* **18+ / Müstehcenlik:** Hayır (Sunucu tarafında hard-block; profil fotoğrafları otomatik SafeSearch taramasından geçer)
+* **Sonuç Yaş Derecesi:** Apple'ın güncel anketi (4+/9+/13+/16+/18+). Denetimli UGC ve kullanıcılar arası iletişim
+  (yorumlar) olduğu için beklenen sonuç **13+**; anketin verdiği sonucu kullan.
 
 ---
 
@@ -98,9 +101,11 @@ LociAR is a spatial augmented reality social application that allows users to di
 
 3. USER-GENERATED CONTENT (UGC) & SAFETY (GUIDELINE 1.2 COMPLIANCE):
 - Zero tolerance for objectionable content: 18+ content and sensitive protected zones (schools, hospitals, places of worship) are hard-blocked at the server level.
-- Moderation & Approval: Newly created posts are held in 'pending_review' until moderation approval before public discovery.
-- Reporting: Users can tap the 'Bildir' (Report) button on any post to flag it for immediate 24-hour review.
-- Blocking: Users can block abusive creators directly via the ellipsis (...) menu on posts or from the creator's profile. Blocked users' content is immediately removed from the viewer's feed and map.
+- Moderation & Approval: Newly created posts are held in 'pending_review' until moderation approval before public discovery. A post you create during review will therefore not appear on the map or in Discover until it is approved; the demo account already has approved sample posts.
+- Reporting: Posts, comments and user profiles can be reported with a reason (post 'Bildir' button, the '...' menu on each comment, 'Kullanıcıyı bildir' on profiles). Reports are reviewed within 24 hours.
+- Filtering: Comments are screened against an objectionable-language filter; profile photos are screened automatically (Google Cloud Vision SafeSearch) before anyone can see them, and reviewed again by moderators.
+- Blocking: Users can block abusive creators via the ellipsis (...) menu on posts or from the creator's profile. Blocked users' posts, comments and profile are hidden immediately, and they can no longer comment on, like or follow the blocker.
+- Comment removal: Authors can delete their own comments; post owners can delete comments on their posts.
 - Account Deletion: Users can permanently delete their account and all associated data at any time via Profile -> 'Hesabı kalıcı olarak sil' (Guideline 5.1.1(v)).
 - Support: Direct support contact is available via support@lociar.app and https://lociar-admin.vercel.app/support.
 

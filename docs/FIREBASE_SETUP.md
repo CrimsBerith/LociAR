@@ -9,7 +9,8 @@ Backend 27 Eylül 2026'da Supabase'ten Firebase'e taşındı. Supabase sürümü
 | Adım | Durum |
 |---|---|
 | Firestore (nam5) + güvenli kurallar | ✅ yayında |
-| Auth: E-posta/Şifre + E-posta bağlantısı, Apple | ✅ açık (Apple token iptali için .p8 anahtarı bekleniyor) |
+| Auth: E-posta/Şifre + E-posta bağlantısı, Apple | ✅ açık — ⚠️ Apple `.p8` anahtarı girilmeden Apple kullanıcılarının hesap silmesi (token iptali) çalışmaz; App Store gönderiminden önce zorunlu |
+| Cloud Vision API (profil fotoğrafı denetimi) | ⏳ etkinleştirilmeli |
 | iOS uygulaması Team ID (ZSRUTGX74S), App Check / App Attest | ✅ (App Check izleme modunda) |
 | E-posta şablon dili | ✅ Türkçe |
 | Blaze planı | ⏳ bekleniyor |
@@ -42,15 +43,22 @@ Backend 27 Eylül 2026'da Supabase'ten Firebase'e taşındı. Supabase sürümü
 1. console.firebase.google.com → proje oluştur (Analytics isteğe bağlı).
 2. **Blaze** planına geç (Storage ve Functions için şart). Google Cloud Billing → Budgets: $10 ve $50 uyarısı.
 3. **Firestore**: Create database → *Production mode* → bölge. Mevcut proje: `nam5` (US) — Functions bu yüzden `us-central1`
-   (Türkiye'ye yakın). Bölge sonradan değişmez.
+   (nam5 ile aynı bölge ailesi; Firestore trigger şartı). Bölge sonradan değişmez.
 4. **Storage**: Get started → aynı bölge ailesi. (Ücretsiz Storage kotası yalnız us-central1/us-east1/us-west1'de.)
 5. **Authentication** → Sign-in method:
    - Email/Password: açık (Email link açık olsun — admin panel girişinde kullanılıyor)
    - Apple: açık. Services ID, Apple Team ID `ZSRUTGX74S`, Key ID ve `.p8` anahtarını gir.
    - Settings → Authorized domains: admin panel alan adını ekle (ör. `lociar-admin.vercel.app`).
 6. Authentication → Settings → **Upgrade to Identity Platform** (admin TOTP MFA için gerekli; 50K MAU'ya kadar ücretsiz katman).
-7. **App Check** → iOS uygulaması → App Attest'i kaydet. Önce "Unenforced" kalsın; TestFlight doğrulandıktan sonra Firestore/Storage/Functions için enforce et.
-8. Project settings → Your apps:
+7. **App Check** → iOS uygulaması → App Attest'i kaydet. Firestore/Storage için önce "Unenforced" kalsın;
+   TestFlight doğrulandıktan sonra enforce et. **Callable Functions** konsoldan değil koddan zorlanır:
+   `functions/src/core.ts` → `ENFORCE_APP_CHECK` (emulator dışında her zaman açık). Debug build'lerle canlı
+   backend'e bağlanacaksan Xcode konsolunda basılan App Check debug token'ını konsolda "Manage debug tokens"
+   altına ekle; yoksa callable'lar `unauthenticated` döner.
+8. **Cloud Vision API**: Google Cloud Console → APIs & Services → *Cloud Vision API* → Enable. Profil fotoğrafı
+   denetimi (`onAvatarUploaded`) bunu kullanır; kapalıysa tüm fotoğraflar reddedilir (fail-closed). Aylık ilk
+   1000 görsel ücretsiz.
+9. Project settings → Your apps:
    - iOS app ekle: bundle ID `com.khankartal.lociar`. `GoogleService-Info.plist` içindeki değerleri
      `Config/Local.xcconfig`'e yaz (dosyanın kendisi projeye eklenmez, bkz. `Config/Local.xcconfig.example`).
    - Web app ekle (admin panel için): apiKey, authDomain, projectId, appId değerlerini al.

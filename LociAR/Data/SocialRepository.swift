@@ -74,6 +74,9 @@ protocol SocialRepository: Sendable {
     func comments(for postID: UUID) async throws -> [LociComment]
     func addComment(postID: UUID, user: LociUser, text: String) async throws -> LociComment
     func report(postID: UUID, userID: UUID, reason: String) async throws
+    func reportComment(_ comment: LociComment, userID: UUID, reason: String) async throws
+    func reportUser(targetID: UUID, userID: UUID, reason: String) async throws
+    func deleteComment(id: UUID) async throws
 }
 
 /// Social rows live in top-level Firestore collections whose document IDs encode the pair
@@ -141,6 +144,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         } else {
             try await ref.delete()
         }
+        await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
     }
 
     func recordView(postID: UUID, userID: UUID) async throws -> Int {
@@ -159,6 +163,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         } else {
             try await ref.delete()
         }
+        await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
     }
 
     func setFollowing(_ following: Bool, targetID: UUID, userID: UUID) async throws {
@@ -170,6 +175,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         } else {
             try await ref.delete()
         }
+        await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
     }
 
     func followingIDs(for userID: UUID) async throws -> [UUID] {
@@ -193,6 +199,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         } else {
             try await ref.delete()
         }
+        await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
     }
 
     func collections(for userID: UUID) async throws -> [LociCollection] {
@@ -262,9 +269,12 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
             db.collection("comments")
                 .whereField("post_id", isEqualTo: key(postID))
                 .order(by: "created_at")
+                .limit(to: 200)
         )
+        let blocked = try await BlockListCache.shared.blockedIDs()
         return rows.compactMap { id, data in
-            guard let commentID = UUID(uuidString: id), let user = uuid(data["user_id"]) else { return nil }
+            guard let commentID = UUID(uuidString: id), let user = uuid(data["user_id"]),
+                  !blocked.contains(key(user)) else { return nil }
             return LociComment(
                 id: commentID,
                 postID: postID,
@@ -291,12 +301,39 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
     }
 
     func report(postID: UUID, userID: UUID, reason: String) async throws {
+        try await fileReport(postID: key(postID), userID: userID, reason: reason, metadata: ["source": "native_ios"])
+    }
+
+    func reportComment(_ comment: LociComment, userID: UUID, reason: String) async throws {
+        try await fileReport(postID: key(comment.postID), userID: userID, reason: reason, metadata: [
+            "source": "native_ios",
+            "target": "comment",
+            "comment_id": key(comment.id),
+            "author_id": key(comment.userID),
+            "text": String(comment.text.prefix(500)),
+        ])
+    }
+
+    func reportUser(targetID: UUID, userID: UUID, reason: String) async throws {
+        try await fileReport(postID: nil, userID: userID, reason: reason, metadata: [
+            "source": "native_ios",
+            "target": "user",
+            "reported_user_id": key(targetID),
+        ])
+    }
+
+    /// Allowed by rules for the comment's author and for the owner of the post it is on.
+    func deleteComment(id: UUID) async throws {
+        try await db.collection("comments").document(key(id)).delete()
+    }
+
+    private func fileReport(postID: String?, userID: UUID, reason: String, metadata: [String: String]) async throws {
         try await db.collection("moderation_flags").document(key(UUID())).setData([
-            "post_id": key(postID),
+            "post_id": postID ?? NSNull(),
             "user_id": key(userID),
             "reason": String(reason.prefix(500)),
             "status": "open",
-            "metadata": ["source": "native_ios"],
+            "metadata": metadata,
             "created_at": FieldValue.serverTimestamp(),
         ])
     }
@@ -344,5 +381,8 @@ actor PreviewSocialRepository: SocialRepository {
         LociComment(id: UUID(), postID: postID, userID: user.id, username: user.handle, text: text, createdAt: Date())
     }
     func report(postID: UUID, userID: UUID, reason: String) async throws {}
+    func reportComment(_ comment: LociComment, userID: UUID, reason: String) async throws {}
+    func reportUser(targetID: UUID, userID: UUID, reason: String) async throws {}
+    func deleteComment(id: UUID) async throws {}
 }
 

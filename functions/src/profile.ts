@@ -67,6 +67,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asyn
       handle,
       display_name: typeof data.displayName === 'string' ? data.displayName.slice(0, 80) : null,
       avatar_url: null,
+      avatar_preset: null,
       bio: null,
       follower_count: 0,
       following_count: 0,
@@ -95,6 +96,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asyn
     luid: caller.luid,
     handle: String(profile.handle),
     avatarURL: typeof profile.avatar_url === 'string' ? profile.avatar_url : null,
+    avatarPreset: typeof profile.avatar_preset === 'string' ? profile.avatar_preset : null,
     claimsUpdated,
   };
 });

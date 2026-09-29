@@ -150,6 +150,11 @@ enum MediaAssetStore {
         let metadata = StorageMetadata()
         metadata.contentType = contentType
         let ref = Storage.storage().reference(withPath: "\(bucket)/\(path)")
+        // Paths are deterministic per post, so a retry after a transient createPost failure finds
+        // the object already there and skips re-uploading (world maps can be up to 50 MB).
+        if let existing = try? await ref.getMetadata(), existing.size == Int64(data.count) {
+            return storageURL(bucket: bucket, path: path)
+        }
         _ = try await ref.putDataAsync(data, metadata: metadata)
         return storageURL(bucket: bucket, path: path)
     }

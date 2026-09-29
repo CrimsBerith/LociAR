@@ -207,7 +207,9 @@ struct LociAvatar: View {
 
     var body: some View {
         Group {
-            if let avatarURL {
+            if let preset = AvatarReference.presetName(avatarURL) {
+                presetAvatar(preset)
+            } else if let avatarURL {
                 AsyncImage(url: avatarURL) { phase in
                     switch phase {
                     case .success(let image):
@@ -229,6 +231,34 @@ struct LociAvatar: View {
         .frame(width: size, height: size)
         .overlay(Circle().stroke(LociTheme.accent.opacity(0.18)))
         .accessibilityHidden(true)
+    }
+
+    private func presetAvatar(_ name: String) -> some View {
+        let style = LociAvatar.presetStyle(name)
+        return ZStack {
+            Circle().fill(style.color.gradient)
+            Image(systemName: style.symbol)
+                .font(.system(size: size * 0.46, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+    }
+
+    /// SF Symbols only: no bundled artwork, no licensing or likeness questions.
+    static func presetStyle(_ name: String) -> (symbol: String, color: Color) {
+        switch name {
+        case "hare": ("hare.fill", .orange)
+        case "tortoise": ("tortoise.fill", .green)
+        case "cat": ("cat.fill", .purple)
+        case "dog": ("dog.fill", .brown)
+        case "bear": ("teddybear.fill", .pink)
+        case "bird": ("bird.fill", .cyan)
+        case "fish": ("fish.fill", .blue)
+        case "leaf": ("leaf.fill", .mint)
+        case "star": ("star.fill", .yellow)
+        case "moon": ("moon.fill", .indigo)
+        case "sun": ("sun.max.fill", .red)
+        default: ("bolt.fill", .teal)
+        }
     }
 
     private var fallbackAvatar: some View {

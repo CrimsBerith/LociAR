@@ -29,8 +29,10 @@ enum PinSessionState: String, Codable, Sendable, CaseIterable {
         case .candidateReady: return [.scanning, .placing, .approximateOffered, .relocalizing].contains(next)
         case .placing: return [.placed, .approximateOffered, .scanning, .relocalizing].contains(next)
         case .approximateOffered: return [.placed, .scanning, .coaching, .relocalizing].contains(next)
-        case .placed: return [.mapping, .publishReady, .scanning, .relocalizing].contains(next)
-        case .mapping: return [.publishReady, .placed, .scanning, .relocalizing].contains(next)
+        // A physical pin whose world map could not be saved may be swapped for an explicit
+        // approximate placement (user confirms in CreatePostView).
+        case .placed: return [.mapping, .publishReady, .scanning, .relocalizing, .approximateOffered].contains(next)
+        case .mapping: return [.publishReady, .placed, .scanning, .relocalizing, .approximateOffered].contains(next)
         case .publishReady: return [.scanning, .relocalizing].contains(next)
         case .relocalizing: return [.resolved, .coaching, .scanning].contains(next)
         case .resolved: return [.relocalizing, .scanning].contains(next)

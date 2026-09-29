@@ -4,6 +4,8 @@ import SwiftData
 
 enum RetryPolicy {
     static let maximumAttempts = 5
+    /// How long a record being published in the foreground is hidden from the background loop.
+    static let inFlightLease: TimeInterval = 120
 
     static func delay(afterAttempt attempt: Int) -> TimeInterval {
         min(3_600, pow(2, Double(max(0, attempt))) * 15)
@@ -50,7 +52,9 @@ enum SyncQueueProcessor {
             guard !Task.isCancelled else { return }
             do {
                 if force {
+                    // A manual "Şimdi yayınla" gets a fresh retry budget.
                     record.deadLetterReason = nil
+                    record.attemptCount = 0
                     record.nextAttemptAt = now
                 }
                 switch record.operation {

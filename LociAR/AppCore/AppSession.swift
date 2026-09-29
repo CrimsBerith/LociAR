@@ -102,16 +102,16 @@ final class AppSession {
         backendMessage = nil
     }
 
-    func updateProfile(handle: String, avatarURL: URL?) async throws {
+    func updateProfile(handle: String, avatar: AvatarChoice) async throws {
         if isLocalPreview {
             if case var .signedIn(currentUser) = phase {
                 currentUser.handle = handle
-                currentUser.avatarURL = avatarURL
+                if case .preset(let name) = avatar { currentUser.avatarURL = AvatarReference.presetURL(name) }
                 phase = .signedIn(currentUser)
             }
             return
         }
-        let updated = try await authRepository.updateProfile(handle: handle, avatarURL: avatarURL)
+        let updated = try await authRepository.updateProfile(handle: handle, avatar: avatar)
         phase = .signedIn(updated)
     }
 

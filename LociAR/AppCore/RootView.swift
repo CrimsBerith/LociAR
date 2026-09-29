@@ -66,9 +66,12 @@ struct RootView: View {
                 stopSyncLoop()
             }
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { previous, phase in
             if phase == .active {
-                if !session.isLocalPreview { Task { await session.bootstrap() } }
+                // Only a real return from the background re-validates the session. `.inactive`
+                // blips (permission alerts, the Sign in with Apple sheet during account deletion,
+                // Control Center) must not re-run ensureProfile or reset password recovery.
+                if previous == .background, !session.isLocalPreview { Task { await session.bootstrap() } }
                 startSyncLoop()
             } else { stopSyncLoop() }
         }

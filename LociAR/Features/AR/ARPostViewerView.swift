@@ -5,6 +5,7 @@ import UIKit
 struct ARPostViewerView: View {
     @Environment(ARPinningEngine.self) private var engine
     @Environment(AppSession.self) private var session
+    @Environment(AppContainer.self) private var container
     @Environment(\.dismiss) private var dismiss
     let post: LociPost
     var onClose: (() -> Void)? = nil
@@ -226,6 +227,7 @@ struct ARPostViewerView: View {
                     message = "Yüzey bulundu. İçerik hazır."
                     return
                 }
+                if await relocalizeFromWorldMap() { return }
                 await revealWithAimGuidance()
                 return
             }
@@ -234,6 +236,48 @@ struct ARPostViewerView: View {
         }
         message = "Konum doğrulanamadı. AR erişimi açılmadı."
         accessBlocked = true
+    }
+
+    /// Multi-user world lock: downloads the creator's ARWorldMap and relocalizes against it so the
+    /// content appears on the exact physical surface it was pinned to. Returns false (caller falls
+    /// back to aim-assisted reveal) when the post has no stored map, the download fails, or ARKit
+    /// cannot recognise the place within the engine's relocalization timeout.
+    private func relocalizeFromWorldMap() async -> Bool {
+        guard let persistence = post.anchorBundle.anchor.persistence,
+              persistence.storagePath != nil,
+              post.anchorBundle.anchor.pinQuality.isPhysicalSurface,
+              let worldMaps = container.worldMaps else { return false }
+        message = "Kayıtlı yüzey haritası indiriliyor…"
+        guard let data = try? await worldMaps.download(persistence), !Task.isCancelled else { return false }
+        await engine.requestCameraAndStart()
+        guard engine.state != .failed else { return false }
+        do {
+            try await engine.restoreWorldMap(data: data, expectedAnchor: post.anchorBundle.anchor)
+        } catch {
+            engine.stopSession()
+            return false
+        }
+        message = "Kaydedilen çevre aranıyor. Kamerayı postun sabitlendiği yüzeye doğru yavaşça gezdir."
+        while !Task.isCancelled {
+            switch engine.state {
+            case .resolved:
+                do {
+                    try await engine.render(post: post)
+                    message = "Yüzey bulundu. İçerik hazır."
+                } catch {
+                    message = "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene."
+                }
+                return true
+            case .failed, .idle:
+                // Relocalization timed out; clear the initial world map before falling back.
+                engine.stopSession()
+                message = "Kaydedilen çevre bulunamadı. Yaklaşık konuma göre yönlendiriliyorsun."
+                return false
+            default:
+                try? await Task.sleep(for: .milliseconds(150))
+            }
+        }
+        return false
     }
 
     private func revealLocalPreviewOnPhysicalSurface() async {
