@@ -293,15 +293,24 @@ struct CollectionsView: View {
         Group {
             if isLoading { LociLoadingView(title: "Koleksiyonlar yükleniyor…") }
             else if collections.isEmpty {
-                LociEmptyState(
-                    title: "Henüz koleksiyon yok",
-                    message: message ?? "Kaydettiğin postları özel koleksiyonlarda düzenleyebilirsin.",
-                    symbol: "square.stack.3d.up",
-                    actionTitle: message == nil ? "İlk koleksiyonu oluştur" : (!container.isBackendConfigured ? nil : "Tekrar dene"),
-                    action: { if message == nil { showCreate = true } else { Task { await load() } } }
-                )
+                if let message {
+                    LociEmptyState.failure(message: message, retry: retryAction)
+                } else {
+                    LociEmptyState(
+                        title: "Henüz koleksiyon yok",
+                        message: "Kaydettiğin postları özel koleksiyonlarda düzenleyebilirsin.",
+                        symbol: "square.stack.3d.up",
+                        actionTitle: "İlk koleksiyonu oluştur",
+                        action: { showCreate = true }
+                    )
+                }
             } else {
-                List(collections) { collection in
+                List {
+                    if let message {
+                        LociInlineNotice(title: "Bir sorun oluştu", message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                            .listRowBackground(Color.clear)
+                    }
+                    ForEach(collections) { collection in
                     NavigationLink {
                         CollectionDetailView(collection: collection)
                     } label: {
@@ -317,6 +326,7 @@ struct CollectionsView: View {
                         }
                     }
                     .listRowBackground(Color.clear)
+                    }
                 }
                 .lociListStyle()
                 .refreshable { await load() }
@@ -331,6 +341,12 @@ struct CollectionsView: View {
             Button("Vazgeç", role: .cancel) {}
         }
         .task { await load() }
+    }
+
+    /// Retry is only offered when a backend exists to retry against.
+    private var retryAction: (() -> Void)? {
+        guard container.isBackendConfigured else { return nil }
+        return { Task { await load() } }
     }
 
     private func load() async {
@@ -349,6 +365,7 @@ struct CollectionsView: View {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured, !cleanTitle.isEmpty else { return }
         guard cleanTitle.count <= 80 else { message = "Koleksiyon başlığı en fazla 80 karakter olabilir."; return }
+        message = nil
         do {
             let created = try await container.social.createCollection(title: cleanTitle, userID: user.id)
             collections.insert(created, at: 0)
@@ -371,13 +388,22 @@ struct CollectionDetailView: View {
             if isLoading {
                 LociLoadingView(title: "Koleksiyon yükleniyor…")
             } else if posts.isEmpty {
-                LociEmptyState(
-                    title: "Bu koleksiyon boş",
-                    message: "Beğendiğin veya kaydettiğin postları detayından bu koleksiyona ekleyebilirsin.",
-                    symbol: "folder.badge.plus"
-                )
+                if let message {
+                    // A failed load must not read as an empty collection.
+                    LociEmptyState.failure(message: message, retry: { Task { await load() } })
+                } else {
+                    LociEmptyState(
+                        title: "Bu koleksiyon boş",
+                        message: "Beğendiğin veya kaydettiğin postları detayından bu koleksiyona ekleyebilirsin.",
+                        symbol: "folder.badge.plus"
+                    )
+                }
             } else {
                 List {
+                    if let message {
+                        LociInlineNotice(title: "Bazı postlar gösterilemiyor", message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                            .listRowBackground(Color.clear)
+                    }
                     ForEach(posts) { post in
                         NavigationLink {
                             PostPreviewView(post: post)
@@ -415,16 +441,24 @@ struct CollectionDetailView: View {
 
     private func load() async {
         isLoading = posts.isEmpty
+        message = nil
         defer { isLoading = false }
         do {
             let postIDs = try await container.social.postIDs(in: collection.id)
             var loadedPosts: [LociPost] = []
+            var failedCount = 0
             for id in postIDs {
-                if let post = try? await container.posts.publicPost(id: id) {
-                    loadedPosts.append(post)
+                do {
+                    // nil = removed, hidden or blocked: intentionally skipped. A throw is a real failure.
+                    if let post = try await container.posts.publicPost(id: id) { loadedPosts.append(post) }
+                } catch {
+                    failedCount += 1
                 }
             }
             posts = loadedPosts
+            if failedCount > 0 {
+                message = loadedPosts.isEmpty ? "Postlar yüklenemedi." : "\(failedCount) post şu anda yüklenemedi. Yenilemek için aşağı çek."
+            }
         } catch {
             message = "Postlar yüklenemedi."
         }
@@ -1195,6 +1229,10 @@ struct PostPreviewView: View {
             switch target {
             case .post:
                 try await container.social.report(postID: post.id, userID: user.id, reason: reason.rawValue)
+                // Hide it for this reporter immediately, then leave the screen.
+                await HiddenPostStore.shared.hide(post.id, owner: user.id.uuidString.lowercased())
+                dismiss()
+                return
             case .comment(let comment):
                 try await container.social.reportComment(comment, userID: user.id, reason: reason.rawValue)
                 withAnimation { comments.removeAll { $0.id == comment.id } }

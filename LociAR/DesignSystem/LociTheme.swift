@@ -200,6 +200,17 @@ struct LociEmptyState: View {
     }
 }
 
+extension LociEmptyState {
+    /// Error variant of the empty state: its own icon and (when `retry` is given) a "Tekrar dene"
+    /// button, so a failed load never reads as "nothing here".
+    static func failure(title: String = "Şu anda yüklenemiyor", message: String, retry: (() -> Void)? = nil) -> LociEmptyState {
+        LociEmptyState(
+            title: title, message: message, symbol: "exclamationmark.triangle",
+            actionTitle: retry == nil ? nil : "Tekrar dene", action: retry
+        )
+    }
+}
+
 struct LociAvatar: View {
     let handle: String
     var avatarURL: URL? = nil

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 @preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseFirestore
 
@@ -35,6 +36,7 @@ protocol PostRepository: Sendable {
 final class FirestorePostRepository: PostRepository, @unchecked Sendable {
     private let callables: CallableClient
     private let blockCache = BlockListCache.shared
+    private let logger = Logger(subsystem: "com.khankartal.lociar", category: "posts")
 
     init(callables: CallableClient) { self.callables = callables }
 
@@ -98,7 +100,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         }
         .sorted { $0.2 == $1.2 ? $0.3 < $1.3 : $0.2 > $1.2 }
         .prefix(100)
-        return await materialize(ranked.map { ($0.0, $0.1) })
+        return await withoutHidden(await materialize(ranked.map { ($0.0, $0.1) }))
     }
 
     func discover() async throws -> [LociPost] {
@@ -112,7 +114,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         let rows = snapshot.documents
             .map { ($0.documentID, $0.data()) }
             .filter { FirestorePostMapper.isPubliclyListed($0.1) && !blocked.contains($0.1["creator_id"] as? String ?? "") }
-        return await materialize(rows).filter(PublicSafetyPolicy.isListedInPublicDiscover)
+        return await withoutHidden(await materialize(rows).filter(PublicSafetyPolicy.isListedInPublicDiscover))
     }
 
     func publish(_ post: LociPost) async throws -> PostPublishReceipt {
@@ -181,7 +183,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             .limit(to: max(1, min(limit, 100)))
             .getDocuments()
         let rows = snapshot.documents.map { ($0.documentID, $0.data()) }.filter { FirestorePostMapper.isPubliclyListed($0.1) }
-        return await materialize(rows)
+        return await withoutHidden(await materialize(rows))
     }
 
     func publicProfile(creatorID: UUID) async throws -> PublicProfileProjection? {
@@ -213,7 +215,8 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
               FirestorePostMapper.isPubliclyListed(data),
               let row = try? FirestorePostMapper.row(id: snapshot.documentID, data: data) else { return nil }
         if try await blockCache.blockedIDs().contains(data["creator_id"] as? String ?? "") { return nil }
-        return await MediaAssetStore.materializeRemoteAssets(in: row.domainPost())
+        let post = await MediaAssetStore.materializeRemoteAssets(in: row.domainPost())
+        return await withoutHidden([post]).first
     }
 
     func removeOwnPost(id: UUID) async throws {
@@ -259,8 +262,24 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         return raw.isEmpty ? "Yayın sunucu tarafından reddedildi." : raw
     }
 
+    /// Drops posts the user reported (see HiddenPostStore). Never applied to `myPosts`.
+    private func withoutHidden(_ posts: [LociPost]) async -> [LociPost] {
+        guard let me = FirebaseIdentity.currentLUID().map(FirebaseIdentity.key) else { return posts }
+        let hidden = await HiddenPostStore.shared.hiddenIDs(owner: me)
+        guard !hidden.isEmpty else { return posts }
+        return posts.filter { !hidden.contains(FirebaseIdentity.key($0.id)) }
+    }
+
     private func materialize(_ documents: [(String, [String: Any])]) async -> [LociPost] {
-        let rows = documents.compactMap { try? FirestorePostMapper.row(id: $0.0, data: $0.1) }
+        var rows: [BackendPostRow] = []
+        for (id, data) in documents {
+            do {
+                rows.append(try FirestorePostMapper.row(id: id, data: data))
+            } catch {
+                // A post that cannot be decoded disappears from the feed; leave a trace for debugging.
+                logger.error("Dropped undecodable post id=\(id, privacy: .public) error=\(String(describing: error), privacy: .public)")
+            }
+        }
         guard !rows.isEmpty else { return [] }
         return await withTaskGroup(of: (Int, LociPost).self) { group in
             for (index, row) in rows.enumerated() {

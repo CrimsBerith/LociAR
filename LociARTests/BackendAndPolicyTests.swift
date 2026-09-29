@@ -520,4 +520,18 @@ final class BackendAndPolicyTests: XCTestCase {
             "Bu korumalı bölgede post yayınlanamaz."
         )
     }
+
+    func testHiddenPostStoreIsScopedPerAccount() async throws {
+        let suite = "test.hidden.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = HiddenPostStore(defaults: defaults)
+        let post = UUID()
+        await store.hide(post, owner: "alice")
+        await store.hide(post, owner: "alice") // idempotent
+        let alice = await store.hiddenIDs(owner: "alice")
+        let bob = await store.hiddenIDs(owner: "bob")
+        XCTAssertEqual(alice, [post.uuidString.lowercased()])
+        XCTAssertTrue(bob.isEmpty)
+    }
 }
