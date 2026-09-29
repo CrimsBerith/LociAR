@@ -1,5 +1,5 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { auth, db, deleteStoragePrefix, FieldValue, logEvent, requireCaller } from './core';
+import { auth, db, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
 
 async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFirestore.BulkWriter): Promise<number> {
   let total = 0;
@@ -19,7 +19,7 @@ async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFires
  * Firebase Auth user. Reports filed by the user are kept for safety but de-identified.
  * Apple token revocation happens on-device (Auth.revokeToken) before this is called.
  */
-export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB' }, async (request) => {
+export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const caller = requireCaller(request);
   const luid = caller.luid;
   await logEvent({ userId: luid, name: 'account_deletion_requested' });
@@ -54,6 +54,9 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB' }, a
   for (const [collection, field] of byField) {
     await deleteQuery(db.collection(collection).where(field, '==', luid), writer);
   }
+
+  await deleteQuery(db.collection('handles').where('luid', '==', luid), writer);
+  await deleteQuery(db.collection('avatar_reviews').where('luid', '==', luid), writer);
 
   const reports = await db.collection('moderation_flags').where('user_id', '==', luid).get();
   reports.docs.forEach((d) => writer.update(d.ref, { user_id: null, reporter_deleted: true }));

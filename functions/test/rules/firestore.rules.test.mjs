@@ -8,6 +8,9 @@ const ALICE = '11111111-1111-5111-8111-111111111111';
 const BOB = '22222222-2222-5222-8222-222222222222';
 const POST = '33333333-3333-4333-8333-333333333333';
 const PENDING = '44444444-4444-4444-8444-444444444444';
+const PRIVATE = '55555555-5555-4555-8555-555555555555';
+const CAROL = '66666666-6666-5666-8666-666666666666'; // suspended
+const DAVE = '77777777-7777-5777-8777-777777777777'; // blocked by BOB
 let env;
 
 before(async () => {
@@ -23,7 +26,13 @@ beforeEach(async () => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'posts', POST), { creator_id: BOB, status: 'active', visibility: 'public', age_rating: 'all' });
     await setDoc(doc(db, 'posts', PENDING), { creator_id: BOB, status: 'pending_review', visibility: 'public', age_rating: 'all' });
-    await setDoc(doc(db, 'profiles', ALICE), { handle: 'alice', avatar_url: null, bio: null, follower_count: 0 });
+    await setDoc(doc(db, 'posts', PRIVATE), { creator_id: BOB, status: 'active', visibility: 'private', age_rating: 'all' });
+    await setDoc(doc(db, 'profiles', ALICE), { handle: 'alice', avatar_url: null, bio: null, follower_count: 0, suspended: false });
+    await setDoc(doc(db, 'profiles', BOB), { handle: 'bob', avatar_url: null, bio: null, follower_count: 0 });
+    await setDoc(doc(db, 'profiles', CAROL), { handle: 'carol', avatar_url: null, bio: null, follower_count: 0, suspended: true });
+    await setDoc(doc(db, 'profiles', DAVE), { handle: 'dave', avatar_url: null, bio: null, follower_count: 0 });
+    await setDoc(doc(db, 'user_blocks', `${BOB}_${DAVE}`), { blocker_id: BOB, blocked_id: DAVE });
+    await setDoc(doc(db, 'comments', 'bob-own'), { id: 'bob-own', post_id: POST, user_id: DAVE, username: 'dave', text: 'x' });
     await setDoc(doc(db, 'collections', 'c1'), { id: 'c1', owner_id: BOB, title: 'x', visibility: 'private' });
   });
 });
@@ -72,12 +81,43 @@ test('follows and blocks cannot target self or impersonate', async () => {
   await assertFails(getDocs(query(collection(as(BOB), 'user_blocks'), where('blocked_id', '==', BOB))));
 });
 
-test('profile: owner edits handle/avatar/bio only', async () => {
+test('profile: owner edits bio/preset only; handle and photo avatar are server-only', async () => {
   const db = as(ALICE);
-  await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { handle: 'alice_2', updated_at: serverTimestamp() }));
-  await assertFails(updateDoc(doc(db, 'profiles', ALICE), { handle: 'AB', updated_at: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { bio: 'merhaba', updated_at: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { avatar_preset: 'fox', updated_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db, 'profiles', ALICE), { avatar_preset: 'https://x.example/a.jpg', updated_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db, 'profiles', ALICE), { handle: 'bob', updated_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db, 'profiles', ALICE), { avatar_url: 'https://x.example/a.jpg', updated_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db, 'profiles', ALICE), { suspended: true, updated_at: serverTimestamp() }));
   await assertFails(updateDoc(doc(db, 'profiles', ALICE), { follower_count: 999, updated_at: serverTimestamp() }));
-  await assertFails(updateDoc(doc(as(BOB), 'profiles', ALICE), { handle: 'hacked', updated_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(as(BOB), 'profiles', ALICE), { bio: 'hacked', updated_at: serverTimestamp() }));
+  await assertFails(getDoc(doc(db, 'handles', 'alice')));
+});
+
+test('suspended accounts cannot interact but can still report', async () => {
+  const db = as(CAROL);
+  const c = { id: 'c-s', post_id: POST, user_id: CAROL, username: 'carol', text: 'selam', created_at: serverTimestamp() };
+  await assertFails(setDoc(doc(db, 'comments', 'c-s'), c));
+  await assertFails(setDoc(doc(db, 'likes', `${POST}_${CAROL}`), { post_id: POST, user_id: CAROL, created_at: serverTimestamp() }));
+  await assertFails(setDoc(doc(db, 'follows', `${CAROL}_${BOB}`), { follower_id: CAROL, following_id: BOB, created_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'r-s'), { post_id: POST, user_id: CAROL, reason: 'spam', status: 'open', metadata: {}, created_at: serverTimestamp() }));
+});
+
+test('blocked users cannot comment, like or follow the blocker', async () => {
+  const db = as(DAVE);
+  const c = { id: 'c-b', post_id: POST, user_id: DAVE, username: 'dave', text: 'selam', created_at: serverTimestamp() };
+  await assertFails(setDoc(doc(db, 'comments', 'c-b'), c));
+  await assertFails(setDoc(doc(db, 'likes', `${POST}_${DAVE}`), { post_id: POST, user_id: DAVE, created_at: serverTimestamp() }));
+  await assertFails(setDoc(doc(db, 'follows', `${DAVE}_${BOB}`), { follower_id: DAVE, following_id: BOB, created_at: serverTimestamp() }));
+});
+
+test('comments: not on private posts; author or post owner may delete', async () => {
+  const c = { id: 'c-p', post_id: PRIVATE, user_id: ALICE, username: 'alice', text: 'selam', created_at: serverTimestamp() };
+  await assertFails(setDoc(doc(as(ALICE), 'comments', 'c-p'), c));
+  await assertSucceeds(setDoc(doc(as(ALICE), 'comments', 'c-a'), { ...c, id: 'c-a', post_id: POST }));
+  await assertFails(deleteDoc(doc(as(DAVE), 'comments', 'c-a')));
+  await assertSucceeds(deleteDoc(doc(as(ALICE), 'comments', 'c-a')));
+  await assertSucceeds(deleteDoc(doc(as(BOB), 'comments', 'bob-own')));
 });
 
 test('collection items only in own collections; reports create-only', async () => {

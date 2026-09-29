@@ -31,3 +31,17 @@ test('signed-in users read media; anonymous cannot', async () => {
   await assertSucceeds(getBytes(ref(as(BOB), `post-world-maps/${ALICE}/p1/anchor.lociarmap`)));
   await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), `post-world-maps/${ALICE}/p1/anchor.lociarmap`)));
 });
+
+test('avatars: owner uploads JPEGs to pending only; only screened photos are readable', async () => {
+  const id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  await assertSucceeds(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/pending/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(as(ALICE), `avatars/${BOB}/pending/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/current/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/pending/${id}.png`), jpeg, { contentType: 'image/png' }));
+  await assertFails(getBytes(ref(as(BOB), `avatars/${ALICE}/pending/${id}.jpg`)));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await uploadBytes(ref(ctx.storage(), `avatars/${ALICE}/current/${id}.jpg`), jpeg, { contentType: 'image/jpeg' });
+  });
+  await assertSucceeds(getBytes(ref(as(BOB), `avatars/${ALICE}/current/${id}.jpg`)));
+  await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), `avatars/${ALICE}/current/${id}.jpg`)));
+});

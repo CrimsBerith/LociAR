@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { onCall } from 'firebase-functions/v2/https';
 import {
-  bucket, db, deleteStoragePrefix, FieldValue, HttpsError, identityVerified, isUUID, logEvent,
+  bucket, db, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID, logEvent,
   requireCaller, Timestamp,
 } from './core';
 import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
@@ -61,7 +61,7 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
   return { id, placement_state: data.placement_state ?? null, status: data.status };
 }
 
-export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60 }, async (request) => {
+export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const caller = requireCaller(request);
   const body = request.data as CreatePostBody;
   const validationError = validateCreatePostBody(body);
@@ -179,7 +179,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60 }, async
   return { post: serializePost(postId, document), publishStatus, idempotentReplay: false };
 });
 
-export const deleteOwnPost = onCall(async (request) => {
+export const deleteOwnPost = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const caller = requireCaller(request);
   const postId = (request.data as { postId?: unknown })?.postId;
   if (!isUUID(postId)) throw new HttpsError('invalid-argument', 'Invalid post ID');
@@ -197,7 +197,7 @@ export const deleteOwnPost = onCall(async (request) => {
   return { removed };
 });
 
-export const recordPostView = onCall(async (request) => {
+export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const caller = requireCaller(request);
   const postId = (request.data as { postId?: unknown })?.postId;
   if (!isUUID(postId)) throw new HttpsError('invalid-argument', 'Invalid post ID');

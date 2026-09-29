@@ -62,3 +62,19 @@ test('only text and social media links are accepted', () => {
   const textOnly = { ...base(), contentSource: { platform: 'other', title: 'Merhaba' } };
   assert.equal(validateCreatePostBody(textOnly), null);
 });
+
+test('social links must use the platform host over https', () => {
+  const link = (platform, url) => ({ ...base(), contentSource: { platform, url, mediaKind: 'embed' } });
+  assert.equal(validateCreatePostBody(link('youtube', 'https://youtu.be/abc')), null);
+  assert.equal(validateCreatePostBody(link('x', 'https://x.com/user/status/1')), null);
+  assert.equal(validateCreatePostBody(link('twitter', 'https://twitter.com/user/status/1')), null);
+  assert.equal(validateCreatePostBody(link('spotify', 'https://evil.example/track/1')), 'Invalid social media link');
+  assert.equal(validateCreatePostBody(link('spotify', 'https://open.spotify.com.evil.example/track/1')), 'Invalid social media link');
+  assert.equal(validateCreatePostBody(link('instagram', 'http://instagram.com/p/1')), 'Invalid social media link');
+  assert.equal(validateCreatePostBody(link('facebook', 'https://user:pw@facebook.com/reel/1')), 'Invalid social media link');
+});
+
+test('reference image must be a storage path or the pending placeholder', () => {
+  assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'https://tracker.example/pixel.jpg' }), 'Invalid reference image');
+  assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'storage://post-reference-images/a/b/c.jpg' }), null);
+});

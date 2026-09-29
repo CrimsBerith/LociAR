@@ -92,7 +92,29 @@ function hasStrictARKitWorldLockEvidence(body: CreatePostBody): boolean {
 }
 
 /** Posts are text and/or a social media link only; device photos/videos are not accepted. */
-const SOCIAL_PLATFORMS = new Set(['spotify', 'youtube', 'facebook', 'instagram', 'x', 'twitter']);
+/** Hosts per platform. Must match ExternalMediaParser in the iOS client (Domain/Models.swift). */
+const SOCIAL_HOSTS: Record<string, string[]> = {
+  spotify: ['open.spotify.com', 'spotify.link'],
+  youtube: ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'],
+  facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.watch'],
+  instagram: ['instagram.com', 'www.instagram.com'],
+  x: ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com', 'mobile.twitter.com'],
+};
+SOCIAL_HOSTS.twitter = SOCIAL_HOSTS.x;
+
+export function isAllowedSocialLink(platform: string, url: unknown): boolean {
+  const hosts = SOCIAL_HOSTS[platform];
+  if (!hosts || typeof url !== 'string' || url.length > 2048) return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  return parsed.protocol === 'https:' && !parsed.username && !parsed.password && !parsed.port
+    && hosts.includes(parsed.hostname.toLowerCase());
+}
+
 const ALLOWED_LAYER_TYPES = new Set(['text', 'drawing']);
 
 function contentPolicyError(body: CreatePostBody): string | null {
@@ -112,8 +134,8 @@ function contentPolicyError(body: CreatePostBody): string | null {
       return 'Only text posts and social media links are allowed';
     }
     if (url != null) {
-      if (!SOCIAL_PLATFORMS.has(platform)) return 'Only social media links are allowed';
-      if (typeof url !== 'string' || url.length > 2048 || !/^https:\/\//i.test(url)) return 'Invalid social media link';
+      if (!SOCIAL_HOSTS[platform]) return 'Only social media links are allowed';
+      if (!isAllowedSocialLink(platform, url)) return 'Invalid social media link';
     }
   }
   return null;
@@ -131,7 +153,8 @@ export function validateCreatePostBody(body: CreatePostBody | undefined): string
   if (body.ageRating === '18_plus') return '18+ content is disabled in this release';
   if (!['all', '13_plus', '16_plus'].includes(body.ageRating)) return 'Invalid age rating';
   if (!['public', 'friends', 'private'].includes(body.visibility)) return 'Invalid visibility';
-  if (typeof body.refImageUri !== 'string' || body.refImageUri.length > 1024) return 'Invalid reference image';
+  if (typeof body.refImageUri !== 'string' || body.refImageUri.length > 1024
+    || !/^(storage|native-ar-reference):\/\//.test(body.refImageUri)) return 'Invalid reference image';
   const layers = (body.editData as { layers?: unknown })?.layers;
   if (!Array.isArray(layers) || layers.length === 0) return 'At least one edit layer is required';
   if (JSON.stringify(body).length > 400_000) return 'Post payload is too large';
@@ -246,7 +269,7 @@ export async function evaluatePlacement(
     objectExists(nativeWorldMapPath(anchor, luid, postId)),
     objectExists(nativeReferenceImagePath(body, luid, postId)),
   ]);
-  const hasReferenceImage = referenceExists || /^https?:\/\//.test(body.refImageUri ?? '');
+  const hasReferenceImage = referenceExists;
   const hasPersistentResolver = hasValidPersistentResolver(anchor, worldMapExists);
   const placementQuality = placementQualityForAnchor(anchor, body.pose.accuracy, hasReferenceImage, hasPersistentResolver);
   const eligible = nativeAnchorEligible(anchor, placementQuality, hasReferenceImage || hasPersistentResolver);

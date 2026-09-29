@@ -1,7 +1,7 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { FieldValue, Timestamp, type DocumentData, type Transaction } from 'firebase-admin/firestore';
-import { adminDb, iso } from './firebase-admin';
+import { adminBucket, adminDb, iso } from './firebase-admin';
 import { ValidationError } from './validation';
 
 /**
@@ -91,6 +91,11 @@ const MODERATION_STATUS: Record<string, string> = {
 };
 
 function applyModeration(tx: Transaction, postRef: FirebaseFirestore.DocumentReference, before: DocumentData, action: string, actorId: string, reason: string) {
+  // deleteOwnPost sets deleted_at without deleted_by and wipes the post's media; the author's
+  // deletion is final, so such posts can only be trashed, never brought back.
+  if (before.deleted_at && !before.deleted_by && action !== 'soft_delete') {
+    throw new ConflictError('post_deleted_by_author: posts removed by their author cannot be restored');
+  }
   if (action === 'approve') {
     if (before.age_rating === '18_plus' || before.protected_zone_name) {
       throw new ConflictError('post_not_approvable: 18+ or protected-zone content cannot be approved');
@@ -285,4 +290,48 @@ export async function consumeRateLimit(actorId: string, scope: string, limit: nu
     }, { merge: true });
     return true;
   });
+}
+
+export async function setUserSuspended(luid: string, suspended: boolean, actorId: string, reason: string, idempotencyKey: string) {
+  const db = adminDb();
+  const profileRef = db.collection('profiles').doc(luid);
+  return db.runTransaction(async (tx) => {
+    const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
+    const snap = await tx.get(profileRef);
+    if (!snap.exists) throw new ValidationError('user_not_found');
+    if (audit.exists) return sanitize(snap.data());
+    const update = { suspended, updated_at: FieldValue.serverTimestamp() };
+    tx.update(profileRef, update);
+    const after = { ...snap.data(), suspended };
+    writeAudit(tx, idempotencyKey, {
+      actorId, action: suspended ? 'user_suspend' : 'user_unsuspend', resourceType: 'user', resourceId: luid,
+      before: snap.data(), after, reason, permissionKey: 'users.suspend', riskLevel: 'critical',
+    });
+    return sanitize(after);
+  });
+}
+
+/** approve keeps the photo; remove deletes it and clears the profile's avatar. */
+export async function decideAvatar(luid: string, action: 'approve' | 'remove', actorId: string, reason: string, idempotencyKey: string) {
+  const db = adminDb();
+  const reviewRef = db.collection('avatar_reviews').doc(luid);
+  const profileRef = db.collection('profiles').doc(luid);
+  const result = await db.runTransaction(async (tx) => {
+    const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
+    const [review, profile] = await Promise.all([tx.get(reviewRef), tx.get(profileRef)]);
+    if (!review.exists) throw new ValidationError('avatar_review_not_found');
+    if (audit.exists) return { review: sanitize(review.data()), path: null as string | null };
+    const path = String(review.data()!.path ?? '');
+    tx.update(reviewRef, { status: action === 'approve' ? 'approved' : 'removed', decided_by: actorId, decided_at: FieldValue.serverTimestamp() });
+    if (action === 'remove' && profile.exists && profile.data()!.avatar_url === `storage://${path}`) {
+      tx.update(profileRef, { avatar_url: null, updated_at: FieldValue.serverTimestamp() });
+    }
+    writeAudit(tx, idempotencyKey, {
+      actorId, action: `avatar_${action}`, resourceType: 'user', resourceId: luid,
+      before: review.data(), after: { ...review.data(), status: action }, reason, permissionKey: 'users.suspend', riskLevel: 'sensitive',
+    });
+    return { review: sanitize(review.data()), path: action === 'remove' ? path : null };
+  });
+  if (result.path) await adminBucket().file(result.path).delete({ ignoreNotFound: true });
+  return result.review;
 }

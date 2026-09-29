@@ -60,7 +60,7 @@ test("moderation approval is fail-closed and flag decisions are audited", () => 
 
 test("all planned operations pages are enabled", () => {
   const layout = readFileSync(join(repoRoot, "admin/app/admin/(protected)/layout.tsx"), "utf8");
-  for (const route of ["moderation", "anchors", "places", "zones", "analytics", "system"]) {
+  for (const route of ["moderation", "avatars", "anchors", "places", "zones", "analytics", "system"]) {
     assert.match(layout, new RegExp(`href: '/admin/${route}', label: .* enabled: true`));
     assert.ok(globSync(join(repoRoot, `admin/app/admin/(protected)/${route}/page.tsx`)).length === 1);
   }

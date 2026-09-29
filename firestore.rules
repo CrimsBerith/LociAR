@@ -13,25 +13,39 @@ service cloud.firestore {
     function onlyKeys(keys) { return request.resource.data.keys().hasOnly(keys) && request.resource.data.keys().hasAll(keys); }
     function createdNow() { return request.resource.data.created_at == request.time; }
     function postExists(postId) { return exists(/databases/$(database)/documents/posts/$(postId)); }
-    function postIsActive(postId) {
-      return get(/databases/$(database)/documents/posts/$(postId)).data.status == 'active';
+    function post(postId) { return get(/databases/$(database)/documents/posts/$(postId)).data; }
+    function postIsPublicActive(postId) {
+      return post(postId).status == 'active' && post(postId).visibility == 'public';
+    }
+    // Suspended accounts keep read access and can still file reports, but cannot interact.
+    function notSuspended() {
+      return get(/databases/$(database)/documents/profiles/$(me())).data.get('suspended', false) != true;
+    }
+    // True when `owner` has blocked the caller.
+    function blockedBy(owner) {
+      return exists(/databases/$(database)/documents/user_blocks/$(owner + '_' + me()));
+    }
+    function avatarPreset(value) {
+      return value == null || value in ['fox', 'owl', 'cat', 'dog', 'bear', 'bird', 'fish', 'leaf', 'star', 'moon', 'sun', 'bolt'];
     }
 
     match /profiles/{luid} {
       allow read: if true;
       allow create, delete: if false;
+      // Handles change only through the updateHandle callable (uniqueness); photo avatars are set
+      // only by the moderation function. The owner may pick a preset or remove the photo.
       allow update: if signedIn() && me() == luid
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['handle', 'avatar_url', 'bio', 'display_name', 'updated_at'])
+             .hasOnly(['avatar_url', 'avatar_preset', 'bio', 'display_name', 'updated_at'])
         && request.resource.data.updated_at == request.time
-        && request.resource.data.handle is string
-        && request.resource.data.handle.matches('^[a-z0-9_.]{3,30}$')
+        && (!('avatar_url' in request.resource.data.diff(resource.data).affectedKeys())
+            || request.resource.data.avatar_url == null)
+        && (!('avatar_preset' in request.resource.data) || avatarPreset(request.resource.data.avatar_preset))
         && (!('bio' in request.resource.data) || request.resource.data.bio == null
             || (request.resource.data.bio is string && request.resource.data.bio.size() <= 300))
         && (!('display_name' in request.resource.data) || request.resource.data.display_name == null
             || (request.resource.data.display_name is string && request.resource.data.display_name.size() <= 60))
-        && (!('avatar_url' in request.resource.data) || request.resource.data.avatar_url == null
-            || (request.resource.data.avatar_url is string && request.resource.data.avatar_url.size() <= 1024));
+;
     }
 
     match /users_private/{luid} {
@@ -52,7 +66,9 @@ service cloud.firestore {
         && onlyKeys(['post_id', 'user_id', 'created_at'])
         && request.resource.data.user_id == me()
         && createdNow()
-        && postExists(request.resource.data.post_id);
+        && postIsPublicActive(request.resource.data.post_id)
+        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && notSuspended();
       allow update: if false;
       allow delete: if signedIn() && (resource == null || resource.data.user_id == me());
     }
@@ -65,7 +81,8 @@ service cloud.firestore {
         && onlyKeys(['post_id', 'user_id', 'created_at'])
         && request.resource.data.user_id == me()
         && createdNow()
-        && postExists(request.resource.data.post_id);
+        && postExists(request.resource.data.post_id)
+        && notSuspended();
       allow update: if false;
       allow delete: if signedIn() && (resource == null || resource.data.user_id == me());
     }
@@ -78,7 +95,9 @@ service cloud.firestore {
         && request.resource.data.following_id is string
         && request.resource.data.following_id != me()
         && followId == me() + '_' + request.resource.data.following_id
-        && createdNow();
+        && createdNow()
+        && !blockedBy(request.resource.data.following_id)
+        && notSuspended();
       allow update: if false;
       allow delete: if signedIn() && (resource == null || resource.data.follower_id == me());
     }
@@ -107,8 +126,13 @@ service cloud.firestore {
         && request.resource.data.text is string
         && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 500
         && createdNow()
-        && postIsActive(request.resource.data.post_id);
-      allow update, delete: if false;
+        && postIsPublicActive(request.resource.data.post_id)
+        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && notSuspended();
+      allow update: if false;
+      // The author, or the owner of the post it was left on, may remove a comment.
+      allow delete: if signedIn()
+        && (resource.data.user_id == me() || post(resource.data.post_id).creator_id == me());
     }
 
     match /collections/{collectionId} {

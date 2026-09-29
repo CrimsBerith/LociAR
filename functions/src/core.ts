@@ -12,6 +12,13 @@ if (getApps().length === 0) initializeApp();
 export const REGION = process.env.LOCIAR_FUNCTIONS_REGION || 'us-central1';
 setGlobalOptions({ region: REGION, maxInstances: 20 });
 
+/**
+ * Callables reject requests without a valid App Check token in production. v2 callables are not
+ * covered by the console's enforcement switch, so this has to be set per function. The emulator
+ * suite (local E2E) has no attestation provider, so enforcement is off there.
+ */
+export const ENFORCE_APP_CHECK = process.env.FUNCTIONS_EMULATOR !== 'true';
+
 export const db = getFirestore();
 export const auth = getAuth();
 export const bucket = () => getStorage().bucket();

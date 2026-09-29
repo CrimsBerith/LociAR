@@ -35,10 +35,20 @@ service firebase.storage {
       allow create, update: if owner(luid) && under(10) && isImage();
       allow delete: if owner(luid);
     }
-    match /avatars/{luid}/{rest=**} {
+    // Profile photos: the app uploads a JPEG to pending/, the onAvatarUploaded function screens it
+    // and publishes accepted photos to current/. Pending photos are never readable.
+    match /avatars/{luid}/pending/{file} {
+      allow read: if false;
+      allow create: if owner(luid) && under(3) && request.resource.contentType == 'image/jpeg'
+        && file.matches('[0-9a-f-]{36}\\.jpg');
+      allow update, delete: if false;
+    }
+    match /avatars/{luid}/current/{file} {
       allow read: if signedIn();
-      allow create, update: if owner(luid) && under(3) && isImage();
-      allow delete: if owner(luid);
+      allow write: if false;
+    }
+    match /avatars/{luid}/{rest=**} {
+      allow read, write: if false;
     }
     match /{allPaths=**} {
       allow read, write: if false;
