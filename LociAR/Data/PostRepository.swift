@@ -281,12 +281,13 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             }
         }
         guard !rows.isEmpty else { return [] }
+        let decodedRows = rows // immutable copy: the task group closure must not capture a `var`
         return await withTaskGroup(of: (Int, LociPost).self) { group in
-            for (index, row) in rows.enumerated() {
+            for (index, row) in decodedRows.enumerated() {
                 group.addTask { (index, await MediaAssetStore.materializeRemoteAssets(in: row.domainPost())) }
             }
             var indexed: [(Int, LociPost)] = []
-            indexed.reserveCapacity(rows.count)
+            indexed.reserveCapacity(decodedRows.count)
             for await item in group { indexed.append(item) }
             return indexed.sorted { $0.0 < $1.0 }.map(\.1)
         }
