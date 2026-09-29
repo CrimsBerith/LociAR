@@ -58,6 +58,28 @@ test("moderation approval is fail-closed and flag decisions are audited", () => 
   assert.match(ops, /action: `moderation_flag_\$\{action\}`/);
 });
 
+test("suspension and profile-photo decisions are permission-scoped, audited and MFA-gated", () => {
+  for (const route of ["users/[luid]/suspend", "avatars/[luid]/decision"]) {
+    const source = readFileSync(join(repoRoot, `admin/app/api/admin/v1/${route}/route.ts`), "utf8");
+    assert.match(source, /requireAdminApi\('users\.suspend'\)/, route);
+    assert.match(source, /idempotencyKey\(request\)/, `${route} needs an idempotency key`);
+    assert.match(source, /requiredString\(body\.reason/, `${route} requires a reason`);
+  }
+  assert.match(ops, /export async function setUserSuspended/);
+  assert.match(ops, /action: suspended \? 'user_suspend' : 'user_unsuspend'/);
+  assert.match(ops, /export async function decideAvatar/);
+  assert.match(ops, /action: `avatar_\$\{action\}`/);
+  for (const page of ["avatars"]) {
+    const source = readFileSync(join(repoRoot, `admin/app/admin/(protected)/${page}/page.tsx`), "utf8");
+    assert.match(source, /requireAdmin\(\{ permission: 'users\.suspend' \}\)/);
+  }
+});
+
+test("posts deleted by their author cannot be restored by moderators", () => {
+  assert.match(ops, /before\.deleted_at && !before\.deleted_by && action !== 'soft_delete'/);
+  assert.match(ops, /post_deleted_by_author/);
+});
+
 test("all planned operations pages are enabled", () => {
   const layout = readFileSync(join(repoRoot, "admin/app/admin/(protected)/layout.tsx"), "utf8");
   for (const route of ["moderation", "avatars", "anchors", "places", "zones", "analytics", "system"]) {
