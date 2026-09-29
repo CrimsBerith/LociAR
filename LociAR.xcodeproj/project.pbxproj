@@ -14,9 +14,6 @@
 		223F8D8EBAF58FE925638A36 /* LociTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D39885DA91A93735B60CAD0 /* LociTheme.swift */; };
 		2C502B87EF1C9F5985ECFE17 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E3D29D96E27984134D0C362 /* libsqlite3.tbd */; };
 		2CDCD676F2852A6E77BCE560 /* FirebaseBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3067562C1889E41845A4B37D /* FirebaseBackend.swift */; };
-		128BFF627D37402B962C78C5 /* AvatarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A01956C27361841072201D /* AvatarStore.swift */; };
-		81716F745D2ED8392B58372A /* WorldMapCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2C75B6B72441161FC190D1 /* WorldMapCodec.swift */; };
-		31D00DB9ED3BE2DBDCC8C505 /* HiddenPostStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE14227E352344339A7986E4 /* HiddenPostStore.swift */; };
 		334C79D0B6B41743A5D57F60 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 1BCA7E39D1C6B6C63814D4C9 /* FirebaseStorage */; };
 		3B2CE130FB8E9BF469423264 /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60777F871AC0C3EE1BFD38F3 /* ARKit.framework */; };
 		3B5BFD9AA99D8A7E9B4C81A7 /* UITestFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7210EE62943F978879FE37 /* UITestFixtures.swift */; };
@@ -50,6 +47,9 @@
 		98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */; };
 		A332B937E77E814DAE2988B0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */; };
 		A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9040568E1C52462B68579B20 /* AuthView.swift */; };
+		A9042B9B2E8428333BAAC37D /* ARCoreGeospatial in Frameworks */ = {isa = PBXBuildFile; productRef = E659B09B1577861722AADEC8 /* ARCoreGeospatial */; };
+		A94F8A4350B3331FF77EAB40 /* WorldMapCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275E3BB8F4215EF4AF15295E /* WorldMapCodec.swift */; };
+		A9F8BB7422598DD2E9795B48 /* ARCoreCloudAnchors in Frameworks */ = {isa = PBXBuildFile; productRef = 7FA0874FC2B2AAC168661435 /* ARCoreCloudAnchors */; };
 		B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */; };
 		B392B96F3820C075F8BF6136 /* ProximityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041909C4E5F7479357846A3E /* ProximityPolicy.swift */; };
 		B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9309C5EFBE40B5DE193B3ECF /* LocationController.swift */; };
@@ -61,13 +61,18 @@
 		C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */; };
 		CF38CD57A83674691699A5B0 /* AuthenticationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACB2AEF3923D50E72B4765F9 /* AuthenticationServices.framework */; };
 		D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */; };
+		D761C9CEA29A60B3F1ED10AF /* ARCoreCoverageDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */; };
 		D79733A2FF29F7EC54C148D0 /* WorldMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */; };
+		DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D3113CEC157B882DCE675A /* AvatarStore.swift */; };
 		DD0E0196DE875097001E3BFD /* AuthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */; };
 		E23AD1CF6B59B2236CD7C0A1 /* MediaAssetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8A0BF94835F851681A368D /* MediaAssetStore.swift */; };
+		E5D82E2EDBE5691A52C16D02 /* HiddenPostStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15467FD09987F01C8665AFE9 /* HiddenPostStore.swift */; };
 		E7692203B338A88B9E0405B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */; };
 		F06E6E1085B1AE5E8DC2A43A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */; };
 		F3C20A7CF79DC0951AC69910 /* ARViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498692924241AE844FFA8949 /* ARViewContainer.swift */; };
+		F47756884CAD320CDDFE52CA /* ARCoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */; };
 		F567D19C9A5E95A449120669 /* SocialRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7055B38D2FFD5B204D38A244 /* SocialRepository.swift */; };
+		F6D41787D8A9E57381605599 /* ARCoreGARSession in Frameworks */ = {isa = PBXBuildFile; productRef = 8C118F10620E3EACA2FE5BA6 /* ARCoreGARSession */; };
 		FB20B1277338B7EAD0202246 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 38140B6E8683A0A6EB0365CE /* FirebaseFirestore */; };
 		FD2F451360B9988017E2BFFF /* PublicSafetyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52470082EDD9AD2FC77F69EB /* PublicSafetyPolicy.swift */; };
 /* End PBXBuildFile section */
@@ -90,22 +95,23 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02D3113CEC157B882DCE675A /* AvatarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarStore.swift; sourceTree = "<group>"; };
 		041909C4E5F7479357846A3E /* ProximityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityPolicy.swift; sourceTree = "<group>"; };
 		0656173096F4B80612408176 /* LociARTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialContentRenderer.swift; sourceTree = "<group>"; };
 		0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinStateMachineTests.swift; sourceTree = "<group>"; };
+		15467FD09987F01C8665AFE9 /* HiddenPostStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenPostStore.swift; sourceTree = "<group>"; };
 		26517046B2409888717CB325 /* PersistenceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceModels.swift; sourceTree = "<group>"; };
+		275E3BB8F4215EF4AF15295E /* WorldMapCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldMapCodec.swift; sourceTree = "<group>"; };
 		29542377FC89A2155057D35C /* StoreReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreReadinessTests.swift; sourceTree = "<group>"; };
 		2CA48A253CF4AF4E0438F347 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3067562C1889E41845A4B37D /* FirebaseBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseBackend.swift; sourceTree = "<group>"; };
-		13A01956C27361841072201D /* AvatarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarStore.swift; sourceTree = "<group>"; };
-		EF2C75B6B72441161FC190D1 /* WorldMapCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldMapCodec.swift; sourceTree = "<group>"; };
-		EE14227E352344339A7986E4 /* HiddenPostStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenPostStore.swift; sourceTree = "<group>"; };
 		32443B79810E5CE2F38FB099 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
 		35E4C13C9339C31F48DD7E6E /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		37856005A051A853781DFDA3 /* MapFeatureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapFeatureView.swift; sourceTree = "<group>"; };
 		39E26683A2CA08CEF5A8E794 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPinningEngine.swift; sourceTree = "<group>"; };
+		461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreService.swift; sourceTree = "<group>"; };
 		498692924241AE844FFA8949 /* ARViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARViewContainer.swift; sourceTree = "<group>"; };
 		4D9F628611DF77BEA62DDC3E /* LociAR.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LociAR.entitlements; sourceTree = "<group>"; };
 		51711F0650606E15028C1A33 /* PublishPostCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishPostCoordinator.swift; sourceTree = "<group>"; };
@@ -151,6 +157,7 @@
 		E3C09DE1100E41CE6D5859D9 /* PostRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostRepository.swift; sourceTree = "<group>"; };
 		E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueueProcessor.swift; sourceTree = "<group>"; };
+		F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreCoverageDebugView.swift; sourceTree = "<group>"; };
 		F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinPlacementPolicy.swift; sourceTree = "<group>"; };
 		FC7210EE62943F978879FE37 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestFixtures.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -166,6 +173,9 @@
 				334C79D0B6B41743A5D57F60 /* FirebaseStorage in Frameworks */,
 				C719C12194E99361130F262A /* FirebaseFunctions in Frameworks */,
 				546E8916FDEB717C7FFA07A0 /* FirebaseAppCheck in Frameworks */,
+				F6D41787D8A9E57381605599 /* ARCoreGARSession in Frameworks */,
+				A9042B9B2E8428333BAAC37D /* ARCoreGeospatial in Frameworks */,
+				A9F8BB7422598DD2E9795B48 /* ARCoreCloudAnchors in Frameworks */,
 				3B2CE130FB8E9BF469423264 /* ARKit.framework in Frameworks */,
 				7AA9C729CA3EE96B5C04423F /* RealityKit.framework in Frameworks */,
 				43B96545756282CA639C2CC8 /* MapKit.framework in Frameworks */,
@@ -180,6 +190,7 @@
 		01827D999149EBDC62F08619 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */,
 				AEB27EE9BF00970A9F3F149F /* ProfileEditView.swift */,
 			);
 			path = Profile;
@@ -368,6 +379,7 @@
 		CF54CDF084143F44DB665715 /* ARCore */ = {
 			isa = PBXGroup;
 			children = (
+				461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */,
 				3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */,
 				498692924241AE844FFA8949 /* ARViewContainer.swift */,
 				6B8263073D47812D536F4369 /* GeoPoseCaptureService.swift */,
@@ -380,11 +392,10 @@
 			isa = PBXGroup;
 			children = (
 				B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */,
-				13A01956C27361841072201D /* AvatarStore.swift */,
-				EF2C75B6B72441161FC190D1 /* WorldMapCodec.swift */,
-				EE14227E352344339A7986E4 /* HiddenPostStore.swift */,
+				02D3113CEC157B882DCE675A /* AvatarStore.swift */,
 				E144FD8B340551FC39132078 /* BackendPostContract.swift */,
 				3067562C1889E41845A4B37D /* FirebaseBackend.swift */,
+				15467FD09987F01C8665AFE9 /* HiddenPostStore.swift */,
 				8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */,
 				E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */,
 				7A8A0BF94835F851681A368D /* MediaAssetStore.swift */,
@@ -392,6 +403,7 @@
 				E3C09DE1100E41CE6D5859D9 /* PostRepository.swift */,
 				7055B38D2FFD5B204D38A244 /* SocialRepository.swift */,
 				E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */,
+				275E3BB8F4215EF4AF15295E /* WorldMapCodec.swift */,
 				6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */,
 			);
 			path = Data;
@@ -463,6 +475,9 @@
 				1BCA7E39D1C6B6C63814D4C9 /* FirebaseStorage */,
 				77582291DD5FBFA6CDBA3E81 /* FirebaseFunctions */,
 				3CF89F180C12C721B4EDB4B7 /* FirebaseAppCheck */,
+				8C118F10620E3EACA2FE5BA6 /* ARCoreGARSession */,
+				E659B09B1577861722AADEC8 /* ARCoreGeospatial */,
+				7FA0874FC2B2AAC168661435 /* ARCoreCloudAnchors */,
 			);
 			productName = LociAR;
 			productReference = 5221467DB942FC077BF19BEB /* LociAR.app */;
@@ -521,6 +536,7 @@
 			mainGroup = 15017F9A87A93878CAFC5308;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				FB2574BDD18EEA0DBCE31169 /* XCRemoteSwiftPackageReference "arcore-ios-sdk" */,
 				B663B7A652EA37355D804898 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -573,6 +589,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D761C9CEA29A60B3F1ED10AF /* ARCoreCoverageDebugView.swift in Sources */,
+				F47756884CAD320CDDFE52CA /* ARCoreService.swift in Sources */,
 				89009A411211647CBFFD0CC1 /* ARExperienceView.swift in Sources */,
 				B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */,
 				6E537DA4B254594AFBFAF0D8 /* ARPostViewerView.swift in Sources */,
@@ -582,15 +600,14 @@
 				4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */,
 				07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */,
 				DD0E0196DE875097001E3BFD /* AuthRepository.swift in Sources */,
-				128BFF627D37402B962C78C5 /* AvatarStore.swift in Sources */,
-				81716F745D2ED8392B58372A /* WorldMapCodec.swift in Sources */,
-				31D00DB9ED3BE2DBDCC8C505 /* HiddenPostStore.swift in Sources */,
 				A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */,
+				DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */,
 				71D8EF88107A94968844A33E /* BackendPostContract.swift in Sources */,
 				7478793DCB1CF6E75F8A2455 /* ConnectivityMonitor.swift in Sources */,
 				B93C26B18250AC79DE3E8C22 /* CreatePostView.swift in Sources */,
 				2CDCD676F2852A6E77BCE560 /* FirebaseBackend.swift in Sources */,
 				5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */,
+				E5D82E2EDBE5691A52C16D02 /* HiddenPostStore.swift in Sources */,
 				881A6413A9230C295BDBD795 /* LegacyAsyncStorageImporter.swift in Sources */,
 				98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */,
 				B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */,
@@ -615,6 +632,7 @@
 				D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */,
 				15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */,
 				3B5BFD9AA99D8A7E9B4C81A7 /* UITestFixtures.swift in Sources */,
+				A94F8A4350B3331FF77EAB40 /* WorldMapCodec.swift in Sources */,
 				D79733A2FF29F7EC54C148D0 /* WorldMapStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -968,6 +986,14 @@
 				minimumVersion = 12.19.0;
 			};
 		};
+		FB2574BDD18EEA0DBCE31169 /* XCRemoteSwiftPackageReference "arcore-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google-ar/arcore-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.56.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -991,6 +1017,16 @@
 			package = B663B7A652EA37355D804898 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFunctions;
 		};
+		7FA0874FC2B2AAC168661435 /* ARCoreCloudAnchors */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB2574BDD18EEA0DBCE31169 /* XCRemoteSwiftPackageReference "arcore-ios-sdk" */;
+			productName = ARCoreCloudAnchors;
+		};
+		8C118F10620E3EACA2FE5BA6 /* ARCoreGARSession */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB2574BDD18EEA0DBCE31169 /* XCRemoteSwiftPackageReference "arcore-ios-sdk" */;
+			productName = ARCoreGARSession;
+		};
 		D6EB25DF5EB613E7D5A08EAC /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B663B7A652EA37355D804898 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -1000,6 +1036,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B663B7A652EA37355D804898 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
+		};
+		E659B09B1577861722AADEC8 /* ARCoreGeospatial */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB2574BDD18EEA0DBCE31169 /* XCRemoteSwiftPackageReference "arcore-ios-sdk" */;
+			productName = ARCoreGeospatial;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

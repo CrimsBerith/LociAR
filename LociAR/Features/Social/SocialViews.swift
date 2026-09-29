@@ -230,6 +230,14 @@ struct ProfileView: View {
             } header: {
                 profileSectionText("Yasal")
             }
+#if DEBUG
+            Section {
+                NavigationLink { ARCoreCoverageDebugView() } label: {
+                    ProfileLinkRow(title: "ARCore kapsam kontrolü (debug)", symbol: "globe.europe.africa", color: .blue)
+                }
+                .accessibilityIdentifier("profile-debug-arcore")
+            }
+#endif
             Section {
                 Button(role: .destructive) { Task { await session.signOut() } } label: {
                     Label("Çıkış yap", systemImage: "rectangle.portrait.and.arrow.right")

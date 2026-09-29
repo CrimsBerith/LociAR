@@ -127,6 +127,9 @@ final class ARPinningEngine: NSObject {
         return "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh"
     }
 
+    /// Receives every ARKit frame on the main actor (wired to ARCoreService by AppContainer).
+    @ObservationIgnored var frameSink: (@MainActor (ARFrame) -> Void)?
+
     override init() {
         arView = ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)
         super.init()
@@ -1161,6 +1164,8 @@ final class ARPinningEngine: NSObject {
 }
 
 private struct SendableWorldMap: @unchecked Sendable { let map: ARWorldMap }
+/// ARFrame is not Sendable; it is handed to the main actor once and not retained there.
+private struct SendableARFrame: @unchecked Sendable { let frame: ARFrame }
 private final class WeakARViewHost {
     weak var view: UIView?
     init(_ view: UIView) { self.view = view }
@@ -1258,8 +1263,11 @@ extension ARPinningEngine: ARSessionDelegate {
         let meshCount = frame.anchors.reduce(into: 0) { count, anchor in
             if anchor is ARMeshAnchor { count += 1 }
         }
+        let forwarded = SendableARFrame(frame: frame)
         Task { @MainActor [weak self] in
             guard let self else { return }
+            // ARCore (Geospatial + Cloud Anchors) runs on these same ARKit frames.
+            self.frameSink?(forwarded.frame)
             let now = Date()
             let mappingChanged = self.mappingQuality != quality
             self.lastFrameReceivedAt = now

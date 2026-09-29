@@ -26,6 +26,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk.git
     from: 12.19.0
+  ARCore:
+    url: https://github.com/google-ar/arcore-ios-sdk.git
+    from: 1.56.0
 targets:
   LociAR:
     type: application
@@ -69,6 +72,12 @@ targets:
         product: FirebaseFunctions
       - package: Firebase
         product: FirebaseAppCheck
+      - package: ARCore
+        product: ARCoreGARSession
+      - package: ARCore
+        product: ARCoreGeospatial
+      - package: ARCore
+        product: ARCoreCloudAnchors
       - sdk: ARKit.framework
       - sdk: RealityKit.framework
       - sdk: MapKit.framework
