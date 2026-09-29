@@ -122,8 +122,12 @@ struct ActivityView: View {
                             Text(item.createdAt, style: .relative).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if item.readAt == nil { Circle().fill(LociTheme.accent).frame(width: 7, height: 7) }
+                        if item.readAt == nil {
+                            Circle().fill(LociTheme.accent).frame(width: 7, height: 7)
+                                .accessibilityLabel("Okunmadı")
+                        }
                     }
+                    .accessibilityElement(children: .combine)
                     .padding(.vertical, 5)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -186,6 +190,8 @@ struct ProfileView: View {
                         Image(systemName: "pencil.circle.fill")
                             .font(.title2)
                             .foregroundStyle(LociTheme.accent)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Profili düzenle")
@@ -819,6 +825,7 @@ struct PublicProfileView: View {
         .listStyle(.insetGrouped).scrollContentBackground(.hidden).background(LociScreenBackground())
         .navigationTitle("Profil")
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
+        .refreshable { await load() }
         .task { await load() }
         .confirmationDialog("Kullanıcı engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
             Button("Engelle", role: .destructive) { Task { await block() } }
@@ -943,6 +950,10 @@ struct PostPreviewView: View {
     @State private var isReporting = false
     @State private var reportTarget: ReportTarget?
     @State private var confirmBlock = false
+    // Bumped on user actions only, so loading server state never fires a haptic.
+    @State private var likeTaps = 0
+    @State private var saveTaps = 0
+    @State private var commentsSent = 0
 
     init(post: LociPost) {
         self.post = post
@@ -986,13 +997,13 @@ struct PostPreviewView: View {
                 )
                 HStack(spacing: 10) {
                     Button { Task { await toggleLike() } } label: {
-                        PostActionLabel(title: liked ? "Beğenildi" : "Beğen", symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white)
+                        PostActionLabel(title: liked ? "Beğenildi" : "Beğen", symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white, effectValue: liked)
                     }
                     .buttonStyle(.plain)
                     .disabled(isLikeMutating)
                     .accessibilityIdentifier("post-like-button")
                     Button { Task { await toggleSaved() } } label: {
-                        PostActionLabel(title: saved ? "Kaydedildi" : "Kaydet", symbol: saved ? "bookmark.fill" : "bookmark", color: saved ? LociTheme.accent : .white)
+                        PostActionLabel(title: saved ? "Kaydedildi" : "Kaydet", symbol: saved ? "bookmark.fill" : "bookmark", color: saved ? LociTheme.accent : .white, effectValue: saved)
                     }
                     .buttonStyle(.plain)
                     .disabled(isSaveMutating)
@@ -1096,6 +1107,9 @@ struct PostPreviewView: View {
         .background(LociScreenBackground())
         .navigationTitle("Post")
         .navigationBarTitleDisplayMode(.inline)
+        .sensoryFeedback(.selection, trigger: likeTaps)
+        .sensoryFeedback(.selection, trigger: saveTaps)
+        .sensoryFeedback(.success, trigger: commentsSent)
         .task { await load() }
         .safeAreaInset(edge: .bottom) {
             Button("AR’da aç", systemImage: "viewfinder") { showAR = true }
@@ -1174,6 +1188,7 @@ struct PostPreviewView: View {
         guard case let .signedIn(user) = session.phase else { return }
         isLikeMutating = true
         defer { isLikeMutating = false }
+        likeTaps += 1
         let next = !liked
         liked = next
         likeCount = max(0, likeCount + (next ? 1 : -1))
@@ -1203,6 +1218,7 @@ struct PostPreviewView: View {
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured || session.isLocalPreview else { return }
         isSaveMutating = true
         defer { isSaveMutating = false }
+        saveTaps += 1
         do { try await container.social.setSaved(!saved, postID: post.id, userID: user.id); saved.toggle() } catch { message = "Kaydetme durumu güncellenemedi." }
     }
     private func addComment() async {
@@ -1217,6 +1233,7 @@ struct PostPreviewView: View {
             withAnimation(.spring(duration: 0.3)) {
                 comments.append(comment)
             }
+            commentsSent += 1
             commentText = ""
         } catch { message = "Yorum gönderilemedi." }
     }
@@ -1426,54 +1443,22 @@ private struct VideoPreviewHero: View {
 }
 
 private struct PostActionLabel: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let title: String
     let symbol: String
     let color: Color
+    /// Changing this value plays a one-shot bounce on the symbol (skipped with Reduce Motion).
+    var effectValue: Bool = false
 
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: symbol).font(.headline).foregroundStyle(color)
+                .symbolEffect(.bounce, value: reduceMotion ? false : effectValue)
             Text(title).font(.caption.weight(.semibold)).foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, minHeight: 58)
         .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(LociTheme.hairline))
-    }
-}
-
-private struct ExternalMediaSourceCard: View {
-    @Environment(\.openURL) private var openURL
-    let platform: ExternalMediaPlatform
-    let url: URL
-    let caption: String
-
-    var body: some View {
-        Button {
-            openURL(platform.appLaunchURL) { accepted in
-                if !accepted { openURL(url) }
-            }
-        } label: {
-            HStack(spacing: 13) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 13).fill(color.opacity(0.16)).frame(width: 48, height: 48)
-                    BrandLogoView(platform: platform, size: 30)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(platform.rawValue).font(.headline)
-                    Text(caption).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                }
-                Spacer()
-                Image(systemName: "arrow.up.right").foregroundStyle(color)
-            }
-            .padding(14)
-            .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 17))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(platform.rawValue) paylaşımını aç: \(caption)")
-    }
-
-    private var color: Color {
-        platform.brandColor
     }
 }
 

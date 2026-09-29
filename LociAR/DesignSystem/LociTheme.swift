@@ -12,6 +12,22 @@ enum LociTheme {
     static let tertiaryText = Color.white.opacity(0.58)
     static let hairline = Color.white.opacity(0.10)
     static let field = Color.white.opacity(0.07)
+    /// Text/icons drawn on the accent color (primary buttons).
+    static let onAccent = Color.black
+
+    enum Radius {
+        static let small: CGFloat = 12
+        static let medium: CGFloat = 16
+        static let large: CGFloat = 20
+    }
+
+    enum Spacing {
+        static let xs: CGFloat = 4
+        static let s: CGFloat = 8
+        static let m: CGFloat = 12
+        static let l: CGFloat = 16
+        static let xl: CGFloat = 24
+    }
 
     static let spatialGradient = LinearGradient(
         colors: [Color(red: 0.03, green: 0.06, blue: 0.1), Color(red: 0.02, green: 0.03, blue: 0.055)],
@@ -68,6 +84,7 @@ struct LociStatusPill: View {
 }
 
 struct LociMetricLabel: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let value: Int
     let title: String
     let symbol: String
@@ -82,6 +99,8 @@ struct LociMetricLabel: View {
                 Text(value >= 10_000 ? value.formatted(.number.notation(.compactName)) : value.formatted())
                     .font(.subheadline.weight(.bold))
                     .monospacedDigit()
+                    .contentTransition(.numericText(value: Double(value)))
+                    .animation(reduceMotion ? nil : .snappy, value: value)
                 Text(title)
                     .font(.caption2)
                     .foregroundStyle(LociTheme.secondaryText)
@@ -118,19 +137,21 @@ struct LociInlineNotice: View {
 
 struct LociPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
-            .foregroundStyle(isEnabled ? Color.black : Color.white)
+            // Disabled: light text on a subtle fill stays readable (white on white 24% was ~2:1).
+            .foregroundStyle(isEnabled ? LociTheme.onAccent : LociTheme.tertiaryText)
             .frame(maxWidth: .infinity, minHeight: 50)
             .padding(.horizontal, 16)
             .background(
-                isEnabled ? LociTheme.accent.opacity(configuration.isPressed ? 0.76 : 1) : Color.white.opacity(0.24),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                isEnabled ? LociTheme.accent.opacity(configuration.isPressed ? 0.76 : 1) : Color.white.opacity(0.14),
+                in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous)
             )
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
     }
 }
 

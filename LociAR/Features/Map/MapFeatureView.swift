@@ -131,9 +131,14 @@ struct MapFeatureView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button { selection = nil } label: { Image(systemName: "xmark.circle.fill") }
-                            .buttonStyle(.plain).foregroundStyle(.secondary).font(.title3)
-                            .accessibilityIdentifier("map-clear-selection")
+                        Button { selection = nil } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain).foregroundStyle(.secondary).font(.title3)
+                        .accessibilityLabel("Seçimi kapat")
+                        .accessibilityIdentifier("map-clear-selection")
                     }
                     NavigationLink(value: selectedPost) {
                         Label("Postu aç", systemImage: "arrow.up.right")

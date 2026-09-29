@@ -12,6 +12,7 @@ struct ARExperienceView: View {
 
     var mode: Mode = .discover
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppContainer.self) private var container
     @Environment(AppSession.self) private var session
     @Environment(AppRouter.self) private var router
@@ -130,7 +131,7 @@ struct ARExperienceView: View {
                     Image(systemName: isDiscovering ? "location.magnifyingglass" : "viewfinder.circle.fill")
                         .font(.system(size: 38, weight: .semibold))
                         .foregroundStyle(LociTheme.accent)
-                        .symbolEffect(.pulse, isActive: isDiscovering)
+                        .symbolEffect(.pulse, isActive: isDiscovering && !reduceMotion)
                 }
                 LociStatusPill(
                     title: discoveryCameraTitle,
