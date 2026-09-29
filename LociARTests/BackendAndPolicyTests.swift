@@ -524,7 +524,7 @@ final class BackendAndPolicyTests: XCTestCase {
     func testHiddenPostStoreIsScopedPerAccount() async throws {
         let suite = "test.hidden.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
+        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let store = HiddenPostStore(defaults: defaults)
         let post = UUID()
         await store.hide(post, owner: "alice")
