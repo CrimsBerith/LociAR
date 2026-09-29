@@ -15,6 +15,7 @@
 		2C502B87EF1C9F5985ECFE17 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E3D29D96E27984134D0C362 /* libsqlite3.tbd */; };
 		2CDCD676F2852A6E77BCE560 /* FirebaseBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3067562C1889E41845A4B37D /* FirebaseBackend.swift */; };
 		128BFF627D37402B962C78C5 /* AvatarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A01956C27361841072201D /* AvatarStore.swift */; };
+		81716F745D2ED8392B58372A /* WorldMapCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2C75B6B72441161FC190D1 /* WorldMapCodec.swift */; };
 		31D00DB9ED3BE2DBDCC8C505 /* HiddenPostStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE14227E352344339A7986E4 /* HiddenPostStore.swift */; };
 		334C79D0B6B41743A5D57F60 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 1BCA7E39D1C6B6C63814D4C9 /* FirebaseStorage */; };
 		3B2CE130FB8E9BF469423264 /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60777F871AC0C3EE1BFD38F3 /* ARKit.framework */; };
@@ -98,6 +99,7 @@
 		2CA48A253CF4AF4E0438F347 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3067562C1889E41845A4B37D /* FirebaseBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseBackend.swift; sourceTree = "<group>"; };
 		13A01956C27361841072201D /* AvatarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarStore.swift; sourceTree = "<group>"; };
+		EF2C75B6B72441161FC190D1 /* WorldMapCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldMapCodec.swift; sourceTree = "<group>"; };
 		EE14227E352344339A7986E4 /* HiddenPostStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenPostStore.swift; sourceTree = "<group>"; };
 		32443B79810E5CE2F38FB099 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
 		35E4C13C9339C31F48DD7E6E /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
@@ -379,6 +381,7 @@
 			children = (
 				B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */,
 				13A01956C27361841072201D /* AvatarStore.swift */,
+				EF2C75B6B72441161FC190D1 /* WorldMapCodec.swift */,
 				EE14227E352344339A7986E4 /* HiddenPostStore.swift */,
 				E144FD8B340551FC39132078 /* BackendPostContract.swift */,
 				3067562C1889E41845A4B37D /* FirebaseBackend.swift */,
@@ -580,6 +583,7 @@
 				07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */,
 				DD0E0196DE875097001E3BFD /* AuthRepository.swift in Sources */,
 				128BFF627D37402B962C78C5 /* AvatarStore.swift in Sources */,
+				81716F745D2ED8392B58372A /* WorldMapCodec.swift in Sources */,
 				31D00DB9ED3BE2DBDCC8C505 /* HiddenPostStore.swift in Sources */,
 				A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */,
 				71D8EF88107A94968844A33E /* BackendPostContract.swift in Sources */,

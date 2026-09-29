@@ -55,3 +55,8 @@ test('camera reference frames can no longer be uploaded or read', async () => {
   await assertFails(getBytes(ref(as(BOB), path)));
   await assertFails(getBytes(ref(as(ALICE), path)));
 });
+
+test('world maps are capped at 20 MB (compressed)', async () => {
+  const big = new Uint8Array(20 * 1024 * 1024 + 1);
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/p2/anchor.lociarmap`), big, { contentType: 'application/x-lociarmap' }));
+});

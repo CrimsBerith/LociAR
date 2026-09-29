@@ -571,7 +571,9 @@ final class ARPinningEngine: NSObject {
 
     func restoreWorldMap(data: Data, expectedAnchor: SurfaceAnchor?) async throws {
         let unarchived = try await Task.detached(priority: .userInitiated) {
-            try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data).map(SendableWorldMap.init(map:))
+            // Accepts both compressed (uploaded) and raw archives.
+            let raw = try WorldMapCodec.decode(data)
+            return try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: raw).map(SendableWorldMap.init(map:))
         }.value
         guard let worldMap = unarchived?.map else {
             throw ARPinningError.invalidWorldMap

@@ -123,7 +123,13 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         if post.containsDeviceMedia {
             throw PostPublishError.rejected("Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin veya sosyal bağlantı ile yeniden oluştur.")
         }
-        let worldMapReadyPost = try await WorldMapStore().uploadLocalPersistenceIfNeeded(in: post)
+        let worldMapReadyPost: LociPost
+        do {
+            worldMapReadyPost = try await WorldMapStore().uploadLocalPersistenceIfNeeded(in: post)
+        } catch let error as WorldMapCodec.CodecError {
+            // Retrying cannot make the map smaller: fail permanently with an actionable message.
+            throw PostPublishError.rejected(error.localizedDescription)
+        }
         let post = try await MediaAssetStore.uploadLocalAssets(in: worldMapReadyPost)
         guard let geo = post.anchorBundle.anchor.geoPose else { throw PostContractError.missingGeoPose }
         let placement = BackendPlacementContract(quality: post.anchorBundle.anchor.pinQuality, hasRemotePersistence: post.anchorBundle.anchor.persistence?.storagePath != nil)

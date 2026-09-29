@@ -21,7 +21,7 @@ service firebase.storage {
     }
     match /post-world-maps/{luid}/{postId}/{file} {
       allow read: if signedIn();
-      allow create, update: if owner(luid) && under(50) && file.matches('.*\\.lociarmap')
+      allow create, update: if owner(luid) && under(20) && file.matches('.*\\.lociarmap')
         && request.resource.contentType == 'application/x-lociarmap';
       allow delete: if owner(luid);
     }

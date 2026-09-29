@@ -534,4 +534,33 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(alice, [post.uuidString.lowercased()])
         XCTAssertTrue(bob.isEmpty)
     }
+
+    func testWorldMapCodecRoundTripsAndReadsLegacyUncompressedMaps() throws {
+        let raw = Data((0..<200_000).map { UInt8($0 % 17) })
+        let encoded = try WorldMapCodec.encode(raw)
+        XCTAssertTrue(encoded.starts(with: WorldMapCodec.magic))
+        XCTAssertLessThan(encoded.count, raw.count)
+        XCTAssertEqual(try WorldMapCodec.decode(encoded), raw)
+        // Pre-compression uploads (NSKeyedArchiver binary plists) come back unchanged.
+        let legacy = Data("bplist00".utf8) + raw
+        XCTAssertEqual(try WorldMapCodec.decode(legacy), legacy)
+        XCTAssertThrowsError(try WorldMapCodec.decode(WorldMapCodec.magic + Data([1, 2, 3])))
+    }
+
+    func testWorldMapDownloadCacheIsKeyedByLocatorAndPrunesOldestFirst() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("wm-cache-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let cache = WorldMapDownloadCache(directory: dir)
+        let a = "storage://post-world-maps/u/p1/a.lociarmap"
+        let b = "storage://post-world-maps/u/p2/b.lociarmap"
+        XCTAssertNotEqual(WorldMapDownloadCache.fileName(for: a), WorldMapDownloadCache.fileName(for: b))
+        XCTAssertNil(cache.read(a))
+        cache.write(Data(repeating: 1, count: 1_000), for: a)
+        let old = dir.appendingPathComponent(WorldMapDownloadCache.fileName(for: a))
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: -3_600)], ofItemAtPath: old.path)
+        cache.write(Data(repeating: 2, count: 1_000), for: b)
+        cache.prune(limit: 1_500)
+        XCTAssertNil(cache.read(a), "least recently used entry is pruned")
+        XCTAssertEqual(cache.read(b)?.count, 1_000)
+    }
 }
