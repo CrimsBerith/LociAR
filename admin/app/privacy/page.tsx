@@ -25,7 +25,7 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>Kimlik ve iletişim:</strong> Apple ile Giriş kimliği veya e-posta adresi, kullanıcı adı, profil fotoğrafı.</li>
         <li><strong>Konum:</strong> uygulama açıkken, yakındaki içerikleri göstermek ve paylaştığınız içeriğin konumunu kaydetmek için.</li>
-        <li><strong>Kamera ve medya:</strong> AR yerleşimi ve seçtiğiniz fotoğraf/videolar; kamera görüntüsü sürekli kaydedilmez.
+        <li><strong>Kamera ve medya:</strong> yalnızca AR yerleşimi için kullanılır (gönderiler metin ve sosyal medya bağlantısıdır; fotoğraf/video yüklenmez); kamera görüntüsü sürekli kaydedilmez.
           Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası ve referans görüntüsü saklanır.</li>
         <li><strong>Kullanıcı içeriği:</strong> gönderi, açıklama, yorum, beğeni, kaydetme, takip, engelleme ve raporlar.</li>
         <li><strong>İşlem güvenliği:</strong> oturum belirteçleri, cihaz doğrulaması (Apple App Attest / Firebase App Check),
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
       <ul>
         <li>Hesabınızı Profil içinden kalıcı olarak silebilirsiniz.</li>
         <li>İçeriği bildirebilir ve kullanıcıları engelleyebilirsiniz.</li>
-        <li>Kamera, konum ve fotoğraf izinlerini iOS Ayarlar&apos;dan geri alabilirsiniz.</li>
+        <li>Kamera ve konum izinlerini iOS Ayarlar&apos;dan geri alabilirsiniz.</li>
         <li>Destek: <Link href="/support">destek sayfası</Link>.</li>
       </ul>
 

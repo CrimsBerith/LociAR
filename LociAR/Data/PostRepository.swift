@@ -218,7 +218,6 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         if raw.contains("verified Apple") || raw.contains("verified Apple, Google, or email identity") {
             return "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor."
         }
-        if raw.contains("protected zone") { return "Bu korumalı bölgede post yayınlanamaz." }
         if raw.contains("Invalid caption") { return "Caption boş olamaz ve 220 karakteri geçemez." }
         if raw.contains("Invalid pose") || raw.contains("GPS accuracy") {
             return "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin."

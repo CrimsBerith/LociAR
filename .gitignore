@@ -65,3 +65,10 @@ supabase/.temp/
 .cursor/
 .fuse_hidden*
 scripts/.github-push.log
+scripts/.e2e/
+scripts/.emulator*
+scripts/.diag-java.txt
+scripts/.pending-verify-email.txt
+.emulator-data/
+*-debug.log
+scripts/diag-java.command

@@ -9,15 +9,14 @@ service firebase.storage {
     function under(mb) { return request.resource.size < mb * 1024 * 1024; }
     function isImage() { return request.resource.contentType.matches('image/(jpeg|png|heic|webp)'); }
 
+    // Photo/video posts were removed (text + social links only): no uploads to the old
+    // post-layer-assets / post-video-assets folders. Owners may still delete leftovers.
     match /post-layer-assets/{luid}/{rest=**} {
-      allow read: if signedIn();
-      allow create, update: if owner(luid) && under(5) && isImage();
+      allow read, create, update: if false;
       allow delete: if owner(luid);
     }
     match /post-video-assets/{luid}/{rest=**} {
-      allow read: if signedIn();
-      allow create, update: if owner(luid) && under(80)
-        && request.resource.contentType.matches('video/(mp4|quicktime)');
+      allow read, create, update: if false;
       allow delete: if owner(luid);
     }
     match /post-world-maps/{luid}/{postId}/{file} {

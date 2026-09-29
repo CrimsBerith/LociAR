@@ -315,9 +315,17 @@ struct AuthView: View {
             unconfirmedEmail = cleanEmail
             message = AuthFlowError.emailNotVerified.localizedDescription
         } catch {
-            message = mode == .signIn
+            let text = mode == .signIn
                 ? "Giriş yapılamadı. E-posta ve şifreni kontrol et."
                 : "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil."
+#if DEBUG
+            // Surface the real cause while testing against the emulator; never in release.
+            let nsError = error as NSError
+            message = text + "\n[DEBUG] \(nsError.domain) \(nsError.code): \(error.localizedDescription)"
+            print("[LociAR auth] \(mode) failed: \(error)")
+#else
+            message = text
+#endif
         }
     }
 

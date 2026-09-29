@@ -47,3 +47,18 @@ test('high quality arkit lock with stored world map is auto-publish eligible', a
   assert.equal(result.hasPersistentResolver, true);
   assert.equal(result.autoPublishEligible, true);
 });
+
+test('only text and social media links are accepted', () => {
+  const imageLayer = { ...base(), editData: { layers: [{ id: 'i', type: 'image', uri: 'storage://post-layer-assets/a/b.jpg' }] } };
+  assert.match(validateCreatePostBody(imageLayer), /Only text posts/);
+  const ownVideo = { ...base(), contentSource: { platform: 'own_video', url: 'storage://post-video-assets/a/b.mp4', mediaKind: 'video' } };
+  assert.match(validateCreatePostBody(ownVideo), /Only text posts/);
+  const photoLink = { ...base(), contentSource: { platform: 'other', url: 'https://example.com/a.jpg', mediaKind: 'image' } };
+  assert.match(validateCreatePostBody(photoLink), /Only text posts/);
+  const genericLink = { ...base(), contentSource: { platform: 'other', url: 'https://example.com', mediaKind: 'link' } };
+  assert.equal(validateCreatePostBody(genericLink), 'Only social media links are allowed');
+  const spotify = { ...base(), contentSource: { platform: 'spotify', url: 'https://open.spotify.com/track/1', mediaKind: 'embed' } };
+  assert.equal(validateCreatePostBody(spotify), null);
+  const textOnly = { ...base(), contentSource: { platform: 'other', title: 'Merhaba' } };
+  assert.equal(validateCreatePostBody(textOnly), null);
+});

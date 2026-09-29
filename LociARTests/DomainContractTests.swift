@@ -44,24 +44,10 @@ final class DomainContractTests: XCTestCase {
         XCTAssertTrue(WorldMappingQuality.mapped.canPersist)
     }
 
-    func testPublicDiscoverOmitsEighteenPlusAndProtectedZonePosts() {
+    func testPublicDiscoverListsActivePublicPosts() {
         XCTAssertTrue(PublicSafetyPolicy.isListedInPublicDiscover(makePost(status: .active, visibility: .public, ageRating: .all)))
-        XCTAssertFalse(PublicSafetyPolicy.isListedInPublicDiscover(makePost(status: .active, visibility: .public, ageRating: .plus18)))
-        XCTAssertFalse(PublicSafetyPolicy.isListedInPublicDiscover(makePost(status: .blockedProtectedZone, visibility: .public, ageRating: .all)))
         XCTAssertFalse(PublicSafetyPolicy.isListedInPublicDiscover(makePost(status: .pendingReview, visibility: .public, ageRating: .all)))
         XCTAssertFalse(PublicSafetyPolicy.isListedInPublicDiscover(makePost(status: .active, visibility: .private, ageRating: .all)))
-    }
-
-    func testCreatePolicyRejectsEighteenPlusAndProtectedZone() {
-        XCTAssertEqual(
-            PublicSafetyPolicy.createRejectionReason(for: makePost(status: .active, visibility: .public, ageRating: .plus18)),
-            "18+ içerik bu sürümde kabul edilmez."
-        )
-        XCTAssertEqual(
-            PublicSafetyPolicy.createRejectionReason(for: makePost(status: .blockedProtectedZone, visibility: .public, ageRating: .all)),
-            "Bu korumalı bölgede post yayınlanamaz."
-        )
-        XCTAssertNil(PublicSafetyPolicy.createRejectionReason(for: makePost(status: .active, visibility: .public, ageRating: .all)))
     }
 
     func testWorldLockPersistenceExpiryCalculations() {

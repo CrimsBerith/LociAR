@@ -23,7 +23,7 @@ EXPO_PUBLIC_SUPPORT_EMAIL=support@...
 
 - Location (when in use) for create/view AR  
 - Camera for AR editing  
-- Photos/media user selects  
+- Text and social media links the user posts  
 - Account phone number  
 - UGC (posts, comments) + moderation  
 - Account deletion request process  

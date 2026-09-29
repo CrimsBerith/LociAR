@@ -823,6 +823,7 @@ struct PublicProfileView: View {
 struct PostPreviewView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
+    @Environment(\.openURL) private var openURL
     let post: LociPost
     @State private var comments: [LociComment] = []
     @State private var commentText = ""
@@ -849,10 +850,13 @@ struct PostPreviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PostCard(post: post, likeCount: likeCount, viewCount: viewCount)
-                if let external = post.contentSource?.externalMedia {
-                    ExternalMediaSourceCard(platform: external.platform, url: external.url, caption: post.caption)
-                }
+                PostCard(post: post, likeCount: likeCount, viewCount: viewCount, openMedia: post.contentSource?.externalMedia.map { external in
+                    {
+                        openURL(external.platform.appLaunchURL) { accepted in
+                            if !accepted { openURL(external.url) }
+                        }
+                    }
+                })
                 NavigationLink {
                     PublicProfileView(user: creatorUser)
                 } label: {
@@ -1086,6 +1090,7 @@ private struct PostCard: View {
     let post: LociPost
     var likeCount: Int? = nil
     var viewCount: Int? = nil
+    var openMedia: (() -> Void)? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
@@ -1110,7 +1115,7 @@ private struct PostCard: View {
                 .lineLimit(4)
                 .foregroundStyle(.white.opacity(0.94))
 
-            PostMediaHero(post: post)
+            PostMediaHero(post: post, openMedia: openMedia)
 
             HStack(spacing: 18) {
                 LociMetricLabel(value: likeCount ?? post.counts.likes, title: "beğeni", symbol: "heart.fill", color: .pink)
@@ -1129,6 +1134,7 @@ private struct PostCard: View {
 
 private struct PostMediaHero: View {
     let post: LociPost
+    var openMedia: (() -> Void)? = nil
 
     @ViewBuilder var body: some View {
         switch post.contentSource {
@@ -1138,26 +1144,16 @@ private struct PostMediaHero: View {
             VideoPreviewHero(url: url)
         case .some(let source) where source.externalMedia != nil:
             if let external = source.externalMedia {
-                HStack(spacing: 14) {
-                    BrandLogoView(platform: external.platform, size: 42)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(external.platform.rawValue).font(.headline)
-                        Text("Paylaşımı görüntüle").font(.caption).foregroundStyle(.white.opacity(0.66))
+                Group {
+                    if let openMedia {
+                        Button(action: openMedia) {
+                            externalMediaBanner(external: external)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        externalMediaBanner(external: external)
                     }
-                    Spacer()
-                    Image(systemName: "arrow.up.right").font(.subheadline.weight(.bold))
                 }
-                .foregroundStyle(.white)
-                .padding(15)
-                .background(
-                    LinearGradient(
-                        colors: [external.platform.brandColor.opacity(0.34), external.platform.brandColor.opacity(0.10)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                )
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(external.platform.brandColor.opacity(0.28)))
             }
         default:
             if let imageURL = post.editData.layers.first(where: { $0.kind == .image })?.assetURL ?? post.editData.surfaceTextureURL {
@@ -1176,6 +1172,29 @@ private struct PostMediaHero: View {
         }
         .frame(maxWidth: .infinity, minHeight: 128, maxHeight: 190)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func externalMediaBanner(external: (platform: ExternalMediaPlatform, url: URL)) -> some View {
+        HStack(spacing: 14) {
+            BrandLogoView(platform: external.platform, size: 42)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(external.platform.rawValue).font(.headline)
+                Text("Paylaşımı görüntüle").font(.caption).foregroundStyle(.white.opacity(0.66))
+            }
+            Spacer()
+            Image(systemName: "arrow.up.right").font(.subheadline.weight(.bold))
+        }
+        .foregroundStyle(.white)
+        .padding(15)
+        .background(
+            LinearGradient(
+                colors: [external.platform.brandColor.opacity(0.34), external.platform.brandColor.opacity(0.10)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+        )
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(external.platform.brandColor.opacity(0.28)))
     }
 
     private func mediaPlaceholder(symbol: String, title: String) -> some View {

@@ -11,3 +11,4 @@ LOCIAR_FIREBASE_PROJECT_ID = YOUR-PROJECT-ID
 LOCIAR_FIREBASE_STORAGE_BUCKET = YOUR-PROJECT-ID.firebasestorage.app
 // Must match the region the Cloud Functions are deployed to (functions/src/core.ts).
 LOCIAR_FIREBASE_FUNCTIONS_REGION = us-central1
+LOCIAR_EMULATOR_HOST =

@@ -1,6 +1,10 @@
 import Foundation
 @preconcurrency import FirebaseAppCheck
+@preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseCore
+@preconcurrency import FirebaseFirestore
+@preconcurrency import FirebaseFunctions
+@preconcurrency import FirebaseStorage
 
 struct AppConfiguration: Sendable {
     enum ConfigurationError: LocalizedError {
@@ -24,6 +28,11 @@ struct AppConfiguration: Sendable {
 
     let firebase: FirebaseSettings?
     let appleAuthEnabled: Bool
+    /// Set only for local development (Config/Local.xcconfig, DEBUG builds): LAN IP of the Mac
+    /// running `firebase emulators:start`. When present, Auth/Firestore/Storage/Functions are
+    /// pointed at the local emulator suite instead of production, so app + Cloud Functions can be
+    /// exercised end-to-end before the project is on a paid plan / before a real deploy.
+    let emulatorHost: String?
     let privacyPolicyURL: URL?
     let termsURL: URL?
     let supportURL: URL?
@@ -35,6 +44,7 @@ struct AppConfiguration: Sendable {
             return isPlaceholder(trimmed) ? nil : trimmed
         }
         let appleAuthEnabled = bundle.object(forInfoDictionaryKey: "LOCIAR_APPLE_AUTH_ENABLED") as? Bool ?? false
+        let emulatorHost = value("LOCIAR_EMULATOR_HOST")
         var firebase: FirebaseSettings?
         if let apiKey = value("LOCIAR_FIREBASE_API_KEY"),
            let appID = value("LOCIAR_FIREBASE_GOOGLE_APP_ID"),
@@ -54,6 +64,7 @@ struct AppConfiguration: Sendable {
         return AppConfiguration(
             firebase: firebase,
             appleAuthEnabled: appleAuthEnabled,
+            emulatorHost: emulatorHost,
             privacyPolicyURL: publicHTTPSURL(bundle.object(forInfoDictionaryKey: "LOCIAR_PRIVACY_URL") as? String),
             termsURL: publicHTTPSURL(bundle.object(forInfoDictionaryKey: "LOCIAR_TERMS_URL") as? String),
             supportURL: publicHTTPSURL(bundle.object(forInfoDictionaryKey: "LOCIAR_SUPPORT_URL") as? String)
@@ -118,8 +129,24 @@ struct AppConfiguration: Sendable {
         options.storageBucket = firebase.storageBucket
         options.bundleID = Bundle.main.bundleIdentifier ?? "com.khankartal.lociar"
         FirebaseApp.configure(options: options)
+#if DEBUG
+        connectEmulatorsIfConfigured(functionsRegion: firebase.functionsRegion)
+#endif
         return true
     }
+
+#if DEBUG
+    /// Points every backend SDK at the local Firebase Emulator Suite when
+    /// LOCIAR_EMULATOR_HOST is set (see Config/Local.xcconfig.example). Ports must match
+    /// firebase.json's "emulators" block. Debug-only: never compiled into release builds.
+    private func connectEmulatorsIfConfigured(functionsRegion: String) {
+        guard let host = emulatorHost, !host.isEmpty else { return }
+        Auth.auth().useEmulator(withHost: host, port: 9099)
+        Firestore.firestore().useEmulator(withHost: host, port: 8080)
+        Storage.storage().useEmulator(withHost: host, port: 9199)
+        Functions.functions(region: functionsRegion).useEmulator(withHost: host, port: 5001)
+    }
+#endif
 }
 
 /// App Attest in release builds. Enforcement is switched on in the Firebase console once

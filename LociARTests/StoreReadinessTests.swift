@@ -13,9 +13,9 @@ final class StoreReadinessTests: XCTestCase {
             bundle.object(forInfoDictionaryKey: "NSLocationWhenInUseUsageDescription") as? String,
             "LociAR, yakındaki postları göstermek ve AR içeriğini doğru konumda açmak için konumunuzu kullanır."
         )
-        XCTAssertEqual(
-            bundle.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription") as? String,
-            "LociAR, seçtiğiniz fotoğraf ve videoları kilitlenen yüzeye yerleştirmek için fotoğraf kitaplığını kullanır."
+        XCTAssertNil(
+            bundle.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription"),
+            "Photo library access was removed; Info.plist must not declare NSPhotoLibraryUsageDescription"
         )
         XCTAssertEqual(bundle.object(forInfoDictionaryKey: "ITSAppUsesNonExemptEncryption") as? Bool, false)
         XCTAssertEqual(
@@ -129,18 +129,6 @@ final class StoreReadinessTests: XCTestCase {
             XCTAssertFalse(value.contains("YOUR-"))
             XCTAssertTrue(value.hasPrefix("https://"))
         }
-    }
-
-    func testCreatePostHardBlocksEighteenPlusAndProtectedZones() throws {
-        guard let root = sourceCheckoutRootIfPresent() else {
-            throw XCTSkip("create_post kaynak denetimi Mac checkout gerektirir.")
-        }
-        let validation = try String(contentsOf: root.appendingPathComponent("functions/src/placement.ts"), encoding: .utf8)
-        let function = try String(contentsOf: root.appendingPathComponent("functions/src/posts.ts"), encoding: .utf8)
-        XCTAssertTrue(validation.contains("if (body.ageRating === '18_plus') return '18+ content is disabled in this release';"))
-        XCTAssertTrue(function.contains("protectedZoneAt(lat, lng)"))
-        XCTAssertTrue(function.contains("Creation is blocked in protected zone"))
-        XCTAssertTrue(function.contains("AUTO_PUBLISH_HIGH_QUALITY && placement.autoPublishEligible ? 'active' : 'pending_review'"))
     }
 
     func testStoreRequiredControlsArePresentInShippedUI() throws {

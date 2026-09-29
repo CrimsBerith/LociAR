@@ -301,37 +301,6 @@ final class ArchitectureAndPublishTests: XCTestCase {
         }
     }
 
-    func testEighteenPlusPublishIsRejectedWithoutRemoteCall() async throws {
-        let context = try makeContext()
-        var post = UITestFixtures.post
-        post.ageRating = .plus18
-        let repository = PublishRepositoryStub(shouldFail: false)
-        let coordinator = PublishPostCoordinator(postRepository: repository)
-
-        let outcome = try await coordinator.submit(post, attemptRemote: true, modelContext: context)
-
-        XCTAssertEqual(outcome, .rejected("18+ içerik bu sürümde kabul edilmez."))
-        let publishedCount = await repository.publishedCount
-        XCTAssertEqual(publishedCount, 0)
-        XCTAssertEqual(try context.fetch(FetchDescriptor<DraftRecord>()).count, 1)
-        let queued = try XCTUnwrap(context.fetch(FetchDescriptor<SyncQueueRecord>()).first)
-        XCTAssertEqual(queued.deadLetterReason, "18+ içerik bu sürümde kabul edilmez.")
-    }
-
-    func testProtectedZonePublishIsRejectedWithoutRemoteCall() async throws {
-        let context = try makeContext()
-        var post = UITestFixtures.post
-        post.status = .blockedProtectedZone
-        let repository = PublishRepositoryStub(shouldFail: false)
-        let coordinator = PublishPostCoordinator(postRepository: repository)
-
-        let outcome = try await coordinator.submit(post, attemptRemote: true, modelContext: context)
-
-        XCTAssertEqual(outcome, .rejected("Bu korumalı bölgede post yayınlanamaz."))
-        let publishedCount = await repository.publishedCount
-        XCTAssertEqual(publishedCount, 0)
-    }
-
     func testSuccessfulPublishRemovesOwnedStagedMedia() async throws {
         let context = try makeContext()
         let localURL = try await MediaAssetStore.stage(

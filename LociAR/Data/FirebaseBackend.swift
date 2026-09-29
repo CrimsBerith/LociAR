@@ -247,7 +247,6 @@ enum FirestorePostMapper {
     nonisolated static func isPubliclyListed(_ data: [String: Any]) -> Bool {
         (data["status"] as? String) == "active"
             && (data["visibility"] as? String) == "public"
-            && (data["age_rating"] as? String) != AgeRating.plus18.rawValue
             && (data["deleted_at"] == nil || data["deleted_at"] is NSNull)
     }
 }
