@@ -11,6 +11,14 @@ after(closeClients);
 const bucket = () => getStorage().bucket();
 const DAY = 86_400_000;
 
+async function waitForQueueEntry(postId) {
+  for (let i = 0; i < 100; i++) {
+    if ((await adminDb.collection('media_purge_queue').doc(postId).get()).exists) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`onPostWritten never queued ${postId}`);
+}
+
 async function upload(path) {
   await bucket().file(path).save(Buffer.from('lociarmap-test-bytes'), { contentType: 'application/x-lociarmap' });
 }
@@ -23,6 +31,9 @@ test('removed posts keep media during the grace period, then it is purged; resto
     await adminDb.collection('posts').doc(id).set({ creator_id: luid, status: 'removed' });
     await upload(`post-world-maps/${luid}/${id}/a.lociarmap`);
   }
+  // The emulated onPostWritten trigger queues these posts too (due in 30 days). Wait for it so it
+  // cannot overwrite the back-dated entries written below.
+  for (const id of [oldPost, freshPost, restoredPost]) await waitForQueueEntry(id);
   const now = Date.now();
   await schedulePurgeOnStatusChange(oldPost, { status: 'active' }, { status: 'removed', creator_id: luid }, now - 31 * DAY);
   await schedulePurgeOnStatusChange(freshPost, { status: 'active' }, { status: 'removed', creator_id: luid }, now - 1 * DAY);
