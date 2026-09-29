@@ -9,7 +9,7 @@ import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 export const PROJECT = 'demo-lociar';
-if (getApps().length === 0) initAdmin({ projectId: PROJECT });
+if (getApps().length === 0) initAdmin({ projectId: PROJECT, storageBucket: `${PROJECT}.appspot.com` });
 export const adminAuth = getAdminAuth();
 export const adminDb = getFirestore();
 

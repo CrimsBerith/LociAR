@@ -2,6 +2,7 @@ import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWrit
 import { randomUUID } from 'node:crypto';
 import { db, FieldValue, logEvent } from './core';
 import { containsBlockedTerm } from './moderation';
+import { schedulePurgeOnStatusChange } from './cleanup';
 
 async function safeUpdate(path: string, data: Record<string, unknown>): Promise<void> {
   try {
@@ -128,6 +129,7 @@ export const onPostWritten = onDocumentWritten('posts/{postId}', async (event) =
   const delta = Number(isPublicActive(after)) - Number(isPublicActive(before));
   const creator = (after ?? before)?.creator_id;
   if (delta !== 0 && creator) await safeUpdate(`profiles/${creator}`, { public_post_count: FieldValue.increment(delta) });
+  if (before?.status !== after?.status) await schedulePurgeOnStatusChange(event.params.postId, before, after);
 });
 
 /** Keeps denormalised handles on posts and comments in sync with profile renames. */

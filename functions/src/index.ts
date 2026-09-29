@@ -6,3 +6,4 @@ export {
   onFollowCreated, onFollowDeleted, onPostWritten, onProfileUpdated,
 } from './triggers';
 export { onAvatarUploaded } from './avatar';
+export { cleanupPostMedia } from './cleanup';
