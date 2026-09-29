@@ -67,6 +67,7 @@ struct CreatePostView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .arcoreDisclosure()
         .alert("LociAR", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             if offerLocationSettings {
                 Button("Konum ayarlarını aç") {

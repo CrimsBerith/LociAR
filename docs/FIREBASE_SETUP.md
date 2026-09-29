@@ -38,6 +38,15 @@ Backend 27 Eylül 2026'da Supabase'ten Firebase'e taşındı. Supabase sürümü
 - Hesap silme: Apple kullanıcılarında önce Apple token'ı iptal edilir, sonra `deleteAccount` tüm
   postları, medyayı, sosyal kayıtları ve Auth kullanıcısını kalıcı siler.
 
+## 0. Tek komutla kurulum (önerilen)
+
+Mac'te `scripts/google-cloud-setup.command` dosyasına çift tıkla. Sırayla: Google girişi, Blaze kontrolü,
+gerekli API'ler (ARCore, Cloud Vision, IAM Credentials, Cloud Scheduler, Functions/Run/Build, Eventarc, Pub/Sub,
+Storage, Firestore, App Check, Identity Toolkit), Functions servis hesabı yetkileri (ARCore anahtarsız token için
+Token Creator), Storage bucket kontrolü, elle yapılacakların listesi (Apple .p8, App Check debug token, bütçe) ve
+`scripts/firebase-deploy.command` ile deploy. Tekrar çalıştırmak güvenlidir. Aşağıdaki adımlar aynı işin
+elle yapılışıdır.
+
 ## 1. Firebase projesi (konsol, ~30 dk)
 
 1. console.firebase.google.com → proje oluştur (Analytics isteğe bağlı).

@@ -66,6 +66,7 @@ struct ARExperienceView: View {
         .background(LociTheme.background)
         .accessibilityElement(children: .contain)
         .navigationBarHidden(true)
+        .arcoreDisclosure()
         .task { await handleAppearance() }
         .task(id: engine.currentAnchor?.id) {
             mappingWaitExpired = false

@@ -80,6 +80,7 @@ struct ARPostViewerView: View {
         }
         .background(LociTheme.background)
         .accessibilityIdentifier("ar-post-viewer")
+        .arcoreDisclosure()
         .task { await verifyAndOpen() }
         .onChange(of: engine.state) { _, state in
             if state == .resolved {

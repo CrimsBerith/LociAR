@@ -56,6 +56,7 @@ Apple'ın zorunlu kıldığı `PrivacyInfo.xcprivacy` dosyasıyla birebir uyumlu
 | **Ad (Name)** | Evet | Hayır | Uygulama İşlevselliği (Apple ile girişte paylaşılan ad; profil görünen adı) |
 | **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (yalnızca isteğe bağlı profil fotoğrafı; kamera karesi saklanmaz, post olarak fotoğraf/video paylaşılamaz) |
 | **Diğer Kullanıcı İçerikleri** | Evet | Hayır | Uygulama İşlevselliği (Başlıklar, yorumlar, beğeniler, AR kayıtları) |
+| **Kesin Konum** ve **Diğer Veri (kamera kaynaklı görsel özellikler)** — üçüncü taraf: **Google ARCore** | Hayır (Google ile kimlik paylaşılmaz) | Hayır | Uygulama İşlevselliği (Cloud Anchors / Geospatial ile AR yeniden konumlandırma). App Store Connect'te "Data shared with third parties" olarak işaretle |
 | **Ürün Etkileşimi (Product Interaction)** | Evet | Hayır | Uygulama İşlevselliği + Analitik (görüntülenme/beğeni sayaçları, `analytics_events`, 180 gün saklama) |
 
 ---

@@ -49,6 +49,17 @@ export default function PrivacyPage() {
         Yetkili kurumların hukuka uygun talepleri halinde veriler paylaşılabilir.
       </p>
 
+      <h2>Google ARCore (AR konumlandırma)</h2>
+      <p>
+        Postların bırakıldıkları yüzeyde ve konumda doğru görünmesi için Google ARCore&apos;un Cloud Anchors ve Geospatial
+        hizmetlerini kullanırız. Bu oturumları çalıştırmak için Google, sensör verilerini (ör. kamera ve konum) işler:
+        kamera görüntüsünden çıkarılan görsel özellikler ve yaklaşık konum Google&apos;a gönderilir; fotoğraf veya video
+        saklamayız. Bir post için oluşturulan Cloud Anchor en fazla 365 gün tutulur ve post ya da hesap silindiğinde
+        silinir. Ayrıntılar:{' '}
+        <a href="https://support.google.com/ar?p=how-google-play-services-for-ar-handles-your-data">Google AR ve verileriniz</a>,{' '}
+        <a href="https://policies.google.com/privacy">Google Gizlilik Politikası</a>.
+      </p>
+
       <h2>Saklama süreleri</h2>
       <ul>
         <li>Hesap verileri ve içerikler: hesap silinene kadar.</li>

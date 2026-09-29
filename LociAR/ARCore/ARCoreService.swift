@@ -41,6 +41,9 @@ final class ARCoreService {
         self.callables = callables
     }
 
+    /// False in previews, UI tests and emulator builds, where ARCore never starts.
+    var isEnabled: Bool { callables != nil }
+
     /// Latest ARCore frame (nil until ARKit frames flow and ARCore started).
     @ObservationIgnored private(set) var latestFrame: GARFrame?
 

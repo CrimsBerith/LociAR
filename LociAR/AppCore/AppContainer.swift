@@ -32,7 +32,8 @@ final class AppContainer {
             worldMaps = LocalWorldMapStore()
         } else if firebaseReady, let firebase = configuration.firebase {
             let callables = CallableClient(region: firebase.functionsRegion)
-            arcoreCallables = callables
+            // The local emulator suite cannot mint ARCore tokens; ARCore stays off there.
+            if configuration.emulatorHost == nil { arcoreCallables = callables }
             auth = FirebaseAuthRepository(functionsRegion: firebase.functionsRegion)
             posts = FirestorePostRepository(callables: callables)
             social = FirestoreSocialRepository(callables: callables)

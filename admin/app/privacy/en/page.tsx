@@ -46,6 +46,17 @@ export default function PrivacyPageEn() {
         usernames are visible to other users. We may disclose data in response to lawful requests.
       </p>
 
+      <h2>Google ARCore (AR positioning)</h2>
+      <p>
+        To show posts on the exact surface and place where they were left, we use Google ARCore Cloud Anchors and the
+        Geospatial API. To power these sessions, Google will process sensor data (e.g., camera and location): visual
+        features derived from the camera image and approximate location are sent to Google; we do not store photos or
+        videos. A post&apos;s Cloud Anchor is kept for at most 365 days and is deleted when the post or the account is
+        deleted. Learn more:{' '}
+        <a href="https://support.google.com/ar?p=how-google-play-services-for-ar-handles-your-data">How Google handles AR data</a>,{' '}
+        <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.
+      </p>
+
       <h2>Retention</h2>
       <ul>
         <li>Account data and content: until you delete your account.</li>

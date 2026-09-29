@@ -35,4 +35,9 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - **iOS only.** Do not add Android, Expo, Metro, or React Native.
 - Protected zones and 18+ content are hard-blocked in the MVP.
 - Pin uses the center reticle against detected plane geometry. Approximate placement is explicit.
+- AR re-localization uses **Google ARCore on top of the ARKit session** (SPM `arcore-ios-sdk`): Cloud Anchors
+  (365-day TTL) first, then Geospatial (VPS), then the legacy ARKit world map, then aim-guided reveal.
+  Authorization is keyless via the `getArcoreToken` callable; never ship an ARCore API key. Anchors are deleted
+  with the post/account (`functions/src/arcoreManagement.ts`). The Google sensor-data notice
+  (`ARCoreDisclosure.swift`) must stay on every AR screen. No Android.
 - Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + TOTP MFA + static RBAC).
