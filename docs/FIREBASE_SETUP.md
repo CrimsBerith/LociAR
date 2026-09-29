@@ -58,7 +58,15 @@ Backend 27 Eylül 2026'da Supabase'ten Firebase'e taşındı. Supabase sürümü
 8. **Cloud Vision API**: Google Cloud Console → APIs & Services → *Cloud Vision API* → Enable. Profil fotoğrafı
    denetimi (`onAvatarUploaded`) bunu kullanır; kapalıysa tüm fotoğraflar reddedilir (fail-closed). Aylık ilk
    1000 görsel ücretsiz.
-9. Project settings → Your apps:
+9. **Google ARCore (Geospatial + Cloud Anchors)** — keyless yetkilendirme, anahtar dosyası yok:
+   - Google Cloud Console → APIs & Services → **ARCore API** → Enable.
+   - IAM → Functions'ın çalıştığı servis hesabı (varsayılan: `<PROJE_NUMARASI>-compute@developer.gserviceaccount.com`)
+     → kendi üzerinde **Service Account Token Creator** (`roles/iam.serviceAccountTokenCreator`) rolünü ver:
+     `gcloud iam service-accounts add-iam-policy-binding <SA> --member=serviceAccount:<SA> --role=roles/iam.serviceAccountTokenCreator`
+   - `getArcoreToken` callable bu hesapla 1 saatlik JWT imzalar; uygulama `GARSession.setAuthToken` ile kullanır.
+     Farklı bir hesap kullanılacaksa Functions ortamında `ARCORE_SIGNER_EMAIL` ayarla.
+   - Billing → ARCore API kullanım/ücret satırını deploy öncesi kontrol et (dokümanda yalnız kota var).
+10. Project settings → Your apps:
    - iOS app ekle: bundle ID `com.khankartal.lociar`. `GoogleService-Info.plist` içindeki değerleri
      `Config/Local.xcconfig`'e yaz (dosyanın kendisi projeye eklenmez, bkz. `Config/Local.xcconfig.example`).
    - Web app ekle (admin panel için): apiKey, authDomain, projectId, appId değerlerini al.

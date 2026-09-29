@@ -89,3 +89,14 @@ test('deleteAccount hard-deletes profile, posts, handle and the auth user', asyn
   assert.equal((await adminDb.collection('handles').doc('leaving_user').get()).exists, false);
   await assert.rejects(adminAuth.getUser(user.uid), /no user record/i);
 });
+
+test('getArcoreToken requires sign-in and is rate limited per user', async () => {
+  const user = await newUser();
+  // No Google credentials exist in the emulator, so signing fails cleanly instead of crashing.
+  const first = await expectFailure(user.call('getArcoreToken', {}));
+  assert.equal(first.code, 'functions/unavailable');
+  for (let i = 1; i < 30; i++) await expectFailure(user.call('getArcoreToken', {}));
+  const limited = await expectFailure(user.call('getArcoreToken', {}));
+  assert.equal(limited.code, 'functions/resource-exhausted');
+  assert.equal(limited.details?.reason, 'rate_limited');
+});

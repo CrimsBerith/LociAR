@@ -7,3 +7,4 @@ export {
 } from './triggers';
 export { onAvatarUploaded } from './avatar';
 export { cleanupPostMedia } from './cleanup';
+export { getArcoreToken } from './arcore';

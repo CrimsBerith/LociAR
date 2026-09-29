@@ -286,6 +286,12 @@
       "fieldPath": "expires_at",
       "ttl": true,
       "indexes": []
+    },
+    {
+      "collectionGroup": "arcore_token_quota",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
     }
   ]
 }
