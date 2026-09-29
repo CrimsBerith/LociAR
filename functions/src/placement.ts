@@ -182,15 +182,6 @@ function nativeWorldMapPath(anchor: PoseAnchor | undefined, luid: string, postId
   return path?.toLowerCase() === expected ? path : null;
 }
 
-function nativeReferenceImagePath(body: CreatePostBody, luid: string, postId: string): string | null {
-  const anchor = body.pose.anchor;
-  if (!anchor?.nativeAnchorId) return null;
-  const locator = body.refImageUri ?? anchor.persistence?.referenceImageURI;
-  const path = storageObjectPath(locator, 'post-reference-images');
-  const expected = `post-reference-images/${luid}/${postId}/${anchor.nativeAnchorId.toLowerCase()}.jpg`;
-  return path?.toLowerCase() === expected ? path : null;
-}
-
 function hasValidPersistentResolver(anchor: PoseAnchor | undefined, worldMapObjectExists: boolean): boolean {
   const persistence = anchor?.persistence;
   if (!anchor?.nativeAnchorId || !persistence || persistence.version !== 1) return false;
@@ -203,7 +194,7 @@ function hasValidPersistentResolver(anchor: PoseAnchor | undefined, worldMapObje
   return false;
 }
 
-function placementQualityForAnchor(anchor: PoseAnchor | undefined, accuracy: number | null | undefined, hasReferenceImage: boolean, hasPersistentResolver: boolean): number {
+function placementQualityForAnchor(anchor: PoseAnchor | undefined, accuracy: number | null | undefined, hasPersistentResolver: boolean): number {
   if (!anchor) return 0;
   if (anchor.coordinateSpace === 'camera_free_space') return Math.min(1, 0.22 + (accuracy != null && accuracy <= 25 ? 0.08 : 0));
   if (anchor.coordinateSpace !== 'arkit_world' && anchor.coordinateSpace !== 'arcore_world') return 0.35;
@@ -214,7 +205,6 @@ function placementQualityForAnchor(anchor: PoseAnchor | undefined, accuracy: num
   if (anchor.trackingQuality === 'unknown' || !anchor.trackingQuality) score -= 0.03;
   if (hasValidSurfaceRect(anchor)) score += 0.08;
   if (anchor.surfaceNormal) score += 0.04;
-  if (hasReferenceImage) score += 0.06;
   if (hasPersistentResolver) score += 0.1;
   if (accuracy != null && accuracy <= 20) score += 0.02;
   if (accuracy != null && accuracy > 60) score -= 0.08;
@@ -242,7 +232,7 @@ function providerForCoordinateSpace(space?: string): string | null {
 }
 
 function resolverStrategyForCoordinateSpace(space?: string): string[] {
-  if (space === 'arkit_world' || space === 'arcore_world') return ['native_anchor', 'reference_image', 'geo_pose'];
+  if (space === 'arkit_world' || space === 'arcore_world') return ['native_anchor', 'geo_pose'];
   if (space === 'visual_surface') return ['reference_image', 'geo_pose'];
   return ['geo_pose'];
 }
@@ -265,14 +255,12 @@ export async function evaluatePlacement(
   const postId = body.clientMutationId!.toLowerCase();
   const anchor = body.pose.anchor;
   const space = anchor?.coordinateSpace;
-  const [worldMapExists, referenceExists] = await Promise.all([
-    objectExists(nativeWorldMapPath(anchor, luid, postId)),
-    objectExists(nativeReferenceImagePath(body, luid, postId)),
-  ]);
-  const hasReferenceImage = referenceExists;
+  // Camera reference frames are no longer collected (privacy; nothing read them back), so the
+  // stored world map is the only relocalization resolver.
+  const worldMapExists = await objectExists(nativeWorldMapPath(anchor, luid, postId));
   const hasPersistentResolver = hasValidPersistentResolver(anchor, worldMapExists);
-  const placementQuality = placementQualityForAnchor(anchor, body.pose.accuracy, hasReferenceImage, hasPersistentResolver);
-  const eligible = nativeAnchorEligible(anchor, placementQuality, hasReferenceImage || hasPersistentResolver);
+  const placementQuality = placementQualityForAnchor(anchor, body.pose.accuracy, hasPersistentResolver);
+  const eligible = nativeAnchorEligible(anchor, placementQuality, hasPersistentResolver);
   const placementState = eligible && space === 'arkit_world'
     ? 'arkit_world_locked'
     : eligible && space === 'arcore_world'

@@ -130,7 +130,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         let payload = CreatePostPayload(
             clientMutationId: post.id.uuidString.lowercased(),
             pose: PublishPose(geo: geo, surface: post.anchorBundle.anchor),
-            refImageUri: post.anchorBundle.anchor.persistence?.referenceImageURI ?? "native-ar-reference://pending",
+            refImageUri: "native-ar-reference://none", // camera frames are not stored (privacy)
             editData: post.editData,
             contentSource: post.contentSource,
             caption: post.caption,

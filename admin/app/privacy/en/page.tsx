@@ -25,7 +25,7 @@ export default function PrivacyPageEn() {
         <li><strong>Identity:</strong> Sign in with Apple identifier or email address, username, profile photo.</li>
         <li><strong>Location:</strong> while the app is in use, to show nearby content and store where you place a post.</li>
         <li><strong>Camera and media:</strong> used only for AR placement (posts are text and social media links; no photos or videos are uploaded); the camera feed is not
-          recorded. When you pin content, the AR map file and reference image for that surface are stored.</li>
+          recorded. When you pin content, only the AR map file for that surface is stored (a feature map, not a photo); no camera image is saved.</li>
         <li><strong>User content:</strong> posts, captions, comments, likes, saves, follows, blocks and reports.</li>
         <li><strong>Security:</strong> session tokens, device attestation (Apple App Attest / Firebase App Check), IP address
           processed by our infrastructure provider, and abuse-prevention records.</li>

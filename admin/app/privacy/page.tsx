@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         <li><strong>Kimlik ve iletişim:</strong> Apple ile Giriş kimliği veya e-posta adresi, kullanıcı adı, profil fotoğrafı.</li>
         <li><strong>Konum:</strong> uygulama açıkken, yakındaki içerikleri göstermek ve paylaştığınız içeriğin konumunu kaydetmek için.</li>
         <li><strong>Kamera ve medya:</strong> yalnızca AR yerleşimi için kullanılır (gönderiler metin ve sosyal medya bağlantısıdır; fotoğraf/video yüklenmez); kamera görüntüsü sürekli kaydedilmez.
-          Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası ve referans görüntüsü saklanır.</li>
+          Bir içeriği sabitlediğinizde yalnızca o yüzeyin AR harita dosyası (fotoğraf değil, nokta haritası) saklanır; kamera görüntüsü kaydedilmez.</li>
         <li><strong>Kullanıcı içeriği:</strong> gönderi, açıklama, yorum, beğeni, kaydetme, takip, engelleme ve raporlar.</li>
         <li><strong>İşlem güvenliği:</strong> oturum belirteçleri, cihaz doğrulaması (Apple App Attest / Firebase App Check),
           hizmet sağlayıcının işlediği IP adresi ve kötüye kullanım kayıtları.</li>

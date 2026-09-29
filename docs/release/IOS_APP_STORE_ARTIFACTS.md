@@ -14,7 +14,7 @@
 | Category | Collected | Linked to identity | Purpose |
 | --- | --- | --- | --- |
 | Precise location | Yes while in use | Yes for creators | AR discovery, surface placement, safety |
-| Camera | Yes after permission | Only the AR map + surface reference image when pinning (no photo/video posts) | AR placement |
+| Camera | Yes after permission | Only the AR feature map when pinning; no camera image is stored (no photo/video posts) | AR placement |
 | Contact/account identity | Yes | Yes | Authentication, account management |
 | User content and reports | Yes | Yes | Community and moderation |
 | Diagnostics | Yes if Sentry enabled | No | App functionality and crash repair |

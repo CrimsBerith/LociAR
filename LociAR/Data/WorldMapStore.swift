@@ -114,8 +114,7 @@ final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
               let mapURL = persistence.assetURI.flatMap(URL.init(string:)),
               mapURL.isFileURL else { return post }
 
-        let referenceURL = persistence.referenceImageURI.flatMap(URL.init(string:))
-        let urls = SendableLocalURLs(map: mapURL, reference: referenceURL?.isFileURL == true ? referenceURL : nil)
+        let urls = SendableLocalURLs(map: mapURL, reference: nil)
         let local = try await Task.detached(priority: .utility) {
             let mapData = try Data(contentsOf: urls.map, options: [.mappedIfSafe])
             let referenceData = try urls.reference.map { try Data(contentsOf: $0, options: [.mappedIfSafe]) }
@@ -133,18 +132,14 @@ final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
         let basePath = "\(StorageObjectPath.ownerFolder(userID))/\(draftID.uuidString.lowercased())"
         let mapPath = "\(basePath)/\(StorageObjectPath.anchorFileName(package.persistence.originalNativeAnchorId, fileExtension: "lociarmap"))"
         _ = try await MediaAssetStore.upload(package.mapData, bucket: Self.mapBucket, path: mapPath, contentType: "application/x-lociarmap")
-        var referenceURL: String?
-        if let reference = package.referenceImageData {
-            let referencePath = "\(basePath)/\(StorageObjectPath.anchorFileName(package.persistence.originalNativeAnchorId, fileExtension: "jpg"))"
-            _ = try await MediaAssetStore.upload(reference, bucket: Self.referenceBucket, path: referencePath, contentType: "image/jpeg")
-            referenceURL = "storage://\(Self.referenceBucket)/\(referencePath)"
-        }
+        // Reference camera frames are no longer uploaded (Storage denies them); drafts queued by
+        // older builds may still carry one locally, and it is simply ignored.
 
         var persistence = package.persistence
         persistence.storagePath = "storage://\(Self.mapBucket)/\(mapPath)"
         persistence.assetURI = persistence.storagePath
         persistence.assetURL = nil
-        persistence.referenceImageURI = referenceURL
+        persistence.referenceImageURI = nil
         return persistence
     }
 

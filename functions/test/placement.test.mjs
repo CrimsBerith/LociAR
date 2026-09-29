@@ -78,3 +78,23 @@ test('reference image must be a storage path or the pending placeholder', () => 
   assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'https://tracker.example/pixel.jpg' }), 'Invalid reference image');
   assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'storage://post-reference-images/a/b/c.jpg' }), null);
 });
+
+test('world lock needs only the stored world map; no camera frame is looked up', async () => {
+  const anchorId = '21111111-2222-4333-8444-555555555555';
+  const luid = 'baaaaaaa-bbbb-5ccc-8ddd-eeeeeeeeeeee';
+  const body = { ...base(), refImageUri: 'native-ar-reference://none' };
+  body.pose = { ...body.pose, anchor: {
+    coordinateSpace: 'arkit_world', x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0,
+    capturedAt: new Date().toISOString(), nativeAnchorId: anchorId, trackingQuality: 'normal',
+    surfaceNormal: { x: 0, y: 1, z: 0 }, physicalRectMeters: { width: 0.5, height: 0.5 },
+    persistence: { version: 1, kind: 'arkit_world_map', originalNativeAnchorId: anchorId, hostedAt: new Date().toISOString(),
+      storagePath: `storage://post-world-maps/${luid}/${body.clientMutationId}/${anchorId}.lociarmap` },
+  } };
+  body.anchorBundle = { coordinateSpace: 'arkit_world', anchor: { id: anchorId, pinQuality: 'planeGeometry', hitSource: 'planeGeometry', trackingQuality: 'normal', worldMappingStatus: 'mapped' } };
+  assert.equal(validateCreatePostBody(body), null);
+  const seen = [];
+  const result = await evaluatePlacement(body, luid, async (p) => { seen.push(p); return p?.startsWith('post-world-maps/') ?? false; });
+  assert.ok(!seen.some((p) => p?.startsWith('post-reference-images/')), 'reference images are never looked up');
+  assert.equal(result.placementState, 'arkit_world_locked');
+  assert.deepEqual(result.resolverStrategy, ['native_anchor', 'geo_pose']);
+});

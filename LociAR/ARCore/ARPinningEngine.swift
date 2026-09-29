@@ -1,6 +1,5 @@
 @preconcurrency import ARKit
 @preconcurrency import AVFoundation
-import CoreImage
 import Foundation
 import Observation
 import OSLog
@@ -96,7 +95,6 @@ final class ARPinningEngine: NSObject {
     @ObservationIgnored private var notificationTokens: [NSObjectProtocol] = []
     @ObservationIgnored private let contentRenderer = SpatialContentRenderer()
     @ObservationIgnored private var videoPlayers: [UUID: AVPlayer] = [:]
-    @ObservationIgnored private var latestReferenceImageData: Data?
     @ObservationIgnored private var activeInitialWorldMap: ARWorldMap?
     @ObservationIgnored private var pausedForThermalPressure = false
     @ObservationIgnored private var compassWorldAlignment = false
@@ -516,21 +514,20 @@ final class ARPinningEngine: NSObject {
         let mapData = try await Task.detached(priority: .utility) {
             try NSKeyedArchiver.archivedData(withRootObject: sendableMap.map, requiringSecureCoding: true)
         }.value
-        let referenceData: Data?
-        if let cached = latestReferenceImageData { referenceData = cached }
-        else { referenceData = await captureReferenceImageData() }
+        // No camera frame is stored with a pin: relocalization uses the world map only, and a
+        // frame could show people, homes or plates (privacy) while nothing ever read it back.
         var persistence = WorldLockPersistence(
             originalNativeAnchorId: anchor.id,
             hostedAt: Date()
         )
         let local = try await Task.detached(priority: .utility) {
-            try Self.writeLocalPackage(mapData: mapData, referenceData: referenceData, anchorID: anchor.id)
+            try Self.writeLocalPackage(mapData: mapData, referenceData: nil, anchorID: anchor.id)
         }.value
         persistence.assetURI = local.mapURL.absoluteString
-        persistence.referenceImageURI = local.referenceURL?.absoluteString
+        persistence.referenceImageURI = nil
         currentAnchor?.persistence = persistence
         transition(to: .publishReady, message: "Yüzey kaydı hazır. Post yayınlanabilir.")
-        return SavedWorldMapPackage(mapData: mapData, referenceImageData: referenceData, persistence: persistence)
+        return SavedWorldMapPackage(mapData: mapData, referenceImageData: nil, persistence: persistence)
     }
 
     private func waitForPersistableMapping() async -> Bool {
@@ -973,11 +970,6 @@ final class ARPinningEngine: NSObject {
         )
         currentAnchor = surfaceAnchor
         if quality.isPhysicalSurface { physicalPinPlacedAt = Date() }
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            self.latestReferenceImageData = await self.captureReferenceImageData()
-            self.recordDiagnostic(self.latestReferenceImageData == nil ? "Referans görüntüsü alınamadı." : "Yerleştirme referans görüntüsü hazır.")
-        }
         if captureGeoPose {
             Task { @MainActor [weak self] in
                 guard let self, let pose = await geoPoseCapture.capture() else { return }
@@ -1024,7 +1016,6 @@ final class ARPinningEngine: NSObject {
             arView.session.remove(anchor: anchor)
         }
         currentAnchor = nil
-        latestReferenceImageData = nil
         isRelocalizedContentVisible = false
     }
 
@@ -1047,17 +1038,6 @@ final class ARPinningEngine: NSObject {
                 self.relocalizationDeadline = nil
             }
         }
-    }
-
-    private func captureReferenceImageData() async -> Data? {
-        guard let imageBuffer = arView.session.currentFrame?.capturedImage else { return nil }
-        let image = CIImage(cvPixelBuffer: imageBuffer).oriented(.right)
-        let payload = SendableCIImage(image: image)
-        return await Task.detached(priority: .utility) {
-            let context = CIContext(options: [.cacheIntermediates: false])
-            guard let cgImage = context.createCGImage(payload.image, from: payload.image.extent) else { return nil }
-            return UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.82)
-        }.value
     }
 
     private func transition(to next: PinSessionState, message: String) {
@@ -1178,7 +1158,6 @@ final class ARPinningEngine: NSObject {
     }
 }
 
-private struct SendableCIImage: @unchecked Sendable { let image: CIImage }
 private struct SendableWorldMap: @unchecked Sendable { let map: ARWorldMap }
 private final class WeakARViewHost {
     weak var view: UIView?

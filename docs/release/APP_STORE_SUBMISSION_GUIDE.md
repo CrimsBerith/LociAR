@@ -54,7 +54,7 @@ Apple'ın zorunlu kıldığı `PrivacyInfo.xcprivacy` dosyasıyla birebir uyumlu
 | **Kullanıcı Kimliği (User ID)** | Evet | Hayır | Uygulama İşlevselliği (Hesap yönetimi ve kimlik doğrulama) |
 | **E-posta Adresi (Email Address)** | Evet | Hayır | Hesap Doğrulama ve İletişim |
 | **Ad (Name)** | Evet | Hayır | Uygulama İşlevselliği (Apple ile girişte paylaşılan ad; profil görünen adı) |
-| **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (AR yerleşimi için yüzey referans görüntüsü ve isteğe bağlı profil fotoğrafı; post olarak fotoğraf/video paylaşılamaz) |
+| **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (yalnızca isteğe bağlı profil fotoğrafı; kamera karesi saklanmaz, post olarak fotoğraf/video paylaşılamaz) |
 | **Diğer Kullanıcı İçerikleri** | Evet | Hayır | Uygulama İşlevselliği (Başlıklar, yorumlar, beğeniler, AR kayıtları) |
 | **Ürün Etkileşimi (Product Interaction)** | Evet | Hayır | Uygulama İşlevselliği + Analitik (görüntülenme/beğeni sayaçları, `analytics_events`, 180 gün saklama) |
 

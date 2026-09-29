@@ -45,3 +45,13 @@ test('avatars: owner uploads JPEGs to pending only; only screened photos are rea
   await assertSucceeds(getBytes(ref(as(BOB), `avatars/${ALICE}/current/${id}.jpg`)));
   await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), `avatars/${ALICE}/current/${id}.jpg`)));
 });
+
+test('camera reference frames can no longer be uploaded or read', async () => {
+  const path = `post-reference-images/${ALICE}/p1/anchor.jpg`;
+  await assertFails(uploadBytes(ref(as(ALICE), path), jpeg, { contentType: 'image/jpeg' }));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await uploadBytes(ref(ctx.storage(), path), jpeg, { contentType: 'image/jpeg' });
+  });
+  await assertFails(getBytes(ref(as(BOB), path)));
+  await assertFails(getBytes(ref(as(ALICE), path)));
+});

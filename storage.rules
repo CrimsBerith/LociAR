@@ -25,9 +25,9 @@ service firebase.storage {
         && request.resource.contentType == 'application/x-lociarmap';
       allow delete: if owner(luid);
     }
+    // Camera reference frames are no longer collected (privacy). Owners may still delete leftovers.
     match /post-reference-images/{luid}/{rest=**} {
-      allow read: if signedIn();
-      allow create, update: if owner(luid) && under(10) && isImage();
+      allow read, create, update: if false;
       allow delete: if owner(luid);
     }
     match /post-surface-textures/{luid}/{rest=**} {
