@@ -98,3 +98,32 @@ test('world lock needs only the stored world map; no camera frame is looked up',
   assert.equal(result.placementState, 'arkit_world_locked');
   assert.deepEqual(result.resolverStrategy, ['native_anchor', 'geo_pose']);
 });
+
+test('iOS pins can persist as a Google Cloud Anchor; geospatial poses are validated', async () => {
+  const anchorId = '31111111-2222-4333-8444-555555555555';
+  const luid = 'caaaaaaa-bbbb-5ccc-8ddd-eeeeeeeeeeee';
+  const geospatial = { latitude: 41.0335, longitude: 28.978, altitude: 75.2, eusQuaternion: [0, 0.38, 0, 0.92], horizontalAccuracy: 1.8, verticalAccuracy: 2.5, yawAccuracy: 4 };
+  const body = { ...base(), refImageUri: 'native-ar-reference://none' };
+  body.pose = { ...body.pose, anchor: {
+    coordinateSpace: 'arkit_world', x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0,
+    capturedAt: new Date().toISOString(), nativeAnchorId: anchorId, trackingQuality: 'normal',
+    surfaceNormal: { x: 0, y: 1, z: 0 }, physicalRectMeters: { width: 0.5, height: 0.5 }, geospatial,
+    persistence: { version: 1, kind: 'arcore_cloud_anchor', originalNativeAnchorId: anchorId.toUpperCase(), hostedAt: new Date().toISOString(),
+      cloudAnchorId: 'ua-a1cc84e4f11b1287d289646811bf54d1', expiresAt: new Date(Date.now() + 364 * 86_400_000).toISOString() },
+  } };
+  body.anchorBundle = { coordinateSpace: 'arkit_world', anchor: { id: anchorId, pinQuality: 'planeGeometry', hitSource: 'planeGeometry', trackingQuality: 'normal', worldMappingStatus: 'mapped' } };
+  assert.equal(validateCreatePostBody(body), null);
+  const result = await evaluatePlacement(body, luid, async () => false); // no world map uploaded
+  assert.equal(result.hasPersistentResolver, true);
+  assert.equal(result.placementState, 'arkit_world_locked');
+
+  const badId = structuredClone(body);
+  badId.pose.anchor.persistence.cloudAnchorId = 'bad id!';
+  assert.equal(validateCreatePostBody(badId), 'Invalid cloud anchor');
+  const vague = structuredClone(body);
+  vague.pose.anchor.geospatial.horizontalAccuracy = 40;
+  assert.equal(validateCreatePostBody(vague), 'Invalid geospatial pose');
+  const expired = structuredClone(body);
+  expired.pose.anchor.persistence.expiresAt = new Date(Date.now() - 1000).toISOString();
+  assert.equal((await evaluatePlacement(expired, luid, async () => false)).hasPersistentResolver, false);
+});

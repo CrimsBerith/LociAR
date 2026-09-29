@@ -3,7 +3,7 @@
  * evidence). Storage paths keep the Supabase bucket name as the first path segment.
  */
 type Persistence = {
-  version: 1;
+  version: number;
   kind: 'arkit_world_map' | 'arcore_cloud_anchor';
   originalNativeAnchorId: string;
   assetUri?: string;
@@ -26,7 +26,47 @@ type PoseAnchor = {
   surfaceNormal?: { x: number; y: number; z: number };
   physicalRectMeters?: { width: number; height: number };
   persistence?: Persistence;
+  /** Google ARCore Geospatial pose captured at pin time (optional, VPS areas only). */
+  geospatial?: GeospatialPose;
 };
+
+type GeospatialPose = {
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  eusQuaternion: number[];
+  horizontalAccuracy: number;
+  verticalAccuracy: number;
+  yawAccuracy: number;
+};
+
+/** Must match GeospatialPose thresholds in the iOS client (Domain/Models.swift). */
+const GEOSPATIAL_MAX_HORIZONTAL_ACCURACY = 5;
+const GEOSPATIAL_MAX_YAW_ACCURACY = 15;
+/** ARCore Cloud Anchor ids look like `ua-<hex>`; accept the documented URL-safe alphabet. */
+const CLOUD_ANCHOR_ID = /^[A-Za-z0-9_-]{8,128}$/;
+
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+export function isValidGeospatialPose(g: unknown): boolean {
+  if (!g || typeof g !== 'object') return false;
+  const p = g as GeospatialPose;
+  return finite(p.latitude) && Math.abs(p.latitude) <= 90
+    && finite(p.longitude) && Math.abs(p.longitude) <= 180
+    && finite(p.altitude) && Math.abs(p.altitude) <= 10_000
+    && Array.isArray(p.eusQuaternion) && p.eusQuaternion.length === 4 && p.eusQuaternion.every(finite)
+    && finite(p.horizontalAccuracy) && p.horizontalAccuracy >= 0 && p.horizontalAccuracy <= GEOSPATIAL_MAX_HORIZONTAL_ACCURACY
+    && finite(p.verticalAccuracy) && p.verticalAccuracy >= 0
+    && finite(p.yawAccuracy) && p.yawAccuracy >= 0 && p.yawAccuracy <= GEOSPATIAL_MAX_YAW_ACCURACY;
+}
+
+/** The hosted Cloud Anchor id of a post body, if it carries a valid one. */
+export function cloudAnchorIdOf(body: CreatePostBody): string | null {
+  const persistence = body.pose?.anchor?.persistence;
+  if (persistence?.kind !== 'arcore_cloud_anchor') return null;
+  const id = persistence.cloudAnchorId;
+  return typeof id === 'string' && CLOUD_ANCHOR_ID.test(id) ? id : null;
+}
 
 export type CreatePostBody = {
   clientMutationId?: string;
@@ -160,6 +200,11 @@ export function validateCreatePostBody(body: CreatePostBody | undefined): string
   if (JSON.stringify(body).length > 400_000) return 'Post payload is too large';
   const policyError = contentPolicyError(body);
   if (policyError) return policyError;
+  const anchorPersistence = body.pose.anchor?.persistence;
+  if (anchorPersistence?.kind === 'arcore_cloud_anchor' && !cloudAnchorIdOf(body)) return 'Invalid cloud anchor';
+  if (body.pose.anchor?.geospatial != null && !isValidGeospatialPose(body.pose.anchor.geospatial)) {
+    return 'Invalid geospatial pose';
+  }
   if (body.pose.anchor?.coordinateSpace === 'arkit_world' && !hasStrictARKitWorldLockEvidence(body)) {
     return 'Physical AR world lock evidence is incomplete';
   }
@@ -187,10 +232,13 @@ function hasValidPersistentResolver(anchor: PoseAnchor | undefined, worldMapObje
   if (!anchor?.nativeAnchorId || !persistence || persistence.version !== 1) return false;
   if (String(persistence.originalNativeAnchorId).toLowerCase() !== anchor.nativeAnchorId.toLowerCase()) return false;
   if (persistence.expiresAt && Date.parse(persistence.expiresAt) <= Date.now()) return false;
-  if (anchor.coordinateSpace === 'arkit_world') return persistence.kind === 'arkit_world_map' && worldMapObjectExists;
-  if (anchor.coordinateSpace === 'arcore_world') {
-    return persistence.kind === 'arcore_cloud_anchor' && typeof persistence.cloudAnchorId === 'string' && persistence.cloudAnchorId.length >= 8;
+  const validCloudAnchor = persistence.kind === 'arcore_cloud_anchor'
+    && typeof persistence.cloudAnchorId === 'string' && CLOUD_ANCHOR_ID.test(persistence.cloudAnchorId);
+  // iOS pins live in ARKit world space; they persist either as a world map or as a Cloud Anchor.
+  if (anchor.coordinateSpace === 'arkit_world') {
+    return (persistence.kind === 'arkit_world_map' && worldMapObjectExists) || validCloudAnchor;
   }
+  if (anchor.coordinateSpace === 'arcore_world') return validCloudAnchor;
   return false;
 }
 

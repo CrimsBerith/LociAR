@@ -199,11 +199,8 @@ struct ARPostViewerView: View {
         accessBlocked = false
         isAiming = false
         location.start()
-        if let persistence = post.anchorBundle.anchor.persistence, persistence.isExpired {
-            message = "Bu içeriğin mekânsal dünya haritasının süresi dolmuş."
-            accessBlocked = true
-            return
-        }
+        // An expired Cloud Anchor or world map no longer blocks the post: the next resolver
+        // (geospatial, then aim-guided reveal) takes over.
         if session.isLocalPreview {
             await revealLocalPreviewOnPhysicalSurface()
             return
@@ -227,6 +224,7 @@ struct ARPostViewerView: View {
                     message = "Yüzey bulundu. İçerik hazır."
                     return
                 }
+                if await resolveWithARCore() { return }
                 if await relocalizeFromWorldMap() { return }
                 await revealWithAimGuidance()
                 return
@@ -236,6 +234,46 @@ struct ARPostViewerView: View {
         }
         message = "Konum doğrulanamadı. AR erişimi açılmadı."
         accessBlocked = true
+    }
+
+    /// Google ARCore resolvers, most precise first: the hosted Cloud Anchor (exact surface, indoor
+    /// and outdoor), then the Geospatial pose (outdoors with VPS coverage). Both run on the same
+    /// ARKit session; false means "try the next resolver".
+    private func resolveWithARCore() async -> Bool {
+        let anchor = post.anchorBundle.anchor
+        let cloudAnchorId = anchor.persistence?.resolvableCloudAnchorId
+        let geospatial = anchor.geospatial?.isValid == true ? anchor.geospatial : nil
+        guard anchor.pinQuality.isPhysicalSurface, cloudAnchorId != nil || geospatial != nil else { return false }
+        await engine.requestCameraAndStart()
+        guard engine.state != .failed, !Task.isCancelled else { return false }
+        let arcore = container.arcore
+        guard await arcore.waitUntilReady() else { return false }
+        if let cloudAnchorId {
+            message = "Yüzey aranıyor. Kamerayı postun bırakıldığı yere doğrult ve yavaşça gezdir."
+            if let transform = await arcore.resolveCloudAnchor(cloudAnchorId), !Task.isCancelled {
+                engine.placeResolvedForViewing(transform: transform, anchor: anchor, physical: true)
+                return await renderResolvedContent()
+            }
+        }
+        if let geospatial {
+            message = "Konum doğrulanıyor. Kamerayı çevredeki binalara doğrult."
+            if await arcore.waitForEarthLocalization(), !Task.isCancelled,
+               let transform = arcore.transform(for: geospatial) {
+                engine.placeResolvedForViewing(transform: transform, anchor: anchor, physical: false)
+                return await renderResolvedContent()
+            }
+        }
+        return false
+    }
+
+    private func renderResolvedContent() async -> Bool {
+        do {
+            try await engine.render(post: post)
+            message = "Yüzey bulundu. İçerik hazır."
+        } catch {
+            message = "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene."
+        }
+        return true
     }
 
     /// Multi-user world lock: downloads the creator's ARWorldMap and relocalizes against it so the

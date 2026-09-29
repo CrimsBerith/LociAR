@@ -1,4 +1,5 @@
 import { onCall } from 'firebase-functions/v2/https';
+import { deleteCloudAnchor } from './arcoreManagement';
 import { auth, db, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
 
 async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFirestore.BulkWriter): Promise<number> {
@@ -28,6 +29,7 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
   writer.onWriteError((error) => error.failedAttempts < 5);
 
   const posts = await db.collection('posts').where('creator_id', '==', luid).get();
+  await Promise.all(posts.docs.map((p) => deleteCloudAnchor(p.data().cloud_anchor_id)));
   for (const post of posts.docs) {
     for (const collection of ['likes', 'comments', 'post_saves', 'collection_items']) {
       await deleteQuery(db.collection(collection).where('post_id', '==', post.id), writer);

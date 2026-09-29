@@ -1,5 +1,7 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { bucket, db, deleteStoragePrefix, FieldValue, Timestamp } from './core';
+import { deleteCloudAnchor, listCloudAnchors } from './arcoreManagement';
+import { selectOrphanAnchors } from './arcoreToken';
 
 /**
  * Storage housekeeping so media does not accumulate for content nobody can see.
@@ -49,6 +51,7 @@ export async function purgeDueRemovedMedia(now = Date.now()): Promise<number> {
     // Restored in the meantime (queue entry left behind): keep the media.
     if (!post.exists || post.data()!.status === 'removed') {
       await deleteStoragePrefix(String(doc.data().prefix));
+      if (post.exists) await deleteCloudAnchor(post.data()!.cloud_anchor_id);
       // A later restore still works, but the post can only be shown approximately (no AR map).
       if (post.exists) await post.ref.update({ media_purged_at: FieldValue.serverTimestamp() });
     }
@@ -81,8 +84,33 @@ export async function purgeOrphanUploads(now = Date.now()): Promise<number> {
   return removed;
 }
 
+/** Deletes hosted Cloud Anchors that no post references after 7 days (e.g. post never published). */
+export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5): Promise<number> {
+  let removed = 0;
+  let pageToken: string | undefined;
+  for (let page = 0; page < maxPages; page++) {
+    const { anchors, nextPageToken } = await listCloudAnchors(pageToken);
+    if (anchors.length === 0) break;
+    const referenced = new Set<string>();
+    const lookups = await Promise.all(anchors.map((a) => db.collection('posts').where('cloud_anchor_id', '==', a.id).limit(1).get()));
+    lookups.forEach((snap, i) => { if (!snap.empty) referenced.add(anchors[i].id); });
+    for (const id of selectOrphanAnchors(anchors, referenced, now, 7 * DAY_MS)) {
+      if (await deleteCloudAnchor(id)) removed++;
+    }
+    if (!nextPageToken) break;
+    pageToken = nextPageToken;
+  }
+  return removed;
+}
+
 export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
   const removed = await purgeDueRemovedMedia();
   const orphans = await purgeOrphanUploads();
-  console.log(JSON.stringify({ event: 'cleanup_post_media', removed, orphans }));
+  let orphanAnchors = 0;
+  try {
+    orphanAnchors = await purgeOrphanCloudAnchors();
+  } catch (error) {
+    console.error('cloud_anchor_cleanup_failed', error);
+  }
+  console.log(JSON.stringify({ event: 'cleanup_post_media', removed, orphans, orphanAnchors }));
 });

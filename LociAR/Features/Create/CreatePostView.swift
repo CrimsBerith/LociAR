@@ -24,6 +24,8 @@ struct CreatePostView: View {
     @State private var offerLocationSettings = false
     @State private var offerFallbackToApproximate = false
     @State private var mappingWaitExpired = false
+    /// Non-nil while the pin is being saved (Cloud Anchor hosting or world map); shown as a banner.
+    @State private var savingStatus: String?
     @FocusState private var isCaptionFocused: Bool
 
     init(anchor: SurfaceAnchor? = nil) {
@@ -35,6 +37,19 @@ struct CreatePostView: View {
             Group {
                 if let anchor = selectedAnchor { editor(anchor: anchor) }
                 else { placementStep }
+            }
+            .overlay(alignment: .top) {
+                if let savingStatus {
+                    HStack(spacing: 10) {
+                        ProgressView().tint(LociTheme.accent)
+                        Text(savingStatus).font(.subheadline.weight(.semibold))
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.top, 8)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("create-saving-status")
+                }
             }
             .navigationTitle(selectedAnchor == nil ? "Yüzey seç" : "İçerik oluştur")
             .navigationBarTitleDisplayMode(.inline)
@@ -484,6 +499,15 @@ struct CreatePostView: View {
         defer { isPublishing = false }
 
         var anchor = anchor
+        if let geospatial = anchor.geospatial {
+            // ARCore Geospatial beats GPS (meters vs. 5–20 m): use it for the map pin and distance checks.
+            var pose = anchor.geoPose ?? GeoPose(latitude: geospatial.latitude, longitude: geospatial.longitude, heading: 0)
+            pose.latitude = geospatial.latitude
+            pose.longitude = geospatial.longitude
+            pose.altitude = geospatial.altitude
+            pose.accuracy = geospatial.horizontalAccuracy
+            anchor.geoPose = pose
+        }
         if anchor.geoPose == nil {
             if let captured = await GeoPoseCaptureService().capture() {
                 anchor.geoPose = captured
@@ -782,6 +806,20 @@ struct CreatePostView: View {
             engine.stopSession()
             return
         }
+        defer { savingStatus = nil }
+        // Geo-tag the pin precisely when ARCore Geospatial is localized (outdoors, VPS coverage).
+        if let transform = engine.currentPinTransform, let geospatial = container.arcore.geospatialPose(for: transform) {
+            engine.attachGeospatial(geospatial)
+        }
+        // 1) Google Cloud Anchor: exact surface for every viewer, no world-map upload.
+        if let persistence = await hostCloudAnchor(for: anchor) {
+            engine.attachPersistence(persistence)
+            selectedAnchor = engine.currentAnchor ?? anchor
+            engine.stopSession()
+            return
+        }
+        // 2) Fallback: ARKit world map (offline, no token, or hosting failed).
+        savingStatus = "Yüzey kaydı hazırlanıyor…"
         do {
             let package = try await engine.saveWorldMap()
             engine.attachPersistence(package.persistence)
@@ -792,6 +830,32 @@ struct CreatePostView: View {
             message = "Fiziksel çevre haritası kaydedilemedi. Dilersen 'Yaklaşık olarak devam et' ile postunu hemen oluşturabilir veya tekrar tarayabilirsin."
             return
         }
+    }
+
+    /// Hosts the pin as a Google Cloud Anchor. Waits (bounded) until ARCore has seen the surface
+    /// well enough, guiding the user to move around it. Returns nil to fall back to the world map.
+    private func hostCloudAnchor(for anchor: SurfaceAnchor) async -> WorldLockPersistence? {
+        let arcore = container.arcore
+        guard container.connectivity.isOnline else { return nil }
+        savingStatus = "Google AR hazırlanıyor…"
+        guard await arcore.waitUntilReady(), let arAnchor = engine.currentPinARAnchor() else { return nil }
+        let deadline = Date().addingTimeInterval(20)
+        func sufficient() -> Bool {
+            guard let transform = engine.currentPinTransform else { return false }
+            return arcore.isHostingQualitySufficient(for: transform)
+        }
+        while !sufficient(), Date() < deadline {
+            savingStatus = "Telefonu yüzeyin etrafında yavaşça gezdir…"
+            try? await Task.sleep(for: .milliseconds(400))
+        }
+        guard sufficient() else { return nil }
+        savingStatus = "Yüzey Google AR'a kaydediliyor…"
+        guard let cloudAnchorId = await arcore.hostCloudAnchor(arAnchor) else { return nil }
+        var persistence = WorldLockPersistence(originalNativeAnchorId: engine.currentAnchor?.id ?? anchor.id, hostedAt: Date())
+        persistence.kind = .arcoreCloudAnchor
+        persistence.cloudAnchorId = cloudAnchorId
+        persistence.expiresAt = Calendar.current.date(byAdding: .day, value: ARCoreService.cloudAnchorTTLDays, to: Date())
+        return persistence
     }
 }
 

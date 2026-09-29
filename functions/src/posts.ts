@@ -5,8 +5,9 @@ import {
   requireCaller, Timestamp,
 } from './core';
 import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
-import { evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
+import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
 import { reasonError } from './errors';
+import { deleteCloudAnchor } from './arcoreManagement';
 
 /**
  * High-quality world locks used to go live without review in the Supabase build. App Review
@@ -140,6 +141,9 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     resolver_strategy: placement.resolverStrategy,
     native_provider: placement.nativeProvider,
     multi_user_ready: placement.hasPersistentResolver,
+    // Kept top-level so removal/cleanup can delete the Cloud Anchor through the Management API.
+    cloud_anchor_id: cloudAnchorIdOf(body),
+    geospatial: body.pose.anchor?.geospatial ? true : false,
     views_count: 0,
     likes_count: 0,
     comments_count: 0,
@@ -185,16 +189,21 @@ export const deleteOwnPost = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asyn
   const postId = (request.data as { postId?: unknown })?.postId;
   if (!isUUID(postId)) throw new HttpsError('invalid-argument', 'Invalid post ID');
   const ref = db.collection('posts').doc(postId.toLowerCase());
+  let cloudAnchorId: string | null = null;
   const removed = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) return false;
     const post = snap.data()!;
     if (post.creator_id !== caller.luid || post.deleted_at) return false;
     if (!['active', 'pending_review', 'flagged', 'draft'].includes(post.status)) return false;
+    cloudAnchorId = typeof post.cloud_anchor_id === 'string' ? post.cloud_anchor_id : null;
     tx.update(ref, { status: 'removed', deleted_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
     return true;
   });
-  if (removed) await deleteStoragePrefix(`${caller.luid}/${postId.toLowerCase()}/`);
+  if (removed) {
+    await deleteStoragePrefix(`${caller.luid}/${postId.toLowerCase()}/`);
+    await deleteCloudAnchor(cloudAnchorId);
+  }
   return { removed };
 });
 

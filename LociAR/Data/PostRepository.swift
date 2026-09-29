@@ -132,7 +132,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         }
         let post = try await MediaAssetStore.uploadLocalAssets(in: worldMapReadyPost)
         guard let geo = post.anchorBundle.anchor.geoPose else { throw PostContractError.missingGeoPose }
-        let placement = BackendPlacementContract(quality: post.anchorBundle.anchor.pinQuality, hasRemotePersistence: post.anchorBundle.anchor.persistence?.storagePath != nil)
+        let placement = BackendPlacementContract(anchor: post.anchorBundle.anchor)
         let payload = CreatePostPayload(
             clientMutationId: post.id.uuidString.lowercased(),
             pose: PublishPose(geo: geo, surface: post.anchorBundle.anchor),
@@ -380,8 +380,23 @@ struct BackendPlacementContract: Equatable, Sendable {
     let coordinateSpace: String
     let state: String
     let qualityScore: Double
-    let resolverStrategy: [String]
+    private(set) var resolverStrategy: [String]
     let nativeProvider: String?
+
+    /// Cloud Anchors and uploaded world maps both count as a remote resolver.
+    init(anchor: SurfaceAnchor) {
+        let persistence = anchor.persistence
+        let remote = persistence?.storagePath != nil || persistence?.resolvableCloudAnchorId != nil
+        self.init(quality: anchor.pinQuality, hasRemotePersistence: remote)
+        if anchor.pinQuality != .freeSpaceApproximate {
+            var strategy: [String] = []
+            if persistence?.resolvableCloudAnchorId != nil { strategy.append("cloud_anchor") }
+            if persistence?.storagePath != nil { strategy.append("native_anchor") }
+            if anchor.geospatial?.isValid == true { strategy.append("geospatial") }
+            strategy.append("geo_pose")
+            resolverStrategy = strategy
+        }
+    }
 
     init(quality: PinQuality, hasRemotePersistence: Bool) {
         switch quality {
@@ -434,9 +449,10 @@ private struct PublishSurfaceAnchor: Encodable, Sendable {
     let surfaceNormal: Vector3?
     let physicalRectMeters: PhysicalRectMeters?
     let persistence: WorldLockPersistence?
+    let geospatial: GeospatialPose?
 
     init(surface: SurfaceAnchor) {
-        let placement = BackendPlacementContract(quality: surface.pinQuality, hasRemotePersistence: surface.persistence?.storagePath != nil)
+        let placement = BackendPlacementContract(anchor: surface)
         coordinateSpace = placement.coordinateSpace
         provider = placement.nativeProvider ?? "native_ios_camera"
         x = surface.transform.count > 12 ? surface.transform[12] : 0
@@ -446,6 +462,7 @@ private struct PublishSurfaceAnchor: Encodable, Sendable {
         trackingQuality = surface.trackingQuality; surfaceAlignment = surface.surfaceAlignment
         surfaceNormal = surface.surfaceNormal; physicalRectMeters = surface.physicalRectMeters
         persistence = surface.persistence
+        geospatial = surface.geospatial?.isValid == true ? surface.geospatial : nil
     }
 }
 

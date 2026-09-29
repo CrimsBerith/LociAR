@@ -111,9 +111,35 @@ struct GeoPose: Codable, Hashable, Sendable {
     var accuracy: Double?
 }
 
+/// Precise pose from Google ARCore Geospatial (VPS). Present only when Earth tracking was
+/// localized well enough at pin time; old posts decode it as nil.
+struct GeospatialPose: Codable, Hashable, Sendable {
+    var latitude: Double
+    var longitude: Double
+    var altitude: Double
+    /// East-Up-South orientation quaternion (x, y, z, w).
+    var eusQuaternion: [Float]
+    var horizontalAccuracy: Double
+    var verticalAccuracy: Double
+    var yawAccuracy: Double
+
+    /// Pins are only geo-tagged when ARCore reports at most this horizontal error (meters).
+    nonisolated static let maximumHorizontalAccuracy: Double = 5
+    nonisolated static let maximumYawAccuracy: Double = 15
+
+    var isValid: Bool {
+        abs(latitude) <= 90 && abs(longitude) <= 180 && altitude.isFinite
+            && eusQuaternion.count == 4 && eusQuaternion.allSatisfy(\.isFinite)
+            && horizontalAccuracy >= 0 && horizontalAccuracy <= Self.maximumHorizontalAccuracy
+            && yawAccuracy >= 0 && yawAccuracy <= Self.maximumYawAccuracy
+    }
+}
+
 struct WorldLockPersistence: Codable, Hashable, Sendable {
     enum Kind: String, Codable, Sendable {
         case arkitWorldMap = "arkit_world_map"
+        /// Google ARCore Cloud Anchor (hosted with keyless auth, up to 365 days).
+        case arcoreCloudAnchor = "arcore_cloud_anchor"
     }
 
     var version: Int = 1
@@ -123,8 +149,15 @@ struct WorldLockPersistence: Codable, Hashable, Sendable {
     var assetURL: String?
     var referenceImageURI: String?
     var storagePath: String?
+    var cloudAnchorId: String?
     var hostedAt: Date
     var expiresAt: Date?
+
+    /// A Cloud Anchor that can still be resolved.
+    var resolvableCloudAnchorId: String? {
+        guard kind == .arcoreCloudAnchor, !isExpired, let cloudAnchorId, !cloudAnchorId.isEmpty else { return nil }
+        return cloudAnchorId
+    }
 
     var isExpired: Bool {
         guard let expiresAt else { return false }
@@ -149,6 +182,7 @@ struct SurfaceAnchor: Codable, Hashable, Sendable, Identifiable {
     var surfaceNormal: Vector3?
     var physicalRectMeters: PhysicalRectMeters?
     var geoPose: GeoPose?
+    var geospatial: GeospatialPose?
     var capturedAt: Date
     var persistence: WorldLockPersistence?
 
@@ -163,6 +197,7 @@ struct SurfaceAnchor: Codable, Hashable, Sendable, Identifiable {
         surfaceNormal: Vector3? = nil,
         physicalRectMeters: PhysicalRectMeters? = nil,
         geoPose: GeoPose? = nil,
+        geospatial: GeospatialPose? = nil,
         capturedAt: Date = Date(),
         persistence: WorldLockPersistence? = nil
     ) {
@@ -176,6 +211,7 @@ struct SurfaceAnchor: Codable, Hashable, Sendable, Identifiable {
         self.surfaceNormal = surfaceNormal
         self.physicalRectMeters = physicalRectMeters
         self.geoPose = geoPose
+        self.geospatial = geospatial
         self.capturedAt = capturedAt
         self.persistence = persistence
     }
@@ -198,7 +234,7 @@ struct AnchorBundle: Codable, Hashable, Sendable {
         case schemaVersion, provider, coordinateSpace, anchor
         // Legacy fields stored directly on the bundle.
         case nativeAnchorId, planeTransform, surfaceNormal, physicalRectMeters
-        case trackingQuality, surfaceAlignment, geoPose, persistence, capturedAt
+        case trackingQuality, surfaceAlignment, geoPose, geospatial, persistence, capturedAt
         case pinQuality, hitSource, worldMappingStatus
     }
 
@@ -225,6 +261,7 @@ struct AnchorBundle: Codable, Hashable, Sendable {
             surfaceNormal: try values.decodeIfPresent(Vector3.self, forKey: .surfaceNormal),
             physicalRectMeters: try values.decodeIfPresent(PhysicalRectMeters.self, forKey: .physicalRectMeters),
             geoPose: try values.decodeIfPresent(GeoPose.self, forKey: .geoPose),
+            geospatial: try? values.decodeIfPresent(GeospatialPose.self, forKey: .geospatial),
             capturedAt: try values.decodeIfPresent(Date.self, forKey: .capturedAt) ?? Date(),
             persistence: try values.decodeIfPresent(WorldLockPersistence.self, forKey: .persistence)
         )
@@ -243,6 +280,7 @@ struct AnchorBundle: Codable, Hashable, Sendable {
         try values.encode(anchor.trackingQuality, forKey: .trackingQuality)
         try values.encode(anchor.surfaceAlignment, forKey: .surfaceAlignment)
         try values.encodeIfPresent(anchor.geoPose, forKey: .geoPose)
+        try values.encodeIfPresent(anchor.geospatial, forKey: .geospatial)
         try values.encodeIfPresent(anchor.persistence, forKey: .persistence)
         try values.encode(anchor.capturedAt, forKey: .capturedAt)
         try values.encode(anchor.pinQuality, forKey: .pinQuality)

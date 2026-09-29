@@ -25,3 +25,15 @@ test('rate-limit bucket changes every hour', () => {
   assert.equal(tokenQuotaDocId('u', 3_599_999), 'u_0');
   assert.equal(tokenQuotaDocId('u', 3_600_000), 'u_1');
 });
+
+test('orphan Cloud Anchors: only unreferenced anchors past the grace period', async () => {
+  const { selectOrphanAnchors } = await import('../lib/arcoreToken.js');
+  const now = Date.parse('2026-10-10T00:00:00Z');
+  const anchors = [
+    { id: 'ua-old-orphan', createTime: '2026-09-01T00:00:00Z' },
+    { id: 'ua-old-used', createTime: '2026-09-01T00:00:00Z' },
+    { id: 'ua-new-orphan', createTime: '2026-10-09T00:00:00Z' },
+    { id: 'ua-bad-date', createTime: 'nope' },
+  ];
+  assert.deepEqual(selectOrphanAnchors(anchors, new Set(['ua-old-used']), now, 7 * 86_400_000), ['ua-old-orphan']);
+});

@@ -437,6 +437,47 @@ final class ARPinningEngine: NSObject {
         )
     }
 
+    /// The ARKit anchor of the current pin (what ARCore hosts as a Cloud Anchor).
+    func currentPinARAnchor() -> ARAnchor? {
+        guard let id = currentAnchor?.id else { return nil }
+        return arView.session.currentFrame?.anchors.first { $0.name == anchorName(for: id) }
+    }
+
+    /// Current pin transform (for hosting-quality estimates and geo-tagging).
+    var currentPinTransform: simd_float4x4? {
+        currentAnchor.flatMap { Self.unflatten($0.transform) }
+    }
+
+    /// Shows a post at a transform found by ARCore (resolved Cloud Anchor or Geospatial pose).
+    /// `physical` distinguishes a surface-exact Cloud Anchor from a geospatial placement.
+    func placeResolvedForViewing(transform: simd_float4x4, anchor sourceAnchor: SurfaceAnchor, physical: Bool) {
+        if state != .scanning && state != .candidateReady && state != .approximateOffered {
+            transition(to: .scanning, message: "Konum bulundu, içerik hazırlanıyor…")
+        }
+        transition(to: .placing, message: "İçerik yerleştiriliyor…")
+        place(
+            transform: transform,
+            quality: physical ? sourceAnchor.pinQuality : .estimatedPlane,
+            source: physical ? sourceAnchor.hitSource : .estimatedPlane,
+            alignment: sourceAnchor.surfaceAlignment == .unknown ? .vertical : sourceAnchor.surfaceAlignment,
+            id: sourceAnchor.id,
+            captureGeoPose: false
+        )
+        currentAnchor?.geoPose = sourceAnchor.geoPose
+        currentAnchor?.geospatial = sourceAnchor.geospatial
+        currentAnchor?.persistence = sourceAnchor.persistence
+        isRelocalizedContentVisible = true
+        if state == .placed { transition(to: .relocalizing, message: "İçerik açılıyor…") }
+        if state == .relocalizing || state == .placed {
+            transition(to: .resolved, message: physical ? "Yüzey bulundu. İçerik hazır." : "Konum bulundu. İçerik hazır.")
+        }
+    }
+
+    /// Records the precise geospatial pose of the current pin.
+    func attachGeospatial(_ pose: GeospatialPose) {
+        currentAnchor?.geospatial = pose
+    }
+
     func placeApproximateForViewing(anchor sourceAnchor: SurfaceAnchor) throws {
 #if targetEnvironment(simulator)
         let cameraTransform = arView.session.currentFrame?.camera.transform ?? matrix_identity_float4x4
@@ -1133,6 +1174,16 @@ final class ARPinningEngine: NSObject {
     }
 
     private func anchorName(for id: UUID) -> String { "lociar_surface_\(id.uuidString)" }
+
+    static func unflatten(_ values: [Float]) -> simd_float4x4? {
+        guard values.count == 16 else { return nil }
+        return simd_float4x4(
+            SIMD4(values[0], values[1], values[2], values[3]),
+            SIMD4(values[4], values[5], values[6], values[7]),
+            SIMD4(values[8], values[9], values[10], values[11]),
+            SIMD4(values[12], values[13], values[14], values[15])
+        )
+    }
 
     static func flatten(_ matrix: simd_float4x4) -> [Float] {
         [matrix.columns.0, matrix.columns.1, matrix.columns.2, matrix.columns.3].flatMap { [$0.x, $0.y, $0.z, $0.w] }
