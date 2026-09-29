@@ -11,7 +11,7 @@ Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App 
 | **Uygulama Adı** | `LociAR: Gerçek Mekânlarda AR` | Max 30 karakter (28 karakter) |
 | **Alt Başlık (Subtitle)** | `Mekânsal Hikâyeler ve Paylaşım` | Max 30 karakter (29 karakter) |
 | **Birincil Kategori** | `Social Networking` (Sosyal Ağlar) | `LSApplicationCategoryType` ile uyumlu |
-| **İkincil Kategori** | `Navigation` (Navigasyon) veya `Photo & Video` | Harita ve kamera deneyimi için |
+| **İkincil Kategori** | `Navigation` (Navigasyon) | Harita ve kamera deneyimi için |
 | **Bundle ID** | `com.khankartal.lociar` | Developer portal ile eşleşmeli |
 | **SKU** | `lociar-ios-v1` | Benzersiz iç takip kodu |
 | **Kripto Bildirimi** | Standart olmayan şifreleme yok (`ITSAppUsesNonExemptEncryption = NO`) | Özel ihracat lisansı gerektirmez |
@@ -53,7 +53,7 @@ Apple'ın zorunlu kıldığı `PrivacyInfo.xcprivacy` dosyasıyla birebir uyumlu
 | **Kesin Konum (Precise Location)** | Evet (İçerik üretenler için) | Hayır | Uygulama İşlevselliği (Yakındaki AR gönderilerini gösterme ve yüzeye bağlama) |
 | **Kullanıcı Kimliği (User ID)** | Evet | Hayır | Uygulama İşlevselliği (Hesap yönetimi ve kimlik doğrulama) |
 | **E-posta Adresi (Email Address)** | Evet | Hayır | Hesap Doğrulama ve İletişim |
-| **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (Kullanıcının yüzeye sabitlediği medya) |
+| **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (yalnızca AR yerleşimi için yüzey referans görüntüsü; kullanıcı fotoğraf/video paylaşamaz) |
 | **Diğer Kullanıcı İçerikleri** | Evet | Hayır | Uygulama İşlevselliği (Başlıklar, yorumlar, beğeniler, AR kayıtları) |
 
 ---
@@ -61,7 +61,7 @@ Apple'ın zorunlu kıldığı `PrivacyInfo.xcprivacy` dosyasıyla birebir uyumlu
 ## 5. Yaş Derecelendirmesi (Age Rating)
 
 Uygulama Kullanıcı Tarafından Üretilen İçerik (UGC) barındırdığı için Apple anketinde şu yanıtlar verilmelidir:
-* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar metin, fotoğraf, video paylaşabilir)
+* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar metin ve sosyal medya bağlantısı paylaşabilir)
 * **Konum Paylaşımı:** Evet (Gönderiler gerçek koordinatlara sabitlenir)
 * **Kısıtlanmamış Web Erişimi:** Hayır
 * **18+ / Müstehcenlik:** Hayır (Sunucu ve istemci tarafında hard-block vardır)
@@ -85,7 +85,7 @@ Dear Apple Review Team,
 Thank you for reviewing LociAR.
 
 1. ABOUT THE APP:
-LociAR is a spatial augmented reality social application that allows users to discover and pin digital stories, photos, and media onto physical surfaces in the real world.
+LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes and social media links (Spotify, YouTube, Instagram, X, Facebook) onto physical surfaces in the real world.
 
 2. HOW TO TEST AR FEATURES (NO SPECIAL HARDWARE NEEDED):
 - Step 1: Sign in using the demo account credentials provided above (or use Sign in with Apple).
@@ -93,7 +93,7 @@ LociAR is a spatial augmented reality social application that allows users to di
 - Step 3: Tap the '+' (Create/Paylaş) tab to open the AR Camera.
 - Step 4: Point the camera towards a flat, well-lit horizontal surface (such as a table or the floor).
 - Step 5: A light-blue ARKit plane detection grid will appear. Tap on the blue surface to lock the anchor.
-- Step 6: Add a photo from your gallery or type a short caption, then tap 'Yayınla' (Publish).
+- Step 6: Type a short caption and/or attach a social media link, then tap 'Yayınla' (Publish).
 - Step 7: You can also switch to the 'Harita' (Map) or 'Keşfet' (Discover) tabs to view nearby and trending spatial posts.
 
 3. USER-GENERATED CONTENT (UGC) & SAFETY (GUIDELINE 1.2 COMPLIANCE):
@@ -115,7 +115,7 @@ If you have any questions or require additional details, please reach out to us 
 ```text
 Gerçek dünyayı dijital hikâyelerle zenginleştirin.
 
-LociAR, favori fotoğraflarınızı, videolarınızı ve anılarınızı gerçek mekânlardaki fiziksel yüzeylere sabitlemenizi sağlayan yeni nesil bir artırılmış gerçeklik (AR) platformudur.
+LociAR, notlarınızı ve sevdiğiniz sosyal medya paylaşımlarını gerçek mekânlardaki fiziksel yüzeylere sabitlemenizi sağlayan yeni nesil bir artırılmış gerçeklik (AR) platformudur.
 
 ÖZELLİKLER:
 
@@ -131,7 +131,7 @@ LociAR kullanıcı gizliliğine ve güvenliğine önem verir. Kameranız ve konu
 
 ### Anahtar Kelimeler (Keywords - Max 100 karakter)
 ```text
-ar,artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,fotoğraf,video,yüzey,keşfet,spatial
+ar,artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,sosyal medya,yüzey,keşfet,spatial
 ```
 
 ---
@@ -143,7 +143,7 @@ App Store Connect yüklemesi için aşağıdaki iki ana boyutta ekran görüntü
 2. **6.7" Ekran (iPhone 15 Pro Max):** 1290 x 2796 piksel (Dikey)
 
 ### Önerilen 4 Temel Sahne:
-1. **Sahne 1 (AR Kamera):** Gerçek zemin/masa üzerinde beliren mavi AR ızgarası ve yerleştirilmiş fotoğraf kartı.  
+1. **Sahne 1 (AR Kamera):** Gerçek zemin/masa üzerinde beliren mavi AR ızgarası ve yerleştirilmiş metin/sosyal medya kartı.  
    *Pazarlama Başlığı:* "Anılarınızı Gerçek Dünyaya Sabitleyin"
 2. **Sahne 2 (Harita / Keşfet):** Yakındaki mekânsal pinlerin ve AR noktalarının haritada gösterimi.  
    *Pazarlama Başlığı:* "Çevrenizdeki Mekânsal Hikâyeleri Keşfedin"

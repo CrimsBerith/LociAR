@@ -28,8 +28,6 @@
 	<string>LociAR, gerçek yüzeyleri algılamak ve postları seçtiğiniz yüzeye yerleştirmek için kamerayı kullanır.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
 	<string>LociAR, yakındaki postları göstermek ve AR içeriğini doğru konumda açmak için konumunuzu kullanır.</string>
-  <key>NSPhotoLibraryUsageDescription</key>
-	<string>LociAR, seçtiğiniz fotoğraf ve videoları kilitlenen yüzeye yerleştirmek için fotoğraf kitaplığını kullanır.</string>
   <key>LSApplicationQueriesSchemes</key>
   <array>
     <string>spotify</string>
@@ -78,6 +76,8 @@
   <string>$(LOCIAR_FIREBASE_STORAGE_BUCKET)</string>
   <key>LOCIAR_FIREBASE_FUNCTIONS_REGION</key>
   <string>$(LOCIAR_FIREBASE_FUNCTIONS_REGION)</string>
+  <key>LOCIAR_EMULATOR_HOST</key>
+  <string>$(LOCIAR_EMULATOR_HOST)</string>
   <key>LOCIAR_APPLE_AUTH_ENABLED</key>
   <true/>
   <key>LOCIAR_PRIVACY_URL</key>

@@ -91,6 +91,34 @@ function hasStrictARKitWorldLockEvidence(body: CreatePostBody): boolean {
     && (anchor.worldMappingStatus === 'limited' || anchor.worldMappingStatus === 'extending' || anchor.worldMappingStatus === 'mapped');
 }
 
+/** Posts are text and/or a social media link only; device photos/videos are not accepted. */
+const SOCIAL_PLATFORMS = new Set(['spotify', 'youtube', 'facebook', 'instagram', 'x', 'twitter']);
+const ALLOWED_LAYER_TYPES = new Set(['text', 'drawing']);
+
+function contentPolicyError(body: CreatePostBody): string | null {
+  const layers = (body.editData as { layers?: unknown[] }).layers ?? [];
+  for (const raw of layers) {
+    const layer = (raw ?? {}) as Record<string, unknown>;
+    if (!ALLOWED_LAYER_TYPES.has(String(layer.type ?? layer.kind))) return 'Only text posts and social media links are allowed';
+    if (layer.uri != null && layer.uri !== '') return 'Only text posts and social media links are allowed';
+  }
+  const source = body.contentSource;
+  if (source != null) {
+    if (typeof source !== 'object') return 'Invalid content source';
+    const platform = String(source.platform ?? 'other').toLowerCase();
+    const mediaKind = String(source.mediaKind ?? '').toLowerCase();
+    const url = source.url;
+    if (['image', 'photo', 'video'].includes(mediaKind) || platform === 'own_video') {
+      return 'Only text posts and social media links are allowed';
+    }
+    if (url != null) {
+      if (!SOCIAL_PLATFORMS.has(platform)) return 'Only social media links are allowed';
+      if (typeof url !== 'string' || url.length > 2048 || !/^https:\/\//i.test(url)) return 'Invalid social media link';
+    }
+  }
+  return null;
+}
+
 /** Returns an error message or null. Messages match what the iOS client maps to Turkish copy. */
 export function validateCreatePostBody(body: CreatePostBody | undefined): string | null {
   if (!body || typeof body !== 'object') return 'Invalid request';
@@ -107,6 +135,8 @@ export function validateCreatePostBody(body: CreatePostBody | undefined): string
   const layers = (body.editData as { layers?: unknown })?.layers;
   if (!Array.isArray(layers) || layers.length === 0) return 'At least one edit layer is required';
   if (JSON.stringify(body).length > 400_000) return 'Post payload is too large';
+  const policyError = contentPolicyError(body);
+  if (policyError) return policyError;
   if (body.pose.anchor?.coordinateSpace === 'arkit_world' && !hasStrictARKitWorldLockEvidence(body)) {
     return 'Physical AR world lock evidence is incomplete';
   }

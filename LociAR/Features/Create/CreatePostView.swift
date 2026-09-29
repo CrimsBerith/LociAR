@@ -1,11 +1,8 @@
 import CoreLocation
 import AVFoundation
-import CoreTransferable
-import PhotosUI
 import SwiftData
 import SwiftUI
 import UIKit
-import UniformTypeIdentifiers
 
 struct CreatePostView: View {
     @Environment(\.dismiss) private var dismiss
@@ -21,11 +18,6 @@ struct CreatePostView: View {
     @State private var showExternalMediaPicker = false
     @State private var externalPickerDetent: PresentationDetent = .large
     @State private var externalImportMessage: String?
-    @State private var selectedPhoto: PhotosPickerItem?
-    @State private var selectedImageData: Data?
-    @State private var selectedVideoURL: URL?
-    @State private var videoThumbnail: UIImage?
-    @State private var selectedMediaIsVideo = false
     @State private var isPublishing = false
     @State private var message: String?
     @State private var dismissAfterAlert = false
@@ -297,11 +289,8 @@ struct CreatePostView: View {
     }
 
     private func editor(anchor: SurfaceAnchor) -> some View {
-        let mediaLabel = MediaSelectionLabel(
-            isVideo: selectedMediaIsVideo,
-            hasSelection: selectedPhoto != nil || selectedImageData != nil
-        )
-        return ScrollView {
+        // Device photo/video attachments were removed: posts are text and/or a social link.
+        ScrollView {
             VStack(spacing: 16) {
                 LociCard {
                     HStack(spacing: 12) {
@@ -348,24 +337,6 @@ struct CreatePostView: View {
                         Divider().overlay(LociTheme.hairline)
                         LociSectionLabel(title: "İçerik", symbol: "rectangle.stack.badge.plus")
 
-                        PhotosPicker(selection: $selectedPhoto, matching: .any(of: [.images, .videos])) {
-                            mediaLabel
-                        }
-                        .buttonStyle(.plain)
-                        .onChange(of: selectedPhoto) { _, item in
-                            if item != nil {
-                                externalMediaURL = ""
-                                selectedExternalPlatform = nil
-                            }
-                            Task { await loadMedia(item) }
-                        }
-                        selectedMediaPreview
-
-                        HStack(spacing: 10) {
-                            Rectangle().fill(LociTheme.hairline).frame(height: 1)
-                            Text("veya").font(.caption2.weight(.semibold)).foregroundStyle(LociTheme.tertiaryText)
-                            Rectangle().fill(LociTheme.hairline).frame(height: 1)
-                        }
 
                         Button {
                             presentExternalMediaPicker()
@@ -408,10 +379,6 @@ struct CreatePostView: View {
                                              if self.selectedExternalPlatform != parsedPlatform {
                                                 self.selectedExternalPlatform = parsedPlatform
                                             }
-                                            selectedPhoto = nil
-                                            selectedImageData = nil
-                                            selectedVideoURL = nil
-                                            selectedMediaIsVideo = false
                                         }
                                     }
                                 Button("Yapıştır", systemImage: "doc.on.clipboard") {
@@ -465,12 +432,13 @@ struct CreatePostView: View {
         .background(LociTheme.background)
         .scrollDismissesKeyboard(.immediately)
         .safeAreaInset(edge: .bottom) { publishBar(anchor: anchor) }
-        .onAppear { attachSampleImageIfNeeded() }
     }
 
     private func publishBar(anchor: SurfaceAnchor) -> some View {
         VStack(spacing: 6) {
             Button {
+                isCaptionFocused = false
+                dismissKeyboard()
                 Task { await publish(anchor: anchor) }
             } label: {
                 if isPublishing { ProgressView().tint(.black) }
@@ -480,7 +448,7 @@ struct CreatePostView: View {
             .disabled(!canPublish)
             .accessibilityIdentifier("create-publish")
             if !hasMeaningfulContent {
-                Text("Caption, medya veya geçerli bir sosyal bağlantı ekle.")
+                Text("Caption veya geçerli bir sosyal bağlantı ekle.")
                     .font(.caption2).foregroundStyle(.secondary)
             }
         }
@@ -498,37 +466,6 @@ struct CreatePostView: View {
         case .vertical: "Dikey yüzey hazır"
         case .angled: "Açılı yüzey hazır"
         default: "Yüzey hazır"
-        }
-    }
-
-    private func loadMedia(_ item: PhotosPickerItem?) async {
-        guard let item else {
-            selectedImageData = nil
-            selectedVideoURL = nil
-            selectedMediaIsVideo = false
-            return
-        }
-        selectedMediaIsVideo = item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) })
-        do {
-            if selectedMediaIsVideo {
-                selectedImageData = nil
-                selectedVideoURL = try await item.loadTransferable(type: PickedVideo.self)?.url
-                if let url = selectedVideoURL {
-                    await generateVideoThumbnail(from: url)
-                } else {
-                    message = "Seçilen video okunamadı. Farklı bir video deneyin."
-                }
-            } else {
-                selectedVideoURL = nil
-                videoThumbnail = nil
-                selectedImageData = try await item.loadTransferable(type: PickedImage.self)?.data
-                if selectedImageData == nil { message = "Seçilen fotoğraf okunamadı. Farklı bir dosya deneyin." }
-            }
-        } catch {
-            selectedImageData = nil
-            selectedVideoURL = nil
-            videoThumbnail = nil
-            message = "Seçilen medya okunamadı. Farklı bir fotoğraf veya video dene."
         }
     }
 
@@ -568,27 +505,7 @@ struct CreatePostView: View {
         if !finalCaption.isEmpty {
             layers.append(EditLayer(id: UUID(), kind: .text, text: finalCaption, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0))
         }
-        var source: ContentSource? = parsedExternalMedia
-        if let selectedVideoURL {
-            do {
-                let staged = try await MediaAssetStore.stage(fileURL: selectedVideoURL, id: postID)
-                source = .video(staged)
-                if layers.isEmpty {
-                    layers.append(EditLayer(id: UUID(), kind: .text, text: finalCaption, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0))
-                }
-            } catch {
-                message = (error as? LocalizedError)?.errorDescription ?? "Video yayına hazırlanamadı. Farklı bir dosya dene."
-                return
-            }
-        } else if let selectedImageData {
-            do {
-                let staged = try await MediaAssetStore.stage(data: selectedImageData, id: postID, isVideo: false)
-                layers.append(EditLayer(id: UUID(), kind: .image, text: nil, assetURL: staged, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0))
-            } catch {
-                message = (error as? LocalizedError)?.errorDescription ?? "Medya yayına hazırlanamadı. Farklı bir dosya dene."
-                return
-            }
-        }
+        let source: ContentSource? = parsedExternalMedia
         let post = LociPost(
             id: postID, creatorID: user.id, creatorHandle: user.handle, createdAt: Date(), caption: finalCaption,
             status: .pendingReview, visibility: .public, ageRating: .all,
@@ -629,7 +546,7 @@ struct CreatePostView: View {
     }
 
     private var hasMeaningfulContent: Bool {
-        !caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedImageData != nil || selectedVideoURL != nil || parsedExternalMedia != nil
+        !caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || parsedExternalMedia != nil
     }
 
     private var parsedExternalMedia: ContentSource? {
@@ -745,19 +662,6 @@ struct CreatePostView: View {
         .onAppear { dismissKeyboard() }
     }
 
-    private func attachSampleImageIfNeeded() {
-        guard UITestFixtures.attachSampleImageEnabled, selectedImageData == nil else { return }
-        let size = CGSize(width: 480, height: 320)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        selectedImageData = renderer.image { context in
-            UIColor(red: 0.22, green: 0.88, blue: 0.72, alpha: 1).setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-            UIColor.black.withAlphaComponent(0.28).setFill()
-            context.fill(CGRect(x: 24, y: 210, width: 432, height: 86))
-        }.pngData()
-        selectedMediaIsVideo = false
-    }
-
     private func presentExternalMediaPicker() {
         isCaptionFocused = false
         dismissKeyboard()
@@ -808,7 +712,6 @@ struct CreatePostView: View {
                let anyExternal = anyParsed.externalMedia {
                 selectedExternalPlatform = anyExternal.platform
                 externalMediaURL = anyExternal.url.absoluteString
-                clearDeviceMedia()
                 externalImportMessage = nil
                 showExternalMediaPicker = false
                 return
@@ -817,7 +720,6 @@ struct CreatePostView: View {
             return
         }
         externalMediaURL = external.url.absoluteString
-        clearDeviceMedia()
         externalImportMessage = nil
         showExternalMediaPicker = false
     }
@@ -828,59 +730,8 @@ struct CreatePostView: View {
         return parsed
     }
 
-    @ViewBuilder private var selectedMediaPreview: some View {
-        if let selectedImageData, let image = UIImage(data: selectedImageData) {
-            ZStack(alignment: .topTrailing) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 190)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                Button("Medyayı kaldır", systemImage: "xmark") { clearDeviceMedia() }
-                    .labelStyle(.iconOnly)
-                    .padding(9)
-                    .background(.black.opacity(0.72), in: Circle())
-                    .padding(10)
-            }
-            .accessibilityElement(children: .contain)
-        } else if selectedVideoURL != nil {
-            HStack(spacing: 12) {
-                ZStack {
-                    if let videoThumbnail {
-                        Image(uiImage: videoThumbnail)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 54, height: 54)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    } else {
-                        RoundedRectangle(cornerRadius: 12).fill(LociTheme.accent.opacity(0.14)).frame(width: 54, height: 54)
-                    }
-                    Circle().fill(.black.opacity(0.55)).frame(width: 26, height: 26)
-                    Image(systemName: "play.fill").font(.caption2.bold()).foregroundStyle(.white)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Video hazır").font(.subheadline.weight(.semibold))
-                    Text("Yüzeyde oynatılmak üzere eklendi").font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button("Videoyu kaldır", systemImage: "xmark.circle.fill") { clearDeviceMedia() }
-                    .labelStyle(.iconOnly).foregroundStyle(.secondary)
-            }
-            .padding(12)
-            .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-        }
-    }
-
-    private func clearDeviceMedia() {
-        selectedPhoto = nil
-        selectedImageData = nil
-        selectedVideoURL = nil
-        selectedMediaIsVideo = false
-        videoThumbnail = nil
-    }
-
     private func detectExternalMediaInCaptionIfNeeded(_ input: String) {
-        guard selectedExternalPlatform == nil, selectedImageData == nil, selectedVideoURL == nil else { return }
+        guard selectedExternalPlatform == nil else { return }
         guard let parsed = ExternalMediaParser.parseSharedText(input),
               let external = parsed.externalMedia else { return }
         selectedExternalPlatform = external.platform
@@ -891,16 +742,6 @@ struct CreatePostView: View {
         }
     }
 
-    private func generateVideoThumbnail(from url: URL) async {
-        let asset = AVURLAsset(url: url)
-        let generator = AVAssetImageGenerator(asset: asset)
-        generator.appliesPreferredTrackTransform = true
-        let time = CMTime(seconds: 0.1, preferredTimescale: 600)
-        if let cgImage = try? await generator.image(at: time).image {
-            videoThumbnail = UIImage(cgImage: cgImage)
-        }
-    }
-
     private func platformColor(_ platform: ExternalMediaPlatform) -> Color {
         platform.brandColor
     }
@@ -908,8 +749,6 @@ struct CreatePostView: View {
     private var resolvedCaption: String {
         let clean = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if !clean.isEmpty { return clean }
-        if selectedMediaIsVideo { return "Video" }
-        if selectedImageData != nil { return "Fotoğraf" }
         if let platform = parsedExternalMedia?.externalMedia?.platform { return "\(platform.rawValue) paylaşımı" }
         return "Mekânsal post"
     }
@@ -938,65 +777,3 @@ struct CreatePostView: View {
     }
 }
 
-private struct MediaSelectionLabel: View {
-    let isVideo: Bool
-    let hasSelection: Bool
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 11)
-                    .fill(LociTheme.accent.opacity(0.14))
-                    .frame(width: 40, height: 40)
-                Image(systemName: isVideo ? "video.fill" : "photo.on.rectangle.angled")
-                    .foregroundStyle(LociTheme.accent)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(hasSelection ? "Cihaz medyası seçildi" : "Fotoğraf veya video")
-                    .font(.subheadline.weight(.semibold))
-                Text(hasSelection ? "Değiştirmek için dokun" : "Fotoğraf arşivinden seç")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(minHeight: 46)
-        .contentShape(Rectangle())
-    }
-}
-
-private struct PickedImage: Transferable {
-    let data: Data
-
-    static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(importedContentType: .image) { data in
-            PickedImage(data: data)
-        }
-        DataRepresentation(importedContentType: .jpeg) { data in
-            PickedImage(data: data)
-        }
-        DataRepresentation(importedContentType: .heic) { data in
-            PickedImage(data: data)
-        }
-        DataRepresentation(importedContentType: .png) { data in
-            PickedImage(data: data)
-        }
-    }
-}
-
-private struct PickedVideo: Transferable {
-    let url: URL
-
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(importedContentType: .movie) { received in
-            let fileExtension = received.file.pathExtension.isEmpty ? "mov" : received.file.pathExtension
-            let destination = FileManager.default.temporaryDirectory
-                .appendingPathComponent("lociar-picked-\(UUID().uuidString).\(fileExtension)")
-            try FileManager.default.copyItem(at: received.file, to: destination)
-            return PickedVideo(url: destination)
-        }
-    }
-}

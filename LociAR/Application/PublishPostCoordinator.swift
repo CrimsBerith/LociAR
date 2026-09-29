@@ -58,15 +58,6 @@ final class PublishPostCoordinator: PublishPostUseCase {
         try modelContext.save()
         logger.info("Publish intent persisted post=\(postID.uuidString, privacy: .public)")
 
-        if let reason = PublicSafetyPolicy.createRejectionReason(for: post) {
-            queue.attemptCount = RetryPolicy.maximumAttempts
-            queue.deadLetterReason = reason
-            queue.lastErrorMessage = reason
-            try modelContext.save()
-            logger.error("Publish rejected post=\(postID.uuidString, privacy: .public) error=\(reason, privacy: .public)")
-            return .rejected(reason)
-        }
-
         guard attemptRemote else {
             logger.info("Publish queued post=\(postID.uuidString, privacy: .public) reason=offline")
             return .queued(.offline)
