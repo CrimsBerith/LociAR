@@ -1024,7 +1024,7 @@ struct PostPreviewView: View {
                             .accessibilityIdentifier("comment-actions")
                         }
                         .padding(.vertical, 4)
-                        .accessibilityElement(children: .combine)
+                        .accessibilityElement(children: .contain)
                     }
                 }
                 VStack(alignment: .trailing, spacing: 6) {

@@ -144,7 +144,6 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         } else {
             try await ref.delete()
         }
-        await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
     }
 
     func recordView(postID: UUID, userID: UUID) async throws -> Int {
@@ -163,7 +162,6 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         } else {
             try await ref.delete()
         }
-        await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
     }
 
     func setFollowing(_ following: Bool, targetID: UUID, userID: UUID) async throws {
@@ -175,7 +173,6 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         } else {
             try await ref.delete()
         }
-        await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
     }
 
     func followingIDs(for userID: UUID) async throws -> [UUID] {
