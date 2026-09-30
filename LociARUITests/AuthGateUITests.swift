@@ -1772,3 +1772,126 @@ extension AuthGateUITests {
         capture(app, name: "e2e-account-deleted")
     }
 }
+
+// MARK: - Canlı Firebase (production) fazlı testler — scripts/run-device-e2e-prod.command
+extension AuthGateUITests {
+    /// Faz A: yeni hesap açar ve doğrulama bağlantısı gönderilene kadar ilerler.
+    func testProd00SignUpOnly() throws {
+        guard !e2eEmail.isEmpty else { throw XCTSkip("E2E_EMAIL yok") }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        e2eAllowSystemAlerts()
+        e2ePassOnboarding(app)
+        e2eSignOutIfNeeded(app)
+        XCTAssertTrue(app.buttons["auth-mode-signup"].waitForExistence(timeout: 10), "Giriş ekranı açılmadı.")
+        app.buttons["auth-mode-signup"].tap()
+        e2eType(app, "auth-email-field", e2eEmail)
+        e2eType(app, "auth-password-field", e2ePassword)
+        e2eType(app, "auth-confirm-password-field", e2ePassword)
+        dismissKeyboard(app)
+        e2eField(app, "auth-email-submit").tap()
+        let created = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Hesabın oluşturuldu")).firstMatch
+        if !created.waitForExistence(timeout: 30) {
+            capture(app, name: "prod-signup-failed")
+            XCTFail("KAYIT BAŞARISIZ: \(e2eMessageText(app))")
+            return
+        }
+        capture(app, name: "prod-signup-ok")
+    }
+
+    /// Faz B: e-posta doğrulandıktan sonra giriş (ensureProfile canlıda çalışıyor mu).
+    func testProd01SignIn() throws {
+        guard !e2eEmail.isEmpty else { throw XCTSkip("E2E_EMAIL yok") }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        e2eAllowSystemAlerts()
+        e2ePassOnboarding(app)
+        e2eSignOutIfNeeded(app)
+        XCTAssertTrue(e2eSignIn(app), "CANLI GİRİŞ BAŞARISIZ (ensureProfile?): \(e2eMessageText(app))")
+        capture(app, name: "prod-signed-in")
+    }
+
+    /// Şifremi unuttum akışını canlı Firebase ile telefonda test eder.
+    func testProd02ForgotPassword() throws {
+        guard !e2eEmail.isEmpty else { throw XCTSkip("E2E_EMAIL yok") }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        e2eAllowSystemAlerts()
+        e2ePassOnboarding(app)
+        e2eSignOutIfNeeded(app)
+        XCTAssertTrue(app.buttons["auth-mode-signin"].waitForExistence(timeout: 10), "Giriş ekranı açılmadı.")
+        app.buttons["auth-mode-signin"].tap()
+        let forgotBtn = app.buttons["auth-forgot-password"]
+        XCTAssertTrue(forgotBtn.waitForExistence(timeout: 5), "Şifremi unuttum butonu bulunamadı.")
+        forgotBtn.tap()
+        let resetEmailField = e2eField(app, "auth-reset-email")
+        XCTAssertTrue(resetEmailField.waitForExistence(timeout: 5), "Şifre sıfırlama e-posta alanı bulunamadı.")
+        e2eType(app, "auth-reset-email", e2eEmail)
+        let submitBtn = e2eField(app, "auth-reset-submit")
+        XCTAssertTrue(submitBtn.waitForExistence(timeout: 5), "Sıfırlama gönder butonu bulunamadı.")
+        submitBtn.tap()
+        let sentLabel = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "E-postanı kontrol et")).firstMatch
+        if !sentLabel.waitForExistence(timeout: 20) {
+            capture(app, name: "prod-forgot-password-failed")
+            XCTFail("ŞİFREMİ UNUTTUM BAŞARISIZ: \(e2eMessageText(app))")
+            return
+        }
+        capture(app, name: "prod-forgot-password-ok")
+        let okBtn = app.buttons["Tamam"]
+        if okBtn.waitForExistence(timeout: 5) {
+            okBtn.tap()
+        }
+    }
+
+    /// Giriş yapıp canlı Firebase'e post yayınlar.
+    func testProd03PublishPost() throws {
+        guard !e2eEmail.isEmpty else { throw XCTSkip("E2E_EMAIL yok") }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        e2eAllowSystemAlerts()
+        e2ePassOnboarding(app)
+        if !app.tabBars.firstMatch.waitForExistence(timeout: 5) {
+            XCTAssertTrue(e2eSignIn(app), "Giriş yapılamadı.")
+        }
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10), "TabBar bulunamadı.")
+        app.tabBars.buttons["Paylaş"].tap()
+        e2eAllowSystemAlerts()
+
+        let approxDirect = app.buttons["ar-place-approximate-direct"]
+        XCTAssertTrue(approxDirect.waitForExistence(timeout: 15), "Önüme yerleştir butonu bulunamadı.")
+        approxDirect.tap()
+
+        let editorTitle = app.navigationBars["İçerik oluştur"]
+        XCTAssertTrue(editorTitle.waitForExistence(timeout: 20), "İçerik oluştur ekranı açılmadı.")
+
+        let captionField = app.textFields["create-caption"]
+        XCTAssertTrue(captionField.waitForExistence(timeout: 5), "Caption alanı bulunamadı.")
+        captionField.tap()
+        captionField.typeText("LociAR canli test postu! #firebase")
+
+        if app.buttons["keyboard-done-button"].waitForExistence(timeout: 2) {
+            app.buttons["keyboard-done-button"].tap()
+        } else {
+            dismissKeyboard(app)
+        }
+
+        let publishBtn = app.buttons["create-publish"]
+        XCTAssertTrue(publishBtn.waitForExistence(timeout: 8), "Yayınla butonu bulunamadı.")
+        publishBtn.tap()
+
+        let resultAlert = app.alerts["LociAR"]
+        XCTAssertTrue(resultAlert.waitForExistence(timeout: 45), "Yayın sonucu uyarısı gelmedi.")
+        capture(app, name: "prod-post-publish-result")
+        resultAlert.buttons.firstMatch.tap()
+    }
+}
+
+

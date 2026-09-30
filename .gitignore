@@ -72,3 +72,4 @@ scripts/.pending-verify-email.txt
 .emulator-data/
 *-debug.log
 scripts/diag-java.command
+scripts/.prod-email.txt
