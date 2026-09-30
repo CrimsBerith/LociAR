@@ -1,6 +1,8 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { bucket, db, deleteStoragePrefix, FieldValue, Timestamp } from './core';
-import { deleteCloudAnchor, listCloudAnchors } from './arcoreManagement';
+import { listCloudAnchors } from './arcoreManagement';
+import { deleteAnchorOrQueue, drainAnchorDeletionQueue } from './anchorQueue';
+import { deleteAnchorOfPost } from './anchors';
 import { selectOrphanAnchors } from './arcoreToken';
 
 /**
@@ -51,7 +53,7 @@ export async function purgeDueRemovedMedia(now = Date.now()): Promise<number> {
     // Restored in the meantime (queue entry left behind): keep the media.
     if (!post.exists || post.data()!.status === 'removed') {
       await deleteStoragePrefix(String(doc.data().prefix));
-      if (post.exists) await deleteCloudAnchor(post.data()!.cloud_anchor_id);
+      if (post.exists) await deleteAnchorOfPost(post.data()!.cloud_anchor_id, post.id);
       // A later restore still works, but the post can only be shown approximately (no AR map).
       if (post.exists) await post.ref.update({ media_purged_at: FieldValue.serverTimestamp() });
     }
@@ -84,22 +86,52 @@ export async function purgeOrphanUploads(now = Date.now()): Promise<number> {
   return removed;
 }
 
-/** Deletes hosted Cloud Anchors that no post references after 7 days (e.g. post never published). */
+/**
+ * Orphan grace period: an anchor is hosted before the post is published, and the iOS offline
+ * publish queue retries with no maximum age, so the grace must be generous. Posts older than
+ * this that still reference nothing are treated as never published.
+ */
+export const ORPHAN_ANCHOR_GRACE_DAYS = 30;
+const ORPHAN_CURSOR = () => db.collection('system').doc('arcore_orphan_cursor');
+
+/** Anchor ids (of `ids`) that a post or an ownership record still claims. */
+export async function referencedAnchorIds(ids: string[]): Promise<Set<string>> {
+  const referenced = new Set<string>();
+  if (ids.length === 0) return referenced;
+  const records = await db.getAll(...ids.map((id) => db.collection('cloud_anchors').doc(id)));
+  records.forEach((r) => { if (r.exists && r.data()!.post_id) referenced.add(r.id); });
+  const rest = ids.filter((id) => !referenced.has(id));
+  for (let i = 0; i < rest.length; i += 30) {
+    const chunk = rest.slice(i, i + 30);
+    const snap = await db.collection('posts').where('cloud_anchor_id', 'in', chunk).select('cloud_anchor_id').get();
+    snap.docs.forEach((d) => referenced.add(String(d.get('cloud_anchor_id'))));
+  }
+  return referenced;
+}
+
+/**
+ * Deletes hosted Cloud Anchors that nothing references after the grace period. Resumes from a
+ * stored page token (system/arcore_orphan_cursor) so every anchor is reached over a few nights
+ * instead of the oldest pages being rescanned forever.
+ */
 export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5): Promise<number> {
   let removed = 0;
-  let pageToken: string | undefined;
+  const cursorSnap = await ORPHAN_CURSOR().get();
+  let pageToken: string | undefined = (cursorSnap.data()?.page_token as string | undefined) || undefined;
   for (let page = 0; page < maxPages; page++) {
     const { anchors, nextPageToken } = await listCloudAnchors(pageToken);
-    if (anchors.length === 0) break;
-    const referenced = new Set<string>();
-    const lookups = await Promise.all(anchors.map((a) => db.collection('posts').where('cloud_anchor_id', '==', a.id).limit(1).get()));
-    lookups.forEach((snap, i) => { if (!snap.empty) referenced.add(anchors[i].id); });
-    for (const id of selectOrphanAnchors(anchors, referenced, now, 7 * DAY_MS)) {
-      if (await deleteCloudAnchor(id)) removed++;
+    if (anchors.length > 0) {
+      const referenced = await referencedAnchorIds(anchors.map((a) => a.id));
+      for (const id of selectOrphanAnchors(anchors, referenced, now, ORPHAN_ANCHOR_GRACE_DAYS * DAY_MS)) {
+        if (await deleteAnchorOrQueue(id)) removed++;
+        await db.collection('cloud_anchors').doc(id).delete(); // unbound ownership record, if any
+      }
     }
-    if (!nextPageToken) break;
     pageToken = nextPageToken;
+    if (!pageToken) break;
   }
+  // Keep the position for the next run; wrap around after the last page.
+  await ORPHAN_CURSOR().set({ page_token: pageToken ?? null, updated_at: FieldValue.serverTimestamp() });
   return removed;
 }
 
@@ -107,10 +139,51 @@ export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZo
   const removed = await purgeDueRemovedMedia();
   const orphans = await purgeOrphanUploads();
   let orphanAnchors = 0;
+  let retried = 0;
+  try {
+    retried = await drainAnchorDeletionQueue();
+  } catch (error) {
+    console.error('cloud_anchor_queue_failed', error);
+  }
   try {
     orphanAnchors = await purgeOrphanCloudAnchors();
   } catch (error) {
     console.error('cloud_anchor_cleanup_failed', error);
   }
-  console.log(JSON.stringify({ event: 'cleanup_post_media', removed, orphans, orphanAnchors }));
+  console.log(JSON.stringify({ event: 'cleanup_post_media', removed, orphans, orphanAnchors, retried }));
+});
+
+/**
+ * Nightly sample check of denormalised counters (likes/comments/saves on posts). Redelivered
+ * triggers are deduplicated, but a failed delivery could still leave a counter off; this repairs
+ * a random sample of posts each night rather than scanning everything.
+ */
+export async function reconcileCounters(sampleSize = 100): Promise<number> {
+  const startId = db.collection('posts').doc().id;
+  let snap = await db.collection('posts').orderBy('__name__').startAt(startId).limit(sampleSize).get();
+  if (snap.size < sampleSize) {
+    const rest = await db.collection('posts').orderBy('__name__').limit(sampleSize - snap.size).get();
+    snap = { docs: [...snap.docs, ...rest.docs.filter((d) => !snap.docs.some((x) => x.id === d.id))] } as typeof snap;
+  }
+  let repaired = 0;
+  for (const post of snap.docs) {
+    const [likes, comments, saves] = await Promise.all(['likes', 'comments', 'post_saves'].map(
+      async (c) => (await db.collection(c).where('post_id', '==', post.id).count().get()).data().count,
+    ));
+    const data = post.data();
+    const fix: Record<string, number> = {};
+    if (Number(data.likes_count ?? 0) !== likes) fix.likes_count = likes;
+    if (Number(data.comments_count ?? 0) !== comments) fix.comments_count = comments;
+    if (Number(data.saves_count ?? 0) !== saves) fix.saves_count = saves;
+    if (Object.keys(fix).length > 0) {
+      await post.ref.update(fix);
+      repaired++;
+    }
+  }
+  return repaired;
+}
+
+export const reconcilePostCounters = onSchedule({ schedule: 'every day 04:11', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
+  const repaired = await reconcileCounters();
+  console.log(JSON.stringify({ event: 'reconcile_counters', repaired }));
 });

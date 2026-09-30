@@ -7,3 +7,13 @@ npm-debug.log
 *.log
 *.tsbuildinfo
 .DS_Store
+.env
+.env.*
+**/.env*
+artifacts/
+playwright-report/
+test-results/
+e2e/
+*.pem
+*.p8
+*service-account*.json

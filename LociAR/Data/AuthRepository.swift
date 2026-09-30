@@ -34,6 +34,9 @@ enum AuthFlowError: LocalizedError, Sendable {
     case unsupported
     case invalidHandle
     case handleTaken
+    case handleNotAllowed
+    case handleCooldown
+    case reauthRequired
     case invalidPhoto
     case appleReauthenticationRequired
 
@@ -49,6 +52,12 @@ enum AuthFlowError: LocalizedError, Sendable {
             "Kullanıcı adı 3–30 karakter olmalı; yalnızca küçük harf, rakam, alt çizgi ve nokta içerebilir."
         case .handleTaken:
             "Bu kullanıcı adı başka biri tarafından kullanılıyor. Farklı bir ad dene."
+        case .handleNotAllowed:
+            "Bu kullanıcı adı kullanılamaz. Farklı bir ad dene."
+        case .handleCooldown:
+            "Kullanıcı adını en fazla 30 günde bir değiştirebilirsin."
+        case .reauthRequired:
+            "Güvenlik için hesabı silmeden önce yeniden giriş yapman gerekiyor."
         case .invalidPhoto:
             "Fotoğraf hazırlanamadı. Farklı bir fotoğraf dene."
         case .appleReauthenticationRequired:
@@ -185,6 +194,10 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
                 let _: Response = try await callables.call("updateHandle", payload: Payload(handle: clean))
             } catch BackendCallError.rejected(let code, _, let reason) where reason == "handle_taken" || code == FunctionsErrorCode.alreadyExists.rawValue {
                 throw AuthFlowError.handleTaken
+            } catch BackendCallError.rejected(_, _, let reason) where reason == "handle_reserved" || reason == "handle_not_allowed" {
+                throw AuthFlowError.handleNotAllowed
+            } catch BackendCallError.rejected(_, _, let reason) where reason == "handle_cooldown" {
+                throw AuthFlowError.handleCooldown
             }
         }
 
@@ -237,7 +250,8 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     func deleteAccount() async throws {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
 
-        if user.providerData.contains(where: { $0.providerID == "apple.com" }) {
+        let isApple = user.providerData.contains(where: { $0.providerID == "apple.com" })
+        if isApple {
             // Guideline 5.1.1(v): the Sign in with Apple token must be revoked before deletion.
             // Failure aborts deletion so no dangling Apple grant is left behind.
             do {
@@ -250,7 +264,13 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
 
         // The callable hard-deletes profile, posts, social edges, Storage files and the Auth user.
         struct DeleteResponse: Decodable, Sendable { let ok: Bool }
-        let response: DeleteResponse = try await callables.call("deleteAccount")
+        struct DeletePayload: Encodable, Sendable { let appleRevokedByClient: Bool }
+        let response: DeleteResponse
+        do {
+            response = try await callables.call("deleteAccount", payload: DeletePayload(appleRevokedByClient: isApple))
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "reauth_required" {
+            throw AuthFlowError.reauthRequired
+        }
         guard response.ok else { throw BackendCallError.invalidResponse }
         try? Auth.auth().signOut()
     }

@@ -188,7 +188,18 @@ final class ARCoreService {
         }
         pendingFutures.removeAll()
         if result == nil { logger.info("Cloud Anchor hosting failed or timed out") }
-        return result
+        guard let hostedId = result else { return nil }
+        // The backend only accepts anchors that are registered to this user (takeover protection).
+        guard let callables else { return nil }
+        struct Registration: Encodable, Sendable { let cloudAnchorId: String }
+        struct Ack: Decodable, Sendable { let registered: Bool }
+        do {
+            let ack: Ack = try await callables.call("registerCloudAnchor", payload: Registration(cloudAnchorId: hostedId))
+            return ack.registered ? hostedId : nil
+        } catch {
+            logger.error("registerCloudAnchor failed: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     /// Resolves a hosted Cloud Anchor in the current ARKit world and returns its transform.

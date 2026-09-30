@@ -294,7 +294,6 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
             "id": key(id),
             "post_id": key(postID),
             "user_id": key(user.id),
-            "username": String(user.handle.prefix(30)),
             "text": clean,
             "created_at": FieldValue.serverTimestamp(),
         ])

@@ -5,6 +5,9 @@ on:
     branches: [main, 'claude/**']
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -64,3 +67,11 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: ci-placeholder
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-placeholder.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-lociar
+          NEXT_PUBLIC_FIREBASE_APP_ID: ci-placeholder
+      - run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true

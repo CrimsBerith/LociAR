@@ -1,3 +1,5 @@
+import { anyBlocked } from './moderation';
+
 /**
  * Ported 1:1 from supabase/functions/create_post/index.ts (placement scoring and world-lock
  * evidence). Storage paths keep the Supabase bucket name as the first path segment.
@@ -155,9 +157,18 @@ export function isAllowedSocialLink(platform: string, url: unknown): boolean {
     && hosts.includes(parsed.hostname.toLowerCase());
 }
 
+function layerTexts(body: CreatePostBody): string[] {
+  const layers = (body.editData as { layers?: unknown[] })?.layers ?? [];
+  return layers.flatMap((raw) => {
+    const layer = (raw ?? {}) as Record<string, unknown>;
+    return [layer.text, layer.content, layer.title].filter((t): t is string => typeof t === 'string');
+  });
+}
+
 const ALLOWED_LAYER_TYPES = new Set(['text', 'drawing']);
 
 function contentPolicyError(body: CreatePostBody): string | null {
+  if (anyBlocked([body.caption, ...layerTexts(body)])) return 'Content not allowed';
   const layers = (body.editData as { layers?: unknown[] }).layers ?? [];
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
@@ -182,7 +193,7 @@ function contentPolicyError(body: CreatePostBody): string | null {
 }
 
 /** Returns an error message or null. Messages match what the iOS client maps to Turkish copy. */
-export function validateCreatePostBody(body: CreatePostBody | undefined): string | null {
+export function validateCreatePostBody(body: CreatePostBody | undefined, luid?: string): string | null {
   if (!body || typeof body !== 'object') return 'Invalid request';
   if (!body.clientMutationId || !UUID_V4.test(body.clientMutationId)) return 'Invalid client mutation ID';
   if (!isValidPose(body.pose)) return 'Invalid pose';
@@ -195,6 +206,18 @@ export function validateCreatePostBody(body: CreatePostBody | undefined): string
   if (!['public', 'friends', 'private'].includes(body.visibility)) return 'Invalid visibility';
   if (typeof body.refImageUri !== 'string' || body.refImageUri.length > 1024
     || !/^(storage|native-ar-reference):\/\//.test(body.refImageUri)) return 'Invalid reference image';
+  if (body.refImageUri.startsWith('native-ar-reference://')) {
+    if (!['native-ar-reference://none', 'native-ar-reference://pending'].includes(body.refImageUri)) return 'Invalid reference image';
+  } else {
+    const owned = luid && body.clientMutationId
+      ? `storage://post-reference-images/${luid}/${body.clientMutationId.toLowerCase()}/`
+      : null;
+    if (luid && (!owned || !body.refImageUri.toLowerCase().startsWith(owned.toLowerCase()) || body.refImageUri.includes('..'))) {
+      return 'Invalid reference image';
+    }
+  }
+  if ((body.editData as { surfaceTextureUri?: unknown })?.surfaceTextureUri != null) return 'Surface textures are not accepted';
+  if ((body.pose.anchor?.coordinateSpace as string | undefined) === 'admin_geo_estimate') return 'Invalid coordinate space';
   const layers = (body.editData as { layers?: unknown })?.layers;
   if (!Array.isArray(layers) || layers.length === 0) return 'At least one edit layer is required';
   if (JSON.stringify(body).length > 400_000) return 'Post payload is too large';
@@ -317,11 +340,9 @@ export async function evaluatePlacement(
         ? 'recalibration_required'
         : space === 'visual_surface'
           ? 'visual_surface_locked'
-          : typeof body.placementState === 'string' ? body.placementState.slice(0, 64) : 'free_space_approximate';
-  const nativeProvider = providerForCoordinateSpace(space) ?? (typeof body.nativeProvider === 'string' ? body.nativeProvider : null);
-  const resolverStrategy = Array.isArray(body.resolverStrategy)
-    ? body.resolverStrategy.filter((s) => typeof s === 'string').slice(0, 5)
-    : resolverStrategyForCoordinateSpace(space);
+          : 'free_space_approximate';
+  const nativeProvider = providerForCoordinateSpace(space);
+  const resolverStrategy = resolverStrategyForCoordinateSpace(space);
   const calibration = anchor
     ? {
       state: placementState,

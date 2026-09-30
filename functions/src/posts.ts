@@ -7,7 +7,7 @@ import {
 import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
 import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
 import { reasonError } from './errors';
-import { deleteCloudAnchor } from './arcoreManagement';
+import { anchorBindError, consumePostQuota, deleteAnchorOfPost } from './anchors';
 
 /**
  * High-quality world locks used to go live without review in the Supabase build. App Review
@@ -66,7 +66,7 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
 export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const caller = requireCaller(request);
   const body = request.data as CreatePostBody;
-  const validationError = validateCreatePostBody(body);
+  const validationError = validateCreatePostBody(body, caller.luid);
   if (validationError) throw new HttpsError('invalid-argument', validationError);
   if (!identityVerified(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
@@ -95,24 +95,20 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     throw reasonError('permission-denied', `Creation is blocked in protected zone: ${zone.name}`, 'protected_zone');
   }
 
-  const now = Date.now();
-  const recent = db.collection('posts').where('creator_id', '==', caller.luid);
-  const [hourly, daily, density] = await Promise.all([
-    recent.where('created_at', '>=', Timestamp.fromMillis(now - 3_600_000)).count().get(),
-    recent.where('created_at', '>=', Timestamp.fromMillis(now - 86_400_000)).count().get(),
-    activeDensity(lat, lng, 25),
-  ]);
-  const hourlyCount = hourly.data().count;
-  const dailyCount = daily.data().count;
-  if (hourlyCount >= 10 || dailyCount >= 50 || density >= 5) {
-    await db.collection('moderation_flags').doc(randomUUID()).set({
-      post_id: null,
-      user_id: caller.luid,
-      reason: 'rate_or_density_limit',
-      status: 'open',
-      metadata: { hourly: hourlyCount, daily: dailyCount, density },
-      created_at: FieldValue.serverTimestamp(),
-    });
+  const density = await activeDensity(lat, lng, 25);
+  const quota = await consumePostQuota(caller.luid, Date.now());
+  if (!quota.ok || density >= 5) {
+    // One flag per user per window (quota.flag), not one per rejected request.
+    if (quota.flag || (quota.ok && density >= 5)) {
+      await db.collection('moderation_flags').doc(randomUUID()).set({
+        post_id: null,
+        user_id: caller.luid,
+        reason: 'rate_or_density_limit',
+        status: 'open',
+        metadata: { hourly: quota.hourly, daily: quota.daily, density },
+        created_at: FieldValue.serverTimestamp(),
+      });
+    }
     throw reasonError('resource-exhausted', 'Creation limit reached for this area or account', 'rate_limited');
   }
 
@@ -155,9 +151,20 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     updated_at: FieldValue.serverTimestamp(),
   };
 
+  const anchorId = cloudAnchorIdOf(body);
   try {
-    await postRef.create(document);
+    await db.runTransaction(async (tx) => {
+      if (anchorId) {
+        const anchorRef = db.collection('cloud_anchors').doc(anchorId);
+        const anchorSnap = await tx.get(anchorRef);
+        const bindError = anchorBindError(anchorSnap.data(), caller.luid);
+        if (bindError) throw new HttpsError('invalid-argument', bindError);
+        tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp() });
+      }
+      tx.create(postRef, document);
+    });
   } catch (error) {
+    if (error instanceof HttpsError) throw error;
     const again = await postRef.get();
     if (again.exists && again.data()!.creator_id === caller.luid) {
       return { post: serializePost(postId, again.data()!), publishStatus: again.data()!.status, idempotentReplay: true };
@@ -202,7 +209,7 @@ export const deleteOwnPost = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asyn
   });
   if (removed) {
     await deleteStoragePrefix(`${caller.luid}/${postId.toLowerCase()}/`);
-    await deleteCloudAnchor(cloudAnchorId);
+    await deleteAnchorOfPost(cloudAnchorId, postId.toLowerCase());
   }
   return { removed };
 });
@@ -231,7 +238,7 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asy
     const receipt = await tx.get(receiptRef);
     const current = Number(post.views_count ?? 0);
     if (receipt.exists) return { views: current };
-    tx.create(receiptRef, { post_id: id, user_id: caller.luid, viewed_on: day, created_at: FieldValue.serverTimestamp() });
+    tx.create(receiptRef, { post_id: id, user_id: caller.luid, viewed_on: day, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(Date.now() + 30 * 86_400_000) });
     tx.update(postRef, {
       views_count: FieldValue.increment(1),
       engagement_score: FieldValue.increment(1),

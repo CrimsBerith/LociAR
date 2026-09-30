@@ -11,6 +11,11 @@ export const REASONS = [
   'protected_zone',
   'rate_limited',
   'handle_taken',
+  'handle_reserved',
+  'handle_not_allowed',
+  'handle_cooldown',
+  'reauth_required',
+  'apple_revoke_failed',
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

@@ -1,6 +1,7 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { GoogleAuth } from 'google-auth-library';
 import { db, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
+import { profileBlock } from './profileGuard';
 import { reasonError } from './errors';
 import { buildArcoreClaims, tokenQuotaDocId } from './arcoreToken';
 
@@ -31,6 +32,9 @@ async function signJwt(email: string, payload: object): Promise<string> {
 
 export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const caller = requireCaller(request);
+  const profile = await db.collection('profiles').doc(caller.luid).get();
+  const blocked = profileBlock(profile.data());
+  if (blocked) throw reasonError('permission-denied', blocked.message, blocked.reason);
   const now = Date.now();
   const quotaRef = db.collection('arcore_token_quota').doc(tokenQuotaDocId(caller.luid, now));
   const allowed = await db.runTransaction(async (tx) => {
@@ -52,6 +56,8 @@ export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asy
     return { token, expiresAt: new Date(claims.exp * 1000).toISOString() };
   } catch (error) {
     console.error('arcore_token_failed', error);
+    // Signing failed (IAM outage): give the slot back so the user is not locked out for an hour.
+    await quotaRef.set({ count: FieldValue.increment(-1) }, { merge: true }).catch(() => undefined);
     throw new HttpsError('unavailable', 'ARCore authorization is temporarily unavailable');
   }
 });

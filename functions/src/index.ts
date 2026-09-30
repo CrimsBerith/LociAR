@@ -6,5 +6,6 @@ export {
   onFollowCreated, onFollowDeleted, onPostWritten, onProfileUpdated,
 } from './triggers';
 export { onAvatarUploaded } from './avatar';
-export { cleanupPostMedia } from './cleanup';
+export { cleanupPostMedia, reconcilePostCounters } from './cleanup';
 export { getArcoreToken } from './arcore';
+export { registerCloudAnchor } from './anchors';

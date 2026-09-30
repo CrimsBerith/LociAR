@@ -1,5 +1,8 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { deleteCloudAnchor } from './arcoreManagement';
+import { appleConfigFromEnv, revokeAppleAuthorization } from './apple';
+import { reasonError } from './errors';
+import { isRecentAuth } from './limits';
+import { deleteAnchorOfPost } from './anchors';
 import { auth, db, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
 
 async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFirestore.BulkWriter): Promise<number> {
@@ -18,25 +21,54 @@ async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFires
  * Permanently deletes the caller's account (App Store Guideline 5.1.1(v)):
  * posts + their media, social rows, collections, activity, profile, private record and the
  * Firebase Auth user. Reports filed by the user are kept for safety but de-identified.
- * Apple token revocation happens on-device (Auth.revokeToken) before this is called.
+ *
+ * Requires a sign-in from the last 5 minutes (`reauth_required` otherwise). Apple accounts must
+ * have their Sign in with Apple grant revoked first: by the server when APPLE_* is configured and
+ * the client sent `appleAuthorizationCode`, else the client attests `appleRevokedByClient`.
+ * Any revocation failure aborts before anything is deleted.
  */
 export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const caller = requireCaller(request);
   const luid = caller.luid;
+  if (!isRecentAuth(request.auth?.token?.auth_time, Date.now())) {
+    throw reasonError('failed-precondition', 'Recent sign-in required', 'reauth_required');
+  }
+  if (caller.isAppleUser) {
+    const data = (request.data ?? {}) as { appleAuthorizationCode?: unknown; appleRevokedByClient?: unknown };
+    const config = appleConfigFromEnv();
+    if (config && typeof data.appleAuthorizationCode === 'string' && data.appleAuthorizationCode) {
+      try {
+        await revokeAppleAuthorization(config, data.appleAuthorizationCode);
+      } catch (error) {
+        console.error('apple_revoke_failed', (error as Error).message);
+        throw reasonError('failed-precondition', 'Apple token revocation failed', 'apple_revoke_failed');
+      }
+    } else if (data.appleRevokedByClient !== true) {
+      throw reasonError('failed-precondition', 'Apple token revocation is required', 'apple_revoke_failed');
+    }
+  }
   await logEvent({ userId: luid, name: 'account_deletion_requested' });
 
   const writer = db.bulkWriter();
   writer.onWriteError((error) => error.failedAttempts < 5);
 
-  const posts = await db.collection('posts').where('creator_id', '==', luid).get();
-  await Promise.all(posts.docs.map((p) => deleteCloudAnchor(p.data().cloud_anchor_id)));
-  for (const post of posts.docs) {
-    for (const collection of ['likes', 'comments', 'post_saves', 'collection_items']) {
-      await deleteQuery(db.collection(collection).where('post_id', '==', post.id), writer);
+  // Posts are processed in pages of 300 so a large account never times out on one huge query.
+  let postsRemoved = 0;
+  for (;;) {
+    const page = await db.collection('posts').where('creator_id', '==', luid).limit(300).get();
+    if (page.empty) break;
+    for (let i = 0; i < page.docs.length; i += 10) {
+      await Promise.all(page.docs.slice(i, i + 10).map((p) => deleteAnchorOfPost(p.data().cloud_anchor_id, p.id)));
     }
-    writer.delete(post.ref);
+    for (const post of page.docs) {
+      for (const collection of ['likes', 'comments', 'post_saves', 'collection_items']) {
+        await deleteQuery(db.collection(collection).where('post_id', '==', post.id), writer);
+      }
+      writer.delete(post.ref);
+    }
+    await writer.flush();
+    postsRemoved += page.size;
   }
-  await writer.flush();
 
   const byField: Array<[string, string]> = [
     ['likes', 'user_id'],
@@ -62,6 +94,9 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
 
   const reports = await db.collection('moderation_flags').where('user_id', '==', luid).get();
   reports.docs.forEach((d) => writer.update(d.ref, { user_id: null, reporter_deleted: true }));
+  // Filtered-comment flags keep the text for moderators, but not who wrote it.
+  const authored = await db.collection('moderation_flags').where('metadata.author_id', '==', luid).get();
+  authored.docs.forEach((d) => writer.update(d.ref, { 'metadata.author_id': null, 'metadata.text': null, author_deleted: true }));
   writer.delete(db.collection('profiles').doc(luid));
   writer.delete(db.collection('users_private').doc(luid));
   await writer.close();
@@ -69,7 +104,7 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
   const removedObjects = await deleteStoragePrefix(`${luid}/`);
   await db.collection('account_deletions').add({
     luid,
-    posts_removed: posts.size,
+    posts_removed: postsRemoved,
     storage_objects_removed: removedObjects,
     apple_user: caller.isAppleUser,
     created_at: FieldValue.serverTimestamp(),

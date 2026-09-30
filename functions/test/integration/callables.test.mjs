@@ -90,13 +90,71 @@ test('deleteAccount hard-deletes profile, posts, handle and the auth user', asyn
   await assert.rejects(adminAuth.getUser(user.uid), /no user record/i);
 });
 
-test('getArcoreToken requires sign-in and is rate limited per user', async () => {
+test('getArcoreToken: failed signing refunds the slot; a full quota is rate limited; suspended users are refused', async () => {
   const user = await newUser();
   // No Google credentials exist in the emulator, so signing fails cleanly instead of crashing.
-  const first = await expectFailure(user.call('getArcoreToken', {}));
-  assert.equal(first.code, 'functions/unavailable');
-  for (let i = 1; i < 30; i++) await expectFailure(user.call('getArcoreToken', {}));
+  for (let i = 0; i < 35; i++) {
+    const failed = await expectFailure(user.call('getArcoreToken', {}));
+    assert.equal(failed.code, 'functions/unavailable'); // never locked out: each failure refunds its slot
+  }
+  const bucket = `${user.luid}_${Math.floor(Date.now() / 3_600_000)}`;
+  await adminDb.collection('arcore_token_quota').doc(bucket).set({ count: 30 });
   const limited = await expectFailure(user.call('getArcoreToken', {}));
   assert.equal(limited.code, 'functions/resource-exhausted');
   assert.equal(limited.details?.reason, 'rate_limited');
+  await adminDb.collection('profiles').doc(user.luid).update({ suspended: true });
+  const suspended = await expectFailure(user.call('getArcoreToken', {}));
+  assert.equal(suspended.code, 'functions/permission-denied');
+});
+
+test('createPost quota is race-safe: parallel calls never exceed the hourly limit and flag once', async () => {
+  const user = await newUser();
+  const results = await Promise.allSettled(Array.from({ length: 14 }, (_, i) => user.call('createPost', postBody({
+    // 0.01 degrees apart, so the density limit never triggers.
+    pose: { latitude: 41.0 + i * 0.01, longitude: 28.0, heading: 10, accuracy: 8 },
+  }))));
+  const ok = results.filter((r) => r.status === 'fulfilled').length;
+  assert.ok(ok <= 10, `expected at most 10 successes, got ${ok}`);
+  const flags = await adminDb.collection('moderation_flags').where('user_id', '==', user.luid).get();
+  assert.ok(flags.size <= 1, `expected at most 1 flag, got ${flags.size}`);
+});
+
+test('createPost with an unregistered cloud anchor is rejected; a registered one binds once', async () => {
+  const user = await newUser();
+  const other = await newUser();
+  const anchor = { kind: 'arcore_cloud_anchor', cloudAnchorId: 'ua-0123456789abcdef', version: 1, originalNativeAnchorId: 'x', hostedAt: new Date().toISOString() };
+  const withAnchor = () => postBody({ pose: { latitude: 41.5, longitude: 28.5, heading: 10, accuracy: 8, anchor: { coordinateSpace: 'visual_surface', x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, capturedAt: new Date().toISOString(), persistence: anchor } } });
+  const rejected = await expectFailure(user.call('createPost', withAnchor()));
+  assert.equal(rejected.code, 'functions/invalid-argument');
+  await user.call('registerCloudAnchor', { cloudAnchorId: anchor.cloudAnchorId });
+  const stolen = await expectFailure(other.call('registerCloudAnchor', { cloudAnchorId: anchor.cloudAnchorId }));
+  assert.equal(stolen.code, 'functions/already-exists');
+  const otherPost = await expectFailure(other.call('createPost', withAnchor()));
+  assert.equal(otherPost.code, 'functions/invalid-argument');
+  await user.call('createPost', withAnchor());
+  const again = await expectFailure(user.call('createPost', withAnchor()));
+  assert.equal(again.code, 'functions/invalid-argument');
+});
+
+test('handles: reserved and blocked names are refused; a second change within 30 days is refused', async () => {
+  const user = await newUser();
+  const reserved = await expectFailure(user.call('updateHandle', { handle: 'admin' }));
+  assert.equal(reserved.details?.reason, 'handle_reserved');
+  const blocked = await expectFailure(user.call('updateHandle', { handle: 'fuck_you' }));
+  assert.equal(blocked.details?.reason, 'handle_not_allowed');
+  await user.call('updateHandle', { handle: `first_${user.luid.slice(0, 6)}` });
+  const again = await expectFailure(user.call('updateHandle', { handle: `second_${user.luid.slice(0, 6)}` }));
+  assert.equal(again.code, 'functions/resource-exhausted');
+  assert.equal(again.details?.reason, 'handle_cooldown');
+});
+
+test('createPost rejects blocked words in the caption', async () => {
+  const user = await newUser();
+  const error = await expectFailure(user.call('createPost', postBody({ caption: 'siktir git' })));
+  assert.equal(error.code, 'functions/invalid-argument');
+});
+
+test('deleteAccount: Apple accounts need revocation, non-Apple accounts delete after a fresh sign-in', async () => {
+  const user = await newUser('fresh_delete');
+  assert.deepEqual(await user.call('deleteAccount', {}), { ok: true });
 });

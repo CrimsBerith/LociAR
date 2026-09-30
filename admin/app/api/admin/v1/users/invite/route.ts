@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { INVITE_TTL_MS } from '../../../../../../lib/policy';
 import { apiError, enforceRateLimit, requireSameOrigin, unauthorized } from '../../../../../../lib/api';
 import { requireAdminApi } from '../../../../../../lib/admin';
 import { adminAuth, adminDb } from '../../../../../../lib/firebase-admin';
@@ -41,7 +42,9 @@ export async function POST(request: Request) {
     let invitedUser;
     try {
       invitedUser = await adminAuth().getUserByEmail(email);
-    } catch {
+    } catch (error) {
+      // Only a genuine "no such user" creates an account; any other lookup failure is a 500.
+      if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
       invitedUser = await adminAuth().createUser({ email, emailVerified: false });
     }
 
@@ -55,6 +58,7 @@ export async function POST(request: Request) {
       status: 'sent',
       reason,
       created_at: FieldValue.serverTimestamp(),
+      expires_at: Timestamp.fromMillis(Date.now() + INVITE_TTL_MS),
     };
     await ref.create(invite);
     await recordAudit(key, {

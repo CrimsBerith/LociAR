@@ -72,3 +72,10 @@ scripts/.pending-verify-email.txt
 .emulator-data/
 *-debug.log
 scripts/diag-java.command
+
+admin/artifacts/
+admin/test-results/
+admin/playwright-report/
+
+scripts/.commit-push.log
+scripts/.build-check.log

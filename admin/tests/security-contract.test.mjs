@@ -122,3 +122,59 @@ test("admin magic links support cross-browser completion without weakening MFA",
   assert.match(admin, /verifySessionCookie\(session, true\)/);
   assert.match(admin, /sign_in_second_factor/);
 });
+
+// ---- issue #13 ----
+import { inviteAcceptError, commentFlagTarget, isCommentFlag, originAllowed, INVITE_TTL_MS } from "../lib/policy.ts";
+
+test("docker image never ships env files or credentials and runs as a non-root production server", () => {
+  const dockerignore = readFileSync(join(repoRoot, "admin/.dockerignore"), "utf8");
+  for (const pattern of [".env", "artifacts/", "node_modules"]) assert.match(dockerignore, new RegExp(pattern.replace(".", "\\.")));
+  const dockerfile = readFileSync(join(repoRoot, "admin/Dockerfile"), "utf8");
+  assert.match(dockerfile, /npm run build/);
+  assert.match(dockerfile, /USER node/);
+  assert.doesNotMatch(dockerfile, /npm", "run", "dev"/);
+});
+
+test("API errors never return raw exception messages", () => {
+  const api = readFileSync(join(repoRoot, "admin/lib/api.ts"), "utf8");
+  assert.doesNotMatch(api, /error instanceof Error \? error\.message/);
+  assert.match(api, /Unexpected server error/);
+});
+
+test("invites: verified matching email within 72 hours; otherwise rejected", () => {
+  const now = Date.now();
+  const invite = { email: "New@Example.com", status: "sent", created_at_ms: now - 1000 };
+  assert.equal(inviteAcceptError(invite, { email: "new@example.com", emailVerified: true }, now), null);
+  assert.equal(inviteAcceptError(invite, { email: "new@example.com", emailVerified: false }, now), "invite_email_unverified");
+  assert.equal(inviteAcceptError(invite, { email: "other@example.com", emailVerified: true }, now), "invite_email_mismatch");
+  assert.equal(inviteAcceptError({ ...invite, created_at_ms: now - INVITE_TTL_MS - 1 }, { email: "new@example.com", emailVerified: true }, now), "invite_expired");
+  assert.equal(inviteAcceptError({ ...invite, status: "accepted" }, { email: "new@example.com", emailVerified: true }, now), "invite_not_pending");
+});
+
+test("comment flags never act on the post", () => {
+  assert.equal(isCommentFlag({ reason: "comment_filtered", metadata: { comment_id: "c1" } }), true);
+  assert.equal(isCommentFlag({ reason: "spam", metadata: { target: "comment", comment_id: "c2" } }), true);
+  assert.equal(isCommentFlag({ reason: "spam", metadata: { source: "native_ios" } }), false);
+  assert.equal(commentFlagTarget({ metadata: { comment_id: "c3" } }), "c3");
+  const ops = readFileSync(join(repoRoot, "admin/lib/ops.ts"), "utf8");
+  assert.match(ops, /if \(isCommentFlag\(flag\)\)/);
+});
+
+test("same-origin check handles null/garbage origins and a pinned ADMIN_ORIGIN", () => {
+  assert.equal(originAllowed("null", "a.example", undefined), false);
+  assert.equal(originAllowed("not a url", "a.example", undefined), false);
+  assert.equal(originAllowed(null, "a.example", undefined), false);
+  assert.equal(originAllowed("https://a.example", "a.example", undefined), true);
+  assert.equal(originAllowed("https://evil.example", "a.example", undefined), false);
+  assert.equal(originAllowed("https://admin.example.com", "internal:3000", "https://admin.example.com"), true);
+  assert.equal(originAllowed("https://a.example", "a.example", "https://admin.example.com"), false);
+});
+
+test("session cookie is short-lived and always secure in production; sign-in and sign-out are audited", () => {
+  const session = readFileSync(join(repoRoot, "admin/app/api/auth/session/route.ts"), "utf8");
+  assert.match(session, /SESSION_HOURS = 8/);
+  assert.match(session, /NODE_ENV === 'production'/);
+  assert.match(session, /admin_sign_in/);
+  assert.match(readFileSync(join(repoRoot, "admin/app/api/auth/signout/route.ts"), "utf8"), /admin_sign_out/);
+  assert.match(readFileSync(join(repoRoot, "admin/app/api/admin/v1/approvals/route.ts"), "utf8"), /approval_requested/);
+});

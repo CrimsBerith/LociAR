@@ -1,6 +1,8 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { auth, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller } from './core';
 import { reasonError } from './errors';
+import { handleIsBlocked, isReservedHandle, anyBlocked } from './moderation';
+import { handleCooldownRemaining } from './limits';
 
 export const HANDLE_PATTERN = /^[a-z0-9_.]{3,30}$/;
 
@@ -52,8 +54,9 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asyn
       return existing;
     }
     const requested = typeof data.handle === 'string' ? data.handle.trim().toLowerCase() : '';
+    const requestedOk = HANDLE_PATTERN.test(requested) && !isReservedHandle(requested) && !handleIsBlocked(requested);
     const candidates = [
-      ...(HANDLE_PATTERN.test(requested) ? [requested] : []),
+      ...(requestedOk ? [requested] : []),
       defaultHandle(caller.luid),
       defaultHandle(caller.luid, 12),
       defaultHandle(caller.luid, 25),
@@ -66,7 +69,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asyn
     const created = {
       id: caller.luid,
       handle,
-      display_name: typeof data.displayName === 'string' ? data.displayName.slice(0, 80) : null,
+      display_name: typeof data.displayName === 'string' && !anyBlocked([data.displayName]) ? data.displayName.trim().slice(0, 60) : null,
       avatar_url: null,
       avatar_preset: null,
       bio: null,
@@ -112,6 +115,8 @@ export const updateHandle = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async
   const requested = (request.data as { handle?: unknown })?.handle;
   const handle = typeof requested === 'string' ? requested.trim().toLowerCase() : '';
   if (!HANDLE_PATTERN.test(handle)) throw new HttpsError('invalid-argument', 'Invalid handle');
+  if (isReservedHandle(handle)) throw reasonError('invalid-argument', 'This username is reserved', 'handle_reserved');
+  if (handleIsBlocked(handle)) throw reasonError('invalid-argument', 'This username is not allowed', 'handle_not_allowed');
 
   const profileRef = db.collection('profiles').doc(caller.luid);
   await db.runTransaction(async (tx) => {
@@ -120,11 +125,14 @@ export const updateHandle = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async
     if (profile.data()!.suspended === true) throw reasonError('permission-denied', 'This account cannot publish', 'account_suspended');
     const current = String(profile.data()!.handle ?? '');
     if (current === handle) return;
+    const changedAt = profile.data()!.handle_changed_at;
+    const remaining = handleCooldownRemaining(changedAt?.toMillis?.(), Date.now());
+    if (remaining > 0) throw reasonError('resource-exhausted', 'Username was changed recently', 'handle_cooldown');
     if (!isFree(reservation, caller.luid)) throw reasonError('already-exists', 'Handle is taken', 'handle_taken');
     const previous = current ? await tx.get(handleRef(current)) : null;
     if (previous?.exists && previous.data()!.luid === caller.luid) tx.delete(previous.ref);
     tx.set(handleRef(handle), { luid: caller.luid, created_at: FieldValue.serverTimestamp() });
-    tx.update(profileRef, { handle, updated_at: FieldValue.serverTimestamp() });
+    tx.update(profileRef, { handle, handle_changed_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
   });
   return { handle };
 });

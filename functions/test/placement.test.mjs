@@ -76,7 +76,12 @@ test('social links must use the platform host over https', () => {
 
 test('reference image must be a storage path or the pending placeholder', () => {
   assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'https://tracker.example/pixel.jpg' }), 'Invalid reference image');
-  assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'storage://post-reference-images/a/b/c.jpg' }), null);
+  const luid = 'aaaaaaaa-bbbb-5ccc-8ddd-eeeeeeeeeeee';
+  const own = `storage://post-reference-images/${luid}/${base().clientMutationId}/c.jpg`;
+  assert.equal(validateCreatePostBody({ ...base(), refImageUri: own }, luid), null);
+  assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'storage://post-reference-images/other/x/c.jpg' }, luid), 'Invalid reference image');
+  assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'native-ar-reference://../x' }, luid), 'Invalid reference image');
+  assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'native-ar-reference://none' }, luid), null);
 });
 
 test('world lock needs only the stored world map; no camera frame is looked up', async () => {
@@ -126,4 +131,24 @@ test('iOS pins can persist as a Google Cloud Anchor; geospatial poses are valida
   const expired = structuredClone(body);
   expired.pose.anchor.persistence.expiresAt = new Date(Date.now() - 1000).toISOString();
   assert.equal((await evaluatePlacement(expired, luid, async () => false)).hasPersistentResolver, false);
+});
+
+test('surfaceTextureUri is rejected', () => {
+  const body = { ...base(), editData: { layers: [{ id: 'x', kind: 'text' }], surfaceTextureUri: 'storage://post-surface-textures/a/b.jpg' } };
+  assert.equal(validateCreatePostBody(body), 'Surface textures are not accepted');
+  assert.equal(validateCreatePostBody({ ...base(), editData: { layers: [{ id: 'x', kind: 'text' }], surfaceTextureUri: null } }), null);
+});
+
+test('client cannot choose placement state, provider or resolver strategy', async () => {
+  const body = { ...base(), placementState: 'arkit_world_locked', nativeProvider: 'admin', resolverStrategy: ['x'] };
+  const r = await evaluatePlacement(body, 'aaaaaaaa-bbbb-5ccc-8ddd-eeeeeeeeeeee', async () => false);
+  assert.equal(r.placementState, 'free_space_approximate');
+  assert.equal(r.nativeProvider, null);
+  assert.deepEqual(r.resolverStrategy, ['geo_pose']);
+});
+
+test('admin_geo_estimate coordinate space is rejected from clients', () => {
+  const body = base();
+  body.pose.anchor = { coordinateSpace: 'admin_geo_estimate', x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, capturedAt: new Date().toISOString(), nativeAnchorId: 'a' };
+  assert.equal(validateCreatePostBody(body), 'Invalid coordinate space');
 });

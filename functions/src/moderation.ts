@@ -31,3 +31,23 @@ export function containsBlockedTerm(text: string): boolean {
   const letters = words.filter((word) => word.length === 1).join('');
   return letters.length >= 3 && [...TERMS].some((term) => term.length >= 4 && letters.includes(term));
 }
+
+/** Names nobody may claim: they could be mistaken for the team or for system accounts. */
+export const RESERVED_HANDLES = new Set([
+  'admin', 'administrator', 'root', 'system', 'support', 'help', 'moderator', 'mod', 'staff', 'team',
+  'lociar', 'loci', 'loci.ar', 'official', 'security', 'abuse', 'privacy', 'legal', 'apple', 'google', 'null', 'undefined',
+]);
+
+export function isReservedHandle(handle: string): boolean {
+  const h = handle.toLowerCase();
+  return RESERVED_HANDLES.has(h) || RESERVED_HANDLES.has(h.replace(/[._]/g, ''));
+}
+
+/** True when any of the texts trips the blocklist (handles are matched with separators removed too). */
+export function anyBlocked(texts: Array<string | null | undefined>): boolean {
+  return texts.some((t) => typeof t === 'string' && t.length > 0 && containsBlockedTerm(t));
+}
+
+export function handleIsBlocked(handle: string): boolean {
+  return containsBlockedTerm(handle.replace(/[._]+/g, ' ')) || containsBlockedTerm(handle.replace(/[._]+/g, ''));
+}

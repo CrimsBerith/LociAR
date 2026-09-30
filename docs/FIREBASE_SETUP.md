@@ -141,3 +141,25 @@ Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yenide
 - Engelleme yalnız engelleyen tarafta içerik gizler (Apple'ın beklediği davranış).
 - Push bildirimleri 1.0 kapsamında değil (APNs entitlement yok).
 - ~5K aktif kullanıcıdan sonra medyayı Cloudflare R2'ye taşımak indirme maliyetini sıfırlar.
+
+## 7. Güvenlik/maliyet ek adımları (owner)
+
+**Storage → Firestore çapraz servis yetkisi.** `storage.rules` artık `post-world-maps` okumasında `firestore.get(...)` ile post durumuna bakıyor. `firebase deploy --only storage` sırasında CLI "Firebase Rules hizmet hesabına Firestore erişimi verilsin mi?" diye sorar; **Evet** de. (Elle: IAM → `service-<PROJE_NUMARASI>@gcp-sa-firebasestorage.iam.gserviceaccount.com` hesabına `Firebase Rules Firestore Service Agent` rolü.) Verilmezse world map okumaları kapalı kalır (güvenli taraf), AR haritası yüklenmez.
+
+**Eski klasörler için GCS lifecycle** (fotoğraf/video kaldırıldı, bu klasörler artık yazılamıyor; 30 gün sonra kalıntılar silinir). `lifecycle.json`:
+
+```json
+{ "rule": [
+  { "action": {"type": "Delete"}, "condition": {"age": 30, "matchesPrefix": ["post-layer-assets/", "post-video-assets/", "post-reference-images/", "post-surface-textures/"]} }
+] }
+```
+
+Uygula: `gcloud storage buckets update gs://lociar-2f38c.firebasestorage.app --lifecycle-file=lifecycle.json`; doğrula: `gcloud storage buckets describe gs://lociar-2f38c.firebasestorage.app --format="default(lifecycle_config)"`.
+
+**Firestore TTL.** `firestore.indexes.json` içindeki `expires_at` TTL alanları (`post_view_receipts` 30 gün, `activity_events` 180 gün, `filtered_comments` 90 gün, `trigger_receipts` 7 gün, `post_quota`, `arcore_token_quota`) `firebase deploy --only firestore:indexes` ile etkinleşir.
+
+**Apple token iptali (sunucu).** `deleteAccount` sunucuda iptal yapabilir; Functions ortamına `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_CLIENT_ID` (bundle id) ve `APPLE_PRIVATE_KEY` (.p8 içeriği, Secret Manager) verilince devreye girer. O zamana kadar istemci iptal edip `appleRevokedByClient: true` gönderir; ikisi de yoksa Apple hesabı silinmez.
+
+**Cloud Anchor göç betikleri.** Eski postlar için bir kez: `FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/backfill-cloud-anchors.mjs --apply`; uzun `display_name` düzeltmesi: `node functions/scripts/fix-long-display-names.mjs --apply`. (Önce `--apply`sız kuru çalıştırma yap.)
+
+**Admin.** Üretimde `ADMIN_ORIGIN=https://<admin-alan-adı>` ayarla (Origin kontrolü buna sabitlenir). Docker imajı artık `next build` + `next start`, root olmayan kullanıcıyla çalışır; gizli bilgiler imaja girmez, çalışma zamanında verilir.

@@ -3,9 +3,10 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from './firebase-admin';
 import { recordAudit } from './ops';
 import { isKnownRole } from './rbac';
+import { inviteAcceptError } from './policy';
 
 /** Grants the role of the newest pending invite addressed to this Firebase user. */
-export async function acceptPendingAdminInvite(uid: string): Promise<string | null> {
+export async function acceptPendingAdminInvite(uid: string, identity: { email?: string | null; emailVerified?: boolean }): Promise<string | null> {
   const db = adminDb();
   let inviteSnap;
   try {
@@ -20,6 +21,14 @@ export async function acceptPendingAdminInvite(uid: string): Promise<string | nu
   }
   const invite = inviteSnap.docs[0];
   if (!invite) return null;
+  // The role goes only to the verified owner of the invited address, within 72 hours of the invite.
+  const created = invite.data().created_at?.toMillis?.();
+  const rejection = inviteAcceptError(
+    { email: invite.data().email, status: invite.data().status, expires_at_ms: invite.data().expires_at?.toMillis?.(), created_at_ms: created },
+    identity,
+    Date.now(),
+  );
+  if (rejection) return rejection;
   const roleKey = invite.data().requested_role_key as string | null;
   if (!roleKey) {
     await invite.ref.update({ status: 'accepted', accepted_at: FieldValue.serverTimestamp() });

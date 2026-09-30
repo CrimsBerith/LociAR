@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { ValidationError } from './validation';
 import { consumeRateLimit } from './ops';
+import { originAllowed } from './policy';
 
 export function apiError(error: unknown) {
   if (error instanceof ValidationError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
-  const message = error instanceof Error ? error.message : 'Unexpected server error';
+  // Details stay in the server log; clients only ever see a generic message.
   console.error('[admin-api]', error);
-  return NextResponse.json({ error: message }, { status: 500 });
+  return NextResponse.json({ error: 'Unexpected server error' }, { status: 500 });
 }
 
 export function unauthorized(result: { status: number; error: string }) {
@@ -16,11 +17,8 @@ export function unauthorized(result: { status: number; error: string }) {
 }
 
 export function requireSameOrigin(request: Request) {
-  const origin = request.headers.get('origin');
-  const host = request.headers.get('host');
-  if (!origin || !host) return NextResponse.json({ error: 'Origin validation failed' }, { status: 403 });
-  const originUrl = new URL(origin);
-  if (originUrl.host !== host || !['http:', 'https:'].includes(originUrl.protocol)) {
+  // ADMIN_ORIGIN (e.g. https://admin.example.com) pins the allowed origin; without it the Host header is used.
+  if (!originAllowed(request.headers.get('origin'), request.headers.get('host'), process.env.ADMIN_ORIGIN)) {
     return NextResponse.json({ error: 'Cross-origin admin writes are forbidden' }, { status: 403 });
   }
   return null;

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE } from '../../../../lib/admin';
+import { randomUUID } from 'node:crypto';
 import { adminAuth } from '../../../../lib/firebase-admin';
+import { recordAudit } from '../../../../lib/ops';
 
 export async function POST(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -12,6 +14,10 @@ export async function POST(request: NextRequest) {
     try {
       const decoded = await adminAuth().verifySessionCookie(session);
       await adminAuth().revokeRefreshTokens(decoded.sub);
+      await recordAudit(randomUUID(), {
+        actorId: decoded.sub, action: 'admin_sign_out', resourceType: 'admin_session', resourceId: decoded.sub,
+        reason: 'Administrator signed out.', permissionKey: 'session.sign_out', riskLevel: 'read',
+      }).catch((error) => console.error('[admin-audit]', error));
     } catch {
       // Already invalid; clearing the cookie is enough.
     }
