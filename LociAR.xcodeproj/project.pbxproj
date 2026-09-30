@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7A11C0DE5D15C1052A2B3C4D /* ARCoreDisclosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11C0DE5D15C1051A2B3C4D /* ARCoreDisclosure.swift */; };
 		07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B673A12AAA93EA6AEF0A6476 /* AppSession.swift */; };
 		15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */; };
 		1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */; };
@@ -18,6 +17,7 @@
 		334C79D0B6B41743A5D57F60 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 1BCA7E39D1C6B6C63814D4C9 /* FirebaseStorage */; };
 		3B2CE130FB8E9BF469423264 /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60777F871AC0C3EE1BFD38F3 /* ARKit.framework */; };
 		3B5BFD9AA99D8A7E9B4C81A7 /* UITestFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7210EE62943F978879FE37 /* UITestFixtures.swift */; };
+		3F9EB5F8CEB1C81DFB76B87F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6B4C729B0D12809A5D15180A /* Localizable.xcstrings */; };
 		43B96545756282CA639C2CC8 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E4C13C9339C31F48DD7E6E /* MapKit.framework */; };
 		49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */; };
 		4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E26683A2CA08CEF5A8E794 /* AppRouter.swift */; };
@@ -60,6 +60,7 @@
 		B9506EFFBDF4A5BAD96C8B74 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B129A3E99190C979B9AC105 /* AppContainer.swift */; };
 		C719C12194E99361130F262A /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 77582291DD5FBFA6CDBA3E81 /* FirebaseFunctions */; };
 		C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */; };
+		C9BCF2F1BCC8DB65916C2B78 /* ARCoreDisclosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = A066184A4986CA47D43E7043 /* ARCoreDisclosure.swift */; };
 		CF38CD57A83674691699A5B0 /* AuthenticationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACB2AEF3923D50E72B4765F9 /* AuthenticationServices.framework */; };
 		D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */; };
 		D761C9CEA29A60B3F1ED10AF /* ARCoreCoverageDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */; };
@@ -96,7 +97,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		7A11C0DE5D15C1051A2B3C4D /* ARCoreDisclosure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreDisclosure.swift; sourceTree = "<group>"; };
 		02D3113CEC157B882DCE675A /* AvatarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarStore.swift; sourceTree = "<group>"; };
 		041909C4E5F7479357846A3E /* ProximityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityPolicy.swift; sourceTree = "<group>"; };
 		0656173096F4B80612408176 /* LociARTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -128,6 +128,7 @@
 		61A27A11D2DC46B7BCDA5DC4 /* BackendAndPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendAndPolicyTests.swift; sourceTree = "<group>"; };
 		67595FAB2CD41468A70ED743 /* ArchitectureAndPublishTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchitectureAndPublishTests.swift; sourceTree = "<group>"; };
 		6B129A3E99190C979B9AC105 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
+		6B4C729B0D12809A5D15180A /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		6B8263073D47812D536F4369 /* GeoPoseCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoPoseCaptureService.swift; sourceTree = "<group>"; };
 		6C46B83A003BDC6A241B3BDD /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldMapStore.swift; sourceTree = "<group>"; };
@@ -145,6 +146,7 @@
 		987F6BC9079EB6C718144F0D /* RealityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealityKit.framework; path = System/Library/Frameworks/RealityKit.framework; sourceTree = SDKROOT; };
 		9D39885DA91A93735B60CAD0 /* LociTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LociTheme.swift; sourceTree = "<group>"; };
 		9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPostViewerView.swift; sourceTree = "<group>"; };
+		A066184A4986CA47D43E7043 /* ARCoreDisclosure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreDisclosure.swift; sourceTree = "<group>"; };
 		A490648EDF65B459DC92A21A /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		A84DDF99EB769190C5D43A4E /* SocialViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialViews.swift; sourceTree = "<group>"; };
 		ACB2AEF3923D50E72B4765F9 /* AuthenticationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AuthenticationServices.framework; path = System/Library/Frameworks/AuthenticationServices.framework; sourceTree = SDKROOT; };
@@ -364,6 +366,7 @@
 			children = (
 				8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */,
 				2CA48A253CF4AF4E0438F347 /* Info.plist */,
+				6B4C729B0D12809A5D15180A /* Localizable.xcstrings */,
 				4D9F628611DF77BEA62DDC3E /* LociAR.entitlements */,
 				E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */,
 			);
@@ -422,7 +425,7 @@
 		F89911943F5AEA31962B349D /* AR */ = {
 			isa = PBXGroup;
 			children = (
-				7A11C0DE5D15C1051A2B3C4D /* ARCoreDisclosure.swift */,
+				A066184A4986CA47D43E7043 /* ARCoreDisclosure.swift */,
 				D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */,
 				9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */,
 			);
@@ -530,11 +533,12 @@
 				};
 			};
 			buildConfigurationList = 119DF4F7E05BB05D586476E9 /* Build configuration list for PBXProject "LociAR" */;
-			developmentRegion = en;
+			developmentRegion = tr;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
 				en,
+				tr,
 			);
 			mainGroup = 15017F9A87A93878CAFC5308;
 			minimizedProjectReferenceProxies = 1;
@@ -560,6 +564,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7692203B338A88B9E0405B1 /* Assets.xcassets in Resources */,
+				3F9EB5F8CEB1C81DFB76B87F /* Localizable.xcstrings in Resources */,
 				A332B937E77E814DAE2988B0 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -592,8 +597,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7A11C0DE5D15C1052A2B3C4D /* ARCoreDisclosure.swift in Sources */,
 				D761C9CEA29A60B3F1ED10AF /* ARCoreCoverageDebugView.swift in Sources */,
+				C9BCF2F1BCC8DB65916C2B78 /* ARCoreDisclosure.swift in Sources */,
 				F47756884CAD320CDDFE52CA /* ARCoreService.swift in Sources */,
 				89009A411211647CBFFD0CC1 /* ARExperienceView.swift in Sources */,
 				B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */,
