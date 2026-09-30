@@ -283,14 +283,20 @@ struct ProfileView: View {
         defer { isDeletingAccount = false }
         do {
             try await session.deleteAccount()
-            try modelContext.delete(model: DraftRecord.self)
-            try modelContext.delete(model: SyncQueueRecord.self)
-            try modelContext.delete(model: PreferenceRecord.self)
-            try modelContext.save()
-            await MediaAssetStore.purgeAllLocalAssets()
         } catch AuthFlowError.appleReauthenticationRequired {
             message = AuthFlowError.appleReauthenticationRequired.localizedDescription
-        } catch { message = "Hesap şu anda silinemiyor. Biraz sonra tekrar dene." }
+            return
+        } catch {
+            message = "Hesap şu anda silinemiyor. Biraz sonra tekrar dene."
+            return
+        }
+        // Account deleted server-side. Clean up local data best-effort — the view may be
+        // dismissing already (Auth state listener fires before we get here).
+        try? modelContext.delete(model: DraftRecord.self)
+        try? modelContext.delete(model: SyncQueueRecord.self)
+        try? modelContext.delete(model: PreferenceRecord.self)
+        try? modelContext.save()
+        await MediaAssetStore.purgeAllLocalAssets()
     }
 }
 
@@ -1361,7 +1367,7 @@ private struct PostMediaHero: View {
                 }
             }
         default:
-            if let imageURL = post.editData.layers.first(where: { $0.kind == .image })?.assetURL ?? post.editData.surfaceTextureURL {
+            if let imageURL = post.editData.layers.first(where: { $0.kind == .image })?.assetURL {
                 imagePreview(url: imageURL)
             }
         }

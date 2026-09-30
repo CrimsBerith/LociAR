@@ -29,33 +29,43 @@ final class ARCoreService {
 
     @ObservationIgnored private var session: GARSession?
     @ObservationIgnored private let callables: CallableClient?
+    /// Expiry of the real ARCore token returned by the server. Nil when no valid token has arrived.
     @ObservationIgnored private var tokenExpiry: Date?
+    /// Back-off deadline after a token fetch failure; not a real token, never used for ready check.
+    @ObservationIgnored private var tokenRetryAt: Date?
     @ObservationIgnored private var tokenTask: Task<Void, Never>?
     @ObservationIgnored private var lastPublish = Date.distantPast
+    @ObservationIgnored private var isStartFailed = false
     @ObservationIgnored private let logger = Logger(subsystem: "com.khankartal.lociar", category: "arcore")
+
+    /// Observe location-auth changes so we can re-enable Geospatial once precise location is granted.
+    @ObservationIgnored private let locationAuthObserver = CLLocationManager()
+    @ObservationIgnored private var locationAuthDelegate: ARCoreLocationAuthDelegate?
 
     /// Refresh this long before the token's one-hour expiry.
     nonisolated static let tokenRefreshMargin: TimeInterval = 5 * 60
 
     init(callables: CallableClient?) {
         self.callables = callables
+        let delegate = ARCoreLocationAuthDelegate()
+        locationAuthDelegate = delegate
+        locationAuthObserver.delegate = delegate
+        delegate.onAuthChange = { [weak self] in
+            Task { @MainActor [weak self] in self?.retryGeospatialIfNeeded() }
+        }
     }
 
     /// False in previews, UI tests and emulator builds, where ARCore never starts.
     var isEnabled: Bool { callables != nil }
 
-    /// Latest ARCore frame (nil until ARKit frames flow and ARCore started).
-    @ObservationIgnored private(set) var latestFrame: GARFrame?
-
     /// Called by ARPinningEngine on the main actor for every ARKit frame.
     func consume(_ frame: ARFrame) {
-        guard callables != nil else { return }
+        guard callables != nil, !isStartFailed else { return }
         if session == nil { start() }
         guard let session else { return }
         refreshTokenIfNeeded()
         do {
             let garFrame = try session.update(frame)
-            latestFrame = garFrame
             publishEarthState(garFrame)
         } catch {
             lastError = error.localizedDescription
@@ -63,7 +73,7 @@ final class ARCoreService {
     }
 
     private func start() {
-        guard session == nil else { return }
+        guard session == nil, !isStartFailed else { return }
         do {
             let created = try GARSession.session()
             let configuration = GARSessionConfiguration()
@@ -87,14 +97,31 @@ final class ARCoreService {
             session = created
             refreshTokenIfNeeded()
         } catch {
+            isStartFailed = true
             availability = .unavailable(error.localizedDescription)
             logger.error("ARCore session failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Re-enables Geospatial on the existing session when location permission improves.
+    private func retryGeospatialIfNeeded() {
+        guard case .running(geospatial: false) = availability, let session else { return }
+        guard session.isGeospatialModeSupported(.enabled) else { return }
+        let configuration = GARSessionConfiguration()
+        configuration.cloudAnchorMode = .enabled
+        configuration.geospatialMode = .enabled
+        var configErr: NSError?
+        session.setConfiguration(configuration, error: &configErr)
+        if configErr == nil {
+            availability = .running(geospatial: true)
+            logger.info("Geospatial re-enabled after location permission change")
         }
     }
 
     private func refreshTokenIfNeeded() {
         guard tokenTask == nil, let callables else { return }
         if let tokenExpiry, tokenExpiry.timeIntervalSinceNow > Self.tokenRefreshMargin { return }
+        if let tokenRetryAt, tokenRetryAt.timeIntervalSinceNow > 0 { return }
         tokenTask = Task { [weak self] in
             struct Response: Decodable, Sendable { let token: String; let expiresAt: Date }
             do {
@@ -102,12 +129,14 @@ final class ARCoreService {
                 guard let self else { return }
                 self.session?.setAuthToken(response.token)
                 self.tokenExpiry = response.expiresAt
+                self.tokenRetryAt = nil
                 self.tokenTask = nil
             } catch {
                 guard let self else { return }
                 self.lastError = error.localizedDescription
-                // Back off one minute before the next attempt.
-                self.tokenExpiry = Date().addingTimeInterval(Self.tokenRefreshMargin + 60)
+                // Back off one minute before the next attempt. tokenExpiry stays nil so
+                // isReadyForCloudAnchors correctly returns false while we have no real token.
+                self.tokenRetryAt = Date().addingTimeInterval(60)
                 self.tokenTask = nil
             }
         }
@@ -134,13 +163,20 @@ final class ARCoreService {
         if session == nil { start() }
         guard let session else { return "ARCore başlatılamadı" }
         refreshTokenIfNeeded()
-        // The very first check can race the token fetch; wait for it briefly.
-        for _ in 0..<50 where tokenExpiry == nil { try? await Task.sleep(for: .milliseconds(100)) }
-        return await withCheckedContinuation { continuation in
-            _ = session.checkVPSAvailability(coordinate: coordinate) { availability in
-                continuation.resume(returning: Self.describe(availability))
-            }
+        // Wait up to 5 s for the first token before making the call.
+        for _ in 0..<50 where tokenExpiry == nil && tokenRetryAt == nil {
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return "İptal edildi" }
         }
+        let result: String? = await withCheckedContinuation { continuation in
+            let once = ResumeOnce<String>(continuation)
+            _ = session.checkVPSAvailability(coordinate: coordinate) { availability in
+                once.resume(Self.describe(availability))
+            }
+            // Guard against ARCore never calling back (e.g. no network).
+            let timeoutTask = Task { try? await Task.sleep(for: .seconds(10)); once.resume(nil) }
+            once.onResume = { timeoutTask.cancel() }
+        }
+        return result ?? "⚠️ VPS zaman aşımı"
     }
 
     // MARK: - Cloud Anchors
@@ -159,7 +195,7 @@ final class ARCoreService {
         let deadline = ContinuousClock.now + timeout
         while ContinuousClock.now < deadline {
             if isReadyForCloudAnchors { return true }
-            try? await Task.sleep(for: .milliseconds(200))
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { return false }
         }
         return isReadyForCloudAnchors
     }
@@ -184,7 +220,8 @@ final class ARCoreService {
             } catch {
                 once.resume(nil)
             }
-            Task { try? await Task.sleep(for: timeout); once.resume(nil) }
+            let timeoutTask = Task { try? await Task.sleep(for: timeout); once.resume(nil) }
+            once.onResume = { timeoutTask.cancel() }
         }
         pendingFutures.removeAll()
         if result == nil { logger.info("Cloud Anchor hosting failed or timed out") }
@@ -216,7 +253,8 @@ final class ARCoreService {
             } catch {
                 once.resume(nil)
             }
-            Task { try? await Task.sleep(for: timeout); once.resume(nil) }
+            let timeoutTask = Task { try? await Task.sleep(for: timeout); once.resume(nil) }
+            once.onResume = { timeoutTask.cancel() }
         }
         pendingFutures.removeAll()
         return result
@@ -263,7 +301,7 @@ final class ARCoreService {
         let deadline = ContinuousClock.now + timeout
         while ContinuousClock.now < deadline {
             if isEarthTracking, let horizontalAccuracy, horizontalAccuracy <= 10 { return true }
-            try? await Task.sleep(for: .milliseconds(250))
+            do { try await Task.sleep(for: .milliseconds(250)) } catch { return false }
         }
         return false
     }
@@ -285,6 +323,9 @@ final class ARCoreService {
 private final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
     private var continuation: CheckedContinuation<Value?, Never>?
     private let lock = NSLock()
+    /// Called with the lock held, on the first (and only) resume. Use for side-effects like
+    /// cancelling the timeout task.
+    var onResume: (() -> Void)?
 
     init(_ continuation: CheckedContinuation<Value?, Never>) { self.continuation = continuation }
 
@@ -292,7 +333,19 @@ private final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
         lock.lock()
         let pending = continuation
         continuation = nil
+        let action = onResume
+        onResume = nil
         lock.unlock()
+        action?()
         pending?.resume(returning: value)
+    }
+}
+
+/// Minimal CLLocationManagerDelegate that forwards authorization-change events.
+private final class ARCoreLocationAuthDelegate: NSObject, CLLocationManagerDelegate, @unchecked Sendable {
+    var onAuthChange: (() -> Void)?
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        onAuthChange?()
     }
 }
