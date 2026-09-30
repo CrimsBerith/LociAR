@@ -172,6 +172,7 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     @State private var message: String?
     @State private var isDeletingAccount = false
+    @State private var isSigningOut = false
 
     var body: some View {
         List {
@@ -239,10 +240,14 @@ struct ProfileView: View {
             }
 #endif
             Section {
-                Button(role: .destructive) { Task { await session.signOut() } } label: {
+                Button(role: .destructive) {
+                    guard !isSigningOut else { return }
+                    isSigningOut = true
+                    Task { await session.signOut(); isSigningOut = false }
+                } label: {
                     Label("Çıkış yap", systemImage: "rectangle.portrait.and.arrow.right")
                 }
-                    .disabled(isDeletingAccount)
+                    .disabled(isDeletingAccount || isSigningOut)
                     .accessibilityIdentifier("profile-sign-out")
                 Button(role: .destructive) { confirmDeletion = true } label: {
                     Label("Hesabı kalıcı olarak sil", systemImage: "trash")
@@ -1040,6 +1045,7 @@ struct PostPreviewView: View {
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Diğer seçenekler")
                     .accessibilityIdentifier("post-more-menu")
                     if !collections.isEmpty {
                         Menu("Koleksiyona ekle") {
@@ -1107,6 +1113,7 @@ struct PostPreviewView: View {
                             }
                         }
                         .disabled(isCommentSending || commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityLabel("Yorumu gönder")
                         .accessibilityIdentifier("comment-submit")
                     }
                     if commentText.count > 400 {

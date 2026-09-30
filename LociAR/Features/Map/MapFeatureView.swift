@@ -36,7 +36,7 @@ struct MapFeatureView: View {
                             ZStack {
                                 Circle()
                                     .fill(LociTheme.surface)
-                                    .frame(width: 38, height: 38)
+                                    .frame(width: 44, height: 44)
                                     .overlay(Circle().stroke(LociTheme.accent, lineWidth: 2.5))
                                     .shadow(color: .black.opacity(0.35), radius: 4)
                                 Text("\(cluster.posts.count)")
@@ -217,6 +217,7 @@ struct MapFeatureView: View {
     private var statusSymbol: String { posts.isEmpty ? "location.magnifyingglass" : "mappin.and.ellipse" }
 
     private func startAndLoad() async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 #if DEBUG

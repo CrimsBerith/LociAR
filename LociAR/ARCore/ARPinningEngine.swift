@@ -68,6 +68,8 @@ final class ARPinningEngine: NSObject {
     nonisolated static let mappingReadinessTimeoutSeconds: TimeInterval = 15
     nonisolated static let worldMapCaptureMaximumAttempts = 6
     private(set) var state: PinSessionState = .idle
+    /// Set when state transitions to `.failed` via a typed `ARPinningError`; nil for free-form failures.
+    private(set) var failureReason: ARPinningError?
     private(set) var trackingQuality: TrackingQuality = .unknown
     private(set) var mappingQuality: WorldMappingQuality = .notAvailable
     private(set) var candidateQuality: PinQuality?
@@ -148,7 +150,7 @@ final class ARPinningEngine: NSObject {
 
     func requestCameraAndStart() async {
         if UITestFixtures.cameraPermissionDenied {
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
             return
         }
 #if targetEnvironment(simulator)
@@ -156,7 +158,7 @@ final class ARPinningEngine: NSObject {
         return
 #else
         guard ARWorldTrackingConfiguration.isSupported else {
-            transition(to: .failed, message: ARPinningError.unsupported.localizedDescription)
+            transition(to: .failed, error: .unsupported)
             return
         }
 
@@ -167,9 +169,9 @@ final class ARPinningEngine: NSObject {
             transition(to: .permissionRequired, message: "Yüzey taraması için kamera izni gerekiyor.")
             let allowed = await AVCaptureDevice.requestAccess(for: .video)
             if allowed { startSession(reset: true) }
-            else { transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription) }
+            else { transition(to: .failed, error: .cameraDenied) }
         default:
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
         }
 #endif
     }
@@ -178,7 +180,7 @@ final class ARPinningEngine: NSObject {
     /// Used when SwiftUI keeps the AR tab alive while switching tabs.
     func ensureLiveCameraSession() async -> Bool {
         if UITestFixtures.cameraPermissionDenied {
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
             return false
         }
 #if targetEnvironment(simulator)
@@ -206,7 +208,7 @@ final class ARPinningEngine: NSObject {
     /// stale AR session from presenting a black surface when creating a pin.
     func prepareNewPinSession(compassAligned: Bool = false) async -> Bool {
         if UITestFixtures.cameraPermissionDenied {
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
             return false
         }
 #if targetEnvironment(simulator)
@@ -227,11 +229,11 @@ final class ARPinningEngine: NSObject {
         case .notDetermined:
             transition(to: .permissionRequired, message: "Yüzey taraması için kamera izni gerekiyor.")
             guard await AVCaptureDevice.requestAccess(for: .video) else {
-                transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+                transition(to: .failed, error: .cameraDenied)
                 return false
             }
         default:
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
             return false
         }
 
@@ -289,7 +291,7 @@ final class ARPinningEngine: NSObject {
         return
 #else
         guard ARWorldTrackingConfiguration.isSupported else {
-            transition(to: .failed, message: ARPinningError.unsupported.localizedDescription)
+            transition(to: .failed, error: .unsupported)
             return
         }
         transition(to: .initializing, message: "Kamera hazırlanıyor…")
@@ -1093,10 +1095,16 @@ final class ARPinningEngine: NSObject {
             return
         }
         state = next
+        if next != .failed { failureReason = nil }
         statusMessage = message
         logger.info("AR state=\(next.rawValue, privacy: .public) tracking=\(self.trackingQuality.rawValue, privacy: .public) mapping=\(self.mappingQuality.rawValue, privacy: .public) message=\(message, privacy: .public)")
         diagnostics.append(makeDiagnosticSnapshot(message: message))
         if diagnostics.count > 500 { diagnostics.removeFirst(diagnostics.count - 500) }
+    }
+
+    private func transition(to next: PinSessionState, error: ARPinningError) {
+        if next == .failed { failureReason = error }
+        transition(to: next, message: error.localizedDescription)
     }
 
     private func recordDiagnostic(_ message: String) {

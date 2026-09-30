@@ -30,6 +30,8 @@ struct ARExperienceView: View {
     @State private var isStartingCreationMode = false
     @State private var isHandlingARSelection = false
     @State private var mappingWaitExpired = false
+    @State private var tabChangeTask: Task<Void, Never>?
+    @State private var pinRequestTask: Task<Void, Never>?
 
     init(mode: Mode = .discover) {
         self.mode = mode
@@ -83,22 +85,27 @@ struct ARExperienceView: View {
         }
         .onChange(of: router.selectedTab) { _, tab in
             if mode == .create, tab == .create {
-                Task { await startCreationMode() }
+                tabChangeTask?.cancel()
+                tabChangeTask = Task { await startCreationMode() }
             } else if mode == .create {
                 showCreate = false
                 isPreparingContent = false
                 errorMessage = nil
                 isCreationMode = false
             } else if mode == .discover, tab == .ar {
-                Task { await handleARSelection() }
+                tabChangeTask?.cancel()
+                tabChangeTask = Task { await handleARSelection() }
             }
         }
         .onChange(of: router.createPinRequested) { _, requested in
             guard requested, mode == .create else { return }
             router.createPinRequested = false
-            Task { await startCreationMode() }
+            pinRequestTask?.cancel()
+            pinRequestTask = Task { await startCreationMode() }
         }
         .onDisappear {
+            tabChangeTask?.cancel()
+            pinRequestTask?.cancel()
             location.stop()
             let siblingARTabActive = (mode == .discover && router.selectedTab == .create)
                 || (mode == .create && router.selectedTab == .ar)
@@ -397,7 +404,7 @@ struct ARExperienceView: View {
     }
 
     private var isUnsupported: Bool {
-        engine.state == .failed && engine.statusMessage.localizedCaseInsensitiveContains("desteklemiyor")
+        engine.state == .failed && engine.failureReason == .unsupported
     }
 
     private var cameraPermissionDenied: Bool {

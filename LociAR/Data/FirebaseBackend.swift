@@ -238,7 +238,7 @@ enum FirestoreJSON {
         case let map as [String: Any]: return map.mapValues { jsonSafe($0) }
         case let array as [Any]: return array.map { jsonSafe($0) }
         case let reference as DocumentReference: return reference.path
-        default: return value!
+        default: return value ?? NSNull()
         }
     }
 
