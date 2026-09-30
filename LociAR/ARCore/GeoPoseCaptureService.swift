@@ -23,11 +23,10 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
     }
 
     func capture(timeout: Duration = .seconds(20)) async -> GeoPose? {
-#if DEBUG
+        // UITestFixtures.authenticatedSessionEnabled is a compile-time false in Release builds.
         if UITestFixtures.authenticatedSessionEnabled || UITestFixtures.sampleContentEnabled {
             return UITestFixtures.anchor.geoPose
         }
-#endif
         guard continuation == nil else { return nil }
         return await withCheckedContinuation { continuation in
             self.continuation = continuation

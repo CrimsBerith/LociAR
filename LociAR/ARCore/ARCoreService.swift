@@ -71,12 +71,16 @@ final class ARCoreService {
             let geospatialSupported = created.isGeospatialModeSupported(.enabled)
             if geospatialSupported { configuration.geospatialMode = .enabled }
             do {
-                try created.setConfiguration(configuration)
+                var configErr: NSError?
+                created.setConfiguration(configuration, error: &configErr)
+                if let e = configErr { throw e }
                 availability = .running(geospatial: geospatialSupported)
             } catch {
                 // Geospatial needs precise location permission; keep Cloud Anchors without it.
                 configuration.geospatialMode = .disabled
-                try created.setConfiguration(configuration)
+                var configErr: NSError?
+                created.setConfiguration(configuration, error: &configErr)
+                if let e = configErr { throw e }
                 availability = .running(geospatial: false)
                 logger.info("Geospatial disabled: \(error.localizedDescription, privacy: .public)")
             }

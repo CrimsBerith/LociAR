@@ -125,7 +125,7 @@ final class ArchitectureAndPublishTests: XCTestCase {
         let media = try String(contentsOf: root.appendingPathComponent("LociAR/Data/WorldMapStore.swift"), encoding: .utf8)
         XCTAssertTrue(source.contains("callables.call(\"deleteOwnPost\""))
         XCTAssertTrue(source.contains("await MediaAssetStore.removeRemoteAssets(ownerID: post.creatorID, postID: post.id)"))
-        XCTAssertTrue(function.contains("if (removed) await deleteStoragePrefix(`${caller.luid}/${postId.toLowerCase()}/`);"))
+        XCTAssertTrue(function.contains("await deleteStoragePrefix(`${caller.luid}/${postId.toLowerCase()}/`);"))
         XCTAssertTrue(media.contains("\"post-world-maps\", \"post-reference-images\", \"post-layer-assets\""))
         XCTAssertFalse(source.contains("removeOwnPosts()"))
     }

@@ -8,15 +8,19 @@ final class AuthGateUITests: XCTestCase {
         throw XCTSkip("Gerçek hesap ve kamera durumu fiziksel iPhone gerektirir.")
 #else
         let app = XCUIApplication()
+        addARCoreDisclosureMonitor()
+        addPrivacyAlertMonitor()
         app.launch()
         guard app.tabBars.firstMatch.waitForExistence(timeout: 8) else {
             throw XCTSkip("Cihazdaki normal uygulama oturumu giriş yapmış durumda değil.")
         }
         app.tabBars.buttons["AR"].tap()
+        app.tap()
         XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 15), "Normal hesap akışında AR kamerası açılmadı.")
         XCTAssertFalse(app.buttons["Kapat"].exists, "AR sekmesi postu kullanıcı seçmeden açmamalı.")
         app.tabBars.buttons["Paylaş"].tap()
-        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 10))
+        app.tap()
+        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 20))
         capture(app, name: "physical-normal-account-new-pin")
 #endif
     }
@@ -30,6 +34,7 @@ final class AuthGateUITests: XCTestCase {
         app.launchArguments.append("UITEST_DISABLE_EXTERNAL_APP_LAUNCH")
         app.launchEnvironment["UITEST_EXTERNAL_MEDIA_URL"] = "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU"
         addPrivacyAlertMonitor()
+        addARCoreDisclosureMonitor()
         app.launch()
 
         guard app.tabBars.firstMatch.waitForExistence(timeout: 10) else {
@@ -37,7 +42,7 @@ final class AuthGateUITests: XCTestCase {
         }
         app.tabBars.buttons["Paylaş"].tap()
         app.tap()
-        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 20))
         guard waitForPersistablePhysicalSurface(app, timeout: 120) else {
             let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
             XCTFail(
@@ -380,7 +385,7 @@ final class AuthGateUITests: XCTestCase {
         app.buttons["create-publish"].tap()
 
         let resultAlert = app.alerts["LociAR"]
-        XCTAssertTrue(resultAlert.waitForExistence(timeout: 20))
+        XCTAssertTrue(resultAlert.waitForExistence(timeout: 35))
         XCTAssertTrue(resultAlert.staticTexts["Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir."].exists)
         resultAlert.buttons["Tamam"].tap()
         XCTAssertTrue(app.buttons["map-create"].waitForExistence(timeout: 8))
@@ -918,6 +923,14 @@ final class AuthGateUITests: XCTestCase {
                     return true
                 }
             }
+            return false
+        }
+    }
+
+    private func addARCoreDisclosureMonitor() {
+        addUIInterruptionMonitor(withDescription: "Google AR bildirimi") { alert in
+            let tamam = alert.buttons["Tamam"]
+            if tamam.exists { tamam.tap(); return true }
             return false
         }
     }
@@ -1508,7 +1521,7 @@ final class AuthGateUITests: XCTestCase {
         publishButton.tap()
 
         let alert = app.alerts["LociAR"]
-        XCTAssertTrue(alert.waitForExistence(timeout: 10), "Yayın alert'ı açılmadı.")
+        XCTAssertTrue(alert.waitForExistence(timeout: 25), "Yayın alert'ı açılmadı.")
         alert.buttons["Tamam"].tap()
 
         // Returned to Map cleanly

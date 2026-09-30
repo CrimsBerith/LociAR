@@ -1,5 +1,5 @@
 {
-  "originHash" : "a1569f9895aa2be8e24832f98525d5da4eb90b5d158a82691c15b47eb72a13d7",
+  "originHash" : "6b5fa35f4bf5fed60b00a5e9d5395c013d6fe6bde280d10fbfe51c0ab2176e0a",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "97f7d74dd0e8f3d0fe5fc75cc8957aa73bdc948a",
         "version" : "11.3.2"
+      }
+    },
+    {
+      "identity" : "arcore-ios-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/google-ar/arcore-ios-sdk.git",
+      "state" : {
+        "revision" : "dc6011fe12b08761241bb1524ca3839c6f6552fd",
+        "version" : "1.56.0"
       }
     },
     {

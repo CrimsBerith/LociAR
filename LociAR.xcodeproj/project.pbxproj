@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7A11C0DE5D15C1052A2B3C4D /* ARCoreDisclosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11C0DE5D15C1051A2B3C4D /* ARCoreDisclosure.swift */; };
 		07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B673A12AAA93EA6AEF0A6476 /* AppSession.swift */; };
 		15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */; };
 		1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */; };
@@ -95,6 +96,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7A11C0DE5D15C1051A2B3C4D /* ARCoreDisclosure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreDisclosure.swift; sourceTree = "<group>"; };
 		02D3113CEC157B882DCE675A /* AvatarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarStore.swift; sourceTree = "<group>"; };
 		041909C4E5F7479357846A3E /* ProximityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityPolicy.swift; sourceTree = "<group>"; };
 		0656173096F4B80612408176 /* LociARTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -420,6 +422,7 @@
 		F89911943F5AEA31962B349D /* AR */ = {
 			isa = PBXGroup;
 			children = (
+				7A11C0DE5D15C1051A2B3C4D /* ARCoreDisclosure.swift */,
 				D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */,
 				9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */,
 			);
@@ -589,6 +592,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A11C0DE5D15C1052A2B3C4D /* ARCoreDisclosure.swift in Sources */,
 				D761C9CEA29A60B3F1ED10AF /* ARCoreCoverageDebugView.swift in Sources */,
 				F47756884CAD320CDDFE52CA /* ARCoreService.swift in Sources */,
 				89009A411211647CBFFD0CC1 /* ARExperienceView.swift in Sources */,
