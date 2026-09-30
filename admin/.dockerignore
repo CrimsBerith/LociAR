@@ -1,9 +1,0 @@
-node_modules
-.next
-.vercel
-npm-debug.log
-.git
-.gitignore
-*.log
-*.tsbuildinfo
-.DS_Store
