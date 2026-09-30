@@ -10,7 +10,8 @@ if (getApps().length === 0) initializeApp();
 
 /** Functions region. Must match LOCIAR_FIREBASE_FUNCTIONS_REGION in the iOS build settings. */
 export const REGION = process.env.LOCIAR_FUNCTIONS_REGION || 'us-central1';
-setGlobalOptions({ region: REGION, maxInstances: 20 });
+// Low cap: new projects have a small Cloud Run CPU quota per region; raise once the quota is increased.
+setGlobalOptions({ region: REGION, maxInstances: 3 });
 
 /**
  * Callables reject requests without a valid App Check token in production. v2 callables are not
