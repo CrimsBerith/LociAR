@@ -51,6 +51,6 @@ Ekranlar primitive hex değerlerini doğrudan kullanmaz. Kamera scrim'i, medya r
 
 ## Platform adaptasyonu
 
-- iOS minimum dokunma alanı 44 pt, Android 48 dp.
-- iOS önce gerçek cihazda doğrulanır; Android aynı semantic sistemle Material davranışlarına uyarlanır.
+- iOS minimum dokunma alanı 44 pt.
+- iOS önce gerçek cihazda doğrulanır. Android bu ürünün kapsamında değildir.
 - Mevcut React Navigation korunur; görünür ana hedef sayısı beştir.

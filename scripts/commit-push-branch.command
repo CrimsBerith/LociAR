@@ -13,14 +13,9 @@ rm -f .git/index.lock 2>/dev/null || true
 git add -A
 git reset -q -- available_luxury_com_results.txt scripts/.prod-email.txt 2>/dev/null || true
 if git diff --cached --quiet; then echo "Commit'lenecek değişiklik yok." | tee "$LOG"; else
-git commit -q -F - <<'MSG' 2>&1 | tee "$LOG"
-Backend hardening: anchor ownership, quotas, idempotent counters, rules and admin fixes
-
-Issues #4 #6 #7 #8 #12 #13 #15 (cloud-claude scope): registerCloudAnchor ownership records,
-surface-texture channel closed, race-safe post quota, server-derived placement fields,
-idempotent trigger counters, content filter + reserved handles + 30-day handle cooldown,
-deleteAccount hardening (recent auth, paging, Apple revoke), durable anchor delete queue,
-Firestore/Storage rules tightening with tests, admin panel security fixes, CI additions.
+if [ -f scripts/.commit-msg.txt ]; then MSGFILE=scripts/.commit-msg.txt; else MSGFILE=/dev/stdin; fi
+git commit -q -F "$MSGFILE" 2>&1 <<'MSG' | tee "$LOG"
+Update commit
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01SSUDQfZgDdaCiY8Xr3PyRo

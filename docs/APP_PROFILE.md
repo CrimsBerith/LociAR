@@ -41,7 +41,7 @@ Yeni/yakın içerik keşfet → AR'da etkinleştir → etkileşime gir → daha 
 ## Kapsam dışı
 
 - Paywall/abonelik
-- Expo Router geçişi
+- (Expo Router geçişi iptal edildi; uygulama native iOS)
 - Bu tasarım çalışması içinde native AR anchor motorunu yeniden yazmak
 - Android için ilk halka açık mağaza yayını
 

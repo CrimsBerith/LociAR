@@ -1,3 +1,5 @@
+> **ARŞİV (30 Eylül 2026):** Bu rehber Expo/Android geçişi dönemine aittir. Güncel kaynaklar: `docs/DESIGN_SYSTEM.md`, `docs/APP_QUALITY_BAR.md`.
+
 # iOS / Android Mobil Premium Uygulama Tasarım Rehberi
 
 > **Sürüm:** 2.0 — Portföy / Codex Edition  

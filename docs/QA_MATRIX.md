@@ -4,12 +4,12 @@
 
 | Kapı | Komut | Kabul |
 |---|---|---|
-| TypeScript | `npx tsc --noEmit` | Hata yok |
-| Unit/component | `npm test -- --ci` | Tüm testler geçer |
-| Expo uyumu | `npx expo install --check` | Uyum hatası yok |
-| iOS bundle | `npx expo export --platform ios --clear` | Export başarılı |
-| Native iOS build | `xcodebuild -workspace ios/LociAR.xcworkspace ... build` | Swift/Pods build başarılı |
-| Admin type/build | `cd admin && npm run typecheck && npm run build` | Hata yok |
+| Proje üretimi | `xcodegen generate` | `LociAR.xcodeproj` hatasız üretilir |
+| iOS build + unit | `xcodebuild -scheme LociAR -destination 'platform=iOS Simulator,name=iPhone 16' build test` | Build ve unit testler geçer |
+| Functions | `cd functions && npm run typecheck && npm test` | Hata yok |
+| Rules | `cd functions && npm run test:rules` | Firestore + Storage rules testleri geçer (Java 21) |
+| Callable entegrasyon | `cd functions && npm run test:emulator` | Emulator entegrasyon testleri geçer |
+| Admin | `cd admin && npm run typecheck && npm test && npm run build` | Hata yok |
 
 ## Golden flows
 

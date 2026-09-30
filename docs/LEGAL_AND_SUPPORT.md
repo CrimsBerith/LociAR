@@ -6,18 +6,11 @@ Replace placeholders before submission.
 
 | Item | Placeholder | Action |
 |------|-------------|--------|
-| Privacy Policy | `https://example.com/lociar/privacy` | Host real policy (location, camera, UGC, retention, delete) |
-| Terms of Use | `https://example.com/lociar/terms` | Host terms + UGC rules |
-| Support | `mailto:support@example.com` or `https://example.com/lociar/support` | Monitored inbox |
+| Privacy Policy | `https://lociar-admin.vercel.app/privacy` | Host real policy (location, camera, UGC, retention, delete) |
+| Terms of Use | `https://lociar-admin.vercel.app/terms` | Host terms + UGC rules |
+| Support | `https://lociar-admin.vercel.app/support` | Monitored inbox |
 
-Set in EAS / env:
-
-```bash
-EXPO_PUBLIC_PRIVACY_URL=https://...
-EXPO_PUBLIC_TERMS_URL=https://...
-EXPO_PUBLIC_SUPPORT_URL=https://...
-EXPO_PUBLIC_SUPPORT_EMAIL=support@...
-```
+Values live in `Config/Base.xcconfig` (`LOCIAR_PRIVACY_URL`, `LOCIAR_TERMS_URL`, `LOCIAR_SUPPORT_URL`); the pages are served by the admin app (`admin/app/{privacy,terms,support}`).
 
 ## Privacy policy must cover
 

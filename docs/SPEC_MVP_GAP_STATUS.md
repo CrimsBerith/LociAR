@@ -46,8 +46,8 @@ Updated: 2026-07-25
 cd /Users/khankartal/Desktop/loci/LociAR
 export PATH="$HOME/.local/node/bin:$PATH"
 npx supabase login
-export SUPABASE_PROJECT_REF=zijavwumpsdlfosylkjo
-npx supabase link --project-ref zijavwumpsdlfosylkjo
+export SUPABASE_PROJECT_REF=<removed>
+npx supabase link --project-ref <removed>
 npx supabase db push
 npx supabase functions deploy create_post
 npm run supabase:online-check
