@@ -41,7 +41,8 @@ final class AuthGateUITests: XCTestCase {
         app.tap()
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 20))
         guard waitForPersistablePhysicalSurface(app, timeout: 120) else {
-            let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
+            let diagEl = app.staticTexts["ar-mapping-diagnostic"]
+            let diagnostic = diagEl.exists ? diagEl.label : "(tanı yok)"
             XCTFail(
                 "Canlı yayın testi için kaydedilebilir gerçek yüzey hazırlanamadı; "
                     + "telefonu dokulu yüzey çevresinde gezdirin. Tanı: \(diagnostic)"
@@ -379,7 +380,11 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(captionField.waitForExistence(timeout: 5))
         captionField.tap()
         captionField.typeText(caption)
-        app.buttons["create-publish"].tap()
+        dismissKeyboard(app)
+
+        let publishButton = app.buttons["create-publish"]
+        XCTAssertTrue(waitForHittable(publishButton, timeout: 5), "Publish butonu erişilemez")
+        publishButton.tap()
 
         let resultAlert = app.alerts["LociAR"]
         XCTAssertTrue(resultAlert.waitForExistence(timeout: 35))
@@ -1504,9 +1509,11 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(captionField.waitForExistence(timeout: 5))
         captionField.tap()
         captionField.typeText("iPhone Fiziksel Pin Testi")
+        dismissKeyboard(app)
 
         let publishButton = app.buttons["create-publish"]
         XCTAssertTrue(publishButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(waitForHittable(publishButton, timeout: 5), "Publish butonu erişilemez")
         publishButton.tap()
 
         let alert = app.alerts["LociAR"]
