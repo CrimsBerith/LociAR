@@ -10,8 +10,13 @@ if (getApps().length === 0) initializeApp();
 
 /** Functions region. Must match LOCIAR_FIREBASE_FUNCTIONS_REGION in the iOS build settings. */
 export const REGION = process.env.LOCIAR_FUNCTIONS_REGION || 'us-central1';
-// Low cap: new projects have a small Cloud Run CPU quota per region; raise once the quota is increased.
-setGlobalOptions({ region: REGION, maxInstances: 3 });
+// Quota budget: event triggers get maxInstances:1 (async, latency-insensitive); user-facing
+// callables get maxInstances:2 via CALLABLE_MAX_INSTANCES. Rolling deploys stay well under quota.
+// 11 triggers×1 + 10 callables×2 = 31 vCPU peak (+ headroom for new revision startup).
+setGlobalOptions({ region: REGION, maxInstances: 1 });
+
+/** User-facing callables need a second instance to avoid cold-start queuing under light load. */
+export const CALLABLE_MAX_INSTANCES = 2;
 
 /**
  * Callables reject requests without a valid App Check token in production. v2 callables are not

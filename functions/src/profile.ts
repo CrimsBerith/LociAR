@@ -1,5 +1,5 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { auth, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller } from './core';
+import { auth, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller } from './core';
 import { reasonError } from './errors';
 import { handleIsBlocked, isReservedHandle, anyBlocked } from './moderation';
 import { handleCooldownRemaining } from './limits';
@@ -24,7 +24,7 @@ function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean
  *  - a private record at users_private/{luid} maps back to the Firebase UID.
  * Returns `claimsUpdated: true` when the client must force-refresh its ID token.
  */
-export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
+export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown };
 
@@ -110,7 +110,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, asyn
  * two users can never end up with the same handle. Denormalised copies are updated by
  * onProfileUpdated.
  */
-export const updateHandle = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
+export const updateHandle = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   const requested = (request.data as { handle?: unknown })?.handle;
   const handle = typeof requested === 'string' ? requested.trim().toLowerCase() : '';

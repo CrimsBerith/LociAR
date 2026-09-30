@@ -4,7 +4,7 @@ import { appleConfigFromEnv, revokeAppleAuthorization } from './apple';
 import { reasonError } from './errors';
 import { isRecentAuth } from './limits';
 import { deleteAnchorOfPost } from './anchors';
-import { auth, db, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
+import { auth, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
 
 async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFirestore.BulkWriter): Promise<number> {
   let total = 0;
@@ -31,7 +31,7 @@ async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFires
 /** .p8 contents; Secret Manager. TEAM_ID/KEY_ID/CLIENT_ID come from functions/.env.<project> (see .env.example). */
 const APPLE_PRIVATE_KEY = defineSecret('APPLE_PRIVATE_KEY');
 
-export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enforceAppCheck: ENFORCE_APP_CHECK, secrets: [APPLE_PRIVATE_KEY] }, async (request) => {
+export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [APPLE_PRIVATE_KEY] }, async (request) => {
   const caller = requireCaller(request);
   const luid = caller.luid;
   if (!isRecentAuth(request.auth?.token?.auth_time, Date.now())) {

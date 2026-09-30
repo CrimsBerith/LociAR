@@ -1,6 +1,6 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { GoogleAuth } from 'google-auth-library';
-import { db, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
+import { db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
 import { profileBlock } from './profileGuard';
 import { reasonError } from './errors';
 import { buildArcoreClaims, tokenQuotaDocId } from './arcoreToken';
@@ -30,7 +30,7 @@ async function signJwt(email: string, payload: object): Promise<string> {
   return response.data.signedJwt;
 }
 
-export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
+export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   const profile = await db.collection('profiles').doc(caller.luid).get();
   const blocked = profileBlock(profile.data());

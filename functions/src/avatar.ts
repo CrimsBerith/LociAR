@@ -1,6 +1,6 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import { bucket, db, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
+import { bucket, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
 import { reasonError } from './errors';
 import { bumpWindow } from './limits';
 import { judgeSafeSearch, level, LEVELS, type SafeSearch } from './avatarPolicy';
@@ -22,7 +22,7 @@ let vision: ImageAnnotatorClient | null = null;
  * trigger: triggers need Eventarc/Pub-Sub IAM grants that org policies can block. The path is built
  * from the caller's own luid, so nobody can screen or publish someone else's upload.
  */
-export const screenAvatar = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
+export const screenAvatar = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const { luid } = requireCaller(request);
   const id = String((request.data as { objectId?: unknown } | undefined)?.objectId ?? '').toLowerCase();
   const path = `avatars/${luid}/pending/${id}.jpg`;

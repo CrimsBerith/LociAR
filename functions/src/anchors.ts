@@ -1,5 +1,5 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { db, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, requireCaller, Timestamp } from './core';
+import { db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, requireCaller, Timestamp } from './core';
 import { reasonError } from './errors';
 import { deleteAnchorOrQueue } from './anchorQueue';
 
@@ -14,7 +14,7 @@ export const MAX_ANCHORS_PER_DAY = 100;
  * is not bound to the post being deleted, so a leaked anchor id cannot be used to take over or
  * delete someone else's anchor.
  */
-export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
+export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   if (!identityVerified(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
