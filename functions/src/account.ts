@@ -1,4 +1,5 @@
 import { onCall } from 'firebase-functions/v2/https';
+import { defineSecret } from 'firebase-functions/params';
 import { appleConfigFromEnv, revokeAppleAuthorization } from './apple';
 import { reasonError } from './errors';
 import { isRecentAuth } from './limits';
@@ -27,7 +28,10 @@ async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFires
  * the client sent `appleAuthorizationCode`, else the client attests `appleRevokedByClient`.
  * Any revocation failure aborts before anything is deleted.
  */
-export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
+/** .p8 contents; Secret Manager. TEAM_ID/KEY_ID/CLIENT_ID come from functions/.env.<project> (see .env.example). */
+const APPLE_PRIVATE_KEY = defineSecret('APPLE_PRIVATE_KEY');
+
+export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enforceAppCheck: ENFORCE_APP_CHECK, secrets: [APPLE_PRIVATE_KEY] }, async (request) => {
   const caller = requireCaller(request);
   const luid = caller.luid;
   if (!isRecentAuth(request.auth?.token?.auth_time, Date.now())) {

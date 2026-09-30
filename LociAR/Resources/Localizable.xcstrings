@@ -1,0 +1,105 @@
+{
+  "sourceLanguage": "tr",
+  "version": "1.0",
+  "strings": {
+    "Gerçek mekânlara bağlı hikâyeler.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stories tied to real places."
+          }
+        }
+      }
+    },
+    "Devam ederek gizlilik ve topluluk kurallarını kabul edersiniz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By continuing you accept the privacy policy and community rules."
+          }
+        }
+      }
+    },
+    "veya": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        }
+      }
+    },
+    "Şifremi unuttum": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot my password"
+          }
+        }
+      }
+    },
+    "Kayıttan sonra e-posta adresine gönderilen bağlantıyla hesabını doğrula.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After signing up, verify your account with the link sent to your email."
+          }
+        }
+      }
+    },
+    "E-posta Doğrulaması": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email verification"
+          }
+        }
+      }
+    },
+    "Yapıştır": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste"
+          }
+        }
+      }
+    },
+    "İçerik": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content"
+          }
+        }
+      }
+    },
+    "Caption veya geçerli bir sosyal bağlantı ekle.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a caption or a valid social link."
+          }
+        }
+      }
+    }
+  }
+}

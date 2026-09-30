@@ -17,7 +17,7 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   and moderation are written **only** by Cloud Functions / Admin SDK. The iOS client never writes `posts` or
   counter fields and never falls back to direct Firestore writes when a callable fails — surface the error instead.
 - Usernames are unique: they change only through the `updateHandle` callable (`handles/{handle}` reservations).
-  Profile photos are uploaded to `avatars/{luid}/pending/` and published only by `onAvatarUploaded` after
+  Profile photos are uploaded to `avatars/{luid}/pending/` and published only by `screenAvatar` after
   Cloud Vision SafeSearch; clients may set `avatar_preset` (fixed list) or clear `avatar_url`, nothing else.
 - Identity is the `luid` custom claim (UUIDv5 of the Firebase UID) set by the `ensureProfile` callable.
   Rules and Storage paths key on `request.auth.token.luid`.

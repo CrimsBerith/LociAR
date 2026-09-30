@@ -6,6 +6,8 @@ import { HttpsError, type FunctionsErrorCode } from 'firebase-functions/v2/https
  */
 export const REASONS = [
   'profile_missing',
+  'invalid_avatar',
+  'avatar_not_found',
   'account_suspended',
   'identity_unverified',
   'protected_zone',

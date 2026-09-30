@@ -1,6 +1,7 @@
-import { onObjectFinalized } from 'firebase-functions/v2/storage';
+import { onCall } from 'firebase-functions/v2/https';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import { bucket, db, FieldValue, logEvent } from './core';
+import { bucket, db, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
+import { reasonError } from './errors';
 import { bumpWindow } from './limits';
 import { judgeSafeSearch, level, LEVELS, type SafeSearch } from './avatarPolicy';
 
@@ -16,11 +17,24 @@ const PENDING_PATH = /^avatars\/([0-9a-f-]{36})\/pending\/([0-9a-f-]{36})\.jpg$/
 const AVATAR_UPLOADS_PER_HOUR = 5;
 let vision: ImageAnnotatorClient | null = null;
 
-export const onAvatarUploaded = onObjectFinalized({ memory: '512MiB', timeoutSeconds: 60 }, async (event) => {
-  const path = event.data.name ?? '';
-  const match = PENDING_PATH.exec(path);
-  if (!match) return;
-  const [, luid, id] = match;
+/**
+ * Screening runs from this callable (the app calls it right after uploading) instead of a Storage
+ * trigger: triggers need Eventarc/Pub-Sub IAM grants that org policies can block. The path is built
+ * from the caller's own luid, so nobody can screen or publish someone else's upload.
+ */
+export const screenAvatar = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
+  const { luid } = requireCaller(request);
+  const id = String((request.data as { objectId?: unknown } | undefined)?.objectId ?? '').toLowerCase();
+  const path = `avatars/${luid}/pending/${id}.jpg`;
+  if (!PENDING_PATH.test(path)) throw reasonError('invalid-argument', 'Invalid avatar', 'invalid_avatar');
+  const [exists] = await bucket().file(path).exists();
+  if (!exists) throw reasonError('not-found', 'Avatar upload not found', 'avatar_not_found');
+  const status = await screenAvatarObject(luid, id, path);
+  return { status };
+});
+
+async function screenAvatarObject(luid: string, id: string, path: string): Promise<'accepted' | 'rejected' | 'rate_limited' | 'superseded'> {
+  const bucketName = bucket().name;
   const pending = bucket().file(path);
   const reviewRef = db.collection('avatar_reviews').doc(luid);
 
@@ -35,14 +49,14 @@ export const onAvatarUploaded = onObjectFinalized({ memory: '512MiB', timeoutSec
   if (!admitted) {
     await pending.delete({ ignoreNotFound: true });
     await logEvent({ userId: luid, name: 'avatar_rate_limited' });
-    return;
+    return 'rate_limited';
   }
 
   let verdict: 'accepted' | 'rejected' = 'rejected';
   let annotation: SafeSearch = null;
   try {
     vision ??= new ImageAnnotatorClient();
-    const [result] = await vision.safeSearchDetection(`gs://${event.data.bucket}/${path}`);
+    const [result] = await vision.safeSearchDetection(`gs://${bucketName}/${path}`);
     annotation = result.safeSearchAnnotation as SafeSearch;
     verdict = judgeSafeSearch(annotation);
   } catch (error) {
@@ -54,7 +68,7 @@ export const onAvatarUploaded = onObjectFinalized({ memory: '512MiB', timeoutSec
     await pending.delete({ ignoreNotFound: true });
     await privateRef.set({ avatar_rejected_at: FieldValue.serverTimestamp() }, { merge: true });
     await logEvent({ userId: luid, name: 'avatar_rejected' });
-    return;
+    return 'rejected';
   }
 
   const profileRef = db.collection('profiles').doc(luid);
@@ -80,7 +94,7 @@ export const onAvatarUploaded = onObjectFinalized({ memory: '512MiB', timeoutSec
   await pending.delete({ ignoreNotFound: true });
   if (!published) {
     await bucket().file(currentPath).delete({ ignoreNotFound: true });
-    return;
+    return 'superseded';
   }
   await privateRef.set({ avatar_rejected_at: null }, { merge: true });
 
@@ -88,4 +102,5 @@ export const onAvatarUploaded = onObjectFinalized({ memory: '512MiB', timeoutSec
   const [older] = await bucket().getFiles({ prefix: `avatars/${luid}/current/` });
   await Promise.all(older.filter((f) => f.name !== currentPath).map((f) => f.delete({ ignoreNotFound: true })));
   await logEvent({ userId: luid, name: 'avatar_accepted' });
-});
+  return 'accepted';
+}

@@ -65,7 +65,7 @@ elle yapılışıdır.
    backend'e bağlanacaksan Xcode konsolunda basılan App Check debug token'ını konsolda "Manage debug tokens"
    altına ekle; yoksa callable'lar `unauthenticated` döner.
 8. **Cloud Vision API**: Google Cloud Console → APIs & Services → *Cloud Vision API* → Enable. Profil fotoğrafı
-   denetimi (`onAvatarUploaded`) bunu kullanır; kapalıysa tüm fotoğraflar reddedilir (fail-closed). Aylık ilk
+   denetimi (`screenAvatar`) bunu kullanır; kapalıysa tüm fotoğraflar reddedilir (fail-closed). Aylık ilk
    1000 görsel ücretsiz.
 9. **Google ARCore (Geospatial + Cloud Anchors)** — keyless yetkilendirme, anahtar dosyası yok:
    - Google Cloud Console → APIs & Services → **ARCore API** → Enable.

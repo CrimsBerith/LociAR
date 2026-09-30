@@ -217,6 +217,12 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             metadata.contentType = "image/jpeg"
             let path = "avatars/\(luid)/pending/\(UUID().uuidString.lowercased()).jpg"
             _ = try await Storage.storage().reference(withPath: path).putDataAsync(jpeg, metadata: metadata)
+            // Screening runs server-side in a callable (no Storage trigger / extra IAM needed).
+            struct ScreenPayload: Encodable, Sendable { let objectId: String }
+            struct ScreenResponse: Decodable, Sendable { let status: String }
+            let objectId = (path as NSString).lastPathComponent.replacingOccurrences(of: ".jpg", with: "")
+            let screened: ScreenResponse = try await callables.call("screenAvatar", payload: ScreenPayload(objectId: objectId))
+            if screened.status == "rejected" { throw AuthFlowError.invalidPhoto }
         }
         return try await establish(user)
     }
