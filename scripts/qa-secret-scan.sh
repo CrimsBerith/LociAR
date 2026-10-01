@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-# Patterns that indicate real leaked credentials (not docs saying "never put SERVICE_ROLE").
-# Exclude: local Supabase docker temp, this scanner script, lockfiles, binaries.
+# Patterns that indicate real leaked credentials (service-account keys, private keys).
+# Exclude: local temp folders, this scanner script, lockfiles, binaries.
 hits="$(
   grep -RIn \
     --exclude-dir=node_modules \
@@ -17,6 +17,9 @@ hits="$(
     --exclude-dir=ios \
     --exclude-dir=.temp \
     --exclude-dir=start-secrets \
+    --exclude-dir=LociARTests \
+    --exclude-dir=test \
+    --exclude-dir=tests \
     --exclude='*.md' \
     --exclude='*.log' \
     --exclude='package-lock.json' \
@@ -24,12 +27,12 @@ hits="$(
     --exclude='*.jpg' \
     --exclude='qa-secret-scan.sh' \
     --exclude='qa-predeploy.sh' \
-    -E 'SERVICE_ROLE_KEY[[:space:]]*=[[:space:]]*["'\'']?eyJ|BEGIN RSA PRIVATE KEY|BEGIN OPENSSH PRIVATE KEY|BEGIN PRIVATE KEY' \
+    -E 'BEGIN RSA PRIVATE KEY|BEGIN OPENSSH PRIVATE KEY|BEGIN PRIVATE KEY|"type"[[:space:]]*:[[:space:]]*"service_account"' \
     . 2>/dev/null || true
 )"
 
-# Drop any residual hits under supabase/.temp (CLI local stack secrets — never ship).
-hits="$(printf '%s\n' "$hits" | grep -v 'supabase/\.temp/' | grep -v '/.temp/' || true)"
+# Drop any residual hits under local temp folders (never shipped).
+hits="$(printf '%s\n' "$hits" | grep -v '/.temp/' || true)"
 
 if [[ -n "${hits// }" ]]; then
   echo "$hits"

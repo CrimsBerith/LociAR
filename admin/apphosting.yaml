@@ -1,0 +1,25 @@
+# Firebase App Hosting config for the LociAR admin panel (Next.js SSR).
+# Backend: `lociar-admin` in project lociar-2f38c, region us-central1 (see docs/FIREBASE_SETUP.md §5).
+# The server runs as the backend's service account, so no service-account key is configured here.
+# Public web-app identifiers come from FIREBASE_WEBAPP_CONFIG (see next.config.ts).
+
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: ADMIN_ORIGIN
+    value: https://lociar-admin--lociar-2f38c.us-central1.hosted.app
+    availability:
+      - RUNTIME
+  - variable: FIREBASE_STORAGE_BUCKET
+    value: lociar-2f38c.firebasestorage.app
+    availability:
+      - RUNTIME
+  - variable: FIREBASE_FUNCTIONS_REGION
+    value: us-central1
+    availability:
+      - RUNTIME

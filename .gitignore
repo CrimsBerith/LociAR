@@ -54,9 +54,6 @@ functions/lib/
 .gradle/
 .tmp/
 
-# Local Supabase CLI temp secrets
-supabase/.temp/
-
 # AI agent / editor tool folders
 .agents/
 .continue

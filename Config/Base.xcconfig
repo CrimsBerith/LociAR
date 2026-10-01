@@ -7,9 +7,9 @@ LOCIAR_FIREBASE_PROJECT_ID =
 LOCIAR_FIREBASE_STORAGE_BUCKET =
 LOCIAR_FIREBASE_FUNCTIONS_REGION = us-central1
 LOCIAR_EMULATOR_HOST =
-LOCIAR_PRIVACY_URL = https:/$()/lociar-admin.vercel.app/privacy
-LOCIAR_TERMS_URL = https:/$()/lociar-admin.vercel.app/terms
-LOCIAR_SUPPORT_URL = https:/$()/lociar-admin.vercel.app/support
+LOCIAR_PRIVACY_URL = https:/$()/lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy
+LOCIAR_TERMS_URL = https:/$()/lociar-admin--lociar-2f38c.us-central1.hosted.app/terms
+LOCIAR_SUPPORT_URL = https:/$()/lociar-admin--lociar-2f38c.us-central1.hosted.app/support
 
 // Machine-local credentials. This file is intentionally excluded from source control.
 #include? "Local.xcconfig"

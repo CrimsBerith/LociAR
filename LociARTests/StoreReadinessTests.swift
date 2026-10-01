@@ -104,26 +104,26 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertNil(AppConfiguration.publicHTTPSURL("https://YOUR-DOMAIN.example/privacy"))
         XCTAssertNil(AppConfiguration.publicHTTPSURL("https://example.com/lociar/privacy"))
         XCTAssertNil(AppConfiguration.publicHTTPSURL("https://www.example.org/terms"))
-        XCTAssertNil(AppConfiguration.publicHTTPSURL("http://lociar-admin.vercel.app/privacy"))
+        XCTAssertNil(AppConfiguration.publicHTTPSURL("http://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy"))
         XCTAssertEqual(
-            AppConfiguration.publicHTTPSURL("https://lociar-admin.vercel.app/privacy")?.absoluteString,
-            "https://lociar-admin.vercel.app/privacy"
+            AppConfiguration.publicHTTPSURL("https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy")?.absoluteString,
+            "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy"
         )
         XCTAssertEqual(
-            AppConfiguration.publicHTTPSURL("https://lociar-admin.vercel.app/terms")?.absoluteString,
-            "https://lociar-admin.vercel.app/terms"
+            AppConfiguration.publicHTTPSURL("https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms")?.absoluteString,
+            "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms"
         )
         XCTAssertEqual(
-            AppConfiguration.publicHTTPSURL("https://lociar-admin.vercel.app/support")?.absoluteString,
-            "https://lociar-admin.vercel.app/support"
+            AppConfiguration.publicHTTPSURL("https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support")?.absoluteString,
+            "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support"
         )
     }
 
     func testShippedConfigurationExposesConfiguredLegalHTTPSURLs() throws {
         let configuration = AppConfiguration.load(bundle: appBundle)
-        XCTAssertEqual(configuration.privacyPolicyURL?.absoluteString, "https://lociar-admin.vercel.app/privacy")
-        XCTAssertEqual(configuration.termsURL?.absoluteString, "https://lociar-admin.vercel.app/terms")
-        XCTAssertEqual(configuration.supportURL?.absoluteString, "https://lociar-admin.vercel.app/support")
+        XCTAssertEqual(configuration.privacyPolicyURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy")
+        XCTAssertEqual(configuration.termsURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms")
+        XCTAssertEqual(configuration.supportURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support")
         XCTAssertTrue(configuration.appleAuthEnabled)
         for url in [configuration.privacyPolicyURL, configuration.termsURL, configuration.supportURL] {
             let value = try XCTUnwrap(url?.absoluteString)

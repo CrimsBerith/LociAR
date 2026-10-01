@@ -31,11 +31,11 @@ Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App 
 Apple tarafından canlı doğrulamadan geçen ve HTTP 200 yanıtı veren güncel URL'ler:
 
 * **Gizlilik Politikası (Privacy Policy URL):**  
-  `https://lociar-admin.vercel.app/privacy`
+  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy`
 * **Kullanım Koşulları ve EULA (Terms of Use URL):**  
-  `https://lociar-admin.vercel.app/terms`
+  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms`
 * **Destek Sayfası (Support URL):**  
-  `https://lociar-admin.vercel.app/support`
+  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support`
 * **Destek İletişim E-Postası (Contact Email):**  
   `support@lociar.app` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmıştır)*
 
@@ -111,7 +111,7 @@ LociAR is a spatial augmented reality social application that allows users to di
 - Blocking: Users can block abusive creators via the ellipsis (...) menu on posts or from the creator's profile. Blocked users' posts, comments and profile are hidden immediately, and they can no longer comment on, like or follow the blocker.
 - Comment removal: Authors can delete their own comments; post owners can delete comments on their posts.
 - Account Deletion: Users can permanently delete their account and all associated data at any time via Profile -> 'Delete Account' (Guideline 5.1.1(v)).
-- Support: Direct support contact is available via support@lociar.app and https://lociar-admin.vercel.app/support.
+- Support: Direct support contact is available via support@lociar.app and https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support.
 
 If you have any questions or require additional details, please reach out to us at support@lociar.app.
 ```
