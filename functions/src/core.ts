@@ -85,15 +85,18 @@ export function isUUID(value: unknown): value is string {
   return typeof value === 'string' && uuidValidate(value);
 }
 
-export async function logEvent(event: {
+export type AnalyticsEvent = {
   userId?: string | null;
   postId?: string | null;
   name: string;
   properties?: Record<string, unknown>;
   lat?: number;
   lng?: number;
-}): Promise<void> {
-  await db.collection('analytics_events').add({
+};
+
+/** Document body for analytics_events; used by logEvent and by transactions that need a fixed id. */
+export function analyticsEventDoc(event: AnalyticsEvent) {
+  return {
     user_id: event.userId ?? null,
     post_id: event.postId ?? null,
     event_name: event.name,
@@ -103,7 +106,11 @@ export async function logEvent(event: {
     created_at: FieldValue.serverTimestamp(),
     // TTL policy on analytics_events.expires_at deletes events (incl. coarse location) after 180 days.
     expires_at: Timestamp.fromMillis(Date.now() + ANALYTICS_RETENTION_DAYS * 86_400_000),
-  });
+  };
+}
+
+export async function logEvent(event: AnalyticsEvent): Promise<void> {
+  await db.collection('analytics_events').add(analyticsEventDoc(event));
 }
 
 export const ANALYTICS_RETENTION_DAYS = 180;

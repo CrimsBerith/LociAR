@@ -7,9 +7,10 @@ import { buildArcoreClaims, tokenQuotaDocId } from './arcoreToken';
 
 /**
  * Keyless ARCore authorization: the app never holds a Google credential. This callable signs a
- * one-hour JWT with the Functions runtime service account through the IAM Credentials API
- * (no key file). The runtime account needs roles/iam.serviceAccountTokenCreator on itself,
- * and the ARCore API must be enabled (docs/FIREBASE_SETUP.md).
+ * one-hour JWT through the IAM Credentials API (no key file) as ARCORE_SIGNER_EMAIL, a dedicated
+ * service account with no project roles (`arcore-client-signer@`). The Functions runtime account
+ * holds roles/iam.serviceAccountTokenCreator on that account only, so a leaked ARCore token
+ * carries no other permission (scripts/google-cloud-setup.command, docs/FIREBASE_SETUP.md).
  */
 const TOKENS_PER_HOUR = 30;
 const googleAuth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
@@ -17,6 +18,8 @@ let signerEmail: string | null = process.env.ARCORE_SIGNER_EMAIL || null;
 
 async function runtimeServiceAccountEmail(): Promise<string> {
   if (signerEmail) return signerEmail;
+  // Fallback for local setups only: signing as the runtime account needs Token Creator on itself.
+  console.warn(JSON.stringify({ event: 'arcore_signer_env_missing', code: 'ARCORE_SIGNER_EMAIL is not set; signing ARCore tokens as the runtime service account. Run scripts/google-cloud-setup.command.' }));
   const credentials = await googleAuth.getCredentials();
   if (!credentials.client_email) throw new Error('Runtime service account email unavailable');
   signerEmail = credentials.client_email;

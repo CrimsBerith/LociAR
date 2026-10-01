@@ -69,11 +69,13 @@ elle yapılışıdır.
    1000 görsel ücretsiz.
 9. **Google ARCore (Geospatial + Cloud Anchors)** — keyless yetkilendirme, anahtar dosyası yok:
    - Google Cloud Console → APIs & Services → **ARCore API** → Enable.
-   - IAM → Functions'ın çalıştığı servis hesabı (varsayılan: `<PROJE_NUMARASI>-compute@developer.gserviceaccount.com`)
-     → kendi üzerinde **Service Account Token Creator** (`roles/iam.serviceAccountTokenCreator`) rolünü ver:
-     `gcloud iam service-accounts add-iam-policy-binding <SA> --member=serviceAccount:<SA> --role=roles/iam.serviceAccountTokenCreator`
-   - `getArcoreToken` callable bu hesapla 1 saatlik JWT imzalar; uygulama `GARSession.setAuthToken` ile kullanır.
-     Farklı bir hesap kullanılacaksa Functions ortamında `ARCORE_SIGNER_EMAIL` ayarla.
+   - Ayrı, **rolsüz** bir imzalayıcı hesap: `arcore-client-signer@<PROJE>.iam.gserviceaccount.com`.
+     Functions'ın çalıştığı hesap (varsayılan `<PROJE_NUMARASI>-compute@developer.gserviceaccount.com`) yalnız bu
+     hesap üzerinde **Service Account Token Creator** alır; kendi üzerinde almaz, Editor almaz.
+     `scripts/google-cloud-setup.command` bunları yapar ve `functions/.env.<PROJE>` içine
+     `ARCORE_SIGNER_EMAIL` yazar.
+   - `getArcoreToken` callable bu hesap adına 1 saatlik JWT imzalar; uygulama `GARSession.setAuthToken` ile kullanır.
+     `ARCORE_SIGNER_EMAIL` yoksa `arcore_signer_env_missing` uyarısı loglanır.
    - Billing → ARCore API kullanım/ücret satırını deploy öncesi kontrol et (dokümanda yalnız kota var).
 10. Project settings → Your apps:
    - iOS app ekle: bundle ID `com.khankartal.lociar`. `GoogleService-Info.plist` içindeki değerleri
@@ -176,9 +178,9 @@ Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yenide
 
 Uygula: `gcloud storage buckets update gs://lociar-2f38c.firebasestorage.app --lifecycle-file=lifecycle.json`; doğrula: `gcloud storage buckets describe gs://lociar-2f38c.firebasestorage.app --format="default(lifecycle_config)"`.
 
-**Firestore TTL.** `firestore.indexes.json` içindeki `expires_at` TTL alanları (`post_view_receipts` 30 gün, `activity_events` 180 gün, `filtered_comments` 90 gün, `trigger_receipts` 7 gün, `post_quota`, `arcore_token_quota`) `firebase deploy --only firestore:indexes` ile etkinleşir.
+**Firestore TTL.** `firestore.indexes.json` içindeki `expires_at` TTL alanları (`post_view_receipts` 30 gün, `activity_events` 180 gün, `filtered_comments` 90 gün, `trigger_receipts` 7 gün, `post_quota`, `arcore_token_quota`, `anchor_quota`, bağlanmamış `cloud_anchors` 7 gün) `firebase deploy --only firestore:indexes` ile etkinleşir.
 
-**Apple token iptali (sunucu).** `deleteAccount` sunucuda iptal yapabilir; Functions ortamına `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_CLIENT_ID` (bundle id) ve `APPLE_PRIVATE_KEY` (.p8 içeriği, Secret Manager) verilince devreye girer. O zamana kadar istemci iptal edip `appleRevokedByClient: true` gönderir; ikisi de yoksa Apple hesabı silinmez.
+**Apple token iptali (sunucu, zorunlu).** iOS hesap silmede Sign in with Apple ile yeni bir `authorizationCode` alır ve `deleteAccount`'a gönderir; sunucu Apple'da iptal eder. Functions ortamında `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_CLIENT_ID` (`functions/.env.<PROJE>`) ve `APPLE_PRIVATE_KEY` (.p8 içeriği, Secret Manager) yoksa (`apple_revoke_unavailable`) ya da Apple iptali reddederse (`apple_revoke_failed`) **hiçbir şey silinmez**.
 
 **Cloud Anchor göç betikleri.** Eski postlar için bir kez: `FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/backfill-cloud-anchors.mjs --apply`; uzun `display_name` düzeltmesi: `node functions/scripts/fix-long-display-names.mjs --apply`. (Önce `--apply`sız kuru çalıştırma yap.)
 

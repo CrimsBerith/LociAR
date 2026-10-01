@@ -1,6 +1,8 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import { bucket, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
+import { randomUUID } from 'node:crypto';
+import { bucket, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller, Timestamp } from './core';
+import { profileBlock } from './profileGuard';
 import { reasonError } from './errors';
 import { bumpWindow } from './limits';
 import { judgeSafeSearch, level, LEVELS, type SafeSearch } from './avatarPolicy';
@@ -14,8 +16,43 @@ import { judgeSafeSearch, level, LEVELS, type SafeSearch } from './avatarPolicy'
  */
 
 const PENDING_PATH = /^avatars\/([0-9a-f-]{36})\/pending\/([0-9a-f-]{36})\.jpg$/;
-const AVATAR_UPLOADS_PER_HOUR = 5;
+export const AVATAR_UPLOADS_PER_HOUR = 5;
+/** Pending uploads nobody screened (app killed, call failed) are deleted by cleanupPostMedia. */
+export const PENDING_AVATAR_GRACE_HOURS = 48;
+const uploadSlotRef = (id: string) => db.collection('avatar_uploads').doc(id);
 let vision: ImageAnnotatorClient | null = null;
+
+async function requireActiveProfile(luid: string): Promise<void> {
+  const blocked = profileBlock((await db.collection('profiles').doc(luid).get()).data());
+  if (blocked) throw reasonError('permission-denied', blocked.message, blocked.reason);
+}
+
+/**
+ * Hands out one upload slot (`avatar_uploads/{objectId}`), counted against the hourly quota.
+ * Storage rules accept `avatars/{luid}/pending/{objectId}.jpg` only while the caller owns that
+ * slot, so the quota counts uploads, not screening calls. screenAvatar consumes the slot.
+ */
+export const beginAvatarUpload = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
+  const { luid } = requireCaller(request);
+  await requireActiveProfile(luid);
+  const objectId = randomUUID();
+  const now = Date.now();
+  const reviewRef = db.collection('avatar_reviews').doc(luid);
+  const admitted = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(reviewRef);
+    const { allowed, next } = bumpWindow(snap.data()?.upload_window_state, now, 3_600_000, AVATAR_UPLOADS_PER_HOUR);
+    if (!allowed) return false;
+    tx.set(reviewRef, { luid, upload_window_state: next }, { merge: true });
+    // TTL policy on expires_at removes unused slots.
+    tx.create(uploadSlotRef(objectId), { luid, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 3_600_000) });
+    return true;
+  });
+  if (!admitted) {
+    await logEvent({ userId: luid, name: 'avatar_rate_limited' });
+    throw reasonError('resource-exhausted', 'Avatar upload limit reached', 'rate_limited');
+  }
+  return { objectId };
+});
 
 /**
  * Screening runs from this callable (the app calls it right after uploading) instead of a Storage
@@ -29,27 +66,33 @@ export const screenAvatar = onCall({ memory: '512MiB', timeoutSeconds: 60, enfor
   if (!PENDING_PATH.test(path)) throw reasonError('invalid-argument', 'Invalid avatar', 'invalid_avatar');
   const [exists] = await bucket().file(path).exists();
   if (!exists) throw reasonError('not-found', 'Avatar upload not found', 'avatar_not_found');
+  try {
+    await requireActiveProfile(luid);
+  } catch (error) {
+    await bucket().file(path).delete({ ignoreNotFound: true });
+    throw error;
+  }
   const status = await screenAvatarObject(luid, id, path);
   return { status };
 });
 
-async function screenAvatarObject(luid: string, id: string, path: string): Promise<'accepted' | 'rejected' | 'rate_limited' | 'superseded'> {
+async function screenAvatarObject(luid: string, id: string, path: string): Promise<'accepted' | 'rejected' | 'superseded'> {
   const bucketName = bucket().name;
   const pending = bucket().file(path);
   const reviewRef = db.collection('avatar_reviews').doc(luid);
 
-  // Per-user quota (5 uploads/hour, each one costs a Vision call) and "newest upload wins" marker.
+  // Consume the upload slot (the quota was charged by beginAvatarUpload) and mark this upload as
+  // the newest one ("newest upload wins").
   const admitted = await db.runTransaction(async (tx) => {
-    const snap = await tx.get(reviewRef);
-    const { allowed, next } = bumpWindow(snap.data()?.upload_window_state, Date.now(), 3_600_000, AVATAR_UPLOADS_PER_HOUR);
-    if (!allowed) return false;
-    tx.set(reviewRef, { luid, latest_object: path, upload_window_state: next }, { merge: true });
+    const slot = await tx.get(uploadSlotRef(id));
+    if (!slot.exists || slot.data()!.luid !== luid) return false;
+    tx.delete(slot.ref);
+    tx.set(reviewRef, { luid, latest_object: path }, { merge: true });
     return true;
   });
   if (!admitted) {
     await pending.delete({ ignoreNotFound: true });
-    await logEvent({ userId: luid, name: 'avatar_rate_limited' });
-    return 'rate_limited';
+    throw reasonError('not-found', 'Avatar upload not found', 'avatar_not_found');
   }
 
   let verdict: 'accepted' | 'rejected' = 'rejected';
@@ -103,4 +146,17 @@ async function screenAvatarObject(luid: string, id: string, path: string): Promi
   await Promise.all(older.filter((f) => f.name !== currentPath).map((f) => f.delete({ ignoreNotFound: true })));
   await logEvent({ userId: luid, name: 'avatar_accepted' });
   return 'accepted';
+}
+
+/** Deletes pending uploads older than the grace period that were never screened. */
+export async function purgeStalePendingAvatars(now = Date.now()): Promise<number> {
+  const [files] = await bucket().getFiles({ prefix: 'avatars/', maxResults: 5000 });
+  const cutoff = now - PENDING_AVATAR_GRACE_HOURS * 3_600_000;
+  const stale = files.filter((file) => {
+    if (!PENDING_PATH.test(file.name)) return false;
+    const created = Date.parse(String(file.metadata.timeCreated ?? file.metadata.updated ?? ''));
+    return Number.isFinite(created) && created < cutoff;
+  });
+  await Promise.all(stale.map((file) => file.delete({ ignoreNotFound: true })));
+  return stale.length;
 }

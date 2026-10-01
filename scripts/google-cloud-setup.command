@@ -57,26 +57,43 @@ step "Cloud Functions servis hesabı yetkileri"
 PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
 SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 echo "Servis hesabı: $SA"
-# ARCore keyless tokens: the runtime account signs JWTs for itself through IAM signJwt.
-gcloud iam service-accounts add-iam-policy-binding "$SA" \
+# ARCore keyless tokens are signed as a dedicated account with NO project roles. The runtime
+# account may only mint tokens for that one account (Token Creator on it, not on itself).
+SIGNER="arcore-client-signer@${PROJECT}.iam.gserviceaccount.com"
+if ! gcloud iam service-accounts describe "$SIGNER" --project "$PROJECT" >/dev/null 2>&1; then
+  gcloud iam service-accounts create arcore-client-signer \
+    --display-name="ARCore client token signer (no roles)" --project "$PROJECT" --quiet >/dev/null
+fi
+gcloud iam service-accounts add-iam-policy-binding "$SIGNER" \
   --member="serviceAccount:$SA" --role="roles/iam.serviceAccountTokenCreator" \
   --project "$PROJECT" --quiet >/dev/null
-echo "✅ Token Creator (ARCore anahtarsız yetkilendirme)"
+# Older setups granted the runtime account Token Creator on itself; that is no longer needed.
+gcloud iam service-accounts remove-iam-policy-binding "$SA" \
+  --member="serviceAccount:$SA" --role="roles/iam.serviceAccountTokenCreator" \
+  --project "$PROJECT" --quiet >/dev/null 2>&1 || true
+echo "✅ ARCore imzalayıcı: $SIGNER (rolsüz; yalnız $SA token üretebilir)"
+ENV_FILE="$(cd "$(dirname "$0")/.." && pwd)/functions/.env.${PROJECT}"
+touch "$ENV_FILE"
+if grep -q '^ARCORE_SIGNER_EMAIL=' "$ENV_FILE"; then
+  sed -i '' "s|^ARCORE_SIGNER_EMAIL=.*|ARCORE_SIGNER_EMAIL=${SIGNER}|" "$ENV_FILE"
+else
+  echo "ARCORE_SIGNER_EMAIL=${SIGNER}" >> "$ENV_FILE"
+fi
+echo "✅ ARCORE_SIGNER_EMAIL → functions/.env.${PROJECT} (bir sonraki deploy'da devreye girer)"
 ROLES="$(gcloud projects get-iam-policy "$PROJECT" --flatten='bindings[].members' \
   --filter="bindings.members:serviceAccount:$SA" --format='value(bindings.role)' || true)"
-if ! echo "$ROLES" | grep -qE 'roles/(editor|owner)'; then
-  echo "ℹ️  Servis hesabında Editor rolü yok; Firestore/Storage/Vision/ARCore için gerekli roller ekleniyor."
-  for ROLE in roles/datastore.user roles/storage.objectAdmin roles/firebaseauth.admin \
-              roles/serviceusage.serviceUsageConsumer roles/logging.logWriter roles/iam.serviceAccountUser; do
-    gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role="$ROLE" \
-      --condition=None --quiet >/dev/null
-    echo "   + $ROLE"
-  done
-  echo "   ⚠️  ARCore Cloud Anchor silme (Management API) proje düzeyinde yetki ister. Silme loglarında"
-  echo "      PERMISSION_DENIED görürsen bu hesaba IAM'de 'Editor' ver ya da anchor'lar TTL ile (≤365 gün) silinir."
-else
-  echo "✅ Servis hesabında Editor/Owner var."
+if echo "$ROLES" | grep -qE 'roles/(editor|owner)'; then
+  echo "⚠️  $SA hesabında Editor/Owner var. Gerekmiyor; aşağıdaki roller yeterli. IAM'den kaldırman önerilir."
 fi
+echo "ℹ️  Firestore/Storage/Vision/Auth için gereken roller ekleniyor (Editor VERİLMEZ)."
+for ROLE in roles/datastore.user roles/storage.objectAdmin roles/firebaseauth.admin \
+            roles/serviceusage.serviceUsageConsumer roles/logging.logWriter roles/iam.serviceAccountUser; do
+  gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role="$ROLE" \
+    --condition=None --quiet >/dev/null
+  echo "   + $ROLE"
+done
+echo "   ℹ️  Cloud Anchor silme hatası (PERMISSION_DENIED) olursa anchor 'cloud_anchor_deletions' kuyruğuna"
+echo "      girer ve günlük yeniden denenir. Editor verme; logdaki hatayı issue #6'ya ekle."
 
 step "Admin paneli: Firebase App Hosting (backend lociar-admin)"
 if ! npx --yes firebase-tools@14 apphosting:backends:get lociar-admin --project "$PROJECT" >/dev/null 2>&1; then

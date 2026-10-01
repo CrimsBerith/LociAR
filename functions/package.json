@@ -9,8 +9,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
-    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-lociar \"node --test test/rules/*.test.mjs\"",
-    "test:emulator": "npm run build && firebase emulators:exec --only auth,firestore,storage,functions --project demo-lociar \"node --test test/integration/*.test.mjs\""
+    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-lociar \"node --test --test-concurrency=1 test/rules/*.test.mjs\"",
+    "test:emulator": "npm run build && node test/integration/prepare-env.mjs && firebase emulators:exec --only auth,firestore,storage,functions --project demo-lociar \"node --test --test-concurrency=1 test/integration/*.test.mjs\""
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.7",

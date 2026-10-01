@@ -18,6 +18,7 @@ export const REASONS = [
   'handle_cooldown',
   'reauth_required',
   'apple_revoke_failed',
+  'apple_revoke_unavailable',
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

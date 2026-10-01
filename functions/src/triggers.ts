@@ -1,6 +1,6 @@
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { randomUUID } from 'node:crypto';
-import { db, FieldValue, logEvent, Timestamp } from './core';
+import { analyticsEventDoc, db, FieldValue, Timestamp } from './core';
 import { applyCountersOnce } from './counters';
 import { anyBlocked, containsBlockedTerm } from './moderation';
 import { schedulePurgeOnStatusChange } from './cleanup';
@@ -59,19 +59,25 @@ export const onCommentCreated = onDocumentCreated('comments/{id}', async (event)
   const comment = snap?.data();
   if (!snap || !comment) return;
   if (containsBlockedTerm(String(comment.text ?? ''))) {
+    // Fixed ids keep redelivered events from writing a second flag or analytics event.
+    const flagRef = db.collection('moderation_flags').doc(`comment_${snap.id}`);
+    await db.runTransaction(async (tx) => {
+      if ((await tx.get(flagRef)).exists) return;
+      tx.create(flagRef, {
+        post_id: comment.post_id ?? null,
+        user_id: null,
+        reason: 'comment_filtered',
+        status: 'open',
+        metadata: { comment_id: snap.id, author_id: comment.user_id, text: String(comment.text).slice(0, 500) },
+        created_at: FieldValue.serverTimestamp(),
+      });
+      tx.create(db.collection('analytics_events').doc(`comment_filtered_${snap.id}`),
+        analyticsEventDoc({ userId: comment.user_id, postId: comment.post_id, name: 'comment_filtered' }));
+    });
     // Removing the comment fires onCommentDeleted, which would decrement a counter that was never
     // incremented; mark it so that trigger skips the counter.
-    await db.collection('moderation_flags').doc(randomUUID()).set({
-      post_id: comment.post_id ?? null,
-      user_id: null,
-      reason: 'comment_filtered',
-      status: 'open',
-      metadata: { comment_id: snap.id, author_id: comment.user_id, text: String(comment.text).slice(0, 500) },
-      created_at: FieldValue.serverTimestamp(),
-    });
     await db.collection('filtered_comments').doc(snap.id).set({ created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(Date.now() + 90 * 86_400_000) });
     await snap.ref.delete();
-    await logEvent({ userId: comment.user_id, postId: comment.post_id, name: 'comment_filtered' });
     return;
   }
   const profile = await db.collection('profiles').doc(comment.user_id).get();

@@ -79,3 +79,5 @@ admin/playwright-report/
 scripts/.commit-push.log
 scripts/.build-check.log
 scripts/.commit-msg.txt
+# Functions emulator secrets (functions/test/integration/prepare-env.mjs)
+.secret.local

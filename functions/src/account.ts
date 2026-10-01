@@ -4,6 +4,7 @@ import { appleConfigFromEnv, revokeAppleAuthorization } from './apple';
 import { reasonError } from './errors';
 import { isRecentAuth } from './limits';
 import { deleteAnchorOfPost } from './anchors';
+import { deleteAnchorOrQueue } from './anchorQueue';
 import { auth, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
 
 async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFirestore.BulkWriter): Promise<number> {
@@ -24,9 +25,9 @@ async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFires
  * Firebase Auth user. Reports filed by the user are kept for safety but de-identified.
  *
  * Requires a sign-in from the last 5 minutes (`reauth_required` otherwise). Apple accounts must
- * have their Sign in with Apple grant revoked first: by the server when APPLE_* is configured and
- * the client sent `appleAuthorizationCode`, else the client attests `appleRevokedByClient`.
- * Any revocation failure aborts before anything is deleted.
+ * send a fresh Sign in with Apple `appleAuthorizationCode`; the server revokes the grant with
+ * Apple before anything is deleted. Missing configuration (`apple_revoke_unavailable`), a missing
+ * code or any Apple error (`apple_revoke_failed`) aborts with nothing deleted.
  */
 /** .p8 contents; Secret Manager. TEAM_ID/KEY_ID/CLIENT_ID come from functions/.env.<project> (see .env.example). */
 const APPLE_PRIVATE_KEY = defineSecret('APPLE_PRIVATE_KEY');
@@ -38,17 +39,20 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
     throw reasonError('failed-precondition', 'Recent sign-in required', 'reauth_required');
   }
   if (caller.isAppleUser) {
-    const data = (request.data ?? {}) as { appleAuthorizationCode?: unknown; appleRevokedByClient?: unknown };
+    const code = (request.data as { appleAuthorizationCode?: unknown } | null)?.appleAuthorizationCode;
     const config = appleConfigFromEnv();
-    if (config && typeof data.appleAuthorizationCode === 'string' && data.appleAuthorizationCode) {
-      try {
-        await revokeAppleAuthorization(config, data.appleAuthorizationCode);
-      } catch (error) {
-        console.error('apple_revoke_failed', (error as Error).message);
-        throw reasonError('failed-precondition', 'Apple token revocation failed', 'apple_revoke_failed');
-      }
-    } else if (data.appleRevokedByClient !== true) {
+    if (!config) {
+      console.error('apple_revoke_unavailable', 'APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_CLIENT_ID or APPLE_PRIVATE_KEY is not set');
+      throw reasonError('failed-precondition', 'Apple token revocation is not configured', 'apple_revoke_unavailable');
+    }
+    if (typeof code !== 'string' || !code) {
       throw reasonError('failed-precondition', 'Apple token revocation is required', 'apple_revoke_failed');
+    }
+    try {
+      await revokeAppleAuthorization(config, code);
+    } catch (error) {
+      console.error('apple_revoke_failed', (error as Error).message);
+      throw reasonError('failed-precondition', 'Apple token revocation failed', 'apple_revoke_failed');
     }
   }
   await logEvent({ userId: luid, name: 'account_deletion_requested' });
@@ -88,6 +92,8 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
     ['activity_events', 'actor_id'],
     ['post_view_receipts', 'user_id'],
     ['analytics_events', 'user_id'],
+    ['post_quota', 'owner_luid'],
+    ['anchor_quota', 'owner_luid'],
   ];
   for (const [collection, field] of byField) {
     await deleteQuery(db.collection(collection).where(field, '==', luid), writer);
@@ -95,9 +101,24 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
 
   await deleteQuery(db.collection('handles').where('luid', '==', luid), writer);
   await deleteQuery(db.collection('avatar_reviews').where('luid', '==', luid), writer);
+  await deleteQuery(db.collection('avatar_uploads').where('luid', '==', luid), writer);
+
+  // Hosted anchors that never got bound to a post (publish abandoned) still belong to the user.
+  const unbound = await db.collection('cloud_anchors').where('owner_luid', '==', luid).get();
+  for (const record of unbound.docs) {
+    await deleteAnchorOrQueue(record.id);
+    writer.delete(record.ref);
+  }
 
   const reports = await db.collection('moderation_flags').where('user_id', '==', luid).get();
-  reports.docs.forEach((d) => writer.update(d.ref, { user_id: null, reporter_deleted: true }));
+  reports.docs.forEach((d) => {
+    // Profile-text flags are about the user (their bio/name), not filed by them: drop the text too.
+    if (d.get('reason') === 'profile_text_filtered') {
+      writer.update(d.ref, { user_id: null, 'metadata.text': null, author_deleted: true });
+    } else {
+      writer.update(d.ref, { user_id: null, reporter_deleted: true });
+    }
+  });
   // Filtered-comment flags keep the text for moderators, but not who wrote it.
   const authored = await db.collection('moderation_flags').where('metadata.author_id', '==', luid).get();
   authored.docs.forEach((d) => writer.update(d.ref, { 'metadata.author_id': null, 'metadata.text': null, author_deleted: true }));

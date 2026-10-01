@@ -204,6 +204,26 @@ test('moderation_flags: bounded metadata and typed post_id', async () => {
   await assertFails(setDoc(doc(db, 'moderation_flags', 'f-user'), { ...flag, user_id: BOB }));
 });
 
+test('moderation_flags: metadata keys are known and every value is a string of at most 500 characters', async () => {
+  const db = as(ALICE);
+  const flag = { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', created_at: serverTimestamp() };
+  const comment = { source: 'native_ios', target: 'comment', comment_id: 'c', author_id: BOB, text: 'x'.repeat(500) };
+  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'm-ok'), { ...flag, metadata: comment }));
+  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'm-user'), { ...flag, post_id: null, metadata: { source: 'native_ios', target: 'user', reported_user_id: BOB } }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'm-long'), { ...flag, metadata: { ...comment, text: 'x'.repeat(501) } }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'm-huge'), { ...flag, metadata: { source: 'y'.repeat(900_000) } }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'm-key'), { ...flag, metadata: { payload: 'x' } }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'm-type'), { ...flag, metadata: { source: { nested: 'x' } } }));
+});
+
+test('collection_items: the post must exist', async () => {
+  const db = as(BOB);
+  const item = (postId) => ({ collection_id: 'c1', post_id: postId, owner_id: BOB, sort_order: 1, created_at: serverTimestamp() });
+  const missing = '99999999-9999-4999-8999-999999999999';
+  await assertFails(setDoc(doc(db, 'collection_items', `c1_${missing}`), item(missing)));
+  await assertSucceeds(setDoc(doc(db, 'collection_items', `c1_${POST}`), item(POST)));
+});
+
 test('activity_events: recipient reads and marks read; nothing else', async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'activity_events', 'a1'), { id: 'a1', recipient_id: ALICE, actor_id: BOB, kind: 'like', read_at: null });

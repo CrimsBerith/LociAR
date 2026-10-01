@@ -38,7 +38,9 @@ enum AuthFlowError: LocalizedError, Sendable {
     case handleCooldown
     case reauthRequired
     case invalidPhoto
+    case photoRateLimited
     case appleReauthenticationRequired
+    case appleRevocationFailed
 
     var errorDescription: String? {
         switch self {
@@ -60,8 +62,12 @@ enum AuthFlowError: LocalizedError, Sendable {
             "Güvenlik için hesabı silmeden önce yeniden giriş yapman gerekiyor."
         case .invalidPhoto:
             "Fotoğraf hazırlanamadı. Farklı bir fotoğraf dene."
+        case .photoRateLimited:
+            "Çok sık fotoğraf yükledin. Bir saat sonra tekrar dene."
         case .appleReauthenticationRequired:
             "Hesabı silmek için Apple ile yeniden doğrulama gerekiyor."
+        case .appleRevocationFailed:
+            "Apple oturum izni geri alınamadı, hesabın silinmedi. Biraz sonra tekrar dene."
         }
     }
 }
@@ -213,15 +219,23 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             ])
         case .photo(let data):
             guard let jpeg = AvatarReference.preparedJPEG(from: data) else { throw AuthFlowError.invalidPhoto }
+            // Every upload needs a slot from the server (hourly quota); Storage rules check it.
+            struct EmptyPayload: Encodable, Sendable {}
+            struct SlotResponse: Decodable, Sendable { let objectId: String }
+            let slot: SlotResponse
+            do {
+                slot = try await callables.call("beginAvatarUpload", payload: EmptyPayload())
+            } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
+                throw AuthFlowError.photoRateLimited
+            }
             let metadata = StorageMetadata()
             metadata.contentType = "image/jpeg"
-            let path = "avatars/\(luid)/pending/\(UUID().uuidString.lowercased()).jpg"
+            let path = "avatars/\(luid)/pending/\(slot.objectId).jpg"
             _ = try await Storage.storage().reference(withPath: path).putDataAsync(jpeg, metadata: metadata)
             // Screening runs server-side in a callable (no Storage trigger / extra IAM needed).
             struct ScreenPayload: Encodable, Sendable { let objectId: String }
             struct ScreenResponse: Decodable, Sendable { let status: String }
-            let objectId = (path as NSString).lastPathComponent.replacingOccurrences(of: ".jpg", with: "")
-            let screened: ScreenResponse = try await callables.call("screenAvatar", payload: ScreenPayload(objectId: objectId))
+            let screened: ScreenResponse = try await callables.call("screenAvatar", payload: ScreenPayload(objectId: slot.objectId))
             if screened.status == "rejected" { throw AuthFlowError.invalidPhoto }
         }
         return try await establish(user)
@@ -257,12 +271,12 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
 
         let isApple = user.providerData.contains(where: { $0.providerID == "apple.com" })
+        // Guideline 5.1.1(v): Apple accounts send a fresh Sign in with Apple authorization code; the
+        // server revokes the grant with Apple and deletes nothing if that fails.
+        var appleCode: String?
         if isApple {
-            // Guideline 5.1.1(v): the Sign in with Apple token must be revoked before deletion.
-            // Failure aborts deletion so no dangling Apple grant is left behind.
             do {
-                let code = try await AppleReauthenticator.authorizationCode()
-                try await Auth.auth().revokeToken(withAuthorizationCode: code)
+                appleCode = try await AppleReauthenticator.authorizationCode()
             } catch {
                 throw AuthFlowError.appleReauthenticationRequired
             }
@@ -270,12 +284,14 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
 
         // The callable hard-deletes profile, posts, social edges, Storage files and the Auth user.
         struct DeleteResponse: Decodable, Sendable { let ok: Bool }
-        struct DeletePayload: Encodable, Sendable { let appleRevokedByClient: Bool }
+        struct DeletePayload: Encodable, Sendable { let appleAuthorizationCode: String? }
         let response: DeleteResponse
         do {
-            response = try await callables.call("deleteAccount", payload: DeletePayload(appleRevokedByClient: isApple))
+            response = try await callables.call("deleteAccount", payload: DeletePayload(appleAuthorizationCode: appleCode))
         } catch BackendCallError.rejected(_, _, let reason) where reason == "reauth_required" {
             throw AuthFlowError.reauthRequired
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "apple_revoke_failed" || reason == "apple_revoke_unavailable" {
+            throw AuthFlowError.appleRevocationFailed
         }
         guard response.ok else { throw BackendCallError.invalidResponse }
         try? Auth.auth().signOut()

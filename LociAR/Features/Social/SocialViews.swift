@@ -288,8 +288,10 @@ struct ProfileView: View {
         defer { isDeletingAccount = false }
         do {
             try await session.deleteAccount()
-        } catch AuthFlowError.appleReauthenticationRequired {
-            message = AuthFlowError.appleReauthenticationRequired.localizedDescription
+        } catch let error as AuthFlowError {
+            // Re-sign-in needed, Apple re-authorization cancelled or Apple revocation failed:
+            // nothing was deleted and the message says what to do.
+            message = error.localizedDescription
             return
         } catch {
             message = "Hesap şu anda silinemiyor. Biraz sonra tekrar dene."
