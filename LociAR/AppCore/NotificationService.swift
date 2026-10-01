@@ -1,6 +1,8 @@
 import Foundation
 import UIKit
 import UserNotifications
+@preconcurrency import FirebaseCrashlytics
+@preconcurrency import FirebaseMessaging
 
 @MainActor
 final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
@@ -8,6 +10,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     private(set) var isAuthorized = false
     private(set) var deviceTokenString: String?
+    /// Most recently received FCM registration token (nil until first token delivery).
+    private(set) var fcmToken: String?
     var onPostNotificationTapped: ((UUID) -> Void)?
 
     private override init() {
@@ -16,6 +20,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     func configure() {
         UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
         Task { await checkAuthorizationStatus() }
     }
 
@@ -44,11 +49,15 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
         self.deviceTokenString = token
+        // Forward APNs token to Firebase so it can map it to an FCM token.
+        Messaging.messaging().apnsToken = deviceToken
     }
 
     func didFailToRegisterForRemoteNotifications(error: Error) {
-        // Logged or handled silently in production
+        Crashlytics.crashlytics().record(error: error)
     }
+
+    // MARK: - UNUserNotificationCenterDelegate
 
     // Foreground presentation
     nonisolated func userNotificationCenter(
@@ -71,6 +80,21 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 }
+
+// MARK: - MessagingDelegate
+
+extension NotificationService: @preconcurrency MessagingDelegate {
+    nonisolated func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken else { return }
+        Task { @MainActor in
+            self.fcmToken = fcmToken
+        }
+        // FCM token is available for server-side targeting if needed.
+        // Do NOT send it to Firestore directly — use server-side Functions to fan out.
+    }
+}
+
+// MARK: - UIApplicationDelegate
 
 final class LociAppDelegate: NSObject, UIApplicationDelegate {
     func application(

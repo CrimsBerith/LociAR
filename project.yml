@@ -4,7 +4,7 @@ attributes:
   LastSwiftUpdateCheck: "2600"
 options:
   bundleIdPrefix: com.khankartal
-  developmentLanguage: tr
+  developmentLanguage: en
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "26.0"

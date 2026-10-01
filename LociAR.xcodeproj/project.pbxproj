@@ -539,7 +539,7 @@
 				};
 			};
 			buildConfigurationList = 119DF4F7E05BB05D586476E9 /* Build configuration list for PBXProject "LociAR" */;
-			developmentRegion = tr;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
@@ -553,7 +553,6 @@
 				ja,
 				pt,
 				ru,
-				tr,
 				"zh-Hans",
 			);
 			mainGroup = 15017F9A87A93878CAFC5308;

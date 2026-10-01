@@ -1,56 +1,10 @@
 import Foundation
-import ImageIO
 @preconcurrency import FirebaseStorage
-import UniformTypeIdentifiers
 
 enum MediaAssetStore {
     static let signedURLLifetimeSeconds = 60 * 60
 
-    enum AssetError: LocalizedError {
-        case tooLarge
-        case unreadableImage
 
-        var errorDescription: String? {
-            switch self {
-            case .tooLarge: "Seçilen video 80 MB sınırını aşıyor. Daha kısa bir video seçin."
-            case .unreadableImage: "Fotoğraf işlenemedi. Farklı bir fotoğraf seçin."
-            }
-        }
-    }
-
-    nonisolated static func stage(data: Data, id: UUID, isVideo: Bool) async throws -> URL {
-        try await Task.detached(priority: .utility) {
-            let root = try preparedStagingDirectory()
-            let url = root.appendingPathComponent("\(id.uuidString).\(isVideo ? "mov" : "jpg")")
-            if isVideo {
-                guard data.count <= 80 * 1_024 * 1_024 else { throw AssetError.tooLarge }
-                try data.write(to: url, options: .atomic)
-            } else {
-                let jpeg = try makeUploadJPEG(from: data)
-                try jpeg.write(to: url, options: .atomic)
-            }
-            return url
-        }.value
-    }
-
-    nonisolated static func stage(fileURL: URL, id: UUID) async throws -> URL {
-        try await Task.detached(priority: .utility) {
-            let values = try fileURL.resourceValues(forKeys: [.fileSizeKey])
-            guard let fileSize = values.fileSize, fileSize <= 80 * 1_024 * 1_024 else { throw AssetError.tooLarge }
-            let root = try preparedStagingDirectory()
-            let sourceExtension = fileURL.pathExtension.lowercased()
-            let fileExtension = ["mov", "mp4"].contains(sourceExtension) ? sourceExtension : "mov"
-            let destination = root.appendingPathComponent("\(id.uuidString).\(fileExtension)")
-            if FileManager.default.fileExists(atPath: destination.path) {
-                try FileManager.default.removeItem(at: destination)
-            }
-            try FileManager.default.copyItem(at: fileURL, to: destination)
-            if isDescendant(fileURL, of: FileManager.default.temporaryDirectory) {
-                try? FileManager.default.removeItem(at: fileURL)
-            }
-            return destination
-        }.value
-    }
 
     nonisolated static func removeLocalAssets(in post: LociPost) async {
         await Task.detached(priority: .utility) {
@@ -119,27 +73,6 @@ enum MediaAssetStore {
         return path == directoryPath || path.hasPrefix(directoryPath + "/")
     }
 
-    private nonisolated static func makeUploadJPEG(from data: Data) throws -> Data {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
-            throw AssetError.unreadableImage
-        }
-
-        for (maxPixel, quality) in [(2400, 0.82), (1900, 0.74), (1500, 0.68)] {
-            let options: [CFString: Any] = [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceThumbnailMaxPixelSize: maxPixel
-            ]
-            guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { continue }
-            let output = NSMutableData()
-            guard let destination = CGImageDestinationCreateWithData(output, UTType.jpeg.identifier as CFString, 1, nil) else { continue }
-            CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
-            guard CGImageDestinationFinalize(destination) else { continue }
-            let jpeg = output as Data
-            if jpeg.count <= 5 * 1_024 * 1_024 { return jpeg }
-        }
-        throw AssetError.tooLarge
-    }
 
     /// Firebase Storage has one bucket; the Supabase bucket names live on as top-level folders.
     nonisolated static func storageReference(_ reference: StorageAssetReference) -> StorageReference {
@@ -166,42 +99,15 @@ enum MediaAssetStore {
     }
 
     static func uploadLocalAssets(in post: LociPost) async throws -> LociPost {
-        var post = post
-        var layers = post.editData.layers
-        let owner = StorageObjectPath.ownerFolder(post.creatorID)
-        let postFolder = post.id.uuidString.lowercased()
-        for index in layers.indices {
-            guard layers[index].kind == .image, let url = layers[index].assetURL, url.isFileURL else { continue }
-            let data = try Data(contentsOf: url)
-            guard data.count <= 5 * 1_024 * 1_024 else { throw AssetError.tooLarge }
-            let path = "\(owner)/\(postFolder)/layers/\(layers[index].id.uuidString.lowercased()).jpg"
-            layers[index].assetURL = try await upload(data, bucket: "post-layer-assets", path: path, contentType: "image/jpeg")
-        }
-        post.editData.layers = layers
-
-        if case .video(let url)? = post.contentSource, url.isFileURL {
-            let data = try Data(contentsOf: url)
-            guard data.count <= 80 * 1_024 * 1_024 else { throw AssetError.tooLarge }
-            let isMP4 = url.pathExtension.lowercased() == "mp4"
-            let path = "\(owner)/\(postFolder)/video.\(isMP4 ? "mp4" : "mov")"
-            let remote = try await upload(data, bucket: "post-video-assets", path: path, contentType: isMP4 ? "video/mp4" : "video/quicktime")
-            post.contentSource = .video(remote)
-        }
-        return post
+        // Posts are text and social media links only. Device media uploads were removed on 29 Sep 2026.
+        // World maps are uploaded by WorldMapStore.
+        post
     }
 
     static func materializeRemoteAssets(in source: LociPost) async -> LociPost {
         var post = source
-        for index in post.editData.layers.indices {
-            guard let url = post.editData.layers[index].assetURL,
-                  let resolved = await downloadURL(for: url) else { continue }
-            post.editData.layers[index].assetURL = resolved
-        }
         if let url = post.editData.surfaceTextureURL, let resolved = await downloadURL(for: url) {
             post.editData.surfaceTextureURL = resolved
-        }
-        if case .video(let url)? = post.contentSource, let resolved = await downloadURL(for: url) {
-            post.contentSource = .video(resolved)
         }
         return post
     }
