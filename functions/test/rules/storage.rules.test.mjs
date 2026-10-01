@@ -80,8 +80,25 @@ test('legacy folders: no uploads, owners may delete leftovers, others may not', 
   }
 });
 
+const AVATAR_SLOT = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+async function grantAvatarSlot(id, luid) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'avatar_uploads', id), { luid });
+  });
+}
+
+test('avatars: a pending upload needs an upload slot owned by the uploader', async () => {
+  const unslotted = 'bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  await assertFails(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/pending/${unslotted}.jpg`), jpeg, { contentType: 'image/jpeg' }));
+  const bobs = 'cccccccc-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  await grantAvatarSlot(bobs, BOB);
+  await assertFails(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/pending/${bobs}.jpg`), jpeg, { contentType: 'image/jpeg' }));
+  await assertSucceeds(uploadBytes(ref(as(BOB), `avatars/${BOB}/pending/${bobs}.jpg`), jpeg, { contentType: 'image/jpeg' }));
+});
+
 test('avatars: pending can be overwritten only by its owner; current is never client-writable', async () => {
-  const id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const id = AVATAR_SLOT;
+  await grantAvatarSlot(id, ALICE);
   const path = `avatars/${ALICE}/pending/${id}.jpg`;
   await assertSucceeds(uploadBytes(ref(as(ALICE), path), jpeg, { contentType: 'image/jpeg' }));
   await assertFails(uploadBytes(ref(as(BOB), path), jpeg, { contentType: 'image/jpeg' }));
@@ -89,7 +106,8 @@ test('avatars: pending can be overwritten only by its owner; current is never cl
 });
 
 test('avatars: owner uploads JPEGs to pending only; only screened photos are readable', async () => {
-  const id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const id = AVATAR_SLOT;
+  await grantAvatarSlot(id, ALICE);
   await assertSucceeds(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/pending/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));
   await assertFails(uploadBytes(ref(as(ALICE), `avatars/${BOB}/pending/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));
   await assertFails(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/current/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));

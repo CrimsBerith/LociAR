@@ -4,6 +4,7 @@ import { listCloudAnchors } from './arcoreManagement';
 import { deleteAnchorOrQueue, drainAnchorDeletionQueue } from './anchorQueue';
 import { deleteAnchorOfPost } from './anchors';
 import { selectOrphanAnchors } from './arcoreToken';
+import { purgeStalePendingAvatars } from './avatar';
 
 /**
  * Storage housekeeping so media does not accumulate for content nobody can see.
@@ -14,6 +15,7 @@ import { selectOrphanAnchors } from './arcoreToken';
  * 2. Orphan uploads: world maps uploaded for a draft whose createPost never succeeded (app
  *    killed, offline forever, server rejection the client could not clean up) are deleted after
  *    48 hours if no post document exists for them.
+ * 3. Profile photos uploaded to avatars/{luid}/pending/ but never screened: deleted after 48 hours.
  */
 
 export const REMOVED_MEDIA_GRACE_DAYS = 30;
@@ -138,6 +140,12 @@ export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5): P
 export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
   const removed = await purgeDueRemovedMedia();
   const orphans = await purgeOrphanUploads();
+  let pendingAvatars = 0;
+  try {
+    pendingAvatars = await purgeStalePendingAvatars();
+  } catch (error) {
+    console.error('pending_avatar_cleanup_failed', error);
+  }
   let orphanAnchors = 0;
   let retried = 0;
   try {
@@ -150,7 +158,7 @@ export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZo
   } catch (error) {
     console.error('cloud_anchor_cleanup_failed', error);
   }
-  console.log(JSON.stringify({ event: 'cleanup_post_media', removed, orphans, orphanAnchors, retried }));
+  console.log(JSON.stringify({ event: 'cleanup_post_media', removed, orphans, pendingAvatars, orphanAnchors, retried }));
 });
 
 /**

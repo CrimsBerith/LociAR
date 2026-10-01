@@ -5,7 +5,7 @@ export {
   onLikeCreated, onLikeDeleted, onCommentCreated, onCommentDeleted, onSaveCreated, onSaveDeleted,
   onFollowCreated, onFollowDeleted, onPostWritten, onProfileUpdated,
 } from './triggers';
-export { screenAvatar } from './avatar';
+export { beginAvatarUpload, screenAvatar } from './avatar';
 export { cleanupPostMedia, reconcilePostCounters } from './cleanup';
 export { getArcoreToken } from './arcore';
 export { registerCloudAnchor } from './anchors';

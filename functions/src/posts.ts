@@ -7,7 +7,7 @@ import {
 import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
 import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
 import { reasonError } from './errors';
-import { anchorBindError, consumePostQuota, deleteAnchorOfPost } from './anchors';
+import { anchorBindError, consumePostQuota, deleteAnchorOfPost, refundPostQuota } from './anchors';
 
 /**
  * High-quality world locks used to go live without review in the Supabase build. App Review
@@ -40,17 +40,16 @@ async function storageObjectExists(path: string | null): Promise<boolean> {
   return exists;
 }
 
-async function activeDensity(lat: number, lng: number, radius: number): Promise<number> {
+async function activeDensity(lat: number, lng: number, radius: number, tx: FirebaseFirestore.Transaction): Promise<number> {
   const prefixes = geohashCoverPrefixes(lat, lng, radius);
   let count = 0;
   for (const prefix of prefixes) {
-    const snap = await db.collection('posts')
+    const snap = await tx.get(db.collection('posts')
       .where('status', 'in', ['active', 'pending_review'])
       .orderBy('geohash')
       .startAt(prefix)
       .endAt(`${prefix}~`)
-      .limit(50)
-      .get();
+      .limit(50));
     count += snap.docs.filter((d) => {
       const p = d.data();
       return distanceMeters(lat, lng, p.lat, p.lng) <= radius;
@@ -95,82 +94,96 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     throw reasonError('permission-denied', `Creation is blocked in protected zone: ${zone.name}`, 'protected_zone');
   }
 
-  const density = await activeDensity(lat, lng, 25);
-  const quota = await consumePostQuota(caller.luid, Date.now());
-  if (!quota.ok || density >= 5) {
-    // One flag per user per window (quota.flag), not one per rejected request.
-    if (quota.flag || (quota.ok && density >= 5)) {
+  const quotaAt = Date.now();
+  const admission = await consumePostQuota(caller.luid, quotaAt, (tx) => activeDensity(lat, lng, 25, tx));
+  if (!admission.ok) {
+    // One flag per user, window and reason (admission.flag), not one per rejected request.
+    if (admission.flag) {
       await db.collection('moderation_flags').doc(randomUUID()).set({
         post_id: null,
         user_id: caller.luid,
         reason: 'rate_or_density_limit',
         status: 'open',
-        metadata: { hourly: quota.hourly, daily: quota.daily, density },
+        metadata: { hourly: admission.hourly, daily: admission.daily, density: admission.density, limit: admission.reason },
         created_at: FieldValue.serverTimestamp(),
       });
     }
     throw reasonError('resource-exhausted', 'Creation limit reached for this area or account', 'rate_limited');
   }
 
-  const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
-  const publishStatus = AUTO_PUBLISH_HIGH_QUALITY && placement.autoPublishEligible ? 'active' : 'pending_review';
+  // From here on the slot is consumed; any path that does not create the post gives it back.
+  const insertPost = async () => {
+    const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
+    const publishStatus = AUTO_PUBLISH_HIGH_QUALITY && placement.autoPublishEligible ? 'active' : 'pending_review';
 
-  const document = {
-    id: postId,
-    creator_id: caller.luid,
-    creator_handle: String(profile.handle ?? ''),
-    lat,
-    lng,
-    geohash: encodeGeohash(lat, lng, 10),
-    pose_json: JSON.stringify(body.pose),
-    ref_image_url: body.refImageUri,
-    edit_data_json: JSON.stringify(body.editData),
-    content_source_json: body.contentSource ? JSON.stringify(body.contentSource) : null,
-    anchor_bundle_json: body.anchorBundle ? JSON.stringify(body.anchorBundle) : null,
-    calibration_json: JSON.stringify(placement.calibration),
-    caption: body.caption.trim(),
-    age_rating: body.ageRating,
-    visibility: body.visibility,
-    status: publishStatus,
-    placement_state: placement.placementState,
-    placement_quality: placement.placementQuality,
-    resolver_strategy: placement.resolverStrategy,
-    native_provider: placement.nativeProvider,
-    multi_user_ready: placement.hasPersistentResolver,
-    // Kept top-level so removal/cleanup can delete the Cloud Anchor through the Management API.
-    cloud_anchor_id: cloudAnchorIdOf(body),
-    geospatial: body.pose.anchor?.geospatial ? true : false,
-    views_count: 0,
-    likes_count: 0,
-    comments_count: 0,
-    saves_count: 0,
-    engagement_score: 0,
-    client_mutation_id: postId,
-    deleted_at: null,
-    created_at: FieldValue.serverTimestamp(),
-    updated_at: FieldValue.serverTimestamp(),
-  };
+    const document = {
+      id: postId,
+      creator_id: caller.luid,
+      creator_handle: String(profile.handle ?? ''),
+      lat,
+      lng,
+      geohash: encodeGeohash(lat, lng, 10),
+      pose_json: JSON.stringify(body.pose),
+      ref_image_url: body.refImageUri,
+      edit_data_json: JSON.stringify(body.editData),
+      content_source_json: body.contentSource ? JSON.stringify(body.contentSource) : null,
+      anchor_bundle_json: body.anchorBundle ? JSON.stringify(body.anchorBundle) : null,
+      calibration_json: JSON.stringify(placement.calibration),
+      caption: body.caption.trim(),
+      age_rating: body.ageRating,
+      visibility: body.visibility,
+      status: publishStatus,
+      placement_state: placement.placementState,
+      placement_quality: placement.placementQuality,
+      resolver_strategy: placement.resolverStrategy,
+      native_provider: placement.nativeProvider,
+      multi_user_ready: placement.hasPersistentResolver,
+      // Kept top-level so removal/cleanup can delete the Cloud Anchor through the Management API.
+      cloud_anchor_id: cloudAnchorIdOf(body),
+      geospatial: body.pose.anchor?.geospatial ? true : false,
+      views_count: 0,
+      likes_count: 0,
+      comments_count: 0,
+      saves_count: 0,
+      engagement_score: 0,
+      client_mutation_id: postId,
+      deleted_at: null,
+      created_at: FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
+    };
 
-  const anchorId = cloudAnchorIdOf(body);
-  try {
-    await db.runTransaction(async (tx) => {
-      if (anchorId) {
-        const anchorRef = db.collection('cloud_anchors').doc(anchorId);
-        const anchorSnap = await tx.get(anchorRef);
-        const bindError = anchorBindError(anchorSnap.data(), caller.luid);
-        if (bindError) throw new HttpsError('invalid-argument', bindError);
-        tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp() });
+    const anchorId = cloudAnchorIdOf(body);
+    try {
+      await db.runTransaction(async (tx) => {
+        if (anchorId) {
+          const anchorRef = db.collection('cloud_anchors').doc(anchorId);
+          const anchorSnap = await tx.get(anchorRef);
+          const bindError = anchorBindError(anchorSnap.data(), caller.luid);
+          if (bindError) throw new HttpsError('invalid-argument', bindError);
+          tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp(), expires_at: FieldValue.delete() });
+        }
+        tx.create(postRef, document);
+      });
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      const again = await postRef.get();
+      if (again.exists && again.data()!.creator_id === caller.luid) {
+        return { replay: { post: serializePost(postId, again.data()!), publishStatus: again.data()!.status, idempotentReplay: true } };
       }
-      tx.create(postRef, document);
-    });
-  } catch (error) {
-    if (error instanceof HttpsError) throw error;
-    const again = await postRef.get();
-    if (again.exists && again.data()!.creator_id === caller.luid) {
-      return { post: serializePost(postId, again.data()!), publishStatus: again.data()!.status, idempotentReplay: true };
+      throw error;
     }
-    throw error;
+    return { placement, publishStatus, document };
+  };
+  let outcome: Awaited<ReturnType<typeof insertPost>> | undefined;
+  try {
+    outcome = await insertPost();
+  } finally {
+    if (!outcome || 'replay' in outcome) {
+      await refundPostQuota(caller.luid, quotaAt).catch((error) => console.error('post_quota_refund_failed', error));
+    }
   }
+  if ('replay' in outcome) return outcome.replay;
+  const { placement, publishStatus, document } = outcome;
 
   await logEvent({
     userId: caller.luid,

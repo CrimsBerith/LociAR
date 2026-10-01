@@ -46,10 +46,15 @@ service firebase.storage {
     }
     // Profile photos: the app uploads a JPEG to pending/, the screenAvatar callable (called by the app after upload) screens it
     // and publishes accepted photos to current/. Pending photos are never readable.
+    // Each upload needs a slot from the beginAvatarUpload callable (avatar_uploads/{id}, counted
+    // against the hourly quota), so uploads themselves are rate limited, not just screening.
+    function ownsUploadSlot(luid, file) {
+      return firestore.get(/databases/(default)/documents/avatar_uploads/$(file.split('\\.')[0])).data.luid == luid;
+    }
     match /avatars/{luid}/pending/{file} {
       allow read: if false;
       allow create: if owner(luid) && under(3) && request.resource.contentType == 'image/jpeg'
-        && file.matches('[0-9a-f-]{36}\\.jpg');
+        && file.matches('[0-9a-f-]{36}\\.jpg') && ownsUploadSlot(luid, file);
       allow update, delete: if false;
     }
     match /avatars/{luid}/current/{file} {
