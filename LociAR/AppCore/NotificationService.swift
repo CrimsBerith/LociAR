@@ -83,7 +83,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
 // MARK: - MessagingDelegate
 
-extension NotificationService: @preconcurrency MessagingDelegate {
+extension NotificationService: MessagingDelegate {
     nonisolated func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let fcmToken else { return }
         Task { @MainActor in
