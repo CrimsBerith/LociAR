@@ -4,6 +4,15 @@ import Foundation
 enum MediaAssetStore {
     static let signedURLLifetimeSeconds = 60 * 60
 
+    nonisolated static func stage(data: Data, id: UUID, isVideo: Bool) async throws -> URL {
+        try await Task.detached(priority: .utility) {
+            let root = try preparedStagingDirectory()
+            let url = root.appendingPathComponent("\(id.uuidString).\(isVideo ? "mov" : "jpg")")
+            try data.write(to: url, options: .atomic)
+            return url
+        }.value
+    }
+
 
 
     nonisolated static func removeLocalAssets(in post: LociPost) async {
