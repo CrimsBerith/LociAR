@@ -407,7 +407,7 @@ const translations = {
 };
 
 const catalog = {
-  sourceLanguage: "tr",
+  sourceLanguage: "en",
   version: "1.0",
   strings: {}
 };
@@ -415,7 +415,14 @@ const catalog = {
 for (const [key, langMap] of Object.entries(translations)) {
   catalog.strings[key] = {
     extractionState: "manual",
-    localizations: {}
+    localizations: {
+      tr: {
+        stringUnit: {
+          state: "translated",
+          value: key
+        }
+      }
+    }
   };
   for (const [lang, val] of Object.entries(langMap)) {
     catalog.strings[key].localizations[lang] = {

@@ -5,6 +5,12 @@
     "Gerçek mekânlara bağlı hikâyeler.": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerçek mekânlara bağlı hikâyeler."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -76,6 +82,12 @@
     "Devam ederek gizlilik ve topluluk kurallarını kabul edersiniz.": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devam ederek gizlilik ve topluluk kurallarını kabul edersiniz."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -147,6 +159,12 @@
     "veya": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "veya"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -218,6 +236,12 @@
     "Şifremi unuttum": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şifremi unuttum"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -289,6 +313,12 @@
     "Kayıttan sonra e-posta adresine gönderilen bağlantıyla hesabını doğrula.": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kayıttan sonra e-posta adresine gönderilen bağlantıyla hesabını doğrula."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -360,6 +390,12 @@
     "E-posta Doğrulaması": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-posta Doğrulaması"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -431,6 +467,12 @@
     "Yapıştır": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yapıştır"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -502,6 +544,12 @@
     "İçerik": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İçerik"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -573,6 +621,12 @@
     "Caption veya geçerli bir sosyal bağlantı ekle.": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caption veya geçerli bir sosyal bağlantı ekle."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -644,6 +698,12 @@
     "Giriş yap": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giriş yap"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -715,6 +775,12 @@
     "Kaydol": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydol"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -786,6 +852,12 @@
     "Çıkış yap": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çıkış yap"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -857,6 +929,12 @@
     "Hesabı sil": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hesabı sil"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -928,6 +1006,12 @@
     "Harita": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Harita"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -999,6 +1083,12 @@
     "Keşfet": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keşfet"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1070,6 +1160,12 @@
     "Paylaş": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paylaş"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1141,6 +1237,12 @@
     "Profil": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profil"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1212,6 +1314,12 @@
     "Yenile": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yenile"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1283,6 +1391,12 @@
     "Yorumlar": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yorumlar"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1354,6 +1468,12 @@
     "Beğeni": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beğeni"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1425,6 +1545,12 @@
     "Yüzeye sabitle": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yüzeye sabitle"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1496,6 +1622,12 @@
     "Kapat": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapat"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1567,6 +1699,12 @@
     "İptal": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İptal"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1638,6 +1776,12 @@
     "Kaydet": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydet"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1709,6 +1853,12 @@
     "Diğer seçenekler": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diğer seçenekler"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1780,6 +1930,12 @@
     "Yorumu gönder": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yorumu gönder"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1851,6 +2007,12 @@
     "Rapor et": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapor et"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1922,6 +2084,12 @@
     "Engelle": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engelle"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1993,6 +2161,12 @@
     "Paylaşımı görüntüle": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paylaşımı görüntüle"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -2064,6 +2238,12 @@
     "Konum izni gerekiyor": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konum izni gerekiyor"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -2135,6 +2315,12 @@
     "Kamera izni gerekiyor": {
       "extractionState": "manual",
       "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kamera izni gerekiyor"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",

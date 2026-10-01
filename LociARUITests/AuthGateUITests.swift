@@ -1,8 +1,28 @@
+import ObjectiveC.runtime
 import UIKit
 import XCTest
 
+extension XCUIApplication {
+    @objc dynamic func loci_launch() {
+        if !launchArguments.contains("-AppleLanguages") {
+            launchArguments += ["-AppleLanguages", "(tr)", "-AppleLocale", "tr_TR"]
+        }
+        loci_launch()
+    }
+
+    static let swizzleLaunchOnce: Void = {
+        guard let original = class_getInstanceMethod(XCUIApplication.self, #selector(launch)),
+              let swizzled = class_getInstanceMethod(XCUIApplication.self, #selector(loci_launch)) else { return }
+        method_exchangeImplementations(original, swizzled)
+    }()
+}
+
 @MainActor
 final class AuthGateUITests: XCTestCase {
+    override class func setUp() {
+        super.setUp()
+        _ = XCUIApplication.swizzleLaunchOnce
+    }
     func testPhysicalNormalAccountARTabReceivesCameraFrame() throws {
 #if targetEnvironment(simulator)
         throw XCTSkip("Gerçek hesap ve kamera durumu fiziksel iPhone gerektirir.")
