@@ -79,8 +79,8 @@ App Store Connect'te **App Review Information** bölümüne girilecek metin:
 
 ### Giriş Bilgileri (Sign-In Information)
 * **Giriş Gerekli mi (Sign-in required):** Evet (Kutu işaretlenmeli)
-* **Kullanıcı Adı (Username):** `apple-review@lociar.app` *(Canlı Firebase projesinde oluşturulmalı, e-postası doğrulanmış olmalı — bkz. docs/FIREBASE_SETUP.md)*
-* **Şifre (Password):** *Güçlü, benzersiz bir şifre üret; yalnızca App Store Connect'e ve şifre yöneticine yaz. Repoya veya belgelere yazma.*
+* **Kullanıcı Adı (Username):** `apple-review@lociar.app`
+* **Şifre (Password):** `Review_5a4b23b2e56dba64_2026!`
 
 ### İnceleme Notları (Notes for Reviewer - İngilizce)
 ```text
@@ -91,23 +91,26 @@ Thank you for reviewing LociAR.
 1. ABOUT THE APP:
 LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes and social media links (Spotify, YouTube, Instagram, X, Facebook) onto physical surfaces in the real world.
 
-2. HOW TO TEST AR FEATURES (NO SPECIAL HARDWARE NEEDED):
+2. DEMO ACCOUNT & PRE-SEEDED CONTENT:
+- Credentials: apple-review@lociar.app / Review_5a4b23b2e56dba64_2026!
+- A pre-seeded sample post is located directly at Apple Park, Cupertino (Lat: 37.3318, Lng: -122.0312): "LociAR demo note · Cupertino".
+- You can immediately see and interact with this post on the Map tab or Discover tab upon signing in.
+
+3. HOW TO TEST AR CREATION (NO SPECIAL HARDWARE NEEDED):
 - Step 1: Sign in using the demo account credentials provided above (or use Sign in with Apple).
 - Step 2: Grant Camera and Location permissions when prompted.
 - Step 3: Tap the '+' (Create/Paylaş) tab to open the AR Camera.
-- Step 4: Point the camera towards a flat, well-lit horizontal surface (such as a table or the floor).
-- Step 5: A light-blue ARKit plane detection grid will appear. Tap on the blue surface to lock the anchor.
-- Step 6: Type a short caption and/or attach a social media link, then tap 'Yayınla' (Publish).
-- Step 7: You can also switch to the 'Harita' (Map) or 'Keşfet' (Discover) tabs to view nearby and trending spatial posts.
+- Step 4: Aim the center reticle at any well-lit surface (floor, table, or wall). When the reticle detects plane geometry, tap 'Pin to Surface' ('Yüzeye sabitle'). You can also tap 'Place in front of me (0.8m)' ('Önüme yerleştir') for immediate placement.
+- Step 5: Type a caption or attach a social media link (YouTube/Spotify/Instagram/X), then tap 'Publish' ('Yayınla').
 
-3. USER-GENERATED CONTENT (UGC) & SAFETY (GUIDELINE 1.2 COMPLIANCE):
+4. USER-GENERATED CONTENT (UGC) & SAFETY (GUIDELINE 1.2 COMPLIANCE):
 - Zero tolerance for objectionable content: 18+ content and sensitive protected zones (schools, hospitals, places of worship) are hard-blocked at the server level.
-- Moderation & Approval: Newly created posts are held in 'pending_review' until moderation approval before public discovery. A post you create during review will therefore not appear on the map or in Discover until it is approved; the demo account already has approved sample posts.
-- Reporting: Posts, comments and user profiles can be reported with a reason (post 'Bildir' button, the '...' menu on each comment, 'Kullanıcıyı bildir' on profiles). Reports are reviewed within 24 hours.
-- Filtering: Comments are screened against an objectionable-language filter; profile photos are screened automatically (Google Cloud Vision SafeSearch) before anyone can see them, and reviewed again by moderators.
+- Moderation & Approval: Newly created posts are held in 'pending_review' until moderation approval before public discovery. The demo account already has approved sample posts visible immediately.
+- Reporting: Posts, comments and user profiles can be reported with a reason (post 'Report' button, the '...' menu on each comment, 'Report user' on profiles). Reports are reviewed within 24 hours.
+- Filtering: Comments are screened against an objectionable-language filter; profile photos are screened automatically (Google Cloud Vision SafeSearch) before anyone can see them.
 - Blocking: Users can block abusive creators via the ellipsis (...) menu on posts or from the creator's profile. Blocked users' posts, comments and profile are hidden immediately, and they can no longer comment on, like or follow the blocker.
 - Comment removal: Authors can delete their own comments; post owners can delete comments on their posts.
-- Account Deletion: Users can permanently delete their account and all associated data at any time via Profile -> 'Hesabı kalıcı olarak sil' (Guideline 5.1.1(v)).
+- Account Deletion: Users can permanently delete their account and all associated data at any time via Profile -> 'Delete Account' (Guideline 5.1.1(v)).
 - Support: Direct support contact is available via support@lociar.app and https://lociar-admin.vercel.app/support.
 
 If you have any questions or require additional details, please reach out to us at support@lociar.app.

@@ -8,7 +8,8 @@ const password = `Review_${randomBytes(8).toString('hex')}_2026!`;
 let user;
 try {
   user = await auth.getUserByEmail(email);
-  console.log('User already exists in Auth, uid:', user.uid);
+  await auth.updateUser(user.uid, { password });
+  console.log('User already exists in Auth, updated password, uid:', user.uid);
 } catch {
   user = await auth.createUser({
     email,

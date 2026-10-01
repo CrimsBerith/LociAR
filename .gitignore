@@ -5,6 +5,8 @@ node_modules/
 .next/
 
 # Native iOS
+build/
+*.xcarchive
 ios/build/
 DerivedData/
 *.xcuserstate

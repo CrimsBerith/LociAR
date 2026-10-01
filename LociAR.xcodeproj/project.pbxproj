@@ -553,6 +553,7 @@
 				ja,
 				pt,
 				ru,
+				tr,
 				"zh-Hans",
 			);
 			mainGroup = 15017F9A87A93878CAFC5308;
