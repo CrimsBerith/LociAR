@@ -3,7 +3,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { apiError, enforceRateLimit, requireSameOrigin, unauthorized } from '../../../../../lib/api';
 import { requireAdminApi } from '../../../../../lib/admin';
 import { adminDb } from '../../../../../lib/firebase-admin';
-import { postVersion } from '../../../../../lib/ops';
+import { derivedKey, postVersion, recordAudit } from '../../../../../lib/ops';
 import { idempotencyKey, nonnegativeInteger, parseJson, requiredString, uuid } from '../../../../../lib/validation';
 
 export async function POST(request: Request) {
@@ -58,6 +58,10 @@ export async function POST(request: Request) {
       created_at: FieldValue.serverTimestamp(),
     };
     await ref.create(approval);
+    await recordAudit(derivedKey(key, 'approval-created'), {
+      actorId: access.context.user.id, action: 'approval_requested', resourceType: resourceType, resourceId,
+      after: { approvalId: key, action, riskLevel: 'critical' }, reason, permissionKey: 'approvals.request', riskLevel: 'critical',
+    });
     return NextResponse.json({ approval: { ...approval, created_at: new Date().toISOString() } }, { status: 201 });
   } catch (error) {
     return apiError(error);

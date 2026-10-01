@@ -2,7 +2,7 @@
 
 ## Genel
 
-- iOS 44 pt, Android 48 dp minimum touch target.
+- iOS 44 pt minimum touch target.
 - Normal metin hedefi 4.5:1; büyük metin ve anlamlı UI sınırı 3:1.
 - Kritik bilgi yalnız renkle gösterilmez.
 - Dekoratif görseller erişilebilirlik ağacına eklenmez.
@@ -10,7 +10,7 @@
 
 ## Screen reader
 
-- Harita, Keşfet, AR ve Oluştur ana görevleri VoiceOver/TalkBack ile tamamlanmalıdır.
+- Harita, Keşfet, AR ve Oluştur ana görevleri VoiceOver ile tamamlanmalıdır.
 - İkon butonların Türkçe label'ı olmalıdır.
 - Selected chip/pin state'i duyurulmalıdır.
 - AR status değişikliği polite live region olarak duyurulur; hata assertive olabilir.
@@ -18,7 +18,7 @@
 
 ## Font scaling
 
-Test seviyeleri: varsayılan, büyük, en büyük accessibility ve Android %200.
+Test seviyeleri: varsayılan, büyük ve en büyük accessibility.
 
 - Kritik metin clip olmaz.
 - Buton label'ı kaybolmaz.

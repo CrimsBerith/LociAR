@@ -36,7 +36,7 @@ struct MapFeatureView: View {
                             ZStack {
                                 Circle()
                                     .fill(LociTheme.surface)
-                                    .frame(width: 38, height: 38)
+                                    .frame(width: 44, height: 44)
                                     .overlay(Circle().stroke(LociTheme.accent, lineWidth: 2.5))
                                     .shadow(color: .black.opacity(0.35), radius: 4)
                                 Text("\(cluster.posts.count)")
@@ -131,9 +131,14 @@ struct MapFeatureView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button { selection = nil } label: { Image(systemName: "xmark.circle.fill") }
-                            .buttonStyle(.plain).foregroundStyle(.secondary).font(.title3)
-                            .accessibilityIdentifier("map-clear-selection")
+                        Button { selection = nil } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain).foregroundStyle(.secondary).font(.title3)
+                        .accessibilityLabel("Seçimi kapat")
+                        .accessibilityIdentifier("map-clear-selection")
                     }
                     NavigationLink(value: selectedPost) {
                         Label("Postu aç", systemImage: "arrow.up.right")
@@ -212,6 +217,7 @@ struct MapFeatureView: View {
     private var statusSymbol: String { posts.isEmpty ? "location.magnifyingglass" : "mappin.and.ellipse" }
 
     private func startAndLoad() async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 #if DEBUG

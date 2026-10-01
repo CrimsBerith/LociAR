@@ -9,13 +9,15 @@ Backend 27 Eylül 2026'da Supabase'ten Firebase'e taşındı. Supabase sürümü
 | Adım | Durum |
 |---|---|
 | Firestore (nam5) + güvenli kurallar | ✅ yayında |
-| Auth: E-posta/Şifre + E-posta bağlantısı, Apple | ✅ açık (Apple token iptali için .p8 anahtarı bekleniyor) |
+| Auth: E-posta/Şifre + E-posta bağlantısı, Apple | ✅ açık — ⚠️ Apple `.p8` anahtarı developer.apple.com'dan alınıp Firebase Console'a girilmeli (hesap silme token iptali) |
+| Cloud Vision API (profil fotoğrafı denetimi) | ✅ etkinleştirildi |
 | iOS uygulaması Team ID (ZSRUTGX74S), App Check / App Attest | ✅ (App Check izleme modunda) |
 | E-posta şablon dili | ✅ Türkçe |
-| Blaze planı | ⏳ bekleniyor |
-| Storage (Get started) + storage.rules | ⏳ Blaze sonrası |
-| İndeksler, TTL, Cloud Functions (`us-central1`) | ⏳ `scripts/firebase-deploy.command` |
-| Bütçe uyarıları, Identity Platform + ilk admin, inceleme hesabı + seed | ⏳ deploy sonrası |
+| Blaze planı | ✅ aktif |
+| Storage + storage.rules | ✅ yayında |
+| İndeksler, TTL, Cloud Functions (`us-central1`) | ✅ 20 fonksiyon yayında |
+| Identity Platform + ilk süper admin | ✅ yapıldı (`khankartal@gmail.com`, TOTP MFA açık) |
+| İnceleme hesabı + seed içerik | ✅ yapıldı (`apple-review@lociar.app`, 7 onaylı post) |
 
 ## Mimari özeti
 
@@ -37,20 +39,44 @@ Backend 27 Eylül 2026'da Supabase'ten Firebase'e taşındı. Supabase sürümü
 - Hesap silme: Apple kullanıcılarında önce Apple token'ı iptal edilir, sonra `deleteAccount` tüm
   postları, medyayı, sosyal kayıtları ve Auth kullanıcısını kalıcı siler.
 
+## 0. Tek komutla kurulum (önerilen)
+
+Mac'te `scripts/google-cloud-setup.command` dosyasına çift tıkla. Sırayla: Google girişi, Blaze kontrolü,
+gerekli API'ler (ARCore, Cloud Vision, IAM Credentials, Cloud Scheduler, Functions/Run/Build, Eventarc, Pub/Sub,
+Storage, Firestore, App Check, Identity Toolkit), Functions servis hesabı yetkileri (ARCore anahtarsız token için
+Token Creator), Storage bucket kontrolü, elle yapılacakların listesi (Apple .p8, App Check debug token, bütçe) ve
+`scripts/firebase-deploy.command` ile deploy. Tekrar çalıştırmak güvenlidir. Aşağıdaki adımlar aynı işin
+elle yapılışıdır.
+
 ## 1. Firebase projesi (konsol, ~30 dk)
 
 1. console.firebase.google.com → proje oluştur (Analytics isteğe bağlı).
 2. **Blaze** planına geç (Storage ve Functions için şart). Google Cloud Billing → Budgets: $10 ve $50 uyarısı.
 3. **Firestore**: Create database → *Production mode* → bölge. Mevcut proje: `nam5` (US) — Functions bu yüzden `us-central1`
-   (Türkiye'ye yakın). Bölge sonradan değişmez.
+   (nam5 ile aynı bölge ailesi; Firestore trigger şartı). Bölge sonradan değişmez.
 4. **Storage**: Get started → aynı bölge ailesi. (Ücretsiz Storage kotası yalnız us-central1/us-east1/us-west1'de.)
 5. **Authentication** → Sign-in method:
    - Email/Password: açık (Email link açık olsun — admin panel girişinde kullanılıyor)
    - Apple: açık. Services ID, Apple Team ID `ZSRUTGX74S`, Key ID ve `.p8` anahtarını gir.
    - Settings → Authorized domains: admin panel alan adını ekle (ör. `lociar-admin.vercel.app`).
 6. Authentication → Settings → **Upgrade to Identity Platform** (admin TOTP MFA için gerekli; 50K MAU'ya kadar ücretsiz katman).
-7. **App Check** → iOS uygulaması → App Attest'i kaydet. Önce "Unenforced" kalsın; TestFlight doğrulandıktan sonra Firestore/Storage/Functions için enforce et.
-8. Project settings → Your apps:
+7. **App Check** → iOS uygulaması → App Attest'i kaydet. Firestore/Storage için önce "Unenforced" kalsın;
+   TestFlight doğrulandıktan sonra enforce et. **Callable Functions** konsoldan değil koddan zorlanır:
+   `functions/src/core.ts` → `ENFORCE_APP_CHECK` (emulator dışında her zaman açık). Debug build'lerle canlı
+   backend'e bağlanacaksan Xcode konsolunda basılan App Check debug token'ını konsolda "Manage debug tokens"
+   altına ekle; yoksa callable'lar `unauthenticated` döner.
+8. **Cloud Vision API**: Google Cloud Console → APIs & Services → *Cloud Vision API* → Enable. Profil fotoğrafı
+   denetimi (`screenAvatar`) bunu kullanır; kapalıysa tüm fotoğraflar reddedilir (fail-closed). Aylık ilk
+   1000 görsel ücretsiz.
+9. **Google ARCore (Geospatial + Cloud Anchors)** — keyless yetkilendirme, anahtar dosyası yok:
+   - Google Cloud Console → APIs & Services → **ARCore API** → Enable.
+   - IAM → Functions'ın çalıştığı servis hesabı (varsayılan: `<PROJE_NUMARASI>-compute@developer.gserviceaccount.com`)
+     → kendi üzerinde **Service Account Token Creator** (`roles/iam.serviceAccountTokenCreator`) rolünü ver:
+     `gcloud iam service-accounts add-iam-policy-binding <SA> --member=serviceAccount:<SA> --role=roles/iam.serviceAccountTokenCreator`
+   - `getArcoreToken` callable bu hesapla 1 saatlik JWT imzalar; uygulama `GARSession.setAuthToken` ile kullanır.
+     Farklı bir hesap kullanılacaksa Functions ortamında `ARCORE_SIGNER_EMAIL` ayarla.
+   - Billing → ARCore API kullanım/ücret satırını deploy öncesi kontrol et (dokümanda yalnız kota var).
+10. Project settings → Your apps:
    - iOS app ekle: bundle ID `com.khankartal.lociar`. `GoogleService-Info.plist` içindeki değerleri
      `Config/Local.xcconfig`'e yaz (dosyanın kendisi projeye eklenmez, bkz. `Config/Local.xcconfig.example`).
    - Web app ekle (admin panel için): apiKey, authDomain, projectId, appId değerlerini al.
@@ -116,3 +142,25 @@ Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yenide
 - Engelleme yalnız engelleyen tarafta içerik gizler (Apple'ın beklediği davranış).
 - Push bildirimleri 1.0 kapsamında değil (APNs entitlement yok).
 - ~5K aktif kullanıcıdan sonra medyayı Cloudflare R2'ye taşımak indirme maliyetini sıfırlar.
+
+## 7. Güvenlik/maliyet ek adımları (owner)
+
+**Storage → Firestore çapraz servis yetkisi.** `storage.rules` artık `post-world-maps` okumasında `firestore.get(...)` ile post durumuna bakıyor. `firebase deploy --only storage` sırasında CLI "Firebase Rules hizmet hesabına Firestore erişimi verilsin mi?" diye sorar; **Evet** de. (Elle: IAM → `service-<PROJE_NUMARASI>@gcp-sa-firebasestorage.iam.gserviceaccount.com` hesabına `Firebase Rules Firestore Service Agent` rolü.) Verilmezse world map okumaları kapalı kalır (güvenli taraf), AR haritası yüklenmez.
+
+**Eski klasörler için GCS lifecycle** (fotoğraf/video kaldırıldı, bu klasörler artık yazılamıyor; 30 gün sonra kalıntılar silinir). `lifecycle.json`:
+
+```json
+{ "rule": [
+  { "action": {"type": "Delete"}, "condition": {"age": 30, "matchesPrefix": ["post-layer-assets/", "post-video-assets/", "post-reference-images/", "post-surface-textures/"]} }
+] }
+```
+
+Uygula: `gcloud storage buckets update gs://lociar-2f38c.firebasestorage.app --lifecycle-file=lifecycle.json`; doğrula: `gcloud storage buckets describe gs://lociar-2f38c.firebasestorage.app --format="default(lifecycle_config)"`.
+
+**Firestore TTL.** `firestore.indexes.json` içindeki `expires_at` TTL alanları (`post_view_receipts` 30 gün, `activity_events` 180 gün, `filtered_comments` 90 gün, `trigger_receipts` 7 gün, `post_quota`, `arcore_token_quota`) `firebase deploy --only firestore:indexes` ile etkinleşir.
+
+**Apple token iptali (sunucu).** `deleteAccount` sunucuda iptal yapabilir; Functions ortamına `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_CLIENT_ID` (bundle id) ve `APPLE_PRIVATE_KEY` (.p8 içeriği, Secret Manager) verilince devreye girer. O zamana kadar istemci iptal edip `appleRevokedByClient: true` gönderir; ikisi de yoksa Apple hesabı silinmez.
+
+**Cloud Anchor göç betikleri.** Eski postlar için bir kez: `FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/backfill-cloud-anchors.mjs --apply`; uzun `display_name` düzeltmesi: `node functions/scripts/fix-long-display-names.mjs --apply`. (Önce `--apply`sız kuru çalıştırma yap.)
+
+**Admin.** Üretimde `ADMIN_ORIGIN=https://<admin-alan-adı>` ayarla (Origin kontrolü buna sabitlenir). Docker imajı artık `next build` + `next start`, root olmayan kullanıcıyla çalışır; gizli bilgiler imaja girmez, çalışma zamanında verilir.

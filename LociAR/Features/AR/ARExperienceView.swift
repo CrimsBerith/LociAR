@@ -12,6 +12,7 @@ struct ARExperienceView: View {
 
     var mode: Mode = .discover
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppContainer.self) private var container
     @Environment(AppSession.self) private var session
     @Environment(AppRouter.self) private var router
@@ -29,6 +30,8 @@ struct ARExperienceView: View {
     @State private var isStartingCreationMode = false
     @State private var isHandlingARSelection = false
     @State private var mappingWaitExpired = false
+    @State private var tabChangeTask: Task<Void, Never>?
+    @State private var pinRequestTask: Task<Void, Never>?
 
     init(mode: Mode = .discover) {
         self.mode = mode
@@ -65,6 +68,7 @@ struct ARExperienceView: View {
         .background(LociTheme.background)
         .accessibilityElement(children: .contain)
         .navigationBarHidden(true)
+        .arcoreDisclosure()
         .task { await handleAppearance() }
         .task(id: engine.currentAnchor?.id) {
             mappingWaitExpired = false
@@ -81,22 +85,27 @@ struct ARExperienceView: View {
         }
         .onChange(of: router.selectedTab) { _, tab in
             if mode == .create, tab == .create {
-                Task { await startCreationMode() }
+                tabChangeTask?.cancel()
+                tabChangeTask = Task { await startCreationMode() }
             } else if mode == .create {
                 showCreate = false
                 isPreparingContent = false
                 errorMessage = nil
                 isCreationMode = false
             } else if mode == .discover, tab == .ar {
-                Task { await handleARSelection() }
+                tabChangeTask?.cancel()
+                tabChangeTask = Task { await handleARSelection() }
             }
         }
         .onChange(of: router.createPinRequested) { _, requested in
             guard requested, mode == .create else { return }
             router.createPinRequested = false
-            Task { await startCreationMode() }
+            pinRequestTask?.cancel()
+            pinRequestTask = Task { await startCreationMode() }
         }
         .onDisappear {
+            tabChangeTask?.cancel()
+            pinRequestTask?.cancel()
             location.stop()
             let siblingARTabActive = (mode == .discover && router.selectedTab == .create)
                 || (mode == .create && router.selectedTab == .ar)
@@ -130,7 +139,7 @@ struct ARExperienceView: View {
                     Image(systemName: isDiscovering ? "location.magnifyingglass" : "viewfinder.circle.fill")
                         .font(.system(size: 38, weight: .semibold))
                         .foregroundStyle(LociTheme.accent)
-                        .symbolEffect(.pulse, isActive: isDiscovering)
+                        .symbolEffect(.pulse, isActive: isDiscovering && !reduceMotion)
                 }
                 LociStatusPill(
                     title: discoveryCameraTitle,
@@ -395,7 +404,7 @@ struct ARExperienceView: View {
     }
 
     private var isUnsupported: Bool {
-        engine.state == .failed && engine.statusMessage.localizedCaseInsensitiveContains("desteklemiyor")
+        engine.state == .failed && engine.failureReason == .unsupported
     }
 
     private var cameraPermissionDenied: Bool {
@@ -485,8 +494,14 @@ struct ARExperienceView: View {
                 radiusMeters: 120
             )
             async let ownRequest = container.posts.myPosts(limit: 50)
-            collected.append(contentsOf: (try? await nearbyRequest) ?? [])
-            collected.append(contentsOf: (try? await ownRequest) ?? [])
+            var networkError: Error?
+            do { collected.append(contentsOf: try await nearbyRequest) } catch { networkError = error }
+            do { collected.append(contentsOf: try await ownRequest) } catch { if networkError != nil { networkError = error } }
+            if collected.isEmpty, let networkError {
+                isDiscovering = false
+                discoveryMessage = "Bağlantı hatası: \(networkError.localizedDescription)"
+                return
+            }
         }
 
         var unique: [UUID: LociPost] = [:]

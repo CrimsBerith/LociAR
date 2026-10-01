@@ -8,6 +8,7 @@ const navigation = [
   { href: '/admin/posts', label: 'Posts & media', enabled: true },
   { href: '/admin/approvals', label: 'Approvals', enabled: true },
   { href: '/admin/moderation', label: 'Moderation', enabled: true },
+  { href: '/admin/avatars', label: 'Profile photos', enabled: true },
   { href: '/admin/anchors', label: 'AR anchors', enabled: true },
   { href: '/admin/places', label: 'Map & places', enabled: true },
   { href: '/admin/zones', label: 'Restricted zones', enabled: true },

@@ -1,6 +1,5 @@
 @preconcurrency import ARKit
 @preconcurrency import AVFoundation
-import CoreImage
 import Foundation
 import Observation
 import OSLog
@@ -69,6 +68,8 @@ final class ARPinningEngine: NSObject {
     nonisolated static let mappingReadinessTimeoutSeconds: TimeInterval = 15
     nonisolated static let worldMapCaptureMaximumAttempts = 6
     private(set) var state: PinSessionState = .idle
+    /// Set when state transitions to `.failed` via a typed `ARPinningError`; nil for free-form failures.
+    private(set) var failureReason: ARPinningError?
     private(set) var trackingQuality: TrackingQuality = .unknown
     private(set) var mappingQuality: WorldMappingQuality = .notAvailable
     private(set) var candidateQuality: PinQuality?
@@ -96,7 +97,6 @@ final class ARPinningEngine: NSObject {
     @ObservationIgnored private var notificationTokens: [NSObjectProtocol] = []
     @ObservationIgnored private let contentRenderer = SpatialContentRenderer()
     @ObservationIgnored private var videoPlayers: [UUID: AVPlayer] = [:]
-    @ObservationIgnored private var latestReferenceImageData: Data?
     @ObservationIgnored private var activeInitialWorldMap: ARWorldMap?
     @ObservationIgnored private var pausedForThermalPressure = false
     @ObservationIgnored private var compassWorldAlignment = false
@@ -129,6 +129,9 @@ final class ARPinningEngine: NSObject {
         return "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh"
     }
 
+    /// Receives every ARKit frame on the main actor (wired to ARCoreService by AppContainer).
+    @ObservationIgnored var frameSink: (@MainActor (ARFrame) -> Void)?
+
     override init() {
         arView = ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)
         super.init()
@@ -147,7 +150,7 @@ final class ARPinningEngine: NSObject {
 
     func requestCameraAndStart() async {
         if UITestFixtures.cameraPermissionDenied {
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
             return
         }
 #if targetEnvironment(simulator)
@@ -155,7 +158,7 @@ final class ARPinningEngine: NSObject {
         return
 #else
         guard ARWorldTrackingConfiguration.isSupported else {
-            transition(to: .failed, message: ARPinningError.unsupported.localizedDescription)
+            transition(to: .failed, error: .unsupported)
             return
         }
 
@@ -166,9 +169,9 @@ final class ARPinningEngine: NSObject {
             transition(to: .permissionRequired, message: "Yüzey taraması için kamera izni gerekiyor.")
             let allowed = await AVCaptureDevice.requestAccess(for: .video)
             if allowed { startSession(reset: true) }
-            else { transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription) }
+            else { transition(to: .failed, error: .cameraDenied) }
         default:
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
         }
 #endif
     }
@@ -177,7 +180,7 @@ final class ARPinningEngine: NSObject {
     /// Used when SwiftUI keeps the AR tab alive while switching tabs.
     func ensureLiveCameraSession() async -> Bool {
         if UITestFixtures.cameraPermissionDenied {
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
             return false
         }
 #if targetEnvironment(simulator)
@@ -205,7 +208,7 @@ final class ARPinningEngine: NSObject {
     /// stale AR session from presenting a black surface when creating a pin.
     func prepareNewPinSession(compassAligned: Bool = false) async -> Bool {
         if UITestFixtures.cameraPermissionDenied {
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
             return false
         }
 #if targetEnvironment(simulator)
@@ -226,11 +229,11 @@ final class ARPinningEngine: NSObject {
         case .notDetermined:
             transition(to: .permissionRequired, message: "Yüzey taraması için kamera izni gerekiyor.")
             guard await AVCaptureDevice.requestAccess(for: .video) else {
-                transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+                transition(to: .failed, error: .cameraDenied)
                 return false
             }
         default:
-            transition(to: .failed, message: ARPinningError.cameraDenied.localizedDescription)
+            transition(to: .failed, error: .cameraDenied)
             return false
         }
 
@@ -288,7 +291,7 @@ final class ARPinningEngine: NSObject {
         return
 #else
         guard ARWorldTrackingConfiguration.isSupported else {
-            transition(to: .failed, message: ARPinningError.unsupported.localizedDescription)
+            transition(to: .failed, error: .unsupported)
             return
         }
         transition(to: .initializing, message: "Kamera hazırlanıyor…")
@@ -403,8 +406,11 @@ final class ARPinningEngine: NSObject {
         )
     }
 
+    /// Also valid after a physical pin whose world map could not be saved (`.placed`/`.mapping`):
+    /// the physical anchor is then replaced by a new approximate one without persistence.
     func offerApproximatePlacement() {
-        guard state == .scanning || state == .candidateReady || state == .approximateOffered else { return }
+        let allowed: [PinSessionState] = [.scanning, .candidateReady, .approximateOffered, .placed, .mapping]
+        guard allowed.contains(state) else { return }
         transition(to: .approximateOffered, message: "Yaklaşık yerleştirme seçildi. İçerik kameranın 0,8 m önünde konumlanacak.")
     }
 
@@ -431,6 +437,47 @@ final class ARPinningEngine: NSObject {
             source: .frontOfCamera,
             alignment: .freeSpace
         )
+    }
+
+    /// The ARKit anchor of the current pin (what ARCore hosts as a Cloud Anchor).
+    func currentPinARAnchor() -> ARAnchor? {
+        guard let id = currentAnchor?.id else { return nil }
+        return arView.session.currentFrame?.anchors.first { $0.name == anchorName(for: id) }
+    }
+
+    /// Current pin transform (for hosting-quality estimates and geo-tagging).
+    var currentPinTransform: simd_float4x4? {
+        currentAnchor.flatMap { Self.unflatten($0.transform) }
+    }
+
+    /// Shows a post at a transform found by ARCore (resolved Cloud Anchor or Geospatial pose).
+    /// `physical` distinguishes a surface-exact Cloud Anchor from a geospatial placement.
+    func placeResolvedForViewing(transform: simd_float4x4, anchor sourceAnchor: SurfaceAnchor, physical: Bool) {
+        if state != .scanning && state != .candidateReady && state != .approximateOffered {
+            transition(to: .scanning, message: "Konum bulundu, içerik hazırlanıyor…")
+        }
+        transition(to: .placing, message: "İçerik yerleştiriliyor…")
+        place(
+            transform: transform,
+            quality: physical ? sourceAnchor.pinQuality : .estimatedPlane,
+            source: physical ? sourceAnchor.hitSource : .estimatedPlane,
+            alignment: sourceAnchor.surfaceAlignment == .unknown ? .vertical : sourceAnchor.surfaceAlignment,
+            id: sourceAnchor.id,
+            captureGeoPose: false
+        )
+        currentAnchor?.geoPose = sourceAnchor.geoPose
+        currentAnchor?.geospatial = sourceAnchor.geospatial
+        currentAnchor?.persistence = sourceAnchor.persistence
+        isRelocalizedContentVisible = true
+        if state == .placed { transition(to: .relocalizing, message: "İçerik açılıyor…") }
+        if state == .relocalizing || state == .placed {
+            transition(to: .resolved, message: physical ? "Yüzey bulundu. İçerik hazır." : "Konum bulundu. İçerik hazır.")
+        }
+    }
+
+    /// Records the precise geospatial pose of the current pin.
+    func attachGeospatial(_ pose: GeospatialPose) {
+        currentAnchor?.geospatial = pose
     }
 
     func placeApproximateForViewing(anchor sourceAnchor: SurfaceAnchor) throws {
@@ -513,21 +560,20 @@ final class ARPinningEngine: NSObject {
         let mapData = try await Task.detached(priority: .utility) {
             try NSKeyedArchiver.archivedData(withRootObject: sendableMap.map, requiringSecureCoding: true)
         }.value
-        let referenceData: Data?
-        if let cached = latestReferenceImageData { referenceData = cached }
-        else { referenceData = await captureReferenceImageData() }
+        // No camera frame is stored with a pin: relocalization uses the world map only, and a
+        // frame could show people, homes or plates (privacy) while nothing ever read it back.
         var persistence = WorldLockPersistence(
             originalNativeAnchorId: anchor.id,
             hostedAt: Date()
         )
         let local = try await Task.detached(priority: .utility) {
-            try Self.writeLocalPackage(mapData: mapData, referenceData: referenceData, anchorID: anchor.id)
+            try Self.writeLocalPackage(mapData: mapData, referenceData: nil, anchorID: anchor.id)
         }.value
         persistence.assetURI = local.mapURL.absoluteString
-        persistence.referenceImageURI = local.referenceURL?.absoluteString
+        persistence.referenceImageURI = nil
         currentAnchor?.persistence = persistence
         transition(to: .publishReady, message: "Yüzey kaydı hazır. Post yayınlanabilir.")
-        return SavedWorldMapPackage(mapData: mapData, referenceImageData: referenceData, persistence: persistence)
+        return SavedWorldMapPackage(mapData: mapData, referenceImageData: nil, persistence: persistence)
     }
 
     private func waitForPersistableMapping() async -> Bool {
@@ -571,7 +617,9 @@ final class ARPinningEngine: NSObject {
 
     func restoreWorldMap(data: Data, expectedAnchor: SurfaceAnchor?) async throws {
         let unarchived = try await Task.detached(priority: .userInitiated) {
-            try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data).map(SendableWorldMap.init(map:))
+            // Accepts both compressed (uploaded) and raw archives.
+            let raw = try WorldMapCodec.decode(data)
+            return try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: raw).map(SendableWorldMap.init(map:))
         }.value
         guard let worldMap = unarchived?.map else {
             throw ARPinningError.invalidWorldMap
@@ -802,6 +850,8 @@ final class ARPinningEngine: NSObject {
             Task { @MainActor in
                 guard let self else { return }
                 if ProcessInfo.processInfo.thermalState == .critical {
+                    // Nothing to pause (and nothing to resume later) when AR is not running.
+                    guard self.state != .idle else { return }
                     self.pausedForThermalPressure = true
                     self.arView.session.pause()
                     self.transition(to: .interrupted, message: "Cihaz sıcaklığı yüksek; AR geçici olarak duraklatıldı.")
@@ -968,11 +1018,6 @@ final class ARPinningEngine: NSObject {
         )
         currentAnchor = surfaceAnchor
         if quality.isPhysicalSurface { physicalPinPlacedAt = Date() }
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            self.latestReferenceImageData = await self.captureReferenceImageData()
-            self.recordDiagnostic(self.latestReferenceImageData == nil ? "Referans görüntüsü alınamadı." : "Yerleştirme referans görüntüsü hazır.")
-        }
         if captureGeoPose {
             Task { @MainActor [weak self] in
                 guard let self, let pose = await geoPoseCapture.capture() else { return }
@@ -1019,7 +1064,6 @@ final class ARPinningEngine: NSObject {
             arView.session.remove(anchor: anchor)
         }
         currentAnchor = nil
-        latestReferenceImageData = nil
         isRelocalizedContentVisible = false
     }
 
@@ -1044,17 +1088,6 @@ final class ARPinningEngine: NSObject {
         }
     }
 
-    private func captureReferenceImageData() async -> Data? {
-        guard let imageBuffer = arView.session.currentFrame?.capturedImage else { return nil }
-        let image = CIImage(cvPixelBuffer: imageBuffer).oriented(.right)
-        let payload = SendableCIImage(image: image)
-        return await Task.detached(priority: .utility) {
-            let context = CIContext(options: [.cacheIntermediates: false])
-            guard let cgImage = context.createCGImage(payload.image, from: payload.image.extent) else { return nil }
-            return UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.82)
-        }.value
-    }
-
     private func transition(to next: PinSessionState, message: String) {
         guard state.canTransition(to: next) else {
             let rejected = "Geçersiz AR durum geçişi: \(state.rawValue) → \(next.rawValue)"
@@ -1062,10 +1095,16 @@ final class ARPinningEngine: NSObject {
             return
         }
         state = next
+        if next != .failed { failureReason = nil }
         statusMessage = message
         logger.info("AR state=\(next.rawValue, privacy: .public) tracking=\(self.trackingQuality.rawValue, privacy: .public) mapping=\(self.mappingQuality.rawValue, privacy: .public) message=\(message, privacy: .public)")
         diagnostics.append(makeDiagnosticSnapshot(message: message))
         if diagnostics.count > 500 { diagnostics.removeFirst(diagnostics.count - 500) }
+    }
+
+    private func transition(to next: PinSessionState, error: ARPinningError) {
+        if next == .failed { failureReason = error }
+        transition(to: next, message: error.localizedDescription)
     }
 
     private func recordDiagnostic(_ message: String) {
@@ -1144,6 +1183,16 @@ final class ARPinningEngine: NSObject {
 
     private func anchorName(for id: UUID) -> String { "lociar_surface_\(id.uuidString)" }
 
+    static func unflatten(_ values: [Float]) -> simd_float4x4? {
+        guard values.count == 16 else { return nil }
+        return simd_float4x4(
+            SIMD4(values[0], values[1], values[2], values[3]),
+            SIMD4(values[4], values[5], values[6], values[7]),
+            SIMD4(values[8], values[9], values[10], values[11]),
+            SIMD4(values[12], values[13], values[14], values[15])
+        )
+    }
+
     static func flatten(_ matrix: simd_float4x4) -> [Float] {
         [matrix.columns.0, matrix.columns.1, matrix.columns.2, matrix.columns.3].flatMap { [$0.x, $0.y, $0.z, $0.w] }
     }
@@ -1173,8 +1222,9 @@ final class ARPinningEngine: NSObject {
     }
 }
 
-private struct SendableCIImage: @unchecked Sendable { let image: CIImage }
 private struct SendableWorldMap: @unchecked Sendable { let map: ARWorldMap }
+/// ARFrame is not Sendable; it is handed to the main actor once and not retained there.
+private struct SendableARFrame: @unchecked Sendable { let frame: ARFrame }
 private final class WeakARViewHost {
     weak var view: UIView?
     init(_ view: UIView) { self.view = view }
@@ -1272,8 +1322,11 @@ extension ARPinningEngine: ARSessionDelegate {
         let meshCount = frame.anchors.reduce(into: 0) { count, anchor in
             if anchor is ARMeshAnchor { count += 1 }
         }
+        let forwarded = SendableARFrame(frame: frame)
         Task { @MainActor [weak self] in
             guard let self else { return }
+            // ARCore (Geospatial + Cloud Anchors) runs on these same ARKit frames.
+            self.frameSink?(forwarded.frame)
             let now = Date()
             let mappingChanged = self.mappingQuality != quality
             self.lastFrameReceivedAt = now

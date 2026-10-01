@@ -122,8 +122,12 @@ struct ActivityView: View {
                             Text(item.createdAt, style: .relative).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if item.readAt == nil { Circle().fill(LociTheme.accent).frame(width: 7, height: 7) }
+                        if item.readAt == nil {
+                            Circle().fill(LociTheme.accent).frame(width: 7, height: 7)
+                                .accessibilityLabel("Okunmadı")
+                        }
                     }
+                    .accessibilityElement(children: .combine)
                     .padding(.vertical, 5)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -168,6 +172,7 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     @State private var message: String?
     @State private var isDeletingAccount = false
+    @State private var isSigningOut = false
 
     var body: some View {
         List {
@@ -186,6 +191,8 @@ struct ProfileView: View {
                         Image(systemName: "pencil.circle.fill")
                             .font(.title2)
                             .foregroundStyle(LociTheme.accent)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Profili düzenle")
@@ -224,11 +231,23 @@ struct ProfileView: View {
             } header: {
                 profileSectionText("Yasal")
             }
+#if DEBUG
             Section {
-                Button(role: .destructive) { Task { await session.signOut() } } label: {
+                NavigationLink { ARCoreCoverageDebugView() } label: {
+                    ProfileLinkRow(title: "ARCore kapsam kontrolü (debug)", symbol: "globe.europe.africa", color: .blue)
+                }
+                .accessibilityIdentifier("profile-debug-arcore")
+            }
+#endif
+            Section {
+                Button(role: .destructive) {
+                    guard !isSigningOut else { return }
+                    isSigningOut = true
+                    Task { await session.signOut(); isSigningOut = false }
+                } label: {
                     Label("Çıkış yap", systemImage: "rectangle.portrait.and.arrow.right")
                 }
-                    .disabled(isDeletingAccount)
+                    .disabled(isDeletingAccount || isSigningOut)
                     .accessibilityIdentifier("profile-sign-out")
                 Button(role: .destructive) { confirmDeletion = true } label: {
                     Label("Hesabı kalıcı olarak sil", systemImage: "trash")
@@ -269,14 +288,20 @@ struct ProfileView: View {
         defer { isDeletingAccount = false }
         do {
             try await session.deleteAccount()
-            try modelContext.delete(model: DraftRecord.self)
-            try modelContext.delete(model: SyncQueueRecord.self)
-            try modelContext.delete(model: PreferenceRecord.self)
-            try modelContext.save()
-            await MediaAssetStore.purgeAllLocalAssets()
         } catch AuthFlowError.appleReauthenticationRequired {
             message = AuthFlowError.appleReauthenticationRequired.localizedDescription
-        } catch { message = "Hesap şu anda silinemiyor. Biraz sonra tekrar dene." }
+            return
+        } catch {
+            message = "Hesap şu anda silinemiyor. Biraz sonra tekrar dene."
+            return
+        }
+        // Account deleted server-side. Clean up local data best-effort — the view may be
+        // dismissing already (Auth state listener fires before we get here).
+        try? modelContext.delete(model: DraftRecord.self)
+        try? modelContext.delete(model: SyncQueueRecord.self)
+        try? modelContext.delete(model: PreferenceRecord.self)
+        try? modelContext.save()
+        await MediaAssetStore.purgeAllLocalAssets()
     }
 }
 
@@ -293,15 +318,24 @@ struct CollectionsView: View {
         Group {
             if isLoading { LociLoadingView(title: "Koleksiyonlar yükleniyor…") }
             else if collections.isEmpty {
-                LociEmptyState(
-                    title: "Henüz koleksiyon yok",
-                    message: message ?? "Kaydettiğin postları özel koleksiyonlarda düzenleyebilirsin.",
-                    symbol: "square.stack.3d.up",
-                    actionTitle: message == nil ? "İlk koleksiyonu oluştur" : (!container.isBackendConfigured ? nil : "Tekrar dene"),
-                    action: { if message == nil { showCreate = true } else { Task { await load() } } }
-                )
+                if let message {
+                    LociEmptyState.failure(message: message, retry: retryAction)
+                } else {
+                    LociEmptyState(
+                        title: "Henüz koleksiyon yok",
+                        message: "Kaydettiğin postları özel koleksiyonlarda düzenleyebilirsin.",
+                        symbol: "square.stack.3d.up",
+                        actionTitle: "İlk koleksiyonu oluştur",
+                        action: { showCreate = true }
+                    )
+                }
             } else {
-                List(collections) { collection in
+                List {
+                    if let message {
+                        LociInlineNotice(title: "Bir sorun oluştu", message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                            .listRowBackground(Color.clear)
+                    }
+                    ForEach(collections) { collection in
                     NavigationLink {
                         CollectionDetailView(collection: collection)
                     } label: {
@@ -317,6 +351,7 @@ struct CollectionsView: View {
                         }
                     }
                     .listRowBackground(Color.clear)
+                    }
                 }
                 .lociListStyle()
                 .refreshable { await load() }
@@ -331,6 +366,12 @@ struct CollectionsView: View {
             Button("Vazgeç", role: .cancel) {}
         }
         .task { await load() }
+    }
+
+    /// Retry is only offered when a backend exists to retry against.
+    private var retryAction: (() -> Void)? {
+        guard container.isBackendConfigured else { return nil }
+        return { Task { await load() } }
     }
 
     private func load() async {
@@ -349,6 +390,7 @@ struct CollectionsView: View {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured, !cleanTitle.isEmpty else { return }
         guard cleanTitle.count <= 80 else { message = "Koleksiyon başlığı en fazla 80 karakter olabilir."; return }
+        message = nil
         do {
             let created = try await container.social.createCollection(title: cleanTitle, userID: user.id)
             collections.insert(created, at: 0)
@@ -371,13 +413,22 @@ struct CollectionDetailView: View {
             if isLoading {
                 LociLoadingView(title: "Koleksiyon yükleniyor…")
             } else if posts.isEmpty {
-                LociEmptyState(
-                    title: "Bu koleksiyon boş",
-                    message: "Beğendiğin veya kaydettiğin postları detayından bu koleksiyona ekleyebilirsin.",
-                    symbol: "folder.badge.plus"
-                )
+                if let message {
+                    // A failed load must not read as an empty collection.
+                    LociEmptyState.failure(message: message, retry: { Task { await load() } })
+                } else {
+                    LociEmptyState(
+                        title: "Bu koleksiyon boş",
+                        message: "Beğendiğin veya kaydettiğin postları detayından bu koleksiyona ekleyebilirsin.",
+                        symbol: "folder.badge.plus"
+                    )
+                }
             } else {
                 List {
+                    if let message {
+                        LociInlineNotice(title: "Bazı postlar gösterilemiyor", message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                            .listRowBackground(Color.clear)
+                    }
                     ForEach(posts) { post in
                         NavigationLink {
                             PostPreviewView(post: post)
@@ -415,16 +466,24 @@ struct CollectionDetailView: View {
 
     private func load() async {
         isLoading = posts.isEmpty
+        message = nil
         defer { isLoading = false }
         do {
             let postIDs = try await container.social.postIDs(in: collection.id)
             var loadedPosts: [LociPost] = []
+            var failedCount = 0
             for id in postIDs {
-                if let post = try? await container.posts.publicPost(id: id) {
-                    loadedPosts.append(post)
+                do {
+                    // nil = removed, hidden or blocked: intentionally skipped. A throw is a real failure.
+                    if let post = try await container.posts.publicPost(id: id) { loadedPosts.append(post) }
+                } catch {
+                    failedCount += 1
                 }
             }
             posts = loadedPosts
+            if failedCount > 0 {
+                message = loadedPosts.isEmpty ? "Postlar yüklenemedi." : "\(failedCount) post şu anda yüklenemedi. Yenilemek için aşağı çek."
+            }
         } catch {
             message = "Postlar yüklenemedi."
         }
@@ -733,12 +792,15 @@ struct PublicProfileView: View {
     @State private var isLoading = true
     @State private var isFollowMutating = false
     @State private var isBlockMutating = false
+    @State private var isBlocked = false
+    @State private var confirmBlock = false
+    @State private var reportingUser = false
 
     var body: some View {
         List {
             Section {
                 VStack(spacing: 14) {
-                    LociAvatar(handle: profile?.handle ?? user.handle, size: 78)
+                    LociAvatar(handle: profile?.handle ?? user.handle, avatarURL: isBlocked ? nil : profile?.avatarURL, size: 78)
                     VStack(spacing: 5) {
                         Text("@\(profile?.handle ?? user.handle)").font(.title2.bold())
                         if let bio = profile?.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center) }
@@ -750,11 +812,23 @@ struct PublicProfileView: View {
                     Button(following ? "Takibi bırak" : "Takip et") { Task { await toggleFollow() } }
                         .buttonStyle(.borderedProminent).tint(following ? .white.opacity(0.16) : LociTheme.accent)
                         .foregroundStyle(following ? .white : .black).frame(maxWidth: .infinity)
-                        .disabled(isFollowMutating || isBlockMutating)
-                    Button("Kullanıcıyı engelle", role: .destructive) { Task { await block() } }
+                        .disabled(isFollowMutating || isBlockMutating || isBlocked)
+                    if isBlocked {
+                        Text("Bu kullanıcıyı engelledin. İçerikleri gizlendi; engeli Profil > Engellenenler'den kaldırabilirsin.")
+                            .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    } else {
+                        Button("Kullanıcıyı engelle", role: .destructive) { confirmBlock = true }
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .disabled(isFollowMutating || isBlockMutating)
+                            .accessibilityIdentifier("profile-block-user")
+                    }
+                    Button("Kullanıcıyı bildir") { reportingUser = true }
+                        .font(.footnote)
                         .frame(maxWidth: .infinity, minHeight: 44)
-                        .disabled(isFollowMutating || isBlockMutating)
-                        .accessibilityIdentifier("profile-block-user")
+                        .accessibilityIdentifier("profile-report-user")
+                    if let message, !posts.isEmpty {
+                        Text(message).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -770,7 +844,30 @@ struct PublicProfileView: View {
         .listStyle(.insetGrouped).scrollContentBackground(.hidden).background(LociScreenBackground())
         .navigationTitle("Profil")
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
+        .refreshable { await load() }
         .task { await load() }
+        .confirmationDialog("Kullanıcı engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
+            Button("Engelle", role: .destructive) { Task { await block() } }
+            Button("Vazgeç", role: .cancel) {}
+        } message: {
+            Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
+        }
+        .confirmationDialog("Neden bildiriyorsun?", isPresented: $reportingUser, titleVisibility: .visible) {
+            ForEach(ReportReason.allCases) { reason in
+                Button(reason.rawValue) { Task { await reportUser(reason) } }
+            }
+            Button("Vazgeç", role: .cancel) {}
+        }
+    }
+
+    private func reportUser(_ reason: ReportReason) async {
+        guard case let .signedIn(viewer) = session.phase, container.isBackendConfigured else { return }
+        do {
+            try await container.social.reportUser(targetID: user.id, userID: viewer.id, reason: reason.rawValue)
+            message = "Bildirimin incelemeye gönderildi. Teşekkürler."
+        } catch {
+            message = "Bildirim gönderilemedi."
+        }
     }
 
     private func load() async {
@@ -811,8 +908,15 @@ struct PublicProfileView: View {
         guard case let .signedIn(viewer) = session.phase, container.isBackendConfigured else { return }
         isBlockMutating = true
         defer { isBlockMutating = false }
-        do { try await container.social.setBlocked(true, targetID: user.id, userID: viewer.id); message = "Kullanıcı engellendi." }
-        catch { message = "Hesap engellenemedi. Tekrar dene." }
+        do {
+            try await container.social.setBlocked(true, targetID: user.id, userID: viewer.id)
+            isBlocked = true
+            following = false
+            posts = []
+            message = "Kullanıcı engellendi."
+        } catch {
+            message = "Hesap engellenemedi. Tekrar dene."
+        }
     }
 
     private func profileMetric(value: Int, label: String) -> some View {
@@ -820,10 +924,33 @@ struct PublicProfileView: View {
     }
 }
 
+/// Reasons offered when reporting a post, comment or user (Guideline 1.2).
+enum ReportReason: String, CaseIterable, Identifiable {
+    case spam = "Spam veya yanıltıcı"
+    case harassment = "Taciz veya zorbalık"
+    case hate = "Nefret söylemi"
+    case sexual = "Cinsel içerik"
+    case violence = "Şiddet veya tehlikeli içerik"
+    case other = "Diğer"
+    var id: String { rawValue }
+}
+
+enum ReportTarget: Identifiable {
+    case post
+    case comment(LociComment)
+    var id: String {
+        switch self {
+        case .post: "post"
+        case .comment(let comment): comment.id.uuidString
+        }
+    }
+}
+
 struct PostPreviewView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
     let post: LociPost
     @State private var comments: [LociComment] = []
     @State private var commentText = ""
@@ -840,6 +967,12 @@ struct PostPreviewView: View {
     @State private var isSaveMutating = false
     @State private var isCommentSending = false
     @State private var isReporting = false
+    @State private var reportTarget: ReportTarget?
+    @State private var confirmBlock = false
+    // Bumped on user actions only, so loading server state never fires a haptic.
+    @State private var likeTaps = 0
+    @State private var saveTaps = 0
+    @State private var commentsSent = 0
 
     init(post: LociPost) {
         self.post = post
@@ -883,25 +1016,25 @@ struct PostPreviewView: View {
                 )
                 HStack(spacing: 10) {
                     Button { Task { await toggleLike() } } label: {
-                        PostActionLabel(title: liked ? "Beğenildi" : "Beğen", symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white)
+                        PostActionLabel(title: liked ? "Beğenildi" : "Beğen", symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white, effectValue: liked)
                     }
                     .buttonStyle(.plain)
                     .disabled(isLikeMutating)
                     .accessibilityIdentifier("post-like-button")
                     Button { Task { await toggleSaved() } } label: {
-                        PostActionLabel(title: saved ? "Kaydedildi" : "Kaydet", symbol: saved ? "bookmark.fill" : "bookmark", color: saved ? LociTheme.accent : .white)
+                        PostActionLabel(title: saved ? "Kaydedildi" : "Kaydet", symbol: saved ? "bookmark.fill" : "bookmark", color: saved ? LociTheme.accent : .white, effectValue: saved)
                     }
                     .buttonStyle(.plain)
                     .disabled(isSaveMutating)
                     .accessibilityIdentifier("post-save-button")
-                    Button { Task { await report() } } label: {
+                    Button { reportTarget = .post } label: {
                         PostActionLabel(title: "Bildir", symbol: "exclamationmark.bubble", color: .white)
                     }
                     .buttonStyle(.plain)
                     .disabled(isReporting)
                     .accessibilityIdentifier("post-report")
                     Menu {
-                        Button(role: .destructive) { Task { await blockCreator() } } label: {
+                        Button(role: .destructive) { confirmBlock = true } label: {
                             Label("Kullanıcıyı engelle", systemImage: "person.crop.circle.badge.xmark")
                         }
                         .accessibilityIdentifier("post-block-user")
@@ -912,6 +1045,7 @@ struct PostPreviewView: View {
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Diğer seçenekler")
                     .accessibilityIdentifier("post-more-menu")
                     if !collections.isEmpty {
                         Menu("Koleksiyona ekle") {
@@ -933,8 +1067,29 @@ struct PostPreviewView: View {
                                 HStack { Text("@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary) }
                                 Text(comment.text).font(.subheadline)
                             }
+                            Spacer(minLength: 0)
+                            Menu {
+                                if !isMine(comment) {
+                                    Button { reportTarget = .comment(comment) } label: {
+                                        Label("Yorumu bildir", systemImage: "exclamationmark.bubble")
+                                    }
+                                }
+                                if canDelete(comment) {
+                                    Button(role: .destructive) { Task { await deleteComment(comment) } } label: {
+                                        Label("Yorumu sil", systemImage: "trash")
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .foregroundStyle(.secondary)
+                                    .frame(minWidth: 44, minHeight: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel("Yorum seçenekleri")
+                            .accessibilityIdentifier("comment-actions")
                         }
                         .padding(.vertical, 4)
+                        .accessibilityElement(children: .contain)
                     }
                 }
                 VStack(alignment: .trailing, spacing: 6) {
@@ -958,6 +1113,7 @@ struct PostPreviewView: View {
                             }
                         }
                         .disabled(isCommentSending || commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityLabel("Yorumu gönder")
                         .accessibilityIdentifier("comment-submit")
                     }
                     if commentText.count > 400 {
@@ -972,6 +1128,9 @@ struct PostPreviewView: View {
         .background(LociScreenBackground())
         .navigationTitle("Post")
         .navigationBarTitleDisplayMode(.inline)
+        .sensoryFeedback(.selection, trigger: likeTaps)
+        .sensoryFeedback(.selection, trigger: saveTaps)
+        .sensoryFeedback(.success, trigger: commentsSent)
         .task { await load() }
         .safeAreaInset(edge: .bottom) {
             Button("AR’da aç", systemImage: "viewfinder") { showAR = true }
@@ -981,6 +1140,46 @@ struct PostPreviewView: View {
                 .accessibilityIdentifier("post-open-ar")
         }
         .fullScreenCover(isPresented: $showAR) { ARPostViewerView(post: post) }
+        .confirmationDialog(
+            "Neden bildiriyorsun?",
+            isPresented: Binding(get: { reportTarget != nil }, set: { if !$0 { reportTarget = nil } }),
+            titleVisibility: .visible,
+            presenting: reportTarget
+        ) { target in
+            ForEach(ReportReason.allCases) { reason in
+                Button(reason.rawValue) { Task { await report(target, reason: reason) } }
+            }
+            Button("Vazgeç", role: .cancel) {}
+        } message: { _ in
+            Text("Bildirimler 24 saat içinde incelenir. İçeriği görmek istemiyorsan kullanıcıyı engelleyebilirsin.")
+        }
+        .confirmationDialog("@\(creatorUser.handle) engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
+            Button("Engelle", role: .destructive) { Task { await blockCreator() } }
+            Button("Vazgeç", role: .cancel) {}
+        } message: {
+            Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
+        }
+    }
+
+    private func isMine(_ comment: LociComment) -> Bool {
+        if case let .signedIn(user) = session.phase { return comment.userID == user.id }
+        return false
+    }
+
+    private func canDelete(_ comment: LociComment) -> Bool {
+        guard case let .signedIn(user) = session.phase else { return false }
+        return comment.userID == user.id || post.creatorID == user.id
+    }
+
+    private func deleteComment(_ comment: LociComment) async {
+        guard container.isBackendConfigured || session.isLocalPreview else { return }
+        do {
+            try await container.social.deleteComment(id: comment.id)
+            withAnimation { comments.removeAll { $0.id == comment.id } }
+            message = "Yorum silindi."
+        } catch {
+            message = "Yorum silinemedi."
+        }
     }
 
     private func load() async {
@@ -1010,6 +1209,7 @@ struct PostPreviewView: View {
         guard case let .signedIn(user) = session.phase else { return }
         isLikeMutating = true
         defer { isLikeMutating = false }
+        likeTaps += 1
         let next = !liked
         liked = next
         likeCount = max(0, likeCount + (next ? 1 : -1))
@@ -1039,6 +1239,7 @@ struct PostPreviewView: View {
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured || session.isLocalPreview else { return }
         isSaveMutating = true
         defer { isSaveMutating = false }
+        saveTaps += 1
         do { try await container.social.setSaved(!saved, postID: post.id, userID: user.id); saved.toggle() } catch { message = "Kaydetme durumu güncellenemedi." }
     }
     private func addComment() async {
@@ -1053,15 +1254,31 @@ struct PostPreviewView: View {
             withAnimation(.spring(duration: 0.3)) {
                 comments.append(comment)
             }
+            commentsSent += 1
             commentText = ""
         } catch { message = "Yorum gönderilemedi." }
     }
-    private func report() async {
+    private func report(_ target: ReportTarget, reason: ReportReason) async {
         guard !isReporting else { return }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else { return }
         isReporting = true
         defer { isReporting = false }
-        do { try await container.social.report(postID: post.id, userID: user.id, reason: "user_reported"); message = "Bildirim incelemeye gönderildi." } catch { message = "Bildirim gönderilemedi." }
+        do {
+            switch target {
+            case .post:
+                try await container.social.report(postID: post.id, userID: user.id, reason: reason.rawValue)
+                // Hide it for this reporter immediately, then leave the screen.
+                await HiddenPostStore.shared.hide(post.id, owner: user.id.uuidString.lowercased())
+                dismiss()
+                return
+            case .comment(let comment):
+                try await container.social.reportComment(comment, userID: user.id, reason: reason.rawValue)
+                withAnimation { comments.removeAll { $0.id == comment.id } }
+            }
+            message = "Bildirimin incelemeye gönderildi. Teşekkürler."
+        } catch {
+            message = "Bildirim gönderilemedi."
+        }
     }
     private func blockCreator() async {
         guard !isReporting else { return }
@@ -1070,7 +1287,8 @@ struct PostPreviewView: View {
         defer { isReporting = false }
         do {
             try await container.social.setBlocked(true, targetID: post.creatorID, userID: user.id)
-            message = "Kullanıcı engellendi. Bu kullanıcının içerikleri artık gösterilmeyecek."
+            // The creator's content must disappear right away, including this screen.
+            dismiss()
         } catch {
             message = "Kullanıcı engellenemedi."
         }
@@ -1137,41 +1355,16 @@ private struct PostMediaHero: View {
     var openMedia: (() -> Void)? = nil
 
     @ViewBuilder var body: some View {
-        switch post.contentSource {
-        case .image(let url):
-            imagePreview(url: url)
-        case .video(let url):
-            VideoPreviewHero(url: url)
-        case .some(let source) where source.externalMedia != nil:
-            if let external = source.externalMedia {
-                Group {
-                    if let openMedia {
-                        Button(action: openMedia) {
-                            externalMediaBanner(external: external)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        externalMediaBanner(external: external)
-                    }
+        if let external = post.contentSource?.externalMedia {
+            if let openMedia {
+                Button(action: openMedia) {
+                    externalMediaBanner(external: external)
                 }
-            }
-        default:
-            if let imageURL = post.editData.layers.first(where: { $0.kind == .image })?.assetURL ?? post.editData.surfaceTextureURL {
-                imagePreview(url: imageURL)
-            }
-        }
-    }
-
-    private func imagePreview(url: URL) -> some View {
-        AsyncImage(url: url) { phase in
-            if let image = phase.image {
-                image.resizable().scaledToFill()
+                .buttonStyle(.plain)
             } else {
-                mediaPlaceholder(symbol: "photo.fill", title: "Fotoğraf")
+                externalMediaBanner(external: external)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 128, maxHeight: 190)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func externalMediaBanner(external: (platform: ExternalMediaPlatform, url: URL)) -> some View {
@@ -1196,104 +1389,26 @@ private struct PostMediaHero: View {
         )
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(external.platform.brandColor.opacity(0.28)))
     }
-
-    private func mediaPlaceholder(symbol: String, title: String) -> some View {
-        ZStack {
-            LinearGradient(colors: [LociTheme.elevated, LociTheme.background], startPoint: .topLeading, endPoint: .bottomTrailing)
-            VStack(spacing: 8) {
-                Image(systemName: symbol).font(.title2).foregroundStyle(LociTheme.accent)
-                Text(title).font(.caption.weight(.semibold)).foregroundStyle(LociTheme.secondaryText)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
 }
 
-private struct VideoPreviewHero: View {
-    let url: URL
-    @State private var thumbnail: UIImage?
-
-    var body: some View {
-        ZStack {
-            if let thumbnail {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, minHeight: 128, maxHeight: 190)
-                    .clipped()
-            } else {
-                LinearGradient(colors: [LociTheme.elevated, LociTheme.background], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .frame(minHeight: 128)
-            }
-            Circle()
-                .fill(.black.opacity(0.55))
-                .frame(width: 44, height: 44)
-            Image(systemName: "play.fill")
-                .font(.title3.weight(.bold))
-                .foregroundStyle(.white)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .task {
-            let asset = AVURLAsset(url: url)
-            let generator = AVAssetImageGenerator(asset: asset)
-            generator.appliesPreferredTrackTransform = true
-            let time = CMTime(seconds: 0.1, preferredTimescale: 600)
-            if let cgImage = try? await generator.image(at: time).image {
-                thumbnail = UIImage(cgImage: cgImage)
-            }
-        }
-    }
-}
 
 private struct PostActionLabel: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let title: String
     let symbol: String
     let color: Color
+    /// Changing this value plays a one-shot bounce on the symbol (skipped with Reduce Motion).
+    var effectValue: Bool = false
 
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: symbol).font(.headline).foregroundStyle(color)
+                .symbolEffect(.bounce, value: reduceMotion ? false : effectValue)
             Text(title).font(.caption.weight(.semibold)).foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, minHeight: 58)
         .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(LociTheme.hairline))
-    }
-}
-
-private struct ExternalMediaSourceCard: View {
-    @Environment(\.openURL) private var openURL
-    let platform: ExternalMediaPlatform
-    let url: URL
-    let caption: String
-
-    var body: some View {
-        Button {
-            openURL(platform.appLaunchURL) { accepted in
-                if !accepted { openURL(url) }
-            }
-        } label: {
-            HStack(spacing: 13) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 13).fill(color.opacity(0.16)).frame(width: 48, height: 48)
-                    BrandLogoView(platform: platform, size: 30)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(platform.rawValue).font(.headline)
-                    Text(caption).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                }
-                Spacer()
-                Image(systemName: "arrow.up.right").foregroundStyle(color)
-            }
-            .padding(14)
-            .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 17))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(platform.rawValue) paylaşımını aç: \(caption)")
-    }
-
-    private var color: Color {
-        platform.brandColor
     }
 }
 

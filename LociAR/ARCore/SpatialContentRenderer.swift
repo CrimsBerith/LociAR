@@ -176,8 +176,10 @@ actor SpatialContentRenderer {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first(where: { !$0.isEmpty })
         let cleanCaption = post.caption.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !cleanCaption.isEmpty || layerText != nil {
-            return drawTextPost(cleanCaption.isEmpty ? layerText! : cleanCaption)
+        if !cleanCaption.isEmpty {
+            return drawTextPost(cleanCaption)
+        } else if let layerText {
+            return drawTextPost(layerText)
         }
 
         return trimmedToVisibleContent(draw(post.editData, assets: assets))

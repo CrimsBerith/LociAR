@@ -1,3 +1,5 @@
+> **ARŞİV / YERİNİ ALDI (30 Eylül 2026):** Bu taslak yerini `admin/app/privacy` ve `admin/app/terms` sayfalarına bıraktı. İçinde eski/yanlış bilgiler olabilir (Google tanımlayıcıları, fotoğraf içeriği, görüntüleme herkese açık, arkit_world_locked). Kaynak olarak kullanma.
+
 # LociAR Gizlilik Politikasi (Taslak)
 
 Yururluk tarihi, veri sorumlusu, posta adresi, destek e-postasi ve yetki alani production oncesinde gercek bilgilerle doldurulmalidir.

@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         <li><strong>Kimlik ve iletişim:</strong> Apple ile Giriş kimliği veya e-posta adresi, kullanıcı adı, profil fotoğrafı.</li>
         <li><strong>Konum:</strong> uygulama açıkken, yakındaki içerikleri göstermek ve paylaştığınız içeriğin konumunu kaydetmek için.</li>
         <li><strong>Kamera ve medya:</strong> yalnızca AR yerleşimi için kullanılır (gönderiler metin ve sosyal medya bağlantısıdır; fotoğraf/video yüklenmez); kamera görüntüsü sürekli kaydedilmez.
-          Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası ve referans görüntüsü saklanır.</li>
+          Bir içeriği sabitlediğinizde yalnızca o yüzeyin AR harita dosyası (fotoğraf değil, nokta haritası) saklanır; kamera görüntüsü kaydedilmez.</li>
         <li><strong>Kullanıcı içeriği:</strong> gönderi, açıklama, yorum, beğeni, kaydetme, takip, engelleme ve raporlar.</li>
         <li><strong>İşlem güvenliği:</strong> oturum belirteçleri, cihaz doğrulaması (Apple App Attest / Firebase App Check),
           hizmet sağlayıcının işlediği IP adresi ve kötüye kullanım kayıtları.</li>
@@ -47,6 +47,17 @@ export default function PrivacyPage() {
         merkezlerinde saklanır. Bu aktarım, KVKK m.9 kapsamında hizmet sağlayıcının veri işleme koşulları ve uygun
         güvenceler çerçevesinde yapılır. Herkese açık gönderiler ve kullanıcı adları diğer kullanıcılara görünür.
         Yetkili kurumların hukuka uygun talepleri halinde veriler paylaşılabilir.
+      </p>
+
+      <h2>Google ARCore (AR konumlandırma)</h2>
+      <p>
+        Postların bırakıldıkları yüzeyde ve konumda doğru görünmesi için Google ARCore&apos;un Cloud Anchors ve Geospatial
+        hizmetlerini kullanırız. Bu oturumları çalıştırmak için Google, sensör verilerini (ör. kamera ve konum) işler:
+        kamera görüntüsünden çıkarılan görsel özellikler ve yaklaşık konum Google&apos;a gönderilir; fotoğraf veya video
+        saklamayız. Bir post için oluşturulan Cloud Anchor en fazla 365 gün tutulur ve post ya da hesap silindiğinde
+        silinir. Ayrıntılar:{' '}
+        <a href="https://support.google.com/ar?p=how-google-play-services-for-ar-handles-your-data">Google AR ve verileriniz</a>,{' '}
+        <a href="https://policies.google.com/privacy">Google Gizlilik Politikası</a>.
       </p>
 
       <h2>Saklama süreleri</h2>

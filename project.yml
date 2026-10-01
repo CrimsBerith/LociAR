@@ -4,6 +4,7 @@ attributes:
   LastSwiftUpdateCheck: "2600"
 options:
   bundleIdPrefix: com.khankartal
+  developmentLanguage: en
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "26.0"
@@ -26,6 +27,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk.git
     from: 12.19.0
+  ARCore:
+    url: https://github.com/google-ar/arcore-ios-sdk.git
+    from: 1.56.0
 targets:
   LociAR:
     type: application
@@ -69,6 +73,16 @@ targets:
         product: FirebaseFunctions
       - package: Firebase
         product: FirebaseAppCheck
+      - package: Firebase
+        product: FirebaseCrashlytics
+      - package: Firebase
+        product: FirebaseMessaging
+      - package: ARCore
+        product: ARCoreGARSession
+      - package: ARCore
+        product: ARCoreGeospatial
+      - package: ARCore
+        product: ARCoreCloudAnchors
       - sdk: ARKit.framework
       - sdk: RealityKit.framework
       - sdk: MapKit.framework

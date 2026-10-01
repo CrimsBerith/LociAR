@@ -452,4 +452,115 @@ final class BackendAndPolicyTests: XCTestCase {
             editData: EditData(), counts: PostCounts()
         )
     }
+
+    func testServerRejectionsAreShownInTurkish() {
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Creation is blocked in protected zone: Ayasofya"), "Bu korumalı bölgede post yayınlanamaz.")
+        XCTAssertTrue(FirestorePostRepository.serverMessage("Only text posts and social media links are allowed").contains("fotoğraf ve video desteklenmiyor"))
+        XCTAssertTrue(FirestorePostRepository.serverMessage("Only social media links are allowed").contains("Spotify"))
+        XCTAssertTrue(FirestorePostRepository.serverMessage("Invalid social media link").contains("bağlantısı geçersiz"))
+        XCTAssertFalse(FirestorePostRepository.serverMessage("At least one edit layer is required").contains("medya"))
+    }
+
+    func testQueuedDeviceMediaPostsAreDetected() {
+        var post = UITestFixtures.post
+        post.contentSource = .spotify(URL(string: "https://open.spotify.com/track/1")!)
+        post.editData = EditData(layers: [])
+        XCTAssertFalse(post.containsDeviceMedia)
+        post.contentSource = .video(URL(fileURLWithPath: "/tmp/v.mov"))
+        XCTAssertTrue(post.containsDeviceMedia)
+        post.contentSource = nil
+        post.editData = EditData(layers: [
+            EditLayer(id: UUID(), kind: .image, text: nil, assetURL: URL(fileURLWithPath: "/tmp/a.jpg"), points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0)
+        ])
+        XCTAssertTrue(post.containsDeviceMedia)
+    }
+
+    func testAvatarPresetsRoundTripAndMatchRules() throws {
+        for name in AvatarReference.presets {
+            XCTAssertEqual(AvatarReference.presetName(AvatarReference.presetURL(name)), name)
+        }
+        XCTAssertNil(AvatarReference.presetURL("https://example.org/a.jpg"))
+        XCTAssertNil(AvatarReference.presetName(URL(string: "https://example.org/a.jpg")))
+    }
+
+    // gRPC status codes used by FunctionsErrorCode: invalidArgument 3, notFound 5, alreadyExists 6,
+    // permissionDenied 7, resourceExhausted 8, failedPrecondition 9, aborted 10, unavailable 14, unauthenticated 16.
+    func testPermanentFunctionsErrorsMapToRejectedWithServerReason() throws {
+        let details: [String: Any] = ["details": ["reason": "profile_missing"]]
+        let mapped = try XCTUnwrap(BackendErrorPolicy.map(code: 9, message: "Profile missing; call ensureProfile first", userInfo: details))
+        XCTAssertEqual(mapped.reason, "profile_missing")
+        XCTAssertEqual(mapped.errorDescription, "Profile missing; call ensureProfile first")
+
+        let noReason = try XCTUnwrap(BackendErrorPolicy.map(code: 7, message: "denied", userInfo: [:]))
+        XCTAssertNil(noReason.reason)
+        for code in [3, 5, 6, 7, 8, 9] {
+            XCTAssertNotNil(BackendErrorPolicy.map(code: code, message: "x", userInfo: [:]), "code \(code) is permanent")
+        }
+    }
+
+    func testTransientFunctionsErrorsAreNotMapped() {
+        // aborted, unavailable, deadline exceeded, internal and unauthenticated must stay retryable.
+        for code in [4, 10, 13, 14, 16] {
+            XCTAssertNil(BackendErrorPolicy.map(code: code, message: "x", userInfo: [:]), "code \(code) is retryable")
+        }
+    }
+
+    func testServerReasonBeatsMessageText() {
+        XCTAssertEqual(
+            FirestorePostRepository.serverMessage("Creation limit reached for this area or account", reason: "rate_limited"),
+            "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin."
+        )
+        XCTAssertEqual(
+            FirestorePostRepository.serverMessage("anything", reason: "protected_zone"),
+            "Bu korumalı bölgede post yayınlanamaz."
+        )
+        // Old servers send no reason: the text fallback still works.
+        XCTAssertEqual(
+            FirestorePostRepository.serverMessage("Creation is blocked in protected zone: X"),
+            "Bu korumalı bölgede post yayınlanamaz."
+        )
+    }
+
+    func testHiddenPostStoreIsScopedPerAccount() async throws {
+        let suite = "test.hidden.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
+        let store = HiddenPostStore(defaults: defaults)
+        let post = UUID()
+        await store.hide(post, owner: "alice")
+        await store.hide(post, owner: "alice") // idempotent
+        let alice = await store.hiddenIDs(owner: "alice")
+        let bob = await store.hiddenIDs(owner: "bob")
+        XCTAssertEqual(alice, [post.uuidString.lowercased()])
+        XCTAssertTrue(bob.isEmpty)
+    }
+
+    func testWorldMapCodecRoundTripsAndReadsLegacyUncompressedMaps() throws {
+        let raw = Data((0..<200_000).map { UInt8($0 % 17) })
+        let encoded = try WorldMapCodec.encode(raw)
+        XCTAssertTrue(encoded.starts(with: WorldMapCodec.magic))
+        XCTAssertLessThan(encoded.count, raw.count)
+        XCTAssertEqual(try WorldMapCodec.decode(encoded), raw)
+        // Pre-compression uploads (NSKeyedArchiver binary plists) come back unchanged.
+        let legacy = Data("bplist00".utf8) + raw
+        XCTAssertEqual(try WorldMapCodec.decode(legacy), legacy)
+        XCTAssertThrowsError(try WorldMapCodec.decode(WorldMapCodec.magic + Data([1, 2, 3])))
+    }
+
+    func testWorldMapDownloadCacheIsKeyedByLocatorAndPrunesOldestFirst() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("wm-cache-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let cache = WorldMapDownloadCache(directory: dir)
+        let a = "storage://post-world-maps/u/p1/a.lociarmap"
+        let b = "storage://post-world-maps/u/p2/b.lociarmap"
+        XCTAssertNotEqual(WorldMapDownloadCache.fileName(for: a), WorldMapDownloadCache.fileName(for: b))
+        XCTAssertNil(cache.read(a))
+        cache.write(Data(repeating: 1, count: 1_000), for: a)
+        let old = dir.appendingPathComponent(WorldMapDownloadCache.fileName(for: a))
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: -3_600)], ofItemAtPath: old.path)
+        cache.write(Data(repeating: 2, count: 1_000), for: b)
+        cache.prune(limit: 1_500)
+        XCTAssertNil(cache.read(a), "least recently used entry is pruned")
+        XCTAssertEqual(cache.read(b)?.count, 1_000)
+    }
 }

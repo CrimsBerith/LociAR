@@ -1,6 +1,6 @@
 # LociAR Native iOS
 
-SwiftUI + ARKit/RealityKit + MapKit + SwiftData consumer uygulaması; backend Firebase (Auth, Firestore, Storage, Cloud Functions). Expo, React Native ve JavaScript runtime içermez. Minimum sürüm iOS 17, bundle kimliği `com.khankartal.lociar`.
+SwiftUI + ARKit/RealityKit + ARCore (Cloud Anchors, Geospatial) + MapKit + SwiftData consumer uygulaması; backend Firebase (Auth, Firestore, Storage, Cloud Functions). Expo, React Native ve JavaScript runtime içermez. Minimum sürüm iOS 17, bundle kimliği `com.khankartal.lociar`.
 
 ## Kurulum
 
@@ -15,6 +15,7 @@ SwiftUI + ARKit/RealityKit + MapKit + SwiftData consumer uygulaması; backend Fi
 - Algılanmış plane geometry doğrudan kullanılabilir; estimated yüzey son beş örnekte en az 200 ms boyunca 3,5 cm / 7 derece kararlılıkla doğrulanır.
 - Pin anında `existingPlaneGeometry`, ardından kararlı `estimatedPlane`/mesh kullanılır.
 - Raycast yoksa başarı dönmez. `Yaklaşık yerleştir` ayrı onayla 0,8 m free-space anchor üretir.
+- Yeniden bulma sırası: Cloud Anchor → Geospatial → world map → yönlendirmeli gösterim ([docs/AR_WORLD_LOCK.md](docs/AR_WORLD_LOCK.md)).
 - World map yalnız anchor + normal tracking + extending/mapped durumunda kaydedilir.
 - Restore edilen içerik tracking normal olana kadar gizlidir; 20 saniyede timeout verir.
 - Tanılama uygulama içinde kullanıcıya gösterilmez; surface ve approximate sonuçlar OSLog içinde ayrı tutulur.
@@ -34,6 +35,6 @@ xcodebuild -project LociAR.xcodeproj -scheme LociAR -destination 'platform=iOS S
 bash scripts/qa-live-urls.sh /path/to/LociAR.app
 ```
 
-22 Ağustos 2026 doğrulaması: Debug ve Release build ile Analyze geçti; 34 unit ve 6 UI testi olmak üzere 40/40 test geçti. İmzalı fiziksel cihaz ve canlı backend migration kapıları ayrıca doğrulanmalıdır.
+Güncel doğrulama komutları ve kapılar [docs/QA_MATRIX.md](docs/QA_MATRIX.md) içindedir; test sayıları burada tutulmaz (CI çıktısına bakın). İmzalı fiziksel cihaz ve canlı backend kapıları ayrıca doğrulanmalıdır.
 
 Simulator build/test, fiziksel AR kilidi kanıtı değildir. LiDAR ve LiDAR olmayan iPhone kabul matrisi [FIELD_TEST_CHECKLIST.md](FIELD_TEST_CHECKLIST.md) ile kapatılmalıdır. Backend testleri: `cd functions && npm test` (birim) ve `npm run test:rules` (Security Rules, Firebase Emulator + Java 21).

@@ -172,7 +172,8 @@ label { font-size: 12px; color: var(--muted); font-weight: 700; }
 .emptyState { margin: 0; padding: 28px 20px; color: var(--muted); text-align: center; }
 .inlineSearch, .filterBar { display: flex; width: min(720px, 100%); gap: 9px; }
 .inlineSearch input, .filterBar input { min-width: 180px; }
-.dataRow.user, .dataRow.audit { grid-template-columns: minmax(220px, 1.4fr) .7fr .7fr .7fr; }
+.dataRow.audit { grid-template-columns: minmax(220px, 1.4fr) .7fr .7fr .7fr; }
+.dataRow.user { grid-template-columns: minmax(200px, 1.3fr) .6fr .6fr .6fr minmax(240px, 1fr); }
 .dataRow.post { grid-template-columns: minmax(220px, 1.4fr) .65fr .65fr .85fr .55fr; }
 .actionPanel { margin: 18px 0; }
 .actionForm, .metricForm { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 12px; padding: 18px 20px; }

@@ -1,47 +1,41 @@
 # LociAR Persistent World Lock
 
-## Runtime contract
+LociAR is a **native iOS app** (SwiftUI + ARKit, project generated with `xcodegen`). There is no Expo/React Native layer and no Android build.
 
-LociAR ships as a **native iOS app** (local `expo run:ios` or EAS). Expo Go is **not** supported. Android was removed from the product/repo.
+## Re-finding a pin: resolution order
 
-Real surface locking runs when:
+When a post is opened, the viewer (`LociAR/Features/AR/ARPostViewerView.swift`) tries, in order:
 
-1. The binary includes `lociar-world-lock` (custom build / dev client / production).
-2. `EXPO_PUBLIC_NATIVE_WORLD_LOCK_ENABLED=true` (default).
+1. **ARCore Cloud Anchor** (`persistence.kind = arcore_cloud_anchor`): resolved through the ARCore SDK running on the existing ARKit session. Hosted with a 365-day TTL (`ARCoreService.cloudAnchorTTLDays`).
+2. **Geospatial pose** (when the post carries a valid `geospatial` pose): usable only when Earth tracking is active and accuracy is at most **5 m horizontal** and **15° yaw** (`GeospatialPose.maximumHorizontalAccuracy` / `maximumYawAccuracy`).
+3. **ARKit world map** (`persistence.kind = arkit_world_map`): downloaded from the private `post-world-maps` Storage folder (compressed, capped at 20 MB) and loaded through `initialWorldMap`; the viewer waits for relocalization.
+4. **Aim-guided reveal**: if none of the above recognises the place within its timeout, the content is shown approximately and the user is guided to aim at the spot.
 
-If the native module is missing or plane raycast fails, the app may store a limited **sensor estimate** only as emergency fallback. That is not a world lock; the post should be recalibrated.
+Map/geo gets the user near the place; unlock for native posts is distance-first (the create heading is not required).
 
-The saved post contains a versioned `pose.anchor.persistence` descriptor. A native session anchor ID without this descriptor is session-local and must be recalibrated.
+## Publishing
 
-## iOS: ARKit world map
+- The pin is an `ARAnchor` from an ARKit raycast on a tracked plane (centre reticle + "Yüzeye sabitle").
+- Publish hosts a Cloud Anchor and then calls **`registerCloudAnchor`** so the backend binds the anchor id to its owner. `createPost` accepts an anchor only if it is registered to the caller and not yet used, and binds it to the post in one transaction. Delete paths remove only an anchor bound to that post; failures go to `cloud_anchor_deletions` and are retried by `cleanupPostMedia`.
+- The world map is uploaded to `post-world-maps/{luid}/{postId}/…` (readable by the owner, or by any signed-in user while the post is `active`).
+- The server derives `placement_state`, `native_provider` and `resolver_strategy` itself; the client cannot choose them.
+- Camera reference frames are not collected (privacy). The Cloud Anchor feature sends visual feature data to Google; this is disclosed in the in-app notice and privacy pages.
 
-- A surface pin creates an `ARAnchor` from an ARKit raycast on **any** tracked plane (wall / floor / table / angled) or free-space ~1.4 m in front of the camera.
-- Publish requests the current `ARWorldMap`, archives it in Application Support, and stores its local file URI in the descriptor.
-- Reopening the post restores the map through `ARWorldTrackingConfiguration.initialWorldMap` and waits for relocalization before attaching the post surface.
-- The current file transport supports revisits on the same installation/device. Cross-device discovery requires an authenticated private upload/download path for the world-map asset, or a shared cloud/VPS resolver. World-map files must not be public because they encode a scanned physical environment.
+## Keyless ARCore authorization (`getArcoreToken`)
 
-## Multi-perspective + low drift (product bar)
-
-- **Create:** pin creates an ARKit world anchor (plane preferred on any surface; ~1.4 m front-of-camera is still world-tracked, marked limited).
-- **Publish (atomic):** re-archive `ARWorldMap` → upload to private `post-world-maps` → set https `persistence.assetUrl` → only then claim `arkit_world_locked` when tracking is normal.
-- **Multi-user:** other devices download the signed world-map URL and ARKit relocalizes (`resolveWorldLockForViewer`).
-- **Discover:** map/geo gets you near the place. Unlock for native posts is **distance-first** — same create heading is **not** required.
-- **View:** ARKit relocalizes the map; content is drawn on the world anchor so left/right/front angles all see the same spot with low drift.
-- **Anti-pattern:** GPS + compass screen overlays for native posts (looks like “kayma” when you turn).
-
-Client modules: `src/services/ar/atomicPublish.ts`, `worldMapTransport.ts`, `resolveWorldLock.ts`.
+The app never holds a Google credential. The callable signs a one-hour JWT with the Functions runtime service account through the IAM Credentials API (needs `roles/iam.serviceAccountTokenCreator` on itself, ARCore API enabled). It requires an active (not suspended or deleted) profile, allows 30 tokens per user per hour, and refunds the slot when signing fails. The app refreshes the token 5 minutes before expiry.
 
 ## Acceptance test on physical devices
 
-1. Install a LociAR native iOS build (`npm run ios` or EAS IPA).
+1. Build and install on an ARKit device.
 2. Create a post on a textured wall in good light and wait for publish to finish.
-3. Fully terminate the app, move at least 3-5 metres away, reopen it, and return to the post.
-4. Slowly scan the original wall until the status changes from relocalizing/resolving to ready.
-5. Verify the composition remains on the same physical point from front, left, and right viewing angles.
-6. Repeat after device restart.
-7. Record drift, time-to-resolve, failure state, lighting, and device model in `platforms/ios/docs/FIELD_TEST_CHECKLIST.md` or `FIELD_TEST_CHECKLIST.md`.
+3. Fully terminate the app, move at least 3–5 metres away, reopen it and return to the post.
+4. Slowly scan the original wall until the status changes from resolving to ready.
+5. Verify the composition stays on the same physical point from front, left and right.
+6. Repeat after a device restart and from a second device.
+7. Record drift, time-to-resolve, failure state, lighting and device model in `FIELD_TEST_CHECKLIST.md`.
 
 ## Known external gates
 
-- Swift/RealityKit compilation and ARKit relocalization require Xcode or EAS iOS build and a physical ARKit device.
-- Same-device iOS persistence is implemented. Cross-device iOS persistence is deliberately not claimed until private asset transport or a common cloud resolver is implemented.
+- ARKit/ARCore relocalization and Cloud Anchor hosting need a physical device and a deployed backend (issue #18).
+- Cloud Anchor Management API deletions need the Functions service account to have ARCore management access (see `docs/FIREBASE_SETUP.md`).

@@ -1,11 +1,13 @@
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import InviteUserForm from './InviteUserForm';
+import AdminDecision from '../AdminDecision';
 
 export const dynamic = 'force-dynamic';
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  await requireAdmin({ permission: 'users.read' });
+  const admin = await requireAdmin({ permission: 'users.read' });
+  const canSuspend = admin.permissions.has('users.suspend');
   const { q = '' } = await searchParams;
   const term = q.trim().toLowerCase().replace(/^@/, '').slice(0, 40);
   const db = adminDb();
@@ -39,13 +41,21 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         </div>
         {failed ? <p className="emptyState">User data could not be loaded.</p> : (
           <div className="dataTable">
-            <div className="dataRow user header"><span>User</span><span>Identity</span><span>Provider</span><span>Created</span></div>
+            <div className="dataRow user header"><span>User</span><span>Identity</span><span>Provider</span><span>Created</span><span>Enforcement</span></div>
             {users.length === 0 ? <p className="emptyState">No matching users.</p> : users.map(user => (
               <div className="dataRow user" key={user.id}>
                 <span><b>@{String(user.handle)}</b><small>{user.id}</small></span>
                 <span>{user.suspended ? 'Suspended' : user.identity_verified ? 'Verified' : 'Unverified'}</span>
                 <span>{String(user.auth_provider ?? 'unknown')}</span>
                 <span>{new Date(iso(user.created_at)).toLocaleDateString('en-US')}</span>
+                <span>{canSuspend ? (
+                  <AdminDecision
+                    endpoint={`/api/admin/v1/users/${user.id}/suspend`}
+                    actions={user.suspended
+                      ? [{ label: 'Unsuspend', body: { suspended: false }, className: 'secondaryButton' }]
+                      : [{ label: 'Suspend', body: { suspended: true }, className: 'dangerButton' }]}
+                  />
+                ) : '—'}</span>
               </div>
             ))}
           </div>

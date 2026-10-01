@@ -2,6 +2,8 @@ import AuthenticationServices
 import Foundation
 @preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseFirestore
+@preconcurrency import FirebaseFunctions
+@preconcurrency import FirebaseStorage
 import UIKit
 
 protocol AuthRepository: Sendable {
@@ -11,7 +13,7 @@ protocol AuthRepository: Sendable {
     func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult
     func requestPasswordReset(email: String, redirectTo: URL) async throws
     func updatePassword(_ password: String) async throws -> LociUser
-    func updateProfile(handle: String, avatarURL: URL?) async throws -> LociUser
+    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser
     func resendVerificationEmail(email: String) async throws
     func sendMagicLink(email: String, redirectTo: URL) async throws
     func verifyEmailOTP(email: String, code: String) async throws -> LociUser
@@ -31,6 +33,11 @@ enum AuthFlowError: LocalizedError, Sendable {
     case notSignedIn
     case unsupported
     case invalidHandle
+    case handleTaken
+    case handleNotAllowed
+    case handleCooldown
+    case reauthRequired
+    case invalidPhoto
     case appleReauthenticationRequired
 
     var errorDescription: String? {
@@ -43,6 +50,16 @@ enum AuthFlowError: LocalizedError, Sendable {
             "Bu giriş yöntemi artık desteklenmiyor. E-posta ve şifre ya da Apple ile giriş yap."
         case .invalidHandle:
             "Kullanıcı adı 3–30 karakter olmalı; yalnızca küçük harf, rakam, alt çizgi ve nokta içerebilir."
+        case .handleTaken:
+            "Bu kullanıcı adı başka biri tarafından kullanılıyor. Farklı bir ad dene."
+        case .handleNotAllowed:
+            "Bu kullanıcı adı kullanılamaz. Farklı bir ad dene."
+        case .handleCooldown:
+            "Kullanıcı adını en fazla 30 günde bir değiştirebilirsin."
+        case .reauthRequired:
+            "Güvenlik için hesabı silmeden önce yeniden giriş yapman gerekiyor."
+        case .invalidPhoto:
+            "Fotoğraf hazırlanamadı. Farklı bir fotoğraf dene."
         case .appleReauthenticationRequired:
             "Hesabı silmek için Apple ile yeniden doğrulama gerekiyor."
         }
@@ -62,6 +79,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         let luid: String
         let handle: String
         let avatarURL: String?
+        let avatarPreset: String?
         let claimsUpdated: Bool
     }
 
@@ -76,10 +94,11 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
 
     nonisolated private static func domainUser(_ user: User, handle: String? = nil, avatarURL: URL? = nil) -> LociUser {
         let fallbackHandle = user.email?.components(separatedBy: "@").first ?? "loci"
+        // Auth's photoURL is deliberately ignored: only server-screened avatars are shown.
         return LociUser(
             id: FirebaseIdentity.luid(forFirebaseUID: user.uid),
             handle: handle ?? user.displayName.flatMap { $0.isEmpty ? nil : $0 } ?? fallbackHandle,
-            avatarURL: avatarURL ?? user.photoURL,
+            avatarURL: avatarURL,
             email: user.email
         )
     }
@@ -95,11 +114,10 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         if response.claimsUpdated {
             _ = try await user.getIDTokenResult(forcingRefresh: true)
         }
-        let avatar = response.avatarURL.flatMap(URL.init(string:))
-        if user.displayName != response.handle || (avatar != nil && user.photoURL != avatar) {
+        let avatar = await AvatarReference.resolve(avatarURL: response.avatarURL, preset: response.avatarPreset)
+        if user.displayName != response.handle {
             let change = user.createProfileChangeRequest()
             change.displayName = response.handle
-            if let avatar { change.photoURL = avatar }
             try? await change.commitChanges()
         }
         return Self.domainUser(user, handle: response.handle, avatarURL: avatar)
@@ -158,23 +176,55 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         return Self.domainUser(user)
     }
 
-    func updateProfile(handle: String, avatarURL: URL?) async throws -> LociUser {
+    /// Handles change through the `updateHandle` callable (server-side uniqueness). Presets are
+    /// written directly (rules allow only the preset list); photos go to `avatars/<luid>/pending/`
+    /// and appear once the server has screened them.
+    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
         let clean = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard clean.range(of: "^[a-z0-9_.]{3,30}$", options: .regularExpression) != nil else {
             throw AuthFlowError.invalidHandle
         }
         let luid = FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: user.uid))
-        try await Firestore.firestore().collection("profiles").document(luid).updateData([
-            "handle": clean,
-            "avatar_url": avatarURL?.absoluteString ?? NSNull(),
-            "updated_at": FieldValue.serverTimestamp(),
-        ])
-        let change = user.createProfileChangeRequest()
-        change.displayName = clean
-        change.photoURL = avatarURL
-        try await change.commitChanges()
-        return Self.domainUser(user, handle: clean, avatarURL: avatarURL)
+
+        if clean != user.displayName {
+            struct Payload: Encodable, Sendable { let handle: String }
+            struct Response: Decodable, Sendable { let handle: String }
+            do {
+                let _: Response = try await callables.call("updateHandle", payload: Payload(handle: clean))
+            } catch BackendCallError.rejected(let code, _, let reason) where reason == "handle_taken" || code == FunctionsErrorCode.alreadyExists.rawValue {
+                throw AuthFlowError.handleTaken
+            } catch BackendCallError.rejected(_, _, let reason) where reason == "handle_reserved" || reason == "handle_not_allowed" {
+                throw AuthFlowError.handleNotAllowed
+            } catch BackendCallError.rejected(_, _, let reason) where reason == "handle_cooldown" {
+                throw AuthFlowError.handleCooldown
+            }
+        }
+
+        switch avatar {
+        case .unchanged:
+            break
+        case .preset(let name):
+            guard AvatarReference.presets.contains(name) else { throw AuthFlowError.invalidPhoto }
+            try await Firestore.firestore().collection("profiles").document(luid).updateData([
+                "avatar_preset": name,
+                "avatar_url": NSNull(),
+                "updated_at": FieldValue.serverTimestamp(),
+            ])
+        case .photo(let data):
+            guard let jpeg = AvatarReference.preparedJPEG(from: data) else { throw AuthFlowError.invalidPhoto }
+            let metadata = StorageMetadata()
+            metadata.contentType = "image/jpeg"
+            let path = "avatars/\(luid)/pending/\(UUID().uuidString.lowercased()).jpg"
+            _ = try await Storage.storage().reference(withPath: path).putDataAsync(jpeg, metadata: metadata)
+            // Screening runs server-side in a callable (no Storage trigger / extra IAM needed).
+            struct ScreenPayload: Encodable, Sendable { let objectId: String }
+            struct ScreenResponse: Decodable, Sendable { let status: String }
+            let objectId = (path as NSString).lastPathComponent.replacingOccurrences(of: ".jpg", with: "")
+            let screened: ScreenResponse = try await callables.call("screenAvatar", payload: ScreenPayload(objectId: objectId))
+            if screened.status == "rejected" { throw AuthFlowError.invalidPhoto }
+        }
+        return try await establish(user)
     }
 
     func resendVerificationEmail(email: String) async throws {
@@ -206,7 +256,8 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     func deleteAccount() async throws {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
 
-        if user.providerData.contains(where: { $0.providerID == "apple.com" }) {
+        let isApple = user.providerData.contains(where: { $0.providerID == "apple.com" })
+        if isApple {
             // Guideline 5.1.1(v): the Sign in with Apple token must be revoked before deletion.
             // Failure aborts deletion so no dangling Apple grant is left behind.
             do {
@@ -219,7 +270,13 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
 
         // The callable hard-deletes profile, posts, social edges, Storage files and the Auth user.
         struct DeleteResponse: Decodable, Sendable { let ok: Bool }
-        let response: DeleteResponse = try await callables.call("deleteAccount")
+        struct DeletePayload: Encodable, Sendable { let appleRevokedByClient: Bool }
+        let response: DeleteResponse
+        do {
+            response = try await callables.call("deleteAccount", payload: DeletePayload(appleRevokedByClient: isApple))
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "reauth_required" {
+            throw AuthFlowError.reauthRequired
+        }
         guard response.ok else { throw BackendCallError.invalidResponse }
         try? Auth.auth().signOut()
     }
@@ -288,7 +345,7 @@ actor UnavailableAuthRepository: AuthRepository {
     func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult { throw missing }
     func requestPasswordReset(email: String, redirectTo: URL) async throws { throw missing }
     func updatePassword(_ password: String) async throws -> LociUser { throw missing }
-    func updateProfile(handle: String, avatarURL: URL?) async throws -> LociUser { throw missing }
+    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser { throw missing }
     func resendVerificationEmail(email: String) async throws { throw missing }
     func sendMagicLink(email: String, redirectTo: URL) async throws { throw missing }
     func verifyEmailOTP(email: String, code: String) async throws -> LociUser { throw missing }

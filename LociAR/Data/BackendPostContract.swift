@@ -2,10 +2,12 @@ import Foundation
 
 enum PostContractError: LocalizedError {
     case missingGeoPose
+    case profileNotReady
 
     var errorDescription: String? {
         switch self {
         case .missingGeoPose: "Yayınlamak için geçerli GPS konumu gerekiyor. Konum iznini açıp tekrar deneyin."
+        case .profileNotReady: "Profilin henüz hazırlanıyor. Post birazdan otomatik olarak yeniden denenecek."
         }
     }
 }

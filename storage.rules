@@ -19,26 +19,44 @@ service firebase.storage {
       allow read, create, update: if false;
       allow delete: if owner(luid);
     }
+    function uuid(v) { return v.matches('[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'); }
+    // Maps describe real places: only the owner, or anyone while the post is active, may read them.
+    // Needs the cross-service grant for Storage rules to read Firestore (see docs/FIREBASE_SETUP.md).
+    function postIsActive(postId) {
+      let p = firestore.get(/databases/(default)/documents/posts/$(postId.lower())).data;
+      return p.status == 'active';
+    }
     match /post-world-maps/{luid}/{postId}/{file} {
-      allow read: if signedIn();
-      allow create, update: if owner(luid) && under(50) && file.matches('.*\\.lociarmap')
+      allow read: if owner(luid) || (signedIn() && uuid(postId) && postIsActive(postId));
+      allow create, update: if owner(luid) && uuid(postId) && under(20) && file.matches('.*\\.lociarmap')
         && request.resource.contentType == 'application/x-lociarmap';
       allow delete: if owner(luid);
     }
+    // Camera reference frames are no longer collected (privacy). Owners may still delete leftovers.
     match /post-reference-images/{luid}/{rest=**} {
-      allow read: if signedIn();
-      allow create, update: if owner(luid) && under(10) && isImage();
+      allow read, create, update: if false;
       allow delete: if owner(luid);
     }
     match /post-surface-textures/{luid}/{rest=**} {
+      // Closed: surface textures were an unmoderated image channel. Owners may delete leftovers.
       allow read: if signedIn();
-      allow create, update: if owner(luid) && under(10) && isImage();
+      allow create, update: if false;
       allow delete: if owner(luid);
     }
-    match /avatars/{luid}/{rest=**} {
+    // Profile photos: the app uploads a JPEG to pending/, the screenAvatar callable (called by the app after upload) screens it
+    // and publishes accepted photos to current/. Pending photos are never readable.
+    match /avatars/{luid}/pending/{file} {
+      allow read: if false;
+      allow create: if owner(luid) && under(3) && request.resource.contentType == 'image/jpeg'
+        && file.matches('[0-9a-f-]{36}\\.jpg');
+      allow update, delete: if false;
+    }
+    match /avatars/{luid}/current/{file} {
       allow read: if signedIn();
-      allow create, update: if owner(luid) && under(3) && isImage();
-      allow delete: if owner(luid);
+      allow write: if false;
+    }
+    match /avatars/{luid}/{rest=**} {
+      allow read, write: if false;
     }
     match /{allPaths=**} {
       allow read, write: if false;

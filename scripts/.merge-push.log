@@ -1,0 +1,8 @@
+Updating a38c70fe6..0123afb1c
+Fast-forward
+To https://github.com/CrimsBerith/LociAR.git
+   a38c70fe6..0123afb1c  HEAD -> claude/busy-franklin-ugxjsg
+branch 'claude/busy-franklin-ugxjsg' set up to track 'origin/claude/busy-franklin-ugxjsg'.
+0123afb1c Merge origin/main into claude/busy-franklin-ugxjsg (#3)
+a38c70fe6 Fix issues #9 #11 #14: typed failures, re-entrancy, a11y labels, force unwraps
+c0077c2ce Fix P0/P1 GitHub issues: ARCore freeze, token race, network errors, deletion false error

@@ -109,14 +109,44 @@ enum Geohash {
 
 enum BackendCallError: LocalizedError, Sendable {
     /// The server refused the request (validation, permission, rate limit). Not retryable.
-    case rejected(code: Int, message: String)
+    /// `reason` is the machine-readable `details.reason` the server attaches (functions/src/errors.ts);
+    /// nil for older servers, in which case callers fall back to matching `message`.
+    case rejected(code: Int, message: String, reason: String?)
     case invalidResponse
 
     var errorDescription: String? {
         switch self {
-        case .rejected(_, let message): message
+        case .rejected(_, let message, _): message
         case .invalidResponse: "Sunucudan beklenmeyen bir yanıt geldi."
         }
+    }
+
+    var reason: String? {
+        if case .rejected(_, _, let reason) = self { return reason }
+        return nil
+    }
+}
+
+/// Which Cloud Functions failures are final and which are worth retrying. Pure, so it is unit-tested.
+enum BackendErrorPolicy {
+    /// The server said the request itself is wrong or not allowed: retrying cannot help.
+    nonisolated static func isPermanent(_ code: FunctionsErrorCode?) -> Bool {
+        switch code {
+        case .invalidArgument, .permissionDenied, .resourceExhausted, .alreadyExists, .failedPrecondition, .notFound:
+            true
+        default:
+            false
+        }
+    }
+
+    /// Maps a Functions `NSError` (`code`, `localizedDescription`, `userInfo`) to `.rejected` for
+    /// permanent failures; nil means "leave the original error alone" (transient: unavailable,
+    /// deadline exceeded, aborted, internal, unauthenticated...).
+    nonisolated static func map(code: Int, message: String, userInfo: [String: Any]) -> BackendCallError? {
+        guard isPermanent(FunctionsErrorCode(rawValue: code)) else { return nil }
+        // The SDK stores HttpsError.details under the "details" key (FunctionsErrorDetailsKey).
+        let details = userInfo["details"] as? [String: Any]
+        return .rejected(code: code, message: message, reason: details?["reason"] as? String)
     }
 }
 
@@ -129,26 +159,38 @@ struct CallableClient: Sendable {
         return encoder
     }
 
-    nonisolated func call<Response: Decodable>(_ name: String, payload: some Encodable) async throws -> Response {
+    /// Callables time out after 30 s unless the caller needs longer (createPost uses 60 s).
+    nonisolated static let defaultTimeout: TimeInterval = 30
+
+    nonisolated func call<Response: Decodable>(
+        _ name: String, payload: some Encodable, timeout: TimeInterval = CallableClient.defaultTimeout
+    ) async throws -> Response {
         let payloadData = try Self.jsonEncoder().encode(payload)
         let object = try JSONSerialization.jsonObject(with: payloadData)
-        let data = try await callRaw(name, object: object)
+        let data = try await callRaw(name, object: object, timeout: timeout)
         return try FirestoreJSON.decoder().decode(Response.self, from: data)
     }
 
-    nonisolated func callRaw(_ name: String, object: Any) async throws -> Data {
-        let functions = Functions.functions(region: region)
-        do {
-            let result = try await functions.httpsCallable(name).call(object)
-            guard JSONSerialization.isValidJSONObject(result.data) else { throw BackendCallError.invalidResponse }
-            return try JSONSerialization.data(withJSONObject: result.data)
-        } catch let error as NSError where error.domain == FunctionsErrorDomain {
-            let code = FunctionsErrorCode(rawValue: error.code)
-            switch code {
-            case .invalidArgument, .permissionDenied, .resourceExhausted, .alreadyExists, .failedPrecondition, .notFound:
-                throw BackendCallError.rejected(code: error.code, message: error.localizedDescription)
-            default:
-                throw error
+    nonisolated func callRaw(
+        _ name: String, object: Any, timeout: TimeInterval = CallableClient.defaultTimeout
+    ) async throws -> Data {
+        var refreshedToken = false
+        while true {
+            do {
+                let callable = Functions.functions(region: region).httpsCallable(name)
+                callable.timeoutInterval = timeout
+                let result = try await callable.call(object)
+                guard JSONSerialization.isValidJSONObject(result.data) else { throw BackendCallError.invalidResponse }
+                return try JSONSerialization.data(withJSONObject: result.data)
+            } catch let error as NSError where error.domain == FunctionsErrorDomain {
+                // An expired ID token surfaces as `unauthenticated`; refresh once and retry.
+                if FunctionsErrorCode(rawValue: error.code) == .unauthenticated,
+                   !refreshedToken, let user = Auth.auth().currentUser {
+                    refreshedToken = true
+                    _ = try? await user.getIDTokenResult(forcingRefresh: true)
+                    continue
+                }
+                throw BackendErrorPolicy.map(code: error.code, message: error.localizedDescription, userInfo: error.userInfo) ?? error
             }
         }
     }
@@ -196,7 +238,7 @@ enum FirestoreJSON {
         case let map as [String: Any]: return map.mapValues { jsonSafe($0) }
         case let array as [Any]: return array.map { jsonSafe($0) }
         case let reference as DocumentReference: return reference.path
-        default: return value!
+        default: return value ?? NSNull()
         }
     }
 

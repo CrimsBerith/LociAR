@@ -5,6 +5,7 @@ import UIKit
 struct ARPostViewerView: View {
     @Environment(ARPinningEngine.self) private var engine
     @Environment(AppSession.self) private var session
+    @Environment(AppContainer.self) private var container
     @Environment(\.dismiss) private var dismiss
     let post: LociPost
     var onClose: (() -> Void)? = nil
@@ -79,6 +80,7 @@ struct ARPostViewerView: View {
         }
         .background(LociTheme.background)
         .accessibilityIdentifier("ar-post-viewer")
+        .arcoreDisclosure()
         .task { await verifyAndOpen() }
         .onChange(of: engine.state) { _, state in
             if state == .resolved {
@@ -198,11 +200,8 @@ struct ARPostViewerView: View {
         accessBlocked = false
         isAiming = false
         location.start()
-        if let persistence = post.anchorBundle.anchor.persistence, persistence.isExpired {
-            message = "Bu içeriğin mekânsal dünya haritasının süresi dolmuş."
-            accessBlocked = true
-            return
-        }
+        // An expired Cloud Anchor or world map no longer blocks the post: the next resolver
+        // (geospatial, then aim-guided reveal) takes over.
         if session.isLocalPreview {
             await revealLocalPreviewOnPhysicalSurface()
             return
@@ -226,6 +225,8 @@ struct ARPostViewerView: View {
                     message = "Yüzey bulundu. İçerik hazır."
                     return
                 }
+                if await resolveWithARCore() { return }
+                if await relocalizeFromWorldMap() { return }
                 await revealWithAimGuidance()
                 return
             }
@@ -234,6 +235,88 @@ struct ARPostViewerView: View {
         }
         message = "Konum doğrulanamadı. AR erişimi açılmadı."
         accessBlocked = true
+    }
+
+    /// Google ARCore resolvers, most precise first: the hosted Cloud Anchor (exact surface, indoor
+    /// and outdoor), then the Geospatial pose (outdoors with VPS coverage). Both run on the same
+    /// ARKit session; false means "try the next resolver".
+    private func resolveWithARCore() async -> Bool {
+        let anchor = post.anchorBundle.anchor
+        let cloudAnchorId = anchor.persistence?.resolvableCloudAnchorId
+        let geospatial = anchor.geospatial?.isValid == true ? anchor.geospatial : nil
+        guard anchor.pinQuality.isPhysicalSurface, cloudAnchorId != nil || geospatial != nil else { return false }
+        await engine.requestCameraAndStart()
+        guard engine.state != .failed, !Task.isCancelled else { return false }
+        let arcore = container.arcore
+        guard await arcore.waitUntilReady() else { return false }
+        if let cloudAnchorId {
+            message = "Yüzey aranıyor. Kamerayı postun bırakıldığı yere doğrult ve yavaşça gezdir."
+            if let transform = await arcore.resolveCloudAnchor(cloudAnchorId), !Task.isCancelled {
+                engine.placeResolvedForViewing(transform: transform, anchor: anchor, physical: true)
+                return await renderResolvedContent()
+            }
+        }
+        if let geospatial {
+            message = "Konum doğrulanıyor. Kamerayı çevredeki binalara doğrult."
+            if await arcore.waitForEarthLocalization(), !Task.isCancelled,
+               let transform = arcore.transform(for: geospatial) {
+                engine.placeResolvedForViewing(transform: transform, anchor: anchor, physical: false)
+                return await renderResolvedContent()
+            }
+        }
+        return false
+    }
+
+    private func renderResolvedContent() async -> Bool {
+        do {
+            try await engine.render(post: post)
+            message = "Yüzey bulundu. İçerik hazır."
+        } catch {
+            message = "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene."
+        }
+        return true
+    }
+
+    /// Multi-user world lock: downloads the creator's ARWorldMap and relocalizes against it so the
+    /// content appears on the exact physical surface it was pinned to. Returns false (caller falls
+    /// back to aim-assisted reveal) when the post has no stored map, the download fails, or ARKit
+    /// cannot recognise the place within the engine's relocalization timeout.
+    private func relocalizeFromWorldMap() async -> Bool {
+        guard let persistence = post.anchorBundle.anchor.persistence,
+              persistence.storagePath != nil,
+              post.anchorBundle.anchor.pinQuality.isPhysicalSurface,
+              let worldMaps = container.worldMaps else { return false }
+        message = "Kayıtlı yüzey haritası indiriliyor…"
+        guard let data = try? await worldMaps.download(persistence), !Task.isCancelled else { return false }
+        await engine.requestCameraAndStart()
+        guard engine.state != .failed else { return false }
+        do {
+            try await engine.restoreWorldMap(data: data, expectedAnchor: post.anchorBundle.anchor)
+        } catch {
+            engine.stopSession()
+            return false
+        }
+        message = "Kaydedilen çevre aranıyor. Kamerayı postun sabitlendiği yüzeye doğru yavaşça gezdir."
+        while !Task.isCancelled {
+            switch engine.state {
+            case .resolved:
+                do {
+                    try await engine.render(post: post)
+                    message = "Yüzey bulundu. İçerik hazır."
+                } catch {
+                    message = "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene."
+                }
+                return true
+            case .failed, .idle:
+                // Relocalization timed out; clear the initial world map before falling back.
+                engine.stopSession()
+                message = "Kaydedilen çevre bulunamadı. Yaklaşık konuma göre yönlendiriliyorsun."
+                return false
+            default:
+                try? await Task.sleep(for: .milliseconds(150))
+            }
+        }
+        return false
     }
 
     private func revealLocalPreviewOnPhysicalSurface() async {

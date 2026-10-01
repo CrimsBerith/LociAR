@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 @preconcurrency import FirebaseStorage
 
 protocol WorldMapRepository: Sendable {
@@ -92,6 +93,7 @@ actor LocalWorldMapStore: WorldMapRepository {
 /// Remote world maps in Firebase Storage (`post-world-maps/<luid>/<post>/<anchor>.lociarmap`).
 final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
     static let mapBucket = "post-world-maps"
+    private static let logger = Logger(subsystem: "com.khankartal.lociar", category: "worldmap")
     static let referenceBucket = "post-reference-images"
 
     enum StoreError: LocalizedError {
@@ -114,8 +116,7 @@ final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
               let mapURL = persistence.assetURI.flatMap(URL.init(string:)),
               mapURL.isFileURL else { return post }
 
-        let referenceURL = persistence.referenceImageURI.flatMap(URL.init(string:))
-        let urls = SendableLocalURLs(map: mapURL, reference: referenceURL?.isFileURL == true ? referenceURL : nil)
+        let urls = SendableLocalURLs(map: mapURL, reference: nil)
         let local = try await Task.detached(priority: .utility) {
             let mapData = try Data(contentsOf: urls.map, options: [.mappedIfSafe])
             let referenceData = try urls.reference.map { try Data(contentsOf: $0, options: [.mappedIfSafe]) }
@@ -129,22 +130,24 @@ final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
     }
 
     func upload(_ package: SavedWorldMapPackage, userID: UUID, draftID: UUID) async throws -> WorldLockPersistence {
-        guard package.mapData.count >= 64, package.mapData.count <= 50 * 1_024 * 1_024 else { throw StoreError.invalidSize }
+        guard package.mapData.count >= 64 else { throw StoreError.invalidSize }
+        let raw = package.mapData
+        let encoded = try await Task.detached(priority: .utility) { try WorldMapCodec.encode(raw) }.value
+        Self.logger.info("World map size raw=\(raw.count) compressed=\(encoded.count)")
+        guard encoded.count <= WorldMapCodec.maximumUploadBytes else {
+            throw WorldMapCodec.CodecError.tooLarge(bytes: encoded.count)
+        }
         let basePath = "\(StorageObjectPath.ownerFolder(userID))/\(draftID.uuidString.lowercased())"
         let mapPath = "\(basePath)/\(StorageObjectPath.anchorFileName(package.persistence.originalNativeAnchorId, fileExtension: "lociarmap"))"
-        _ = try await MediaAssetStore.upload(package.mapData, bucket: Self.mapBucket, path: mapPath, contentType: "application/x-lociarmap")
-        var referenceURL: String?
-        if let reference = package.referenceImageData {
-            let referencePath = "\(basePath)/\(StorageObjectPath.anchorFileName(package.persistence.originalNativeAnchorId, fileExtension: "jpg"))"
-            _ = try await MediaAssetStore.upload(reference, bucket: Self.referenceBucket, path: referencePath, contentType: "image/jpeg")
-            referenceURL = "storage://\(Self.referenceBucket)/\(referencePath)"
-        }
+        _ = try await MediaAssetStore.upload(encoded, bucket: Self.mapBucket, path: mapPath, contentType: "application/x-lociarmap")
+        // Reference camera frames are no longer uploaded (Storage denies them); drafts queued by
+        // older builds may still carry one locally, and it is simply ignored.
 
         var persistence = package.persistence
         persistence.storagePath = "storage://\(Self.mapBucket)/\(mapPath)"
         persistence.assetURI = persistence.storagePath
         persistence.assetURL = nil
-        persistence.referenceImageURI = referenceURL
+        persistence.referenceImageURI = nil
         return persistence
     }
 
@@ -160,19 +163,37 @@ final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
         throw StoreError.missingStoragePath
     }
 
+    /// Returns the raw (uncompressed) archived ARWorldMap. Remote maps are cached on device by
+    /// their storage path, so a post opened again is not downloaded again.
     func download(_ persistence: WorldLockPersistence) async throws -> Data {
+        let locator = persistence.storagePath ?? persistence.assetURI
+        let cache = WorldMapDownloadCache.standard
+        if let locator, locator.hasPrefix("storage://"), let cached = cache?.read(locator) {
+            return try WorldMapCodec.decode(cached)
+        }
         let url = try await materialize(persistence)
         if url.isFileURL {
-            return try await Task.detached(priority: .userInitiated) {
+            let local = try await Task.detached(priority: .userInitiated) {
                 try Data(contentsOf: url, options: [.mappedIfSafe])
             }.value
+            return try WorldMapCodec.decode(local)
         }
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await Self.session.data(from: url)
         guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode), data.count >= 64 else {
             throw URLError(.cannotDecodeContentData)
         }
-        return data
+        let raw = try WorldMapCodec.decode(data)
+        if let locator, locator.hasPrefix("storage://") { cache?.write(data, for: locator) }
+        return raw
     }
+
+    /// Downloads get a bounded timeout instead of URLSession.shared's 60 s request / 7 day resource.
+    private static let session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 120
+        return URLSession(configuration: configuration)
+    }()
 
     func downloadReference(_ persistence: WorldLockPersistence) async throws -> Data? {
         guard let raw = persistence.referenceImageURI else { return nil }

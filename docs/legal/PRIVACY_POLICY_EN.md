@@ -1,3 +1,5 @@
+> **ARŞİV / YERİNİ ALDI (30 Eylül 2026):** Bu taslak yerini `admin/app/privacy` ve `admin/app/terms` sayfalarına bıraktı. İçinde eski/yanlış bilgiler olabilir (Google tanımlayıcıları, fotoğraf içeriği, görüntüleme herkese açık, arkit_world_locked). Kaynak olarak kullanma.
+
 # LociAR Privacy Policy (Draft)
 
 Effective date: set before production launch. Controller, postal address, support email, and jurisdiction must be filled with real values before publication.

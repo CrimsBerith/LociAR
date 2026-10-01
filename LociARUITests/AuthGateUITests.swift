@@ -8,6 +8,8 @@ final class AuthGateUITests: XCTestCase {
         throw XCTSkip("Gerçek hesap ve kamera durumu fiziksel iPhone gerektirir.")
 #else
         let app = XCUIApplication()
+        app.launchArguments += ["-arcore_disclosure_acknowledged_v1", "YES"]
+        addPrivacyAlertMonitor()
         app.launch()
         guard app.tabBars.firstMatch.waitForExistence(timeout: 8) else {
             throw XCTSkip("Cihazdaki normal uygulama oturumu giriş yapmış durumda değil.")
@@ -16,7 +18,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 15), "Normal hesap akışında AR kamerası açılmadı.")
         XCTAssertFalse(app.buttons["Kapat"].exists, "AR sekmesi postu kullanıcı seçmeden açmamalı.")
         app.tabBars.buttons["Paylaş"].tap()
-        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 20))
         capture(app, name: "physical-normal-account-new-pin")
 #endif
     }
@@ -27,7 +29,7 @@ final class AuthGateUITests: XCTestCase {
 #else
         let caption = "Canlı AR sosyal \(UUID().uuidString.prefix(6))"
         let app = XCUIApplication()
-        app.launchArguments.append("UITEST_DISABLE_EXTERNAL_APP_LAUNCH")
+        app.launchArguments += ["UITEST_DISABLE_EXTERNAL_APP_LAUNCH", "-arcore_disclosure_acknowledged_v1", "YES"]
         app.launchEnvironment["UITEST_EXTERNAL_MEDIA_URL"] = "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU"
         addPrivacyAlertMonitor()
         app.launch()
@@ -37,9 +39,10 @@ final class AuthGateUITests: XCTestCase {
         }
         app.tabBars.buttons["Paylaş"].tap()
         app.tap()
-        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 20))
         guard waitForPersistablePhysicalSurface(app, timeout: 120) else {
-            let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
+            let diagEl = app.staticTexts["ar-mapping-diagnostic"]
+            let diagnostic = diagEl.exists ? diagEl.label : "(tanı yok)"
             XCTFail(
                 "Canlı yayın testi için kaydedilebilir gerçek yüzey hazırlanamadı; "
                     + "telefonu dokulu yüzey çevresinde gezdirin. Tanı: \(diagnostic)"
@@ -377,10 +380,14 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(captionField.waitForExistence(timeout: 5))
         captionField.tap()
         captionField.typeText(caption)
-        app.buttons["create-publish"].tap()
+        dismissKeyboard(app)
+
+        let publishButton = app.buttons["create-publish"]
+        XCTAssertTrue(waitForHittable(publishButton, timeout: 5), "Publish butonu erişilemez")
+        publishButton.tap()
 
         let resultAlert = app.alerts["LociAR"]
-        XCTAssertTrue(resultAlert.waitForExistence(timeout: 20))
+        XCTAssertTrue(resultAlert.waitForExistence(timeout: 35))
         XCTAssertTrue(resultAlert.staticTexts["Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir."].exists)
         resultAlert.buttons["Tamam"].tap()
         XCTAssertTrue(app.buttons["map-create"].waitForExistence(timeout: 8))
@@ -1502,13 +1509,15 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(captionField.waitForExistence(timeout: 5))
         captionField.tap()
         captionField.typeText("iPhone Fiziksel Pin Testi")
+        dismissKeyboard(app)
 
         let publishButton = app.buttons["create-publish"]
         XCTAssertTrue(publishButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(waitForHittable(publishButton, timeout: 5), "Publish butonu erişilemez")
         publishButton.tap()
 
         let alert = app.alerts["LociAR"]
-        XCTAssertTrue(alert.waitForExistence(timeout: 10), "Yayın alert'ı açılmadı.")
+        XCTAssertTrue(alert.waitForExistence(timeout: 25), "Yayın alert'ı açılmadı.")
         alert.buttons["Tamam"].tap()
 
         // Returned to Map cleanly

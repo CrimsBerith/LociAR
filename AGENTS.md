@@ -16,6 +16,9 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   `comments_count`, `follower_count`, `following_count`, `public_post_count`), activity events, account deletion
   and moderation are written **only** by Cloud Functions / Admin SDK. The iOS client never writes `posts` or
   counter fields and never falls back to direct Firestore writes when a callable fails — surface the error instead.
+- Usernames are unique: they change only through the `updateHandle` callable (`handles/{handle}` reservations).
+  Profile photos are uploaded to `avatars/{luid}/pending/` and published only by `screenAvatar` after
+  Cloud Vision SafeSearch; clients may set `avatar_preset` (fixed list) or clear `avatar_url`, nothing else.
 - Identity is the `luid` custom claim (UUIDv5 of the Firebase UID) set by the `ensureProfile` callable.
   Rules and Storage paths key on `request.auth.token.luid`.
 - New posts default to `pending_review`; protected zones, 18+ checks, rate/density limits run in `createPost`.
@@ -32,4 +35,15 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - **iOS only.** Do not add Android, Expo, Metro, or React Native.
 - Protected zones and 18+ content are hard-blocked in the MVP.
 - Pin uses the center reticle against detected plane geometry. Approximate placement is explicit.
+- AR re-localization uses **Google ARCore on top of the ARKit session** (SPM `arcore-ios-sdk`): Cloud Anchors
+  (365-day TTL) first, then Geospatial (VPS), then the legacy ARKit world map, then aim-guided reveal.
+  Authorization is keyless via the `getArcoreToken` callable; never ship an ARCore API key. Anchors are deleted
+  with the post/account (`functions/src/arcoreManagement.ts`). The Google sensor-data notice
+  (`ARCoreDisclosure.swift`) must stay on every AR screen. No Android.
 - Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + TOTP MFA + static RBAC).
+- **Push notifications:** Enabled via APNs & FirebaseMessaging (`NotificationService.swift`, `LociAR.entitlements` `aps-environment`).
+- **Localization:** 12 globally most-spoken languages supported (`tr` base, `en`, `zh-Hans`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `de`, `ja`) via `Localizable.xcstrings`.
+- **Crash reporting:** Firebase Crashlytics enabled.
+- **Store availability:** Global (all territories).
+- **Media model:** Text and social media links only. Legacy device photo/video upload remnants completely removed.
+

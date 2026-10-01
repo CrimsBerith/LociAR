@@ -24,6 +24,8 @@ struct CreatePostView: View {
     @State private var offerLocationSettings = false
     @State private var offerFallbackToApproximate = false
     @State private var mappingWaitExpired = false
+    /// Non-nil while the pin is being saved (Cloud Anchor hosting or world map); shown as a banner.
+    @State private var savingStatus: String?
     @FocusState private var isCaptionFocused: Bool
 
     init(anchor: SurfaceAnchor? = nil) {
@@ -35,6 +37,19 @@ struct CreatePostView: View {
             Group {
                 if let anchor = selectedAnchor { editor(anchor: anchor) }
                 else { placementStep }
+            }
+            .overlay(alignment: .top) {
+                if let savingStatus {
+                    HStack(spacing: 10) {
+                        ProgressView().tint(LociTheme.accent)
+                        Text(savingStatus).font(.subheadline.weight(.semibold))
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.top, 8)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("create-saving-status")
+                }
             }
             .navigationTitle(selectedAnchor == nil ? "Yüzey seç" : "İçerik oluştur")
             .navigationBarTitleDisplayMode(.inline)
@@ -52,6 +67,7 @@ struct CreatePostView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .arcoreDisclosure()
         .alert("LociAR", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             if offerLocationSettings {
                 Button("Konum ayarlarını aç") {
@@ -325,10 +341,10 @@ struct CreatePostView: View {
                             Text("Harita, Keşfet, arama ve VoiceOver’da kullanılır.")
                                 .font(.caption2).foregroundStyle(.secondary)
                             Spacer(minLength: 8)
-                            Text("\(caption.count)/220").font(.caption.monospacedDigit())
-                                .foregroundStyle(caption.count <= 220 ? Color.secondary : Color.red)
+                            Text("\(captionLength)/220").font(.caption.monospacedDigit())
+                                .foregroundStyle(captionLength <= 220 ? Color.secondary : Color.red)
                         }
-                        if caption.count > 220 {
+                        if captionLength > 220 {
                             Label("Caption 220 karakteri geçemez.", systemImage: "exclamationmark.circle.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.red)
@@ -457,7 +473,13 @@ struct CreatePostView: View {
     }
 
     private var canPublish: Bool {
-        !isPublishing && hasMeaningfulContent && caption.count <= 220
+        !isPublishing && hasMeaningfulContent && captionLength <= 220
+    }
+
+    /// The server limits captions to 220 UTF-16 code units (JavaScript string length), so emoji
+    /// count double here exactly as they do in createPost.
+    private var captionLength: Int {
+        caption.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count
     }
 
     private func surfaceTitle(_ alignment: SurfaceAlignment) -> String {
@@ -478,9 +500,30 @@ struct CreatePostView: View {
         defer { isPublishing = false }
 
         var anchor = anchor
+        if let geospatial = anchor.geospatial {
+            // ARCore Geospatial beats GPS (meters vs. 5–20 m): use it for the map pin and distance checks.
+            var pose = anchor.geoPose ?? GeoPose(latitude: geospatial.latitude, longitude: geospatial.longitude, heading: 0)
+            pose.latitude = geospatial.latitude
+            pose.longitude = geospatial.longitude
+            pose.altitude = geospatial.altitude
+            pose.accuracy = geospatial.horizontalAccuracy
+            anchor.geoPose = pose
+        }
         if anchor.geoPose == nil {
             if let captured = await GeoPoseCaptureService().capture() {
                 anchor.geoPose = captured
+            }
+        }
+        if let accuracy = anchor.geoPose?.accuracy, accuracy > GeoPoseCaptureService.maximumPublishAccuracyMeters {
+            // createPost rejects fixes worse than 100 m; ask for a better one instead of queueing a
+            // post that would be dead-lettered on the server.
+            if let retry = await GeoPoseCaptureService().capture(),
+               (retry.accuracy ?? .infinity) <= GeoPoseCaptureService.maximumPublishAccuracyMeters {
+                anchor.geoPose = retry
+            } else {
+                dismissAfterAlert = false
+                message = "Konum doğruluğu yayın için yeterli değil (\(Int(accuracy)) m). Açık bir alanda birkaç saniye bekleyip tekrar dene."
+                return
             }
         }
         if var geoPose = anchor.geoPose {
@@ -764,6 +807,20 @@ struct CreatePostView: View {
             engine.stopSession()
             return
         }
+        defer { savingStatus = nil }
+        // Geo-tag the pin precisely when ARCore Geospatial is localized (outdoors, VPS coverage).
+        if let transform = engine.currentPinTransform, let geospatial = container.arcore.geospatialPose(for: transform) {
+            engine.attachGeospatial(geospatial)
+        }
+        // 1) Google Cloud Anchor: exact surface for every viewer, no world-map upload.
+        if let persistence = await hostCloudAnchor(for: anchor) {
+            engine.attachPersistence(persistence)
+            selectedAnchor = engine.currentAnchor ?? anchor
+            engine.stopSession()
+            return
+        }
+        // 2) Fallback: ARKit world map (offline, no token, or hosting failed).
+        savingStatus = "Yüzey kaydı hazırlanıyor…"
         do {
             let package = try await engine.saveWorldMap()
             engine.attachPersistence(package.persistence)
@@ -774,6 +831,32 @@ struct CreatePostView: View {
             message = "Fiziksel çevre haritası kaydedilemedi. Dilersen 'Yaklaşık olarak devam et' ile postunu hemen oluşturabilir veya tekrar tarayabilirsin."
             return
         }
+    }
+
+    /// Hosts the pin as a Google Cloud Anchor. Waits (bounded) until ARCore has seen the surface
+    /// well enough, guiding the user to move around it. Returns nil to fall back to the world map.
+    private func hostCloudAnchor(for anchor: SurfaceAnchor) async -> WorldLockPersistence? {
+        let arcore = container.arcore
+        guard container.connectivity.isOnline else { return nil }
+        savingStatus = "Google AR hazırlanıyor…"
+        guard await arcore.waitUntilReady(), let arAnchor = engine.currentPinARAnchor() else { return nil }
+        let deadline = Date().addingTimeInterval(20)
+        func sufficient() -> Bool {
+            guard let transform = engine.currentPinTransform else { return false }
+            return arcore.isHostingQualitySufficient(for: transform)
+        }
+        while !sufficient(), Date() < deadline {
+            savingStatus = "Telefonu yüzeyin etrafında yavaşça gezdir…"
+            try? await Task.sleep(for: .milliseconds(400))
+        }
+        guard sufficient() else { return nil }
+        savingStatus = "Yüzey Google AR'a kaydediliyor…"
+        guard let cloudAnchorId = await arcore.hostCloudAnchor(arAnchor) else { return nil }
+        var persistence = WorldLockPersistence(originalNativeAnchorId: engine.currentAnchor?.id ?? anchor.id, hostedAt: Date())
+        persistence.kind = .arcoreCloudAnchor
+        persistence.cloudAnchorId = cloudAnchorId
+        persistence.expiresAt = Calendar.current.date(byAdding: .day, value: ARCoreService.cloudAnchorTTLDays, to: Date())
+        return persistence
     }
 }
 
