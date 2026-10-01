@@ -1,5 +1,5 @@
 #!/bin/bash
-# LociAR — Google Cloud / Firebase one-time setup (ARCore, Vision, scheduler, IAM) + deploy.
+# LociAR — Google Cloud / Firebase one-time setup (ARCore, Vision, scheduler, IAM, App Hosting) + deploy.
 # Double-click in Finder or run in Terminal on a Mac. Needs: Google Cloud CLI (gcloud) and Node.js.
 # Safe to re-run: every step checks or is idempotent.
 set -euo pipefail
@@ -48,6 +48,8 @@ gcloud services enable \
   firestore.googleapis.com \
   firebaseappcheck.googleapis.com \
   identitytoolkit.googleapis.com \
+  firebaseapphosting.googleapis.com \
+  secretmanager.googleapis.com \
   --project "$PROJECT"
 echo "✅ API'ler açık."
 
@@ -76,6 +78,24 @@ else
   echo "✅ Servis hesabında Editor/Owner var."
 fi
 
+step "Admin paneli: Firebase App Hosting (backend lociar-admin)"
+if ! npx --yes firebase-tools@14 apphosting:backends:get lociar-admin --project "$PROJECT" >/dev/null 2>&1; then
+  echo "App Hosting backend yok; oluşturuluyor. Sihirbaz bir web app soracak → 'LociAR Admin' seç/oluştur."
+  npx --yes firebase-tools@14 apphosting:backends:create --project "$PROJECT" \
+    --backend lociar-admin --primary-region us-central1 --root-dir admin
+fi
+AH_SA="firebase-app-hosting-compute@${PROJECT}.iam.gserviceaccount.com"
+if gcloud iam service-accounts describe "$AH_SA" --project "$PROJECT" >/dev/null 2>&1; then
+  gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$AH_SA" \
+    --role="roles/firebase.sdkAdminServiceAgent" --condition=None --quiet >/dev/null
+  gcloud iam service-accounts add-iam-policy-binding "$AH_SA" --project "$PROJECT" \
+    --member="serviceAccount:$AH_SA" --role="roles/iam.serviceAccountTokenCreator" --quiet >/dev/null
+  echo "✅ App Hosting servis hesabı: Admin SDK + imzalı URL yetkileri ($AH_SA)"
+else
+  echo "⚠️  $AH_SA bulunamadı; backend oluşturulduktan sonra bu adımı tekrar çalıştır."
+fi
+echo "   Authentication → Settings → Authorized domains: lociar-admin--${PROJECT}.us-central1.hosted.app ekle."
+
 step "Cloud Storage bucket kontrolü"
 BUCKET="gs://${PROJECT}.firebasestorage.app"
 if gcloud storage buckets describe "$BUCKET" >/dev/null 2>&1; then
@@ -100,6 +120,10 @@ pause "Bunları yaptıysan (veya sonra yapacaksan) deploy için Enter…"
 
 step "Backend deploy (kurallar, indeksler, TTL, Storage kuralları, Cloud Functions)"
 bash scripts/firebase-deploy.command
+
+step "Admin paneli + yasal sayfalar deploy (Firebase App Hosting)"
+npx --yes firebase-tools@14 deploy --only apphosting --project "$PROJECT"
+echo "✅ https://lociar-admin--${PROJECT}.us-central1.hosted.app/privacy"
 
 step "İsteğe bağlı: eski referans kamera karelerini temizle (önce sayar)"
 read -r -p "Eski referans karelerini say/sil? [e/H] " ANSWER

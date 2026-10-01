@@ -6,9 +6,9 @@ Replace placeholders before submission.
 
 | Item | Placeholder | Action |
 |------|-------------|--------|
-| Privacy Policy | `https://lociar-admin.vercel.app/privacy` | Host real policy (location, camera, UGC, retention, delete) |
-| Terms of Use | `https://lociar-admin.vercel.app/terms` | Host terms + UGC rules |
-| Support | `https://lociar-admin.vercel.app/support` | Monitored inbox |
+| Privacy Policy | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy` | Host real policy (location, camera, UGC, retention, delete) |
+| Terms of Use | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms` | Host terms + UGC rules |
+| Support | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support` | Monitored inbox |
 
 Values live in `Config/Base.xcconfig` (`LOCIAR_PRIVACY_URL`, `LOCIAR_TERMS_URL`, `LOCIAR_SUPPORT_URL`); the pages are served by the admin app (`admin/app/{privacy,terms,support}`).
 

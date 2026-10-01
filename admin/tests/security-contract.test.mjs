@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { globSync, readFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -126,13 +126,16 @@ test("admin magic links support cross-browser completion without weakening MFA",
 // ---- issue #13 ----
 import { inviteAcceptError, commentFlagTarget, isCommentFlag, originAllowed, INVITE_TTL_MS } from "../lib/policy.ts";
 
-test("docker image never ships env files or credentials and runs as a non-root production server", () => {
-  const dockerignore = readFileSync(join(repoRoot, "admin/.dockerignore"), "utf8");
-  for (const pattern of [".env", "artifacts/", "node_modules"]) assert.match(dockerignore, new RegExp(pattern.replace(".", "\\.")));
-  const dockerfile = readFileSync(join(repoRoot, "admin/Dockerfile"), "utf8");
-  assert.match(dockerfile, /npm run build/);
-  assert.match(dockerfile, /USER node/);
-  assert.doesNotMatch(dockerfile, /npm", "run", "dev"/);
+test("admin deploys only to Firebase App Hosting and never needs a service-account key there", () => {
+  for (const legacy of ["admin/Dockerfile", "admin/.dockerignore", ".dockerignore", "admin/vercel.json", "vercel.json"]) {
+    assert.equal(existsSync(join(repoRoot, legacy)), false, `${legacy} must not exist (deployment is Firebase App Hosting)`);
+  }
+  const apphosting = readFileSync(join(repoRoot, "admin/apphosting.yaml"), "utf8");
+  assert.doesNotMatch(apphosting, /FIREBASE_SERVICE_ACCOUNT_JSON|private_key/);
+  const firebaseJson = JSON.parse(readFileSync(join(repoRoot, "firebase.json"), "utf8"));
+  assert.deepEqual(firebaseJson.apphosting.map((b) => [b.backendId, b.rootDir]), [["lociar-admin", "admin"]]);
+  const adminSdk = readFileSync(join(repoRoot, "admin/lib/firebase-admin.ts"), "utf8");
+  assert.match(adminSdk, /applicationDefault\(\)/);
 });
 
 test("API errors never return raw exception messages", () => {

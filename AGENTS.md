@@ -40,7 +40,10 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   Authorization is keyless via the `getArcoreToken` callable; never ship an ARCore API key. Anchors are deleted
   with the post/account (`functions/src/arcoreManagement.ts`). The Google sensor-data notice
   (`ARCoreDisclosure.swift`) must stay on every AR screen. No Android.
-- Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + TOTP MFA + static RBAC).
+- Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + TOTP MFA + static RBAC), deployed on
+  **Firebase App Hosting** (`admin/apphosting.yaml`, backend `lociar-admin`). It also serves the public
+  `/privacy`, `/terms`, `/support` pages the iOS app links to. Everything runs on Firebase: no Docker, no Vercel,
+  no Supabase. On App Hosting the Admin SDK uses the backend's service account; no key file.
 - **Push notifications:** Enabled via APNs & FirebaseMessaging (`NotificationService.swift`, `LociAR.entitlements` `aps-environment`).
 - **Localization:** 12 globally most-spoken languages supported (`tr` base, `en`, `zh-Hans`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `de`, `ja`) via `Localizable.xcstrings`.
 - **Crash reporting:** Firebase Crashlytics enabled.

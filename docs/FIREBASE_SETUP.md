@@ -1,8 +1,7 @@
 # LociAR — Firebase kurulum ve canlıya alma rehberi
 
-Backend 27 Eylül 2026'da Supabase'ten Firebase'e taşındı. Supabase sürümünün tam yedeği:
-`../_backups/lociar-supabase-snapshot-2026-09-27.tar.gz`; eski `supabase/` klasörü, scriptler ve dokümanlar
-`../_backups/supabase-legacy-2026-09-28/` altına taşındı.
+Her şey Firebase'de: Auth, Firestore, Storage, Cloud Functions ve admin paneli (Firebase App Hosting).
+Docker, Vercel veya başka bir barındırma kullanılmaz.
 
 ## Canlı proje durumu — `lociar-2f38c` (28 Eylül 2026)
 
@@ -58,7 +57,7 @@ elle yapılışıdır.
 5. **Authentication** → Sign-in method:
    - Email/Password: açık (Email link açık olsun — admin panel girişinde kullanılıyor)
    - Apple: açık. Services ID, Apple Team ID `ZSRUTGX74S`, Key ID ve `.p8` anahtarını gir.
-   - Settings → Authorized domains: admin panel alan adını ekle (ör. `lociar-admin.vercel.app`).
+   - Settings → Authorized domains: admin panel alan adını ekle: `lociar-admin--lociar-2f38c.us-central1.hosted.app` (özel alan adı bağlanırsa onu da).
 6. Authentication → Settings → **Upgrade to Identity Platform** (admin TOTP MFA için gerekli; 50K MAU'ya kadar ücretsiz katman).
 7. **App Check** → iOS uygulaması → App Attest'i kaydet. Firestore/Storage için önce "Unenforced" kalsın;
    TestFlight doğrulandıktan sonra enforce et. **Callable Functions** konsoldan değil koddan zorlanır:
@@ -125,14 +124,34 @@ xcodegen generate            # veya mevcut LociAR.xcodeproj'u aç (Firebase pake
 Xcode ilk açılışta firebase-ios-sdk'yı indirir (File → Packages → Resolve Package Versions).
 Signing & Capabilities: Sign in with Apple ve App Attest entitlement'ları `LociAR.entitlements` içinde.
 
-## 5. Admin panel (Vercel)
+## 5. Admin panel ve yasal sayfalar (Firebase App Hosting)
 
-Vercel → Project → Settings → Environment Variables (`admin/.env.example`):
-- `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID`
-- `FIREBASE_SERVICE_ACCOUNT_JSON` (Project settings → Service accounts → Generate new private key; base64 önerilir)
-- `FIREBASE_STORAGE_BUCKET`, `FIREBASE_FUNCTIONS_REGION`
+Admin paneli ve uygulamanın bağlantı verdiği `/privacy`, `/terms`, `/support` sayfaları `admin/` içindeki Next.js
+uygulamasıdır ve **Firebase App Hosting** üzerinde çalışır (`admin/apphosting.yaml`, `firebase.json` → `apphosting`).
+Sunucu, App Hosting backend'inin servis hesabıyla çalışır; **servis hesabı anahtarı yoktur**.
 
-Eski Supabase değişkenlerini Vercel'den ve `admin/.env.local`'dan sil. Sonra `vercel --prod`.
+İlk kurulum (bir kez, Mac'te):
+```sh
+gcloud services enable firebaseapphosting.googleapis.com --project lociar-2f38c
+npx firebase-tools@14 apphosting:backends:create --project lociar-2f38c \
+  --backend lociar-admin --primary-region us-central1 --root-dir admin
+```
+- Sihirbaz bir **web app** bağlamayı sorar → "LociAR Admin" web app'ini seç/oluştur. Public istemci kimlikleri
+  derleme sırasında `FIREBASE_WEBAPP_CONFIG` olarak gelir (`admin/next.config.ts`), elle girilmez.
+- Backend servis hesabına (`firebase-app-hosting-compute@lociar-2f38c.iam.gserviceaccount.com`) şu roller gerekir:
+  `Firebase Admin SDK Administrator Service Agent` (Auth/Firestore/Storage) ve kendi üzerinde
+  `Service Account Token Creator` (avatar incelemesindeki imzalı URL'ler ve oturum çerezleri için).
+  `scripts/google-cloud-setup.command` bunları verir.
+- Authentication → Settings → Authorized domains: `lociar-admin--lociar-2f38c.us-central1.hosted.app`.
+
+Dağıtım: `npx firebase-tools@14 deploy --only apphosting --project lociar-2f38c` (ya da GitHub bağlantısıyla
+otomatik). Adres: `https://lociar-admin--lociar-2f38c.us-central1.hosted.app` — iOS `Config/Base.xcconfig`
+içindeki gizlilik/şartlar/destek bağlantıları bu adresi kullanır. Özel alan adı bağlanırsa (App Hosting →
+Settings → Custom domain) `Config/Base.xcconfig`, `admin/apphosting.yaml` (`ADMIN_ORIGIN`) ve App Store
+Connect URL'leri birlikte güncellenir.
+
+Yerel geliştirme: `admin/.env.local` (`admin/.env.example`), `npm run dev`. Yerelde Admin SDK için
+`FIREBASE_SERVICE_ACCOUNT_JSON` yalnız geliştirici makinesinde tutulur; repo'ya ve App Hosting'e girmez.
 
 Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yeniden giriş → kod → panel.
 
@@ -163,4 +182,4 @@ Uygula: `gcloud storage buckets update gs://lociar-2f38c.firebasestorage.app --l
 
 **Cloud Anchor göç betikleri.** Eski postlar için bir kez: `FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/backfill-cloud-anchors.mjs --apply`; uzun `display_name` düzeltmesi: `node functions/scripts/fix-long-display-names.mjs --apply`. (Önce `--apply`sız kuru çalıştırma yap.)
 
-**Admin.** Üretimde `ADMIN_ORIGIN=https://<admin-alan-adı>` ayarla (Origin kontrolü buna sabitlenir). Docker imajı artık `next build` + `next start`, root olmayan kullanıcıyla çalışır; gizli bilgiler imaja girmez, çalışma zamanında verilir.
+**Admin.** `ADMIN_ORIGIN` `admin/apphosting.yaml` içinde App Hosting adresine sabit (Origin kontrolü buna bakar); özel alan adına geçince orada güncelle.
