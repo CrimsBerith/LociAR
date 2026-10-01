@@ -9,7 +9,10 @@ ROOT="$(pwd)"
 OUT="$ROOT/scripts/.e2e"
 mkdir -p "$OUT"
 SUMMARY="$OUT/summary.txt"
-DEVICE_ID="${DEVICE_ID:-00008120-001079DE0E07C01E}"
+if [ -z "${DEVICE_ID:-}" ]; then
+  DETECTED_DEVICE="$(xcrun devicectl list devices 2>/dev/null | grep "available" | awk '{print $3}' | head -1)"
+  DEVICE_ID="${DETECTED_DEVICE:-B2E7EFB8-A5CD-5671-BBE9-2A86FE9D7EB8}"
+fi
 PROJECT_ID="lociar-2f38c"
 AUTH="127.0.0.1:9099"
 log() { echo "$(date +%H:%M:%S) $*" | tee -a "$SUMMARY"; }

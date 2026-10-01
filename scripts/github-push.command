@@ -36,8 +36,9 @@ fi
 # 3) Gönder
 rm -f .git/index.lock 2>/dev/null || true
 git remote get-url origin >/dev/null 2>&1 && git remote set-url origin "$REPO_URL" || git remote add origin "$REPO_URL"
-echo "==> $REPO_URL adresine gönderiliyor…"
-git push -u origin HEAD:main 2>&1 | tee "$LOG"
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
+echo "==> $REPO_URL ($CURRENT_BRANCH) adresine gönderiliyor…"
+git push -u origin "HEAD:$CURRENT_BRANCH" 2>&1 | tee "$LOG"
 status=${PIPESTATUS[0]}
 echo ""
 if [ "$status" -eq 0 ]; then echo "✅ Bitti: ${REPO_URL%.git}"; else echo "❌ Gönderim başarısız (kod $status). Ayrıntı: $LOG"; fi
