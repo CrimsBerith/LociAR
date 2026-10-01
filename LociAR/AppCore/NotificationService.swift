@@ -30,7 +30,9 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
                 options: [.alert, .badge, .sound]
             )
             isAuthorized = granted
-            // Remote push (APNs/FCM) is out of scope for 1.0; no aps-environment entitlement ships.
+            if granted {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
             return granted
         } catch {
             isAuthorized = false

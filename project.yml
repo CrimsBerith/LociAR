@@ -73,6 +73,10 @@ targets:
         product: FirebaseFunctions
       - package: Firebase
         product: FirebaseAppCheck
+      - package: Firebase
+        product: FirebaseCrashlytics
+      - package: Firebase
+        product: FirebaseMessaging
       - package: ARCore
         product: ARCoreGARSession
       - package: ARCore

@@ -1355,41 +1355,16 @@ private struct PostMediaHero: View {
     var openMedia: (() -> Void)? = nil
 
     @ViewBuilder var body: some View {
-        switch post.contentSource {
-        case .image(let url):
-            imagePreview(url: url)
-        case .video(let url):
-            VideoPreviewHero(url: url)
-        case .some(let source) where source.externalMedia != nil:
-            if let external = source.externalMedia {
-                Group {
-                    if let openMedia {
-                        Button(action: openMedia) {
-                            externalMediaBanner(external: external)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        externalMediaBanner(external: external)
-                    }
+        if let external = post.contentSource?.externalMedia {
+            if let openMedia {
+                Button(action: openMedia) {
+                    externalMediaBanner(external: external)
                 }
-            }
-        default:
-            if let imageURL = post.editData.layers.first(where: { $0.kind == .image })?.assetURL {
-                imagePreview(url: imageURL)
-            }
-        }
-    }
-
-    private func imagePreview(url: URL) -> some View {
-        AsyncImage(url: url) { phase in
-            if let image = phase.image {
-                image.resizable().scaledToFill()
+                .buttonStyle(.plain)
             } else {
-                mediaPlaceholder(symbol: "photo.fill", title: "Fotoğraf")
+                externalMediaBanner(external: external)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 128, maxHeight: 190)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func externalMediaBanner(external: (platform: ExternalMediaPlatform, url: URL)) -> some View {
@@ -1414,54 +1389,8 @@ private struct PostMediaHero: View {
         )
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(external.platform.brandColor.opacity(0.28)))
     }
-
-    private func mediaPlaceholder(symbol: String, title: String) -> some View {
-        ZStack {
-            LinearGradient(colors: [LociTheme.elevated, LociTheme.background], startPoint: .topLeading, endPoint: .bottomTrailing)
-            VStack(spacing: 8) {
-                Image(systemName: symbol).font(.title2).foregroundStyle(LociTheme.accent)
-                Text(title).font(.caption.weight(.semibold)).foregroundStyle(LociTheme.secondaryText)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
 }
 
-private struct VideoPreviewHero: View {
-    let url: URL
-    @State private var thumbnail: UIImage?
-
-    var body: some View {
-        ZStack {
-            if let thumbnail {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, minHeight: 128, maxHeight: 190)
-                    .clipped()
-            } else {
-                LinearGradient(colors: [LociTheme.elevated, LociTheme.background], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .frame(minHeight: 128)
-            }
-            Circle()
-                .fill(.black.opacity(0.55))
-                .frame(width: 44, height: 44)
-            Image(systemName: "play.fill")
-                .font(.title3.weight(.bold))
-                .foregroundStyle(.white)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .task {
-            let asset = AVURLAsset(url: url)
-            let generator = AVAssetImageGenerator(asset: asset)
-            generator.appliesPreferredTrackTransform = true
-            let time = CMTime(seconds: 0.1, preferredTimescale: 600)
-            if let cgImage = try? await generator.image(at: time).image {
-                thumbnail = UIImage(cgImage: cgImage)
-            }
-        }
-    }
-}
 
 private struct PostActionLabel: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B673A12AAA93EA6AEF0A6476 /* AppSession.swift */; };
 		15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */; };
+		17F3C538925E63AA7FE82E27 /* ARCoreGeospatial in Frameworks */ = {isa = PBXBuildFile; productRef = E659B09B1577861722AADEC8 /* ARCoreGeospatial */; };
 		1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */; };
 		1BA718A73957DE66A7B47E27 /* SocialViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDF99EB769190C5D43A4E /* SocialViews.swift */; };
 		223F8D8EBAF58FE925638A36 /* LociTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D39885DA91A93735B60CAD0 /* LociTheme.swift */; };
@@ -48,9 +49,9 @@
 		98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */; };
 		A332B937E77E814DAE2988B0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */; };
 		A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9040568E1C52462B68579B20 /* AuthView.swift */; };
-		A9042B9B2E8428333BAAC37D /* ARCoreGeospatial in Frameworks */ = {isa = PBXBuildFile; productRef = E659B09B1577861722AADEC8 /* ARCoreGeospatial */; };
+		A9042B9B2E8428333BAAC37D /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = F91401E7C595CEF73FB3FEAC /* FirebaseMessaging */; };
 		A94F8A4350B3331FF77EAB40 /* WorldMapCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275E3BB8F4215EF4AF15295E /* WorldMapCodec.swift */; };
-		A9F8BB7422598DD2E9795B48 /* ARCoreCloudAnchors in Frameworks */ = {isa = PBXBuildFile; productRef = 7FA0874FC2B2AAC168661435 /* ARCoreCloudAnchors */; };
+		A9F8BB7422598DD2E9795B48 /* ARCoreGARSession in Frameworks */ = {isa = PBXBuildFile; productRef = 8C118F10620E3EACA2FE5BA6 /* ARCoreGARSession */; };
 		B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */; };
 		B392B96F3820C075F8BF6136 /* ProximityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041909C4E5F7479357846A3E /* ProximityPolicy.swift */; };
 		B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9309C5EFBE40B5DE193B3ECF /* LocationController.swift */; };
@@ -69,12 +70,13 @@
 		DD0E0196DE875097001E3BFD /* AuthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */; };
 		E23AD1CF6B59B2236CD7C0A1 /* MediaAssetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8A0BF94835F851681A368D /* MediaAssetStore.swift */; };
 		E5D82E2EDBE5691A52C16D02 /* HiddenPostStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15467FD09987F01C8665AFE9 /* HiddenPostStore.swift */; };
+		E647892C572A0083C3DEB8DE /* ARCoreCloudAnchors in Frameworks */ = {isa = PBXBuildFile; productRef = 7FA0874FC2B2AAC168661435 /* ARCoreCloudAnchors */; };
 		E7692203B338A88B9E0405B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */; };
 		F06E6E1085B1AE5E8DC2A43A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */; };
 		F3C20A7CF79DC0951AC69910 /* ARViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498692924241AE844FFA8949 /* ARViewContainer.swift */; };
 		F47756884CAD320CDDFE52CA /* ARCoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */; };
 		F567D19C9A5E95A449120669 /* SocialRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7055B38D2FFD5B204D38A244 /* SocialRepository.swift */; };
-		F6D41787D8A9E57381605599 /* ARCoreGARSession in Frameworks */ = {isa = PBXBuildFile; productRef = 8C118F10620E3EACA2FE5BA6 /* ARCoreGARSession */; };
+		F6D41787D8A9E57381605599 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 38397FD005A13388B7C06BFC /* FirebaseCrashlytics */; };
 		FB20B1277338B7EAD0202246 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 38140B6E8683A0A6EB0365CE /* FirebaseFirestore */; };
 		FD2F451360B9988017E2BFFF /* PublicSafetyPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52470082EDD9AD2FC77F69EB /* PublicSafetyPolicy.swift */; };
 /* End PBXBuildFile section */
@@ -177,9 +179,11 @@
 				334C79D0B6B41743A5D57F60 /* FirebaseStorage in Frameworks */,
 				C719C12194E99361130F262A /* FirebaseFunctions in Frameworks */,
 				546E8916FDEB717C7FFA07A0 /* FirebaseAppCheck in Frameworks */,
-				F6D41787D8A9E57381605599 /* ARCoreGARSession in Frameworks */,
-				A9042B9B2E8428333BAAC37D /* ARCoreGeospatial in Frameworks */,
-				A9F8BB7422598DD2E9795B48 /* ARCoreCloudAnchors in Frameworks */,
+				F6D41787D8A9E57381605599 /* FirebaseCrashlytics in Frameworks */,
+				A9042B9B2E8428333BAAC37D /* FirebaseMessaging in Frameworks */,
+				A9F8BB7422598DD2E9795B48 /* ARCoreGARSession in Frameworks */,
+				17F3C538925E63AA7FE82E27 /* ARCoreGeospatial in Frameworks */,
+				E647892C572A0083C3DEB8DE /* ARCoreCloudAnchors in Frameworks */,
 				3B2CE130FB8E9BF469423264 /* ARKit.framework in Frameworks */,
 				7AA9C729CA3EE96B5C04423F /* RealityKit.framework in Frameworks */,
 				43B96545756282CA639C2CC8 /* MapKit.framework in Frameworks */,
@@ -481,6 +485,8 @@
 				1BCA7E39D1C6B6C63814D4C9 /* FirebaseStorage */,
 				77582291DD5FBFA6CDBA3E81 /* FirebaseFunctions */,
 				3CF89F180C12C721B4EDB4B7 /* FirebaseAppCheck */,
+				38397FD005A13388B7C06BFC /* FirebaseCrashlytics */,
+				F91401E7C595CEF73FB3FEAC /* FirebaseMessaging */,
 				8C118F10620E3EACA2FE5BA6 /* ARCoreGARSession */,
 				E659B09B1577861722AADEC8 /* ARCoreGeospatial */,
 				7FA0874FC2B2AAC168661435 /* ARCoreCloudAnchors */,
@@ -537,8 +543,18 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
+				ar,
+				bn,
+				de,
 				en,
+				es,
+				fr,
+				hi,
+				ja,
+				pt,
+				ru,
 				tr,
+				"zh-Hans",
 			);
 			mainGroup = 15017F9A87A93878CAFC5308;
 			minimizedProjectReferenceProxies = 1;
@@ -1016,6 +1032,11 @@
 			package = B663B7A652EA37355D804898 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
 		};
+		38397FD005A13388B7C06BFC /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B663B7A652EA37355D804898 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
 		3CF89F180C12C721B4EDB4B7 /* FirebaseAppCheck */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B663B7A652EA37355D804898 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -1050,6 +1071,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FB2574BDD18EEA0DBCE31169 /* XCRemoteSwiftPackageReference "arcore-ios-sdk" */;
 			productName = ARCoreGeospatial;
+		};
+		F91401E7C595CEF73FB3FEAC /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B663B7A652EA37355D804898 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

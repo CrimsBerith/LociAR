@@ -9,14 +9,15 @@ Backend 27 Eylül 2026'da Supabase'ten Firebase'e taşındı. Supabase sürümü
 | Adım | Durum |
 |---|---|
 | Firestore (nam5) + güvenli kurallar | ✅ yayında |
-| Auth: E-posta/Şifre + E-posta bağlantısı, Apple | ✅ açık — ⚠️ Apple `.p8` anahtarı girilmeden Apple kullanıcılarının hesap silmesi (token iptali) çalışmaz; App Store gönderiminden önce zorunlu |
-| Cloud Vision API (profil fotoğrafı denetimi) | ⏳ etkinleştirilmeli |
+| Auth: E-posta/Şifre + E-posta bağlantısı, Apple | ✅ açık — ⚠️ Apple `.p8` anahtarı developer.apple.com'dan alınıp Firebase Console'a girilmeli (hesap silme token iptali) |
+| Cloud Vision API (profil fotoğrafı denetimi) | ✅ etkinleştirildi |
 | iOS uygulaması Team ID (ZSRUTGX74S), App Check / App Attest | ✅ (App Check izleme modunda) |
 | E-posta şablon dili | ✅ Türkçe |
-| Blaze planı | ⏳ bekleniyor |
-| Storage (Get started) + storage.rules | ⏳ Blaze sonrası |
-| İndeksler, TTL, Cloud Functions (`us-central1`) | ⏳ `scripts/firebase-deploy.command` |
-| Bütçe uyarıları, Identity Platform + ilk admin, inceleme hesabı + seed | ⏳ deploy sonrası |
+| Blaze planı | ✅ aktif |
+| Storage + storage.rules | ✅ yayında |
+| İndeksler, TTL, Cloud Functions (`us-central1`) | ✅ 20 fonksiyon yayında |
+| Identity Platform + ilk süper admin | ✅ yapıldı (`khankartal@gmail.com`, TOTP MFA açık) |
+| İnceleme hesabı + seed içerik | ✅ yapıldı (`apple-review@lociar.app`, 7 onaylı post) |
 
 ## Mimari özeti
 

@@ -41,3 +41,9 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   with the post/account (`functions/src/arcoreManagement.ts`). The Google sensor-data notice
   (`ARCoreDisclosure.swift`) must stay on every AR screen. No Android.
 - Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + TOTP MFA + static RBAC).
+- **Push notifications:** Enabled via APNs & FirebaseMessaging (`NotificationService.swift`, `LociAR.entitlements` `aps-environment`).
+- **Localization:** 12 globally most-spoken languages supported (`tr` base, `en`, `zh-Hans`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `de`, `ja`) via `Localizable.xcstrings`.
+- **Crash reporting:** Firebase Crashlytics enabled.
+- **Store availability:** Global (all territories).
+- **Media model:** Text and social media links only. Legacy device photo/video upload remnants completely removed.
+
