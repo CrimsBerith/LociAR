@@ -20,14 +20,15 @@ service firebase.storage {
       allow delete: if owner(luid);
     }
     function uuid(v) { return v.matches('[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'); }
-    // Maps describe real places: only the owner, or anyone while the post is active, may read them.
+    // Maps describe real places: only the owner, or any signed-in user while the post is active
+    // and public, may read them. Friends-only and private posts keep their geometry to the owner.
     // Needs the cross-service grant for Storage rules to read Firestore (see docs/FIREBASE_SETUP.md).
-    function postIsActive(postId) {
+    function postIsPublicActive(postId) {
       let p = firestore.get(/databases/(default)/documents/posts/$(postId.lower())).data;
-      return p.status == 'active';
+      return p.status == 'active' && p.visibility == 'public';
     }
     match /post-world-maps/{luid}/{postId}/{file} {
-      allow read: if owner(luid) || (signedIn() && uuid(postId) && postIsActive(postId));
+      allow read: if owner(luid) || (signedIn() && uuid(postId) && postIsPublicActive(postId));
       allow create, update: if owner(luid) && uuid(postId) && under(20) && file.matches('.*\\.lociarmap')
         && request.resource.contentType == 'application/x-lociarmap';
       allow delete: if owner(luid);

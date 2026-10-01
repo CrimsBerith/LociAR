@@ -29,6 +29,14 @@ service cloud.firestore {
       return !('description' in data) || data.description == null
         || (data.description is string && data.description.size() <= 500);
     }
+    // Report metadata written by the iOS app (SocialRepository.fileReport): known keys only,
+    // each a string of at most 500 characters, so a report cannot carry an unbounded payload.
+    function metaString(m, k) { return !(k in m) || (m[k] is string && m[k].size() <= 500); }
+    function reportMetadataOk(m) {
+      return m.keys().hasOnly(['source', 'target', 'comment_id', 'author_id', 'text', 'reported_user_id'])
+        && metaString(m, 'source') && metaString(m, 'target') && metaString(m, 'comment_id')
+        && metaString(m, 'author_id') && metaString(m, 'text') && metaString(m, 'reported_user_id');
+    }
     function avatarPreset(value) {
       return value == null || value in ['hare', 'tortoise', 'cat', 'dog', 'bear', 'bird', 'fish', 'leaf', 'star', 'moon', 'sun', 'bolt'];
     }
@@ -176,6 +184,8 @@ service cloud.firestore {
         && itemId == request.resource.data.collection_id + '_' + request.resource.data.post_id
         && request.resource.data.sort_order is int
         && createdNow()
+        && request.resource.data.post_id is string
+        && postExists(request.resource.data.post_id)
         && get(/databases/$(database)/documents/collections/$(request.resource.data.collection_id)).data.owner_id == me();
       allow update: if false;
       allow delete: if signedIn() && (resource == null || resource.data.owner_id == me());
@@ -191,7 +201,7 @@ service cloud.firestore {
         && request.resource.data.reason.size() >= 1 && request.resource.data.reason.size() <= 500
         && (!('post_id' in request.resource.data) || request.resource.data.post_id == null || request.resource.data.post_id is string)
         && (!('metadata' in request.resource.data) || request.resource.data.metadata == null
-            || (request.resource.data.metadata is map && request.resource.data.metadata.size() <= 10))
+            || (request.resource.data.metadata is map && reportMetadataOk(request.resource.data.metadata)))
         && createdNow();
     }
 

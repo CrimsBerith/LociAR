@@ -8,6 +8,8 @@ const ALICE = '11111111-1111-5111-8111-111111111111';
 const BOB = '22222222-2222-5222-8222-222222222222';
 const ACTIVE = '33333333-3333-4333-8333-333333333333';
 const PENDING = '44444444-4444-4444-8444-444444444444';
+const FRIENDS = '55555555-5555-4555-8555-555555555555';
+const PRIVATE = '66666666-6666-4666-8666-666666666666';
 let env;
 before(async () => {
   env = await initializeTestEnvironment({
@@ -18,6 +20,8 @@ before(async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'posts', ACTIVE), { creator_id: ALICE, status: 'active', visibility: 'public' });
     await setDoc(doc(ctx.firestore(), 'posts', PENDING), { creator_id: ALICE, status: 'pending_review', visibility: 'public' });
+    await setDoc(doc(ctx.firestore(), 'posts', FRIENDS), { creator_id: ALICE, status: 'active', visibility: 'friends' });
+    await setDoc(doc(ctx.firestore(), 'posts', PRIVATE), { creator_id: ALICE, status: 'active', visibility: 'private' });
   });
 });
 after(async () => env?.cleanup());
@@ -49,6 +53,16 @@ test('world maps: readable for active posts (signed in) and always by the owner;
   await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), `post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`)));
   await assertFails(getBytes(ref(as(BOB), `post-world-maps/${ALICE}/${PENDING}/anchor.lociarmap`)));
   await assertSucceeds(getBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${PENDING}/anchor.lociarmap`)));
+});
+
+test('world maps of active friends-only and private posts are readable by the owner only', async () => {
+  for (const postId of [FRIENDS, PRIVATE]) {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await uploadBytes(ref(ctx.storage(), `post-world-maps/${ALICE}/${postId}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' });
+    });
+    await assertFails(getBytes(ref(as(BOB), `post-world-maps/${ALICE}/${postId}/anchor.lociarmap`)));
+    await assertSucceeds(getBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${postId}/anchor.lociarmap`)));
+  }
 });
 
 test('world maps: post folder must be a UUID', async () => {
