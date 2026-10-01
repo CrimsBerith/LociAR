@@ -114,6 +114,118 @@ final class DomainContractTests: XCTestCase {
         XCTAssertEqual(service.deviceTokenString, "1234abcdef")
     }
 
+    func testGeospatialPoseValidationBoundaries() {
+        let valid = GeospatialPose(
+            latitude: 41.0082, longitude: 28.9784, altitude: 35.0,
+            eusQuaternion: [0.0, 0.0, 0.0, 1.0],
+            horizontalAccuracy: 4.9, verticalAccuracy: 2.0, yawAccuracy: 14.9
+        )
+        XCTAssertTrue(valid.isValid)
+
+        var invalidLat = valid; invalidLat.latitude = 91.0
+        XCTAssertFalse(invalidLat.isValid)
+
+        var invalidLon = valid; invalidLon.longitude = 181.0
+        XCTAssertFalse(invalidLon.isValid)
+
+        var invalidAlt = valid; invalidAlt.altitude = .nan
+        XCTAssertFalse(invalidAlt.isValid)
+
+        var badQuat = valid; badQuat.eusQuaternion = [0.0, 0.0]
+        XCTAssertFalse(badQuat.isValid)
+
+        var badHorizontalAccuracy = valid; badHorizontalAccuracy.horizontalAccuracy = 5.1
+        XCTAssertFalse(badHorizontalAccuracy.isValid)
+
+        var badYawAccuracy = valid; badYawAccuracy.yawAccuracy = 15.1
+        XCTAssertFalse(badYawAccuracy.isValid)
+
+        var negativeAccuracy = valid; negativeAccuracy.horizontalAccuracy = -0.1
+        XCTAssertFalse(negativeAccuracy.isValid)
+    }
+
+    func testWorldLockPersistenceResolvableCloudAnchorId() {
+        let now = Date()
+        let cloudValid = WorldLockPersistence(
+            kind: .arcoreCloudAnchor,
+            originalNativeAnchorId: UUID(),
+            cloudAnchorId: "ua-12345",
+            hostedAt: now,
+            expiresAt: now.addingTimeInterval(86400 * 7)
+        )
+        XCTAssertEqual(cloudValid.resolvableCloudAnchorId, "ua-12345")
+
+        let cloudExpired = WorldLockPersistence(
+            kind: .arcoreCloudAnchor,
+            originalNativeAnchorId: UUID(),
+            cloudAnchorId: "ua-12345",
+            hostedAt: now.addingTimeInterval(-86400 * 30),
+            expiresAt: now.addingTimeInterval(-3600)
+        )
+        XCTAssertNil(cloudExpired.resolvableCloudAnchorId)
+
+        let cloudEmpty = WorldLockPersistence(
+            kind: .arcoreCloudAnchor,
+            originalNativeAnchorId: UUID(),
+            cloudAnchorId: "",
+            hostedAt: now,
+            expiresAt: now.addingTimeInterval(86400)
+        )
+        XCTAssertNil(cloudEmpty.resolvableCloudAnchorId)
+
+        let worldMap = WorldLockPersistence(
+            kind: .arkitWorldMap,
+            originalNativeAnchorId: UUID(),
+            cloudAnchorId: "ua-12345",
+            hostedAt: now
+        )
+        XCTAssertNil(worldMap.resolvableCloudAnchorId)
+    }
+
+    func testBackendPlacementContractResolverStrategy() {
+        let validGeo = GeospatialPose(
+            latitude: 41.0, longitude: 29.0, altitude: 10.0,
+            eusQuaternion: [0, 0, 0, 1],
+            horizontalAccuracy: 3.0, verticalAccuracy: 2.0, yawAccuracy: 10.0
+        )
+        let persistence = WorldLockPersistence(
+            kind: .arcoreCloudAnchor,
+            originalNativeAnchorId: UUID(),
+            storagePath: "maps/world.map",
+            cloudAnchorId: "anchor-99",
+            hostedAt: Date()
+        )
+        let surface = SurfaceAnchor(
+            transform: Array(repeating: 0, count: 16),
+            pinQuality: .planeGeometry,
+            hitSource: .planeGeometry,
+            surfaceAlignment: .vertical,
+            trackingQuality: .normal,
+            worldMappingStatus: .mapped,
+            geospatial: validGeo,
+            persistence: persistence
+        )
+        let contract = BackendPlacementContract(anchor: surface)
+        XCTAssertEqual(contract.coordinateSpace, "arkit_world")
+        XCTAssertEqual(contract.state, "placed")
+        XCTAssertEqual(contract.qualityScore, 1.0)
+        XCTAssertEqual(contract.resolverStrategy, ["cloud_anchor", "native_anchor", "geospatial", "geo_pose"])
+
+        let approxSurface = SurfaceAnchor(
+            transform: Array(repeating: 0, count: 16),
+            pinQuality: .freeSpaceApproximate,
+            hitSource: .legacyUnknown,
+            surfaceAlignment: .horizontal,
+            trackingQuality: .normal,
+            worldMappingStatus: .notAvailable
+        )
+        let approxContract = BackendPlacementContract(anchor: approxSurface)
+        XCTAssertEqual(approxContract.coordinateSpace, "camera_free_space")
+        XCTAssertEqual(approxContract.state, "free_space_approximate")
+        XCTAssertEqual(approxContract.qualityScore, 0.22)
+        XCTAssertEqual(approxContract.resolverStrategy, ["geo_pose"])
+    }
+
     func testSpatialContentRendererMemoryPressureClearsSafely() async {
         let renderer = SpatialContentRenderer()
         await renderer.handleMemoryPressure()
