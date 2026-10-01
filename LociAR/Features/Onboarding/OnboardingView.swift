@@ -16,7 +16,7 @@ struct OnboardingView: View {
         OnboardingStep(
             title: "Fiziksel Dünyaya Sabitle",
             subtitle: "Mekânsal İçerik Üretimi",
-            description: "Fotoğraf, video ve düşüncelerini gerçek duvarlara, masalara ve mekânlara ARKit yüzey kilitleme ile sabitle.",
+            description: "Düşüncelerini ve favori sosyal medya bağlantılarını (Spotify, YouTube, Instagram...) gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.",
             symbol: "location.viewfinder",
             accentColor: LociTheme.accent
         ),
