@@ -25,11 +25,17 @@ export default function TermsPage() {
         <li>Başkasının özel mülküne izinsiz içerik yerleştirmeyin.</li>
         <li>Araç kullanırken veya güvenlik riski oluşturacak biçimde AR kullanmayın.</li>
       </ul>
-      <h2>Moderasyon</h2>
+      <h2>Moderasyon ve Sıfır Tolerans Politikası (Guideline 1.2)</h2>
       <p>
-        Kullanıcılar içeriği bildirebilir ve hesapları engelleyebilir. LociAR içeriği kaldırabilir, hesapları
-        kısıtlayabilir ve yasal taleplerle işbirliği yapabilir.
+        LociAR, sakıncalı içeriklere (objectionable content) ve tacizkar/kötüye kullanım sergileyen kullanıcılara
+        (abusive users) karşı <strong>kesinlikle sıfır tolerans</strong> uygular.
       </p>
+      <ul>
+        <li>Kullanıcılar uygunsuz postları, yorumları ve profilleri uygulama içinden anında şikayet edebilir (Report) ve engelleyebilir (Block).</li>
+        <li>Şikayet edilen sakıncalı içerikler en geç 24 saat içinde incelenir ve kurallara aykırı olanlar sistemden kaldırılır.</li>
+        <li>Topluluk kurallarını ihlal eden hesaplar askıya alınır veya kalıcı olarak silinir.</li>
+        <li>LociAR kullanımı, Apple Standart Son Kullanıcı Lisans Sözleşmesi (EULA) ve bu kurallara tabidir.</li>
+      </ul>
       <h2>Üçüncü taraf bağlantılar</h2>
       <p>
         Spotify, YouTube, Instagram, Facebook ve X bağlantıları ilgili platformların kurallarına tabidir.

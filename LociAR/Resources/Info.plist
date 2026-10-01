@@ -25,9 +25,14 @@
   <key>LSRequiresIPhoneOS</key>
   <true/>
   <key>NSCameraUsageDescription</key>
-	<string>LociAR, gerçek yüzeyleri algılamak ve postları seçtiğiniz yüzeye yerleştirmek için kamerayı kullanır.</string>
+	<string>LociAR, gerçek yüzeyleri algılamak ve postları sabitlemek için kamerayı kullanır. Görsel özellik verileri Google ARCore ile güvenli biçimde işlenir.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
-	<string>LociAR, yakındaki postları göstermek ve AR içeriğini doğru konumda açmak için konumunuzu kullanır.</string>
+	<string>LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır.</string>
+  <key>NSLocationTemporaryUsageDescriptionDictionary</key>
+  <dict>
+    <key>GeospatialAccuracy</key>
+    <string>LociAR, AR postlarını harita ve cadde üzerinde tam doğrulukla yerleştirebilmek için geçici hassas konum iznine ihtiyaç duyar.</string>
+  </dict>
   <key>LSApplicationQueriesSchemes</key>
   <array>
     <string>spotify</string>

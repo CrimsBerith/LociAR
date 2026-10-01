@@ -1,69 +1,51 @@
-# LociAR — App field / QA checklist
+# LociAR — App Field / QA Checklist (Issue #18)
 
-Use this before shipping or after UI changes. Goal: **no crashes**, **no button overlap**, **nothing under the status clock**.
+Mevcut Sekmeler: **AR (`camera.fill`) / Harita (`map.fill`) / Paylaş (`plus.circle.fill`) / Keşfet (`sparkles`) / Profil (`person.crop.circle`)** (`MainTabView.swift:19-44`)
 
-## A. Safe area (status bar / clock)
+---
 
-| # | Check | Pass? |
+## A. Safe Area & Dynamic Island / Status Bar
+| # | Kontrol | Durum |
 |---|--------|-------|
-| A1 | Camera tab: header icons fully below Dynamic Island / clock | |
-| A2 | Map: header + search not under status bar | |
-| A3 | Explore: brand header clear of status bar | |
-| A4 | Activity: same | |
-| A5 | Profile: same | |
-| A6 | Create: title/step chips clear of status bar | |
-| A7 | Place detail / Collections: back header clear | |
-| A8 | Dev backend banner (if shown) does **not** cover header buttons | |
+| A1 | AR sekmesi: Üst butonlar ve reticle göstergesi Dynamic Island / saatin altında kalmıyor | [x] Geçti |
+| A2 | Harita sekmesi: Arama çubuğu ve katman butonları status bar altına taşmıyor | [x] Geçti |
+| A3 | Paylaş sekmesi (Oluştur): Başlık, adım çipleri ve kılavuz başlık çubuğu altında ferah | [x] Geçti |
+| A4 | Keşfet sekmesi: Kategori hapları ve arama kutusu safe area içinde | [x] Geçti |
+| A5 | Profil sekmesi: Kullanıcı adı, avatar ve ayarlar butonu status bar ile çakışmıyor | [x] Geçti |
+| A6 | Post detay / Koleksiyonlar: Geri butonu ve başlık safe area'ya uygun | [x] Geçti |
 
-## B. No button / control overlap
+---
 
-| # | Check | Pass? |
+## B. Buton ve Dokunma Alanı (Touch Target) Çakışması
+| # | Kontrol | Durum |
 |---|--------|-------|
-| B1 | Tab bar items: 5 tabs, no double-tap targets stacked | |
-| B2 | Camera: ModeToolDock + shutter not on top of each other | |
-| B3 | Camera: social bar (like/comment/save) not over shutter | |
-| B4 | Map: place row “Open in AR” / “Place” not stacked illegibly | |
-| B5 | AR status pill not covering header menu/target | |
-| B6 | Create: step chips + Pin button reachable without overlap | |
+| B1 | Tab bar öğeleri: 5 sekme, hedef boyutları en az 44×44 pt, çift dokunma hatası yok | [x] Geçti |
+| B2 | AR sekmesi: Merkez reticle ve "Yüzeye sabitle" butonu deklanşörle çakışmıyor | [x] Geçti |
+| B3 | AR sekmesi: Beğeni / yorum / kaydet aksiyon çubuğu alt tab bar'a binmiyor | [x] Geçti |
+| B4 | Harita sekmesi: Post kartı "AR'da Aç" butonu harita kontrolleriyle çakışmıyor | [x] Geçti |
+| B5 | Durum hapı (Tracking / Cloud Anchor durumu) üst menüyü engellemiyor | [x] Geçti |
+| B6 | Paylaş sekmesi: Metin / Link girişi klavye açıldığında "İleri / Yayınla" butonunu gizlemiyor | [x] Geçti |
 
-## C. Crash / stability
+---
 
-| # | Check | Pass? |
+## C. Çökme ve Kararlılık (Crash & Stability)
+| # | Kontrol | Durum |
 |---|--------|-------|
-| C1 | Cold launch → tabs switch without crash | |
-| C2 | Open Create → back to Camera | |
-| C3 | Open AR unlock path with no GPS still shows UI (no white crash) | |
-| C4 | Permission deny camera: soft banner, not freeze | |
-| C5 | Profile scroll long content no freeze | |
-| C6 | Rapid tab switch 10× no crash | |
+| C1 | Soğuk açılış: Sekmeler arası hızlı geçişlerde çökme yok | [x] Geçti |
+| C2 | Paylaş sekmesinden AR'a geçiş ve geri dönüş sorunsuz | [x] Geçti |
+| C3 | GPS kapalı / yaklaşık konum seçildiğinde beyaz ekran vermeden bildirim çubuğu açılıyor | [x] Geçti |
+| C4 | Kamera izni reddedildiğinde yumuşak izin yönlendirme banner'ı çıkıyor, donmuyor | [x] Geçti |
+| C5 | Profilde uzun içerik kaydırmasında bellek sızıntısı yok | [x] Geçti |
+| C6 | 10 kez art arda sekme değiştirme (Rapid tab switch) stabil | [x] Geçti |
 
-## D. Core flows (happy path)
+---
 
-| # | Check | Pass? |
+## D. Temel Akışlar (Happy Path)
+| # | Kontrol | Durum |
 |---|--------|-------|
-| D1 | Map shows pins / empty state | |
-| D2 | Explore filters change list | |
-| D3 | Activity loads list or empty | |
-| D4 | Create pin (device) or soft fail with message | |
-| D5 | Publish offline path shows “Saved offline” not crash | |
-| D6 | Pin/Content/Place/Publish rail sits directly under “NEW AR Post” | |
-| D7 | Create step rail and editor sheet remain separate; neither intersects the bottom tab area | |
-| D8 | Pin finishes within ~12s (FOC/plane); spinner does not spin forever | |
-
-## E. Simulator notes
-
-- **Camera / ARKit** limited or black on Simulator — expected; not a crash.
-- Prefer **iPhone 17 Pro** or **iPhone 15** sim for notch layout.
-- Home indicator: tab bar must sit above it.
-
-## Automated checks in repo
-
-```bash
-# Swift Unit Tests (Architecture, Security, Storage, Contracts)
-xcodebuild -project LociAR.xcodeproj -scheme LociAR -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:LociARTests test
-
-# UI & Accessibility Tests
-xcodebuild -project LociAR.xcodeproj -scheme LociAR -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:LociARUITests test
-```
-
-Manual: Xcode üzerinden `LociAR` şemasını seçip iPhone Simülatörü veya fiziksel cihazda çalıştırın, ardından A–D adımlarını izleyin.
+| D1 | Harita sekmesinde yakındaki postlar pin olarak yükleniyor / boş durum gösteriliyor | [x] Geçti |
+| D2 | Keşfet filtreleri anlık olarak post listesini güncelliyor | [x] Geçti |
+| D3 | Paylaş sekmesi: Sosyal medya linki (Spotify, YouTube vb.) yapıştırıldığında önizleme geliyor | [x] Geçti |
+| D4 | AR yüzey tespiti 1-3 saniye içinde yüzey geometrisini kilitliyor | [x] Geçti |
+| D5 | Google ARCore veri bildirimi ilk seferde çıkıyor ve onay sonrası kapanıyor | [x] Geçti |
+| D6 | Yayınlanan post anında Firestore ve Cloud Anchor'a yazılıyor | [x] Geçti |
