@@ -23,7 +23,7 @@
     "@firebase/rules-unit-testing": "^5.0.0",
     "@types/node": "^22.10.0",
     "firebase": "^12.3.0",
-    "firebase-tools": "^14.18.0",
+    "firebase-tools": "^15.31.0",
     "typescript": "^5.9.2"
   }
 }
