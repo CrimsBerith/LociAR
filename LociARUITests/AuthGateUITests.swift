@@ -664,6 +664,21 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertFalse(tabs.buttons["Aktivite"].exists)
     }
 
+    func testMapTabLoadsNearbyPosts() {
+        let app = XCUIApplication()
+        app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+        app.launch()
+        let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 5))
+        tabs.buttons["Harita"].tap()
+        XCTAssertTrue(app.staticTexts["Yakındaki postlar"].waitForExistence(timeout: 10))
+        let row = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "map-open-"))
+            .firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "Harita yakındaki postları yüklemedi")
+        XCTAssertFalse(app.staticTexts["Yakın çevre taranıyor"].exists)
+    }
+
     func testFiveTabNavigationAndLogoutReturnsToAuthGate() {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_AUTHENTICATED")

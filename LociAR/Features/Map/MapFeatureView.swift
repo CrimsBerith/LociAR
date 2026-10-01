@@ -14,7 +14,7 @@ struct MapFeatureView: View {
     @State private var posts: [LociPost] = []
     @State private var location = LocationController()
     @State private var message: String?
-    @State private var isLoading = true
+    @State private var isLoading = false
 
     var body: some View {
         Map(position: $camera, selection: $selection) {
