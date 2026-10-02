@@ -42,9 +42,9 @@ const hourDoc = (luid) => adminDb.collection('post_quota').doc(`${luid}_h${Math.
 test('registerCloudAnchor: 100 registrations a day, the 101st is refused; unbound records expire', async () => {
   const user = await newUser();
   const ids = Array.from({ length: 100 }, anchorId);
-  for (let i = 0; i < ids.length; i += 10) {
-    await Promise.all(ids.slice(i, i + 10).map((cloudAnchorId) => user.call('registerCloudAnchor', { cloudAnchorId })));
-  }
+  // Sequential on purpose: the app registers one anchor per post, and parallel calls from one user
+  // all contend for the same quota document (the emulator aborts them with "lock timeout" on slow CI).
+  for (const cloudAnchorId of ids) await user.call('registerCloudAnchor', { cloudAnchorId });
   const limited = await expectFailure(user.call('registerCloudAnchor', { cloudAnchorId: anchorId() }));
   assert.equal(limited.code, 'functions/resource-exhausted');
   assert.equal(limited.details?.reason, 'rate_limited');
