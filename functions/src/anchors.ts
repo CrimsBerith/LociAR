@@ -1,6 +1,6 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { assertServiceEnabled, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, requireCaller, Timestamp } from './core';
-import { reasonError } from './errors';
+import { reasonError, withContentionGuard } from './errors';
 import { deleteAnchorOrQueue } from './anchorQueue';
 
 /** Same alphabet as placement.ts CLOUD_ANCHOR_ID. */
@@ -34,7 +34,7 @@ export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, 
   // Daily registration quota, counted in the same transaction as the create so parallel calls
   // cannot exceed it. Idempotent re-registration by the owner does not consume a slot.
   const quotaRef = db.collection('anchor_quota').doc(`${caller.luid}_d${Math.floor(now / DAY_MS)}`);
-  const limited = await db.runTransaction(async (tx) => {
+  const limited = await withContentionGuard(() => db.runTransaction(async (tx) => {
     const [snap, quota] = await Promise.all([tx.get(ref), tx.get(quotaRef)]);
     if (snap.exists) {
       // Idempotent for the owner; never re-assign an id that someone else registered.
@@ -51,7 +51,7 @@ export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, 
       expires_at: Timestamp.fromMillis(now + UNBOUND_ANCHOR_TTL_DAYS * DAY_MS),
     });
     return false;
-  });
+  }));
   if (limited) throw reasonError('resource-exhausted', 'Cloud anchor limit reached', 'rate_limited');
   return { registered: true };
 });
@@ -110,7 +110,7 @@ export async function consumePostQuota(
   countNearby: (tx: FirebaseFirestore.Transaction) => Promise<number> = async () => 0,
 ): Promise<PostAdmission> {
   const { hourRef, dayRef } = postQuotaRefs(luid, nowMs);
-  return db.runTransaction(async (tx) => {
+  return withContentionGuard(() => db.runTransaction(async (tx) => {
     const [h, d] = await Promise.all([tx.get(hourRef), tx.get(dayRef)]);
     const hourly = Number(h.data()?.count ?? 0);
     const daily = Number(d.data()?.count ?? 0);
@@ -129,7 +129,7 @@ export async function consumePostQuota(
     tx.set(hourRef, { owner_luid: luid, count: hourly + 1, expires_at: hourExpiry }, { merge: true });
     tx.set(dayRef, { owner_luid: luid, count: daily + 1, expires_at: Timestamp.fromMillis(nowMs + 2 * 86_400_000) }, { merge: true });
     return { ok: true, reason: null, flag: false, hourly: hourly + 1, daily: daily + 1, density };
-  });
+  }));
 }
 
 /**

@@ -42,9 +42,8 @@ const hourDoc = (luid) => adminDb.collection('post_quota').doc(`${luid}_h${Math.
 test('registerCloudAnchor: 100 registrations a day, the 101st is refused; unbound records expire', async () => {
   const user = await newUser();
   const ids = Array.from({ length: 100 }, anchorId);
-  for (let i = 0; i < ids.length; i += 10) {
-    await Promise.all(ids.slice(i, i + 10).map((cloudAnchorId) => user.call('registerCloudAnchor', { cloudAnchorId })));
-  }
+  // The app registers one anchor per hosted pin, one after another.
+  for (const cloudAnchorId of ids) await user.call('registerCloudAnchor', { cloudAnchorId });
   const limited = await expectFailure(user.call('registerCloudAnchor', { cloudAnchorId: anchorId() }));
   assert.equal(limited.code, 'functions/resource-exhausted');
   assert.equal(limited.details?.reason, 'rate_limited');
@@ -57,6 +56,26 @@ test('registerCloudAnchor: 100 registrations a day, the 101st is refused; unboun
   await user.call('createPost', postBody({ pose: anchorPose(ids[0]) }));
   const bound = (await adminDb.collection('cloud_anchors').doc(ids[0]).get()).data();
   assert.equal(bound.expires_at, undefined, 'binding to a post removes the expiry');
+});
+
+test('registerCloudAnchor: parallel calls never exceed the quota and contention is retryable, not INTERNAL', async () => {
+  const user = await newUser();
+  const day = Math.floor(Date.now() / 86_400_000);
+  await adminDb.collection('anchor_quota').doc(`${user.luid}_d${day}`).set({ owner_luid: user.luid, count: 97 });
+  const results = await Promise.allSettled(Array.from({ length: 5 }, () => user.call('registerCloudAnchor', { cloudAnchorId: anchorId() })));
+  let registered = 0;
+  for (const result of results) {
+    if (result.status === 'fulfilled') { registered += 1; continue; }
+    const { code, details } = result.reason;
+    assert.ok(
+      (code === 'functions/resource-exhausted' && details?.reason === 'rate_limited')
+        || (code === 'functions/unavailable' && details?.reason === 'busy_retry'),
+      `unexpected failure ${code} ${JSON.stringify(details)}`,
+    );
+  }
+  assert.ok(registered <= 3, `at most 3 slots were left, ${registered} registered`);
+  const count = (await adminDb.collection('anchor_quota').doc(`${user.luid}_d${day}`).get()).data().count;
+  assert.equal(count, 97 + registered);
 });
 
 test('cloud anchors: B cannot post with A\'s anchor, and B deleting a post never touches A\'s anchor', async () => {

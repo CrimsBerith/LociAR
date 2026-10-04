@@ -159,6 +159,7 @@ extension NotificationService: MessagingDelegate {
 // MARK: - Crash reporting preference
 
 /// Crash reports (Firebase Crashlytics) are on by default and can be turned off in Profile → Settings.
+@MainActor
 enum CrashReportingPreference {
     static let key = "crash_reports_enabled"
 
@@ -170,7 +171,6 @@ enum CrashReportingPreference {
         }
     }
 
-    @MainActor
     static func apply() {
         guard FirebaseApp.app() != nil else { return }
         Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(isEnabled)
