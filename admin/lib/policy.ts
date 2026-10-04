@@ -25,6 +25,23 @@ export function commentFlagTarget(flag: { reason?: unknown; metadata?: { comment
   return typeof id === 'string' && id ? id : null;
 }
 
+/**
+ * A filtered comment is removed by onCommentCreated before anyone reviews it. Approving such a
+ * flag means "false positive": the comment is rebuilt from the flag (text, author, post) and marked
+ * `admin_restored`, which the trigger honours so it is not filtered again. Clients cannot set that
+ * field (firestore.rules accepts only id/post_id/user_id/text/created_at on comment create).
+ */
+export function restoredCommentFromFlag(flag: { reason?: unknown; post_id?: unknown; metadata?: Record<string, unknown> | null }): {
+  id: string; post_id: string; user_id: string; text: string;
+} | null {
+  if (flag.reason !== 'comment_filtered') return null;
+  const m = flag.metadata ?? {};
+  const id = m.comment_id, author = m.author_id, text = m.text, postId = flag.post_id;
+  if (typeof id !== 'string' || typeof author !== 'string' || typeof text !== 'string' || typeof postId !== 'string') return null;
+  if (!id || !author || !text || !postId) return null;
+  return { id, post_id: postId, user_id: author, text };
+}
+
 export function isCommentFlag(flag: { reason?: unknown; metadata?: { comment_id?: unknown; target?: unknown } | null }): boolean {
   return flag.reason === 'comment_filtered' || flag.metadata?.target === 'comment' || typeof flag.metadata?.comment_id === 'string';
 }
@@ -47,4 +64,27 @@ export function originAllowed(origin: string | null, host: string | null, adminO
     }
   }
   return Boolean(host) && url.host === host;
+}
+
+export const ZONE_CATEGORIES = ['school', 'hospital', 'worship', 'government', 'military', 'heritage', 'memorial', 'other'] as const;
+
+export type ZoneInput = { name: string; category: string; lat: number; lng: number; radius_meters: number };
+
+/** Validates a protected zone from the admin form. Returns an error key or the normalised zone. */
+export function parseZoneInput(body: Record<string, unknown>): { error: string } | { zone: ZoneInput } {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (name.length < 2 || name.length > 120) return { error: 'name must be 2-120 characters' };
+  const category = String(body.category ?? '');
+  if (!(ZONE_CATEGORIES as readonly string[]).includes(category)) return { error: 'unknown category' };
+  const lat = Number(body.lat), lng = Number(body.lng), radius = Number(body.radius_meters);
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) return { error: 'lat must be between -90 and 90' };
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) return { error: 'lng must be between -180 and 180' };
+  if (!Number.isFinite(radius) || radius < 20 || radius > 2000) return { error: 'radius_meters must be 20-2000' };
+  return { zone: { name, category, lat, lng, radius_meters: Math.round(radius) } };
+}
+
+/** The last active super_admin cannot lose that role (the panel would become unmanageable). */
+export function roleRevokeError(roleKey: string, activeSuperAdmins: number): string | null {
+  if (roleKey === 'super_admin' && activeSuperAdmins <= 1) return 'cannot_revoke_last_super_admin';
+  return null;
 }

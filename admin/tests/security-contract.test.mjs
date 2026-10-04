@@ -124,7 +124,7 @@ test("admin magic links support cross-browser completion without weakening MFA",
 });
 
 // ---- issue #13 ----
-import { inviteAcceptError, commentFlagTarget, isCommentFlag, originAllowed, INVITE_TTL_MS } from "../lib/policy.ts";
+import { inviteAcceptError, commentFlagTarget, isCommentFlag, originAllowed, restoredCommentFromFlag, INVITE_TTL_MS } from "../lib/policy.ts";
 
 test("admin deploys only to Firebase App Hosting and never needs a service-account key there", () => {
   for (const legacy of ["admin/Dockerfile", "admin/.dockerignore", ".dockerignore", "admin/vercel.json", "vercel.json"]) {
@@ -180,4 +180,40 @@ test("session cookie is short-lived and always secure in production; sign-in and
   assert.match(session, /admin_sign_in/);
   assert.match(readFileSync(join(repoRoot, "admin/app/api/auth/signout/route.ts"), "utf8"), /admin_sign_out/);
   assert.match(readFileSync(join(repoRoot, "admin/app/api/admin/v1/approvals/route.ts"), "utf8"), /approval_requested/);
+});
+
+test("approving a filtered-comment flag restores the comment as a false positive", () => {
+  const flag = { reason: "comment_filtered", post_id: "p1", metadata: { comment_id: "c1", author_id: "u1", text: "fine text" } };
+  assert.deepEqual(restoredCommentFromFlag(flag), { id: "c1", post_id: "p1", user_id: "u1", text: "fine text" });
+  assert.equal(restoredCommentFromFlag({ ...flag, reason: "spam" }), null);
+  assert.equal(restoredCommentFromFlag({ ...flag, metadata: { comment_id: "c1" } }), null);
+  const ops = readFileSync(join(repoRoot, "admin/lib/ops.ts"), "utf8");
+  assert.match(ops, /admin_restored: true/);
+  assert.match(ops, /filtered_comments/);
+  const triggers = readFileSync(join(repoRoot, "functions/src/triggers.ts"), "utf8");
+  assert.match(triggers, /comment\.admin_restored !== true && containsBlockedTerm/);
+});
+
+test("protected zones are validated before they are written", async () => {
+  const { parseZoneInput, roleRevokeError } = await import("../lib/policy.ts");
+  assert.deepEqual(parseZoneInput({ name: "Okul", category: "school", lat: 41, lng: 29, radius_meters: 150.4 }), { zone: { name: "Okul", category: "school", lat: 41, lng: 29, radius_meters: 150 } });
+  assert.ok("error" in parseZoneInput({ name: "x", category: "school", lat: 41, lng: 29, radius_meters: 150 }));
+  assert.ok("error" in parseZoneInput({ name: "Okul", category: "mall", lat: 41, lng: 29, radius_meters: 150 }));
+  assert.ok("error" in parseZoneInput({ name: "Okul", category: "school", lat: 91, lng: 29, radius_meters: 150 }));
+  assert.ok("error" in parseZoneInput({ name: "Okul", category: "school", lat: 41, lng: 29, radius_meters: 5000 }));
+  assert.equal(roleRevokeError("super_admin", 1), "cannot_revoke_last_super_admin");
+  assert.equal(roleRevokeError("super_admin", 2), null);
+  assert.equal(roleRevokeError("support_agent", 1), null);
+});
+
+test("admin hardening: kill switch, streamed avatars, nonce CSP and personal-data audit", () => {
+  const read = (p) => readFileSync(join(repoRoot, p), "utf8");
+  assert.match(read("admin/app/api/admin/v1/system/kill-switch/route.ts"), /requireAdminApi\('system\.kill_switch'\)/);
+  assert.doesNotMatch(read("admin/app/admin/(protected)/avatars/page.tsx"), /getSignedUrl/);
+  const proxy = read("admin/proxy.ts");
+  assert.match(proxy, /'nonce-\$\{nonce\}' 'strict-dynamic'/);
+  assert.match(read("admin/app/admin/layout.tsx"), /force-dynamic/);
+  assert.match(read("admin/app/admin/(protected)/users/page.tsx"), /recordPersonalDataRead/);
+  assert.match(read("admin/app/admin/(protected)/search/page.tsx"), /recordPersonalDataRead/);
+  assert.match(read("admin/app/api/auth/session/route.ts"), /auditMfaEnrollment/);
 });

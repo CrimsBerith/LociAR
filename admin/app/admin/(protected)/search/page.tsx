@@ -1,12 +1,13 @@
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb } from '../../../../lib/firebase-admin';
+import { recordPersonalDataRead } from '../../../../lib/ops';
 
 export const dynamic = 'force-dynamic';
 
 type Row = Record<string, unknown> & { id: string };
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  await requireAdmin({ permission: 'dashboard.read' });
+  const admin = await requireAdmin({ permission: 'dashboard.read' });
   const { q = '' } = await searchParams;
   const term = q.trim().slice(0, 120);
   const needle = term.toLowerCase();
@@ -19,13 +20,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       const handle = needle.replace(/^@/, '');
       const [userSnap, postSnap, byId] = await Promise.all([
         db.collection('profiles').orderBy('handle').startAt(handle).endAt(handle + '').limit(25).get(),
-        db.collection('posts').orderBy('created_at', 'desc').limit(500).get(),
+        // Firestore has no full-text search: captions are matched within the 150 newest posts only.
+        db.collection('posts').orderBy('created_at', 'desc').limit(150).get(),
         /^[0-9a-f-]{36}$/.test(needle) ? db.collection('posts').doc(needle).get() : Promise.resolve(null),
       ]);
       users = userSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       posts = postSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Row).filter(p => String(p.caption ?? '').toLowerCase().includes(needle));
       if (byId?.exists) posts = [{ id: byId.id, ...byId.data() }, ...posts.filter(p => p.id !== byId.id)];
       posts = posts.slice(0, 25);
+      await recordPersonalDataRead(admin.user.id, 'search', term, users.length + posts.length);
     } catch {
       failed = true;
     }

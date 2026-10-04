@@ -1,6 +1,6 @@
-import { commentFlagTarget, isCommentFlag } from './policy';
+import { commentFlagTarget, isCommentFlag, restoredCommentFromFlag, roleRevokeError, type ZoneInput } from './policy';
 import 'server-only';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { FieldValue, Timestamp, type DocumentData, type Transaction } from 'firebase-admin/firestore';
 import { adminBucket, adminDb, iso } from './firebase-admin';
 import { ValidationError } from './validation';
@@ -67,6 +67,17 @@ export async function recordAudit(idempotencyKey: string, entry: AuditEntry) {
     const existing = await tx.get(adminDb().collection('admin_audit_log').doc(idempotencyKey));
     if (!existing.exists) writeAudit(tx, idempotencyKey, entry);
   });
+}
+
+/**
+ * Logs that an administrator viewed personal data (user list, search results). Best effort: a
+ * logging failure never blocks the page, but it is reported to the server log.
+ */
+export async function recordPersonalDataRead(actorId: string, resource: string, query: string, count: number) {
+  await recordAudit(randomUUID(), {
+    actorId, action: 'personal_data_read', resourceType: resource, resourceId: query ? `query:${query.slice(0, 80)}` : 'list',
+    after: { results: count }, reason: 'Administrator viewed personal data.', permissionKey: `${resource}.read`, riskLevel: 'sensitive',
+  }).catch((error) => console.error('[admin-audit]', error));
 }
 
 /** Deterministic child key (e.g. the post audit inside a flag decision). */
@@ -144,12 +155,25 @@ export async function resolveModerationFlag(flagId: string, action: string, acto
     if (audit.exists || flag.status !== 'open') return sanitize(flag);
 
     // Comment flags (filtered or reported comments) act on the comment, never on the post:
-    // "approve" keeps the comment, "soft_delete" removes it, "flag"/"dismiss" only close the flag.
+    // "approve" keeps the comment (and restores a filtered one: false positive), "soft_delete"
+    // removes it, "flag"/"dismiss" only close the flag.
     if (isCommentFlag(flag)) {
       const commentId = commentFlagTarget(flag);
       let commentSnap: FirebaseFirestore.DocumentSnapshot | null = null;
-      if (action === 'soft_delete' && commentId) commentSnap = await tx.get(db.collection('comments').doc(commentId));
-      if (commentSnap?.exists) tx.delete(commentSnap.ref);
+      if ((action === 'soft_delete' || action === 'approve') && commentId) commentSnap = await tx.get(db.collection('comments').doc(commentId));
+      const restore = action === 'approve' && !commentSnap?.exists ? restoredCommentFromFlag(flag) : null;
+      if (action === 'soft_delete' && commentSnap?.exists) tx.delete(commentSnap.ref);
+      if (restore) {
+        // The filtered_comments marker made onCommentDeleted skip the counter; the restored comment
+        // is counted again by onCommentCreated, so the marker has to go.
+        tx.delete(db.collection('filtered_comments').doc(restore.id));
+        tx.set(db.collection('comments').doc(restore.id), {
+          ...restore,
+          admin_restored: true,
+          restored_by: actorId,
+          created_at: FieldValue.serverTimestamp(),
+        });
+      }
       const commentFlagAfter = {
         ...flag,
         status: action === 'dismiss' ? 'dismissed' : 'reviewed',
@@ -355,4 +379,61 @@ export async function decideAvatar(luid: string, action: 'approve' | 'remove', a
   });
   if (result.path) await adminBucket().file(result.path).delete({ ignoreNotFound: true });
   return result.review;
+}
+
+/** Creates a protected zone (createPost hard-blocks inside it; its zone cache refreshes within 5 minutes). */
+export async function createProtectedZone(zone: ZoneInput, actorId: string, reason: string, idempotencyKey: string) {
+  const db = adminDb();
+  const ref = db.collection('protected_zones').doc(createHash('sha1').update(`${zone.name}|${zone.lat.toFixed(6)}|${zone.lng.toFixed(6)}`).digest('hex').slice(0, 24));
+  return db.runTransaction(async (tx) => {
+    const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
+    if (audit.exists) return { id: ref.id };
+    const existing = await tx.get(ref);
+    const after = { ...zone, policy: 'hard_block', active: true };
+    tx.set(ref, { ...after, created_at: existing.exists ? existing.data()!.created_at : FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() }, { merge: true });
+    writeAudit(tx, idempotencyKey, {
+      actorId, action: 'zone_create', resourceType: 'protected_zone', resourceId: ref.id, before: existing.data(), after, reason,
+      permissionKey: 'zones.write', riskLevel: 'sensitive',
+    });
+    return { id: ref.id };
+  });
+}
+
+export async function setProtectedZoneActive(zoneId: string, active: boolean, actorId: string, reason: string, idempotencyKey: string) {
+  const db = adminDb();
+  const ref = db.collection('protected_zones').doc(zoneId);
+  return db.runTransaction(async (tx) => {
+    const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new ValidationError('zone_not_found');
+    if (audit.exists) return sanitize(snap.data()!);
+    tx.update(ref, { active, updated_at: FieldValue.serverTimestamp() });
+    writeAudit(tx, idempotencyKey, {
+      actorId, action: active ? 'zone_enable' : 'zone_disable', resourceType: 'protected_zone', resourceId: zoneId,
+      before: snap.data(), after: { ...snap.data(), active }, reason, permissionKey: 'zones.write', riskLevel: 'sensitive',
+    });
+    return sanitize({ ...snap.data()!, active });
+  });
+}
+
+/** Revokes one admin role assignment (soft: revoked_at is set, the record stays for audit). */
+export async function revokeAdminRole(assignmentId: string, actorId: string, reason: string, idempotencyKey: string) {
+  const db = adminDb();
+  const ref = db.collection('admin_role_assignments').doc(assignmentId);
+  return db.runTransaction(async (tx) => {
+    const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new ValidationError('role_assignment_not_found');
+    const assignment = snap.data()!;
+    if (audit.exists || assignment.revoked_at) return sanitize(assignment);
+    const supers = await tx.get(db.collection('admin_role_assignments').where('role_key', '==', 'super_admin').where('revoked_at', '==', null));
+    const blocked = roleRevokeError(String(assignment.role_key), supers.size);
+    if (blocked) throw new ValidationError(blocked);
+    tx.update(ref, { revoked_at: FieldValue.serverTimestamp(), revoked_by: actorId });
+    writeAudit(tx, idempotencyKey, {
+      actorId, action: 'admin_role_revoke', resourceType: 'admin_role_assignment', resourceId: assignmentId,
+      before: assignment, after: { ...assignment, revoked_by: actorId }, reason, permissionKey: 'admin_users.write', riskLevel: 'critical',
+    });
+    return sanitize({ ...assignment, revoked_by: actorId });
+  });
 }

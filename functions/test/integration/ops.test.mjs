@@ -4,7 +4,7 @@ import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { adminDb, closeClients, expectFailure, newUser, postBody } from './_harness.mjs';
-import { onProfileUpdated } from '../../lib/triggers.js';
+import { onCommentCreated, onProfileUpdated } from '../../lib/triggers.js';
 import { deleteAnchorOrQueue, drainAnchorDeletionQueue } from '../../lib/anchorQueue.js';
 import { purgeOrphanCloudAnchors } from '../../lib/cleanup.js';
 
@@ -148,3 +148,13 @@ test('orphan sweep: an expired stored page token resets the cursor instead of fa
   await assert.rejects(purgeOrphanCloudAnchors(Date.now(), 1, managementStub({ failList: true }).deps));
   assert.equal((await adminDb.collection('system').doc('arcore_orphan_cursor').get()).data().page_token, null);
 }));
+
+test('a filtered comment restored by a moderator (admin_restored) is not filtered again', async () => {
+  const id = randomUUID();
+  const comment = { id, post_id: randomUUID(), user_id: randomUUID(), text: 'siktir git', admin_restored: true };
+  await adminDb.collection('comments').doc(id).set(comment);
+  const snapshot = { id, ref: adminDb.collection('comments').doc(id), data: () => comment };
+  await onCommentCreated.run({ id: `evt-${id}`, params: { id }, data: snapshot });
+  assert.equal((await adminDb.collection('comments').doc(id).get()).exists, true);
+  assert.equal((await adminDb.collection('moderation_flags').doc(`comment_${id}`).get()).exists, false);
+});

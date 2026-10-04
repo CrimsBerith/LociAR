@@ -109,9 +109,10 @@ AH_SA="firebase-app-hosting-compute@${PROJECT}.iam.gserviceaccount.com"
 if gcloud iam service-accounts describe "$AH_SA" --project "$PROJECT" >/dev/null 2>&1; then
   gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$AH_SA" \
     --role="roles/firebase.sdkAdminServiceAgent" --condition=None --quiet >/dev/null
-  gcloud iam service-accounts add-iam-policy-binding "$AH_SA" --project "$PROJECT" \
-    --member="serviceAccount:$AH_SA" --role="roles/iam.serviceAccountTokenCreator" --quiet >/dev/null
-  echo "✅ App Hosting servis hesabı: Admin SDK + imzalı URL yetkileri ($AH_SA)"
+  # No Token Creator on itself: avatar photos are streamed by the admin server, not signed URLs.
+  gcloud iam service-accounts remove-iam-policy-binding "$AH_SA" --project "$PROJECT" \
+    --member="serviceAccount:$AH_SA" --role="roles/iam.serviceAccountTokenCreator" --quiet >/dev/null 2>&1 || true
+  echo "✅ App Hosting servis hesabı: Admin SDK yetkisi ($AH_SA)"
 else
   echo "⚠️  $AH_SA bulunamadı; backend oluşturulduktan sonra bu adımı tekrar çalıştır."
 fi

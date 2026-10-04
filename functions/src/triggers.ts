@@ -58,7 +58,9 @@ export const onCommentCreated = onDocumentCreated('comments/{id}', async (event)
   const snap = event.data;
   const comment = snap?.data();
   if (!snap || !comment) return;
-  if (containsBlockedTerm(String(comment.text ?? ''))) {
+  // admin_restored: a moderator approved a filtered comment as a false positive (admin/lib/ops.ts);
+  // only the Admin SDK can write that field, so it is not filtered a second time.
+  if (comment.admin_restored !== true && containsBlockedTerm(String(comment.text ?? ''))) {
     // Fixed ids keep redelivered events from writing a second flag or analytics event.
     const flagRef = db.collection('moderation_flags').doc(`comment_${snap.id}`);
     await db.runTransaction(async (tx) => {

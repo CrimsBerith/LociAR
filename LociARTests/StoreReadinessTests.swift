@@ -51,6 +51,12 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherUserContent"))
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeName"), "Apple full name is sent to ensureProfile")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeProductInteraction"), "views/likes and analytics_events")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCoarseLocation"), "analytics_events keep approximate location")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherDataTypes"), "camera-derived features sent to Google ARCore")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCrashData"), "Firebase Crashlytics")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherDiagnosticData"), "Firebase Crashlytics diagnostics")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeDeviceID"), "FCM registration token stored per account")
+        XCTAssertTrue(collected.allSatisfy { ($0["NSPrivacyCollectedDataTypeTracking"] as? Bool) == false }, "nothing is used for tracking")
     }
 
     func testShippedBundleDoesNotEmbedServiceRoleSecrets() throws {
