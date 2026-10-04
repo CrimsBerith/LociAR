@@ -4,6 +4,7 @@ import { analyticsEventDoc, db, FieldValue, Timestamp } from './core';
 import { applyCountersOnce } from './counters';
 import { anyBlocked, containsBlockedTerm } from './moderation';
 import { schedulePurgeOnStatusChange } from './cleanup';
+import { sendActivityPush } from './push';
 
 async function safeUpdate(path: string, data: Record<string, unknown>): Promise<void> {
   try {
@@ -22,6 +23,7 @@ async function emitActivity(kind: 'like' | 'comment' | 'follow', actorId: string
   if (!recipientId || actorId === recipientId) return;
   const id = stableId ?? randomUUID();
   const ref = db.collection('activity_events').doc(id);
+  // Repeat actions and redelivered events find the activity already there: no second push either.
   if (stableId && (await ref.get()).exists) return;
   await ref.set({
     id,
@@ -34,6 +36,7 @@ async function emitActivity(kind: 'like' | 'comment' | 'follow', actorId: string
     created_at: FieldValue.serverTimestamp(),
     expires_at: Timestamp.fromMillis(Date.now() + 180 * 86_400_000),
   });
+  await sendActivityPush(kind, actorId, recipientId, postId);
 }
 
 async function postCreator(postId: string): Promise<string | null> {

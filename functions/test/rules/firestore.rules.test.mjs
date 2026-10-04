@@ -261,7 +261,7 @@ test('user_blocks: only the blocker reads; protected_zones are public read-only'
 });
 
 test('server-only collections stay closed for clients (reads and writes)', async () => {
-  for (const name of ['handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites']) {
+  for (const name of ['handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
     await assertFails(getDoc(doc(as(ALICE), name, 'x')));
     await assertFails(setDoc(doc(as(ALICE), name, 'x'), { owner_luid: ALICE }));
   }

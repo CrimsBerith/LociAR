@@ -104,6 +104,8 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
     ['analytics_events', 'user_id'],
     ['post_quota', 'owner_luid'],
     ['anchor_quota', 'owner_luid'],
+    ['push_devices', 'luid'],
+    ['push_quota', 'owner_luid'],
   ];
   for (const [collection, field] of byField) {
     await deleteQuery(db.collection(collection).where(field, '==', luid), writer);

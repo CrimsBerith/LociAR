@@ -31,6 +31,7 @@
 		60C720C4226E7EADD4D73BD5 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C46B83A003BDC6A241B3BDD /* NotificationService.swift */; };
 		6E537DA4B254594AFBFAF0D8 /* ARPostViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */; };
 		6EE96CC69E25FE252051A562 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5172273B7111934A8D310E05 /* Models.swift */; };
+		6F65592608C6DAC2FB86B779 /* AppSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53768F263588C9A54C898060 /* AppSettingsView.swift */; };
 		71D8EF88107A94968844A33E /* BackendPostContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = E144FD8B340551FC39132078 /* BackendPostContract.swift */; };
 		739AF19D1B2BE599C056D81A /* PublishPostCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51711F0650606E15028C1A33 /* PublishPostCoordinator.swift */; };
 		7478793DCB1CF6E75F8A2455 /* ConnectivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32443B79810E5CE2F38FB099 /* ConnectivityMonitor.swift */; };
@@ -122,6 +123,7 @@
 		5172273B7111934A8D310E05 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		5221467DB942FC077BF19BEB /* LociAR.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LociAR.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		52470082EDD9AD2FC77F69EB /* PublicSafetyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicSafetyPolicy.swift; sourceTree = "<group>"; };
+		53768F263588C9A54C898060 /* AppSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsView.swift; sourceTree = "<group>"; };
 		53B8CE05A07DBFC412918542 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyImporterTests.swift; sourceTree = "<group>"; };
 		5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainContractTests.swift; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 		01827D999149EBDC62F08619 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				53768F263588C9A54C898060 /* AppSettingsView.swift */,
 				F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */,
 				AEB27EE9BF00970A9F3F149F /* ProfileEditView.swift */,
 			);
@@ -472,6 +475,7 @@
 				83FB5A134EE599509A3583D1 /* Sources */,
 				EE1509D64816DD5059A2E31C /* Resources */,
 				36C6297DD96EEA93BDFE746C /* Frameworks */,
+				9E66095199CC5939E780693D /* Upload Crashlytics symbols */,
 			);
 			buildRules = (
 			);
@@ -587,6 +591,31 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		9E66095199CC5939E780693D /* Upload Crashlytics symbols */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+			);
+			name = "Upload Crashlytics symbols";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"${CONFIGURATION}\" != \"Release\" ]; then exit 0; fi\nif [ -z \"${LOCIAR_FIREBASE_GOOGLE_APP_ID}\" ]; then\n  echo \"warning: LOCIAR_FIREBASE_GOOGLE_APP_ID is empty (Config/Local.xcconfig); dSYMs not uploaded to Crashlytics.\"\n  exit 0\nfi\nUPLOAD=\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\"\nif [ ! -x \"${UPLOAD}\" ]; then\n  echo \"warning: Crashlytics upload-symbols not found at ${UPLOAD}; dSYMs not uploaded.\"\n  exit 0\nfi\n\"${UPLOAD}\" -ai \"${LOCIAR_FIREBASE_GOOGLE_APP_ID}\" -p ios \"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}\" \\\n  || echo \"warning: Crashlytics dSYM upload failed; upload them later from the archive (Xcode Organizer).\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		38CC8A6E12B3610DE7829113 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -624,6 +653,7 @@
 				B9506EFFBDF4A5BAD96C8B74 /* AppContainer.swift in Sources */,
 				4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */,
 				07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */,
+				6F65592608C6DAC2FB86B779 /* AppSettingsView.swift in Sources */,
 				DD0E0196DE875097001E3BFD /* AuthRepository.swift in Sources */,
 				A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */,
 				DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */,
@@ -688,7 +718,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = ZSRUTGX74S;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LociAR/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LociAR;
@@ -897,7 +929,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = ZSRUTGX74S;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LociAR/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LociAR;

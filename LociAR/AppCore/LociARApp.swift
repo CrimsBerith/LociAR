@@ -19,6 +19,11 @@ struct LociARApp: App {
                     }
                     await container.session.bootstrap()
                 }
+                .onChange(of: container.session.phase) { _, phase in
+                    let signedIn: Bool
+                    if case .signedIn = phase { signedIn = !container.session.isLocalPreview } else { signedIn = false }
+                    Task { await NotificationService.shared.sessionChanged(signedIn: signedIn) }
+                }
                 .onOpenURL { url in
                     if AppSession.isAllowedAuthCallback(url) {
                         Task { await container.session.handleOpenURL(url) }

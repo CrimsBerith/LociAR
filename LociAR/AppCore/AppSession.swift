@@ -163,6 +163,8 @@ final class AppSession {
 
     func signOut() async {
         let shouldSignOutRemotely = !isLocalPreview
+        // The push token is unregistered while the Firebase user is still signed in.
+        if shouldSignOutRemotely { await NotificationService.shared.prepareForSignOut() }
         isLocalPreview = false
         phase = .signedOut
         if shouldSignOutRemotely { await authRepository.signOut() }
@@ -170,6 +172,7 @@ final class AppSession {
 
     func deleteAccount() async throws {
         try await authRepository.deleteAccount()
+        await NotificationService.shared.accountDeleted()
         phase = .signedOut
     }
 }

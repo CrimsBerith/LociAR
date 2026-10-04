@@ -247,6 +247,20 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "push_devices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "luid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updated_at",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
@@ -362,6 +376,18 @@
     },
     {
       "collectionGroup": "avatar_uploads",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "push_devices",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "push_quota",
       "fieldPath": "expires_at",
       "ttl": true,
       "indexes": []

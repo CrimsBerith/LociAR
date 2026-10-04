@@ -9,3 +9,4 @@ export { beginAvatarUpload, screenAvatar } from './avatar';
 export { cleanupPostMedia, reconcilePostCounters } from './cleanup';
 export { getArcoreToken } from './arcore';
 export { registerCloudAnchor } from './anchors';
+export { registerPushToken, unregisterPushToken } from './push';

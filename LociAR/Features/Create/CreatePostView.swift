@@ -21,6 +21,8 @@ struct CreatePostView: View {
     @State private var isPublishing = false
     @State private var message: String?
     @State private var dismissAfterAlert = false
+    /// After the first successful publish the app asks for notification permission (once the alert closes).
+    @State private var askForNotificationsAfterAlert = false
     @State private var offerLocationSettings = false
     @State private var offerFallbackToApproximate = false
     @State private var mappingWaitExpired = false
@@ -93,7 +95,13 @@ struct CreatePostView: View {
                     engine.restartTracking()
                 }
             } else {
-                Button("Tamam", role: .cancel) { if dismissAfterAlert { dismiss() } }
+                Button("Tamam", role: .cancel) {
+                    if askForNotificationsAfterAlert {
+                        askForNotificationsAfterAlert = false
+                        Task { await NotificationService.shared.requestAuthorizationInContext() }
+                    }
+                    if dismissAfterAlert { dismiss() }
+                }
             }
         } message: { Text(message ?? "") }
         .sheet(isPresented: $showExternalMediaPicker) { externalMediaPicker }
@@ -564,6 +572,7 @@ struct CreatePostView: View {
             dismissAfterAlert = true
             switch outcome {
             case .published(let receipt):
+                askForNotificationsAfterAlert = true
                 switch receipt.status {
                 case .active:
                     message = "Post yayınlandı. Keşfet ve profilinde görünür."

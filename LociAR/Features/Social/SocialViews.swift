@@ -212,6 +212,8 @@ struct ProfileView: View {
             }
             Section {
                 NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: "Engellenen hesaplar", symbol: "person.crop.circle.badge.xmark", color: .orange) }
+                NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: "Ayarlar", symbol: "gearshape.fill", color: .gray) }
+                    .accessibilityIdentifier("profile-settings")
             } header: {
                 profileSectionText("Gizlilik ve güvenlik")
             }

@@ -57,6 +57,9 @@ targets:
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
         SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
         SWIFT_EMIT_LOC_STRINGS: YES
+        # The Crashlytics symbol upload phase reads Swift package files outside its declared inputs.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
         OTHER_LDFLAGS: $(inherited) -ObjC
@@ -88,6 +91,29 @@ targets:
       - sdk: MapKit.framework
       - sdk: AuthenticationServices.framework
       - sdk: libsqlite3.tbd
+    postBuildScripts:
+      # Crashlytics needs the dSYMs to symbolicate crash reports. Release (archive) builds only; the
+      # app has no GoogleService-Info.plist, so the Firebase app id comes from the xcconfig.
+      - name: Upload Crashlytics symbols
+        basedOnDependencyAnalysis: false
+        showEnvVarsInLog: false
+        inputFiles:
+          - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}
+          - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist
+          - $(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)
+        script: |
+          if [ "${CONFIGURATION}" != "Release" ]; then exit 0; fi
+          if [ -z "${LOCIAR_FIREBASE_GOOGLE_APP_ID}" ]; then
+            echo "warning: LOCIAR_FIREBASE_GOOGLE_APP_ID is empty (Config/Local.xcconfig); dSYMs not uploaded to Crashlytics."
+            exit 0
+          fi
+          UPLOAD="${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols"
+          if [ ! -x "${UPLOAD}" ]; then
+            echo "warning: Crashlytics upload-symbols not found at ${UPLOAD}; dSYMs not uploaded."
+            exit 0
+          fi
+          "${UPLOAD}" -ai "${LOCIAR_FIREBASE_GOOGLE_APP_ID}" -p ios "${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}" \
+            || echo "warning: Crashlytics dSYM upload failed; upload them later from the archive (Xcode Organizer)."
     scheme:
       testTargets:
         - LociARTests
