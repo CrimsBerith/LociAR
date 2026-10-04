@@ -2,15 +2,27 @@ import { randomBytes } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { auth, db, luidForUid } from './_admin.mjs';
 
+// Usage: node scripts/provision-review-account.mjs [--rotate]
+// Creates the App Review account if missing. An existing account keeps its password unless --rotate
+// is passed, so the credential entered in App Store Connect never changes silently. A new password is
+// printed to this terminal only — paste it into App Store Connect, never into the repo or an issue.
 const email = 'apple-review@lociar.app';
-const password = `Review_${randomBytes(8).toString('hex')}_2026!`;
+const rotate = process.argv.includes('--rotate');
+const newPassword = () => `${randomBytes(18).toString('base64url')}!9a`;
 
 let user;
+let password = null;
 try {
   user = await auth.getUserByEmail(email);
-  await auth.updateUser(user.uid, { password });
-  console.log('User already exists in Auth, updated password, uid:', user.uid);
+  if (rotate) {
+    password = newPassword();
+    await auth.updateUser(user.uid, { password });
+    console.log('Rotated the password of the existing review account, uid:', user.uid);
+  } else {
+    console.log('Review account exists; password unchanged (pass --rotate to replace it), uid:', user.uid);
+  }
 } catch {
+  password = newPassword();
   user = await auth.createUser({
     email,
     password,
@@ -56,8 +68,8 @@ if (!profileSnap.exists) {
   console.log('Profile already exists for luid:', luid);
 }
 
-console.log('--- CREDENTIALS ---');
+console.log('--- REVIEW ACCOUNT ---');
 console.log('Email:', email);
-console.log('Password:', password);
+if (password) console.log('Password (enter in App Store Connect, do not store it anywhere else):', password);
 console.log('LUID:', luid);
 console.log('Handle:', handle);

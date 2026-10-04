@@ -36,7 +36,11 @@ fi
 # 3) Gönder
 rm -f .git/index.lock 2>/dev/null || true
 git remote get-url origin >/dev/null 2>&1 && git remote set-url origin "$REPO_URL" || git remote add origin "$REPO_URL"
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+if [ -z "$CURRENT_BRANCH" ] || [ "$CURRENT_BRANCH" = "HEAD" ] || [ "$CURRENT_BRANCH" = "main" ]; then
+  echo "❌ main'e (veya dal olmadan) doğrudan gönderim yapılmaz. Önce bir dal aç: git switch -c <dal-adı>, sonra PR aç."
+  pause; exit 1
+fi
 echo "==> $REPO_URL ($CURRENT_BRANCH) adresine gönderiliyor…"
 git push -u origin "HEAD:$CURRENT_BRANCH" 2>&1 | tee "$LOG"
 status=${PIPESTATUS[0]}

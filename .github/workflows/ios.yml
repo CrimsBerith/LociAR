@@ -1,0 +1,39 @@
+name: iOS
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', '.github/workflows/ios.yml']
+  pull_request:
+    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Compiles the app plus the unit and UI test bundles for a device (no signing). ARCore ships
+    # device binaries, and AR needs a camera, so tests themselves run on a physical iPhone (see QA_MATRIX).
+    name: iOS (compile app + tests)
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode version
+        run: xcodebuild -version
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project LociAR.xcodeproj -scheme LociAR
+      - name: Build for testing (generic iOS device, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project LociAR.xcodeproj -scheme LociAR \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            | tee xcodebuild.log | grep -E "error:|warning: .*Sendable|BUILD (SUCCEEDED|FAILED)|TEST BUILD" || true
+          grep -q "TEST BUILD SUCCEEDED\|BUILD SUCCEEDED" xcodebuild.log

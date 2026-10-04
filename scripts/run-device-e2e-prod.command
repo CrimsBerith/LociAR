@@ -8,7 +8,8 @@ ROOT="$(pwd)"
 OUT="$ROOT/scripts/.e2e"
 mkdir -p "$OUT"
 SUMMARY="$OUT/summary-prod.txt"
-DEVICE_ID="${DEVICE_ID:-00008120-001079DE0E07C01E}"
+DEVICE_ID="${DEVICE_ID:-$(xcrun devicectl list devices 2>/dev/null | grep available | awk '{print $3}' | head -1)}"
+[ -z "$DEVICE_ID" ] && { echo "HATA: bagli iPhone yok (DEVICE_ID=...)"; exit 1; }
 log() { echo "$(date +%H:%M:%S) $*" | tee -a "$SUMMARY"; }
 : > "$SUMMARY"
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
@@ -18,7 +19,9 @@ EMAIL="$(cat scripts/.prod-email.txt 2>/dev/null | tr -d '[:space:]')"
 [ -z "$EMAIL" ] && { log "HATA: scripts/.prod-email.txt yok"; exit 1; }
 rm -f "$OUT/verified"
 export TEST_RUNNER_E2E_EMAIL="$EMAIL"
-export TEST_RUNNER_E2E_PASSWORD="E2eTest!2026x"
+if [ -z "${E2E_PASSWORD:-}" ]; then read -r -s -p "Canli test hesabinin sifresi (ekrana yazilmaz): " E2E_PASSWORD; echo; fi
+[ -z "${E2E_PASSWORD:-}" ] && { log "HATA: E2E_PASSWORD yok"; exit 1; }
+export TEST_RUNNER_E2E_PASSWORD="$E2E_PASSWORD"
 log "Test hesabi: $EMAIL"
 COMMON=(-project LociAR.xcodeproj -scheme LociAR -destination "id=$DEVICE_ID" -allowProvisioningUpdates)
 log "build-for-testing..."

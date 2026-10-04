@@ -19,15 +19,19 @@ echo "==> Birim testleri (geohash, yerleşim kuralları)…"
 if /usr/libexec/java_home >/dev/null 2>&1; then
   echo "==> Güvenlik kuralı testleri (emülatör)…"
   (cd functions && npm run test:rules) || { echo "❌ Kural testleri başarısız — deploy durduruldu."; read -r -p "Enter…"; exit 1; }
+  echo "==> Callable entegrasyon testleri (emülatör)…"
+  (cd functions && npm run test:emulator) || { echo "❌ Entegrasyon testleri başarısız — deploy durduruldu."; read -r -p "Enter…"; exit 1; }
 else
-  echo "ℹ️  Java yok, kural testleri atlandı (isteğe bağlı: https://adoptium.net → Temurin 21)."
+  echo "❌ Java yok: güvenlik kuralı testleri çalıştırılamıyor, deploy durduruldu."
+  echo "   Java 21 kur: scripts/install-java.command (veya https://adoptium.net → Temurin 21), sonra tekrar çalıştır."
+  read -r -p "Kapatmak için Enter…"; exit 1
 fi
 
 echo "==> Firebase girişi (tarayıcı açılacak, projenin sahibi olan Google hesabıyla giriş yap)…"
-npx -y firebase-tools@latest login
+npx -y firebase-tools@14 login
 
 echo "==> Deploy: $PROJECT"
-npx -y firebase-tools@latest deploy --only firestore,storage,functions --project "$PROJECT" --force
+npx -y firebase-tools@14 deploy --only firestore,storage,functions --project "$PROJECT"
 
 echo ""
 echo "✅ Bitti. Bu pencereyi kapatabilirsin."

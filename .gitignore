@@ -81,3 +81,8 @@ scripts/.build-check.log
 scripts/.commit-msg.txt
 # Functions emulator secrets (functions/test/integration/prepare-env.mjs)
 .secret.local
+
+# Local-only script inputs and logs
+scripts/.prod-email.txt
+scripts/*.log
+admin/artifacts/

@@ -80,7 +80,7 @@ App Store Connect'te **App Review Information** bölümüne girilecek metin:
 ### Giriş Bilgileri (Sign-In Information)
 * **Giriş Gerekli mi (Sign-in required):** Evet (Kutu işaretlenmeli)
 * **Kullanıcı Adı (Username):** `apple-review@lociar.app`
-* **Şifre (Password):** `Review_5a4b23b2e56dba64_2026!`
+* **Şifre (Password):** App Store Connect'e girilir; repoya, belgelere veya issue'lara **yazılmaz**. `functions/scripts/provision-review-account.mjs --rotate` yeni şifre üretir ve yalnız terminale basar.
 
 ### İnceleme Notları (Notes for Reviewer - İngilizce)
 ```text
@@ -92,7 +92,7 @@ Thank you for reviewing LociAR.
 LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes and social media links (Spotify, YouTube, Instagram, X, Facebook) onto physical surfaces in the real world.
 
 2. DEMO ACCOUNT & PRE-SEEDED CONTENT:
-- Credentials: apple-review@lociar.app / Review_5a4b23b2e56dba64_2026!
+- Credentials: apple-review@lociar.app / (password provided in the App Review Information sign-in fields)
 - A pre-seeded sample post is located directly at Apple Park, Cupertino (Lat: 37.3318, Lng: -122.0312): "LociAR demo note · Cupertino".
 - You can immediately see and interact with this post on the Map tab or Discover tab upon signing in.
 

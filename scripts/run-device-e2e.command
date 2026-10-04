@@ -11,7 +11,8 @@ mkdir -p "$OUT"
 SUMMARY="$OUT/summary.txt"
 if [ -z "${DEVICE_ID:-}" ]; then
   DETECTED_DEVICE="$(xcrun devicectl list devices 2>/dev/null | grep "available" | awk '{print $3}' | head -1)"
-  DEVICE_ID="${DETECTED_DEVICE:-B2E7EFB8-A5CD-5671-BBE9-2A86FE9D7EB8}"
+  DEVICE_ID="$DETECTED_DEVICE"
+  [ -z "$DEVICE_ID" ] && { echo "HATA: bagli iPhone yok (DEVICE_ID=...)"; exit 1; }
 fi
 PROJECT_ID="lociar-2f38c"
 AUTH="127.0.0.1:9099"
@@ -75,7 +76,8 @@ trap 'kill $VERIFY_PID 2>/dev/null' EXIT
 
 # 4) Build once, then run tests one by one in a fixed order
 export TEST_RUNNER_E2E_EMAIL="e2e$(date +%s)@lociar.test"
-export TEST_RUNNER_E2E_PASSWORD="E2eTest!2026x"
+# Throwaway account on the local emulator only; a fresh random password per run.
+export TEST_RUNNER_E2E_PASSWORD="E2e-$(openssl rand -hex 12)"
 log "Test hesabi: $TEST_RUNNER_E2E_EMAIL"
 COMMON=(-project LociAR.xcodeproj -scheme LociAR -destination "id=$DEVICE_ID" -allowProvisioningUpdates)
 log "build-for-testing..."
