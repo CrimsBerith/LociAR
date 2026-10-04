@@ -2,7 +2,7 @@ import test, { before, after } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 
 const ALICE = '11111111-1111-5111-8111-111111111111';
 const BOB = '22222222-2222-5222-8222-222222222222';
@@ -65,6 +65,13 @@ test('world maps of active friends-only and private posts are readable by the ow
   }
 });
 
+test('world maps under a folder that is not the post creator are never served to others', async () => {
+  // Bob uploads a map into his own folder using Alice's active public post id.
+  await assertSucceeds(uploadBytes(ref(as(BOB), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
+  await assertFails(getBytes(ref(as(ALICE), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`)));
+  await assertSucceeds(getBytes(ref(as(BOB), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`)));
+});
+
 test('world maps: post folder must be a UUID', async () => {
   await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/not-a-uuid/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
 });
@@ -81,11 +88,17 @@ test('legacy folders: no uploads, owners may delete leftovers, others may not', 
 });
 
 const AVATAR_SLOT = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
-async function grantAvatarSlot(id, luid) {
+async function grantAvatarSlot(id, luid, expiresInMs = 3_600_000) {
   await env.withSecurityRulesDisabled(async (ctx) => {
-    await setDoc(doc(ctx.firestore(), 'avatar_uploads', id), { luid });
+    await setDoc(doc(ctx.firestore(), 'avatar_uploads', id), { luid, expires_at: Timestamp.fromMillis(Date.now() + expiresInMs) });
   });
 }
+
+test('avatars: an expired upload slot is refused even before TTL deletes it', async () => {
+  const expired = 'dddddddd-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  await grantAvatarSlot(expired, ALICE, -60_000);
+  await assertFails(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/pending/${expired}.jpg`), jpeg, { contentType: 'image/jpeg' }));
+});
 
 test('avatars: a pending upload needs an upload slot owned by the uploader', async () => {
   const unslotted = 'bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee';
@@ -96,7 +109,7 @@ test('avatars: a pending upload needs an upload slot owned by the uploader', asy
   await assertSucceeds(uploadBytes(ref(as(BOB), `avatars/${BOB}/pending/${bobs}.jpg`), jpeg, { contentType: 'image/jpeg' }));
 });
 
-test('avatars: pending can be overwritten only by its owner; current is never client-writable', async () => {
+test('avatars: only the owner uploads to pending; current is never client-writable', async () => {
   const id = AVATAR_SLOT;
   await grantAvatarSlot(id, ALICE);
   const path = `avatars/${ALICE}/pending/${id}.jpg`;

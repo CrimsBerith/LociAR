@@ -4,6 +4,8 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
+import * as logger from 'firebase-functions/logger';
+import { reasonError } from './errors';
 import { v5 as uuidv5, validate as uuidValidate } from 'uuid';
 
 if (getApps().length === 0) initializeApp();
@@ -28,7 +30,7 @@ export const ENFORCE_APP_CHECK = process.env.FUNCTIONS_EMULATOR !== 'true';
 export const db = getFirestore();
 export const auth = getAuth();
 export const bucket = () => getStorage().bucket();
-export { FieldValue, Timestamp, HttpsError };
+export { FieldValue, Timestamp, HttpsError, logger };
 
 /**
  * LociAR uses UUIDs as user identifiers everywhere (posts, storage paths, social rows).
@@ -124,4 +126,39 @@ export async function deleteStoragePrefix(prefix: string): Promise<number> {
     removed += files.length;
   }
   return removed;
+}
+
+/**
+ * Emergency kill switch: `system/flags` = { kill_switch: true, kill_reason?: string } (admin panel →
+ * Sistem, permission system.kill_switch, or the budget alert). While it is on, every write path that
+ * costs money or creates content refuses with `unavailable` / reason `service_paused`; reads,
+ * reports, blocks and account deletion keep working. Cached per instance for a few seconds.
+ */
+export type KillableFeature = 'create_post' | 'arcore_token' | 'register_anchor' | 'avatar_upload' | 'push_register';
+// No caching in the emulator so tests (and local E2E) see a flag flip immediately.
+const FLAGS_TTL_MS = process.env.FUNCTIONS_EMULATOR === 'true' ? 0 : 15_000;
+let flagsCache: { at: number; on: boolean } | null = null;
+
+export async function killSwitchOn(now = Date.now()): Promise<boolean> {
+  if (flagsCache && now - flagsCache.at < FLAGS_TTL_MS) return flagsCache.on;
+  let on = false;
+  try {
+    on = (await db.collection('system').doc('flags').get()).data()?.kill_switch === true;
+  } catch (error) {
+    logger.error('kill_switch_read_failed', { error: String(error) });
+  }
+  flagsCache = { at: now, on };
+  return on;
+}
+
+/** Test hook: forget the cached flag so the next call reads Firestore again. */
+export function resetKillSwitchCache(): void {
+  flagsCache = null;
+}
+
+export async function assertServiceEnabled(feature: KillableFeature): Promise<void> {
+  if (await killSwitchOn()) {
+    logger.warn('kill_switch_refused', { feature });
+    throw reasonError('unavailable', 'LociAR is temporarily paused', 'service_paused');
+  }
 }

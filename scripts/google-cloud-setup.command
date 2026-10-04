@@ -86,12 +86,16 @@ if echo "$ROLES" | grep -qE 'roles/(editor|owner)'; then
   echo "⚠️  $SA hesabında Editor/Owner var. Gerekmiyor; aşağıdaki roller yeterli. IAM'den kaldırman önerilir."
 fi
 echo "ℹ️  Firestore/Storage/Vision/Auth için gereken roller ekleniyor (Editor VERİLMEZ)."
+# No roles/iam.serviceAccountUser: it would let the runtime act as every service account in the
+# project. The only impersonation it needs is token signing for the ARCore signer (granted above).
 for ROLE in roles/datastore.user roles/storage.objectAdmin roles/firebaseauth.admin \
-            roles/serviceusage.serviceUsageConsumer roles/logging.logWriter roles/iam.serviceAccountUser; do
+            roles/serviceusage.serviceUsageConsumer roles/logging.logWriter; do
   gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role="$ROLE" \
     --condition=None --quiet >/dev/null
   echo "   + $ROLE"
 done
+gcloud projects remove-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" \
+  --role="roles/iam.serviceAccountUser" --condition=None --quiet >/dev/null 2>&1 || true
 echo "   ℹ️  Cloud Anchor silme hatası (PERMISSION_DENIED) olursa anchor 'cloud_anchor_deletions' kuyruğuna"
 echo "      girer ve günlük yeniden denenir. Editor verme; logdaki hatayı issue #6'ya ekle."
 

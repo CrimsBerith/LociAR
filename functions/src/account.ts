@@ -5,7 +5,17 @@ import { reasonError } from './errors';
 import { isRecentAuth } from './limits';
 import { deleteAnchorOfPost } from './anchors';
 import { deleteAnchorOrQueue } from './anchorQueue';
-import { auth, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller } from './core';
+import {
+  auth,
+  CALLABLE_MAX_INSTANCES,
+  db,
+  deleteStoragePrefix,
+  ENFORCE_APP_CHECK,
+  FieldValue,
+  logEvent,
+  logger,
+  requireCaller,
+} from './core';
 
 async function deleteQuery(query: FirebaseFirestore.Query, writer: FirebaseFirestore.BulkWriter): Promise<number> {
   let total = 0;
@@ -42,7 +52,7 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
     const code = (request.data as { appleAuthorizationCode?: unknown } | null)?.appleAuthorizationCode;
     const config = appleConfigFromEnv();
     if (!config) {
-      console.error('apple_revoke_unavailable', 'APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_CLIENT_ID or APPLE_PRIVATE_KEY is not set');
+      logger.error('apple_revoke_unavailable', { code: 'APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_CLIENT_ID or APPLE_PRIVATE_KEY is not set' });
       throw reasonError('failed-precondition', 'Apple token revocation is not configured', 'apple_revoke_unavailable');
     }
     if (typeof code !== 'string' || !code) {
@@ -51,7 +61,7 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
     try {
       await revokeAppleAuthorization(config, code);
     } catch (error) {
-      console.error('apple_revoke_failed', (error as Error).message);
+      logger.error('apple_revoke_failed', { code: (error as Error).message });
       throw reasonError('failed-precondition', 'Apple token revocation failed', 'apple_revoke_failed');
     }
   }

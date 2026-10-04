@@ -1,7 +1,18 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { randomUUID } from 'node:crypto';
-import { bucket, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, logEvent, requireCaller, Timestamp } from './core';
+import {
+  assertServiceEnabled,
+  bucket,
+  CALLABLE_MAX_INSTANCES,
+  db,
+  ENFORCE_APP_CHECK,
+  FieldValue,
+  logEvent,
+  logger,
+  requireCaller,
+  Timestamp,
+} from './core';
 import { profileBlock } from './profileGuard';
 import { reasonError } from './errors';
 import { bumpWindow } from './limits';
@@ -34,6 +45,7 @@ async function requireActiveProfile(luid: string): Promise<void> {
  */
 export const beginAvatarUpload = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const { luid } = requireCaller(request);
+  await assertServiceEnabled('avatar_upload');
   await requireActiveProfile(luid);
   const objectId = randomUUID();
   const now = Date.now();
@@ -103,7 +115,7 @@ async function screenAvatarObject(luid: string, id: string, path: string): Promi
     annotation = result.safeSearchAnnotation as SafeSearch;
     verdict = judgeSafeSearch(annotation);
   } catch (error) {
-    console.error('avatar_screening_failed', luid, error);
+    logger.error('avatar_screening_failed', { luid, error: String(error) });
   }
 
   const privateRef = db.collection('users_private').doc(luid);

@@ -1,6 +1,6 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { bucket, db, deleteStoragePrefix, FieldValue, Timestamp } from './core';
-import { listCloudAnchors } from './arcoreManagement';
+import { bucket, db, deleteStoragePrefix, FieldValue, logger, Timestamp } from './core';
+import { listCloudAnchors, type ManagementDeps } from './arcoreManagement';
 import { deleteAnchorOrQueue, drainAnchorDeletionQueue } from './anchorQueue';
 import { deleteAnchorOfPost } from './anchors';
 import { selectOrphanAnchors } from './arcoreToken';
@@ -116,16 +116,24 @@ export async function referencedAnchorIds(ids: string[]): Promise<Set<string>> {
  * stored page token (system/arcore_orphan_cursor) so every anchor is reached over a few nights
  * instead of the oldest pages being rescanned forever.
  */
-export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5): Promise<number> {
+export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5, deps: ManagementDeps = {}): Promise<number> {
   let removed = 0;
   const cursorSnap = await ORPHAN_CURSOR().get();
   let pageToken: string | undefined = (cursorSnap.data()?.page_token as string | undefined) || undefined;
   for (let page = 0; page < maxPages; page++) {
-    const { anchors, nextPageToken } = await listCloudAnchors(pageToken);
+    let listed: Awaited<ReturnType<typeof listCloudAnchors>>;
+    try {
+      listed = await listCloudAnchors(pageToken, deps);
+    } catch (error) {
+      // A stored page token can expire; start from the first page next night instead of failing forever.
+      if (pageToken) await ORPHAN_CURSOR().set({ page_token: null, reset_reason: String(error).slice(0, 200), updated_at: FieldValue.serverTimestamp() });
+      throw error;
+    }
+    const { anchors, nextPageToken } = listed;
     if (anchors.length > 0) {
       const referenced = await referencedAnchorIds(anchors.map((a) => a.id));
       for (const id of selectOrphanAnchors(anchors, referenced, now, ORPHAN_ANCHOR_GRACE_DAYS * DAY_MS)) {
-        if (await deleteAnchorOrQueue(id)) removed++;
+        if (await deleteAnchorOrQueue(id, deps)) removed++;
         await db.collection('cloud_anchors').doc(id).delete(); // unbound ownership record, if any
       }
     }
@@ -144,21 +152,21 @@ export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZo
   try {
     pendingAvatars = await purgeStalePendingAvatars();
   } catch (error) {
-    console.error('pending_avatar_cleanup_failed', error);
+    logger.error('pending_avatar_cleanup_failed', { error: String(error) });
   }
   let orphanAnchors = 0;
   let retried = 0;
   try {
     retried = await drainAnchorDeletionQueue();
   } catch (error) {
-    console.error('cloud_anchor_queue_failed', error);
+    logger.error('cloud_anchor_queue_failed', { error: String(error) });
   }
   try {
     orphanAnchors = await purgeOrphanCloudAnchors();
   } catch (error) {
-    console.error('cloud_anchor_cleanup_failed', error);
+    logger.error('cloud_anchor_cleanup_failed', { error: String(error) });
   }
-  console.log(JSON.stringify({ event: 'cleanup_post_media', removed, orphans, pendingAvatars, orphanAnchors, retried }));
+  logger.info('cleanup_post_media', { removed, orphans, pendingAvatars, orphanAnchors, retried });
 });
 
 /**
@@ -193,5 +201,5 @@ export async function reconcileCounters(sampleSize = 100): Promise<number> {
 
 export const reconcilePostCounters = onSchedule({ schedule: 'every day 04:11', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
   const repaired = await reconcileCounters();
-  console.log(JSON.stringify({ event: 'reconcile_counters', repaired }));
+  logger.info('reconcile_counters', { repaired });
 });

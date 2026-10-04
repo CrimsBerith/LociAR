@@ -163,7 +163,8 @@ service cloud.firestore {
         && request.resource.data.title is string
         && request.resource.data.title.size() >= 1 && request.resource.data.title.size() <= 80
         && collectionDescriptionOk(request.resource.data)
-        && request.resource.data.visibility in ['private', 'public'];
+        && request.resource.data.visibility in ['private', 'public']
+        && createdNow() && request.resource.data.updated_at == request.time;
       // NOTE: `visibility: 'public'` collections are still readable only by their owner
       // (product decision pending in issue #19); the field is stored but not yet honoured.
       allow update: if signedIn() && resource.data.owner_id == me()
@@ -172,7 +173,8 @@ service cloud.firestore {
         && request.resource.data.title is string
         && request.resource.data.title.size() >= 1 && request.resource.data.title.size() <= 80
         && collectionDescriptionOk(request.resource.data)
-        && request.resource.data.visibility in ['private', 'public'];
+        && request.resource.data.visibility in ['private', 'public']
+        && request.resource.data.updated_at == request.time;
       allow delete: if signedIn() && resource.data.owner_id == me();
     }
 
@@ -186,6 +188,8 @@ service cloud.firestore {
         && createdNow()
         && request.resource.data.post_id is string
         && postExists(request.resource.data.post_id)
+        // Only posts the user can actually see: public + active, or their own.
+        && (postIsPublicActive(request.resource.data.post_id) || post(request.resource.data.post_id).creator_id == me())
         && get(/databases/$(database)/documents/collections/$(request.resource.data.collection_id)).data.owner_id == me();
       allow update: if false;
       allow delete: if signedIn() && (resource == null || resource.data.owner_id == me());

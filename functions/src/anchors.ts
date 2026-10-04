@@ -1,13 +1,17 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, requireCaller, Timestamp } from './core';
+import { assertServiceEnabled, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, requireCaller, Timestamp } from './core';
 import { reasonError } from './errors';
 import { deleteAnchorOrQueue } from './anchorQueue';
 
 /** Same alphabet as placement.ts CLOUD_ANCHOR_ID. */
 export const CLOUD_ANCHOR_ID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
 export const MAX_ANCHORS_PER_DAY = 100;
-/** Unbound ownership records expire (Firestore TTL on expires_at); createPost clears the field. */
-export const UNBOUND_ANCHOR_TTL_DAYS = 7;
+/**
+ * Unbound ownership records expire (Firestore TTL on expires_at); createPost clears the field.
+ * Same length as the orphan grace in cleanup.ts (ORPHAN_ANCHOR_GRACE_DAYS), because a post can
+ * wait that long in the iOS offline publish queue before it binds its anchor.
+ */
+export const UNBOUND_ANCHOR_TTL_DAYS = 30;
 const DAY_MS = 86_400_000;
 
 /**
@@ -19,6 +23,7 @@ const DAY_MS = 86_400_000;
  */
 export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
+  await assertServiceEnabled('register_anchor');
   if (!identityVerified(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
   }
@@ -127,12 +132,22 @@ export async function consumePostQuota(
   });
 }
 
+/**
+ * Failed publishes (invalid anchor, placement error) get their slot back, but only a few times
+ * per hour: every attempt still runs the density queries, so unlimited refunds would let a client
+ * hammer createPost for free.
+ */
+export const MAX_REFUNDS_PER_HOUR = 3;
+
 /** Gives back a slot taken by consumePostQuota when the post was not created after all. */
-export async function refundPostQuota(luid: string, nowMs: number): Promise<void> {
+export async function refundPostQuota(luid: string, nowMs: number): Promise<boolean> {
   const { hourRef, dayRef } = postQuotaRefs(luid, nowMs);
-  await db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx) => {
     const [h, d] = await Promise.all([tx.get(hourRef), tx.get(dayRef)]);
-    if (h.exists) tx.update(hourRef, { count: Math.max(0, Number(h.data()!.count ?? 0) - 1) });
+    const refunds = Number(h.data()?.refunds ?? 0);
+    if (!h.exists || refunds >= MAX_REFUNDS_PER_HOUR) return false;
+    tx.update(hourRef, { count: Math.max(0, Number(h.data()!.count ?? 0) - 1), refunds: refunds + 1 });
     if (d.exists) tx.update(dayRef, { count: Math.max(0, Number(d.data()!.count ?? 0) - 1) });
+    return true;
   });
 }

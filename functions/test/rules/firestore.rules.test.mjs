@@ -216,12 +216,26 @@ test('moderation_flags: metadata keys are known and every value is a string of a
   await assertFails(setDoc(doc(db, 'moderation_flags', 'm-type'), { ...flag, metadata: { source: { nested: 'x' } } }));
 });
 
-test('collection_items: the post must exist', async () => {
+test('collection_items: the post must exist and be visible to the saver', async () => {
   const db = as(BOB);
   const item = (postId) => ({ collection_id: 'c1', post_id: postId, owner_id: BOB, sort_order: 1, created_at: serverTimestamp() });
   const missing = '99999999-9999-4999-8999-999999999999';
   await assertFails(setDoc(doc(db, 'collection_items', `c1_${missing}`), item(missing)));
   await assertSucceeds(setDoc(doc(db, 'collection_items', `c1_${POST}`), item(POST)));
+  // Someone else's pending / private posts cannot be collected.
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'posts', 'alice-pending'), { creator_id: ALICE, status: 'pending_review', visibility: 'public' });
+    await setDoc(doc(ctx.firestore(), 'posts', 'bob-pending'), { creator_id: BOB, status: 'pending_review', visibility: 'public' });
+  });
+  await assertFails(setDoc(doc(db, 'collection_items', 'c1_alice-pending'), item('alice-pending')));
+  await assertSucceeds(setDoc(doc(db, 'collection_items', 'c1_bob-pending'), item('bob-pending')));
+});
+
+test('collections: timestamps must be server time', async () => {
+  const db = as(BOB);
+  const base = { id: 'c-ts', owner_id: BOB, title: 'T', description: null, visibility: 'private' };
+  await assertFails(setDoc(doc(db, 'collections', 'c-ts'), { ...base, created_at: new Date(0), updated_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db, 'collections', 'c-ts'), { ...base, created_at: serverTimestamp(), updated_at: serverTimestamp() }));
 });
 
 test('activity_events: recipient reads and marks read; nothing else', async () => {
@@ -247,7 +261,7 @@ test('user_blocks: only the blocker reads; protected_zones are public read-only'
 });
 
 test('server-only collections stay closed for clients (reads and writes)', async () => {
-  for (const name of ['handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system']) {
+  for (const name of ['handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites']) {
     await assertFails(getDoc(doc(as(ALICE), name, 'x')));
     await assertFails(setDoc(doc(as(ALICE), name, 'x'), { owner_luid: ALICE }));
   }

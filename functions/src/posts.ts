@@ -1,8 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { onCall } from 'firebase-functions/v2/https';
 import {
-  bucket, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID, logEvent,
-  requireCaller, Timestamp,
+  assertServiceEnabled,
+  bucket,
+  CALLABLE_MAX_INSTANCES,
+  db,
+  deleteStoragePrefix,
+  ENFORCE_APP_CHECK,
+  FieldValue,
+  HttpsError,
+  identityVerified,
+  isUUID,
+  logEvent,
+  logger,
+  requireCaller,
+  Timestamp,
 } from './core';
 import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
 import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
@@ -64,6 +76,7 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
 
 export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
+  await assertServiceEnabled('create_post');
   const body = request.data as CreatePostBody;
   const validationError = validateCreatePostBody(body, caller.luid);
   if (validationError) throw new HttpsError('invalid-argument', validationError);
@@ -179,7 +192,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     outcome = await insertPost();
   } finally {
     if (!outcome || 'replay' in outcome) {
-      await refundPostQuota(caller.luid, quotaAt).catch((error) => console.error('post_quota_refund_failed', error));
+      await refundPostQuota(caller.luid, quotaAt).catch((error) => logger.error('post_quota_refund_failed', { luid: caller.luid, error: String(error) }));
     }
   }
   if ('replay' in outcome) return outcome.replay;

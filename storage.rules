@@ -23,12 +23,14 @@ service firebase.storage {
     // Maps describe real places: only the owner, or any signed-in user while the post is active
     // and public, may read them. Friends-only and private posts keep their geometry to the owner.
     // Needs the cross-service grant for Storage rules to read Firestore (see docs/FIREBASE_SETUP.md).
-    function postIsPublicActive(postId) {
+    // The folder owner must be the post's creator: otherwise anyone could upload a map under their
+    // own folder with someone else's public post id and have it served to every viewer.
+    function postIsPublicActiveBy(postId, luid) {
       let p = firestore.get(/databases/(default)/documents/posts/$(postId.lower())).data;
-      return p.status == 'active' && p.visibility == 'public';
+      return p.status == 'active' && p.visibility == 'public' && p.creator_id == luid;
     }
     match /post-world-maps/{luid}/{postId}/{file} {
-      allow read: if owner(luid) || (signedIn() && uuid(postId) && postIsPublicActive(postId));
+      allow read: if owner(luid) || (signedIn() && uuid(postId) && postIsPublicActiveBy(postId, luid));
       allow create, update: if owner(luid) && uuid(postId) && under(20) && file.matches('.*\\.lociarmap')
         && request.resource.contentType == 'application/x-lociarmap';
       allow delete: if owner(luid);
@@ -48,8 +50,10 @@ service firebase.storage {
     // and publishes accepted photos to current/. Pending photos are never readable.
     // Each upload needs a slot from the beginAvatarUpload callable (avatar_uploads/{id}, counted
     // against the hourly quota), so uploads themselves are rate limited, not just screening.
+    // The slot must belong to the uploader and still be valid (TTL deletion can lag up to a day).
     function ownsUploadSlot(luid, file) {
-      return firestore.get(/databases/(default)/documents/avatar_uploads/$(file.split('\\.')[0])).data.luid == luid;
+      let slot = firestore.get(/databases/(default)/documents/avatar_uploads/$(file.split('\\.')[0])).data;
+      return slot.luid == luid && slot.expires_at > request.time;
     }
     match /avatars/{luid}/pending/{file} {
       allow read: if false;

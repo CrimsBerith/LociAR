@@ -19,6 +19,7 @@ export const REASONS = [
   'reauth_required',
   'apple_revoke_failed',
   'apple_revoke_unavailable',
+  'service_paused',
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

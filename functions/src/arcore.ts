@@ -1,6 +1,6 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { GoogleAuth } from 'google-auth-library';
-import { db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
+import { assertServiceEnabled, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, logger, requireCaller, Timestamp } from './core';
 import { profileBlock } from './profileGuard';
 import { reasonError } from './errors';
 import { buildArcoreClaims, tokenQuotaDocId } from './arcoreToken';
@@ -14,16 +14,22 @@ import { buildArcoreClaims, tokenQuotaDocId } from './arcoreToken';
  */
 const TOKENS_PER_HOUR = 30;
 const googleAuth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
-let signerEmail: string | null = process.env.ARCORE_SIGNER_EMAIL || null;
+const inEmulator = () => process.env.FUNCTIONS_EMULATOR === 'true';
 
-async function runtimeServiceAccountEmail(): Promise<string> {
-  if (signerEmail) return signerEmail;
-  // Fallback for local setups only: signing as the runtime account needs Token Creator on itself.
-  console.warn(JSON.stringify({ event: 'arcore_signer_env_missing', code: 'ARCORE_SIGNER_EMAIL is not set; signing ARCore tokens as the runtime service account. Run scripts/google-cloud-setup.command.' }));
+/**
+ * The signer must be the dedicated role-less account. Outside the emulator a missing
+ * ARCORE_SIGNER_EMAIL fails closed instead of signing as the (privileged) runtime account.
+ */
+async function signerServiceAccountEmail(): Promise<string> {
+  const configured = process.env.ARCORE_SIGNER_EMAIL;
+  if (configured) return configured;
+  if (!inEmulator()) {
+    logger.error('arcore_signer_env_missing', { code: 'ARCORE_SIGNER_EMAIL is not set. Run scripts/google-cloud-setup.command, then redeploy functions.' });
+    throw new Error('ARCORE_SIGNER_EMAIL is not configured');
+  }
   const credentials = await googleAuth.getCredentials();
   if (!credentials.client_email) throw new Error('Runtime service account email unavailable');
-  signerEmail = credentials.client_email;
-  return signerEmail;
+  return credentials.client_email;
 }
 
 async function signJwt(email: string, payload: object): Promise<string> {
@@ -35,6 +41,7 @@ async function signJwt(email: string, payload: object): Promise<string> {
 
 export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
+  await assertServiceEnabled('arcore_token');
   const profile = await db.collection('profiles').doc(caller.luid).get();
   const blocked = profileBlock(profile.data());
   if (blocked) throw reasonError('permission-denied', blocked.message, blocked.reason);
@@ -54,11 +61,12 @@ export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
   if (!allowed) throw reasonError('resource-exhausted', 'ARCore token limit reached', 'rate_limited');
 
   try {
-    const claims = buildArcoreClaims(await runtimeServiceAccountEmail(), now / 1000);
+    const claims = buildArcoreClaims(await signerServiceAccountEmail(), now / 1000);
     const token = await signJwt(claims.iss, claims);
-    return { token, expiresAt: new Date(claims.exp * 1000).toISOString() };
+    // expiresIn (seconds) lets the app compute expiry on its own clock; expiresAt stays for old builds.
+    return { token, expiresAt: new Date(claims.exp * 1000).toISOString(), expiresIn: Math.max(0, Math.floor(claims.exp - now / 1000)) };
   } catch (error) {
-    console.error('arcore_token_failed', error);
+    logger.error('arcore_token_failed', { luid: caller.luid, error: String(error) });
     // Signing failed (IAM outage): give the slot back so the user is not locked out for an hour.
     await quotaRef.set({ count: FieldValue.increment(-1) }, { merge: true }).catch(() => undefined);
     throw new HttpsError('unavailable', 'ARCore authorization is temporarily unavailable');

@@ -53,7 +53,7 @@ test('registerCloudAnchor: 100 registrations a day, the 101st is refused; unboun
 
   const record = (await adminDb.collection('cloud_anchors').doc(ids[0]).get()).data();
   const ttlDays = (record.expires_at.toMillis() - Date.now()) / 86_400_000;
-  assert.ok(ttlDays > 6.9 && ttlDays <= 7, `unbound record expires in 7 days, got ${ttlDays}`);
+  assert.ok(ttlDays > 29.9 && ttlDays <= 30, `unbound record expires in 30 days (the orphan grace), got ${ttlDays}`);
   await user.call('createPost', postBody({ pose: anchorPose(ids[0]) }));
   const bound = (await adminDb.collection('cloud_anchors').doc(ids[0]).get()).data();
   assert.equal(bound.expires_at, undefined, 'binding to a post removes the expiry');

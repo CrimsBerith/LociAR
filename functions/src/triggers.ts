@@ -177,7 +177,8 @@ export const onProfileUpdated = onDocumentUpdated('profiles/{luid}', async (even
   const luid = event.params.luid;
   for (const field of ['bio', 'display_name'] as const) {
     if (before[field] !== after[field] && anyBlocked([after[field]])) {
-      await db.collection('moderation_flags').doc(randomUUID()).set({
+      // Event-scoped id: a redelivered event overwrites the same flag instead of adding a second one.
+      await db.collection('moderation_flags').doc(`profile_${event.id}_${field}`).set({
         post_id: null,
         user_id: luid,
         reason: 'profile_text_filtered',
