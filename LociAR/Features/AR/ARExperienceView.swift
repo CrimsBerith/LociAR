@@ -549,6 +549,8 @@ struct ARExperienceView: View {
         defer { isStartingCreationMode = false }
         isCreationMode = true
         viewingPost = nil
+        // Geo-tagging the new pin (ARCore Geospatial) needs precise location.
+        location.requestPreciseAccuracyIfNeeded()
         if await engine.prepareNewPinSession() == false {
             return
         }

@@ -117,13 +117,18 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         }
     }
 
+    /// Upper bounds for per-user lists, so one account with a huge history cannot make a screen
+    /// read thousands of documents. Blocks get a larger bound because filtering needs all of them.
+    nonisolated static let edgeListLimit = 500
+    nonisolated static let blockListLimit = 1000
+
     func savedPostIDs(for userID: UUID) async throws -> [UUID] {
-        try await documents(db.collection("post_saves").whereField("user_id", isEqualTo: key(userID)))
+        try await documents(db.collection("post_saves").whereField("user_id", isEqualTo: key(userID)).limit(to: Self.edgeListLimit))
             .compactMap { uuid($0.1["post_id"]) }
     }
 
     func likedPostIDs(for userID: UUID) async throws -> [UUID] {
-        try await documents(db.collection("likes").whereField("user_id", isEqualTo: key(userID)))
+        try await documents(db.collection("likes").whereField("user_id", isEqualTo: key(userID)).limit(to: Self.edgeListLimit))
             .compactMap { uuid($0.1["post_id"]) }
     }
 
@@ -184,12 +189,12 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
     }
 
     func followingIDs(for userID: UUID) async throws -> [UUID] {
-        try await documents(db.collection("follows").whereField("follower_id", isEqualTo: key(userID)))
+        try await documents(db.collection("follows").whereField("follower_id", isEqualTo: key(userID)).limit(to: Self.edgeListLimit))
             .compactMap { uuid($0.1["following_id"]) }
     }
 
     func blockedUserIDs(for userID: UUID) async throws -> [UUID] {
-        try await documents(db.collection("user_blocks").whereField("blocker_id", isEqualTo: key(userID)))
+        try await documents(db.collection("user_blocks").whereField("blocker_id", isEqualTo: key(userID)).limit(to: Self.blockListLimit))
             .compactMap { uuid($0.1["blocked_id"]) }
     }
 
@@ -208,6 +213,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
             db.collection("collections")
                 .whereField("owner_id", isEqualTo: key(userID))
                 .order(by: "updated_at", descending: true)
+                .limit(to: Self.edgeListLimit)
         )
         return rows.compactMap { id, data in
             guard let collectionID = UUID(uuidString: id), let owner = uuid(data["owner_id"]) else { return nil }
@@ -258,6 +264,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
                 .whereField("collection_id", isEqualTo: key(collectionID))
                 .whereField("owner_id", isEqualTo: key(me))
                 .order(by: "sort_order")
+                .limit(to: Self.edgeListLimit)
         ).compactMap { uuid($0.1["post_id"]) }
     }
 

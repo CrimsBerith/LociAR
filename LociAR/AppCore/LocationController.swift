@@ -11,6 +11,10 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     private(set) var errorMessage: String?
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var wantsLocationUpdates = false
+    @ObservationIgnored private var wantsPreciseAccuracy = false
+
+    /// Purpose key in Info.plist `NSLocationTemporaryUsageDescriptionDictionary`.
+    nonisolated static let geospatialAccuracyPurposeKey = "GeospatialAccuracy"
 
     override init() {
         authorizationStatus = manager.authorizationStatus
@@ -41,6 +45,17 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
         if CLLocationManager.headingAvailable() { manager.startUpdatingHeading() }
     }
 
+    /// ARCore Geospatial needs precise location. When the user granted only approximate location,
+    /// ask once per AR session for temporary full accuracy (iOS shows the purpose string).
+    func requestPreciseAccuracyIfNeeded() {
+        wantsPreciseAccuracy = true
+        let status = manager.authorizationStatus
+        guard status == .authorizedWhenInUse || status == .authorizedAlways,
+              manager.accuracyAuthorization == .reducedAccuracy else { return }
+        wantsPreciseAccuracy = false
+        manager.requestTemporaryFullAccuracyAuthorization(withPurposeKey: Self.geospatialAccuracyPurposeKey)
+    }
+
     func stop() {
         wantsLocationUpdates = false
         manager.stopUpdatingLocation()
@@ -53,6 +68,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
         if authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse {
             errorMessage = nil
             start()
+            if wantsPreciseAccuracy { requestPreciseAccuracyIfNeeded() }
         } else if authorizationStatus == .denied || authorizationStatus == .restricted {
             stop()
             errorMessage = "Konum izni gerekli. Ayarlar'dan konum erişimini açın."

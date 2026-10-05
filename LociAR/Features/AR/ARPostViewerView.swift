@@ -243,6 +243,7 @@ struct ARPostViewerView: View {
         accessBlocked = false
         isAiming = false
         location.start()
+        location.requestPreciseAccuracyIfNeeded()
         // An expired Cloud Anchor or world map no longer blocks the post: the next resolver
         // (geospatial, then aim-guided reveal) takes over.
         if session.isLocalPreview {

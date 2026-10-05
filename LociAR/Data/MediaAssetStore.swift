@@ -4,6 +4,8 @@ import Foundation
 enum MediaAssetStore {
     static let signedURLLifetimeSeconds = 60 * 60
 
+#if DEBUG
+    /// Test-only: device photo/video posts were removed, nothing in the app stages media anymore.
     nonisolated static func stage(data: Data, id: UUID, isVideo: Bool) async throws -> URL {
         try await Task.detached(priority: .utility) {
             let root = try preparedStagingDirectory()
@@ -12,6 +14,7 @@ enum MediaAssetStore {
             return url
         }.value
     }
+#endif
 
 
 

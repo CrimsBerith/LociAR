@@ -634,6 +634,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["auth-apple"].exists)
         XCTAssertTrue(identifiedControl(app, "auth-privacy").waitForExistence(timeout: 3))
         XCTAssertTrue(identifiedControl(app, "auth-terms").exists)
+        XCTAssertTrue(identifiedControl(app, "auth-terms-consent").exists)
         XCTAssertTrue(identifiedControl(app, "auth-support").exists)
         XCTAssertFalse(app.buttons["auth-google"].exists)
         XCTAssertFalse(app.buttons["auth-device-preview"].exists)
@@ -1714,12 +1715,21 @@ extension AuthGateUITests {
         _ = e2eField(app, "auth-email-field").waitForExistence(timeout: 10)
     }
 
+    /// The sign-in screen requires the explicit privacy/terms consent checkbox.
+    private func e2eAcceptTerms(_ app: XCUIApplication) {
+        let consent = e2eField(app, "auth-terms-consent")
+        guard consent.waitForExistence(timeout: 5), !consent.isSelected else { return }
+        for _ in 0..<4 where !consent.isHittable { app.swipeUp() }
+        consent.tap()
+    }
+
     private func e2eSignIn(_ app: XCUIApplication) -> Bool {
         for attempt in 0..<4 {
             app.buttons["auth-mode-signin"].tap()
             e2eType(app, "auth-email-field", e2eEmail)
             e2eType(app, "auth-password-field", e2ePassword)
             dismissKeyboard(app)
+            e2eAcceptTerms(app)
             e2eField(app, "auth-email-submit").tap()
             if app.tabBars.firstMatch.waitForExistence(timeout: 30) { return true }
             capture(app, name: "e2e-signin-attempt-\(attempt)")
@@ -1745,6 +1755,7 @@ extension AuthGateUITests {
         e2eType(app, "auth-password-field", e2ePassword)
         e2eType(app, "auth-confirm-password-field", e2ePassword)
         dismissKeyboard(app)
+        e2eAcceptTerms(app)
         e2eField(app, "auth-email-submit").tap()
         e2eAllowSystemAlerts() // iOS "yerel ağ" izni ilk emulator bağlantısında sorulur
         let created = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Hesabın oluşturuldu")).firstMatch

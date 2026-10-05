@@ -170,8 +170,8 @@ final class AppSession {
         if shouldSignOutRemotely { await authRepository.signOut() }
     }
 
-    func deleteAccount() async throws {
-        try await authRepository.deleteAccount()
+    func deleteAccount(password: String? = nil) async throws {
+        try await authRepository.deleteAccount(password: password)
         await NotificationService.shared.accountDeleted()
         phase = .signedOut
     }

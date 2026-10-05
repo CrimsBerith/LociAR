@@ -172,6 +172,9 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     @State private var message: String?
     @State private var isDeletingAccount = false
+    /// Email accounts confirm deletion with their password (re-authentication).
+    @State private var askDeletionPassword = false
+    @State private var deletionPassword = ""
     @State private var isSigningOut = false
 
     var body: some View {
@@ -268,6 +271,16 @@ struct ProfileView: View {
             Button("Hesabı sil", role: .destructive) { Task { await deleteAccount() } }
             Button("Vazgeç", role: .cancel) {}
         } message: { Text("Postlarınız ve sosyal verileriniz sunucudan silinir. Bu işlem geri alınamaz.") }
+        .alert("Şifreni gir", isPresented: $askDeletionPassword) {
+            SecureField("Şifre", text: $deletionPassword)
+                .textContentType(.password)
+            Button("Hesabı sil", role: .destructive) {
+                let password = deletionPassword
+                deletionPassword = ""
+                Task { await deleteAccount(password: password) }
+            }
+            Button("Vazgeç", role: .cancel) { deletionPassword = "" }
+        } message: { Text("Güvenlik için hesabını silmeden önce şifreni gir.") }
         .alert("Hesap silinemedi", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("Tamam", role: .cancel) {}
         } message: { Text(message ?? "") }
@@ -284,12 +297,15 @@ struct ProfileView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    private func deleteAccount() async {
+    private func deleteAccount(password: String? = nil) async {
         guard !isDeletingAccount else { return }
         isDeletingAccount = true
         defer { isDeletingAccount = false }
         do {
-            try await session.deleteAccount()
+            try await session.deleteAccount(password: password)
+        } catch AuthFlowError.passwordRequired {
+            askDeletionPassword = true
+            return
         } catch let error as AuthFlowError {
             // Re-sign-in needed, Apple re-authorization cancelled or Apple revocation failed:
             // nothing was deleted and the message says what to do.
@@ -543,20 +559,26 @@ struct SavedPostsView: View {
                 posts = []
                 return
             }
-            let loaded = await withTaskGroup(of: (Int, LociPost?).self) { group in
+            // nil post = removed or hidden (skipped); a thrown error = could not load (reported).
+            let loaded = await withTaskGroup(of: (Int, LociPost?, Bool).self) { group in
                 for (index, id) in ids.enumerated() {
                     group.addTask {
-                        let post = try? await container.posts.publicPost(id: id)
-                        return (index, post)
+                        do { return (index, try await container.posts.publicPost(id: id), false) }
+                        catch { return (index, nil, true) }
                     }
                 }
                 var results: [(Int, LociPost)] = []
-                for await (index, post) in group {
+                var failures = 0
+                for await (index, post, failed) in group {
                     if let post { results.append((index, post)) }
+                    if failed { failures += 1 }
                 }
-                return results.sorted { $0.0 < $1.0 }.map(\.1)
+                return (results.sorted { $0.0 < $1.0 }.map(\.1), failures)
             }
-            posts = loaded
+            posts = loaded.0
+            if loaded.1 > 0 {
+                message = "Kaydedilen postların bir kısmı yüklenemedi. Yenilemek için aşağı çek."
+            }
         } catch { message = "Kaydedilen postlar şu anda yüklenemiyor." }
     }
 }
@@ -1196,7 +1218,11 @@ struct PostPreviewView: View {
             return
         }
         guard container.isBackendConfigured || session.isLocalPreview else { return }
-        comments = (try? await container.social.comments(for: post.id)) ?? []
+        do {
+            comments = try await container.social.comments(for: post.id)
+        } catch {
+            message = "Yorumlar şu anda yüklenemedi."
+        }
         if case let .signedIn(user) = session.phase {
             async let savedIDs = container.social.savedPostIDs(for: user.id)
             async let likedIDs = container.social.likedPostIDs(for: user.id)

@@ -591,6 +591,8 @@ struct CreatePostView: View {
                 message = session.isLocalPreview
                     ? "Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir."
                     : "İnternet bağlantısı yok. Post cihazda sıraya alındı ve bağlantı geri geldiğinde yeniden denenecek."
+            case .queued(.servicePaused):
+                message = "LociAR geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak."
             case .queued(.backendUnavailable):
                 message = "Yayın ilk denemede tamamlanamadı. Post Profil > Postlarım’da görünür; uygulama 15 saniyede bir yeniden dener veya ‘Şimdi yayınla’ ile hemen gönderebilirsin."
             case .rejected(let reason):
@@ -743,7 +745,9 @@ struct CreatePostView: View {
     }
 
     private func openExternalPlatform(_ platform: ExternalMediaPlatform) {
+#if DEBUG
         guard !ProcessInfo.processInfo.arguments.contains("UITEST_DISABLE_EXTERNAL_APP_LAUNCH") else { return }
+#endif
         openURL(platform.appLaunchURL) { accepted in
             if !accepted { openURL(platform.webLaunchURL) }
         }

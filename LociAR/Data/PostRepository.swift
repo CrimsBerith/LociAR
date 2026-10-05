@@ -216,8 +216,15 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
 
     func publicPost(id: UUID) async throws -> LociPost? {
         // Rules deny reads of documents the caller may not see; treat that as "not found".
-        guard let snapshot = try? await posts.document(FirebaseIdentity.key(id)).getDocument(),
-              let data = snapshot.data(),
+        // Network and other failures are thrown so the caller can say so and offer a retry.
+        let snapshot: DocumentSnapshot
+        do {
+            snapshot = try await posts.document(FirebaseIdentity.key(id)).getDocument()
+        } catch let error as NSError where error.domain == FirestoreErrorDomain
+            && error.code == FirestoreErrorCode.permissionDenied.rawValue {
+            return nil
+        }
+        guard let data = snapshot.data(),
               FirestorePostMapper.isPubliclyListed(data),
               let row = try? FirestorePostMapper.row(id: snapshot.documentID, data: data) else { return nil }
         if try await blockCache.blockedIDs().contains(data["creator_id"] as? String ?? "") { return nil }
@@ -335,6 +342,7 @@ actor BlockListCache {
     private nonisolated static func fetch(blocker: String) async throws -> Set<String> {
         let snapshot = try await Firestore.firestore().collection("user_blocks")
             .whereField("blocker_id", isEqualTo: blocker)
+            .limit(to: 1000)
             .getDocuments()
         return Set(snapshot.documents.compactMap { $0.data()["blocked_id"] as? String })
     }

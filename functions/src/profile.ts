@@ -13,6 +13,16 @@ export function defaultHandle(luid: string, length = 8): string {
 /** handles/{handle} → { luid } reserves a username so no two profiles share one. */
 export const handleRef = (handle: string) => db.collection('handles').doc(handle);
 
+/** Terms/privacy version the app shows on its consent checkbox, e.g. "2026-10-04". */
+export const TERMS_VERSION_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** The consent record to merge into users_private, or null when nothing (valid) was sent. */
+export function termsConsentUpdate(value: unknown, alreadyAccepted: unknown): { terms_version: string } | null {
+  if (typeof value !== 'string' || !TERMS_VERSION_PATTERN.test(value)) return null;
+  if (value === alreadyAccepted) return null;
+  return { terms_version: value };
+}
+
 function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean {
   return !snap.exists || snap.data()!.luid === luid;
 }
@@ -26,7 +36,7 @@ function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean
  */
 export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
-  const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown };
+  const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown; termsVersion?: unknown };
 
   const userRecord = await auth.getUser(caller.uid);
   const claims = { ...(userRecord.customClaims ?? {}) } as Record<string, unknown>;
@@ -85,6 +95,9 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
     return { ...created, created_at: null, updated_at: null };
   });
 
+  // Explicit consent (checkbox on the sign-in screen): which terms version was accepted and when.
+  // users_private is server-only, so this record cannot be forged by a client write.
+  const consent = termsConsentUpdate(data.termsVersion, (await privateRef.get()).data()?.terms_version);
   await privateRef.set(
     {
       uid: caller.uid,
@@ -92,6 +105,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
       auth_provider: caller.provider,
       identity_verified: caller.isAppleUser || caller.emailVerified,
       last_seen_at: FieldValue.serverTimestamp(),
+      ...(consent ? { ...consent, terms_accepted_at: FieldValue.serverTimestamp() } : {}),
     },
     { merge: true },
   );

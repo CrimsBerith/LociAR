@@ -1,5 +1,6 @@
 import AuthenticationServices
 import Foundation
+import OSLog
 @preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseFirestore
 @preconcurrency import FirebaseFunctions
@@ -20,7 +21,20 @@ protocol AuthRepository: Sendable {
     func completeAuthCallback(_ url: URL) async throws -> LociUser?
     func signInWithApple(identityToken: String, nonce: String?, fullName: String?) async throws -> LociUser
     func signOut() async
-    func deleteAccount() async throws
+    /// `password` re-authenticates email accounts (nil → `AuthFlowError.passwordRequired`).
+    func deleteAccount(password: String?) async throws
+}
+
+/// Explicit consent to the privacy policy and community rules (App Store guideline 1.2):
+/// the sign-in screen requires the checkbox before creating or using an account, and
+/// `ensureProfile` stores the accepted version server-side.
+enum TermsConsent {
+    /// Date of the current privacy policy / terms (admin/app/legal-entity.ts).
+    nonisolated static let currentVersion = "2026-10-04"
+    nonisolated static let storageKey = "terms_accepted_version"
+
+    nonisolated static var isAccepted: Bool { UserDefaults.standard.string(forKey: storageKey) == currentVersion }
+    nonisolated static var acceptedVersion: String? { isAccepted ? currentVersion : nil }
 }
 
 struct AuthSignUpResult: Sendable {
@@ -41,6 +55,8 @@ enum AuthFlowError: LocalizedError, Sendable {
     case photoRateLimited
     case appleReauthenticationRequired
     case appleRevocationFailed
+    case passwordRequired
+    case wrongPassword
 
     var errorDescription: String? {
         switch self {
@@ -68,6 +84,10 @@ enum AuthFlowError: LocalizedError, Sendable {
             "Hesabı silmek için Apple ile yeniden doğrulama gerekiyor."
         case .appleRevocationFailed:
             "Apple oturum izni geri alınamadı, hesabın silinmedi. Biraz sonra tekrar dene."
+        case .passwordRequired:
+            "Güvenlik için hesabını silmeden önce şifreni gir."
+        case .wrongPassword:
+            "Şifre doğru değil. Hesabın silinmedi."
         }
     }
 }
@@ -75,6 +95,7 @@ enum AuthFlowError: LocalizedError, Sendable {
 /// Firebase Authentication. A Firebase session whose email is not verified yet is kept
 /// (so verification mail can be re-sent) but is never surfaced to the app as signed in.
 final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
+    private static let logger = Logger(subsystem: "com.khankartal.lociar", category: "auth")
     private let callables: CallableClient
 
     init(functionsRegion: String) {
@@ -91,6 +112,8 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
 
     private struct EnsureProfilePayload: Encodable, Sendable {
         let displayName: String?
+        /// Terms version the user accepted on the sign-in screen; the server records it once.
+        let termsVersion: String?
     }
 
     nonisolated private static func isVerified(_ user: User) -> Bool {
@@ -115,7 +138,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     private func establish(_ user: User, displayName: String? = nil) async throws -> LociUser {
         let response: EnsureProfileResponse = try await callables.call(
             "ensureProfile",
-            payload: EnsureProfilePayload(displayName: displayName)
+            payload: EnsureProfilePayload(displayName: displayName, termsVersion: TermsConsent.acceptedVersion)
         )
         if response.claimsUpdated {
             _ = try await user.getIDTokenResult(forcingRefresh: true)
@@ -133,9 +156,13 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         guard let user = Auth.auth().currentUser else { return nil }
         try? await user.reload()
         guard let refreshed = Auth.auth().currentUser, Self.isVerified(refreshed) else { return nil }
-        if let established = try? await establish(refreshed) { return established }
-        // Offline launch: fall back to cached Auth profile; claims are refreshed on next launch.
-        return Self.domainUser(refreshed)
+        do {
+            return try await establish(refreshed)
+        } catch {
+            // Offline launch: fall back to cached Auth profile; claims are refreshed on next launch.
+            Self.logger.error("ensure_profile_failed: \(error.localizedDescription, privacy: .public)")
+            return Self.domainUser(refreshed)
+        }
     }
 
     func sessionChanges() async -> AsyncStream<LociUser?> {
@@ -267,18 +294,38 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         try? Auth.auth().signOut()
     }
 
-    func deleteAccount() async throws {
+    func deleteAccount(password: String?) async throws {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
 
+        // deleteAccount requires a sign-in within the last 5 minutes (auth_time), so the user
+        // re-authenticates first; this refreshes auth_time on the ID token the callable sees.
         let isApple = user.providerData.contains(where: { $0.providerID == "apple.com" })
-        // Guideline 5.1.1(v): Apple accounts send a fresh Sign in with Apple authorization code; the
-        // server revokes the grant with Apple and deletes nothing if that fails.
+        let isPassword = user.providerData.contains(where: { $0.providerID == "password" })
+        // Guideline 5.1.1(v): Apple accounts also send the fresh authorization code; the server
+        // revokes the grant with Apple and deletes nothing if that fails.
         var appleCode: String?
         if isApple {
+            let apple: AppleReauthenticator.Result
             do {
-                appleCode = try await AppleReauthenticator.authorizationCode()
+                apple = try await AppleReauthenticator.authorize()
             } catch {
                 throw AuthFlowError.appleReauthenticationRequired
+            }
+            do {
+                let credential = OAuthProvider.appleCredential(withIDToken: apple.identityToken, rawNonce: apple.rawNonce, fullName: nil)
+                try await user.reauthenticate(with: credential)
+            } catch {
+                throw AuthFlowError.appleReauthenticationRequired
+            }
+            appleCode = apple.authorizationCode
+        } else if isPassword {
+            guard let password, !password.isEmpty, let email = user.email else { throw AuthFlowError.passwordRequired }
+            do {
+                try await user.reauthenticate(with: EmailAuthProvider.credential(withEmail: email, password: password))
+            } catch {
+                let code = AuthErrorCode(rawValue: (error as NSError).code)
+                if code == .wrongPassword || code == .invalidCredential { throw AuthFlowError.wrongPassword }
+                throw error
             }
         }
 
@@ -302,25 +349,35 @@ private final class ListenerBox: @unchecked Sendable {
     var handle: AuthStateDidChangeListenerHandle?
 }
 
-/// Presents a Sign in with Apple sheet solely to obtain a fresh authorization code for token
-/// revocation during account deletion.
+/// Presents a Sign in with Apple sheet during account deletion: the identity token (with a fresh
+/// nonce) re-authenticates the Firebase user, the authorization code lets the server revoke the
+/// Apple grant.
 @MainActor
 final class AppleReauthenticator: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-    private var continuation: CheckedContinuation<String, Error>?
+    struct Result: Sendable {
+        let authorizationCode: String
+        let identityToken: String
+        let rawNonce: String
+    }
+
+    private var continuation: CheckedContinuation<Result, Error>?
+    private var rawNonce = ""
     private static var active: AppleReauthenticator?
 
-    static func authorizationCode() async throws -> String {
+    static func authorize() async throws -> Result {
         let reauthenticator = AppleReauthenticator()
         active = reauthenticator
         defer { active = nil }
         return try await reauthenticator.run()
     }
 
-    private func run() async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
+    private func run() async throws -> Result {
+        rawNonce = Nonce.make()
+        return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             let request = ASAuthorizationAppleIDProvider().createRequest()
             request.requestedScopes = []
+            request.nonce = Nonce.sha256(rawNonce)
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
             controller.presentationContextProvider = self
@@ -329,11 +386,15 @@ final class AppleReauthenticator: NSObject, ASAuthorizationControllerDelegate, A
     }
 
     nonisolated func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-        let code = (authorization.credential as? ASAuthorizationAppleIDCredential)?.authorizationCode
-            .flatMap { String(data: $0, encoding: .utf8) }
+        let credential = authorization.credential as? ASAuthorizationAppleIDCredential
+        let code = credential?.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
+        let token = credential?.identityToken.flatMap { String(data: $0, encoding: .utf8) }
         Task { @MainActor in
-            if let code { self.continuation?.resume(returning: code) }
-            else { self.continuation?.resume(throwing: AuthFlowError.appleReauthenticationRequired) }
+            if let code, let token {
+                self.continuation?.resume(returning: Result(authorizationCode: code, identityToken: token, rawNonce: self.rawNonce))
+            } else {
+                self.continuation?.resume(throwing: AuthFlowError.appleReauthenticationRequired)
+            }
             self.continuation = nil
         }
     }
@@ -368,5 +429,5 @@ actor UnavailableAuthRepository: AuthRepository {
     func completeAuthCallback(_ url: URL) async throws -> LociUser? { throw missing }
     func signInWithApple(identityToken: String, nonce: String?, fullName: String?) async throws -> LociUser { throw missing }
     func signOut() async {}
-    func deleteAccount() async throws { throw missing }
+    func deleteAccount(password: String?) async throws { throw missing }
 }
