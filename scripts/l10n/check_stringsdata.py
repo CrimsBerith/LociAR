@@ -10,9 +10,13 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from extract import EXCLUDE  # noqa: E402  keys deliberately left untranslated (brands, DEBUG, numbers)
+
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 CATALOG = os.path.join(ROOT, 'LociAR', 'Resources', 'Localizable.xcstrings')
 LETTERS = re.compile(r'[A-Za-zÇĞİÖŞÜçğıöşü]')
+SPECIFIERS = re.compile(r'%(?:lld|@|d|lf|%)')
 
 
 def main():
@@ -30,7 +34,7 @@ def main():
                 data = json.load(f)
             for entry in data.get('tables', {}).get('Localizable', []):
                 key = entry.get('key', '')
-                if LETTERS.search(key):
+                if key not in EXCLUDE and LETTERS.search(SPECIFIERS.sub('', key)):
                     extracted.setdefault(key, data.get('source', name))
     if files == 0:
         sys.exit('No .stringsdata files found; was SWIFT_EMIT_LOC_STRINGS enabled for this build?')

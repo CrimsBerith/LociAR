@@ -76,7 +76,7 @@ EXCLUDE = {
     'Doğrulama e-postası yeniden gönderildi (Önizleme).', 'Kalıcı world-map storage yolu bulunamadı.', 'LociAR Pin',
     'ARCore başlatılamadı', 'İptal edildi', '⚠️ Ağ hatası', '⚠️ Kota aşıldı', '⚠️ VPS zaman aşımı',
     '⚠️ Yetki yok (token / ARCore API)', '⚠️ İç hata', '✅ VPS mevcut', '❌ VPS yok', '❓ Bilinmiyor',
-    'ARCore kapsam kontrolü (debug)', 'Loci', '%lld', '%lld/500', '%lld/220', 'Only social media links', 'Only text posts',
+    'ARCore kapsam kontrolü (debug)', 'ARCore kapsamı', 'Kontrol ediliyor…', 'VPS kapsamını kontrol et', 'Loci', '%lld', '%lld/500', '%lld/220', 'Only social media links', 'Only text posts',
     'Physical AR world lock evidence is incomplete', 'Facebook', 'Instagram', 'Spotify', 'YouTube', 'AR', 'LociAR',
 }
 
@@ -115,4 +115,5 @@ def main():
     for key in EXTRA: keys.setdefault(key, set()).add('functions/src')
     json.dump({k: sorted(v) for k, v in sorted(keys.items())}, sys.stdout, ensure_ascii=False, indent=1)
 
-main()
+if __name__ == '__main__':
+    main()

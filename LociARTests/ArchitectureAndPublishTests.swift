@@ -75,8 +75,15 @@ final class ArchitectureAndPublishTests: XCTestCase {
             contentsOf: root.appendingPathComponent("LociAR/Features/AR/ARExperienceView.swift"),
             encoding: .utf8
         )
+        let coordinator = try String(
+            contentsOf: root.appendingPathComponent("LociAR/Application/PinCommitCoordinator.swift"),
+            encoding: .utf8
+        )
         XCTAssertTrue(source.contains(".disabled(isPreparingContent || !canPrepareContent)"))
-        XCTAssertTrue(source.contains("errorMessage = (error as? LocalizedError)?.errorDescription"))
+        // The Share tab saves the pin through the shared coordinator and surfaces a failed save.
+        XCTAssertTrue(source.contains("PinCommitCoordinator.commit("))
+        XCTAssertTrue(source.contains("case .worldMapFailed(let reason):"))
+        XCTAssertTrue(coordinator.contains(".worldMapFailed((error as? LocalizedError)?.errorDescription"))
         XCTAssertFalse(source.contains("Keep the live physical pin"))
     }
 
@@ -91,7 +98,7 @@ final class ArchitectureAndPublishTests: XCTestCase {
             encoding: .utf8
         )
 
-        XCTAssertTrue(createSource.contains(".disabled(!canUsePlacement(anchor))"))
+        XCTAssertTrue(createSource.contains(".disabled(!canUsePlacement(anchor) || isCommitting)"))
         XCTAssertTrue(createSource.contains("engine.mappingQuality.canPersist"))
         XCTAssertFalse(createSource.contains("Yine de sabitleyebilirsin"))
         XCTAssertTrue(createSource.contains("Button(\"Tekrar tara\""))
