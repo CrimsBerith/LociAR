@@ -48,6 +48,7 @@ struct ARPostViewerView: View {
                     }
                     .accessibilityLabel("Kapat")
                     Spacer()
+                    ARCoreNoticeButton()
                 }
                 LociCard {
                     VStack(alignment: .leading, spacing: 5) {

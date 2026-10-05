@@ -12946,6 +12946,83 @@
         }
       }
     },
+    "Google'ın sensör verisi bildirimini gösterir" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google'ın sensör verisi bildirimini gösterir"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows Google's sensor-data notice"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt Googles Hinweis zu Sensordaten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra el aviso de Google sobre datos de sensores"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche l'avis de Google sur les données des capteurs"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra o aviso do Google sobre dados de sensores"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывает уведомление Google о данных датчиков"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعرض إشعار Google بشأن بيانات المستشعرات"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेंसर डेटा के बारे में Google की सूचना दिखाता है"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সেন্সর ডেটা সম্পর্কে Google-এর বিজ্ঞপ্তি দেখায়"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "センサーデータに関するGoogleのお知らせを表示します"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示 Google 的传感器数据声明"
+          }
+        }
+      }
+    },
     "Gönderi önizlemesi" : {
       "extractionState" : "manual",
       "localizations" : {

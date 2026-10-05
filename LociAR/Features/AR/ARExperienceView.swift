@@ -263,6 +263,7 @@ struct ARExperienceView: View {
                     if engine.currentAnchor != nil {
                         Image(systemName: "checkmark.seal.fill").foregroundStyle(LociTheme.accent)
                     }
+                    ARCoreNoticeButton()
                 }
                 Text(userFacingStatusMessage.localizedUI).font(.footnote).foregroundStyle(.white.opacity(0.82))
                 if let anchor = engine.currentAnchor {

@@ -143,6 +143,8 @@ struct CreatePostView: View {
                         HStack {
                             Image(systemName: placementSymbol)
                             Text(placementTitle.localizedUI).font(.caption.bold())
+                            Spacer(minLength: 4)
+                            ARCoreNoticeButton()
                         }
                         .foregroundStyle(engine.candidateQuality == nil ? Color.white : LociTheme.accent)
                         Text(engine.statusMessage.localizedUI).font(.footnote).foregroundStyle(.secondary)
