@@ -15,6 +15,9 @@ struct MapFeatureView: View {
     @State private var location = LocationController()
     @State private var message: String?
     @State private var isLoading = false
+    /// Set when a reload is requested while one is running (e.g. right after a post is created);
+    /// the running load then runs once more so the new post is not missed.
+    @State private var reloadRequested = false
 
     var body: some View {
         Map(position: $camera, selection: $selection) {
@@ -217,9 +220,16 @@ struct MapFeatureView: View {
     private var statusSymbol: String { posts.isEmpty ? "location.magnifyingglass" : "mappin.and.ellipse" }
 
     private func startAndLoad() async {
-        guard !isLoading else { return }
+        guard !isLoading else { reloadRequested = true; return }
         isLoading = true
         defer { isLoading = false }
+        repeat {
+            reloadRequested = false
+            await loadOnce()
+        } while reloadRequested && !Task.isCancelled
+    }
+
+    private func loadOnce() async {
 #if DEBUG
         if UITestFixtures.locationPermissionDenied {
             location.start()
