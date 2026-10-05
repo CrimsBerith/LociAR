@@ -11,12 +11,12 @@ LociAR, insanların gerçek şehir yüzeylerine konuma ve bakış açısına ba�
 ## Ana kullanıcılar
 
 - Şehrini yeni bir katmanla keşfetmek isteyen izleyici
-- Bir mekâna çizim, yazı, görsel veya video bırakmak isteyen üretici
+- Bir mekâna kısa yazı ve sosyal bağlantı (Spotify, YouTube, Instagram, X, Facebook) bırakmak isteyen üretici
 - Yayına alınacak kullanıcı içeriğini denetleyen operasyon sahibi
 
 ## İlk değer anı
 
-Kullanıcı giriş yapmadan Harita veya Keşfet'ten bir yüzey seçer, AR kamerada hizalar ve içeriğin gerçek yüzeyle ilişkisini görür.
+Kullanıcı giriş yaptıktan sonra Harita veya Keşfet'ten bir post seçer, AR kamerada hizalar ve içeriğin gerçek yüzeyle ilişkisini görür.
 
 ## Tekrar kullanım döngüsü
 
@@ -36,7 +36,7 @@ Yeni/yakın içerik keşfet → AR'da etkinleştir → etkileşime gir → daha 
 - Konum izni reddedilse de keşif açıktır; yalnız yakınlık ve mesafe zayıflar.
 - Korumalı bölgeler ve 18+ içerik MVP'de sert engeldir.
 - Herkese açık gönderiler moderasyon onayından geçer.
-- Service-role anahtarı mobil uygulamaya girmez.
+- Servis hesabı anahtarı veya Admin SDK kimliği mobil uygulamaya girmez.
 
 ## Kapsam dışı
 

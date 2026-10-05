@@ -45,7 +45,13 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   `/privacy`, `/terms`, `/support` pages the iOS app links to. Everything runs on Firebase: no Docker, no Vercel,
   no Supabase. On App Hosting the Admin SDK uses the backend's service account; no key file.
 - **Push notifications:** Enabled via APNs & FirebaseMessaging (`NotificationService.swift`, `LociAR.entitlements` `aps-environment`).
-- **Localization:** 12 globally most-spoken languages supported (`tr` base, `en`, `zh-Hans`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `de`, `ja`) via `Localizable.xcstrings`.
+  Tokens go through the `registerPushToken` / `unregisterPushToken` callables (server-only `push_devices`); pushes are
+  sent by `functions/src/push.ts` with loc-keys `push.like` / `push.comment` / `push.follow`.
+- **Localization:** 12 languages (`tr`, `en`, `zh-Hans`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `de`, `ja`) via
+  `Localizable.xcstrings` + `InfoPlist.xcstrings`. Development region is `en` (fallback for other languages); catalog keys
+  are the Turkish source literals. Never edit the catalogs by hand: add translations to `scripts/l10n/translations/*.json`
+  and run `python3 scripts/l10n/build_catalog.py` (CI runs `--check` and verifies the compiler-extracted keys).
+  Text kept in `String` properties is shown with `.localizedUI`; interpolated messages use `String(localized:)`.
 - **Crash reporting:** Firebase Crashlytics enabled.
 - **Store availability:** Global (all territories).
 - **Media model:** Text and social media links only. Legacy device photo/video upload remnants completely removed.

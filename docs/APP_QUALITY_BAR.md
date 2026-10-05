@@ -1,3 +1,5 @@
+> **ARŞİV (5 Ekim 2026):** Bu belge Expo/Supabase dönemine aittir ve güncel değildir. Güncel kaynaklar: `AGENTS.md`, `ARCHITECTURE.md`, `docs/FIREBASE_SETUP.md`, `docs/AR_WORLD_LOCK.md`, `docs/release/APP_STORE_SUBMISSION_GUIDE.md`.
+
 # LociAR app quality bar (research-backed)
 
 Sources: Apple HIG (clarity / feedback / forgiveness), App Store performance completeness, ARKit plane-placement guidance, Stories-style editor patterns.

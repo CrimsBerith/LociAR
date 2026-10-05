@@ -22,7 +22,9 @@ Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App 
 
 * **Fiyat:** Ücretsiz ($0.00 / Free)
 * **Uygulama İçi Satın Alma:** Yok (v1.0 için tamamen ücretsiz)
-* **Kullanılabilirlik:** Türkiye ve seçilen bölgeler (All territories)
+* **Kullanılabilirlik:** Tüm bölgeler (global, All territories)
+* **Diller:** 12 dil (tr, en, de, es, fr, pt, ru, ar, hi, bn, ja, zh-Hans). App Store Connect'te her dil için
+  ayrı açıklama/anahtar kelime/ekran görüntüsü girilebilir; girilmeyen diller İngilizce metni gösterir.
 
 ---
 
@@ -36,6 +38,7 @@ Apple tarafından canlı doğrulamadan geçen ve HTTP 200 yanıtı veren güncel
   `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms`
 * **Destek Sayfası (Support URL):**  
   `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support`
+* **İngilizce sürümler** (İngilizce App Store sayfası için): `/privacy/en`, `/terms/en`, `/support/en`
 * **Destek İletişim E-Postası (Contact Email):**  
   `support@lociar.app` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmıştır)*
 
@@ -43,21 +46,26 @@ Apple tarafından canlı doğrulamadan geçen ve HTTP 200 yanıtı veren güncel
 
 ## 4. Uygulama Gizlilik Bildirimi (App Privacy - Nutrition Labels)
 
-Apple'ın zorunlu kıldığı `PrivacyInfo.xcprivacy` dosyasıyla birebir uyumlu App Store Connect anket yanıtları:
+`LociAR/Resources/PrivacyInfo.xcprivacy` ile birebir aynı App Store Connect yanıtları (12 veri türü; manifest
+değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manifesti doğrular):
 
 ### Veri Toplama: "Evet, bu uygulamadan veri topluyoruz"
-İzleme (Tracking): **HAYIR** (Veriler üçüncü taraf reklam ağlarıyla kullanıcı izleme amacıyla paylaşılmaz).
+İzleme (Tracking): **HAYIR** — hiçbir veri türü izleme için kullanılmaz, izleme alan adı yoktur.
 
-| Toplanan Veri Türü | Kimlikle İlişkilendiriliyor mu? | Takip Amaçlı mı? | Kullanım Amacı |
+| Toplanan Veri Türü (App Store Connect) | Kimlikle ilişkili mi? | İzleme? | Amaç |
 |---|---|---|---|
-| **Kesin Konum (Precise Location)** | Evet (İçerik üretenler için) | Hayır | Uygulama İşlevselliği (Yakındaki AR gönderilerini gösterme ve yüzeye bağlama) |
-| **Kullanıcı Kimliği (User ID)** | Evet | Hayır | Uygulama İşlevselliği (Hesap yönetimi ve kimlik doğrulama) |
-| **E-posta Adresi (Email Address)** | Evet | Hayır | Hesap Doğrulama ve İletişim |
-| **Ad (Name)** | Evet | Hayır | Uygulama İşlevselliği (Apple ile girişte paylaşılan ad; profil görünen adı) |
-| **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (yalnızca isteğe bağlı profil fotoğrafı; kamera karesi saklanmaz, post olarak fotoğraf/video paylaşılamaz) |
-| **Diğer Kullanıcı İçerikleri** | Evet | Hayır | Uygulama İşlevselliği (Başlıklar, yorumlar, beğeniler, AR kayıtları) |
-| **Kesin Konum** ve **Diğer Veri (kamera kaynaklı görsel özellikler)** — üçüncü taraf: **Google ARCore** | Hayır (Google ile kimlik paylaşılmaz) | Hayır | Uygulama İşlevselliği (Cloud Anchors / Geospatial ile AR yeniden konumlandırma). App Store Connect'te "Data shared with third parties" olarak işaretle |
-| **Ürün Etkileşimi (Product Interaction)** | Evet | Hayır | Uygulama İşlevselliği + Analitik (görüntülenme/beğeni sayaçları, `analytics_events`, 180 gün saklama) |
+| **Precise Location** (Kesin Konum) | Evet | Hayır | App Functionality — yakındaki AR postları, postun konumu |
+| **Coarse Location** (Yaklaşık Konum) | Evet | Hayır | App Functionality, Analytics — kullanım/güvenlik olayları (180 gün) |
+| **User ID** | Evet | Hayır | App Functionality — hesap |
+| **Email Address** | Evet | Hayır | App Functionality — giriş ve hesap doğrulama |
+| **Name** | Evet | Hayır | App Functionality — Apple ile girişte paylaşılan ad |
+| **Photos or Videos** | Evet | Hayır | App Functionality — yalnız isteğe bağlı profil fotoğrafı (post olarak fotoğraf/video yok) |
+| **Other User Content** | Evet | Hayır | App Functionality — metin, sosyal bağlantı, yorum, beğeni, AR kaydı |
+| **Product Interaction** | Evet | Hayır | App Functionality, Analytics — görüntülenme/beğeni sayaçları |
+| **Device ID** | Evet | Hayır | App Functionality — push bildirim belirteci (FCM/APNs) |
+| **Crash Data** | Hayır | Hayır | App Functionality — Firebase Crashlytics (kapatılabilir) |
+| **Other Diagnostic Data** | Hayır | Hayır | App Functionality — Crashlytics teşhis bilgisi |
+| **Other Data Types** — Google ARCore'a giden kamera kaynaklı görsel özellikler | Hayır | Hayır | App Functionality — Cloud Anchors / Geospatial. Üçüncü tarafla (Google) paylaşılır |
 
 ---
 
@@ -96,12 +104,14 @@ LociAR is a spatial augmented reality social application that allows users to di
 - A pre-seeded sample post is located directly at Apple Park, Cupertino (Lat: 37.3318, Lng: -122.0312): "LociAR demo note · Cupertino".
 - You can immediately see and interact with this post on the Map tab or Discover tab upon signing in.
 
-3. HOW TO TEST AR CREATION (NO SPECIAL HARDWARE NEEDED):
+3. HOW TO TEST AR CREATION (A PHYSICAL ARKIT IPHONE IS REQUIRED; NO LIDAR NEEDED):
 - Step 1: Sign in using the demo account credentials provided above (or use Sign in with Apple).
-- Step 2: Grant Camera and Location permissions when prompted.
-- Step 3: Tap the '+' (Create/Paylaş) tab to open the AR Camera.
+- Step 1b: Tick the privacy policy / community rules checkbox on the sign-in screen (explicit consent).
+- Step 2: Grant Camera and Location permissions when prompted, and acknowledge the Google AR notice (Google processes sensor data for AR positioning).
+- Step 3: Tap the 'Share' ('Paylaş') tab to open the AR camera.
 - Step 4: Aim the center reticle at any well-lit surface (floor, table, or wall). When the reticle detects plane geometry, tap 'Pin to Surface' ('Yüzeye sabitle'). You can also tap 'Place in front of me (0.8m)' ('Önüme yerleştir') for immediate placement.
-- Step 5: Type a caption or attach a social media link (YouTube/Spotify/Instagram/X), then tap 'Publish' ('Yayınla').
+- Step 5: Tap 'Add content', type a caption or attach a social media link (Spotify, YouTube, Instagram, X or Facebook), then tap 'Publish on surface' ('Yüzeyde yayınla').
+- After the first publish the app asks for notification permission (likes, comments and follows are sent as push notifications).
 
 4. USER-GENERATED CONTENT (UGC) & SAFETY (GUIDELINE 1.2 COMPLIANCE):
 - Zero tolerance for objectionable content: 18+ content and sensitive protected zones (schools, hospitals, places of worship) are hard-blocked at the server level.
@@ -110,7 +120,8 @@ LociAR is a spatial augmented reality social application that allows users to di
 - Filtering: Comments are screened against an objectionable-language filter; profile photos are screened automatically (Google Cloud Vision SafeSearch) before anyone can see them.
 - Blocking: Users can block abusive creators via the ellipsis (...) menu on posts or from the creator's profile. Blocked users' posts, comments and profile are hidden immediately, and they can no longer comment on, like or follow the blocker.
 - Comment removal: Authors can delete their own comments; post owners can delete comments on their posts.
-- Account Deletion: Users can permanently delete their account and all associated data at any time via Profile -> 'Delete Account' (Guideline 5.1.1(v)).
+- Account Deletion: Users can permanently delete their account and all associated data at any time via Profile -> 'Delete account permanently' (Guideline 5.1.1(v)); the app re-authenticates first (Sign in with Apple again, or the password).
+- Emergency stop: the operator can pause publishing for everyone (kill switch); the app then shows 'LociAR is temporarily paused'.
 - Support: Direct support contact is available via support@lociar.app and https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support.
 
 If you have any questions or require additional details, please reach out to us at support@lociar.app.
@@ -128,14 +139,14 @@ LociAR, notlarınızı ve sevdiğiniz sosyal medya paylaşımlarını gerçek me
 
 ÖZELLİKLER:
 
-• Mekânsal AR Deneyimi: Gelişmiş ARKit ve RealityKit teknolojisiyle masalara, zeminlere ve duvarlara dijital içerikler yerleştirin.
+• Mekânsal AR Deneyimi: ARKit, RealityKit ve Google ARCore (Cloud Anchors, Geospatial) ile masalara, zeminlere ve duvarlara notlar ve Spotify, YouTube, Instagram, X, Facebook bağlantıları yerleştirin.
 • Keşfet ve Gez: Şehrinizdeki ve çevrenizdeki diğer kullanıcıların bıraktığı mekânsal gönderileri harita üzerinden keşfedin.
 • Gerçek Yüzey Kilidi: Fiziksel yüzey geometrisini algılayan hassas hizalama ile içerikleri tam olarak bırakıldıkları noktada görüntüleyin.
-• Sosyal Etkileşim: Beğendiğiniz gönderileri kaydedin, koleksiyonlar oluşturun, yorum yapın ve içerik üreticilerini takip edin.
+• Sosyal Etkileşim: Beğendiğiniz gönderileri kaydedin, koleksiyonlar oluşturun, yorum yapın, içerik üreticilerini takip edin; beğeni, yorum ve takipler için bildirim alın.
 • Güvenli ve Saygılı Topluluk: Korumalı bölgeler (okul, ibadethane vb.) ve uygunsuz içerikler sunucu düzeyinde engellenir. Kullanıcı şikayet ve anında engelleme araçlarıyla güvenli bir deneyim sunulur.
 
 Gizlilik ve Topluluk Kuralları:
-LociAR kullanıcı gizliliğine ve güvenliğine önem verir. Kameranız ve konumunuz yalnızca AR deneyimini sunmak ve doğrulamak için kullanılır; verileriniz izleme amacıyla üçüncü taraflarla paylaşılmaz.
+LociAR kullanıcı gizliliğine ve güvenliğine önem verir. Kameranız ve konumunuz yalnızca AR deneyimini sunmak için kullanılır; AR konumlandırma için Google ARCore sensör verilerini işler. Verileriniz izleme veya reklam amacıyla paylaşılmaz.
 ```
 
 ### Anahtar Kelimeler (Keywords - Max 100 karakter)
@@ -152,7 +163,7 @@ App Store Connect yüklemesi için aşağıdaki iki ana boyutta ekran görüntü
 2. **6.7" Ekran (iPhone 15 Pro Max):** 1290 x 2796 piksel (Dikey)
 
 ### Önerilen 4 Temel Sahne:
-1. **Sahne 1 (AR Kamera):** Gerçek zemin/masa üzerinde beliren mavi AR ızgarası ve yerleştirilmiş metin/sosyal medya kartı.  
+1. **Sahne 1 (AR Kamera):** Merkez nişangâh (reticle) ve gerçek duvar/masa üzerine yerleştirilmiş metin/sosyal bağlantı kartı.  
    *Pazarlama Başlığı:* "Anılarınızı Gerçek Dünyaya Sabitleyin"
 2. **Sahne 2 (Harita / Keşfet):** Yakındaki mekânsal pinlerin ve AR noktalarının haritada gösterimi.  
    *Pazarlama Başlığı:* "Çevrenizdeki Mekânsal Hikâyeleri Keşfedin"

@@ -1,6 +1,6 @@
 # LociAR Native iOS
 
-SwiftUI + ARKit/RealityKit + ARCore (Cloud Anchors, Geospatial) + MapKit + SwiftData consumer uygulaması; backend Firebase (Auth, Firestore, Storage, Cloud Functions). Expo, React Native ve JavaScript runtime içermez. Minimum sürüm iOS 17, bundle kimliği `com.khankartal.lociar`.
+SwiftUI + ARKit/RealityKit + ARCore (Cloud Anchors, Geospatial) + MapKit + SwiftData consumer uygulaması; backend Firebase (Auth, Firestore, Storage, Cloud Functions, Cloud Messaging push, Crashlytics). Admin paneli ve yasal sayfalar (`admin/`) Firebase App Hosting'de çalışır. Uygulama 12 dilde yerelleştirilmiştir (`scripts/l10n/`). Expo, React Native ve JavaScript runtime içermez. Minimum sürüm iOS 17, bundle kimliği `com.khankartal.lociar`.
 
 ## Kurulum
 
@@ -18,7 +18,7 @@ SwiftUI + ARKit/RealityKit + ARCore (Cloud Anchors, Geospatial) + MapKit + Swift
 - Yeniden bulma sırası: Cloud Anchor → Geospatial → world map → yönlendirmeli gösterim ([docs/AR_WORLD_LOCK.md](docs/AR_WORLD_LOCK.md)).
 - World map yalnız anchor + normal tracking + extending/mapped durumunda kaydedilir.
 - Restore edilen içerik tracking normal olana kadar gizlidir; 20 saniyede timeout verir.
-- Tanılama uygulama içinde kullanıcıya gösterilmez; surface ve approximate sonuçlar OSLog içinde ayrı tutulur.
+- Tarama sırasında kısa bir tanılama satırı (takip, harita, özellik/düzlem sayısı) gösterilir; ayrıntılı surface ve approximate sonuçlar OSLog içinde tutulur.
 
 Mimari katmanlar, publish/restore akışları ve değişmez kurallar [ARCHITECTURE.md](ARCHITECTURE.md) içinde belgelenmiştir.
 

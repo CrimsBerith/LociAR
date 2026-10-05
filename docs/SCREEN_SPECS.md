@@ -11,11 +11,10 @@
 
 ## Keşfet
 
-- Ana amaç: Kullanıcının neden önerildiğini anlayarak içerik seçmesi.
-- Filtreler: Yakındakiler, Popüler, Yeni.
-- İlk sonuç editorial feature; devamı kompakt ve taranabilir satırdır.
-- Durumlar: dolu, sonuç yok, yükleniyor/yenileniyor, offline/cached, hata.
-- Kabul: filtre state'i okunur; empty state filtreyi/haritayı/oluşturmayı anlamlı biçimde önerir.
+- Ana amaç: yayındaki postları listelemek ve aramak (kişi, yer veya içerik).
+- Düz liste + arama kutusu (`.searchable`); filtre veya editorial öne çıkarma yok.
+- Durumlar: dolu, sonuç yok, yükleniyor/yenileniyor, hata (Tekrar dene).
+- Kabul: boş durum aramayı veya yeni postları anlamlı biçimde açıklar.
 
 ## AR Kamera
 
@@ -29,27 +28,31 @@
 
 ## Oluştur
 
-- Ana amaçlar ayrı progressive adımlardır: Sabitle → İçerik → Yerleştir → Yayınla.
-- Yalnız aktif adımın araçları alt sheet içinde görünür.
-- Gesture'lara silme, öne alma, katman seçme ve z-order buton alternatifleri vardır.
-- Yayınla CTA'sı pose ve reference frame olmadan disabled kalır ve nedenini açıklar.
+- Adımlar: Sabitle (merkez nişangâh, "Yüzeye sabitle" veya açıkça "Önüme yerleştir · 0,8 m") → İçerik ekle
+  (metin ve/veya Spotify, YouTube, Instagram, X, Facebook bağlantısı) → "Yüzeyde yayınla".
+- Sabitleme kaydı: Geospatial etiketi, Google Cloud Anchor, olmazsa ARKit dünya haritası (`PinCommitCoordinator`).
+- Katman, fotoğraf/video veya z-order yok (29 Eyl 2026'da kaldırıldı).
+- Yayınla CTA'sı içerik yokken veya kayıt sürerken disabled kalır; çift dokunma aynı post id'sini gönderir.
+- İlk başarılı yayından sonra bildirim izni istenir.
 
 ## Onboarding
 
 - Üç değer anlatımı: Haritada keşfet, AR'da hizala, kendi yüzeyini oluştur.
 - Emoji yerine ürün yüzeylerini temsil eden görsel kompozisyon kullanır.
-- Son CTA `Keşfetmeye başla`; izinler onboarding içinde istenmez ve hedef izin gerektirmeyen Keşfet ekranıdır.
+- Son CTA `Başlayalım`; izinler onboarding içinde istenmez.
 
 ## Uygulama Açılışı
 
-- Normal soğuk/sıcak açılışın ana hedefi `Keşfet`tir; AR Kamera başlangıç rotası değildir.
-- Kamera ve konum oturumu onboarding, bootstrap veya Keşfet mount edilirken başlatılmaz.
-- Kamera yalnız kullanıcının Camera sekmesine, `View in AR` CTA'sına veya `lociar://camera` bağlantısına açıkça gitmesiyle mount edilir.
-- Store-like yapılarda ilk açılış misafir kimliğiyle başlar; mock kullanıcı ve Los Angeles seed kataloğu gösterilmez.
+- Varsayılan sekme `Harita`dır; AR kamera başlangıç rotası değildir.
+- Kamera ve konum oturumu onboarding veya açılış sırasında başlatılmaz.
+- Kamera yalnız AR / Paylaş sekmesine, `AR'da aç` CTA'sına veya `lociar://post/<id>` bağlantısına gidilince açılır.
+- Giriş zorunludur (e-posta+şifre veya Apple); gizlilik/topluluk kuralları onay kutusu işaretlenmeden giriş yapılamaz.
+- Google AR bildirimi ilk AR ekranında gösterilir; kabul edilmeden ARCore çalışmaz.
 
 ## Profil
 
 - Ana amaç: kimlik, içerikler ve hesap tercihlerini yönetmek.
-- Tema tercihi: Sistem/Açık/Koyu.
-- Owner operasyonları görünür tab değildir; Profil içinden açılır.
-- Hesap silme açık, kalıcı ve onaylı destructive akıştır.
+- Tema: koyu (zorunlu).
+- Ayarlar: bildirim izni durumu ve çökme raporları anahtarı (`AppSettingsView`).
+- Owner/moderasyon işlemleri uygulamada değil, admin web panelindedir.
+- Hesap silme açık, kalıcı ve onaylı destructive akıştır; önce yeniden kimlik doğrulanır (Apple veya şifre).

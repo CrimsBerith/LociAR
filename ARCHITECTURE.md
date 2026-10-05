@@ -15,9 +15,10 @@ flowchart TD
     UseCases --> Ports[Repository protocols]
     Container --> Adapters[Firebase adapters: Auth, Firestore, Storage, Callables]
     Adapters --> Ports
-    Adapters --> Firebase[(Firebase: Firestore + Cloud Functions + Storage)]
+    Adapters --> Firebase[(Firebase: Firestore + Cloud Functions + Storage + FCM + Crashlytics)]
     Container --> AR[One ARPinningEngine]
     AR --> ARKit[ARKit and RealityKit]
+    AR --> ARCore[ARCoreService: Google ARCore Cloud Anchors + Geospatial on the same ARKit frames]
 ```
 
 Rules enforced by tests:
@@ -40,12 +41,16 @@ sequenceDiagram
 
     UI->>AR: Pin at center reticle
     AR-->>UI: Physical or explicit approximate anchor
-    UI->>AR: Save world map when quality gate passes
-    UI->>Saga: Submit immutable LociPost
+    UI->>AR: PinCommitCoordinator: Geospatial tag (when Earth is localized)
+    UI->>Backend: Host Cloud Anchor, then registerCloudAnchor (owner record)
+    alt Hosting impossible (offline, no token, low feature quality)
+        UI->>AR: Save ARKit world map instead
+    end
+    UI->>Saga: Submit immutable LociPost (one post id per editor session)
     Saga->>Local: Persist draft and queue first
     Local-->>Saga: Durable commit
     Saga->>Repo: Publish idempotently
-    Repo->>Backend: Upload private world lock and media
+    Repo->>Backend: Upload private world map (only when no Cloud Anchor)
     Repo->>Backend: createPost callable (clientMutationId = doc id)
     alt Remote success
         Saga->>Local: Delete draft and queue
@@ -62,31 +67,32 @@ Normal Pin never produces a free-space anchor. Approximate placement is a separa
 sequenceDiagram
     participant UI as ARPostViewerView
     participant Policy as ProximityPolicy
+    participant ARCore as ARCoreService
     participant Store as WorldMapRepository
     participant AR as ARPinningEngine
 
     UI->>Policy: Validate distance and access
     Policy-->>UI: Allowed
-    UI->>Store: Download map and private reference frame
-    Store-->>UI: Fresh signed downloads
-    UI->>AR: Start with initialWorldMap
-    AR-->>UI: relocalizing, content hidden
-    AR-->>UI: tracking normal, anchor resolved
-    UI->>AR: Render caption/media surface
+    UI->>ARCore: 1. Resolve Cloud Anchor (exact surface)
+    UI->>ARCore: 2. Geospatial pose (outdoors, VPS coverage)
+    UI->>Store: 3. Download ARKit world map and relocalize
+    UI->>AR: 4. Aim-guided reveal by GPS bearing and distance
+    Note over UI: Each stage checks cancellation; after 8 s "Yaklaşık göster" jumps to stage 4
+    UI->>AR: Render caption / social link card
 ```
 
-World-map and reference-image records persist only `storage://` paths. Download URLs are resolved from Firebase Storage at download time and are never written into the post contract.
+World-map records persist only `storage://` paths. Download URLs are resolved from Firebase Storage at download time and are never written into the post contract. No camera frames or reference images are stored.
 
 ## Server authority
 
-Posts, profiles, counters, activity and account deletion are written only by Cloud Functions (`functions/src`). The iOS client never falls back to direct writes; see the security contract in `AGENTS.md`.
+Posts, profiles, counters, activity, push devices and account deletion are written only by Cloud Functions (`functions/src`). The iOS client never falls back to direct writes; see the security contract in `AGENTS.md`.
 
 ## Engagement truth
 
 - Like, comment, save and follow counters are maintained only by Cloud Functions Firestore triggers; clients cannot write them (rules deny).
 - The `recordPostView` callable requires an authenticated user, enforces visibility/block rules, and deduplicates by post, user, and UTC day.
 - The client replaces its view count with the callable result instead of inventing a local success count.
-- Spotify, YouTube, and X URLs pass a strict HTTPS host/path allow-list. Their AR surface card always includes the post caption and platform identity.
+- Spotify, YouTube, Instagram, X and Facebook URLs pass a strict HTTPS host/path allow-list. Their AR surface card always includes the post caption and platform identity.
 
 ## Lifecycle and recovery
 
@@ -102,3 +108,10 @@ Simulator builds and UI tests prove source/runtime navigation, not physical worl
 ## ARCore and anchor ownership
 
 ARCore (Cloud Anchors, Geospatial) runs on the existing ARKit session and authorizes through the keyless `getArcoreToken` callable. A hosted Cloud Anchor is registered with `registerCloudAnchor` (`cloud_anchors/{id}` = owner, post binding); `createPost` binds it to exactly one post of its owner in a transaction, and delete paths touch only anchors bound to the post being deleted. Failed anchor deletions are queued in `cloud_anchor_deletions` and retried by `cleanupPostMedia`. Resolution order and thresholds: `docs/AR_WORLD_LOCK.md`. Placement fields (`placement_state`, `native_provider`, `resolver_strategy`) are derived on the server, never taken from the client.
+
+## Push, kill switch, crash reports, localization
+
+- Push: `NotificationService` registers the FCM token with `registerPushToken` after sign-in and removes it with `unregisterPushToken` before sign-out. Cloud Functions send like/comment/follow pushes with `loc-key`s (`push.like`, `push.comment`, `push.follow`) that iOS localizes on the device.
+- Kill switch: `system/flags.kill_switch` (admin System page) makes write callables return `unavailable` / `service_paused`; the app shows a paused message and keeps queued posts without spending retries.
+- Crashlytics: enabled by default, opt-out in Profile → Settings (`CrashReportingPreference`); dSYMs are uploaded by a Release build phase.
+- Localization: 12 languages in `Localizable.xcstrings` and `InfoPlist.xcstrings`, generated by `scripts/l10n/build_catalog.py`. Keys are the Turkish source strings; the development region is `en`.
