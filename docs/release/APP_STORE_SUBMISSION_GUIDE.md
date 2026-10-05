@@ -145,6 +145,11 @@ LociAR kullanıcı gizliliğine ve güvenliğine önem verir. Kameranız ve konu
 ar,artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,sosyal medya,yüzey,keşfet,spatial
 ```
 
+> 12 dilin App Store metinleri: `docs/release/store-metadata/<dil>.md`. Bu dosyalar
+> `scripts/store-metadata/metadata.json`'dan `python3 scripts/store-metadata/build.py` ile üretilir (karakter
+> sınırları ve anahtar kelimelerde marka adı yasağı kontrol edilir). Oradaki Türkçe anahtar kelimeler
+> yukarıdakinden farklıdır; App Store Connect'e hangisinin girileceğine sahibi karar verir.
+
 ---
 
 ## 8. Ekran Görüntüsü Hazırlama Planı (Screenshots Required)

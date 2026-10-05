@@ -61,6 +61,8 @@ elle yapılışıdır.
 
 1. console.firebase.google.com → proje oluştur (Analytics isteğe bağlı).
 2. **Blaze** planına geç (Storage ve Functions için şart). Google Cloud Billing → Budgets: $10 ve $50 uyarısı.
+   Log tabanlı alarmlar (sunucu hataları, Apple token iptali, Cloud Anchor silme, ARCore token, avatar denetimi,
+   push, kill switch) ve e-posta bildirimli aylık bütçe için Mac'te `scripts/monitoring-setup.command` çalıştır.
 3. **Firestore**: Create database → *Production mode* → bölge. Mevcut proje: `nam5` (US) — Functions bu yüzden `us-central1`
    (nam5 ile aynı bölge ailesi; Firestore trigger şartı). Bölge sonradan değişmez.
 4. **Storage**: Get started → aynı bölge ailesi. (Ücretsiz Storage kotası yalnız us-central1/us-east1/us-west1'de.)
