@@ -1,0 +1,110 @@
+{
+  "tr": {
+    "storeLocale": "Turkish",
+    "name": "LociAR: Gerçek Mekânlarda AR",
+    "subtitle": "Mekânsal Hikâyeler ve Paylaşım",
+    "promotionalText": "Notlarını ve Spotify, YouTube, Instagram, X, Facebook bağlantılarını gerçek yüzeylere sabitle; çevrende bırakılanları bırakıldığı yerde AR ile keşfet.",
+    "description": "Gerçek dünyayı dijital hikâyelerle zenginleştirin.\n\nLociAR, kısa notlarınızı ve Spotify, YouTube, Instagram, X, Facebook bağlantılarınızı gerçek yüzeylere (masa, zemin, duvar) sabitlemenizi sağlar; başkaları onları tam bıraktığınız yerde bulur.\n\nÖZELLİKLER\n• Gerçek yüzeye sabitle: Merkez nişangâh ARKit ile algılanan yüzeye kilitlenir; Google ARCore Cloud Anchors ve Geospatial gönderinizi aynı noktada yeniden gösterir.\n• Yakında keşfet: Çevrenizdeki gönderileri haritada görün, AR'da açın.\n• Sosyal: Beğenin, yorum yapın, koleksiyonlara kaydedin, içerik üreticilerini takip edin; beğeni, yorum ve takipler için bildirim alın.\n• Güvenli topluluk: Yeni gönderiler yayından önce incelenir, korumalı bölgeler ve 18+ içerik engellenir, herkesi şikâyet edebilir veya engelleyebilirsiniz.\n• Verileriniz sizin: Hesabınızı ve tüm verilerinizi profilinizden istediğiniz an kalıcı olarak silebilirsiniz.\n\nGİZLİLİK\nKamera ve konum yalnızca AR deneyimi için kullanılır. AR konumlandırma için Google ARCore sensör verilerini (ör. kamera ve konum) işler. İzleme yok, reklam yok.\n\nARKit destekli bir iPhone gerektirir.",
+    "keywords": "artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,yüzey,keşfet,konum",
+    "whatsNew": "İlk sürüm: metin notlarını ve sosyal bağlantıları gerçek yüzeylere sabitle, yakındaki gönderileri haritada keşfet; beğeni, yorum, koleksiyon, takip ve bildirimler. 12 dilde."
+  },
+  "en": {
+    "storeLocale": "English (U.S.)",
+    "name": "LociAR: Spatial AR Notes",
+    "subtitle": "Pin notes & links to places",
+    "promotionalText": "Pin notes and Spotify, YouTube, Instagram, X or Facebook links to real surfaces, and discover what others left nearby, in AR, right where it was placed.",
+    "description": "Leave notes and your favorite social posts on real places.\n\nLociAR lets you pin short text notes and links from Spotify, YouTube, Instagram, X and Facebook to real surfaces (a table, the floor, a wall) so others find them right where you left them.\n\nFEATURES\n• Pin to real surfaces: the center reticle locks onto surfaces detected by ARKit; Google ARCore Cloud Anchors and Geospatial bring your post back in the same spot.\n• Discover nearby: see posts around you on the map and open them in AR.\n• Social: like, comment, save to collections, follow creators and get notified about likes, comments and follows.\n• Safe community: new posts are reviewed before they go public, protected places and 18+ content are blocked, and you can report or block anyone.\n• Your data, your choice: permanently delete your account and all its data from your profile at any time.\n\nPRIVACY\nCamera and location are used only for the AR experience. For AR positioning, Google ARCore processes sensor data (e.g., camera and location). No tracking, no ads.\n\nRequires an iPhone with ARKit support.",
+    "keywords": "augmented reality,spatial,map,camera,social,note,surface,discover,location,pin",
+    "whatsNew": "First release: pin text notes and social links to real surfaces, discover nearby posts on the map, plus likes, comments, collections, follows and notifications. In 12 languages."
+  },
+  "de": {
+    "storeLocale": "German",
+    "name": "LociAR: AR-Notizen vor Ort",
+    "subtitle": "Notizen & Links an echte Orte",
+    "promotionalText": "Hefte Notizen und Links von Spotify, YouTube, Instagram, X oder Facebook an echte Flächen und entdecke, was andere in deiner Nähe hinterlassen haben – in AR.",
+    "description": "Hinterlasse Notizen und deine liebsten Social-Media-Beiträge an echten Orten.\n\nMit LociAR heftest du kurze Textnotizen und Links von Spotify, YouTube, Instagram, X und Facebook an echte Flächen (Tisch, Boden, Wand), damit andere sie genau dort finden, wo du sie hinterlassen hast.\n\nFUNKTIONEN\n• An echte Flächen heften: Das Fadenkreuz in der Mitte rastet auf von ARKit erkannte Flächen ein; Google ARCore Cloud Anchors und Geospatial zeigen deinen Beitrag wieder an derselben Stelle.\n• In der Nähe entdecken: Sieh Beiträge um dich herum auf der Karte und öffne sie in AR.\n• Sozial: Liken, kommentieren, in Sammlungen speichern, Creatorn folgen und über Likes, Kommentare und neue Follower benachrichtigt werden.\n• Sichere Community: Neue Beiträge werden vor der Veröffentlichung geprüft, geschützte Orte und 18+-Inhalte sind gesperrt, und du kannst jeden melden oder blockieren.\n• Deine Daten, deine Wahl: Lösche dein Konto und alle zugehörigen Daten jederzeit dauerhaft im Profil.\n\nDATENSCHUTZ\nKamera und Standort werden nur für das AR-Erlebnis verwendet. Für die AR-Positionierung verarbeitet Google ARCore Sensordaten (z. B. Kamera und Standort). Kein Tracking, keine Werbung.\n\nErfordert ein iPhone mit ARKit-Unterstützung.",
+    "keywords": "augmented reality,karte,kamera,sozial,notiz,fläche,entdecken,standort,pin,ort",
+    "whatsNew": "Erste Version: Textnotizen und Social-Links an echte Flächen heften, Beiträge in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen, Follower und Mitteilungen. In 12 Sprachen."
+  },
+  "es": {
+    "storeLocale": "Spanish (Mexico) / Spanish (Spain)",
+    "name": "LociAR: Notas AR en lugares",
+    "subtitle": "Fija notas y enlaces en sitios",
+    "promotionalText": "Fija notas y enlaces de Spotify, YouTube, Instagram, X o Facebook en superficies reales y descubre en AR lo que otros dejaron cerca, justo donde lo dejaron.",
+    "description": "Deja notas y tus publicaciones favoritas en lugares reales.\n\nLociAR te permite fijar notas de texto cortas y enlaces de Spotify, YouTube, Instagram, X y Facebook en superficies reales (una mesa, el suelo, una pared) para que otros los encuentren justo donde los dejaste.\n\nFUNCIONES\n• Fija en superficies reales: la retícula central se ajusta a las superficies detectadas por ARKit; Google ARCore Cloud Anchors y Geospatial muestran tu publicación de nuevo en el mismo punto.\n• Descubre cerca: ve publicaciones a tu alrededor en el mapa y ábrelas en AR.\n• Social: da me gusta, comenta, guarda en colecciones, sigue a creadores y recibe avisos de me gusta, comentarios y seguidores.\n• Comunidad segura: las publicaciones nuevas se revisan antes de hacerse públicas, los lugares protegidos y el contenido +18 están bloqueados, y puedes denunciar o bloquear a cualquiera.\n• Tus datos, tu decisión: elimina tu cuenta y todos sus datos de forma permanente desde tu perfil cuando quieras.\n\nPRIVACIDAD\nLa cámara y la ubicación solo se usan para la experiencia AR. Para el posicionamiento AR, Google ARCore procesa datos de sensores (p. ej., cámara y ubicación). Sin rastreo ni anuncios.\n\nRequiere un iPhone compatible con ARKit.",
+    "keywords": "realidad aumentada,mapa,cámara,social,nota,superficie,descubrir,ubicación,lugar",
+    "whatsNew": "Primera versión: fija notas de texto y enlaces sociales en superficies reales, descubre publicaciones cercanas en el mapa, además de me gusta, comentarios, colecciones, seguidores y notificaciones. En 12 idiomas."
+  },
+  "fr": {
+    "storeLocale": "French / French (Canada)",
+    "name": "LociAR : notes AR in situ",
+    "subtitle": "Notes et liens sur lieux réels",
+    "promotionalText": "Épinglez des notes et des liens Spotify, YouTube, Instagram, X ou Facebook sur de vraies surfaces, et découvrez en AR ce que d'autres ont laissé près de vous.",
+    "description": "Laissez des notes et vos publications préférées dans des lieux réels.\n\nLociAR vous permet d'épingler de courtes notes et des liens Spotify, YouTube, Instagram, X et Facebook sur de vraies surfaces (une table, le sol, un mur) pour que d'autres les trouvent exactement là où vous les avez laissés.\n\nFONCTIONNALITÉS\n• Épinglez sur de vraies surfaces : le réticule central se cale sur les surfaces détectées par ARKit ; Google ARCore Cloud Anchors et Geospatial réaffichent votre publication au même endroit.\n• Découvrez autour de vous : voyez les publications proches sur la carte et ouvrez-les en AR.\n• Social : aimez, commentez, enregistrez dans des collections, suivez des créateurs et soyez notifié des j'aime, commentaires et abonnements.\n• Communauté sûre : les nouvelles publications sont vérifiées avant d'être publiques, les lieux protégés et le contenu 18+ sont bloqués, et vous pouvez signaler ou bloquer n'importe qui.\n• Vos données, votre choix : supprimez définitivement votre compte et toutes ses données depuis votre profil à tout moment.\n\nCONFIDENTIALITÉ\nLa caméra et la position ne servent qu'à l'expérience AR. Pour le positionnement AR, Google ARCore traite des données de capteurs (p. ex. caméra et position). Aucun suivi, aucune publicité.\n\nNécessite un iPhone compatible ARKit.",
+    "keywords": "réalité augmentée,carte,caméra,social,note,surface,découvrir,lieu,position",
+    "whatsNew": "Première version : épinglez des notes et des liens sociaux sur de vraies surfaces, découvrez les publications proches sur la carte, avec j'aime, commentaires, collections, abonnements et notifications. En 12 langues."
+  },
+  "pt": {
+    "storeLocale": "Portuguese (Brazil) / Portuguese (Portugal)",
+    "name": "LociAR: Notas AR em lugares",
+    "subtitle": "Fixe notas e links em lugares",
+    "promotionalText": "Fixe notas e links do Spotify, YouTube, Instagram, X ou Facebook em superfícies reais e descubra em AR o que outras pessoas deixaram por perto.",
+    "description": "Deixe notas e suas publicações favoritas em lugares reais.\n\nO LociAR permite fixar notas de texto curtas e links do Spotify, YouTube, Instagram, X e Facebook em superfícies reais (uma mesa, o chão, uma parede) para que outras pessoas os encontrem exatamente onde você os deixou.\n\nRECURSOS\n• Fixe em superfícies reais: a mira central se prende às superfícies detectadas pelo ARKit; o Google ARCore Cloud Anchors e o Geospatial mostram sua publicação de novo no mesmo ponto.\n• Descubra por perto: veja publicações ao seu redor no mapa e abra-as em AR.\n• Social: curta, comente, salve em coleções, siga criadores e receba avisos de curtidas, comentários e novos seguidores.\n• Comunidade segura: novas publicações são revisadas antes de ficarem públicas, locais protegidos e conteúdo 18+ são bloqueados, e você pode denunciar ou bloquear qualquer pessoa.\n• Seus dados, sua escolha: exclua sua conta e todos os seus dados permanentemente pelo perfil a qualquer momento.\n\nPRIVACIDADE\nCâmera e localização são usadas apenas para a experiência AR. Para o posicionamento AR, o Google ARCore processa dados de sensores (por ex., câmera e localização). Sem rastreamento, sem anúncios.\n\nRequer um iPhone compatível com ARKit.",
+    "keywords": "realidade aumentada,mapa,câmera,social,nota,superfície,descobrir,local,lugar",
+    "whatsNew": "Primeira versão: fixe notas de texto e links sociais em superfícies reais, descubra publicações próximas no mapa, além de curtidas, comentários, coleções, seguidores e notificações. Em 12 idiomas."
+  },
+  "ru": {
+    "storeLocale": "Russian",
+    "name": "LociAR: AR-заметки на месте",
+    "subtitle": "Заметки и ссылки на местах",
+    "promotionalText": "Закрепляйте заметки и ссылки Spotify, YouTube, Instagram, X или Facebook на реальных поверхностях и находите в AR то, что оставили другие рядом с вами.",
+    "description": "Оставляйте заметки и любимые публикации в реальных местах.\n\nLociAR позволяет закреплять короткие текстовые заметки и ссылки Spotify, YouTube, Instagram, X и Facebook на реальных поверхностях (стол, пол, стена), чтобы другие нашли их точно там, где вы их оставили.\n\nВОЗМОЖНОСТИ\n• Закрепление на реальных поверхностях: прицел в центре фиксируется на поверхностях, найденных ARKit; Google ARCore Cloud Anchors и Geospatial показывают публикацию снова в том же месте.\n• Находите рядом: смотрите публикации вокруг вас на карте и открывайте их в AR.\n• Общение: лайки, комментарии, коллекции, подписки на авторов и уведомления о лайках, комментариях и новых подписчиках.\n• Безопасное сообщество: новые публикации проверяются перед показом, охраняемые места и контент 18+ заблокированы, на любого можно пожаловаться или заблокировать его.\n• Ваши данные — ваш выбор: в любой момент безвозвратно удалите аккаунт и все его данные в профиле.\n\nКОНФИДЕНЦИАЛЬНОСТЬ\nКамера и геопозиция используются только для AR. Для позиционирования в AR Google ARCore обрабатывает данные датчиков (например, камеры и геопозиции). Без отслеживания и рекламы.\n\nТребуется iPhone с поддержкой ARKit.",
+    "keywords": "дополненная реальность,карта,камера,соцсеть,заметка,поверхность,место",
+    "whatsNew": "Первая версия: закрепляйте текстовые заметки и ссылки на реальных поверхностях, находите публикации рядом на карте; лайки, комментарии, коллекции, подписки и уведомления. На 12 языках."
+  },
+  "ar": {
+    "storeLocale": "Arabic",
+    "name": "LociAR: ملاحظات AR في الأماكن",
+    "subtitle": "ثبّت ملاحظاتك في أماكن حقيقية",
+    "promotionalText": "ثبّت الملاحظات وروابط Spotify وYouTube وInstagram وX وFacebook على أسطح حقيقية، واكتشف بالواقع المعزز ما تركه الآخرون بالقرب منك في مكانه تمامًا.",
+    "description": "اترك ملاحظاتك ومنشوراتك المفضلة في أماكن حقيقية.\n\nيتيح لك LociAR تثبيت ملاحظات نصية قصيرة وروابط من Spotify وYouTube وInstagram وX وFacebook على أسطح حقيقية (طاولة، أرضية، جدار) ليجدها الآخرون في المكان الذي تركتها فيه تمامًا.\n\nالميزات\n• التثبيت على أسطح حقيقية: يثبت مؤشر التصويب في المنتصف على الأسطح التي يكتشفها ARKit، وتعيد Google ARCore Cloud Anchors وGeospatial عرض منشورك في النقطة نفسها.\n• اكتشف ما حولك: شاهد المنشورات القريبة على الخريطة وافتحها بالواقع المعزز.\n• تواصل اجتماعي: أعجب وعلّق واحفظ في المجموعات وتابع صنّاع المحتوى، وتلقَّ إشعارات بالإعجابات والتعليقات والمتابعات.\n• مجتمع آمن: تُراجَع المنشورات الجديدة قبل نشرها للعامة، وتُحظر الأماكن المحمية والمحتوى للبالغين، ويمكنك الإبلاغ عن أي شخص أو حظره.\n• بياناتك قرارك: احذف حسابك وجميع بياناته نهائيًا من ملفك الشخصي في أي وقت.\n\nالخصوصية\nتُستخدم الكاميرا والموقع لتجربة الواقع المعزز فقط. لتحديد الموقع في الواقع المعزز تعالج Google ARCore بيانات المستشعرات (مثل الكاميرا والموقع). لا تتبع ولا إعلانات.\n\nيتطلب iPhone يدعم ARKit.",
+    "keywords": "واقع معزز,خريطة,كاميرا,اجتماعي,ملاحظة,سطح,اكتشاف,موقع,مكان",
+    "whatsNew": "الإصدار الأول: ثبّت الملاحظات النصية والروابط الاجتماعية على أسطح حقيقية، واكتشف المنشورات القريبة على الخريطة، مع الإعجابات والتعليقات والمجموعات والمتابعات والإشعارات. بـ 12 لغة."
+  },
+  "hi": {
+    "storeLocale": "Hindi",
+    "name": "LociAR: असली जगहों पर AR",
+    "subtitle": "जगहों पर नोट्स और लिंक लगाएँ",
+    "promotionalText": "नोट्स और Spotify, YouTube, Instagram, X या Facebook लिंक असली सतहों पर पिन करें, और AR में देखें कि आपके आसपास दूसरों ने क्या छोड़ा है।",
+    "description": "असली जगहों पर नोट्स और अपनी पसंदीदा सोशल पोस्ट छोड़ें।\n\nLociAR से आप छोटे टेक्स्ट नोट्स और Spotify, YouTube, Instagram, X और Facebook के लिंक असली सतहों (मेज़, फ़र्श, दीवार) पर पिन कर सकते हैं, ताकि दूसरे उन्हें ठीक वहीं पाएँ जहाँ आपने छोड़ा था।\n\nसुविधाएँ\n• असली सतहों पर पिन करें: बीच का निशाना ARKit द्वारा पहचानी गई सतह पर लॉक होता है; Google ARCore Cloud Anchors और Geospatial आपकी पोस्ट को उसी जगह फिर दिखाते हैं।\n• आसपास खोजें: अपने आसपास की पोस्ट मैप पर देखें और AR में खोलें।\n• सोशल: लाइक करें, कमेंट करें, कलेक्शन में सेव करें, क्रिएटर्स को फ़ॉलो करें और लाइक, कमेंट व फ़ॉलो की सूचना पाएँ।\n• सुरक्षित समुदाय: नई पोस्ट सार्वजनिक होने से पहले जाँची जाती हैं, संरक्षित स्थान और 18+ सामग्री ब्लॉक हैं, और आप किसी की भी रिपोर्ट कर सकते हैं या उसे ब्लॉक कर सकते हैं।\n• आपका डेटा, आपकी मर्ज़ी: अपना खाता और उसका सारा डेटा प्रोफ़ाइल से कभी भी स्थायी रूप से हटाएँ।\n\nगोपनीयता\nकैमरा और लोकेशन केवल AR अनुभव के लिए उपयोग होते हैं। AR पोज़िशनिंग के लिए Google ARCore सेंसर डेटा (जैसे कैमरा और लोकेशन) प्रोसेस करता है। कोई ट्रैकिंग नहीं, कोई विज्ञापन नहीं।\n\nARKit सपोर्ट वाला iPhone ज़रूरी है।",
+    "keywords": "ऑगमेंटेड रियलिटी,मैप,कैमरा,सोशल,नोट,सतह,खोज,लोकेशन",
+    "whatsNew": "पहला संस्करण: टेक्स्ट नोट्स और सोशल लिंक असली सतहों पर पिन करें, आसपास की पोस्ट मैप पर खोजें; साथ में लाइक, कमेंट, कलेक्शन, फ़ॉलो और सूचनाएँ। 12 भाषाओं में।"
+  },
+  "bn": {
+    "storeLocale": "Bangla",
+    "name": "LociAR: আসল জায়গায় AR নোট",
+    "subtitle": "জায়গায় নোট ও লিংক পিন করুন",
+    "promotionalText": "নোট এবং Spotify, YouTube, Instagram, X বা Facebook লিংক আসল পৃষ্ঠে পিন করুন, আর AR-এ দেখুন আপনার আশেপাশে অন্যরা কী রেখে গেছে।",
+    "description": "আসল জায়গায় নোট আর আপনার প্রিয় সোশ্যাল পোস্ট রেখে যান।\n\nLociAR দিয়ে ছোট টেক্সট নোট এবং Spotify, YouTube, Instagram, X ও Facebook-এর লিংক আসল পৃষ্ঠে (টেবিল, মেঝে, দেয়াল) পিন করুন, যাতে অন্যরা ঠিক সেখানেই সেগুলো খুঁজে পায় যেখানে আপনি রেখেছেন।\n\nফিচার\n• আসল পৃষ্ঠে পিন: মাঝের নিশানা ARKit-এর শনাক্ত করা পৃষ্ঠে লক হয়; Google ARCore Cloud Anchors ও Geospatial আপনার পোস্ট একই জায়গায় আবার দেখায়।\n• কাছাকাছি খুঁজুন: আশেপাশের পোস্ট ম্যাপে দেখুন এবং AR-এ খুলুন।\n• সোশ্যাল: লাইক, কমেন্ট, কালেকশনে সেভ, ক্রিয়েটরদের ফলো করুন এবং লাইক, কমেন্ট ও ফলোর নোটিফিকেশন পান।\n• নিরাপদ কমিউনিটি: নতুন পোস্ট প্রকাশের আগে পর্যালোচনা হয়, সংরক্ষিত স্থান ও 18+ কনটেন্ট ব্লক করা থাকে, এবং আপনি যে কাউকে রিপোর্ট বা ব্লক করতে পারেন।\n• আপনার ডেটা, আপনার সিদ্ধান্ত: প্রোফাইল থেকে যেকোনো সময় আপনার অ্যাকাউন্ট ও তার সব ডেটা স্থায়ীভাবে মুছে ফেলুন।\n\nগোপনীয়তা\nক্যামেরা ও লোকেশন শুধু AR অভিজ্ঞতার জন্য ব্যবহার হয়। AR অবস্থান নির্ণয়ের জন্য Google ARCore সেন্সর ডেটা (যেমন ক্যামেরা ও লোকেশন) প্রসেস করে। কোনো ট্র্যাকিং নেই, কোনো বিজ্ঞাপন নেই।\n\nARKit সমর্থিত iPhone প্রয়োজন।",
+    "keywords": "অগমেন্টেড রিয়েলিটি,ম্যাপ,ক্যামেরা,সোশ্যাল,নোট,পৃষ্ঠ,খুঁজুন,লোকেশন",
+    "whatsNew": "প্রথম সংস্করণ: টেক্সট নোট ও সোশ্যাল লিংক আসল পৃষ্ঠে পিন করুন, কাছাকাছি পোস্ট ম্যাপে খুঁজুন; সাথে লাইক, কমেন্ট, কালেকশন, ফলো ও নোটিফিকেশন। ১২টি ভাষায়।"
+  },
+  "ja": {
+    "storeLocale": "Japanese",
+    "name": "LociAR: 場所に残すARメモ",
+    "subtitle": "メモとリンクを実際の場所に",
+    "promotionalText": "メモや Spotify、YouTube、Instagram、X、Facebook のリンクを実際の面にピン留め。近くに残された投稿を、置かれたその場所で AR で見つけよう。",
+    "description": "実際の場所にメモやお気に入りの投稿を残そう。\n\nLociAR では、短いテキストメモや Spotify、YouTube、Instagram、X、Facebook のリンクを実際の面（テーブル、床、壁）にピン留めできます。ほかの人は、あなたが残したその場所で見つけられます。\n\n機能\n• 実際の面にピン留め：中央のレティクルが ARKit で検出した面に固定されます。Google ARCore の Cloud Anchors と Geospatial が投稿を同じ位置に再表示します。\n• 近くを探す：周りの投稿を地図で確認し、AR で開けます。\n• ソーシャル：いいね、コメント、コレクションへの保存、クリエイターのフォロー。いいね・コメント・フォローは通知でお知らせします。\n• 安心のコミュニティ：新しい投稿は公開前に審査され、保護された場所や18歳以上向けのコンテンツはブロックされます。誰でも通報・ブロックできます。\n• データはあなたのもの：プロフィールからいつでもアカウントとすべてのデータを完全に削除できます。\n\nプライバシー\nカメラと位置情報は AR 体験のためだけに使用されます。AR の位置合わせのため、Google ARCore がセンサーデータ（カメラや位置情報など）を処理します。トラッキングも広告もありません。\n\nARKit 対応の iPhone が必要です。",
+    "keywords": "拡張現実,地図,カメラ,ソーシャル,メモ,ノート,場所,発見,位置情報,ピン",
+    "whatsNew": "最初のリリース：テキストメモやソーシャルリンクを実際の面にピン留めし、近くの投稿を地図で発見。いいね、コメント、コレクション、フォロー、通知にも対応。12言語に対応。"
+  },
+  "zh-Hans": {
+    "storeLocale": "Chinese (Simplified)",
+    "name": "LociAR：留在真实地点的AR笔记",
+    "subtitle": "把笔记和链接钉在真实地点",
+    "promotionalText": "把笔记以及 Spotify、YouTube、Instagram、X、Facebook 链接钉在真实表面上，用 AR 发现身边他人留下的内容，就在原来的位置。",
+    "description": "在真实地点留下笔记和你喜爱的社交内容。\n\n借助 LociAR，你可以把简短的文字笔记以及 Spotify、YouTube、Instagram、X 和 Facebook 链接钉在真实表面（桌面、地面、墙面）上，让别人在你留下的位置找到它们。\n\n功能\n• 钉在真实表面：中心准星会锁定 ARKit 检测到的表面；Google ARCore 云锚点（Cloud Anchors）和地理空间（Geospatial）会在同一位置再次显示你的帖子。\n• 发现附近：在地图上查看你周围的帖子，并在 AR 中打开。\n• 社交：点赞、评论、收藏到合集、关注创作者，并接收点赞、评论和关注通知。\n• 安全社区：新帖子公开前会经过审核，受保护场所和 18+ 内容会被屏蔽，你可以举报或屏蔽任何人。\n• 数据由你掌控：随时在个人资料中永久删除你的账户及其全部数据。\n\n隐私\n相机和位置仅用于 AR 体验。为进行 AR 定位，Google ARCore 会处理传感器数据（例如相机和位置）。无跟踪，无广告。\n\n需要支持 ARKit 的 iPhone。",
+    "keywords": "增强现实,地图,相机,社交,笔记,表面,发现,位置,附近",
+    "whatsNew": "首个版本：把文字笔记和社交链接钉在真实表面上，在地图上发现附近的帖子，并支持点赞、评论、合集、关注和通知。支持 12 种语言。"
+  }
+}

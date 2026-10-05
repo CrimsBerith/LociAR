@@ -8,8 +8,8 @@ Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App 
 
 | Alan | Değer | Kısıt / Not |
 |---|---|---|
-| **Uygulama Adı** | `LociAR: Gerçek Mekânlarda AR` | Max 30 karakter (28 karakter) |
-| **Alt Başlık (Subtitle)** | `Mekânsal Hikâyeler ve Paylaşım` | Max 30 karakter (29 karakter) |
+| **Uygulama Adı** | `LociAR: Gerçek Mekânlarda AR` | Max 30 karakter (28 karakter); diğer diller: `store-metadata/` |
+| **Alt Başlık (Subtitle)** | `Mekânsal Hikâyeler ve Paylaşım` | Max 30 karakter (30 karakter) |
 | **Birincil Kategori** | `Social Networking` (Sosyal Ağlar) | `LSApplicationCategoryType` ile uyumlu |
 | **İkincil Kategori** | `Navigation` (Navigasyon) | Harita ve kamera deneyimi için |
 | **Bundle ID** | `com.khankartal.lociar` | Developer portal ile eşleşmeli |
@@ -131,28 +131,11 @@ If you have any questions or require additional details, please reach out to us 
 
 ## 7. App Store Tanıtım Metinleri (Store Copy)
 
-### Açıklama (Description)
-```text
-Gerçek dünyayı dijital hikâyelerle zenginleştirin.
-
-LociAR, notlarınızı ve sevdiğiniz sosyal medya paylaşımlarını gerçek mekânlardaki fiziksel yüzeylere sabitlemenizi sağlayan yeni nesil bir artırılmış gerçeklik (AR) platformudur.
-
-ÖZELLİKLER:
-
-• Mekânsal AR Deneyimi: ARKit, RealityKit ve Google ARCore (Cloud Anchors, Geospatial) ile masalara, zeminlere ve duvarlara notlar ve Spotify, YouTube, Instagram, X, Facebook bağlantıları yerleştirin.
-• Keşfet ve Gez: Şehrinizdeki ve çevrenizdeki diğer kullanıcıların bıraktığı mekânsal gönderileri harita üzerinden keşfedin.
-• Gerçek Yüzey Kilidi: Fiziksel yüzey geometrisini algılayan hassas hizalama ile içerikleri tam olarak bırakıldıkları noktada görüntüleyin.
-• Sosyal Etkileşim: Beğendiğiniz gönderileri kaydedin, koleksiyonlar oluşturun, yorum yapın, içerik üreticilerini takip edin; beğeni, yorum ve takipler için bildirim alın.
-• Güvenli ve Saygılı Topluluk: Korumalı bölgeler (okul, ibadethane vb.) ve uygunsuz içerikler sunucu düzeyinde engellenir. Kullanıcı şikayet ve anında engelleme araçlarıyla güvenli bir deneyim sunulur.
-
-Gizlilik ve Topluluk Kuralları:
-LociAR kullanıcı gizliliğine ve güvenliğine önem verir. Kameranız ve konumunuz yalnızca AR deneyimini sunmak için kullanılır; AR konumlandırma için Google ARCore sensör verilerini işler. Verileriniz izleme veya reklam amacıyla paylaşılmaz.
-```
-
-### Anahtar Kelimeler (Keywords - Max 100 karakter)
-```text
-ar,artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,sosyal medya,yüzey,keşfet,spatial
-```
+12 dilin metinleri (ad, alt başlık, tanıtım metni, açıklama, anahtar kelimeler, "Bu sürümde yenilikler")
+`docs/release/store-metadata/<dil>.md` dosyalarında; App Store Connect'te her dilin sayfasına kopyala-yapıştır.
+Kaynak `scripts/store-metadata/metadata.json`; düzenledikten sonra `python3 scripts/store-metadata/build.py`
+çalıştır (karakter sınırlarını ve anahtar kelimelerde marka adı olmamasını, Guideline 2.3.7, denetler).
+App Store Connect bazı dillerde anahtar kelime sınırını farklı sayarsa listenin sonundan kısalt.
 
 ---
 

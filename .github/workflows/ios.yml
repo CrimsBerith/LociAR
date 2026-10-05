@@ -3,9 +3,9 @@ name: iOS
 on:
   push:
     branches: [main, 'claude/**']
-    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', 'scripts/l10n/**', '.github/workflows/ios.yml']
+    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', 'scripts/l10n/**', 'scripts/store-metadata/**', 'docs/release/store-metadata/**', '.github/workflows/ios.yml']
   pull_request:
-    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', 'scripts/l10n/**', '.github/workflows/ios.yml']
+    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', 'scripts/l10n/**', 'scripts/store-metadata/**', 'docs/release/store-metadata/**', '.github/workflows/ios.yml']
   workflow_dispatch:
 
 permissions:
@@ -30,6 +30,8 @@ jobs:
         run: xcodebuild -resolvePackageDependencies -project LociAR.xcodeproj -scheme LociAR
       - name: Localization catalogs complete and up to date
         run: python3 scripts/l10n/build_catalog.py --check
+      - name: App Store copy within limits and up to date
+        run: python3 scripts/store-metadata/build.py --check
       - name: Build for testing (generic iOS device, unsigned)
         run: |
           set -o pipefail
