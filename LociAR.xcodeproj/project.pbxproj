@@ -51,6 +51,7 @@
 		9884BD8EC7A396BCCEBBD93A /* StoreReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29542377FC89A2155057D35C /* StoreReadinessTests.swift */; };
 		98C217A811653B8F23CF0F8D /* ArchitectureAndPublishTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67595FAB2CD41468A70ED743 /* ArchitectureAndPublishTests.swift */; };
 		98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */; };
+		99FBBC4D6F718E4D5DA21753 /* ReliabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 745BCE5D71F4B98D69FDDE61 /* ReliabilityTests.swift */; };
 		A332B937E77E814DAE2988B0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */; };
 		A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9040568E1C52462B68579B20 /* AuthView.swift */; };
 		A9042B9B2E8428333BAAC37D /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = F91401E7C595CEF73FB3FEAC /* FirebaseMessaging */; };
@@ -146,6 +147,7 @@
 		6E3D29D96E27984134D0C362 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		6EF5BC023488AB03C976EEEC /* CreatePostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePostView.swift; sourceTree = "<group>"; };
 		7055B38D2FFD5B204D38A244 /* SocialRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialRepository.swift; sourceTree = "<group>"; };
+		745BCE5D71F4B98D69FDDE61 /* ReliabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliabilityTests.swift; sourceTree = "<group>"; };
 		76F73B5A562ADDC78C00D204 /* LociARUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A8A0BF94835F851681A368D /* MediaAssetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAssetStore.swift; sourceTree = "<group>"; };
 		7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -295,6 +297,7 @@
 				5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */,
 				597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */,
 				0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */,
+				745BCE5D71F4B98D69FDDE61 /* ReliabilityTests.swift */,
 				29542377FC89A2155057D35C /* StoreReadinessTests.swift */,
 			);
 			path = LociARTests;
@@ -648,6 +651,7 @@
 				788505617997733A088C4578 /* DomainContractTests.swift in Sources */,
 				49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */,
 				5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */,
+				99FBBC4D6F718E4D5DA21753 /* ReliabilityTests.swift in Sources */,
 				9884BD8EC7A396BCCEBBD93A /* StoreReadinessTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

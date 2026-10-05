@@ -154,9 +154,6 @@ enum BackendErrorPolicy {
         }
     }
 
-    /// Maps a Functions `NSError` (`code`, `localizedDescription`, `userInfo`) to `.rejected` for
-    /// permanent failures; nil means "leave the original error alone" (transient: unavailable,
-    /// deadline exceeded, aborted, internal, unauthenticated...).
     /// Transient failures that carry a known reason (still retryable, but with a readable message).
     nonisolated static func transient(code: Int, userInfo: [String: Any]) -> BackendTransientError? {
         guard FunctionsErrorCode(rawValue: code) == .unavailable else { return nil }
@@ -167,6 +164,9 @@ enum BackendErrorPolicy {
         }
     }
 
+    /// Maps a Functions `NSError` (`code`, `localizedDescription`, `userInfo`) to `.rejected` for
+    /// permanent failures; nil means "leave the original error alone" (transient: unavailable,
+    /// deadline exceeded, aborted, internal, unauthenticated...).
     nonisolated static func map(code: Int, message: String, userInfo: [String: Any]) -> BackendCallError? {
         guard isPermanent(FunctionsErrorCode(rawValue: code)) else { return nil }
         // The SDK stores HttpsError.details under the "details" key (FunctionsErrorDetailsKey).

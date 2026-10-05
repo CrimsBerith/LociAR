@@ -367,7 +367,7 @@ final class ARCoreService {
 
 /// Resumes a continuation exactly once (ARCore callback vs. timeout vs. cancellation race).
 /// A resume that arrives before the continuation is attached is remembered and delivered on attach.
-private final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
+final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
     private var continuation: CheckedContinuation<Value?, Never>?
     private var finished = false
     private var earlyValue: Value?
