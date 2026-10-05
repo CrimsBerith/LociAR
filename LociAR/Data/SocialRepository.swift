@@ -144,7 +144,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         let snapshot = try await query.limit(to: 51).getDocuments()
         let documents = Array(snapshot.documents.prefix(50))
         let rows = documents.map { ($0.documentID, $0.data()) }
-        let items = rows.compactMap { id, data in
+        let items: [SocialActivity] = rows.compactMap { id, data in
             guard let recipient = uuid(data["recipient_id"]) else { return nil }
             return SocialActivity(
                 id: id,
