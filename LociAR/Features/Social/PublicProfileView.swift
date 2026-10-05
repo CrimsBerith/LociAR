@@ -79,7 +79,7 @@ struct PublicProfileView: View {
         }
         .confirmationDialog("Kullanıcı engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
             Button("Engelle", role: .destructive) { Task { await block() } }
-            Button("Vazgeç", role: .cancel) {}
+            Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: {
             Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
         }
@@ -87,7 +87,7 @@ struct PublicProfileView: View {
             ForEach(ReportReason.allCases) { reason in
                 Button(NSLocalizedString(reason.rawValue, comment: "Report reason")) { Task { await reportUser(reason) } }
             }
-            Button("Vazgeç", role: .cancel) {}
+            Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         }
     }
 

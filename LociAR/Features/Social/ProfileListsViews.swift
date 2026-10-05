@@ -395,7 +395,7 @@ struct MyPostsView: View {
             get: { deleteError != nil },
             set: { if !$0 { deleteError = nil } }
         )) {
-            Button("Tamam", role: .cancel) {}
+            Button("Tamam", role: .cancel) { /* Closes the alert. */ }
         } message: {
             Text((deleteError ?? "").localizedUI)
         }

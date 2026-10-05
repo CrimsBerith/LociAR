@@ -41,7 +41,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: functions/package-lock.json
-      - run: npm ci --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
       - run: npm audit --omit=dev --audit-level=moderate
@@ -64,10 +64,10 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - run: npm ci --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run test:rules
       - run: npm run test:emulator
-      - run: npm ci --prefix ../admin --no-audit --no-fund
+      - run: npm ci --prefix ../admin --ignore-scripts --no-audit --no-fund
       - run: npx --no-install playwright install --with-deps chromium
         working-directory: admin
       - run: npm --prefix ../admin run build:ci
@@ -86,7 +86,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: admin/package-lock.json
-      - run: npm ci --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
@@ -114,7 +114,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: admin/package-lock.json
-      - run: npm ci --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npx --no-install playwright install --with-deps chromium
       - run: npm run build:ci
       - run: npm run test:e2e

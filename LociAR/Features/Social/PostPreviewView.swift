@@ -259,13 +259,13 @@ struct PostPreviewView: View {
             ForEach(ReportReason.allCases) { reason in
                 Button(NSLocalizedString(reason.rawValue, comment: "Report reason")) { Task { await report(target, reason: reason) } }
             }
-            Button("Vazgeç", role: .cancel) {}
+            Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: { _ in
             Text("Bildirimler 24 saat içinde incelenir. İçeriği görmek istemiyorsan kullanıcıyı engelleyebilirsin.")
         }
         .confirmationDialog("@\(creatorUser.handle) engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
             Button("Engelle", role: .destructive) { Task { await blockCreator() } }
-            Button("Vazgeç", role: .cancel) {}
+            Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: {
             Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
         }

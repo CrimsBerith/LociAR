@@ -53,7 +53,7 @@ def to_key(raw):
         if raw.startswith('\\"', i): out.append('"'); i += 2; continue
         if raw.startswith('\\\\', i): out.append('\\'); i += 2; continue
         c = raw[i]
-        out.append('%%' if c == '%' and not raw.startswith('\\(', i) and False else c); i += 1
+        out.append(c); i += 1
     return ''.join(out)
 
 SKIP_FILES = {'ARCoreCoverageDebugView.swift', 'UITestFixtures.swift'}  # DEBUG / fixture content

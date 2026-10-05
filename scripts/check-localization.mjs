@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const LANGUAGES = ['tr', 'en', 'zh-Hans', 'hi', 'es', 'fr', 'ar', 'bn', 'pt', 'ru', 'de', 'ja'];
-const formatArguments = value => [...value.matchAll(/%(?:\d+\$)?(@|lld|lli|d|f|g)/g)].map(item => item[1]).sort();
+const formatArguments = value => [...value.matchAll(/%(?:\d+\$)?(@|lld|lli|d|f|g)/g)].map(item => item[1]).sort((a, b) => a.localeCompare(b));
 function units(value) {
   if (value.stringUnit) return [value.stringUnit];
   return Object.values(value.variations ?? {}).flatMap(variation => Object.values(variation).flatMap(units));

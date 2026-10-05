@@ -130,7 +130,7 @@ struct ProfileView: View {
         .navigationTitle("Profil")
         .alert("Hesabı kalıcı olarak sil?", isPresented: $confirmDeletion) {
             Button("Devam et", role: .destructive) { showDeletionReauthentication = true }
-            Button("Vazgeç", role: .cancel) {}
+            Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: { Text("Postlarınız ve sosyal verileriniz sunucudan silinir. Bu işlem geri alınamaz.") }
         .sheet(isPresented: $showEditProfile) {
             ProfileEditView(user: user)
