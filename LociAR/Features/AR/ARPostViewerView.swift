@@ -14,6 +14,15 @@ struct ARPostViewerView: View {
     @State private var accessBlocked = false
     @State private var isAiming = false
     @State private var isLocalSurfaceScan = false
+    /// The resolver chain (Cloud Anchor → Geospatial → world map → aim-guided reveal); stored so
+    /// "Yaklaşık göster", "Tekrar dene" and closing the viewer can cancel it.
+    @State private var resolveTask: Task<Void, Never>?
+    @State private var offerTask: Task<Void, Never>?
+    /// Shown when exact resolving takes long: skip straight to the approximate, aim-guided view.
+    @State private var offerApproximate = false
+    @State private var isApproximateView = false
+    /// How long exact resolving may run before the "Yaklaşık göster" shortcut appears.
+    private static let approximateOfferDelay: Duration = .seconds(8)
     @State private var guidance = ViewAimGuidance(
         headingAligned: false, pitchAligned: false, closeEnough: false, readyToReveal: false,
         signedHeadingDelta: 0, distanceMeters: 0, title: "Yön aranıyor",
@@ -63,10 +72,12 @@ struct ARPostViewerView: View {
                             .buttonStyle(LociPrimaryButtonStyle())
                     }
                 } else if engine.state == .failed {
-                    Button("Tekrar dene", systemImage: "arrow.clockwise") {
-                        Task { await verifyAndOpen() }
-                    }
-                    .buttonStyle(LociPrimaryButtonStyle())
+                    Button("Tekrar dene", systemImage: "arrow.clockwise") { startResolving() }
+                        .buttonStyle(LociPrimaryButtonStyle())
+                } else if offerApproximate, engine.state != .resolved, !isAiming {
+                    Button("Yaklaşık göster", systemImage: "scope") { showApproximately() }
+                        .buttonStyle(LociSecondaryButtonStyle())
+                        .accessibilityIdentifier("ar-show-approximate")
                 } else if isAiming, engine.state != .resolved {
                     LociInlineNotice(
                         title: guidance.title,
@@ -81,7 +92,7 @@ struct ARPostViewerView: View {
         .background(LociTheme.background)
         .accessibilityIdentifier("ar-post-viewer")
         .arcoreDisclosure()
-        .task { await verifyAndOpen() }
+        .onAppear { startResolving() }
         .onChange(of: engine.state) { _, state in
             if state == .resolved {
                 isAiming = false
@@ -104,6 +115,8 @@ struct ARPostViewerView: View {
             refreshGuidance()
         }
         .onDisappear {
+            resolveTask?.cancel()
+            offerTask?.cancel()
             location.stop()
             engine.stopSession()
         }
@@ -146,6 +159,7 @@ struct ARPostViewerView: View {
 
     private var statusTitle: String {
         if accessBlocked { return "Konum uzak" }
+        if isApproximateView { return engine.state == .resolved ? "Yaklaşık görünüm" : "Yön aranıyor" }
         if isLocalSurfaceScan { return "Yüzey aranıyor" }
         if post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate {
             return engine.state == .resolved ? "Yaklaşık görünüm" : "Yön aranıyor"
@@ -167,6 +181,8 @@ struct ARPostViewerView: View {
     }
 
     private func close() {
+        resolveTask?.cancel()
+        offerTask?.cancel()
         location.stop()
         engine.stopSession()
         if let onClose {
@@ -196,6 +212,33 @@ struct ARPostViewerView: View {
         }
     }
 
+    private func startResolving() {
+        resolveTask?.cancel()
+        offerTask?.cancel()
+        offerApproximate = false
+        isApproximateView = false
+        resolveTask = Task { await verifyAndOpen() }
+        offerTask = Task {
+            do { try await Task.sleep(for: Self.approximateOfferDelay) } catch { return }
+            if engine.state != .resolved, !accessBlocked { offerApproximate = true }
+        }
+    }
+
+    /// Stops exact resolving and reveals the post by GPS direction and distance (aim-guided).
+    private func showApproximately() {
+        let running = resolveTask
+        running?.cancel()
+        offerTask?.cancel()
+        offerApproximate = false
+        isApproximateView = true
+        resolveTask = Task {
+            await running?.value
+            guard !Task.isCancelled else { return }
+            engine.stopSession()
+            await revealWithAimGuidance()
+        }
+    }
+
     private func verifyAndOpen() async {
         accessBlocked = false
         isAiming = false
@@ -221,17 +264,21 @@ struct ARPostViewerView: View {
                 }
                 message = decision.reason
                 if await engine.resumePreservedWorldLock(anchorID: post.anchorBundle.anchor.id) {
-                    try? await engine.render(post: post)
-                    message = "Yüzey bulundu. İçerik hazır."
+                    _ = await renderResolvedContent()
                     return
                 }
+                // Each stage checks for cancellation: closing the viewer or "Yaklaşık göster" must
+                // not fall through to the next stage (which would restart the camera).
+                guard !Task.isCancelled else { return }
                 if await resolveWithARCore() { return }
+                guard !Task.isCancelled else { return }
                 if await relocalizeFromWorldMap() { return }
+                guard !Task.isCancelled else { return }
                 await revealWithAimGuidance()
                 return
             }
             if let error = location.errorMessage { message = error; accessBlocked = true; return }
-            try? await Task.sleep(for: .milliseconds(200))
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
         }
         message = "Konum doğrulanamadı. AR erişimi açılmadı."
         accessBlocked = true
@@ -244,10 +291,11 @@ struct ARPostViewerView: View {
         let anchor = post.anchorBundle.anchor
         let cloudAnchorId = anchor.persistence?.resolvableCloudAnchorId
         let geospatial = anchor.geospatial?.isValid == true ? anchor.geospatial : nil
-        guard anchor.pinQuality.isPhysicalSurface, cloudAnchorId != nil || geospatial != nil else { return false }
+        let arcore = container.arcore
+        // No ARCore (previews, session failed to start): go straight to the next resolver.
+        guard arcore.isUsable, anchor.pinQuality.isPhysicalSurface, cloudAnchorId != nil || geospatial != nil else { return false }
         await engine.requestCameraAndStart()
         guard engine.state != .failed, !Task.isCancelled else { return false }
-        let arcore = container.arcore
         guard await arcore.waitUntilReady() else { return false }
         if let cloudAnchorId {
             message = "Yüzey aranıyor. Kamerayı postun bırakıldığı yere doğrult ve yavaşça gezdir."
@@ -377,6 +425,7 @@ struct ARPostViewerView: View {
     }
 
     private func revealWithAimGuidance() async {
+        guard !Task.isCancelled else { return }
         isAiming = true
         refreshGuidance()
         if post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate {
@@ -384,8 +433,9 @@ struct ARPostViewerView: View {
             guard engine.state != .failed else { message = engine.statusMessage; isAiming = false; return }
             await waitUntilReadyToReveal()
             for _ in 0..<30 where engine.trackingQuality != .normal {
-                try? await Task.sleep(for: .milliseconds(100))
+                do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
             }
+            guard !Task.isCancelled else { return }
             do {
                 try engine.placeApproximateForViewing(anchor: post.anchorBundle.anchor)
                 try await engine.render(post: post)
@@ -422,9 +472,8 @@ struct ARPostViewerView: View {
             refreshGuidance()
             if guidance.readyToReveal,
                engine.revealIfSurfaceReady(from: post.anchorBundle.anchor) {
-                try? await engine.render(post: post)
                 isAiming = false
-                message = "Yüzey bulundu. İçerik hazır."
+                _ = await renderResolvedContent()
                 return
             }
             try? await Task.sleep(for: .milliseconds(80))

@@ -19,6 +19,13 @@ struct CreatePostView: View {
     @State private var externalPickerDetent: PresentationDetent = .large
     @State private var externalImportMessage: String?
     @State private var isPublishing = false
+    /// True while the pin is being saved; set before the task starts so a double tap cannot
+    /// start a second save.
+    @State private var isCommitting = false
+    @State private var placementTask: Task<Void, Never>?
+    /// One post id per editor session: a double tap or a retry after an error re-sends the same
+    /// id, which createPost treats as an idempotent replay instead of a second post.
+    @State private var postID = UUID()
     @State private var message: String?
     @State private var dismissAfterAlert = false
     /// After the first successful publish the app asks for notification permission (once the alert closes).
@@ -109,13 +116,14 @@ struct CreatePostView: View {
             mappingWaitExpired = false
             guard engine.currentAnchor?.pinQuality.isPhysicalSurface == true,
                   !physicalPlacementReady else { return }
-            try? await Task.sleep(for: .seconds(45))
+            do { try await Task.sleep(for: .seconds(45)) } catch { return }
             if engine.currentAnchor?.pinQuality.isPhysicalSurface == true,
                !physicalPlacementReady {
                 mappingWaitExpired = true
             }
         }
         .onDisappear {
+            placementTask?.cancel()
             if selectedAnchor == nil {
                 engine.stopSession()
             }
@@ -152,7 +160,7 @@ struct CreatePostView: View {
                         Button("Yaklaşık yerleştir · 0,8 m") {
                             engine.placeApproximate()
                             if let anchor = engine.currentAnchor {
-                                Task { await commitPlacement(anchor) }
+                                startCommit(anchor)
                             }
                         }
                         .buttonStyle(.borderedProminent).tint(.orange)
@@ -203,15 +211,15 @@ struct CreatePostView: View {
                                     engine.offerApproximatePlacement()
                                     engine.placeApproximate()
                                     if let approx = engine.currentAnchor {
-                                        Task { await commitPlacement(approx) }
+                                        startCommit(approx)
                                     }
                                 }
                                 .buttonStyle(.bordered).tint(.orange)
                             }
                         }
-                        Button("Bu yerleşimi kullan") { Task { await commitPlacement(anchor) } }
+                        Button("Bu yerleşimi kullan") { startCommit(anchor) }
                             .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
-                            .disabled(!canUsePlacement(anchor))
+                            .disabled(!canUsePlacement(anchor) || isCommitting)
                             .accessibilityIdentifier("create-use-placement")
                     } else {
                         Button("Yüzeye sabitle") { engine.requestPin() }
@@ -222,7 +230,7 @@ struct CreatePostView: View {
                             engine.offerApproximatePlacement()
                             engine.placeApproximate()
                             if let anchor = engine.currentAnchor {
-                                Task { await commitPlacement(anchor) }
+                                startCommit(anchor)
                             }
                         } label: {
                             Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
@@ -272,7 +280,7 @@ struct CreatePostView: View {
     }
 
     private var mappingStatusGuidance: String {
-        if engine.statusMessage.localizedCaseInsensitiveContains("sıcaklığı yüksek") {
+        if engine.isPausedForThermalPressure {
             return "Cihazı serin ve gölgeli bir yerde beklet. Sıcaklık normale dönünce AR taraması otomatik devam eder."
         }
         if mappingWaitExpired {
@@ -303,7 +311,7 @@ struct CreatePostView: View {
     }
 
     private var placementUnsupported: Bool {
-        engine.state == .failed && engine.statusMessage.localizedCaseInsensitiveContains("desteklemiyor")
+        engine.state == .failed && engine.failureReason == .unsupported
     }
 
     private var cameraPermissionDenied: Bool {
@@ -463,7 +471,7 @@ struct CreatePostView: View {
             Button {
                 isCaptionFocused = false
                 dismissKeyboard()
-                Task { await publish(anchor: anchor) }
+                startPublish(anchor: anchor)
             } label: {
                 if isPublishing { ProgressView().tint(.black) }
                 else { Label("Yüzeyde yayınla", systemImage: "paperplane.fill") }
@@ -504,7 +512,6 @@ struct CreatePostView: View {
             message = "Yayınlamak için tekrar giriş yapın."
             return
         }
-        isPublishing = true
         defer { isPublishing = false }
 
         var anchor = anchor
@@ -550,7 +557,6 @@ struct CreatePostView: View {
             return
         }
 
-        let postID = UUID()
         var layers: [EditLayer] = []
         let finalCaption = resolvedCaption
         if !finalCaption.isEmpty {
@@ -803,6 +809,21 @@ struct CreatePostView: View {
         if !clean.isEmpty { return clean }
         if let platform = parsedExternalMedia?.externalMedia?.platform { return "\(platform.rawValue) paylaşımı" }
         return "Mekânsal post"
+    }
+
+    private func startCommit(_ anchor: SurfaceAnchor) {
+        guard !isCommitting else { return }
+        isCommitting = true
+        placementTask = Task {
+            await commitPlacement(anchor)
+            isCommitting = false
+        }
+    }
+
+    private func startPublish(anchor: SurfaceAnchor) {
+        guard canPublish else { return }
+        isPublishing = true
+        Task { await publish(anchor: anchor) }
     }
 
     private func commitPlacement(_ anchor: SurfaceAnchor) async {
