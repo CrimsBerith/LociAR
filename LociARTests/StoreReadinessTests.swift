@@ -145,7 +145,11 @@ final class StoreReadinessTests: XCTestCase {
         guard let root = sourceCheckoutRootIfPresent() else {
             throw XCTSkip("UI kaynak denetimi Mac checkout gerektirir.")
         }
-        let profile = try String(contentsOf: root.appendingPathComponent("LociAR/Features/Social/SocialViews.swift"), encoding: .utf8)
+        let socialFolder = root.appendingPathComponent("LociAR/Features/Social")
+        let profile = try FileManager.default.contentsOfDirectory(at: socialFolder, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "swift" }
+            .map { try String(contentsOf: $0, encoding: .utf8) }
+            .joined(separator: "\n")
         let auth = try String(contentsOf: root.appendingPathComponent("LociAR/Features/Auth/AuthView.swift"), encoding: .utf8)
         XCTAssertTrue(profile.contains("accessibilityIdentifier(\"profile-privacy\")"))
         XCTAssertTrue(profile.contains("accessibilityIdentifier(\"profile-terms\")"))
