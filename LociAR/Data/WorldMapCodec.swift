@@ -40,28 +40,31 @@ enum WorldMapCodec {
         guard stored.count <= maximumUploadBytes else { throw CodecError.tooLarge(bytes: stored.count) }
         return try stored.dropFirst(magic.count).withUnsafeBytes { source in
             guard let base = source.bindMemory(to: UInt8.self).baseAddress else { throw CodecError.corrupt }
-            var stream = compression_stream()
-            guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_LZFSE) != COMPRESSION_STATUS_ERROR else { throw CodecError.corrupt }
-            defer { compression_stream_destroy(&stream) }
+            // compression_stream has non-optional pointer fields, so Swift offers no empty initializer:
+            // allocate it and let compression_stream_init fill it in.
+            let stream = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
+            defer { stream.deallocate() }
+            guard compression_stream_init(stream, COMPRESSION_STREAM_DECODE, COMPRESSION_LZFSE) != COMPRESSION_STATUS_ERROR else { throw CodecError.corrupt }
+            defer { compression_stream_destroy(stream) }
             let capacity = 64 * 1_024
             let output = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
             defer { output.deallocate() }
-            stream.src_ptr = base
-            stream.src_size = source.count
+            stream.pointee.src_ptr = base
+            stream.pointee.src_size = source.count
             var decoded = Data()
             while true {
-                stream.dst_ptr = output
-                stream.dst_size = capacity
-                let oldInputSize = stream.src_size
-                let status = compression_stream_process(&stream, Int32(COMPRESSION_STREAM_FINALIZE.rawValue))
-                let produced = capacity - stream.dst_size
+                stream.pointee.dst_ptr = output
+                stream.pointee.dst_size = capacity
+                let oldInputSize = stream.pointee.src_size
+                let status = compression_stream_process(stream, Int32(COMPRESSION_STREAM_FINALIZE.rawValue))
+                let produced = capacity - stream.pointee.dst_size
                 guard decoded.count + produced <= maximumDecodedBytes else { throw CodecError.tooLarge(bytes: decoded.count + produced) }
                 decoded.append(output, count: produced)
                 if status == COMPRESSION_STATUS_END {
-                    guard stream.src_size == 0 else { throw CodecError.corrupt }
+                    guard stream.pointee.src_size == 0 else { throw CodecError.corrupt }
                     return decoded
                 }
-                guard status == COMPRESSION_STATUS_OK, produced > 0 || stream.src_size < oldInputSize else { throw CodecError.corrupt }
+                guard status == COMPRESSION_STATUS_OK, produced > 0 || stream.pointee.src_size < oldInputSize else { throw CodecError.corrupt }
             }
         }
     }
