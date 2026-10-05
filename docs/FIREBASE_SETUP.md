@@ -187,6 +187,28 @@ ve avatar yükleme callable'ları `unavailable` + `service_paused` döner. Uygul
 mesajını gösterir, sıradaki postlar deneme hakkı harcamadan bekler. İşlem audit log'a yazılır; kapatınca 15 sn
 içinde normale döner.
 
+## 6b. İzleme ve alarmlar (bir kez, owner)
+
+`scripts/monitoring-setup.command` (Mac'te çift tıkla; tekrar çalıştırılabilir) şunları kurar:
+
+- **E-posta bildirim kanalı:** adresi betik sorar. Google'ın doğrulama e-postasını onayla.
+- **Log tabanlı metrikler ve alarmlar** (Cloud Functions ve App Hosting logları):
+
+| Metrik | Alarm koşulu | Ne yapılır |
+|--------|--------------|------------|
+| `lociar_server_errors` | 10 dk'da >10 ERROR satırı | Logs'ta `severity>=ERROR` filtresine bak |
+| `lociar_post_quota_refund_failed` | herhangi biri | Kullanıcının `post_quota` sayacını düzelt |
+| `lociar_apple_revoke_failed` | herhangi biri | Apple anahtar/secret'larını kontrol et; hesap silme durdu |
+| `lociar_cloud_anchor_cleanup_failed` | 1 saatte herhangi biri | `arcoreManagement.ts` logları; iş kendini yeniden dener |
+| `lociar_arcore_token_failed` | 10 dk'da >3 | ARCore imzalayıcı servis hesabı (`google-cloud-setup.command`) |
+| `lociar_avatar_screening_failed` | 1 saatte >3 | Cloud Vision API / kota |
+| `lociar_push_failed` | 1 saatte >20 | Firebase Console → Cloud Messaging → APNs anahtarı |
+| `lociar_service_paused` | herhangi biri | Kill switch açık kaldıysa kapat (6a) |
+
+- **Aylık bütçe:** varsayılan 50 USD. %50, %90 ve %100'de e-posta gelir.
+
+Crashlytics çökme uyarıları ayrıca Firebase Console → Crashlytics → ⋮ → *Alert settings* üzerinden açılır.
+
 ## 7. Güvenlik/maliyet ek adımları (owner)
 
 **Storage → Firestore çapraz servis yetkisi.** `storage.rules` artık `post-world-maps` okumasında `firestore.get(...)` ile post durumuna bakıyor. `firebase deploy --only storage` sırasında CLI "Firebase Rules hizmet hesabına Firestore erişimi verilsin mi?" diye sorar; **Evet** de. (Elle: IAM → `service-<PROJE_NUMARASI>@gcp-sa-firebasestorage.iam.gserviceaccount.com` hesabına `Firebase Rules Firestore Service Agent` rolü.) Verilmezse world map okumaları kapalı kalır (güvenli taraf), AR haritası yüklenmez.
