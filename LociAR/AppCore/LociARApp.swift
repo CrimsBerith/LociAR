@@ -17,6 +17,9 @@ struct LociARApp: App {
                     NotificationService.shared.onPostNotificationTapped = { postID in
                         container.router.selectPost(id: postID)
                     }
+                    NotificationService.shared.onActivityNotificationTapped = {
+                        container.router.selectActivity()
+                    }
                     await container.session.bootstrap()
                 }
                 .onOpenURL { url in

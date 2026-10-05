@@ -1,4 +1,5 @@
 import { GoogleAuth } from 'google-auth-library';
+import * as logger from 'firebase-functions/logger';
 
 /**
  * ARCore Cloud Anchor Management API (https://developers.google.com/ar/develop/cloud-anchors/management-api).
@@ -32,8 +33,8 @@ export async function deleteCloudAnchorDetailed(anchorId: string | null | undefi
   } catch (error) {
     const status = (error as { response?: { status?: number } }).response?.status;
     if (status === 404) return { ok: true, status: 404 }; // already gone
-    console.error('cloud_anchor_delete_failed', anchorId, status ?? error);
-    return { ok: false, status, error: status ? `http_${status}` : String((error as Error)?.message ?? error).slice(0, 200) };
+    logger.error('cloud_anchor_delete_failed', { code: status ?? 'provider_error' });
+    return { ok: false, status, error: status ? `http_${status}` : 'provider_error' };
   }
 }
 

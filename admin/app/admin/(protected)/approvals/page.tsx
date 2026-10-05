@@ -2,19 +2,20 @@ import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import ApprovalActions from './ApprovalActions';
 
+import PageNavigation from '../PageNavigation';
+import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters } from '../../../../lib/pagination';
+
 export const dynamic = 'force-dynamic';
 
-export default async function ApprovalsPage() {
+export default async function ApprovalsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+  const params = await searchParams;
+  let page: DocumentPage = { documents: [], next: null, previous: null };
   const admin = await requireAdmin({ permission: 'posts.metrics.write' });
   let approvals: Array<Record<string, unknown> & { id: string }> = [];
   let failed = false;
   try {
-    const snap = await adminDb().collection('admin_approval_requests')
-      .where('status', '==', 'pending')
-      .orderBy('created_at', 'asc')
-      .limit(100)
-      .get();
-    approvals = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    page = await readDocumentPage(adminDb().collection('admin_approval_requests').where('status', '==', 'pending'), { direction: 'asc', scope: 'approvals-pending', cursors: pageCursors(params) });
+    approvals = page.documents.map(d => ({ ...d.data(), id: d.id }));
   } catch {
     failed = true;
   }
@@ -46,6 +47,7 @@ export default async function ApprovalsPage() {
             })}
           </div>
         )}
+        {!failed ? <PageNavigation path="/admin/approvals" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/approvals">Return to the first page.</a></p>}
       </section>
     </main>
   );

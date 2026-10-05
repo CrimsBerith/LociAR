@@ -33,7 +33,8 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 
 - SMS auth is disabled unless the owner re-enables it.
 - **iOS only.** Do not add Android, Expo, Metro, or React Native.
-- Protected zones and 18+ content are hard-blocked in the MVP.
+- Mobile users cannot publish in protected zones; authorized admins may use a separately permissioned, reasoned zone exception (owner decision, 5 Oct 2026). 18+ content remains hard-blocked for everyone.
+- Admin delegated posts/comments identify the selected user publicly and record the acting admin separately in audit. New managed content identities have disabled, unverified Auth logins and no admin role. See `docs/release/ADMIN_CONTENT_OPERATIONS.md`.
 - Pin uses the center reticle against detected plane geometry. Approximate placement is explicit.
 - AR re-localization uses **Google ARCore on top of the ARKit session** (SPM `arcore-ios-sdk`): Cloud Anchors
   (365-day TTL) first, then Geospatial (VPS), then the legacy ARKit world map, then aim-guided reveal.

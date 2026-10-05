@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 const translations = {
   "Gerçek mekânlara bağlı hikâyeler.": {
@@ -406,14 +406,12 @@ const translations = {
   }
 };
 
-const catalog = {
-  sourceLanguage: "en",
-  version: "1.0",
-  strings: {}
-};
+const catalogURL = new URL('../LociAR/Resources/Localizable.xcstrings', import.meta.url);
+// Fill missing seed translations without overwriting reviewed copy or metadata.
+const catalog = JSON.parse(readFileSync(catalogURL, 'utf8'));
 
 for (const [key, langMap] of Object.entries(translations)) {
-  catalog.strings[key] = {
+  catalog.strings[key] ??= {
     extractionState: "manual",
     localizations: {
       tr: {
@@ -425,7 +423,7 @@ for (const [key, langMap] of Object.entries(translations)) {
     }
   };
   for (const [lang, val] of Object.entries(langMap)) {
-    catalog.strings[key].localizations[lang] = {
+    catalog.strings[key].localizations[lang] ??= {
       stringUnit: {
         state: "translated",
         value: val
@@ -435,8 +433,8 @@ for (const [key, langMap] of Object.entries(translations)) {
 }
 
 writeFileSync(
-  '/Users/khankartal/Desktop/MAC APPS NEARLY FINISHED/loci/LociAR/LociAR/Resources/Localizable.xcstrings',
+  catalogURL,
   JSON.stringify(catalog, null, 2) + '\n',
   'utf8'
 );
-console.log(`Generated Localizable.xcstrings with ${Object.keys(translations).length} keys and 11 target languages (total 12 including Turkish base).`);
+console.log(`Checked ${Object.keys(translations).length} seed keys; retained ${Object.keys(catalog.strings).length} catalog keys and existing translations.`);

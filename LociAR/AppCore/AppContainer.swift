@@ -19,6 +19,7 @@ final class AppContainer {
     init(configuration: AppConfiguration = .load()) {
         self.configuration = configuration
         let firebaseReady = configuration.configureFirebaseIfNeeded()
+        if firebaseReady { CrashReportingPreference.apply() }
         let auth: any AuthRepository
         let posts: any PostRepository
         let social: any SocialRepository
@@ -56,6 +57,9 @@ final class AppContainer {
         self.connectivity = ConnectivityMonitor()
         self.router = AppRouter()
         self.session = AppSession(authRepository: auth, backendConfigured: configuration.isBackendConfigured)
+        if firebaseReady, !UITestFixtures.authenticatedSessionEnabled, let firebase = configuration.firebase {
+            NotificationService.shared.configure(callables: CallableClient(region: firebase.functionsRegion), social: social)
+        }
         // After every stored property is set (Swift requires it before using self).
         arSession.frameSink = { [weak arcore] frame in arcore?.consume(frame) }
     }

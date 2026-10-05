@@ -1,5 +1,7 @@
 > **ARŞİV (28 Eylül 2026):** Bu belge Supabase dönemine aittir. Backend artık Firebase — güncel kaynaklar: `AGENTS.md`, `docs/FIREBASE_SETUP.md`, `ARCHITECTURE.md`.
 
+Güncel native iOS / Firebase yayın planı: [RELEASE_READINESS.md](release/RELEASE_READINESS.md). Bu arşiv yayın onayı değildir.
+
 # Spec MVP completion status (best-effort on Expo iOS stack)
 
 Updated: 2026-07-25

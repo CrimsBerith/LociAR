@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
 
 export default function ApprovalActions({ approvalId }: { approvalId: string }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const mutation = useRef(createMutationClient());
 
   async function decide(decision: 'approved' | 'rejected') {
     const reason = window.prompt(
@@ -15,24 +17,21 @@ export default function ApprovalActions({ approvalId }: { approvalId: string }) 
     if (!reason) return;
     setBusy(true);
     setMessage('');
-    const response = await fetch(
-      `/api/admin/v1/approvals/${approvalId}/decision`,
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'idempotency-key': crypto.randomUUID(),
-        },
-        body: JSON.stringify({ decision, reason }),
-      },
-    );
-    const result = await response.json() as { error?: string };
-    setBusy(false);
-    if (!response.ok) {
-      setMessage(result.error ?? 'Decision failed.');
-      return;
+    try {
+      const { response, result } = await mutation.current.post(
+        `/api/admin/v1/approvals/${approvalId}/decision`,
+        { decision, reason },
+      );
+      if (!response.ok) {
+        setMessage(result.error ?? 'Decision failed.');
+        return;
+      }
+      window.location.reload();
+    } catch (error) {
+      setMessage(mutationError(error));
+    } finally {
+      setBusy(false);
     }
-    window.location.reload();
   }
 
   return (

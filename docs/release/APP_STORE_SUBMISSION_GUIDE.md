@@ -80,7 +80,9 @@ App Store Connect'te **App Review Information** bölümüne girilecek metin:
 ### Giriş Bilgileri (Sign-In Information)
 * **Giriş Gerekli mi (Sign-in required):** Evet (Kutu işaretlenmeli)
 * **Kullanıcı Adı (Username):** `apple-review@lociar.app`
-* **Şifre (Password):** `Review_5a4b23b2e56dba64_2026!`
+* **Şifre (Password):** Parola yöneticisindeki güncel değeri yalnızca App Store Connect'in Sign-In Information alanına girin; depoya veya inceleme notlarına yazmayın.
+
+Daha önce depoda bulunan parola canlı hesapta değiştirilmeli ve App Store Connect güncellenmelidir. Güvenli oluşturma/yenileme adımları: [CREDENTIALS.md](../CREDENTIALS.md).
 
 ### İnceleme Notları (Notes for Reviewer - İngilizce)
 ```text
@@ -92,12 +94,12 @@ Thank you for reviewing LociAR.
 LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes and social media links (Spotify, YouTube, Instagram, X, Facebook) onto physical surfaces in the real world.
 
 2. DEMO ACCOUNT & PRE-SEEDED CONTENT:
-- Credentials: apple-review@lociar.app / Review_5a4b23b2e56dba64_2026!
+- Sign-in credentials are provided in the App Review Information sign-in fields.
 - A pre-seeded sample post is located directly at Apple Park, Cupertino (Lat: 37.3318, Lng: -122.0312): "LociAR demo note · Cupertino".
 - You can immediately see and interact with this post on the Map tab or Discover tab upon signing in.
 
 3. HOW TO TEST AR CREATION (NO SPECIAL HARDWARE NEEDED):
-- Step 1: Sign in using the demo account credentials provided above (or use Sign in with Apple).
+- Step 1: Sign in using the demo account credentials in the App Review Information sign-in fields (or use Sign in with Apple).
 - Step 2: Grant Camera and Location permissions when prompted.
 - Step 3: Tap the '+' (Create/Paylaş) tab to open the AR Camera.
 - Step 4: Aim the center reticle at any well-lit surface (floor, table, or wall). When the reticle detects plane geometry, tap 'Pin to Surface' ('Yüzeye sabitle'). You can also tap 'Place in front of me (0.8m)' ('Önüme yerleştir') for immediate placement.

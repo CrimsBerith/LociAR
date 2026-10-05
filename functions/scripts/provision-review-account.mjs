@@ -1,16 +1,22 @@
-import { randomBytes } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
-import { auth, db, luidForUid } from './_admin.mjs';
+import { createReviewCredentialsFile } from './review-credentials.mjs';
 
 const email = 'apple-review@lociar.app';
-const password = `Review_${randomBytes(8).toString('hex')}_2026!`;
+const { password, filePath } = createReviewCredentialsFile(process.env.REVIEW_CREDENTIALS_FILE, email);
+console.log('Private credential file created:', filePath);
+const { auth, db, luidForUid } = await import('./_admin.mjs');
 
 let user;
 try {
   user = await auth.getUserByEmail(email);
+} catch (error) {
+  if (error.code !== 'auth/user-not-found') throw error;
+}
+if (user) {
   await auth.updateUser(user.uid, { password });
+  await auth.revokeRefreshTokens(user.uid);
   console.log('User already exists in Auth, updated password, uid:', user.uid);
-} catch {
+} else {
   user = await auth.createUser({
     email,
     password,
@@ -56,8 +62,7 @@ if (!profileSnap.exists) {
   console.log('Profile already exists for luid:', luid);
 }
 
-console.log('--- CREDENTIALS ---');
+console.log('Provisioning complete. Transfer the private file to your password manager and App Store Connect.');
 console.log('Email:', email);
-console.log('Password:', password);
 console.log('LUID:', luid);
 console.log('Handle:', handle);

@@ -6,8 +6,8 @@ enum PostContractError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingGeoPose: "Yayınlamak için geçerli GPS konumu gerekiyor. Konum iznini açıp tekrar deneyin."
-        case .profileNotReady: "Profilin henüz hazırlanıyor. Post birazdan otomatik olarak yeniden denenecek."
+        case .missingGeoPose: String(localized: "Yayınlamak için geçerli GPS konumu gerekiyor. Konum iznini açıp tekrar deneyin.")
+        case .profileNotReady: String(localized: "Profilin henüz hazırlanıyor. Post birazdan otomatik olarak yeniden denenecek.")
         }
     }
 }

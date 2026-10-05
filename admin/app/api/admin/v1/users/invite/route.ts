@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { INVITE_TTL_MS } from '../../../../../../lib/policy';
 import { apiError, enforceRateLimit, requireSameOrigin, unauthorized } from '../../../../../../lib/api';
 import { requireAdminApi } from '../../../../../../lib/admin';
-import { adminAuth, adminDb } from '../../../../../../lib/firebase-admin';
-import { recordAudit } from '../../../../../../lib/ops';
+import { createUserInvitation } from '../../../../../../lib/admin-invite';
 import { isKnownRole } from '../../../../../../lib/rbac';
 import { idempotencyKey, parseJson, requiredString } from '../../../../../../lib/validation';
 
@@ -34,44 +31,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unknown admin role' }, { status: 400 });
     }
 
-    const db = adminDb();
-    const ref = db.collection('admin_user_invites').doc(key);
-    const existing = await ref.get();
-    if (existing.exists) return NextResponse.json({ invite: { id: key, ...existing.data() }, email, idempotent: true });
-
-    let invitedUser;
-    try {
-      invitedUser = await adminAuth().getUserByEmail(email);
-    } catch (error) {
-      // Only a genuine "no such user" creates an account; any other lookup failure is a 500.
-      if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
-      invitedUser = await adminAuth().createUser({ email, emailVerified: false });
-    }
-
-    const invite = {
-      id: key,
-      email,
-      handle,
-      requested_role_key: roleKey,
-      invited_user_id: invitedUser.uid,
-      invited_by: access.context.user.id,
-      status: 'sent',
-      reason,
-      created_at: FieldValue.serverTimestamp(),
-      expires_at: Timestamp.fromMillis(Date.now() + INVITE_TTL_MS),
-    };
-    await ref.create(invite);
-    await recordAudit(key, {
-      actorId: access.context.user.id,
-      action: 'user_invited',
-      resourceType: 'user_invite',
-      resourceId: key,
-      after: { email, handle, roleKey },
-      reason,
-      permissionKey: 'users.invite',
-      riskLevel: 'sensitive',
-    });
-    return NextResponse.json({ invite: { ...invite, created_at: new Date().toISOString() }, email }, { status: 201 });
+    const result = await createUserInvitation({ key, email, handle, roleKey, reason, actorId: access.context.user.id });
+    return NextResponse.json(result, { status: result.idempotent ? 200 : 201 });
   } catch (error) {
     return apiError(error);
   }

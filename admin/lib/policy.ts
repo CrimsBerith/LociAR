@@ -25,6 +25,7 @@ export function commentFlagTarget(flag: { reason?: unknown; metadata?: { comment
   return typeof id === 'string' && id ? id : null;
 }
 
+
 export function isCommentFlag(flag: { reason?: unknown; metadata?: { comment_id?: unknown; target?: unknown } | null }): boolean {
   return flag.reason === 'comment_filtered' || flag.metadata?.target === 'comment' || typeof flag.metadata?.comment_id === 'string';
 }
@@ -47,4 +48,27 @@ export function originAllowed(origin: string | null, host: string | null, adminO
     }
   }
   return Boolean(host) && url.host === host;
+}
+
+export const ZONE_CATEGORIES = ['school', 'hospital', 'worship', 'government', 'military', 'heritage', 'memorial', 'other'] as const;
+
+export type ZoneInput = { name: string; category: string; lat: number; lng: number; radius_meters: number };
+
+/** Validates a protected zone from the admin form. Returns an error key or the normalised zone. */
+export function parseZoneInput(body: Record<string, unknown>): { error: string } | { zone: ZoneInput } {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (name.length < 2 || name.length > 120) return { error: 'name must be 2-120 characters' };
+  const category = String(body.category ?? '');
+  if (!(ZONE_CATEGORIES as readonly string[]).includes(category)) return { error: 'unknown category' };
+  const lat = body.lat, lng = body.lng, radius = body.radius_meters;
+  if (typeof lat !== 'number' || !Number.isFinite(lat) || lat < -90 || lat > 90) return { error: 'lat must be between -90 and 90' };
+  if (typeof lng !== 'number' || !Number.isFinite(lng) || lng < -180 || lng > 180) return { error: 'lng must be between -180 and 180' };
+  if (typeof radius !== 'number' || !Number.isFinite(radius) || radius < 20 || radius > 2000) return { error: 'radius_meters must be 20-2000' };
+  return { zone: { name, category, lat, lng, radius_meters: Math.round(radius) } };
+}
+
+/** The last active super_admin cannot lose that role (the panel would become unmanageable). */
+export function roleRevokeError(roleKey: string, activeSuperAdmins: number): string | null {
+  if (roleKey === 'super_admin' && activeSuperAdmins <= 1) return 'cannot_revoke_last_super_admin';
+  return null;
 }

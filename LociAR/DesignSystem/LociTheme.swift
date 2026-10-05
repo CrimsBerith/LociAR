@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum LociTheme {
     static let background = Color(red: 0.025, green: 0.035, blue: 0.055)
@@ -224,7 +225,7 @@ struct LociEmptyState: View {
 extension LociEmptyState {
     /// Error variant of the empty state: its own icon and (when `retry` is given) a "Tekrar dene"
     /// button, so a failed load never reads as "nothing here".
-    static func failure(title: String = "Şu anda yüklenemiyor", message: String, retry: (() -> Void)? = nil) -> LociEmptyState {
+    static func failure(title: String = String(localized: "Şu anda yüklenemiyor"), message: String, retry: (() -> Void)? = nil) -> LociEmptyState {
         LociEmptyState(
             title: title, message: message, symbol: "exclamationmark.triangle",
             actionTitle: retry == nil ? nil : "Tekrar dene", action: retry
@@ -236,11 +237,16 @@ struct LociAvatar: View {
     let handle: String
     var avatarURL: URL? = nil
     var size: CGFloat = 44
+    @State private var storageAvatar: UIImage?
 
     var body: some View {
         Group {
             if let preset = AvatarReference.presetName(avatarURL) {
                 presetAvatar(preset)
+            } else if let avatarURL, avatarURL.scheme == "storage" {
+                if let storageAvatar {
+                    Image(uiImage: storageAvatar).resizable().scaledToFill().frame(width: size, height: size).clipShape(Circle())
+                } else { fallbackAvatar }
             } else if let avatarURL {
                 AsyncImage(url: avatarURL) { phase in
                     switch phase {
@@ -263,6 +269,13 @@ struct LociAvatar: View {
         .frame(width: size, height: size)
         .overlay(Circle().stroke(LociTheme.accent.opacity(0.18)))
         .accessibilityHidden(true)
+        .task(id: avatarURL) {
+            storageAvatar = nil
+            guard let avatarURL, avatarURL.scheme == "storage" else { return }
+            let data = await AvatarURLCache.shared.data(for: avatarURL)
+            guard !Task.isCancelled else { return }
+            storageAvatar = data.flatMap { UIImage(data: $0) }
+        }
     }
 
     private func presetAvatar(_ name: String) -> some View {

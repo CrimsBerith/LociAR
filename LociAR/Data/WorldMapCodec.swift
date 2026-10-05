@@ -1,3 +1,4 @@
+import Compression
 import CryptoKit
 import Foundation
 
@@ -9,6 +10,8 @@ enum WorldMapCodec {
     /// Upper bound for an uploaded (compressed) map; storage.rules enforces the same limit.
     nonisolated static let maximumUploadBytes = 20 * 1_024 * 1_024
 
+    nonisolated static let maximumDecodedBytes = 50 * 1_024 * 1_024
+
     enum CodecError: LocalizedError {
         case tooLarge(bytes: Int)
         case corrupt
@@ -16,24 +19,50 @@ enum WorldMapCodec {
         var errorDescription: String? {
             switch self {
             case .tooLarge:
-                "Yüzey haritası çok büyük. Daha küçük bir alanı tarayıp yeniden sabitle."
+                String(localized: "Yüzey haritası çok büyük. Daha küçük bir alanı tarayıp yeniden sabitle.")
             case .corrupt:
-                "Kaydedilmiş yüzey bilgisi açılamadı."
+                String(localized: "Kaydedilmiş yüzey bilgisi açılamadı.")
             }
         }
     }
 
     nonisolated static func encode(_ raw: Data) throws -> Data {
+        guard raw.count <= maximumDecodedBytes else { throw CodecError.tooLarge(bytes: raw.count) }
         let compressed = try (raw as NSData).compressed(using: .lzfse) as Data
         return magic + compressed
     }
 
     nonisolated static func decode(_ stored: Data) throws -> Data {
-        guard stored.starts(with: magic) else { return stored }
-        do {
-            return try (stored.dropFirst(magic.count) as NSData).decompressed(using: .lzfse) as Data
-        } catch {
-            throw CodecError.corrupt
+        guard stored.starts(with: magic) else {
+            guard stored.count <= maximumDecodedBytes else { throw CodecError.tooLarge(bytes: stored.count) }
+            return stored
+        }
+        guard stored.count <= maximumUploadBytes else { throw CodecError.tooLarge(bytes: stored.count) }
+        return try stored.dropFirst(magic.count).withUnsafeBytes { source in
+            guard let base = source.bindMemory(to: UInt8.self).baseAddress else { throw CodecError.corrupt }
+            var stream = compression_stream()
+            guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_LZFSE) != COMPRESSION_STATUS_ERROR else { throw CodecError.corrupt }
+            defer { compression_stream_destroy(&stream) }
+            let capacity = 64 * 1_024
+            let output = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+            defer { output.deallocate() }
+            stream.src_ptr = base
+            stream.src_size = source.count
+            var decoded = Data()
+            while true {
+                stream.dst_ptr = output
+                stream.dst_size = capacity
+                let oldInputSize = stream.src_size
+                let status = compression_stream_process(&stream, Int32(COMPRESSION_STREAM_FINALIZE.rawValue))
+                let produced = capacity - stream.dst_size
+                guard decoded.count + produced <= maximumDecodedBytes else { throw CodecError.tooLarge(bytes: decoded.count + produced) }
+                decoded.append(output, count: produced)
+                if status == COMPRESSION_STATUS_END {
+                    guard stream.src_size == 0 else { throw CodecError.corrupt }
+                    return decoded
+                }
+                guard status == COMPRESSION_STATUS_OK, produced > 0 || stream.src_size < oldInputSize else { throw CodecError.corrupt }
+            }
         }
     }
 }
@@ -47,7 +76,10 @@ struct WorldMapDownloadCache: Sendable {
 
     nonisolated static var standard: WorldMapDownloadCache? {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
-            .map { WorldMapDownloadCache(directory: $0.appendingPathComponent("LociARWorldMaps", isDirectory: true)) }
+            .map { root in
+                let owner = FirebaseIdentity.currentLUID().map(FirebaseIdentity.key) ?? "signed-out"
+                return WorldMapDownloadCache(directory: root.appendingPathComponent("LociARWorldMaps", isDirectory: true).appendingPathComponent(owner, isDirectory: true))
+            }
     }
 
     /// Stable file name for a `storage://` locator (the path contains the post and anchor IDs).
@@ -57,7 +89,9 @@ struct WorldMapDownloadCache: Sendable {
 
     nonisolated func read(_ locator: String) -> Data? {
         let url = directory.appendingPathComponent(Self.fileName(for: locator))
-        guard let data = try? Data(contentsOf: url), data.count >= 64 else { return nil }
+        guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
+              size <= WorldMapCodec.maximumUploadBytes,
+              let data = try? Data(contentsOf: url), data.count >= 64 else { return nil }
         try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: url.path)
         return data
     }

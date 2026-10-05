@@ -11,6 +11,8 @@ actor HiddenPostStore {
 
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
+    func clear(owner: String) { defaults.removeObject(forKey: Self.keyPrefix + owner) }
+
     func hide(_ postID: UUID, owner: String) {
         var ids = hiddenIDs(owner: owner)
         ids.insert(postID.uuidString.lowercased())

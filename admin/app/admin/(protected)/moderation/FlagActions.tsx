@@ -2,16 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createMutationClient } from '../../../../lib/client-mutation';
 
 const actions = [
   { key: 'dismiss', label: 'Dismiss', className: 'secondaryButton' },
   { key: 'approve', label: 'Approve', className: '' },
-  { key: 'flag', label: 'Remove', className: 'dangerButton' },
-  { key: 'soft_delete', label: 'Trash', className: 'dangerButton' },
+  { key: 'flag', label: 'Flag', className: 'secondaryButton' },
+  { key: 'soft_delete', label: 'Remove', className: 'dangerButton' },
 ] as const;
 
 export default function FlagActions({ flagId, hasPost }: { flagId: string; hasPost: boolean }) {
   const router = useRouter();
+  const [mutation] = useState(createMutationClient);
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -20,13 +22,9 @@ export default function FlagActions({ flagId, hasPost }: { flagId: string; hasPo
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch(`/api/admin/v1/moderation/${flagId}/decision`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
-        body: JSON.stringify({ action, reason }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Moderation decision failed');
+      const { response, result: payload } = await mutation.post(`/api/admin/v1/moderation/${flagId}/decision`, { action, reason });
+      if (!response.ok) throw new Error(String(payload.error ?? 'Moderation decision failed'));
+      mutation.clear();
       setMessage('Decision recorded in audit.');
       router.refresh();
     } catch (error) {

@@ -1,10 +1,15 @@
+import { reconcileCounters, reconcileProfileCounters } from './reconciliation';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { bucket, db, deleteStoragePrefix, FieldValue, Timestamp } from './core';
-import { listCloudAnchors } from './arcoreManagement';
+import { db, deleteStoragePrefix, FieldValue, Timestamp } from './core';
+import { logger, safeErrorCode } from './core';
+import { purgeOrphanUploads } from './orphanUploadStorage';
+export { purgeOrphanUploads } from './orphanUploadStorage';
+export { ORPHAN_UPLOAD_GRACE_HOURS } from './orphanUploads';
+import { listCloudAnchors, type ManagementDeps } from './arcoreManagement';
 import { deleteAnchorOrQueue, drainAnchorDeletionQueue } from './anchorQueue';
-import { deleteAnchorOfPost } from './anchors';
+import { claimAnchorDeletion, deleteAnchorOfPost } from './anchors';
 import { selectOrphanAnchors } from './arcoreToken';
-import { purgeStalePendingAvatars } from './avatar';
+import { drainAvatarDeletions, purgeStalePendingAvatars } from './avatar';
 
 /**
  * Storage housekeeping so media does not accumulate for content nobody can see.
@@ -19,7 +24,6 @@ import { purgeStalePendingAvatars } from './avatar';
  */
 
 export const REMOVED_MEDIA_GRACE_DAYS = 30;
-export const ORPHAN_UPLOAD_GRACE_HOURS = 48;
 const BATCH = 300;
 const DAY_MS = 86_400_000;
 
@@ -28,21 +32,34 @@ export const purgeQueueRef = (postId: string) => db.collection('media_purge_queu
 /** Called by onPostWritten on every status change. */
 export async function schedulePurgeOnStatusChange(
   postId: string,
-  before: FirebaseFirestore.DocumentData | undefined,
-  after: FirebaseFirestore.DocumentData | undefined,
+  _before: FirebaseFirestore.DocumentData | undefined,
+  _after: FirebaseFirestore.DocumentData | undefined,
   now = Date.now(),
 ): Promise<void> {
-  const wasRemoved = before?.status === 'removed';
-  const isRemoved = after?.status === 'removed';
-  if (isRemoved && !wasRemoved && after?.creator_id) {
-    await purgeQueueRef(postId).set({
-      post_id: postId,
-      prefix: `${after.creator_id}/${postId}/`,
-      due_at: Timestamp.fromMillis(now + REMOVED_MEDIA_GRACE_DAYS * DAY_MS),
+  // Trigger payloads can arrive out of order; decide from current state in the same transaction
+  // that writes the queue. Account deletion reads are also fenced against delayed deliveries.
+  await db.runTransaction(async (tx) => {
+    const queueRef = purgeQueueRef(postId);
+    const [post, queued] = await tx.getAll(db.collection('posts').doc(postId), queueRef);
+    const data = post.data();
+    if (!post.exists || data?.status !== 'removed' || typeof data.creator_id !== 'string') {
+      if (queued.exists) tx.delete(queueRef);
+      return;
+    }
+    const [profile, deletion] = await tx.getAll(
+      db.collection('profiles').doc(data.creator_id), db.collection('account_deletion_jobs').doc(data.creator_id),
+    );
+    if (deletion.exists || profile.get('deleted_at') != null) {
+      if (queued.exists) tx.delete(queueRef);
+      return;
+    }
+    const due = now + REMOVED_MEDIA_GRACE_DAYS * DAY_MS;
+    const existingDue = queued.get('due_at')?.toMillis?.();
+    const dueAt = Number.isFinite(existingDue) ? Math.min(due, existingDue) : due;
+    tx.set(queueRef, {
+      post_id: postId, prefix: `${data.creator_id}/${postId}/`, due_at: Timestamp.fromMillis(dueAt),
     });
-  } else if (wasRemoved && after && !isRemoved) {
-    await purgeQueueRef(postId).delete();
-  }
+  });
 }
 
 export async function purgeDueRemovedMedia(now = Date.now()): Promise<number> {
@@ -62,30 +79,6 @@ export async function purgeDueRemovedMedia(now = Date.now()): Promise<number> {
     await doc.ref.delete();
   }
   return due.size;
-}
-
-/** Deletes world-map folders older than the grace period that have no post document. */
-export async function purgeOrphanUploads(now = Date.now()): Promise<number> {
-  const [files] = await bucket().getFiles({ prefix: 'post-world-maps/', maxResults: 5000 });
-  const newestByFolder = new Map<string, number>();
-  for (const file of files) {
-    const [, luid, postId] = file.name.split('/');
-    if (!luid || !postId) continue;
-    const key = `${luid}/${postId}`;
-    const updated = Date.parse(String(file.metadata.updated ?? file.metadata.timeCreated ?? '')) || now;
-    newestByFolder.set(key, Math.max(newestByFolder.get(key) ?? 0, updated));
-  }
-  const cutoff = now - ORPHAN_UPLOAD_GRACE_HOURS * 3_600_000;
-  const candidates = [...newestByFolder].filter(([, updated]) => updated < cutoff).map(([key]) => key).slice(0, BATCH);
-  if (candidates.length === 0) return 0;
-  const posts = await db.getAll(...candidates.map((key) => db.collection('posts').doc(key.split('/')[1])));
-  let removed = 0;
-  for (let i = 0; i < candidates.length; i++) {
-    if (posts[i].exists) continue;
-    await deleteStoragePrefix(`${candidates[i]}/`);
-    removed++;
-  }
-  return removed;
 }
 
 /**
@@ -116,17 +109,28 @@ export async function referencedAnchorIds(ids: string[]): Promise<Set<string>> {
  * stored page token (system/arcore_orphan_cursor) so every anchor is reached over a few nights
  * instead of the oldest pages being rescanned forever.
  */
-export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5): Promise<number> {
+export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5, deps: ManagementDeps = {}): Promise<number> {
   let removed = 0;
   const cursorSnap = await ORPHAN_CURSOR().get();
   let pageToken: string | undefined = (cursorSnap.data()?.page_token as string | undefined) || undefined;
   for (let page = 0; page < maxPages; page++) {
-    const { anchors, nextPageToken } = await listCloudAnchors(pageToken);
+    let listed: Awaited<ReturnType<typeof listCloudAnchors>>;
+    try {
+      listed = await listCloudAnchors(pageToken, deps);
+    } catch (error) {
+      // A stored page token can expire; start from the first page next night instead of failing forever.
+      if (pageToken) await ORPHAN_CURSOR().set({ page_token: null, reset_reason: 'listing_failed', updated_at: FieldValue.serverTimestamp() });
+      throw error;
+    }
+    const { anchors, nextPageToken } = listed;
     if (anchors.length > 0) {
       const referenced = await referencedAnchorIds(anchors.map((a) => a.id));
       for (const id of selectOrphanAnchors(anchors, referenced, now, ORPHAN_ANCHOR_GRACE_DAYS * DAY_MS)) {
-        if (await deleteAnchorOrQueue(id)) removed++;
-        await db.collection('cloud_anchors').doc(id).delete(); // unbound ownership record, if any
+        if (!await claimAnchorDeletion(id, null)) continue;
+        if (await deleteAnchorOrQueue(id, deps)) {
+          removed++;
+          await db.collection('cloud_anchors').doc(id).set({ state: 'deleted', deleted_at: FieldValue.serverTimestamp() }, { merge: true });
+        }
       }
     }
     pageToken = nextPageToken;
@@ -138,60 +142,39 @@ export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5): P
 }
 
 export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
-  const removed = await purgeDueRemovedMedia();
-  const orphans = await purgeOrphanUploads();
+  let removed = 0, orphans = 0;
+  for (const task of [async () => { removed = await purgeDueRemovedMedia(); }, async () => { orphans = await purgeOrphanUploads(); }, async () => { await drainAvatarDeletions(); }]) {
+    try { await task(); } catch (error) { logger.error('media_cleanup_deferred', { code: safeErrorCode(error) }); }
+  }
   let pendingAvatars = 0;
   try {
     pendingAvatars = await purgeStalePendingAvatars();
   } catch (error) {
-    console.error('pending_avatar_cleanup_failed', error);
+    logger.error('pending_avatar_cleanup_failed', { code: safeErrorCode(error) });
   }
   let orphanAnchors = 0;
   let retried = 0;
   try {
     retried = await drainAnchorDeletionQueue();
   } catch (error) {
-    console.error('cloud_anchor_queue_failed', error);
+    logger.error('cloud_anchor_queue_failed', { code: safeErrorCode(error) });
   }
   try {
     orphanAnchors = await purgeOrphanCloudAnchors();
   } catch (error) {
-    console.error('cloud_anchor_cleanup_failed', error);
+    logger.error('cloud_anchor_cleanup_failed', { code: safeErrorCode(error) });
   }
-  console.log(JSON.stringify({ event: 'cleanup_post_media', removed, orphans, pendingAvatars, orphanAnchors, retried }));
+  logger.info('cleanup_post_media', { removed, orphans, pendingAvatars, orphanAnchors, retried });
 });
 
-/**
- * Nightly sample check of denormalised counters (likes/comments/saves on posts). Redelivered
- * triggers are deduplicated, but a failed delivery could still leave a counter off; this repairs
- * a random sample of posts each night rather than scanning everything.
- */
-export async function reconcileCounters(sampleSize = 100): Promise<number> {
-  const startId = db.collection('posts').doc().id;
-  let snap = await db.collection('posts').orderBy('__name__').startAt(startId).limit(sampleSize).get();
-  if (snap.size < sampleSize) {
-    const rest = await db.collection('posts').orderBy('__name__').limit(sampleSize - snap.size).get();
-    snap = { docs: [...snap.docs, ...rest.docs.filter((d) => !snap.docs.some((x) => x.id === d.id))] } as typeof snap;
-  }
-  let repaired = 0;
-  for (const post of snap.docs) {
-    const [likes, comments, saves] = await Promise.all(['likes', 'comments', 'post_saves'].map(
-      async (c) => (await db.collection(c).where('post_id', '==', post.id).count().get()).data().count,
-    ));
-    const data = post.data();
-    const fix: Record<string, number> = {};
-    if (Number(data.likes_count ?? 0) !== likes) fix.likes_count = likes;
-    if (Number(data.comments_count ?? 0) !== comments) fix.comments_count = comments;
-    if (Number(data.saves_count ?? 0) !== saves) fix.saves_count = saves;
-    if (Object.keys(fix).length > 0) {
-      await post.ref.update(fix);
-      repaired++;
-    }
-  }
-  return repaired;
-}
+/** Nightly cursor-based repair reaches posts and profiles over successive runs. */
+export { reconcileCounters, reconcileProfileCounters } from './reconciliation';
 
 export const reconcilePostCounters = onSchedule({ schedule: 'every day 04:11', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
   const repaired = await reconcileCounters();
-  console.log(JSON.stringify({ event: 'reconcile_counters', repaired }));
+  const profilesRepaired = await reconcileProfileCounters();
+  logger.info('reconcile_counters', { repaired, profilesRepaired });
 });
+
+/** Short, bounded retry worker for immutable avatar deletion jobs. */
+export const retryAvatarDeletions = onSchedule({schedule: 'every 5 minutes', timeoutSeconds: 120, maxInstances: 1}, async () => { await drainAvatarDeletions(); });

@@ -7,8 +7,9 @@ export function apiError(error: unknown) {
   if (error instanceof ValidationError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
-  // Details stay in the server log; clients only ever see a generic message.
-  console.error('[admin-api]', error);
+  // Provider exception messages may contain request or identity details.
+  const code = String((error as { code?: unknown } | null)?.code ?? 'unexpected');
+  console.error('[admin-api]', { code: /^[a-z0-9_/-]{1,64}$/i.test(code) ? code : 'unexpected' });
   return NextResponse.json({ error: 'Unexpected server error' }, { status: 500 });
 }
 

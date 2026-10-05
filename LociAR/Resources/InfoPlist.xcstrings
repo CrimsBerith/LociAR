@@ -1,0 +1,240 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSCameraUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR, gerçek yüzeyleri algılamak ve postları sabitlemek için kamerayı kullanır. Görsel özellik verileri Google ARCore ile güvenli biçimde işlenir."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR uses the camera to detect real surfaces and pin posts. Visual feature data is processed securely with Google ARCore."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR 使用摄像头检测真实表面，并将帖子固定在这些表面上。视觉特征数据通过 Google ARCore 进行安全处理。"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR वास्तविक सतहों का पता लगाने और उन पर पोस्ट को स्थिर करने के लिए कैमरे का उपयोग करता है। दृश्य विशेषताओं का डेटा Google ARCore के साथ सुरक्षित रूप से संसाधित किया जाता है।"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR utiliza la cámara para detectar superficies reales y fijar publicaciones en ellas. Los datos de características visuales se procesan de forma segura con Google ARCore."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR utilise la caméra pour détecter les surfaces réelles et y fixer les publications. Les données des caractéristiques visuelles sont traitées de manière sécurisée avec Google ARCore."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يستخدم LociAR الكاميرا لاكتشاف الأسطح الحقيقية وتثبيت المنشورات عليها. تتم معالجة بيانات الميزات المرئية بأمان باستخدام Google ARCore."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR বাস্তব পৃষ্ঠ শনাক্ত করতে এবং তাতে পোস্ট স্থাপন করতে ক্যামেরা ব্যবহার করে। Google ARCore-এর মাধ্যমে দৃশ্যের বৈশিষ্ট্যের ডেটা নিরাপদে প্রক্রিয়া করা হয়।"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR usa a câmera para detectar superfícies reais e fixar publicações nelas. Os dados de características visuais são processados com segurança pelo Google ARCore."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR использует камеру для обнаружения реальных поверхностей и закрепления на них публикаций. Данные визуальных признаков безопасно обрабатываются с помощью Google ARCore."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR nutzt die Kamera, um reale Oberflächen zu erkennen und Beiträge darauf zu verankern. Visuelle Merkmalsdaten werden sicher mit Google ARCore verarbeitet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR は、実際の面を検出し、その面に投稿を固定するためにカメラを使用します。視覚特徴データは Google ARCore で安全に処理されます。"
+          }
+        }
+      },
+      "comment": "Translated and editorially checked against the English UI meaning, 2026-10-04. Verify compiled resources, VoiceOver, wrapping and RTL in native QA."
+    },
+    "NSLocationWhenInUseUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR uses your location to list nearby AR content and display it at the correct location with Google ARCore Geospatial."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR 使用您的位置列出附近的 AR 内容，并通过 Google ARCore Geospatial 将其显示在正确的位置。"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR आपके स्थान का उपयोग आस-पास की AR सामग्री दिखाने और Google ARCore Geospatial के साथ उसे सही स्थान पर प्रदर्शित करने के लिए करता है।"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR utiliza su ubicación para enumerar contenido AR cercano y mostrarlo en la ubicación correcta con Google ARCore Geospatial."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR utilise votre emplacement pour répertorier le contenu AR à proximité et l'afficher au bon emplacement avec Google ARCore Geospatial."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يستخدم LociAR موقعك لإدراج محتوى AR القريب وعرضه في الموقع الصحيح باستخدام Google ARCore Geospatial."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR আপনার অবস্থান ব্যবহার করে কাছাকাছি AR সামগ্রী তালিকাভুক্ত করে এবং Google ARCore Geospatial-এর সাথে সঠিক অবস্থানে প্রদর্শন করে।"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR usa sua localização para listar conteúdo AR próximo e exibi-lo no local correto com o Google ARCore Geospatial."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR использует ваше местоположение, чтобы составить список близлежащего контента AR и отобразить его в правильном месте с помощью Google ARCore Geospatial."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR verwendet Ihren Standort, um AR-Inhalte in der Nähe aufzulisten und sie mit Google ARCore Geospatial am richtigen Standort anzuzeigen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR は、位置情報を使用して近くの AR コンテンツをリストし、Google ARCore Geospatial を使用して正しい位置に表示します。"
+          }
+        }
+      },
+      "comment": "Translated and editorially checked against the English UI meaning, 2026-10-04. Verify compiled resources, VoiceOver, wrapping and RTL in native QA."
+    },
+    "GeospatialAccuracy": {
+      "extractionState": "manual",
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR, AR postlarını harita ve cadde üzerinde tam doğrulukla yerleştirebilmek için geçici hassas konum iznine ihtiyaç duyar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR needs temporary precise location access to place AR posts accurately on the map and street."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR 需要临时的精确位置访问权限才能将 AR 帖子准确地放置在地图和街道上。"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मानचित्र और सड़क पर AR पोस्ट को सटीक रूप से रखने के लिए LociAR को अस्थायी सटीक स्थान पहुंच की आवश्यकता होती है।"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR necesita acceso temporal a una ubicación precisa para colocar publicaciones AR con precisión en el mapa y la calle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR a besoin d’un accès temporaire à votre position précise pour placer correctement les publications AR sur la carte et dans la rue."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يحتاج LociAR إلى وصول دقيق ومؤقت إلى الموقع لوضع منشورات الواقع المعزز بدقة على الخريطة والشارع."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "মানচিত্র এবং রাস্তায় নির্ভুলভাবে AR পোস্টগুলি স্থাপন করতে LociAR-এর অস্থায়ী সুনির্দিষ্ট অবস্থান অ্যাক্সেসের প্রয়োজন৷"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR precisa de acesso temporário à localização precisa para colocar postagens de AR com precisão no mapa e na rua."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR требуется временный доступ к точному местоположению, чтобы точно размещать посты AR на карте и улице."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR benötigt vorübergehenden präzisen Standortzugriff, um AR-Beiträge genau auf der Karte und der Straße zu platzieren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LociAR では、AR 投稿を地図や道路上に正確に配置するために、一時的に正確な位置にアクセスする必要があります。"
+          }
+        }
+      },
+      "comment": "Translated and editorially checked against the English UI meaning, 2026-10-04. Verify compiled resources, VoiceOver, wrapping and RTL in native QA."
+    }
+  },
+  "version": "1.0"
+}

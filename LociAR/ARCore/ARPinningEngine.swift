@@ -42,15 +42,15 @@ enum ARPinningError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unsupported: "Bu cihaz gelişmiş AR yüzey taramasını desteklemiyor."
-        case .cameraDenied: "Kamera izni verilmedi."
-        case .noAnchor: "Önce bir yüzey seçin."
-        case .mappingNotReady: "Yüzey kaydı henüz hazır değil. Çevreyi yavaşça tarayın."
-        case .mapUnavailable: "Yüzey kaydı oluşturulamadı."
-        case .invalidWorldMap: "Kaydedilmiş yüzey bilgisi açılamadı."
-        case .anchorMissing: "Postun bağlı olduğu yüzey kaydı bulunamadı."
-        case .renderAnchorMissing: "Yüzey bulundu ancak post anchor'ı sahneye bağlanamadı."
-        case .renderContentUnavailable: "Postun yüzey içeriği hazırlanamadı."
+        case .unsupported: String(localized: "Bu cihaz gelişmiş AR yüzey taramasını desteklemiyor.")
+        case .cameraDenied: String(localized: "Kamera izni verilmedi.")
+        case .noAnchor: String(localized: "Önce bir yüzey seçin.")
+        case .mappingNotReady: String(localized: "Yüzey kaydı henüz hazır değil. Çevreyi yavaşça tarayın.")
+        case .mapUnavailable: String(localized: "Yüzey kaydı oluşturulamadı.")
+        case .invalidWorldMap: String(localized: "Kaydedilmiş yüzey bilgisi açılamadı.")
+        case .anchorMissing: String(localized: "Postun bağlı olduğu yüzey kaydı bulunamadı.")
+        case .renderAnchorMissing: String(localized: "Yüzey bulundu ancak post anchor'ı sahneye bağlanamadı.")
+        case .renderContentUnavailable: String(localized: "Postun yüzey içeriği hazırlanamadı.")
         }
     }
 }
@@ -74,7 +74,7 @@ final class ARPinningEngine: NSObject {
     private(set) var mappingQuality: WorldMappingQuality = .notAvailable
     private(set) var candidateQuality: PinQuality?
     private(set) var currentAnchor: SurfaceAnchor?
-    private(set) var statusMessage = "AR hazır değil."
+    private(set) var statusMessage = String(localized: "AR hazır değil.")
     private(set) var diagnostics: [PinDiagnosticSnapshot] = []
     private(set) var isRelocalizedContentVisible = false
     private(set) var cameraPitchDegrees: Double = 0
@@ -116,15 +116,15 @@ final class ARPinningEngine: NSObject {
     var mappingDiagnosticSummary: String {
         let tracking = switch trackingQuality {
         case .unknown: "bilinmiyor"
-        case .limited: "sınırlı"
+        case .limited: String(localized: "sınırlı")
         case .normal: "normal"
-        case .unavailable: "kullanılamıyor"
+        case .unavailable: String(localized: "kullanılamıyor")
         }
         let mapping = switch mappingQuality {
-        case .notAvailable: "başlamadı"
-        case .limited: "sınırlı"
-        case .extending: "genişliyor"
-        case .mapped: "hazır"
+        case .notAvailable: String(localized: "başlamadı")
+        case .limited: String(localized: "sınırlı")
+        case .extending: String(localized: "genişliyor")
+        case .mapped: String(localized: "hazır")
         }
         return "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh"
     }
@@ -166,7 +166,7 @@ final class ARPinningEngine: NSObject {
         case .authorized:
             startSession(reset: state == .failed)
         case .notDetermined:
-            transition(to: .permissionRequired, message: "Yüzey taraması için kamera izni gerekiyor.")
+            transition(to: .permissionRequired, message: String(localized: "Yüzey taraması için kamera izni gerekiyor."))
             let allowed = await AVCaptureDevice.requestAccess(for: .video)
             if allowed { startSession(reset: true) }
             else { transition(to: .failed, error: .cameraDenied) }
@@ -198,7 +198,7 @@ final class ARPinningEngine: NSObject {
         await requestCameraAndStart()
         guard state != .failed else { return false }
         if await waitForLiveCameraFrame() { return true }
-        transition(to: .failed, message: "Kameradan canlı görüntü alınamadı. Tekrar deneyin.")
+        transition(to: .failed, message: String(localized: "Kameradan canlı görüntü alınamadı. Tekrar deneyin."))
         return false
 #endif
     }
@@ -227,7 +227,7 @@ final class ARPinningEngine: NSObject {
         case .authorized:
             break
         case .notDetermined:
-            transition(to: .permissionRequired, message: "Yüzey taraması için kamera izni gerekiyor.")
+            transition(to: .permissionRequired, message: String(localized: "Yüzey taraması için kamera izni gerekiyor."))
             guard await AVCaptureDevice.requestAccess(for: .video) else {
                 transition(to: .failed, error: .cameraDenied)
                 return false
@@ -251,7 +251,7 @@ final class ARPinningEngine: NSObject {
         startSession(reset: true)
 
         if await waitForLiveCameraFrame() { return true }
-        transition(to: .failed, message: "Kameradan canlı görüntü alınamadı. Tekrar deneyin.")
+        transition(to: .failed, message: String(localized: "Kameradan canlı görüntü alınamadı. Tekrar deneyin."))
         return false
 #endif
     }
@@ -269,7 +269,7 @@ final class ARPinningEngine: NSObject {
 
 #if targetEnvironment(simulator)
     private func markSimulatorCameraReady(
-        message: String = "Simülatör kamerası sınırlı. Pin arayüzü açık."
+        message: String = String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık.")
     ) {
         trackingQuality = .normal
         hasRecentCameraFrame = true
@@ -294,7 +294,7 @@ final class ARPinningEngine: NSObject {
             transition(to: .failed, error: .unsupported)
             return
         }
-        transition(to: .initializing, message: "Kamera hazırlanıyor…")
+        transition(to: .initializing, message: String(localized: "Kamera hazırlanıyor…"))
         hasRecentCameraFrame = false
         lastFrameReceivedAt = nil
         trackedRaycast?.stopTracking()
@@ -339,7 +339,7 @@ final class ARPinningEngine: NSObject {
         candidateQuality = nil
         latestEstimatedResult = nil
         candidateSamples.removeAll()
-        transition(to: .idle, message: "AR oturumu durduruldu.")
+        transition(to: .idle, message: String(localized: "AR oturumu durduruldu."))
     }
 
     func restartTracking() {
@@ -379,7 +379,7 @@ final class ARPinningEngine: NSObject {
     }
 
     func requestPin() {
-        transition(to: .placing, message: "Yüzey doğrulanıyor…")
+        transition(to: .placing, message: String(localized: "Yüzey doğrulanıyor…"))
         let point = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
         if let query = arView.makeRaycastQuery(from: point, allowing: .existingPlaneGeometry, alignment: .any),
            let exact = arView.session.raycast(query).first {
@@ -388,21 +388,21 @@ final class ARPinningEngine: NSObject {
         }
 
         guard trackingQuality == .normal else {
-            transition(to: .approximateOffered, message: "Tarama henüz hazır değil. Çevreyi taramaya devam edin veya yaklaşık yerleştirin.")
+            transition(to: .approximateOffered, message: String(localized: "Tarama henüz hazır değil. Çevreyi taramaya devam edin veya yaklaşık yerleştirin."))
             return
         }
 
         if isCandidateStable, latestEstimatedResult != nil {
             transition(
                 to: .approximateOffered,
-                message: "Yalnız tahmini yüzey bulundu. Fiziksel kilit için düzlemi taramaya devam edin veya yaklaşık yerleştirmeyi açıkça seçin."
+                message: String(localized: "Yalnız tahmini yüzey bulundu. Fiziksel kilit için düzlemi taramaya devam edin veya yaklaşık yerleştirmeyi açıkça seçin.")
             )
             return
         }
 
         transition(
             to: .approximateOffered,
-            message: "Bu noktada kararlı yüzey bulunamadı. Merkez halkayı yüzey üzerinde gezdirin veya yaklaşık yerleştirmeyi seçin."
+            message: String(localized: "Bu noktada kararlı yüzey bulunamadı. Merkez halkayı yüzey üzerinde gezdirin veya yaklaşık yerleştirmeyi seçin.")
         )
     }
 
@@ -411,19 +411,19 @@ final class ARPinningEngine: NSObject {
     func offerApproximatePlacement() {
         let allowed: [PinSessionState] = [.scanning, .candidateReady, .approximateOffered, .placed, .mapping]
         guard allowed.contains(state) else { return }
-        transition(to: .approximateOffered, message: "Yaklaşık yerleştirme seçildi. İçerik kameranın 0,8 m önünde konumlanacak.")
+        transition(to: .approximateOffered, message: String(localized: "Yaklaşık yerleştirme seçildi. İçerik kameranın 0,8 m önünde konumlanacak."))
     }
 
     func placeApproximate() {
         guard state == .approximateOffered else {
-            recordDiagnostic("Yaklaşık yerleştirme açık kullanıcı onayı olmadan reddedildi.")
+            recordDiagnostic(String(localized: "Yaklaşık yerleştirme açık kullanıcı onayı olmadan reddedildi."))
             return
         }
 #if targetEnvironment(simulator)
         let cameraTransform = arView.session.currentFrame?.camera.transform ?? matrix_identity_float4x4
 #else
         guard let frame = arView.session.currentFrame else {
-            transition(to: .failed, message: "Kamera pozu alınamadı. Tekrar deneyin.")
+            transition(to: .failed, message: String(localized: "Kamera pozu alınamadı. Tekrar deneyin."))
             return
         }
         let cameraTransform = frame.camera.transform
@@ -454,9 +454,9 @@ final class ARPinningEngine: NSObject {
     /// `physical` distinguishes a surface-exact Cloud Anchor from a geospatial placement.
     func placeResolvedForViewing(transform: simd_float4x4, anchor sourceAnchor: SurfaceAnchor, physical: Bool) {
         if state != .scanning && state != .candidateReady && state != .approximateOffered {
-            transition(to: .scanning, message: "Konum bulundu, içerik hazırlanıyor…")
+            transition(to: .scanning, message: String(localized: "Konum bulundu, içerik hazırlanıyor…"))
         }
-        transition(to: .placing, message: "İçerik yerleştiriliyor…")
+        transition(to: .placing, message: String(localized: "İçerik yerleştiriliyor…"))
         place(
             transform: transform,
             quality: physical ? sourceAnchor.pinQuality : .estimatedPlane,
@@ -469,9 +469,9 @@ final class ARPinningEngine: NSObject {
         currentAnchor?.geospatial = sourceAnchor.geospatial
         currentAnchor?.persistence = sourceAnchor.persistence
         isRelocalizedContentVisible = true
-        if state == .placed { transition(to: .relocalizing, message: "İçerik açılıyor…") }
+        if state == .placed { transition(to: .relocalizing, message: String(localized: "İçerik açılıyor…")) }
         if state == .relocalizing || state == .placed {
-            transition(to: .resolved, message: physical ? "Yüzey bulundu. İçerik hazır." : "Konum bulundu. İçerik hazır.")
+            transition(to: .resolved, message: physical ? String(localized: "Yüzey bulundu. İçerik hazır.") : String(localized: "Konum bulundu. İçerik hazır."))
         }
     }
 
@@ -488,9 +488,9 @@ final class ARPinningEngine: NSObject {
         let cameraTransform = frame.camera.transform
 #endif
         if state != .scanning && state != .candidateReady && state != .approximateOffered {
-            transition(to: .scanning, message: "Yaklaşık görünüm hazırlanıyor…")
+            transition(to: .scanning, message: String(localized: "Yaklaşık görünüm hazırlanıyor…"))
         }
-        transition(to: .placing, message: "Yaklaşık görünüm yerleştiriliyor…")
+        transition(to: .placing, message: String(localized: "Yaklaşık görünüm yerleştiriliyor…"))
         var translation = matrix_identity_float4x4
         translation.columns.3.z = -Self.approximateDistanceMeters
         place(
@@ -505,10 +505,10 @@ final class ARPinningEngine: NSObject {
         currentAnchor?.persistence = sourceAnchor.persistence
         isRelocalizedContentVisible = true
         if state == .placed {
-            transition(to: .relocalizing, message: "Yaklaşık görünüm açılıyor…")
+            transition(to: .relocalizing, message: String(localized: "Yaklaşık görünüm açılıyor…"))
         }
         if state == .relocalizing || state == .placed {
-            transition(to: .resolved, message: "Yaklaşık görünüm kameranın 0,8 m önünde açıldı.")
+            transition(to: .resolved, message: String(localized: "Yaklaşık görünüm kameranın 0,8 m önünde açıldı."))
         }
     }
 
@@ -520,9 +520,9 @@ final class ARPinningEngine: NSObject {
         let cameraTransform = frame.camera.transform
 #endif
         if state != .scanning && state != .candidateReady && state != .approximateOffered {
-            transition(to: .scanning, message: "Dikey duvar yüzeyi hazırlanıyor…")
+            transition(to: .scanning, message: String(localized: "Dikey duvar yüzeyi hazırlanıyor…"))
         }
-        transition(to: .placing, message: "Dikey duvara yerleştiriliyor…")
+        transition(to: .placing, message: String(localized: "Dikey duvara yerleştiriliyor…"))
         var translation = matrix_identity_float4x4
         translation.columns.3.z = -Self.approximateDistanceMeters
         let transform = cameraTransform * translation
@@ -540,10 +540,10 @@ final class ARPinningEngine: NSObject {
         currentAnchor?.physicalRectMeters = sourceAnchor.physicalRectMeters
         isRelocalizedContentVisible = true
         if state == .placed {
-            transition(to: .relocalizing, message: "Dikey duvar görünümü açılıyor…")
+            transition(to: .relocalizing, message: String(localized: "Dikey duvar görünümü açılıyor…"))
         }
         if state == .relocalizing || state == .placed {
-            transition(to: .resolved, message: "Yüzey bulundu. İçerik hazır.")
+            transition(to: .resolved, message: String(localized: "Yüzey bulundu. İçerik hazır."))
         }
     }
 
@@ -553,7 +553,7 @@ final class ARPinningEngine: NSObject {
             transition(to: .mapping, message: ARPinningError.mappingNotReady.localizedDescription)
             throw ARPinningError.mappingNotReady
         }
-        transition(to: .mapping, message: "Yüzey kaydı hazırlanıyor…")
+        transition(to: .mapping, message: String(localized: "Yüzey kaydı hazırlanıyor…"))
 
         let worldMap = try await captureCurrentWorldMap()
         let sendableMap = SendableWorldMap(map: worldMap)
@@ -572,7 +572,7 @@ final class ARPinningEngine: NSObject {
         persistence.assetURI = local.mapURL.absoluteString
         persistence.referenceImageURI = nil
         currentAnchor?.persistence = persistence
-        transition(to: .publishReady, message: "Yüzey kaydı hazır. Post yayınlanabilir.")
+        transition(to: .publishReady, message: String(localized: "Yüzey kaydı hazır. Post yayınlanabilir."))
         return SavedWorldMapPackage(mapData: mapData, referenceImageData: nil, persistence: persistence)
     }
 
@@ -642,7 +642,7 @@ final class ARPinningEngine: NSObject {
         configuration.initialWorldMap = worldMap
         isRelocalizedContentVisible = false
         relocalizationDeadline = Date().addingTimeInterval(TimeInterval(Self.relocalizationTimeoutSeconds))
-        transition(to: .relocalizing, message: "Dünya konumu hazırlanıyor. Post desene bağlı değil.")
+        transition(to: .relocalizing, message: String(localized: "Dünya konumu hazırlanıyor. Post desene bağlı değil."))
         arView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
 
         if let expectedAnchor, let restored = restoredAnchor {
@@ -667,10 +667,10 @@ final class ARPinningEngine: NSObject {
                   $0.name == anchorName(for: anchorID)
               }) == true else { return false }
 
-        transition(to: .relocalizing, message: "Korunan fiziksel yüzey doğrulanıyor…")
+        transition(to: .relocalizing, message: String(localized: "Korunan fiziksel yüzey doğrulanıyor…"))
         entity.isEnabled = true
         isRelocalizedContentVisible = true
-        transition(to: .resolved, message: "AR lock yeniden bulundu.")
+        transition(to: .resolved, message: String(localized: "AR lock yeniden bulundu."))
         return true
     }
 
@@ -716,7 +716,7 @@ final class ARPinningEngine: NSObject {
 
         switch state {
         case .scanning, .candidateReady:
-            transition(to: .placing, message: "Post dünya konumunda açılıyor…")
+            transition(to: .placing, message: String(localized: "Post dünya konumunda açılıyor…"))
         case .placing, .placed, .relocalizing:
             break
         default:
@@ -736,11 +736,11 @@ final class ARPinningEngine: NSObject {
         currentAnchor?.persistence = sourceAnchor.persistence
         currentAnchor?.physicalRectMeters = sourceAnchor.physicalRectMeters
         if state == .placed {
-            transition(to: .relocalizing, message: "Post dünya konumunda duruyor.")
+            transition(to: .relocalizing, message: String(localized: "Post dünya konumunda duruyor."))
         }
         isRelocalizedContentVisible = true
         if state == .relocalizing || state == .placed {
-            transition(to: .resolved, message: "Yüzey bulundu. İçerik hazır.")
+            transition(to: .resolved, message: String(localized: "Yüzey bulundu. İçerik hazır."))
         }
         return state == .resolved
     }
@@ -755,7 +755,7 @@ final class ARPinningEngine: NSObject {
 
     func attachPersistence(_ persistence: WorldLockPersistence) {
         currentAnchor?.persistence = persistence
-        transition(to: .publishReady, message: persistence.storagePath == nil ? "Yüzey kaydı cihazda hazır." : "Yüzey kaydı güvenli depolamaya yüklendi.")
+        transition(to: .publishReady, message: persistence.storagePath == nil ? String(localized: "Yüzey kaydı cihazda hazır.") : String(localized: "Yüzey kaydı güvenli depolamaya yüklendi."))
     }
 
     func diagnosticsJSON() throws -> Data {
@@ -837,7 +837,7 @@ final class ARPinningEngine: NSObject {
             Task { @MainActor in
                 guard let self, self.state != .idle else { return }
                 self.arView.session.pause()
-                self.transition(to: .interrupted, message: "Uygulama arka planda; AR oturumu duraklatıldı.")
+                self.transition(to: .interrupted, message: String(localized: "Uygulama arka planda; AR oturumu duraklatıldı."))
             }
         })
         notificationTokens.append(center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
@@ -854,7 +854,7 @@ final class ARPinningEngine: NSObject {
                     guard self.state != .idle else { return }
                     self.pausedForThermalPressure = true
                     self.arView.session.pause()
-                    self.transition(to: .interrupted, message: "Cihaz sıcaklığı yüksek; AR geçici olarak duraklatıldı.")
+                    self.transition(to: .interrupted, message: String(localized: "Cihaz sıcaklığı yüksek; AR geçici olarak duraklatıldı."))
                 } else if self.pausedForThermalPressure {
                     self.pausedForThermalPressure = false
                     if UIApplication.shared.applicationState == .active, self.state == .interrupted {
@@ -876,7 +876,7 @@ final class ARPinningEngine: NSObject {
             startSession(reset: false)
             return
         }
-        transition(to: .relocalizing, message: "AR oturumu yeniden eşleştiriliyor.")
+        transition(to: .relocalizing, message: String(localized: "AR oturumu yeniden eşleştiriliyor."))
         let configuration = makeConfiguration()
         configuration.initialWorldMap = activeInitialWorldMap
         arView.session.run(configuration)
@@ -905,7 +905,7 @@ final class ARPinningEngine: NSObject {
 
     private func scheduleTrackedRaycastRetry(attempt: Int) {
         guard attempt < 120 else {
-            transition(to: .failed, message: "AR raycast hazırlanamadı. Tekrar deneyin.")
+            transition(to: .failed, message: String(localized: "AR raycast hazırlanamadı. Tekrar deneyin."))
             return
         }
         Task { @MainActor [weak self] in
@@ -927,7 +927,7 @@ final class ARPinningEngine: NSObject {
         guard trackingQuality == .normal else {
             candidateSamples.removeAll()
             candidateQuality = nil
-            transition(to: .scanning, message: "Tarama netleşiyor; telefonu yavaş hareket ettirin.")
+            transition(to: .scanning, message: String(localized: "Tarama netleşiyor; telefonu yavaş hareket ettirin."))
             return
         }
         let now = Date()
@@ -935,7 +935,7 @@ final class ARPinningEngine: NSObject {
         if let query = arView.makeRaycastQuery(from: center, allowing: .existingPlaneGeometry, alignment: .any),
            arView.session.raycast(query).first != nil {
             candidateQuality = .planeGeometry
-            transition(to: .candidateReady, message: "Yüzey hazır. Yüzeye sabitle’ye dokunun.")
+            transition(to: .candidateReady, message: String(localized: "Yüzey hazır. Yüzeye sabitle’ye dokunun."))
             return
         }
         guard Self.shouldAppendCandidateSample(last: candidateSamples.last?.date, now: now) else { return }
@@ -947,9 +947,9 @@ final class ARPinningEngine: NSObject {
         candidateQuality = nil
         if isCandidateStable {
             candidateQuality = .estimatedPlane
-            transition(to: .candidateReady, message: "Yüzey hazır. Yüzeye sabitle’ye dokunun.")
+            transition(to: .candidateReady, message: String(localized: "Yüzey hazır. Yüzeye sabitle’ye dokunun."))
         } else {
-            transition(to: .scanning, message: "Yüzey doğrulanıyor; sabit tutun.")
+            transition(to: .scanning, message: String(localized: "Yüzey doğrulanıyor; sabit tutun."))
         }
     }
 
@@ -1026,7 +1026,7 @@ final class ARPinningEngine: NSObject {
             }
         }
         candidateQuality = quality
-        let label = quality == .freeSpaceApproximate ? "Yaklaşık yerleştirme · 0,8 m" : "Fiziksel yüzeye sabitlendi"
+        let label = quality == .freeSpaceApproximate ? String(localized: "Yaklaşık yerleştirme · 0,8 m") : String(localized: "Fiziksel yüzeye sabitlendi")
         transition(to: .placed, message: label)
     }
 
@@ -1081,7 +1081,7 @@ final class ARPinningEngine: NSObject {
             if self.activeInitialWorldMap != nil,
                ![.resolved, .failed, .idle].contains(self.state) {
                 self.relocalizationDeadline = nil
-                self.transition(to: .failed, message: "Kaydedilen çevre bulunamadı. Post desene değil konuma bağlı; mevcut yüzeye bağlanılıyor.")
+                self.transition(to: .failed, message: String(localized: "Kaydedilen çevre bulunamadı. Post desene değil konuma bağlı; mevcut yüzeye bağlanılıyor."))
             } else if self.state == .resolved {
                 self.relocalizationDeadline = nil
             }
@@ -1237,19 +1237,19 @@ extension ARPinningEngine: ARSessionDelegate {
         switch camera.trackingState {
         case .normal:
             quality = .normal
-            message = "Tracking hazır."
+            message = String(localized: "Tracking hazır.")
         case .limited(let reason):
             quality = .limited
             switch reason {
-            case .initializing: message = "AR başlatılıyor."
-            case .excessiveMotion: message = "Cihazı daha yavaş hareket ettirin."
-            case .insufficientFeatures: message = "Daha dokulu veya aydınlık bir yüzeye yönelin."
-            case .relocalizing: message = "Kaydedilmiş çevre aranıyor."
-            @unknown default: message = "Tracking sınırlı."
+            case .initializing: message = String(localized: "AR başlatılıyor.")
+            case .excessiveMotion: message = String(localized: "Cihazı daha yavaş hareket ettirin.")
+            case .insufficientFeatures: message = String(localized: "Daha dokulu veya aydınlık bir yüzeye yönelin.")
+            case .relocalizing: message = String(localized: "Kaydedilmiş çevre aranıyor.")
+            @unknown default: message = String(localized: "Tracking sınırlı.")
             }
         case .notAvailable:
             quality = .unavailable
-            message = "Tracking kullanılamıyor."
+            message = String(localized: "Tracking kullanılamıyor.")
         }
         Task { @MainActor [weak self] in
             guard let self else { return }
@@ -1262,7 +1262,7 @@ extension ARPinningEngine: ARSessionDelegate {
             }()
             let trackingMessage: String
             if contentLocked, quality == .limited {
-                trackingMessage = "Çevre değişti; post dünya konumunda duruyor."
+                trackingMessage = String(localized: "Çevre değişti; post dünya konumunda duruyor.")
             } else {
                 trackingMessage = message
             }
@@ -1280,7 +1280,7 @@ extension ARPinningEngine: ARSessionDelegate {
                 if quality == .normal {
                     self.isRelocalizedContentVisible = true
                     self.anchorEntities.values.forEach { $0.isEnabled = true }
-                    self.transition(to: .resolved, message: "AR lock yeniden bulundu.")
+                    self.transition(to: .resolved, message: String(localized: "AR lock yeniden bulundu."))
                 } else {
                     // During initial-world-map recovery ARKit normally reports
                     // `.limited(.relocalizing)`. Keep the dedicated state so the
@@ -1289,7 +1289,7 @@ extension ARPinningEngine: ARSessionDelegate {
                     self.transition(to: .relocalizing, message: trackingMessage)
                 }
             } else if self.state == .resolved, quality == .unavailable {
-                self.transition(to: .relocalizing, message: "Tracking kesildi. Post dünya konumunda bekliyor.")
+                self.transition(to: .relocalizing, message: String(localized: "Tracking kesildi. Post dünya konumunda bekliyor."))
                 self.beginRelocalizationTimeout()
             } else if contentLocked {
                 self.isRelocalizedContentVisible = true
@@ -1361,7 +1361,7 @@ extension ARPinningEngine: ARSessionDelegate {
             self?.hasRecentCameraFrame = true
 #else
             self?.hasRecentCameraFrame = false
-            self?.transition(to: .interrupted, message: "AR oturumu kesildi.")
+            self?.transition(to: .interrupted, message: String(localized: "AR oturumu kesildi."))
 #endif
         }
     }
@@ -1371,7 +1371,7 @@ extension ARPinningEngine: ARSessionDelegate {
             guard let self, !self.pausedForThermalPressure else { return }
 #if targetEnvironment(simulator)
             self.hasRecentCameraFrame = true
-            if self.state == .interrupted { self.transition(to: .scanning, message: "Simülatör kamerası sınırlı. Pin arayüzü açık.") }
+            if self.state == .interrupted { self.transition(to: .scanning, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık.")) }
 #else
             self.resumeInterruptedSession()
 #endif
@@ -1384,14 +1384,14 @@ extension ARPinningEngine: ARSessionDelegate {
             self?.hasRecentCameraFrame = true
             self?.trackingQuality = .normal
             if self?.state == .failed || self?.state == .interrupted {
-                self?.transition(to: .initializing, message: "Simülatör kamerası sınırlı. Pin arayüzü açık.")
+                self?.transition(to: .initializing, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık."))
             }
             if self?.state == .initializing {
-                self?.transition(to: .scanning, message: "Simülatör kamerası sınırlı. Pin arayüzü açık.")
+                self?.transition(to: .scanning, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık."))
             }
 #else
             self?.hasRecentCameraFrame = false
-            self?.transition(to: .failed, message: "AR oturumu beklenmedik şekilde durdu. Tekrar deneyin.")
+            self?.transition(to: .failed, message: String(localized: "AR oturumu beklenmedik şekilde durdu. Tekrar deneyin."))
 #endif
         }
     }

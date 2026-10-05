@@ -1,7 +1,7 @@
 /** Static role → permission catalogue (ported from the Supabase admin_roles seed). */
 export const PERMISSIONS = [
   'dashboard.read', 'users.read', 'users.invite', 'users.suspend', 'users.terminate',
-  'posts.read', 'posts.moderate', 'posts.purge', 'posts.metrics.write',
+  'posts.read', 'posts.create', 'posts.edit', 'comments.write', 'users.create', 'zones.override', 'posts.moderate', 'posts.purge', 'posts.metrics.write',
   'anchors.read', 'anchors.disable', 'anchors.retire', 'places.write', 'zones.write',
   'flags.production.write', 'system.kill_switch', 'ads.approve', 'finance.refund',
   'audit.read', 'audit.export', 'admin_users.write',

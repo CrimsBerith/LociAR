@@ -39,7 +39,10 @@ struct MainTabView: View {
                 .tag(AppRouter.Tab.discover)
                 .accessibilityIdentifier("tab-discover")
 
-            NavigationStack { ProfileView(user: user) }
+            NavigationStack {
+                ProfileView(user: user)
+                    .navigationDestination(isPresented: $router.isActivityPresented) { ActivityView() }
+            }
                 .accessibilityElement(children: .contain)
                 .tabItem { Label("Profil", systemImage: "person.crop.circle.fill") }
                 .tag(AppRouter.Tab.profile)
@@ -64,11 +67,16 @@ struct MainTabView: View {
                 PostPreviewView(post: post)
             }
         }
-        .onChange(of: router.pendingPostID) { _, postID in
+        .onChange(of: router.pendingPostID, initial: true) { _, postID in
             guard let postID else { return }
             Task {
-                if let post = try? await container.posts.publicPost(id: postID) {
+                let post = try? await container.posts.publicPost(id: postID)
+                guard case let .signedIn(current) = container.session.phase,
+                      current.id == user.id, router.pendingPostID == postID else { return }
+                if let post {
                     deepLinkedPost = post
+                } else {
+                    router.selectActivity()
                 }
                 router.pendingPostID = nil
             }

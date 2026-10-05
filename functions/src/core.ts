@@ -4,6 +4,8 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
+import * as logger from 'firebase-functions/logger';
+import { reasonError } from './errors';
 import { v5 as uuidv5, validate as uuidValidate } from 'uuid';
 
 if (getApps().length === 0) initializeApp();
@@ -11,8 +13,8 @@ if (getApps().length === 0) initializeApp();
 /** Functions region. Must match LOCIAR_FIREBASE_FUNCTIONS_REGION in the iOS build settings. */
 export const REGION = process.env.LOCIAR_FUNCTIONS_REGION || 'us-central1';
 // Quota budget: event triggers get maxInstances:1 (async, latency-insensitive); user-facing
-// callables get maxInstances:2 via CALLABLE_MAX_INSTANCES. Rolling deploys stay well under quota.
-// 11 triggers×1 + 10 callables×2 = 31 vCPU peak (+ headroom for new revision startup).
+// callables get maxInstances:2 via CALLABLE_MAX_INSTANCES. Check the regional CPU quota against
+// the deployed function inventory, including headroom for rolling revision startup.
 setGlobalOptions({ region: REGION, maxInstances: 1 });
 
 /** User-facing callables need a second instance to avoid cold-start queuing under light load. */
@@ -28,7 +30,7 @@ export const ENFORCE_APP_CHECK = process.env.FUNCTIONS_EMULATOR !== 'true';
 export const db = getFirestore();
 export const auth = getAuth();
 export const bucket = () => getStorage().bucket();
-export { FieldValue, Timestamp, HttpsError };
+export { FieldValue, Timestamp, HttpsError, logger };
 
 /**
  * LociAR uses UUIDs as user identifiers everywhere (posts, storage paths, social rows).
@@ -63,6 +65,10 @@ export type Caller = {
 export function requireCaller(request: CallableRequest<unknown>): Caller {
   const token = request.auth?.token;
   if (!request.auth || !token) throw new HttpsError('unauthenticated', 'Authentication required');
+  const expectedUserId = (request.data as { userId?: unknown } | null)?.userId;
+  if (expectedUserId !== undefined && expectedUserId !== luidForUid(request.auth.uid)) {
+    throw reasonError('permission-denied', 'Account session changed', 'session_changed');
+  }
   const provider = String(token.firebase?.sign_in_provider ?? 'unknown');
   const identities = (token.firebase?.identities ?? {}) as Record<string, unknown>;
   return {
@@ -124,4 +130,46 @@ export async function deleteStoragePrefix(prefix: string): Promise<number> {
     removed += files.length;
   }
   return removed;
+}
+
+/**
+ * Emergency kill switch: `system/flags` = { kill_switch: true, kill_reason?: string } (admin panel →
+ * Sistem, permission system.kill_switch, or the budget alert). While it is on, the admission paths listed below refuse with `unavailable` / reason `service_paused`; reads,
+ * reports, blocks and account deletion keep working. Cached per instance for a few seconds.
+ */
+export type KillableFeature = 'create_post' | 'arcore_token' | 'register_anchor' | 'avatar_upload' | 'push_register';
+// No caching in the emulator so tests (and local E2E) see a flag flip immediately.
+const FLAGS_TTL_MS = process.env.FUNCTIONS_EMULATOR === 'true' ? 0 : 15_000;
+let flagsCache: { at: number; on: boolean } | null = null;
+
+export async function killSwitchOn(now = Date.now()): Promise<boolean> {
+  if (flagsCache && now - flagsCache.at < FLAGS_TTL_MS) return flagsCache.on;
+  let on = false;
+  try {
+    on = (await db.collection('system').doc('flags').get()).data()?.kill_switch === true;
+  } catch (error) {
+    logger.error('kill_switch_read_failed', { code: safeErrorCode(error) });
+    throw reasonError('unavailable', 'Service configuration is temporarily unavailable', 'busy_retry');
+  }
+  flagsCache = { at: now, on };
+  return on;
+}
+
+/** Test hook: forget the cached flag so the next call reads Firestore again. */
+export function resetKillSwitchCache(): void {
+  flagsCache = null;
+}
+
+export async function assertServiceEnabled(feature: KillableFeature): Promise<void> {
+  if (await killSwitchOn()) {
+    logger.warn('kill_switch_refused', { feature });
+    throw reasonError('unavailable', 'LociAR is temporarily paused', 'service_paused');
+  }
+}
+
+/** Provider messages may include request details; only bounded codes belong in logs. */
+export function safeErrorCode(error: unknown): string {
+  const code = String((error as { code?: unknown; response?: { status?: unknown } } | null)?.code
+    ?? (error as { response?: { status?: unknown } } | null)?.response?.status ?? 'unknown');
+  return /^[a-z0-9_/-]{1,64}$/i.test(code) ? code : 'unknown';
 }

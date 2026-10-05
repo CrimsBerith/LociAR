@@ -7,11 +7,11 @@ final class StoreReadinessTests: XCTestCase {
         let bundle = appBundle
         XCTAssertEqual(
             bundle.object(forInfoDictionaryKey: "NSCameraUsageDescription") as? String,
-            "LociAR, gerçek yüzeyleri algılamak ve postları seçtiğiniz yüzeye yerleştirmek için kamerayı kullanır."
+            "LociAR, gerçek yüzeyleri algılamak ve postları sabitlemek için kamerayı kullanır. Görsel özellik verileri Google ARCore ile güvenli biçimde işlenir."
         )
         XCTAssertEqual(
             bundle.object(forInfoDictionaryKey: "NSLocationWhenInUseUsageDescription") as? String,
-            "LociAR, yakındaki postları göstermek ve AR içeriğini doğru konumda açmak için konumunuzu kullanır."
+            "LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır."
         )
         XCTAssertNil(
             bundle.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription"),
@@ -51,6 +51,12 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherUserContent"))
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeName"), "Apple full name is sent to ensureProfile")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeProductInteraction"), "views/likes and analytics_events")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCoarseLocation"), "analytics_events keep approximate location")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherDataTypes"), "camera-derived features sent to Google ARCore")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCrashData"), "Firebase Crashlytics")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherDiagnosticData"), "Firebase Crashlytics diagnostics")
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeDeviceID"), "FCM registration token stored per account")
+        XCTAssertTrue(collected.allSatisfy { ($0["NSPrivacyCollectedDataTypeTracking"] as? Bool) == false }, "nothing is used for tracking")
     }
 
     func testShippedBundleDoesNotEmbedServiceRoleSecrets() throws {
@@ -86,14 +92,18 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertEqual(Geohash.encode(latitude: 57.64911, longitude: 10.40744, precision: 11), "u4pruydqqvj")
         XCTAssertEqual(Geohash.encode(latitude: 41.0082, longitude: 28.9784, precision: 7), "sxk973m")
         XCTAssertEqual(Geohash.encode(latitude: 37.3349, longitude: -122.009, precision: 6), "9q9hrs")
-        XCTAssertEqual(
-            Geohash.coverPrefixes(latitude: 41.0082, longitude: 28.9784, radiusMeters: 120),
-            ["sxk970", "sxk971", "sxk972", "sxk973", "sxk974", "sxk976", "sxk978", "sxk979", "sxk97d"]
-        )
-        XCTAssertEqual(
-            Geohash.coverPrefixes(latitude: 41.0082, longitude: 28.9784, radiusMeters: 50_000),
-            ["sx5", "sx7", "sxe", "sxh", "sxj", "sxk", "sxm", "sxs", "sxt"]
-        )
+        for (latitude, longitude, radius) in [(41.0082, 28.9784, 120.0), (41.0082, 28.9784, 50_000.0), (82.0, 179.9999, 500.0)] {
+            let prefixes = Geohash.coverPrefixes(latitude: latitude, longitude: longitude, radiusMeters: radius)
+            for offset in [-0.4, 0.0, 0.4] {
+                let lat = latitude + offset * radius / 111_200
+                let lng = longitude + offset * radius / (111_200 * cos(latitude * .pi / 180))
+                let wrapped = ((lng + 180).truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360) - 180
+                let hash = Geohash.encode(latitude: lat, longitude: wrapped)
+                XCTAssertTrue(prefixes.isEmpty || prefixes.contains(where: hash.hasPrefix))
+            }
+        }
+        XCTAssertTrue(Geohash.coverPrefixes(latitude: 89.9999, longitude: 0, radiusMeters: 120).isEmpty,
+                      "A 15.7 m neighbor at longitude 90 must not be excluded near the pole")
         XCTAssertTrue(Geohash.coverPrefixes(latitude: 41, longitude: 29, radiusMeters: 8_000_000).isEmpty)
     }
 

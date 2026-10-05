@@ -5,10 +5,11 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { getStorage } from 'firebase-admin/storage';
 import { FieldValue } from 'firebase-admin/firestore';
+import { EmailAuthProvider, OAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { adminAuth, adminDb, closeClients, expectFailure, newAppleUser, newUser, postBody, PROJECT } from './_harness.mjs';
 import { APPLE_STUB_PORT } from './prepare-env.mjs';
 // In-process handlers (the harness initialises firebase-admin against the emulators).
-import { onCommentCreated } from '../../lib/triggers.js';
+import { onCommentCreated, onCommentDeleted } from '../../lib/triggers.js';
 import { purgeStalePendingAvatars } from '../../lib/avatar.js';
 
 // Stub for https://appleid.apple.com/auth/{token,revoke}; APPLE_AUTH_BASE_URL points here.
@@ -20,7 +21,7 @@ const appleStub = createServer((req, res) => {
     res.writeHead(appleStatus, { 'content-type': 'application/json' }).end('{"error":"invalid_grant"}');
     return;
   }
-  const body = req.url === '/auth/token' ? '{"refresh_token":"stub-refresh"}' : '{}';
+  const body = req.url === '/auth/token' ? JSON.stringify({ refresh_token: randomUUID() }) : '{}';
   res.writeHead(200, { 'content-type': 'application/json' }).end(body);
 });
 before(() => new Promise((resolve) => appleStub.listen(APPLE_STUB_PORT, '127.0.0.1', resolve)));
@@ -42,9 +43,8 @@ const hourDoc = (luid) => adminDb.collection('post_quota').doc(`${luid}_h${Math.
 test('registerCloudAnchor: 100 registrations a day, the 101st is refused; unbound records expire', async () => {
   const user = await newUser();
   const ids = Array.from({ length: 100 }, anchorId);
-  for (let i = 0; i < ids.length; i += 10) {
-    await Promise.all(ids.slice(i, i + 10).map((cloudAnchorId) => user.call('registerCloudAnchor', { cloudAnchorId })));
-  }
+  // The app registers one anchor per hosted pin, one after another.
+  for (const cloudAnchorId of ids) await user.call('registerCloudAnchor', { cloudAnchorId });
   const limited = await expectFailure(user.call('registerCloudAnchor', { cloudAnchorId: anchorId() }));
   assert.equal(limited.code, 'functions/resource-exhausted');
   assert.equal(limited.details?.reason, 'rate_limited');
@@ -53,10 +53,30 @@ test('registerCloudAnchor: 100 registrations a day, the 101st is refused; unboun
 
   const record = (await adminDb.collection('cloud_anchors').doc(ids[0]).get()).data();
   const ttlDays = (record.expires_at.toMillis() - Date.now()) / 86_400_000;
-  assert.ok(ttlDays > 6.9 && ttlDays <= 7, `unbound record expires in 7 days, got ${ttlDays}`);
+  assert.ok(ttlDays > 29.9 && ttlDays <= 30, `unbound record expires in 30 days (the orphan grace), got ${ttlDays}`);
   await user.call('createPost', postBody({ pose: anchorPose(ids[0]) }));
   const bound = (await adminDb.collection('cloud_anchors').doc(ids[0]).get()).data();
   assert.equal(bound.expires_at, undefined, 'binding to a post removes the expiry');
+});
+
+test('registerCloudAnchor: parallel calls never exceed the quota and contention is retryable, not INTERNAL', async () => {
+  const user = await newUser();
+  const day = Math.floor(Date.now() / 86_400_000);
+  await adminDb.collection('anchor_quota').doc(`${user.luid}_d${day}`).set({ owner_luid: user.luid, count: 97 });
+  const results = await Promise.allSettled(Array.from({ length: 5 }, () => user.call('registerCloudAnchor', { cloudAnchorId: anchorId() })));
+  let registered = 0;
+  for (const result of results) {
+    if (result.status === 'fulfilled') { registered += 1; continue; }
+    const { code, details } = result.reason;
+    assert.ok(
+      (code === 'functions/resource-exhausted' && details?.reason === 'rate_limited')
+        || (code === 'functions/unavailable' && details?.reason === 'busy_retry'),
+      `unexpected failure ${code} ${JSON.stringify(details)}`,
+    );
+  }
+  assert.ok(registered <= 3, `at most 3 slots were left, ${registered} registered`);
+  const count = (await adminDb.collection('anchor_quota').doc(`${user.luid}_d${day}`).get()).data().count;
+  assert.equal(count, 97 + registered);
 });
 
 test('cloud anchors: B cannot post with A\'s anchor, and B deleting a post never touches A\'s anchor', async () => {
@@ -132,6 +152,37 @@ test('deleteAccount: a sign-in older than 5 minutes is refused with reauth_requi
   assert.equal(body.error?.status, 'FAILED_PRECONDITION');
   assert.equal(body.error?.details?.reason, 'reauth_required');
   assert.equal((await adminDb.collection('profiles').doc(user.luid).get()).exists, true);
+  assert.equal((await adminDb.collection('account_deletion_jobs').doc(user.luid).get()).exists, false);
+});
+
+test('deleteAccount: wrong credentials preserve data; password reauthentication refreshes auth_time and enables deletion', async () => {
+  const user = await newUser();
+  const credential = EmailAuthProvider.credential(user.user.email, 'synthetic-wrong-credential');
+  await assert.rejects(reauthenticateWithCredential(user.user, credential), /invalid-credential|wrong-password/i);
+  assert.equal((await adminDb.collection('profiles').doc(user.luid).get()).exists, true);
+  assert.equal((await adminDb.collection('account_deletion_jobs').doc(user.luid).get()).exists, false);
+  assert.ok(await adminAuth.getUser(user.uid));
+  const started = Math.floor(Date.now() / 1000);
+  await reauthenticateWithCredential(user.user, EmailAuthProvider.credential(user.user.email, 'correct-horse-battery'));
+  const refreshed = await user.user.getIdTokenResult(true);
+  assert.ok(Number(refreshed.claims.auth_time) >= started);
+  assert.deepEqual(await user.call('deleteAccount', { userId: user.luid }), { ok: true });
+  assert.equal((await adminDb.collection('profiles').doc(user.luid).get()).exists, false);
+  await assert.rejects(adminAuth.getUser(user.uid), /no user record/i);
+});
+
+test('deleteAccount: a queued request bound to another session changes no account data', async () => {
+  const alice = await newUser(); const bob = await newUser();
+  const rejected = await expectFailure(bob.call('deleteAccount', { userId: alice.luid }));
+  assert.equal(rejected.code, 'functions/permission-denied');
+  assert.equal(rejected.details.reason, 'session_changed');
+  for (const user of [alice, bob]) {
+    const profile = await adminDb.collection('profiles').doc(user.luid).get();
+    assert.equal(profile.exists, true);
+    assert.equal(profile.get('deleted_at'), null);
+    assert.ok(await adminAuth.getUser(user.uid));
+    assert.equal((await adminDb.collection('account_deletion_jobs').doc(user.luid).get()).exists, false);
+  }
 });
 
 test('deleteAccount (Apple): without a code or when Apple answers 400 nothing is deleted', async () => {
@@ -150,9 +201,12 @@ test('deleteAccount (Apple): without a code or when Apple answers 400 nothing is
   assert.equal(rejected.code, 'functions/failed-precondition');
   assert.equal(rejected.details?.reason, 'apple_revoke_failed');
   assert.deepEqual(appleCalls, ['/auth/token']);
-  assert.equal((await adminDb.collection('profiles').doc(user.luid).get()).exists, true);
+  const preservedProfile = await adminDb.collection('profiles').doc(user.luid).get();
+  assert.equal(preservedProfile.exists, true);
+  assert.equal(preservedProfile.get('deleted_at'), null, 'failed Apple revocation must not fence the account');
   assert.equal((await adminDb.collection('posts').doc(post.clientMutationId).get()).exists, true);
   assert.ok(await adminAuth.getUser(user.uid));
+  assert.equal((await adminDb.collection('account_deletion_jobs').doc(user.luid).get()).exists, false);
 });
 
 test('deleteAccount (Apple): revokes with Apple, then removes unbound anchors and anonymises profile-text flags', async () => {
@@ -166,10 +220,37 @@ test('deleteAccount (Apple): revokes with Apple, then removes unbound anchors an
   appleCalls.length = 0;
   assert.deepEqual(await user.call('deleteAccount', { appleAuthorizationCode: 'code-from-ios' }), { ok: true });
   assert.deepEqual(appleCalls, ['/auth/token', '/auth/revoke']);
-  assert.equal((await adminDb.collection('cloud_anchors').doc(unbound).get()).exists, false);
+  const tombstone = await adminDb.collection('cloud_anchors').doc(unbound).get();
+  assert.ok(['deleting','deleted'].includes(tombstone.get('state')));
+  assert.equal(tombstone.get('owner_luid'), undefined, 'the permanent anchor fence contains no deleted owner identity');
   const flag = (await flagRef.get()).data();
   assert.equal(flag.user_id, null);
   assert.equal(flag.metadata.text, null);
+  await assert.rejects(adminAuth.getUser(user.uid), /no user record/i);
+});
+
+test('deleteAccount (Apple): an old auth_time cannot revoke; reauthentication then revokes and deletes', async () => {
+  const user = await newAppleUser();
+  appleStatus = 200; appleCalls.length = 0;
+  const response = await fetch(`http://127.0.0.1:5001/${PROJECT}/us-central1/deleteAccount`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${emulatorToken(user, {
+      auth_time: Math.floor(Date.now() / 1000) - 600,
+      firebase: { sign_in_provider: 'apple.com', identities: { 'apple.com': [user.uid] } },
+    })}` },
+    body: JSON.stringify({ data: { appleAuthorizationCode: 'synthetic-fresh-code', userId: user.luid } }),
+  });
+  assert.equal((await response.json()).error.details.reason, 'reauth_required');
+  assert.equal((await adminDb.collection('account_deletion_jobs').doc(user.luid).get()).exists, false);
+  assert.deepEqual(appleCalls, [], 'a fresh Apple code alone must not bypass stale Firebase authentication');
+  const sub = user.user.providerData.find(provider => provider.providerId === 'apple.com').uid;
+  const credential = new OAuthProvider('apple.com').credential({ idToken: JSON.stringify({ sub, email: user.user.email, email_verified: true }) });
+  const started = Math.floor(Date.now() / 1000);
+  await reauthenticateWithCredential(user.user, credential);
+  assert.ok(Number((await user.user.getIdTokenResult(true)).claims.auth_time) >= started);
+  assert.deepEqual(await user.call('deleteAccount', { appleAuthorizationCode: 'synthetic-fresh-code', userId: user.luid }), { ok: true });
+  assert.deepEqual(appleCalls, ['/auth/token', '/auth/revoke']);
+  assert.equal((await adminDb.collection('profiles').doc(user.luid).get()).exists, false);
   await assert.rejects(adminAuth.getUser(user.uid), /no user record/i);
 });
 
@@ -199,6 +280,7 @@ test('filtered comment: the same event delivered twice writes one flag and one a
   const comment = { id: commentId, post_id: postId, user_id: randomUUID(), text: 'siktir git' };
   const snapshot = { id: commentId, ref: adminDb.collection('comments').doc(commentId), data: () => comment };
   const event = { id: `evt-${commentId}`, params: { id: commentId }, data: snapshot };
+  await snapshot.ref.set(comment);
   await onCommentCreated.run(event);
   await onCommentCreated.run(event);
   const flags = await adminDb.collection('moderation_flags').where('metadata.comment_id', '==', commentId).get();
@@ -206,6 +288,40 @@ test('filtered comment: the same event delivered twice writes one flag and one a
   assert.equal(flags.docs[0].id, `comment_${commentId}`);
   const events = await adminDb.collection('analytics_events').where('post_id', '==', postId).where('event_name', '==', 'comment_filtered').get();
   assert.equal(events.size, 1);
+});
+
+test('filtered comment deletion never changes counters on sequential or concurrent redelivery', async () => {
+  const postId = randomUUID();
+  const commentId = randomUUID();
+  const post = adminDb.collection('posts').doc(postId);
+  await post.set({ comments_count: 2, engagement_score: 10 });
+  await Promise.all(Array.from({ length: 2 }, () => adminDb.collection('comments').doc(randomUUID()).set({ post_id: postId, user_id: randomUUID(), text: 'Allowed comment' })));
+  await adminDb.collection('filtered_comments').doc(commentId).set({ created_at: new Date() });
+  const event = { id: `deleted-${commentId}`, params: { id: commentId }, data: { data: () => ({ post_id: postId }) } };
+
+  await Promise.all(Array.from({ length: 4 }, () => onCommentDeleted.run(event)));
+  await onCommentDeleted.run(event);
+  await onCommentDeleted.run(event);
+  const data = (await post.get()).data();
+  assert.equal(data.comments_count, 2);
+  assert.equal(data.engagement_score, 10);
+  assert.equal((await adminDb.collection('filtered_comments').doc(commentId).get()).exists, false);
+  assert.equal((await adminDb.collection('trigger_receipts').doc(event.id).get()).exists, true);
+});
+
+test('normal comment deletion changes counters exactly once on concurrent redelivery', async () => {
+  const postId = randomUUID();
+  const commentId = randomUUID();
+  const post = adminDb.collection('posts').doc(postId);
+  await post.set({ comments_count: 2, engagement_score: 10 });
+  await adminDb.collection('comments').doc(randomUUID()).set({ post_id: postId, user_id: randomUUID(), text: 'Remaining comment' });
+  const event = { id: `deleted-${commentId}`, params: { id: commentId }, data: { data: () => ({ post_id: postId }) } };
+
+  await Promise.all(Array.from({ length: 4 }, () => onCommentDeleted.run(event)));
+  await onCommentDeleted.run(event);
+  const data = (await post.get()).data();
+  assert.equal(data.comments_count, 1);
+  assert.equal(data.engagement_score, 5);
 });
 
 test('avatars: the quota counts uploads (6th slot refused), suspended users get no slot, screening needs a slot', async () => {

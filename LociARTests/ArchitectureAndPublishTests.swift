@@ -421,3 +421,39 @@ private actor PublishRepositoryStub: PostRepository {
 
     enum StubFailure: Error { case expected }
 }
+
+@MainActor
+final class AccountScopedDeletionTests: XCTestCase {
+    func testAcceptedDeletionResumesWithoutDeletingAnotherAccountsRecordsOrHiddenList() async throws {
+        let a = UUID(), b = UUID(), hidden = UUID()
+        let schema = Schema([DraftRecord.self, SyncQueueRecord.self, PreferenceRecord.self])
+        let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+        let marker = "lociar.acceptedAccountDeletions", previous = UserDefaults.standard.object(forKey: marker)
+        UserDefaults.standard.removeObject(forKey: marker)
+        defer {
+            if let previous { UserDefaults.standard.set(previous, forKey: marker) } else { UserDefaults.standard.removeObject(forKey: marker) }
+            UserDefaults.standard.removeObject(forKey: "hidden_post_ids." + b.uuidString.lowercased())
+        }
+        for owner in [a, b] {
+            context.insert(DraftRecord(id: UUID(), ownerID: owner, payload: Data()))
+            context.insert(SyncQueueRecord(ownerID: owner, operation: "publish", payload: Data()))
+            context.insert(PreferenceRecord(key: owner.uuidString.lowercased() + ".editor", value: "preserved"))
+            context.insert(PreferenceRecord(key: "legacy.lociar_saved_posts_v1:user:" + owner.uuidString, value: "legacy scoped"))
+            await HiddenPostStore.shared.hide(hidden, owner: owner.uuidString.lowercased())
+        }
+        try context.save()
+        LocalAccountDeletion.markAccepted(a)
+        await LocalAccountDeletion.resume(in: context)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<DraftRecord>()).map(\.ownerID), [b])
+        XCTAssertEqual(try context.fetch(FetchDescriptor<SyncQueueRecord>()).map(\.ownerID), [b])
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PreferenceRecord>()).map(\.key).sorted(), [b.uuidString.lowercased() + ".editor", "legacy.lociar_saved_posts_v1:user:" + b.uuidString].sorted())
+        let hiddenA = await HiddenPostStore.shared.hiddenIDs(owner: a.uuidString.lowercased())
+        let hiddenB = await HiddenPostStore.shared.hiddenIDs(owner: b.uuidString.lowercased())
+        XCTAssertTrue(hiddenA.isEmpty)
+        XCTAssertEqual(hiddenB, [hidden.uuidString.lowercased()])
+        XCTAssertEqual(UserDefaults.standard.stringArray(forKey: marker), [])
+        await LocalAccountDeletion.resume(in: context)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<DraftRecord>()).count, 1)
+    }
+}

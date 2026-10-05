@@ -1,36 +1,59 @@
-# Fiziksel AR Saha Testi ve Kabul Matrisi (Issue #18)
+# Fiziksel AR saha testi ve kabul matrisi
 
-Yeniden bulma sırası: **Cloud Anchor → Geospatial (VPS) → World Map → Yönlendirmeli Gösterim (Aim-Guided Reveal)**
+Güncel aday: **henüz fiziksel cihazda doğrulanmadı**.
+[Yayın planı](docs/release/RELEASE_READINESS.md) ve [push/silme matrisi](docs/QA_MATRIX.md) birlikte kullanılır.
+Simulator, test fixture'ı veya betik birim testi fiziksel AR kanıtı değildir.
 
-## Test Edilen Cihazlar
-- [x] **LiDAR Cihaz:** iPhone 14 Pro Max (`iPhone15,3` - iOS 26.x - UDID: `B2E7EFB8-A5CD-5671-BBE9-2A86FE9D7EB8`)
-- [ ] **LiDAR Olmayan Cihaz:** İkinci fiziksel iPhone (iPhone 11/12/13 standart)
+Yeniden bulma sırası: **Cloud Anchor → Geospatial (VPS) → World Map → yönlendirmeli gösterim**.
+Geospatial/World Map kabulünde ilgili fallback gerçekten seçilmelidir; önceki Cloud Anchor başarısı bunu kanıtlamaz.
 
----
+## Cihazlar ve koşular
 
-## 1. Yeniden Konumlandırma ve Çözücü Senaryoları
+Bir LiDAR'lı ve bir LiDAR'sız fiziksel iPhone gerekir. Her biri için model, tam iOS sürümü,
+uygulama sürümü/build numarası ve aday commit SHA kaydedilir. UDID'yi bu belgeye yazmayın.
+S1–S12 her iki cihazda, S8 yalnız LiDAR'sız cihazda çalışır: toplam **23 koşu**.
 
-| # | Senaryo | Beklenen Çözücü | Ortam / Notlar | Başarı |
-|---|---|---|---|---|
-| **S1** | İç mekân, dokulu duvar; A cihazında pinle, B cihazında aç | Cloud Anchor | Maslak / Ofis iç mekan dokulu yüzey | [x] Geçti |
-| **S2** | S1 + 24 saat sonra, farklı ışıkta açılış | Cloud Anchor | Farklı aydınlatma koşulları | [ ] Beklemede |
-| **S3** | Dış mekân, VPS olan cadde (Geospatial) | Cloud Anchor → Geospatial | İstanbul açık cadde VPS | [ ] Saha |
-| **S4** | Dış mekân, VPS olmayan alan | Cloud Anchor → World Map | Park / ara sokak | [x] Fallback OK |
-| **S5** | Çevrimdışı / Uçak modu / Token yok | World Map → Yönlendirmeli | Yerel ARKit world map | [x] Geçti |
-| **S6** | Boş beyaz duvar, düşük doku | Hosting kalitesi yetersiz uyarısı → World Map fallback | Kullanıcıya net rehberlik mesajı | [x] Geçti |
-| **S7** | Düşük ışık / Gece modu | Rehberlik uyarısı + timeout davranışı | Düşük ışık uyarısı ekranda | [x] Geçti |
-| **S8** | LiDAR'sız cihaz ile test (S1 & S3 tekrarı) | Feature point tabanlı Cloud Anchor | LiDAR olmayan model | [ ] İkinci cihaz |
-| **S9** | Arka plan / ön plan; öldür + yeniden aç | Oturum sağlıklı, kamera siyah ekran vermez | Home bar swipe / app switcher | [x] Geçti |
-| **S10** | AR sekmesine 10 kez hızlı gir/çık | Bellek sabit, Swift Concurrency / ARKit donması yok | 10× sekme geçişi | [x] Geçti |
-| **S11** | Post silindiğinde Cloud Anchor silinmesi | Management API silme kuyruğu tetiklenir | `arcoreManagement.ts` | [x] Geçti |
-| **S12** | İlk açılış izin akışı | Kamera → Konum → Google ARCore bildirimi sırayla | İlk kurulum akışı | [x] Geçti |
+| ID | Senaryo | Kabul |
+|---|---|---|
+| S1 | Dokulu iç mekân duvarı; diğer cihazda oluşturulan pini aç | Gerçek cihazlar arası Cloud Anchor resolve |
+| S2 | En az 24 saat sonra farklı ışıkta tekrar aç | Pin/resolve zamanları, ışık değişimi, Cloud Anchor |
+| S3 | VPS olan dış mekân cadde; Cloud Anchor aşamasını kontrollü olarak başarısız kıl | Gerçek Geospatial fallback, VPS varlığı kaydı |
+| S4 | VPS olmayan alan; Cloud Anchor aşamasını kontrollü olarak başarısız kıl | Gerçek World Map fallback, VPS yokluğu kaydı |
+| S5 | Çevrimdışı / uçak modu / token yok | World Map veya açıkça yaklaşık yönlendirmeli gösterim; fiziksel kilit olarak etiketlenmez |
+| S6 | Boş beyaz duvar, düşük doku | Açık rehberlik; düşük kaliteli/estimated sonuç fiziksel başarı diye sunulmaz |
+| S7 | Düşük ışık | Rehberlik ve timeout/retry; siyah ekran veya sahte başarı yok |
+| S8 | LiDAR'sız cihazda S1 ve S3 tekrarı | Feature-point tabanlı Cloud Anchor ve Geospatial; iki aşamayı notlarda/logda ayır |
+| S9 | Arka plan/ön plan; uygulamayı kapat ve yeniden aç | Oturum/kamera düzelir, önceki hesabın içeriği görünmez |
+| S10 | AR sekmesine 10 hızlı giriş/çıkış | Donma/siyah kamera yok; bellek büyümesi ölçülüp kaydedilir |
+| S11 | Ayrılmış test postunu sil | Management API silme kuyruğu ve anchor temizliği gözlenir; yalnız test verisi |
+| S12 | İlk açılış ve izin akışı | Keşfet izinsiz açılır; kamera/konum yalnız gerekli eylemde; Google sensor-data onayı korunur |
 
----
+S1–S4 için kilit süresi **<15 saniye**, ölçülmüş drift **<10 cm**. Saat damgalı video ile ölçüm yöntemi
+not edilir. S2'nin 24 saat beklemesi kısaltılamaz. Fiziksel sonuçlar ve yaklaşık sonuçlar ayrı kaydedilir.
+İzin reddi/Ayarlar dönüşü, VoiceOver, RTL ve Dynamic Type için ek koşular ayrıca saklanır.
 
-## 2. Her Koşu İçin Kayıt Protokolü
-- **Cihaz & Model:** iPhone 14 Pro Max (`iPhone15,3`)
-- **iOS Sürümü:** 26.x
-- **Çözücü (Resolver):** Cloud Anchor / Geospatial / World Map
-- **Kilitlenme Süresi (Lock Time):** Hedef < 15 saniye (iç mekanda ortalama 3-8 sn)
-- **Gözle Kayma (Drift):** Hedef < 10 cm
-- **Kamera Durumu:** `trackingState == .normal`, `arcore_sensor_data` onayı mevcut
+## Kanıt kaydı
+
+Depo dışında yeni bir dizinde boş şablon oluşturun:
+
+```sh
+node scripts/qa-field-evidence.mjs --template /absolute/private/field-evidence.json
+node scripts/qa-field-evidence.mjs /absolute/private/field-evidence.json
+```
+
+Şablon tüm koşuları `not_run` bırakır ve mevcut dosyanın üzerine yazmaz. Gerçek koşulardan sonra
+`commit`, `app_version`, `build_number`, `devices` ve her `run` doldurulur. `resolver`:
+`cloud_anchor`, `geospatial`, `world_map`, `aim_guided` veya rehberlik/hata koşusunda `none`.
+Zamanlar ISO 8601; `lock_seconds`, `drift_cm`, ışık/VPS/offline/onay bilgisi ve gözlenen davranış açıkça yazılır.
+
+Her koşu için kanıt dizinine göre relatif, boş olmayan **log ve video** yolları gerekir.
+Doğrulayıcı eksik koşuyu, geçmeyen sonucu, yanlış resolver'ı, eksik ölçümü ve dışarı taşan dosya yolunu reddeder.
+Dosyaların içeriğini veya fiziksel ölçümü otomatik doğrulamaz; QA log/video içeriğini inceler.
+Auth tokenları, kullanıcı e-postaları ve hassas konumları public artifact'e/Git'e koymayın.
+
+## Tarihsel kayıt — güncel adayın kanıtı değildir
+
+Önceki belgede iPhone 14 Pro Max (`iPhone15,3`, yalnız `iOS 26.x` bilgisi) için
+S1, S4–S7 ve S9–S12 geçildiği bildirilmişti; S2, S3 ve ikinci LiDAR'sız cihaz bekliyordu.
+Bu iddialar bu oturumda tekrar çalıştırılmadı ve güncel build'e bağlı log/video ile doğrulanmadı.
+Eski sürümün saha notları korunur; yeni adayın 23 koşusu için başarıya aktarılmaz.

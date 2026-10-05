@@ -45,7 +45,7 @@ test('anyone reads active public posts; pending only by creator', async () => {
   await assertFails(getDoc(doc(anon, 'posts', PENDING)));
   await assertFails(getDoc(doc(as(ALICE), 'posts', PENDING)));
   await assertSucceeds(getDoc(doc(as(BOB), 'posts', PENDING)));
-  await assertSucceeds(getDocs(query(collection(anon, 'posts'), where('status', '==', 'active'), where('visibility', '==', 'public'))));
+  await assertFails(getDocs(query(collection(anon, 'posts'), where('status', '==', 'active'), where('visibility', '==', 'public'))), 'public feeds require server projection');
   await assertFails(getDocs(query(collection(anon, 'posts'), where('status', '==', 'pending_review'))));
   await assertSucceeds(getDocs(query(collection(as(BOB), 'posts'), where('creator_id', '==', BOB))));
 });
@@ -216,24 +216,80 @@ test('moderation_flags: metadata keys are known and every value is a string of a
   await assertFails(setDoc(doc(db, 'moderation_flags', 'm-type'), { ...flag, metadata: { source: { nested: 'x' } } }));
 });
 
-test('collection_items: the post must exist', async () => {
+test('collection_items: the post must exist and be visible to the saver', async () => {
   const db = as(BOB);
   const item = (postId) => ({ collection_id: 'c1', post_id: postId, owner_id: BOB, sort_order: 1, created_at: serverTimestamp() });
   const missing = '99999999-9999-4999-8999-999999999999';
   await assertFails(setDoc(doc(db, 'collection_items', `c1_${missing}`), item(missing)));
   await assertSucceeds(setDoc(doc(db, 'collection_items', `c1_${POST}`), item(POST)));
+  // Someone else's pending / private posts cannot be collected.
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'posts', 'alice-pending'), { creator_id: ALICE, status: 'pending_review', visibility: 'public' });
+    await setDoc(doc(ctx.firestore(), 'posts', 'bob-pending'), { creator_id: BOB, status: 'pending_review', visibility: 'public' });
+  });
+  await assertFails(setDoc(doc(db, 'collection_items', 'c1_alice-pending'), item('alice-pending')));
+  await assertSucceeds(setDoc(doc(db, 'collection_items', 'c1_bob-pending'), item('bob-pending')));
 });
 
-test('activity_events: recipient reads and marks read; nothing else', async () => {
+test('collections: timestamps must be server time', async () => {
+  const db = as(BOB);
+  const base = { id: 'c-ts', owner_id: BOB, title: 'T', description: null, visibility: 'private' };
+  await assertFails(setDoc(doc(db, 'collections', 'c-ts'), { ...base, created_at: new Date(0), updated_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db, 'collections', 'c-ts'), { ...base, created_at: serverTimestamp(), updated_at: serverTimestamp() }));
+});
+
+test('collection item preflight supports the first add and idempotent retries', async () => {
+  const db = as(BOB);
+  const ref = doc(db, 'collection_items', `c1_${POST}`);
+  // The native adapter reads the deterministic ID before creating it.
+  const addOnce = async () => {
+    if ((await getDoc(ref)).exists()) return;
+    await setDoc(ref, { collection_id: 'c1', post_id: POST, owner_id: BOB, sort_order: 1, created_at: serverTimestamp() });
+  };
+  await assertSucceeds(addOnce());
+  const created = (await getDoc(ref)).data();
+  await assertSucceeds(addOnce());
+  assert.deepEqual((await getDoc(ref)).data(), created);
+});
+
+test('collection item preflight keeps existing items and lists owner-only', async () => {
+  const ref = doc(as(BOB), 'collection_items', `c1_${POST}`);
+  await setDoc(ref, { collection_id: 'c1', post_id: POST, owner_id: BOB, sort_order: 1, created_at: serverTimestamp() });
+  await assertFails(getDoc(doc(as(ALICE), 'collection_items', `c1_${POST}`)));
+  await assertFails(getDocs(query(collection(as(ALICE), 'collection_items'), where('owner_id', '==', BOB))));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'collection_items', 'missing')));
+  await assertFails(setDoc(doc(as(ALICE), 'collection_items', `c1_${PENDING}`), {
+    collection_id: 'c1', post_id: PENDING, owner_id: ALICE, sort_order: 1, created_at: serverTimestamp(),
+  }));
+});
+
+test('activity_events: only recipient reads; all client writes including read state are denied', async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'activity_events', 'a1'), { id: 'a1', recipient_id: ALICE, actor_id: BOB, kind: 'like', read_at: null });
   });
   await assertSucceeds(getDoc(doc(as(ALICE), 'activity_events', 'a1')));
   await assertFails(getDoc(doc(as(BOB), 'activity_events', 'a1')));
-  await assertSucceeds(updateDoc(doc(as(ALICE), 'activity_events', 'a1'), { read_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(as(ALICE), 'activity_events', 'a1'), { read_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(as(BOB), 'activity_events', 'a1'), { read_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(env.unauthenticatedContext().firestore(), 'activity_events', 'a1'), { read_at: serverTimestamp() }));
   await assertFails(updateDoc(doc(as(ALICE), 'activity_events', 'a1'), { body: 'hacked' }));
   await assertFails(deleteDoc(doc(as(ALICE), 'activity_events', 'a1')));
   await assertFails(setDoc(doc(as(ALICE), 'activity_events', 'a2'), { id: 'a2', recipient_id: ALICE }));
+});
+
+test('push token and delivery records are unreadable and unwritable by all clients', async () => {
+  for (const collectionName of ['push_tokens', 'push_delivery_receipts']) {
+    await env.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(), collectionName, 'private'), { owner_luid: ALICE, token: 'synthetic-private-value' });
+    });
+    for (const client of [as(ALICE), as(BOB), env.unauthenticatedContext().firestore()]) {
+      const ref = doc(client, collectionName, 'private');
+      await assertFails(getDoc(ref));
+      await assertFails(updateDoc(ref, { owner_luid: BOB }));
+      await assertFails(deleteDoc(ref));
+      await assertFails(setDoc(doc(client, collectionName, 'new'), { owner_luid: ALICE }));
+    }
+  }
 });
 
 test('user_blocks: only the blocker reads; protected_zones are public read-only', async () => {
@@ -247,8 +303,23 @@ test('user_blocks: only the blocker reads; protected_zones are public read-only'
 });
 
 test('server-only collections stay closed for clients (reads and writes)', async () => {
-  for (const name of ['handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system']) {
+  for (const name of ['handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
     await assertFails(getDoc(doc(as(ALICE), name, 'x')));
     await assertFails(setDoc(doc(as(ALICE), name, 'x'), { owner_luid: ALICE }));
   }
+});
+test('client reports cannot enter trusted filter namespaces or supply system provenance',async()=>{
+ const report={user_id:ALICE,post_id:POST,reason:'spam',status:'open',metadata:{target:'comment',comment_id:'c1',author_id:BOB,text:'untrusted'},created_at:serverTimestamp()};
+ await assertSucceeds(setDoc(doc(as(ALICE),'moderation_flags','normal-report'),report));
+ for(const reason of['comment_filtered','profile_text_filtered'])await assertFails(setDoc(doc(as(ALICE),'moderation_flags','fake-'+reason),{...report,reason}));
+ await assertFails(setDoc(doc(as(ALICE),'moderation_flags','comment_c1'),report));await assertFails(setDoc(doc(as(ALICE),'moderation_flags','forged-source'),{...report,server_origin:'comment_filter'}));
+});
+test('legacy adult posts and posts whose creator deletion was accepted cannot be publicly read',async()=>{
+ await env.withSecurityRulesDisabled(ctx=>updateDoc(doc(ctx.firestore(),'posts',POST),{age_rating:'18_plus'}));await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),'posts',POST)));
+ await env.withSecurityRulesDisabled(async ctx=>{await updateDoc(doc(ctx.firestore(),'posts',POST),{age_rating:'all'});await setDoc(doc(ctx.firestore(),'account_deletion_jobs',BOB),{status:'pending'});});await assertFails(getDoc(doc(as(ALICE),'posts',POST)));
+});
+test('outgoing blocks deny interactions just like incoming blocks without exposing incoming records',async()=>{
+ await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'user_blocks',`${ALICE}_${BOB}`),{blocker_id:ALICE,blocked_id:BOB}));
+ await assertFails(setDoc(doc(as(ALICE),'comments','blocked-comment'),{id:'blocked-comment',post_id:POST,user_id:ALICE,text:'x',created_at:serverTimestamp()}));
+ await assertFails(setDoc(doc(as(ALICE),'likes',`${POST}_${ALICE}`),{post_id:POST,user_id:ALICE,created_at:serverTimestamp()}));await assertFails(getDoc(doc(as(ALICE),'posts',POST)));
 });

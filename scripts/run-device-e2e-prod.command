@@ -3,6 +3,8 @@
 # Faz A: kayıt -> Faz B: doğrulama bağlantısı tıklanır (scripts/.e2e/verified dosyası oluşunca devam) -> giriş + kalan testler.
 # Test hesabı: scripts/.prod-email.txt içindeki e-posta (gerçek posta kutusuna ulaşmalı; ör. ad+e2e1@gmail.com).
 set -uo pipefail
+: "${TEST_RUNNER_E2E_PASSWORD:?TEST_RUNNER_E2E_PASSWORD ortam değişkeni gerekli; parola kaydedilmez.}"
+export TEST_RUNNER_E2E_PASSWORD
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 OUT="$ROOT/scripts/.e2e"
@@ -18,7 +20,6 @@ EMAIL="$(cat scripts/.prod-email.txt 2>/dev/null | tr -d '[:space:]')"
 [ -z "$EMAIL" ] && { log "HATA: scripts/.prod-email.txt yok"; exit 1; }
 rm -f "$OUT/verified"
 export TEST_RUNNER_E2E_EMAIL="$EMAIL"
-export TEST_RUNNER_E2E_PASSWORD="E2eTest!2026x"
 log "Test hesabi: $EMAIL"
 COMMON=(-project LociAR.xcodeproj -scheme LociAR -destination "id=$DEVICE_ID" -allowProvisioningUpdates)
 log "build-for-testing..."

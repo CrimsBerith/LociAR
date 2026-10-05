@@ -4,13 +4,47 @@ updates:
     directory: /functions
     schedule: { interval: weekly }
     open-pull-requests-limit: 5
+    groups:
+      functions-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Major versions are upgraded deliberately, with the emulator suite (see .github/workflows/ci.yml).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /admin
     schedule: { interval: weekly }
     open-pull-requests-limit: 5
+    groups:
+      admin-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: swift
     directory: /
     schedule: { interval: weekly }
+    ignore:
+      # firebase-ios-sdk pins these transitive packages to exact versions; bumping them alone can never
+      # resolve. They move only when firebase-ios-sdk itself is upgraded.
+      - dependency-name: "github.com/google/abseil-cpp-binary"
+      - dependency-name: "github.com/google/app-check"
+      - dependency-name: "github.com/google/googleappmeasurement"
+      - dependency-name: "github.com/google/grpc-binary"
+      - dependency-name: "github.com/google/gtm-session-fetcher"
+      - dependency-name: "github.com/google/googledatatransport"
+      - dependency-name: "github.com/google/googleutilities"
+      - dependency-name: "github.com/google/interop-ios-for-google-sdks"
+      - dependency-name: "github.com/google/leveldb"
+      - dependency-name: "github.com/google/nanopb"
+      - dependency-name: "github.com/google/promises"
+      - dependency-name: "github.com/firebase/leveldb"
+      - dependency-name: "github.com/firebase/nanopb"
+      - dependency-name: "github.com/google/swift-protobuf"
+      - dependency-name: "github.com/apple/swift-protobuf"
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      actions:
+        patterns: ["*"]

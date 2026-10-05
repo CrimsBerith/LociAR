@@ -2,15 +2,20 @@ import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import { objectKeys, parseJsonField } from '../../../../lib/geo';
 
+import PageNavigation from '../PageNavigation';
+import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters } from '../../../../lib/pagination';
+
 export const dynamic = 'force-dynamic';
 
-export default async function AnchorsPage() {
+export default async function AnchorsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+  const params = await searchParams;
+  let page: DocumentPage = { documents: [], next: null, previous: null };
   await requireAdmin({ permission: 'anchors.read' });
   let anchors: Array<Record<string, unknown> & { id: string }> = [];
   let failed = false;
   try {
-    const snap = await adminDb().collection('posts').orderBy('created_at', 'desc').limit(200).get();
-    anchors = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Record<string, unknown> & { id: string }).filter(p => p.placement_state && !p.deleted_at).slice(0, 100);
+    page = await readDocumentPage(adminDb().collection('posts'), { scope: 'anchors', cursors: pageCursors(params) });
+    anchors = page.documents.map(d => ({ ...d.data(), id: d.id }) as Record<string, unknown> & { id: string }).filter(p => p.placement_state && !p.deleted_at);
   } catch {
     failed = true;
   }
@@ -21,6 +26,7 @@ export default async function AnchorsPage() {
         <div><p className="eyebrow">Spatial operations</p><h1>AR anchors</h1></div>
         <p className="muted">Resolver and persistence diagnostics are read-only here. Approximate placement is never presented as a physical lock.</p>
       </div>
+      <p className="readOnlyNotice">Anchor diagnostics in this batch of {page.documents.length} posts. Use Next records to inspect older posts, including when this batch has no anchors.</p>
       <section className="panel">
         <div className="dataRow anchor header"><span>Post</span><span>Provider</span><span>Placement</span><span>Resolvers</span><span>Updated</span></div>
         {failed ? <p className="emptyState">Anchor diagnostics could not be loaded.</p> : anchors.length === 0 ? <p className="emptyState">No anchor records.</p> : anchors.map(anchor => {
@@ -36,6 +42,7 @@ export default async function AnchorsPage() {
             </div>
           );
         })}
+        {!failed ? <PageNavigation path="/admin/anchors" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/anchors">Return to the first page.</a></p>}
       </section>
     </main>
   );

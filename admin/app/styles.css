@@ -227,3 +227,11 @@ label { font-size: 12px; color: var(--muted); font-weight: 700; }
   .sidebar nav { grid-template-columns: 1fr; }
   .authCard { padding: 26px; }
 }
+
+.contentEditor { display:grid;gap:20px;max-width:900px;margin:auto; }
+.contentEditor fieldset,.commentEditor fieldset { display:grid;gap:12px;border:1px solid #334155;border-radius:12px;padding:20px;min-width:0; }
+.contentEditor label,.commentEditor label { display:grid;gap:6px; }
+.contentEditor textarea,.commentEditor textarea { min-height:90px;width:100%;padding:12px;border-radius:8px;font:inherit; }
+.contentPreview { overflow:hidden;min-height:180px;display:grid;place-content:center;text-align:center;padding:32px;border-radius:12px; }
+.coordinatePicker { width:100%;height:auto;cursor:crosshair;border-radius:10px; }
+.commentEditor { display:grid;gap:12px; }

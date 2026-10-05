@@ -1,32 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createMutationClient, mutationError } from '../../../lib/client-mutation';
 
 type Action = { label: string; body: Record<string, unknown>; className?: string };
 
-/** Reason + buttons that POST an audited admin decision with a fresh idempotency key. */
+/** Reason + buttons that retain an operation key while its outcome is unconfirmed. */
 export default function AdminDecision({ endpoint, actions }: { endpoint: string; actions: Action[] }) {
   const router = useRouter();
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const mutation = useRef(createMutationClient());
 
   async function decide(body: Record<string, unknown>) {
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
-        body: JSON.stringify({ ...body, reason }),
-      });
-      const payload = await response.json();
+      const { response, result: payload } = await mutation.current.post(endpoint, { ...body, reason });
       if (!response.ok) throw new Error(payload.error ?? 'Decision failed');
       setMessage('Decision recorded in audit.');
+      mutation.current.clear();
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Decision failed');
+      setMessage(mutationError(error));
     } finally {
       setBusy(false);
     }

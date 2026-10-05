@@ -44,7 +44,7 @@ struct ProfileEditView: View {
                         photoSection
                         if let errorMessage {
                             LociInlineNotice(
-                                title: "Profil Güncellenemedi",
+                                title: String(localized: "Profil Güncellenemedi"),
                                 message: errorMessage,
                                 symbol: "exclamationmark.triangle.fill",
                                 color: .orange
@@ -103,7 +103,7 @@ struct ProfileEditView: View {
             }
             .shadow(color: LociTheme.accent.opacity(0.2), radius: 12)
 
-            Text("@\(cleanHandle.isEmpty ? "kullanıcı" : cleanHandle)")
+            Text("@\(cleanHandle.isEmpty ? String(localized: "kullanıcı") : cleanHandle)")
                 .font(.headline)
                 .foregroundStyle(.white)
         }
@@ -154,7 +154,7 @@ struct ProfileEditView: View {
                             .overlay(Circle().stroke(selected ? LociTheme.accent : .clear, lineWidth: 3))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Hazır avatar \(name)")
+                    .accessibilityLabel(String(localized: "Hazır avatar \(name)"))
                     .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
@@ -203,8 +203,10 @@ struct ProfileEditView: View {
             } else {
                 dismiss()
             }
-        } catch {
+        } catch let error as AuthFlowError {
             errorMessage = error.localizedDescription
+        } catch {
+            errorMessage = String(localized: "Profil güncellenemedi. Bağlantını kontrol edip tekrar dene.")
         }
     }
 }

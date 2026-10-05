@@ -1,7 +1,7 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { GoogleAuth } from 'google-auth-library';
-import { db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
-import { profileBlock } from './profileGuard';
+import { assertServiceEnabled, logger, safeErrorCode, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
+import { requireActiveAccount, isAccountDeleting } from './profileGuard';
 import { reasonError } from './errors';
 import { buildArcoreClaims, tokenQuotaDocId } from './arcoreToken';
 
@@ -14,16 +14,10 @@ import { buildArcoreClaims, tokenQuotaDocId } from './arcoreToken';
  */
 const TOKENS_PER_HOUR = 30;
 const googleAuth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
-let signerEmail: string | null = process.env.ARCORE_SIGNER_EMAIL || null;
-
 async function runtimeServiceAccountEmail(): Promise<string> {
-  if (signerEmail) return signerEmail;
-  // Fallback for local setups only: signing as the runtime account needs Token Creator on itself.
-  console.warn(JSON.stringify({ event: 'arcore_signer_env_missing', code: 'ARCORE_SIGNER_EMAIL is not set; signing ARCore tokens as the runtime service account. Run scripts/google-cloud-setup.command.' }));
-  const credentials = await googleAuth.getCredentials();
-  if (!credentials.client_email) throw new Error('Runtime service account email unavailable');
-  signerEmail = credentials.client_email;
-  return signerEmail;
+  const email = process.env.ARCORE_SIGNER_EMAIL;
+  if (!email) throw new Error('dedicated_signer_missing');
+  return email;
 }
 
 async function signJwt(email: string, payload: object): Promise<string> {
@@ -35,16 +29,16 @@ async function signJwt(email: string, payload: object): Promise<string> {
 
 export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
-  const profile = await db.collection('profiles').doc(caller.luid).get();
-  const blocked = profileBlock(profile.data());
-  if (blocked) throw reasonError('permission-denied', blocked.message, blocked.reason);
+  await assertServiceEnabled('arcore_token');
   const now = Date.now();
   const quotaRef = db.collection('arcore_token_quota').doc(tokenQuotaDocId(caller.luid, now));
   const allowed = await db.runTransaction(async (tx) => {
+    await requireActiveAccount(tx, caller.luid);
     const snap = await tx.get(quotaRef);
     const count = Number(snap.data()?.count ?? 0);
     if (count >= TOKENS_PER_HOUR) return false;
     tx.set(quotaRef, {
+      owner_luid: caller.luid,
       count: FieldValue.increment(1),
       // TTL policy on expires_at removes old buckets.
       expires_at: Timestamp.fromMillis(now + 2 * 3_600_000),
@@ -58,9 +52,13 @@ export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
     const token = await signJwt(claims.iss, claims);
     return { token, expiresAt: new Date(claims.exp * 1000).toISOString() };
   } catch (error) {
-    console.error('arcore_token_failed', error);
+    logger.error('arcore_token_failed', { code: safeErrorCode(error) });
     // Signing failed (IAM outage): give the slot back so the user is not locked out for an hour.
-    await quotaRef.set({ count: FieldValue.increment(-1) }, { merge: true }).catch(() => undefined);
+    await db.runTransaction(async tx => {
+      if (await isAccountDeleting(tx, caller.luid)) return;
+      const quota = await tx.get(quotaRef);
+      if (quota.exists) tx.update(quotaRef, { count: Math.max(0, Number(quota.get('count') ?? 0) - 1) });
+    }).catch(() => undefined);
     throw new HttpsError('unavailable', 'ARCore authorization is temporarily unavailable');
   }
 });

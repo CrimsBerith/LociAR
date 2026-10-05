@@ -161,11 +161,11 @@ final class ARCoreService {
     /// VPS (Street View based) coverage at a coordinate; works anywhere, no need to be there.
     func vpsAvailability(at coordinate: CLLocationCoordinate2D) async -> String {
         if session == nil { start() }
-        guard let session else { return "ARCore başlatılamadı" }
+        guard let session else { return String(localized: "ARCore başlatılamadı") }
         refreshTokenIfNeeded()
         // Wait up to 5 s for the first token before making the call.
         for _ in 0..<50 where tokenExpiry == nil && tokenRetryAt == nil {
-            do { try await Task.sleep(for: .milliseconds(100)) } catch { return "İptal edildi" }
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return String(localized: "İptal edildi") }
         }
         let result: String? = await withCheckedContinuation { continuation in
             let once = ResumeOnce<String>(continuation)
@@ -176,7 +176,7 @@ final class ARCoreService {
             let timeoutTask = Task { try? await Task.sleep(for: .seconds(10)); once.resume(nil) }
             once.onResume = { timeoutTask.cancel() }
         }
-        return result ?? "⚠️ VPS zaman aşımı"
+        return result ?? String(localized: "⚠️ VPS zaman aşımı")
     }
 
     // MARK: - Cloud Anchors
@@ -311,9 +311,9 @@ final class ARCoreService {
         case .available: "✅ VPS mevcut"
         case .unavailable: "❌ VPS yok"
         case .errorNotAuthorized: "⚠️ Yetki yok (token / ARCore API)"
-        case .errorNetworkConnection: "⚠️ Ağ hatası"
-        case .errorResourceExhausted: "⚠️ Kota aşıldı"
-        case .errorInternal: "⚠️ İç hata"
+        case .errorNetworkConnection: String(localized: "⚠️ Ağ hatası")
+        case .errorResourceExhausted: String(localized: "⚠️ Kota aşıldı")
+        case .errorInternal: String(localized: "⚠️ İç hata")
         default: "❓ Bilinmiyor"
         }
     }

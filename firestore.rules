@@ -10,12 +10,21 @@ service cloud.firestore {
 
     function signedIn() { return request.auth != null && request.auth.token.luid is string; }
     function me() { return request.auth.token.luid; }
+    // The persistent server-only fence survives profile/Auth removal and rejects stale tokens.
+    function activeAccount(luid) {
+      return exists(/databases/$(database)/documents/profiles/$(luid))
+        && get(/databases/$(database)/documents/profiles/$(luid)).data.get('deleted_at', null) == null
+        && !exists(/databases/$(database)/documents/account_deletion_jobs/$(luid));
+    }
+    function mayWrite() { return signedIn() && activeAccount(me()); }
     function onlyKeys(keys) { return request.resource.data.keys().hasOnly(keys) && request.resource.data.keys().hasAll(keys); }
     function createdNow() { return request.resource.data.created_at == request.time; }
     function postExists(postId) { return exists(/databases/$(database)/documents/posts/$(postId)); }
     function post(postId) { return get(/databases/$(database)/documents/posts/$(postId)).data; }
     function postIsPublicActive(postId) {
-      return post(postId).status == 'active' && post(postId).visibility == 'public';
+      return post(postId).status == 'active' && post(postId).visibility == 'public'
+        && post(postId).get('age_rating', 'all') != '18_plus' && post(postId).get('deleted_at', null) == null
+        && activeAccount(post(postId).creator_id);
     }
     // Suspended accounts keep read access and can still file reports, but cannot interact.
     function notSuspended() {
@@ -23,7 +32,8 @@ service cloud.firestore {
     }
     // True when `owner` has blocked the caller.
     function blockedBy(owner) {
-      return exists(/databases/$(database)/documents/user_blocks/$(owner + '_' + me()));
+      return exists(/databases/$(database)/documents/user_blocks/$(owner + '_' + me()))
+        || exists(/databases/$(database)/documents/user_blocks/$(me() + '_' + owner));
     }
     function collectionDescriptionOk(data) {
       return !('description' in data) || data.description == null
@@ -46,7 +56,7 @@ service cloud.firestore {
       allow create, delete: if false;
       // Handles change only through the updateHandle callable (uniqueness); photo avatars are set
       // only by the moderation function. The owner may pick a preset or remove the photo.
-      allow update: if signedIn() && me() == luid
+      allow update: if mayWrite() && me() == luid
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['avatar_url', 'avatar_preset', 'bio', 'display_name', 'updated_at'])
         && request.resource.data.updated_at == request.time
@@ -68,14 +78,19 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
-      allow read: if (resource.data.status == 'active' && resource.data.visibility == 'public')
-        || (signedIn() && resource.data.creator_id == me());
+      allow get: if (resource.data.status == 'active' && resource.data.visibility == 'public'
+          && resource.data.get('age_rating', 'all') != '18_plus' && resource.data.get('deleted_at', null) == null
+          && activeAccount(resource.data.creator_id) && (!signedIn() || !blockedBy(resource.data.creator_id)))
+        || (signedIn() && resource.data.creator_id == me() && activeAccount(me()));
+      // Public feeds use readPublicContent so account fences and bidirectional blocks do not
+      // exceed Firestore's per-query document access budget or omit qualifying later pages.
+      allow list: if signedIn() && resource.data.creator_id == me() && activeAccount(me());
       allow write: if false;
     }
 
     match /likes/{likeId} {
       allow read: if signedIn();
-      allow create: if signedIn()
+      allow create: if mayWrite()
         && likeId == request.resource.data.post_id + '_' + me()
         && onlyKeys(['post_id', 'user_id', 'created_at'])
         && request.resource.data.user_id == me()
@@ -84,51 +99,53 @@ service cloud.firestore {
         && !blockedBy(post(request.resource.data.post_id).creator_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if signedIn() && (resource == null || resource.data.user_id == me());
+      allow delete: if mayWrite() && (resource == null || resource.data.user_id == me());
     }
 
     match /post_saves/{saveId} {
       allow get: if signedIn() && (resource == null || resource.data.user_id == me());
       allow list: if signedIn() && resource.data.user_id == me();
-      allow create: if signedIn()
+      allow create: if mayWrite()
         && saveId == me() + '_' + request.resource.data.post_id
         && onlyKeys(['post_id', 'user_id', 'created_at'])
         && request.resource.data.user_id == me()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
+        && !blockedBy(post(request.resource.data.post_id).creator_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if signedIn() && (resource == null || resource.data.user_id == me());
+      allow delete: if mayWrite() && (resource == null || resource.data.user_id == me());
     }
 
     match /follows/{followId} {
       allow read: if signedIn();
-      allow create: if signedIn()
+      allow create: if mayWrite()
         && onlyKeys(['follower_id', 'following_id', 'created_at'])
         && request.resource.data.follower_id == me()
         && request.resource.data.following_id is string
         && request.resource.data.following_id != me()
-        && exists(/databases/$(database)/documents/profiles/$(request.resource.data.following_id))
+        && activeAccount(request.resource.data.following_id)
         && followId == me() + '_' + request.resource.data.following_id
         && createdNow()
         && !blockedBy(request.resource.data.following_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if signedIn() && (resource == null || resource.data.follower_id == me());
+      allow delete: if mayWrite() && (resource == null || resource.data.follower_id == me());
     }
 
     match /user_blocks/{blockId} {
       allow get: if signedIn() && (resource == null || resource.data.blocker_id == me());
       allow list: if signedIn() && resource.data.blocker_id == me();
-      allow create: if signedIn()
+      allow create: if mayWrite()
         && onlyKeys(['blocker_id', 'blocked_id', 'created_at'])
         && request.resource.data.blocker_id == me()
         && request.resource.data.blocked_id is string
         && request.resource.data.blocked_id != me()
+        && activeAccount(request.resource.data.blocked_id)
         && blockId == me() + '_' + request.resource.data.blocked_id
         && createdNow();
       allow update: if false;
-      allow delete: if signedIn() && (resource == null || resource.data.blocker_id == me());
+      allow delete: if mayWrite() && (resource == null || resource.data.blocker_id == me());
     }
 
     match /comments/{commentId} {
@@ -137,7 +154,7 @@ service cloud.firestore {
         && postIsPublicActive(resource.data.post_id)
         && !blockedBy(post(resource.data.post_id).creator_id);
       // `username` is not accepted from clients: onCommentCreated fills it from the profile.
-      allow create: if signedIn()
+      allow create: if mayWrite()
         && onlyKeys(['id', 'post_id', 'user_id', 'text', 'created_at'])
         && request.resource.data.id == commentId
         && request.resource.data.user_id == me()
@@ -150,53 +167,61 @@ service cloud.firestore {
         && notSuspended();
       allow update: if false;
       // The author, or the owner of the post it was left on, may remove a comment.
-      allow delete: if signedIn()
+      allow delete: if mayWrite()
         && (resource.data.user_id == me() || post(resource.data.post_id).creator_id == me());
     }
 
     match /collections/{collectionId} {
       allow read: if signedIn() && resource.data.owner_id == me();
-      allow create: if signedIn()
+      allow create: if mayWrite()
         && request.resource.data.keys().hasOnly(['id', 'owner_id', 'title', 'description', 'visibility', 'created_at', 'updated_at'])
         && request.resource.data.id == collectionId
         && request.resource.data.owner_id == me()
         && request.resource.data.title is string
         && request.resource.data.title.size() >= 1 && request.resource.data.title.size() <= 80
         && collectionDescriptionOk(request.resource.data)
-        && request.resource.data.visibility in ['private', 'public'];
+        && request.resource.data.visibility in ['private', 'public']
+        && createdNow() && request.resource.data.updated_at == request.time;
       // NOTE: `visibility: 'public'` collections are still readable only by their owner
       // (product decision pending in issue #19); the field is stored but not yet honoured.
-      allow update: if signedIn() && resource.data.owner_id == me()
+      allow update: if mayWrite() && resource.data.owner_id == me()
         && request.resource.data.owner_id == me()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'visibility', 'updated_at'])
         && request.resource.data.title is string
         && request.resource.data.title.size() >= 1 && request.resource.data.title.size() <= 80
         && collectionDescriptionOk(request.resource.data)
-        && request.resource.data.visibility in ['private', 'public'];
-      allow delete: if signedIn() && resource.data.owner_id == me();
+        && request.resource.data.visibility in ['private', 'public']
+        && request.resource.data.updated_at == request.time;
+      allow delete: if mayWrite() && resource.data.owner_id == me();
     }
 
     match /collection_items/{itemId} {
-      allow read: if signedIn() && resource.data.owner_id == me();
-      allow create: if signedIn()
+      // The client checks the deterministic item ID before its first create. Missing documents
+      // contain no data; existing items and collection queries remain owner-only.
+      allow get: if signedIn() && (resource == null || resource.data.owner_id == me());
+      allow list: if signedIn() && resource.data.owner_id == me();
+      allow create: if mayWrite()
         && onlyKeys(['collection_id', 'post_id', 'owner_id', 'sort_order', 'created_at'])
         && request.resource.data.owner_id == me()
         && itemId == request.resource.data.collection_id + '_' + request.resource.data.post_id
         && request.resource.data.sort_order is int
         && createdNow()
         && request.resource.data.post_id is string
-        && postExists(request.resource.data.post_id)
+        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && (postIsPublicActive(request.resource.data.post_id) || post(request.resource.data.post_id).creator_id == me())
         && get(/databases/$(database)/documents/collections/$(request.resource.data.collection_id)).data.owner_id == me();
       allow update: if false;
-      allow delete: if signedIn() && (resource == null || resource.data.owner_id == me());
+      allow delete: if mayWrite() && (resource == null || resource.data.owner_id == me());
     }
 
     match /moderation_flags/{flagId} {
       allow read, update, delete: if false;
-      allow create: if signedIn()
+      allow create: if mayWrite()
         && request.resource.data.keys().hasOnly(['post_id', 'user_id', 'reason', 'status', 'metadata', 'created_at'])
         && request.resource.data.user_id == me()
         && request.resource.data.status == 'open'
+        && !flagId.matches('comment_.*|profile_.*')
+        && !(request.resource.data.reason in ['comment_filtered', 'profile_text_filtered'])
         && request.resource.data.reason is string
         && request.resource.data.reason.size() >= 1 && request.resource.data.reason.size() <= 500
         && (!('post_id' in request.resource.data) || request.resource.data.post_id == null || request.resource.data.post_id is string)
@@ -207,9 +232,8 @@ service cloud.firestore {
 
     match /activity_events/{eventId} {
       allow read: if signedIn() && resource.data.recipient_id == me();
-      allow update: if signedIn() && resource.data.recipient_id == me()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read_at']);
-      allow create, delete: if false;
+      // Read state is written by markActivityRead; clients cannot alter server activity.
+      allow create, update, delete: if false;
     }
 
     match /protected_zones/{zoneId} {

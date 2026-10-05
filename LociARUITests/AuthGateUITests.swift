@@ -582,6 +582,31 @@ final class AuthGateUITests: XCTestCase {
 #endif
     }
 
+    func testAuthGateEnglishLocalization() {
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_SIGNED_OUT", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let signIn = app.buttons["auth-mode-signin"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 8))
+        XCTAssertEqual(signIn.label, "Sign in")
+        XCTAssertEqual(app.buttons["auth-mode-signup"].label, "Sign up")
+        XCTAssertFalse(app.staticTexts["İşlem tamamlanamadı"].exists)
+        capture(app, name: "auth-english-localization")
+    }
+
+    func testAuthGateArabicLocalizationAndRTL() {
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_SIGNED_OUT", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_SA"]
+        app.launch()
+        let signIn = app.buttons["auth-mode-signin"]
+        let signUp = app.buttons["auth-mode-signup"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 8))
+        XCTAssertEqual(signIn.label, "تسجيل الدخول")
+        XCTAssertTrue(signUp.exists)
+        XCTAssertGreaterThan(signIn.frame.midX, signUp.frame.midX, "Arabic mode tabs should follow right-to-left layout")
+        capture(app, name: "auth-arabic-rtl-localization")
+    }
+
     func testAuthGatePassesAutomatedAccessibilityAudit() throws {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_SIGNED_OUT")
@@ -1810,7 +1835,12 @@ extension AuthGateUITests {
         delete.tap()
         let alert = app.alerts["Hesabı kalıcı olarak sil?"]
         XCTAssertTrue(alert.waitForExistence(timeout: 5))
-        alert.buttons["Hesabı sil"].tap()
+        alert.buttons["Devam et"].tap()
+        let password = app.secureTextFields["account-delete-password"]
+        XCTAssertTrue(password.waitForExistence(timeout: 10), "Silmeden önce parola ile yeniden doğrulama gerekir.")
+        password.tap()
+        password.typeText(e2ePassword)
+        app.buttons["account-delete-confirm"].tap()
         XCTAssertTrue(e2eField(app, "auth-email-field").waitForExistence(timeout: 30),
                       "Hesap silme (deleteAccount callable) başarısız: \(e2eMessageText(app))")
         capture(app, name: "e2e-account-deleted")

@@ -72,6 +72,7 @@ export function cloudAnchorIdOf(body: CreatePostBody): string | null {
 
 export type CreatePostBody = {
   clientMutationId?: string;
+  userId?: string;
   pose: {
     latitude: number;
     longitude: number;

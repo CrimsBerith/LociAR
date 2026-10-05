@@ -14,23 +14,23 @@ struct OnboardingView: View {
 
     private let steps: [OnboardingStep] = [
         OnboardingStep(
-            title: "Fiziksel Dünyaya Sabitle",
-            subtitle: "Mekânsal İçerik Üretimi",
-            description: "Düşüncelerini ve favori sosyal medya bağlantılarını (Spotify, YouTube, Instagram...) gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.",
+            title: String(localized: "Fiziksel Dünyaya Sabitle"),
+            subtitle: String(localized: "Mekânsal İçerik Üretimi"),
+            description: String(localized: "Düşüncelerini ve favori sosyal medya bağlantılarını (Spotify, YouTube, Instagram...) gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle."),
             symbol: "location.viewfinder",
             accentColor: LociTheme.accent
         ),
         OnboardingStep(
-            title: "Mekânları Keşfet",
-            subtitle: "Çevrendeki Dijital İzler",
-            description: "Şehrinde yürürken diğer kaşiflerin bıraktığı mekânsal paylaşımları tam konumlarında AR kameranla keşfet.",
+            title: String(localized: "Mekânları Keşfet"),
+            subtitle: String(localized: "Çevrendeki Dijital İzler"),
+            description: String(localized: "Şehrinde yürürken diğer kaşiflerin bıraktığı mekânsal paylaşımları tam konumlarında AR kameranla keşfet."),
             symbol: "map.fill",
             accentColor: Color.blue
         ),
         OnboardingStep(
-            title: "Güvenli ve Kontrolünde",
-            subtitle: "Kamera ve Konum İzinleri",
-            description: "Kameran sadece yüzey algılamak, konumun ise yakındaki postları açmak için kullanılır. Gizliliğin daima koruma altında.",
+            title: String(localized: "Güvenli ve Kontrolünde"),
+            subtitle: String(localized: "Kamera ve Konum İzinleri"),
+            description: String(localized: "Kameran sadece yüzey algılamak, konumun ise yakındaki postları açmak için kullanılır. Gizliliğin daima koruma altında."),
             symbol: "shield.checkered",
             accentColor: Color.purple
         )
@@ -91,7 +91,7 @@ struct OnboardingView: View {
             }
 
             VStack(spacing: 10) {
-                Text(step.subtitle.uppercased())
+                Text(step.subtitle.uppercased(with: Locale.current))
                     .font(.caption.weight(.bold))
                     .tracking(2)
                     .foregroundStyle(step.accentColor)

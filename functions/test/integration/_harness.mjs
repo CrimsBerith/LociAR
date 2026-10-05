@@ -27,7 +27,7 @@ function clientApp() {
 
 async function withProfile(user, fns, handle) {
   // `timeout` (ms) is for long callables such as deleteAccount on a large account.
-  const call = async (name, data, timeout) => (await httpsCallable(fns, name, timeout ? { timeout } : undefined)(data)).data;
+  const call = async (name, data, timeout) => (await httpsCallable(fns, name, timeout ? { timeout } : undefined)({ userId: (await import('../../lib/core.js')).luidForUid(user.uid), ...data })).data;
   const profile = await call('ensureProfile', handle ? { handle } : {});
   await user.getIdToken(true); // pick up the luid custom claim
   return { uid: user.uid, luid: profile.luid, handle: profile.handle, call, user };

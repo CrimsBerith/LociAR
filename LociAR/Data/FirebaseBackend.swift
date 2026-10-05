@@ -72,43 +72,38 @@ enum Geohash {
         return 2 * earthRadiusMeters * asin(min(1, sqrt(a)))
     }
 
-    private nonisolated static func cellSize(precision: Int, latitude: Double) -> (height: Double, width: Double, dLat: Double, dLng: Double) {
-        let bits = precision * 5
-        let dLat = 180 / pow(2, Double(bits / 2))
-        let dLng = 360 / pow(2, Double((bits + 1) / 2))
-        let height = dLat * .pi * earthRadiusMeters / 180
-        let width = dLng * .pi * earthRadiusMeters * max(0.01, cos(latitude * .pi / 180)) / 180
-        return (height, width, dLat, dLng)
-    }
-
-    /// Prefixes of the 3x3 block of cells around the point, at the finest precision whose cells
-    /// are at least `radiusMeters` wide. Empty means "radius too large, don't filter by geohash".
+    /// Spherical bounds match Functions. A circle reaching a pole uses the complete-query fallback.
     nonisolated static func coverPrefixes(latitude: Double, longitude: Double, radiusMeters: Double) -> [String] {
+        let angularRadius = radiusMeters / earthRadiusMeters
+        let latitudeRadians = latitude * .pi / 180
+        guard angularRadius.isFinite, angularRadius >= 0,
+              abs(latitudeRadians) + angularRadius < .pi / 2 else { return [] }
+        let dLat = angularRadius * 180 / .pi
+        let dLng = asin(sin(angularRadius) / cos(latitudeRadians)) * 180 / .pi
         var chosen = 0
         for precision in 1...9 {
-            let size = cellSize(precision: precision, latitude: latitude)
-            if min(size.height, size.width) >= radiusMeters { chosen = precision } else { break }
+            let bits = precision * 5
+            let cellLat = 180 / pow(2, Double(bits / 2))
+            let cellLng = 360 / pow(2, Double((bits + 1) / 2))
+            if cellLat >= 2 * dLat && cellLng >= 2 * dLng { chosen = precision } else { break }
         }
         guard chosen > 0 else { return [] }
-        let size = cellSize(precision: chosen, latitude: latitude)
         var prefixes = Set<String>()
-        for i in -1...1 {
-            for j in -1...1 {
-                let lat = max(-89.999999, min(89.999999, latitude + Double(i) * size.dLat))
-                var lng = longitude + Double(j) * size.dLng
-                if lng > 180 { lng -= 360 }
-                if lng < -180 { lng += 360 }
-                prefixes.insert(encode(latitude: lat, longitude: lng, precision: chosen))
+        for lat in [latitude - dLat, latitude, latitude + dLat] {
+            for lng in [longitude - dLng, longitude, longitude + dLng] {
+                let wrapped = ((lng + 180).truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360) - 180
+                prefixes.insert(encode(latitude: lat, longitude: wrapped, precision: chosen))
             }
         }
         return prefixes.sorted()
     }
+
 }
 
 // MARK: - Callable functions
 
 enum BackendCallError: LocalizedError, Sendable {
-    /// The server refused the request (validation, permission, rate limit). Not retryable.
+    /// A server rejection, or accepted deletion that continues in the background.
     /// `reason` is the machine-readable `details.reason` the server attaches (functions/src/errors.ts);
     /// nil for older servers, in which case callers fall back to matching `message`.
     case rejected(code: Int, message: String, reason: String?)
@@ -117,7 +112,7 @@ enum BackendCallError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .rejected(_, let message, _): message
-        case .invalidResponse: "Sunucudan beklenmeyen bir yanıt geldi."
+        case .invalidResponse: String(localized: "Sunucudan beklenmeyen bir yanıt geldi.")
         }
     }
 
@@ -143,9 +138,10 @@ enum BackendErrorPolicy {
     /// permanent failures; nil means "leave the original error alone" (transient: unavailable,
     /// deadline exceeded, aborted, internal, unauthenticated...).
     nonisolated static func map(code: Int, message: String, userInfo: [String: Any]) -> BackendCallError? {
-        guard isPermanent(FunctionsErrorCode(rawValue: code)) else { return nil }
-        // The SDK stores HttpsError.details under the "details" key (FunctionsErrorDetailsKey).
+        // Accepted deletion reaches its dedicated UI even though unavailable is normally retryable.
         let details = userInfo["details"] as? [String: Any]
+        let pendingDeletion = code == FunctionsErrorCode.unavailable.rawValue && details?["reason"] as? String == "deletion_pending"
+        guard isPermanent(FunctionsErrorCode(rawValue: code)) || pendingDeletion else { return nil }
         return .rejected(code: code, message: message, reason: details?["reason"] as? String)
     }
 }
@@ -174,18 +170,28 @@ struct CallableClient: Sendable {
     nonisolated func callRaw(
         _ name: String, object: Any, timeout: TimeInterval = CallableClient.defaultTimeout
     ) async throws -> Data {
+        let expectedUID = Auth.auth().currentUser?.uid
+        guard let expectedUID else { throw AuthFlowError.notSignedIn }
+        var guardedObject = object as? [String: Any] ?? [:]
+        let luid = FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: expectedUID))
+        if let supplied = guardedObject["userId"] as? String, supplied != luid { throw AuthFlowError.notSignedIn }
+        guardedObject["userId"] = luid
         var refreshedToken = false
         while true {
+            try Task.checkCancellation()
+            guard Auth.auth().currentUser?.uid == expectedUID else { throw AuthFlowError.notSignedIn }
             do {
                 let callable = Functions.functions(region: region).httpsCallable(name)
                 callable.timeoutInterval = timeout
-                let result = try await callable.call(object)
+                let result = try await callable.call(guardedObject)
+                try Task.checkCancellation()
+                guard Auth.auth().currentUser?.uid == expectedUID else { throw AuthFlowError.notSignedIn }
                 guard JSONSerialization.isValidJSONObject(result.data) else { throw BackendCallError.invalidResponse }
                 return try JSONSerialization.data(withJSONObject: result.data)
             } catch let error as NSError where error.domain == FunctionsErrorDomain {
                 // An expired ID token surfaces as `unauthenticated`; refresh once and retry.
                 if FunctionsErrorCode(rawValue: error.code) == .unauthenticated,
-                   !refreshedToken, let user = Auth.auth().currentUser {
+                   !refreshedToken, let user = Auth.auth().currentUser, user.uid == expectedUID {
                     refreshedToken = true
                     _ = try? await user.getIDTokenResult(forcingRefresh: true)
                     continue
@@ -289,6 +295,7 @@ enum FirestorePostMapper {
     nonisolated static func isPubliclyListed(_ data: [String: Any]) -> Bool {
         (data["status"] as? String) == "active"
             && (data["visibility"] as? String) == "public"
+            && (data["age_rating"] as? String) != "18_plus"
             && (data["deleted_at"] == nil || data["deleted_at"] is NSNull)
     }
 }

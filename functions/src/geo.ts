@@ -31,39 +31,32 @@ export function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: n
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
-/** Cell height/width in meters for a geohash precision at a latitude. */
-function cellSizeMeters(precision: number, latitude: number): { height: number; width: number; dLat: number; dLng: number } {
-  const bits = precision * 5;
-  const latBits = Math.floor(bits / 2);
-  const lngBits = Math.ceil(bits / 2);
-  const dLat = 180 / 2 ** latBits;
-  const dLng = 360 / 2 ** lngBits;
-  const height = (dLat * Math.PI * EARTH_RADIUS_M) / 180;
-  const width = (dLng * Math.PI * EARTH_RADIUS_M * Math.max(0.01, Math.cos((latitude * Math.PI) / 180))) / 180;
-  return { height, width, dLat, dLng };
-}
-
 /**
- * Returns geohash prefixes covering a circle: the center cell and its 8 neighbours at the
- * finest precision whose cells are at least `radius` in both dimensions. Returns [] when the
- * radius is too large for geohash filtering (caller should fall back to an unfiltered query).
+ * Conservative spherical bounding box, sampled at its edges at a precision whose cells are
+ * wider/taller than the whole box. At most nine prefixes are needed. Circles reaching a pole
+ * or spanning too much of Earth return [], requesting the caller's complete-query fallback.
  */
 export function geohashCoverPrefixes(latitude: number, longitude: number, radiusMeters: number): string[] {
+  const angularRadius = radiusMeters / EARTH_RADIUS_M;
+  const latRadians = latitude * Math.PI / 180;
+  if (!Number.isFinite(angularRadius) || angularRadius < 0
+    || Math.abs(latRadians) + angularRadius >= Math.PI / 2) return [];
+  const dLat = angularRadius * 180 / Math.PI;
+  const dLng = Math.asin(Math.sin(angularRadius) / Math.cos(latRadians)) * 180 / Math.PI;
   let chosen = 0;
-  for (let p = 1; p <= 9; p++) {
-    const size = cellSizeMeters(p, latitude);
-    if (Math.min(size.height, size.width) >= radiusMeters) chosen = p; else break;
+  for (let precision = 1; precision <= 9; precision++) {
+    const bits = precision * 5;
+    const cellLat = 180 / 2 ** Math.floor(bits / 2);
+    const cellLng = 360 / 2 ** Math.ceil(bits / 2);
+    if (cellLat >= 2 * dLat && cellLng >= 2 * dLng) chosen = precision;
+    else break;
   }
   if (chosen === 0) return [];
-  const { dLat, dLng } = cellSizeMeters(chosen, latitude);
   const prefixes = new Set<string>();
-  for (const i of [-1, 0, 1]) {
-    for (const j of [-1, 0, 1]) {
-      const lat = Math.max(-89.999999, Math.min(89.999999, latitude + i * dLat));
-      let lng = longitude + j * dLng;
-      if (lng > 180) lng -= 360;
-      if (lng < -180) lng += 360;
-      prefixes.add(encodeGeohash(lat, lng, chosen));
+  for (const lat of [latitude - dLat, latitude, latitude + dLat]) {
+    for (const lng of [longitude - dLng, longitude, longitude + dLng]) {
+      const wrapped = ((lng + 180) % 360 + 360) % 360 - 180;
+      prefixes.add(encodeGeohash(lat, wrapped, chosen));
     }
   }
   return [...prefixes].sort();

@@ -41,6 +41,7 @@ struct RootView: View {
                     AuthView()
                 case .signedIn(let user):
                     MainTabView(user: user)
+                        .id(user.id)
                 case .passwordRecovery:
                     PasswordRecoveryView()
                 }
@@ -49,8 +50,13 @@ struct RootView: View {
         .preferredColorScheme(.dark)
         .task {
             try? LegacyMigrationCoordinator.run(modelContext: modelContext)
+            await LocalAccountDeletion.resume(in: modelContext)
         }
-        .onChange(of: session.phase) { _, phase in
+        .onChange(of: session.phase) { previous, phase in
+            if case let .signedIn(oldUser) = previous,
+               case let .signedIn(newUser) = phase, oldUser.id != newUser.id {
+                container.router.resetForAuthenticationGate()
+            }
             if case .signedIn = phase {
                 startSyncLoop()
             } else if case .signedOut = phase {
@@ -61,6 +67,7 @@ struct RootView: View {
         .onChange(of: container.connectivity.isOnline) { _, online in
             if online {
                 Task { await runSyncIfPossible() }
+                if !session.isLocalPreview { Task { await NotificationService.shared.refreshForCurrentUser() } }
                 startSyncLoop()
             } else {
                 stopSyncLoop()
@@ -68,6 +75,7 @@ struct RootView: View {
         }
         .onChange(of: scenePhase) { previous, phase in
             if phase == .active {
+                if !session.isLocalPreview { Task { await NotificationService.shared.refreshForCurrentUser() } }
                 // Only a real return from the background re-validates the session. `.inactive`
                 // blips (permission alerts, the Sign in with Apple sheet during account deletion,
                 // Control Center) must not re-run ensureProfile or reset password recovery.

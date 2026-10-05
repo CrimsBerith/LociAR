@@ -1,4 +1,5 @@
 import AuthenticationServices
+import CryptoKit
 import Foundation
 @preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseFirestore
@@ -20,12 +21,25 @@ protocol AuthRepository: Sendable {
     func completeAuthCallback(_ url: URL) async throws -> LociUser?
     func signInWithApple(identityToken: String, nonce: String?, fullName: String?) async throws -> LociUser
     func signOut() async
-    func deleteAccount() async throws
+    func accountDeletionMethod() async throws -> AccountDeletionMethod
+    func deleteAccount(password: String?, expectedUserID: UUID) async throws
 }
 
 struct AuthSignUpResult: Sendable {
     let user: LociUser
     let requiresEmailConfirmation: Bool
+}
+
+enum AccountDeletionMethod: Equatable, Sendable {
+    case apple
+    case password
+
+    static func resolve(providerIDs: [String], email: String?) throws -> Self {
+        // Linked Apple accounts must also revoke the Apple grant.
+        if providerIDs.contains("apple.com") { return .apple }
+        if providerIDs.contains("password"), let email, !email.isEmpty { return .password }
+        throw AuthFlowError.unsupported
+    }
 }
 
 enum AuthFlowError: LocalizedError, Sendable {
@@ -41,33 +55,45 @@ enum AuthFlowError: LocalizedError, Sendable {
     case photoRateLimited
     case appleReauthenticationRequired
     case appleRevocationFailed
+    case passwordRequired
+    case invalidDeletionCredential
+    case reauthenticationCancelled
+    case deletionPending
 
     var errorDescription: String? {
         switch self {
         case .emailNotVerified:
-            "E-posta adresin henüz doğrulanmadı. Gelen kutundaki bağlantıya dokunduktan sonra tekrar giriş yap."
+            String(localized: "E-posta adresin henüz doğrulanmadı. Gelen kutundaki bağlantıya dokunduktan sonra tekrar giriş yap.")
         case .notSignedIn:
-            "Oturum bulunamadı. Lütfen tekrar giriş yap."
+            String(localized: "Oturum bulunamadı. Lütfen tekrar giriş yap.")
         case .unsupported:
-            "Bu giriş yöntemi artık desteklenmiyor. E-posta ve şifre ya da Apple ile giriş yap."
+            String(localized: "Bu giriş yöntemi artık desteklenmiyor. E-posta ve şifre ya da Apple ile giriş yap.")
         case .invalidHandle:
-            "Kullanıcı adı 3–30 karakter olmalı; yalnızca küçük harf, rakam, alt çizgi ve nokta içerebilir."
+            String(localized: "Kullanıcı adı 3–30 karakter olmalı; yalnızca küçük harf, rakam, alt çizgi ve nokta içerebilir.")
         case .handleTaken:
-            "Bu kullanıcı adı başka biri tarafından kullanılıyor. Farklı bir ad dene."
+            String(localized: "Bu kullanıcı adı başka biri tarafından kullanılıyor. Farklı bir ad dene.")
         case .handleNotAllowed:
-            "Bu kullanıcı adı kullanılamaz. Farklı bir ad dene."
+            String(localized: "Bu kullanıcı adı kullanılamaz. Farklı bir ad dene.")
         case .handleCooldown:
-            "Kullanıcı adını en fazla 30 günde bir değiştirebilirsin."
+            String(localized: "Kullanıcı adını en fazla 30 günde bir değiştirebilirsin.")
         case .reauthRequired:
-            "Güvenlik için hesabı silmeden önce yeniden giriş yapman gerekiyor."
+            String(localized: "Güvenlik için hesabı silmeden önce yeniden doğrulama gerekiyor.")
         case .invalidPhoto:
-            "Fotoğraf hazırlanamadı. Farklı bir fotoğraf dene."
+            String(localized: "Fotoğraf hazırlanamadı. Farklı bir fotoğraf dene.")
         case .photoRateLimited:
-            "Çok sık fotoğraf yükledin. Bir saat sonra tekrar dene."
+            String(localized: "Çok sık fotoğraf yükledin. Bir saat sonra tekrar dene.")
         case .appleReauthenticationRequired:
-            "Hesabı silmek için Apple ile yeniden doğrulama gerekiyor."
+            String(localized: "Hesabı silmek için Apple ile yeniden doğrulama gerekiyor.")
         case .appleRevocationFailed:
-            "Apple oturum izni geri alınamadı, hesabın silinmedi. Biraz sonra tekrar dene."
+            String(localized: "Apple oturum izni geri alınamadı, hesabın silinmedi. Biraz sonra tekrar dene.")
+        case .passwordRequired:
+            String(localized: "Hesabı silmek için mevcut parolanı gir.")
+        case .invalidDeletionCredential:
+            String(localized: "Kimlik doğrulanamadı. Hesabın silinmedi; bilgilerini kontrol et.")
+        case .reauthenticationCancelled:
+            String(localized: "Kimlik doğrulama iptal edildi. Hesabın silinmedi.")
+        case .deletionPending:
+            String(localized: "Silme isteğiniz alındı. İşlem arka planda tamamlanacak.")
         }
     }
 }
@@ -76,6 +102,8 @@ enum AuthFlowError: LocalizedError, Sendable {
 /// (so verification mail can be re-sent) but is never surfaced to the app as signed in.
 final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     private let callables: CallableClient
+    private let userCacheLock = NSLock()
+    private var hydratedUsers: [String: LociUser] = [:]
 
     init(functionsRegion: String) {
         callables = CallableClient(region: functionsRegion)
@@ -90,6 +118,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     }
 
     private struct EnsureProfilePayload: Encodable, Sendable {
+        let userId: String
         let displayName: String?
     }
 
@@ -113,29 +142,40 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     /// `profiles/{luid}` + `users_private/{luid}` and sets the `luid` custom claim that
     /// Firestore/Storage rules rely on. Clients can never write these documents directly.
     private func establish(_ user: User, displayName: String? = nil) async throws -> LociUser {
+        try Self.assertSession(user)
         let response: EnsureProfileResponse = try await callables.call(
             "ensureProfile",
-            payload: EnsureProfilePayload(displayName: displayName)
+            payload: EnsureProfilePayload(userId: FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: user.uid)), displayName: displayName)
         )
         if response.claimsUpdated {
             _ = try await user.getIDTokenResult(forcingRefresh: true)
         }
+        try Self.assertSession(user)
         let avatar = await AvatarReference.resolve(avatarURL: response.avatarURL, preset: response.avatarPreset)
+        try Self.assertSession(user)
         if user.displayName != response.handle {
             let change = user.createProfileChangeRequest()
             change.displayName = response.handle
             try? await change.commitChanges()
         }
-        return Self.domainUser(user, handle: response.handle, avatarURL: avatar)
+        let hydrated = Self.domainUser(user, handle: response.handle, avatarURL: avatar)
+        userCacheLock.withLock { hydratedUsers[user.uid] = hydrated }
+        return hydrated
+    }
+
+    nonisolated private static func assertSession(_ user: User) throws {
+        try Task.checkCancellation()
+        guard Auth.auth().currentUser?.uid == user.uid else { throw AuthFlowError.notSignedIn }
     }
 
     func currentUser() async -> LociUser? {
         guard let user = Auth.auth().currentUser else { return nil }
         try? await user.reload()
-        guard let refreshed = Auth.auth().currentUser, Self.isVerified(refreshed) else { return nil }
+        guard let refreshed = Auth.auth().currentUser, refreshed.uid == user.uid, Self.isVerified(refreshed) else { return nil }
         if let established = try? await establish(refreshed) { return established }
         // Offline launch: fall back to cached Auth profile; claims are refreshed on next launch.
-        return Self.domainUser(refreshed)
+        guard Auth.auth().currentUser?.uid == refreshed.uid else { return nil }
+        return userCacheLock.withLock { hydratedUsers[refreshed.uid] } ?? Self.domainUser(refreshed)
     }
 
     func sessionChanges() async -> AsyncStream<LociUser?> {
@@ -143,12 +183,20 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             let box = ListenerBox()
             box.handle = Auth.auth().addStateDidChangeListener { _, user in
                 guard let user else {
+                    box.replaceTask(nil)
                     continuation.yield(nil)
                     return
                 }
-                continuation.yield(Self.isVerified(user) ? Self.domainUser(user) : nil)
+                box.replaceTask(nil)
+                guard Self.isVerified(user) else { continuation.yield(nil); return }
+                box.replaceTask(Task {
+                    let hydrated = try? await self.establish(user)
+                    guard !Task.isCancelled, Auth.auth().currentUser?.uid == user.uid else { return }
+                    continuation.yield(hydrated ?? self.userCacheLock.withLock { self.hydratedUsers[user.uid] } ?? Self.domainUser(user))
+                })
             }
             continuation.onTermination = { _ in
+                box.replaceTask(nil)
                 if let handle = box.handle { Auth.auth().removeStateDidChangeListener(handle) }
             }
         }
@@ -194,10 +242,10 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         let luid = FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: user.uid))
 
         if clean != user.displayName {
-            struct Payload: Encodable, Sendable { let handle: String }
+            struct Payload: Encodable, Sendable { let userId: String; let handle: String }
             struct Response: Decodable, Sendable { let handle: String }
             do {
-                let _: Response = try await callables.call("updateHandle", payload: Payload(handle: clean))
+                let _: Response = try await callables.call("updateHandle", payload: Payload(userId: luid, handle: clean))
             } catch BackendCallError.rejected(let code, _, let reason) where reason == "handle_taken" || code == FunctionsErrorCode.alreadyExists.rawValue {
                 throw AuthFlowError.handleTaken
             } catch BackendCallError.rejected(_, _, let reason) where reason == "handle_reserved" || reason == "handle_not_allowed" {
@@ -207,6 +255,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             }
         }
 
+        try Self.assertSession(user)
         switch avatar {
         case .unchanged:
             break
@@ -220,24 +269,26 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         case .photo(let data):
             guard let jpeg = AvatarReference.preparedJPEG(from: data) else { throw AuthFlowError.invalidPhoto }
             // Every upload needs a slot from the server (hourly quota); Storage rules check it.
-            struct EmptyPayload: Encodable, Sendable {}
+            struct EmptyPayload: Encodable, Sendable { let userId: String }
             struct SlotResponse: Decodable, Sendable { let objectId: String }
             let slot: SlotResponse
             do {
-                slot = try await callables.call("beginAvatarUpload", payload: EmptyPayload())
+                slot = try await callables.call("beginAvatarUpload", payload: EmptyPayload(userId: luid))
             } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
                 throw AuthFlowError.photoRateLimited
             }
+            try Self.assertSession(user)
             let metadata = StorageMetadata()
             metadata.contentType = "image/jpeg"
             let path = "avatars/\(luid)/pending/\(slot.objectId).jpg"
             _ = try await Storage.storage().reference(withPath: path).putDataAsync(jpeg, metadata: metadata)
             // Screening runs server-side in a callable (no Storage trigger / extra IAM needed).
-            struct ScreenPayload: Encodable, Sendable { let objectId: String }
+            struct ScreenPayload: Encodable, Sendable { let userId: String; let objectId: String }
             struct ScreenResponse: Decodable, Sendable { let status: String }
-            let screened: ScreenResponse = try await callables.call("screenAvatar", payload: ScreenPayload(objectId: slot.objectId))
+            let screened: ScreenResponse = try await callables.call("screenAvatar", payload: ScreenPayload(userId: luid, objectId: slot.objectId))
             if screened.status == "rejected" { throw AuthFlowError.invalidPhoto }
         }
+        try Self.assertSession(user)
         return try await establish(user)
     }
 
@@ -264,64 +315,168 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     }
 
     func signOut() async {
+        userCacheLock.withLock { hydratedUsers.removeAll() }
         try? Auth.auth().signOut()
     }
 
-    func deleteAccount() async throws {
+    @MainActor
+    func accountDeletionMethod() async throws -> AccountDeletionMethod {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
+        return try AccountDeletionMethod.resolve(providerIDs: user.providerData.map(\.providerID), email: user.email)
+    }
 
-        let isApple = user.providerData.contains(where: { $0.providerID == "apple.com" })
-        // Guideline 5.1.1(v): Apple accounts send a fresh Sign in with Apple authorization code; the
-        // server revokes the grant with Apple and deletes nothing if that fails.
-        var appleCode: String?
-        if isApple {
-            do {
-                appleCode = try await AppleReauthenticator.authorizationCode()
-            } catch {
-                throw AuthFlowError.appleReauthenticationRequired
-            }
+    @MainActor
+    func deleteAccount(password: String?, expectedUserID: UUID) async throws {
+        guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
+        guard FirebaseIdentity.luid(forFirebaseUID: user.uid) == expectedUserID else { throw AuthFlowError.notSignedIn }
+        let method = try AccountDeletionMethod.resolve(providerIDs: user.providerData.map(\.providerID), email: user.email)
+        let client = FirebaseAccountDeletionClient(user: user, method: method, callables: callables)
+        do { try await AccountDeletionFlow.run(client: client, password: password) }
+        catch AuthFlowError.deletionPending {
+            if Auth.auth().currentUser?.uid == user.uid { try? Auth.auth().signOut() }
+            throw AuthFlowError.deletionPending
         }
+        if Auth.auth().currentUser?.uid == user.uid { try? Auth.auth().signOut() }
+    }
+}
 
-        // The callable hard-deletes profile, posts, social edges, Storage files and the Auth user.
-        struct DeleteResponse: Decodable, Sendable { let ok: Bool }
-        struct DeletePayload: Encodable, Sendable { let appleAuthorizationCode: String? }
-        let response: DeleteResponse
+@MainActor
+protocol AccountDeletionClient: AnyObject {
+    var method: AccountDeletionMethod { get }
+    func assertCurrentSession() throws
+    func reauthenticate(password: String?) async throws -> String?
+    func refreshSession() async throws
+    func delete(appleAuthorizationCode: String?) async throws
+}
+
+/// No delete request is made until reauthentication and token refresh succeed for the same user.
+@MainActor
+enum AccountDeletionFlow {
+    static func run(client: any AccountDeletionClient, password: String?) async throws {
+        try client.assertCurrentSession()
+        if client.method == .password, password?.isEmpty != false { throw AuthFlowError.passwordRequired }
+        try Task.checkCancellation()
+        let appleCode = try await client.reauthenticate(password: password)
+        try Task.checkCancellation()
+        try client.assertCurrentSession()
+        try await client.refreshSession()
+        try Task.checkCancellation()
+        try client.assertCurrentSession()
+        try await client.delete(appleAuthorizationCode: appleCode)
+    }
+}
+
+@MainActor
+private final class FirebaseAccountDeletionClient: AccountDeletionClient {
+    private let user: User
+    let method: AccountDeletionMethod
+    private let callables: CallableClient
+    init(user: User, method: AccountDeletionMethod, callables: CallableClient) {
+        self.user = user; self.method = method; self.callables = callables
+    }
+
+    func assertCurrentSession() throws {
+        guard Auth.auth().currentUser?.uid == user.uid else { throw AuthFlowError.notSignedIn }
+    }
+
+    func reauthenticate(password: String?) async throws -> String? {
+        let credential: AuthCredential
+        let appleCode: String?
+        switch method {
+        case .apple:
+            let authorization = try await AppleReauthenticator.credential()
+            try Task.checkCancellation()
+            try assertCurrentSession()
+            credential = OAuthProvider.appleCredential(withIDToken: authorization.identityToken, rawNonce: authorization.rawNonce, fullName: nil)
+            appleCode = authorization.authorizationCode
+        case .password:
+            guard let email = user.email, let password, !password.isEmpty else { throw AuthFlowError.passwordRequired }
+            credential = EmailAuthProvider.credential(withEmail: email, password: password)
+            appleCode = nil
+        }
+        do { _ = try await user.reauthenticate(with: credential) }
+        catch {
+            let code = AuthErrorCode(rawValue: (error as NSError).code)
+            if code == .wrongPassword || code == .invalidCredential || code == .userMismatch {
+                throw AuthFlowError.invalidDeletionCredential
+            }
+            throw error
+        }
+        return appleCode
+    }
+
+    func refreshSession() async throws { _ = try await user.getIDTokenResult(forcingRefresh: true) }
+
+    func delete(appleAuthorizationCode: String?) async throws {
+        struct Response: Decodable, Sendable { let ok: Bool }
+        struct Payload: Encodable, Sendable { let appleAuthorizationCode: String?; let userId: String }
+        let response: Response
         do {
-            response = try await callables.call("deleteAccount", payload: DeletePayload(appleAuthorizationCode: appleCode))
+            response = try await callables.call("deleteAccount", payload: Payload(
+                appleAuthorizationCode: appleAuthorizationCode, userId: FirebaseIdentity.luid(forFirebaseUID: user.uid).uuidString.lowercased()
+            ), timeout: 300)
         } catch BackendCallError.rejected(_, _, let reason) where reason == "reauth_required" {
             throw AuthFlowError.reauthRequired
         } catch BackendCallError.rejected(_, _, let reason) where reason == "apple_revoke_failed" || reason == "apple_revoke_unavailable" {
             throw AuthFlowError.appleRevocationFailed
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "deletion_pending" {
+            throw AuthFlowError.deletionPending
         }
         guard response.ok else { throw BackendCallError.invalidResponse }
-        try? Auth.auth().signOut()
     }
 }
 
 private final class ListenerBox: @unchecked Sendable {
     var handle: AuthStateDidChangeListenerHandle?
+    private let lock = NSLock()
+    private var task: Task<Void, Never>?
+    func replaceTask(_ next: Task<Void, Never>?) {
+        lock.withLock { task?.cancel(); task = next }
+    }
 }
 
-/// Presents a Sign in with Apple sheet solely to obtain a fresh authorization code for token
-/// revocation during account deletion.
+struct AppleReauthenticationCredential: Sendable {
+    let identityToken: String
+    let rawNonce: String
+    let authorizationCode: String
+}
+
+enum AppleAuthorizationNonce {
+    static func make() -> String {
+        let characters = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
+        var generator = SystemRandomNumberGenerator()
+        return String((0..<32).map { _ in characters.randomElement(using: &generator)! })
+    }
+    static func hash(_ value: String) -> String {
+        SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+/// A single Apple response supplies the nonce-bound Firebase credential and revocation code.
 @MainActor
 final class AppleReauthenticator: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-    private var continuation: CheckedContinuation<String, Error>?
+    private var continuation: CheckedContinuation<AppleReauthenticationCredential, Error>?
     private static var active: AppleReauthenticator?
+    private let nonce = AppleAuthorizationNonce.make()
+    private var controller: ASAuthorizationController?
 
-    static func authorizationCode() async throws -> String {
+    static func credential() async throws -> AppleReauthenticationCredential {
+        try Task.checkCancellation()
+        guard active == nil else { throw AuthFlowError.appleReauthenticationRequired }
         let reauthenticator = AppleReauthenticator()
         active = reauthenticator
         defer { active = nil }
         return try await reauthenticator.run()
     }
 
-    private func run() async throws -> String {
+    private func run() async throws -> AppleReauthenticationCredential {
         try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             let request = ASAuthorizationAppleIDProvider().createRequest()
             request.requestedScopes = []
+            request.nonce = AppleAuthorizationNonce.hash(nonce)
             let controller = ASAuthorizationController(authorizationRequests: [request])
+            self.controller = controller
             controller.delegate = self
             controller.presentationContextProvider = self
             controller.performRequests()
@@ -329,19 +484,25 @@ final class AppleReauthenticator: NSObject, ASAuthorizationControllerDelegate, A
     }
 
     nonisolated func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-        let code = (authorization.credential as? ASAuthorizationAppleIDCredential)?.authorizationCode
-            .flatMap { String(data: $0, encoding: .utf8) }
+        let credential = authorization.credential as? ASAuthorizationAppleIDCredential
+        let code = credential?.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
+        let token = credential?.identityToken.flatMap { String(data: $0, encoding: .utf8) }
         Task { @MainActor in
-            if let code { self.continuation?.resume(returning: code) }
+            if let code, !code.isEmpty, let token, !token.isEmpty {
+                self.continuation?.resume(returning: AppleReauthenticationCredential(identityToken: token, rawNonce: self.nonce, authorizationCode: code))
+            }
             else { self.continuation?.resume(throwing: AuthFlowError.appleReauthenticationRequired) }
             self.continuation = nil
+            self.controller = nil
         }
     }
 
     nonisolated func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        let cancelled = (error as? ASAuthorizationError)?.code == .canceled
         Task { @MainActor in
-            self.continuation?.resume(throwing: AuthFlowError.appleReauthenticationRequired)
+            self.continuation?.resume(throwing: cancelled ? AuthFlowError.reauthenticationCancelled : AuthFlowError.appleReauthenticationRequired)
             self.continuation = nil
+            self.controller = nil
         }
     }
 
@@ -368,5 +529,6 @@ actor UnavailableAuthRepository: AuthRepository {
     func completeAuthCallback(_ url: URL) async throws -> LociUser? { throw missing }
     func signInWithApple(identityToken: String, nonce: String?, fullName: String?) async throws -> LociUser { throw missing }
     func signOut() async {}
-    func deleteAccount() async throws { throw missing }
+    func accountDeletionMethod() async throws -> AccountDeletionMethod { throw missing }
+    func deleteAccount(password: String?, expectedUserID: UUID) async throws { throw missing }
 }

@@ -15,6 +15,9 @@ if ! command -v gcloud >/dev/null 2>&1; then
   pause "Kurduktan sonra bu dosyayı tekrar aç. Kapatmak için Enter…"; exit 1
 fi
 
+step "Lockfile ile Firebase CLI kuruluyor"
+npm ci --prefix functions --no-audit --no-fund
+
 step "Google hesabıyla giriş (projenin sahibi olan hesap). Tarayıcı açılacak."
 if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q .; then
   gcloud auth login
@@ -47,6 +50,7 @@ gcloud services enable \
   storage.googleapis.com \
   firestore.googleapis.com \
   firebaseappcheck.googleapis.com \
+  fcm.googleapis.com \
   identitytoolkit.googleapis.com \
   firebaseapphosting.googleapis.com \
   secretmanager.googleapis.com \
@@ -86,28 +90,33 @@ if echo "$ROLES" | grep -qE 'roles/(editor|owner)'; then
   echo "⚠️  $SA hesabında Editor/Owner var. Gerekmiyor; aşağıdaki roller yeterli. IAM'den kaldırman önerilir."
 fi
 echo "ℹ️  Firestore/Storage/Vision/Auth için gereken roller ekleniyor (Editor VERİLMEZ)."
+# No roles/iam.serviceAccountUser: it would let the runtime act as every service account in the
+# project. The only impersonation it needs is token signing for the ARCore signer (granted above).
 for ROLE in roles/datastore.user roles/storage.objectAdmin roles/firebaseauth.admin \
-            roles/serviceusage.serviceUsageConsumer roles/logging.logWriter roles/iam.serviceAccountUser; do
+            roles/serviceusage.serviceUsageConsumer roles/logging.logWriter; do
   gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role="$ROLE" \
     --condition=None --quiet >/dev/null
   echo "   + $ROLE"
 done
+gcloud projects remove-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" \
+  --role="roles/iam.serviceAccountUser" --condition=None --quiet >/dev/null 2>&1 || true
 echo "   ℹ️  Cloud Anchor silme hatası (PERMISSION_DENIED) olursa anchor 'cloud_anchor_deletions' kuyruğuna"
 echo "      girer ve günlük yeniden denenir. Editor verme; logdaki hatayı issue #6'ya ekle."
 
 step "Admin paneli: Firebase App Hosting (backend lociar-admin)"
-if ! npx --yes firebase-tools@14 apphosting:backends:get lociar-admin --project "$PROJECT" >/dev/null 2>&1; then
+if ! ./functions/node_modules/.bin/firebase apphosting:backends:get lociar-admin --project "$PROJECT" >/dev/null 2>&1; then
   echo "App Hosting backend yok; oluşturuluyor. Sihirbaz bir web app soracak → 'LociAR Admin' seç/oluştur."
-  npx --yes firebase-tools@14 apphosting:backends:create --project "$PROJECT" \
+  ./functions/node_modules/.bin/firebase apphosting:backends:create --project "$PROJECT" \
     --backend lociar-admin --primary-region us-central1 --root-dir admin
 fi
 AH_SA="firebase-app-hosting-compute@${PROJECT}.iam.gserviceaccount.com"
 if gcloud iam service-accounts describe "$AH_SA" --project "$PROJECT" >/dev/null 2>&1; then
   gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$AH_SA" \
     --role="roles/firebase.sdkAdminServiceAgent" --condition=None --quiet >/dev/null
-  gcloud iam service-accounts add-iam-policy-binding "$AH_SA" --project "$PROJECT" \
-    --member="serviceAccount:$AH_SA" --role="roles/iam.serviceAccountTokenCreator" --quiet >/dev/null
-  echo "✅ App Hosting servis hesabı: Admin SDK + imzalı URL yetkileri ($AH_SA)"
+  # No Token Creator on itself: avatar photos are streamed by the admin server, not signed URLs.
+  gcloud iam service-accounts remove-iam-policy-binding "$AH_SA" --project "$PROJECT" \
+    --member="serviceAccount:$AH_SA" --role="roles/iam.serviceAccountTokenCreator" --quiet >/dev/null 2>&1 || true
+  echo "✅ App Hosting servis hesabı: Admin SDK yetkisi ($AH_SA)"
 else
   echo "⚠️  $AH_SA bulunamadı; backend oluşturulduktan sonra bu adımı tekrar çalıştır."
 fi
@@ -139,7 +148,7 @@ step "Backend deploy (kurallar, indeksler, TTL, Storage kuralları, Cloud Functi
 bash scripts/firebase-deploy.command
 
 step "Admin paneli + yasal sayfalar deploy (Firebase App Hosting)"
-npx --yes firebase-tools@14 deploy --only apphosting --project "$PROJECT"
+./functions/node_modules/.bin/firebase deploy --only apphosting --project "$PROJECT"
 echo "✅ https://lociar-admin--${PROJECT}.us-central1.hosted.app/privacy"
 
 step "İsteğe bağlı: eski referans kamera karelerini temizle (önce sayar)"

@@ -430,25 +430,25 @@ actor SpatialContentRenderer {
         switch platform {
         case .spotify:
             switch firstPath {
-            case "album": return "Albüm önizlemesi"
-            case "playlist": return "Çalma listesi"
-            case "episode", "show": return "Podcast önizlemesi"
-            default: return "Parça önizlemesi"
+            case "album": return String(localized: "Albüm önizlemesi")
+            case "playlist": return String(localized: "Çalma listesi")
+            case "episode", "show": return String(localized: "Podcast önizlemesi")
+            default: return String(localized: "Parça önizlemesi")
             }
-        case .youtube: return "Video önizlemesi"
-        case .facebook: return firstPath == "reel" ? "Reels önizlemesi" : "Gönderi önizlemesi"
-        case .instagram: return firstPath == "reel" ? "Reels önizlemesi" : "Gönderi önizlemesi"
-        case .x: return "Gönderi önizlemesi"
+        case .youtube: return String(localized: "Video önizlemesi")
+        case .facebook: return firstPath == "reel" ? String(localized: "Reels önizlemesi") : String(localized: "Gönderi önizlemesi")
+        case .instagram: return firstPath == "reel" ? String(localized: "Reels önizlemesi") : String(localized: "Gönderi önizlemesi")
+        case .x: return String(localized: "Gönderi önizlemesi")
         }
     }
 
     nonisolated private static func externalPreviewIdentifier(_ url: URL?) -> String {
-        guard let url else { return "Bağlantılı sosyal içerik" }
+        guard let url else { return String(localized: "Bağlantılı sosyal içerik") }
         let identifier = url.pathComponents
             .filter { $0 != "/" }
             .suffix(2)
             .joined(separator: " / ")
-        return identifier.isEmpty ? (url.host ?? "Bağlantılı sosyal içerik") : identifier
+        return identifier.isEmpty ? (url.host ?? String(localized: "Bağlantılı sosyal içerik")) : identifier
     }
 
     nonisolated private static func drawBrandLogo(

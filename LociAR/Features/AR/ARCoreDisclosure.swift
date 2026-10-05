@@ -21,7 +21,7 @@ struct ARCoreDisclosureModifier: ViewModifier {
                 }
                 Button("Tamam") { acknowledged = true }
             } message: {
-                Text("Bu oturumu çalıştırmak için Google, sensör verilerini (ör. kamera ve konum) işler.\n\nTo power this session, Google will process sensor data (e.g., camera and location).")
+                Text("Bu oturumu çalıştırmak için Google, sensör verilerini (ör. kamera ve konum) işler.")
             }
     }
 }

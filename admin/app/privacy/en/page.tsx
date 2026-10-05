@@ -4,15 +4,15 @@ import { LEGAL_ENTITY as E } from '../../legal-entity';
 
 export const metadata = {
   title: 'LociAR Privacy Policy',
-  description: 'How LociAR processes location, camera, account and user-generated content data.',
+  description: 'How LociAR processes location, camera, account, notification, crash and user-generated content data.',
 };
 
 export default function PrivacyPageEn() {
   return (
-    <LegalLayout title="Privacy policy" updated="28 September 2026">
+    <LegalLayout title="Privacy policy" updated={E.updatedEn} lang="en">
       <p>
-        LociAR is an iOS app for publishing user content anchored to real-world surfaces. This policy explains which
-        personal data we process. <Link href="/privacy">Türkçe sürüm</Link>
+        LociAR is an iOS app for sharing short text notes and social media links anchored to real-world surfaces. This
+        policy explains which personal data we process. <Link href="/privacy">Türkçe sürüm</Link>
       </p>
 
       <h2>Data controller</h2>
@@ -22,11 +22,17 @@ export default function PrivacyPageEn() {
 
       <h2>Data we process</h2>
       <ul>
-        <li><strong>Identity:</strong> Sign in with Apple identifier or email address, username, profile photo.</li>
-        <li><strong>Location:</strong> while the app is in use, to show nearby content and store where you place a post.</li>
-        <li><strong>Camera and media:</strong> used only for AR placement (posts are text and social media links; no photos or videos are uploaded); the camera feed is not
-          recorded. When you pin content, only the AR map file for that surface is stored (a feature map, not a photo); no camera image is saved.</li>
-        <li><strong>User content:</strong> posts, captions, comments, likes, saves, follows, blocks and reports.</li>
+        <li><strong>Identity:</strong> Sign in with Apple identifier or email address, username, display name, profile photo.</li>
+        <li><strong>Location:</strong> while the app is in use, to show nearby content and store where you place a post (precise
+          location; iOS asks for temporary precise location when AR positioning needs it).</li>
+        <li><strong>Camera:</strong> used only for AR placement; the camera feed is not recorded. Posts are text and social media
+          links; there are no photo or video posts. When you pin content, an AR map file for that surface (a feature map, not a
+          photo) may be stored.</li>
+        <li><strong>Profile photo:</strong> a photo you upload is screened automatically before it is shown (see &quot;Google Cloud Vision&quot;).</li>
+        <li><strong>User content:</strong> posts, captions, comments, likes, saves, collections, follows, blocks and reports.</li>
+        <li><strong>Notification token:</strong> if you allow notifications, your device&apos;s Apple Push / Firebase Cloud Messaging token.</li>
+        <li><strong>Crash and diagnostic data:</strong> when the app crashes, the device model, iOS version, app version, stack trace and a
+          random installation ID (Firebase Crashlytics).</li>
         <li><strong>Security:</strong> session tokens, device attestation (Apple App Attest / Firebase App Check), IP address
           processed by our infrastructure provider, and abuse-prevention records.</li>
       </ul>
@@ -34,17 +40,28 @@ export default function PrivacyPageEn() {
       <h2>Purposes and legal bases</h2>
       <ul>
         <li>Account creation, sign-in, publishing and displaying content — performance of our contract with you.</li>
-        <li>Moderation, protected-zone and 18+ blocks, spam and abuse prevention, security — legitimate interests and legal obligations.</li>
+        <li>Like, comment and follow notifications — performance of the contract while you allow them; turn them off in iOS Settings.</li>
+        <li>Moderation, protected-zone and 18+ blocks, profile photo screening, spam and abuse prevention, security — legitimate
+          interests and legal obligations.</li>
+        <li>Crash reports to keep the app stable — legitimate interests; you can turn them off in Profile → Settings.</li>
         <li>Handling legal claims — establishing, exercising or defending legal rights.</li>
       </ul>
       <p>We do not sell your data, use it for advertising, or track you across other companies&apos; apps and websites.</p>
 
-      <h2>Sharing and international transfers</h2>
+      <h2>Service providers and international transfers</h2>
       <p>
         Our infrastructure is provided by Google Firebase (Google Cloud); data is stored in Google data centers in the
-        <strong> United States</strong> under Google&apos;s data processing terms and appropriate safeguards. Public posts and
-        usernames are visible to other users. We may disclose data in response to lawful requests.
+        <strong> United States</strong> under Google&apos;s data processing terms and appropriate safeguards. Google services we use:
       </p>
+      <ul>
+        <li><strong>Firebase Authentication, Cloud Firestore, Cloud Storage, Cloud Functions, App Check:</strong> accounts, content and security.</li>
+        <li><strong>Firebase Cloud Messaging:</strong> delivering notifications (via the Apple Push Notification service).</li>
+        <li><strong>Firebase Crashlytics:</strong> crash reports, kept for {E.crashRetentionDays} days.</li>
+        <li><strong>Google Cloud Vision:</strong> automatic screening of profile photos for nudity, violence and similar content. The photo
+          is sent only for this check; rejected photos are deleted.</li>
+        <li><strong>Google ARCore:</strong> AR positioning (below).</li>
+      </ul>
+      <p>Public posts and usernames are visible to other users. We may disclose data in response to lawful requests.</p>
 
       <h2>Google ARCore (AR positioning)</h2>
       <p>
@@ -60,25 +77,28 @@ export default function PrivacyPageEn() {
       <h2>Retention</h2>
       <ul>
         <li>Account data and content: until you delete your account.</li>
-        <li>On account deletion your profile, posts, comments, likes, follows, collections, AR and media files and your sign-in
-          account are permanently deleted immediately. Reports you filed are kept de-identified; a record of the deletion
-          itself (pseudonymous ID and counts) is kept for security.</li>
+        <li>On account deletion your profile, posts, comments, likes, follows, collections, notification tokens, AR files, profile
+          photos and your sign-in account enter permanent deletion immediately. Temporary service errors are retried in the background until deletion completes. Reports you filed are kept de-identified; a record
+          of the deletion itself (pseudonymous ID and counts) is kept for security.</li>
         <li>Usage and security events (including approximate location): at most {E.analyticsRetentionDays} days, then deleted automatically.</li>
+        <li>Crash reports: {E.crashRetentionDays} days.</li>
       </ul>
 
       <h2>Your rights</h2>
       <p>
-        You can request access to, correction or deletion of your personal data, object to processing, and ask which third
-        parties received it. Contact <a href={`mailto:${E.contactEmail}`}>{E.contactEmail}</a>; we respond within 30 days, free of
-        charge. You may also lodge a complaint with your data protection authority (in Türkiye: KVKK Kurumu).
+        You can request access to, correction or deletion of your personal data, restrict or object to processing, ask for a
+        portable copy, and ask which third parties received it. Contact <a href={`mailto:${E.contactEmail}`}>{E.contactEmail}</a>;
+        we respond within 30 days, free of charge. You may also lodge a complaint with your data protection authority (in
+        Türkiye: KVKK Kurumu; in the EEA/UK: your local supervisory authority).
       </p>
 
       <h2>Your controls</h2>
       <ul>
-        <li>Delete your account permanently from Profile.</li>
-        <li>Report content and block users.</li>
-        <li>Revoke camera and location permissions in iOS Settings.</li>
-        <li>Support: <Link href="/support">support page</Link>.</li>
+        <li>Delete your account permanently from Profile → Delete account permanently.</li>
+        <li>Report posts, comments and users, and block users.</li>
+        <li>Revoke camera, location and notification permissions in iOS Settings.</li>
+        <li>Turn off crash reports in Profile → Settings → Crash reports.</li>
+        <li>Support: <Link href="/support/en">support page</Link>.</li>
       </ul>
 
       <h2>Children</h2>

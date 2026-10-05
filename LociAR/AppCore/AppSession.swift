@@ -11,11 +11,21 @@ final class AppSession {
         case passwordRecovery(LociUser)
     }
 
-    private(set) var phase: Phase = .loading
+    private(set) var phase: Phase = .loading {
+        didSet {
+            guard backendConfigured else { return }
+            if !isLocalPreview, case let .signedIn(user) = phase {
+                NotificationService.shared.setUser(user.id)
+            } else {
+                NotificationService.shared.setUser(nil)
+            }
+        }
+    }
     private(set) var backendMessage: String?
     private(set) var isLocalPreview = false
     private let authRepository: any AuthRepository
     private let backendConfigured: Bool
+    @ObservationIgnored private var operationGeneration = 0
     @ObservationIgnored private var authObservationTask: Task<Void, Never>?
     nonisolated private static let allowedCallbackHosts: Set<String> = ["auth-callback", "password-reset"]
 
@@ -37,7 +47,10 @@ final class AppSession {
             return
         }
 #endif
-        if let user = await authRepository.currentUser() { phase = .signedIn(user) }
+        let generation = operationGeneration
+        let user = await authRepository.currentUser()
+        guard !Task.isCancelled, generation == operationGeneration else { return }
+        if let user { phase = .signedIn(user) }
         else {
             if !backendConfigured { backendMessage = AppConfiguration.ConfigurationError.missingBackendConfiguration.localizedDescription }
             phase = .signedOut
@@ -60,16 +73,23 @@ final class AppSession {
     }
 
     func signIn(email: String, password: String) async throws {
-        phase = .signedIn(try await authRepository.signIn(email: email, password: password))
+        operationGeneration += 1
+        let generation = operationGeneration
+        let result = try await authRepository.signIn(email: email, password: password)
+        guard !Task.isCancelled, generation == operationGeneration else { return }
+        phase = .signedIn(result)
         backendMessage = nil
     }
 
     func signUp(email: String, password: String) async throws -> Bool {
+        operationGeneration += 1
+        let generation = operationGeneration
         let result = try await authRepository.signUp(
             email: email,
             password: password,
             redirectTo: URL(string: "lociar://auth-callback")!
         )
+        guard !Task.isCancelled, generation == operationGeneration else { return result.requiresEmailConfirmation }
         if !result.requiresEmailConfirmation { phase = .signedIn(result.user) }
         backendMessage = nil
         return result.requiresEmailConfirmation
@@ -83,22 +103,32 @@ final class AppSession {
     }
 
     func updateRecoveredPassword(_ password: String) async throws {
-        phase = .signedIn(try await authRepository.updatePassword(password))
+        operationGeneration += 1
+        let generation = operationGeneration
+        let result = try await authRepository.updatePassword(password)
+        guard !Task.isCancelled, generation == operationGeneration else { return }
+        phase = .signedIn(result)
         backendMessage = nil
     }
 
     func cancelPasswordRecovery() async {
+        operationGeneration += 1
+        await NotificationService.shared.prepareForSignOut()
         await authRepository.signOut()
         phase = .signedOut
     }
 
     func sendMagicLink(email: String) async throws {
         try await authRepository.sendMagicLink(email: email, redirectTo: URL(string: "lociar://auth-callback")!)
-        backendMessage = "Giriş bağlantısı gönderildi."
+        backendMessage = String(localized: "Giriş bağlantısı gönderildi.")
     }
 
     func verifyEmailOTP(email: String, code: String) async throws {
-        phase = .signedIn(try await authRepository.verifyEmailOTP(email: email, code: code))
+        operationGeneration += 1
+        let generation = operationGeneration
+        let result = try await authRepository.verifyEmailOTP(email: email, code: code)
+        guard !Task.isCancelled, generation == operationGeneration else { return }
+        phase = .signedIn(result)
         backendMessage = nil
     }
 
@@ -111,31 +141,44 @@ final class AppSession {
             }
             return
         }
+        guard case let .signedIn(startedUser) = phase else { throw AuthFlowError.notSignedIn }
+        let generation = operationGeneration
         let updated = try await authRepository.updateProfile(handle: handle, avatar: avatar)
+        try Task.checkCancellation()
+        guard generation == operationGeneration, case let .signedIn(current) = phase,
+              current.id == startedUser.id, updated.id == startedUser.id else { throw AuthFlowError.notSignedIn }
         phase = .signedIn(updated)
     }
 
     func resendVerificationEmail(email: String) async throws {
         if isLocalPreview {
-            backendMessage = "Doğrulama e-postası yeniden gönderildi (Önizleme)."
+            backendMessage = String(localized: "Doğrulama e-postası yeniden gönderildi (Önizleme).")
             return
         }
         try await authRepository.resendVerificationEmail(email: email)
-        backendMessage = "Doğrulama e-postası yeniden gönderildi."
+        backendMessage = String(localized: "Doğrulama e-postası yeniden gönderildi.")
     }
 
     func handleOpenURL(_ url: URL) async {
+        operationGeneration += 1
+        let generation = operationGeneration
         guard Self.isAllowedAuthCallback(url) else {
-            backendMessage = "Geçersiz veya desteklenmeyen giriş bağlantısı."
+            backendMessage = String(localized: "Geçersiz veya desteklenmeyen giriş bağlantısı.")
             return
         }
         do {
             if let user = try await authRepository.completeAuthCallback(url) {
+                guard !Task.isCancelled, generation == operationGeneration else { return }
                 phase = url.host == "password-reset" ? .passwordRecovery(user) : .signedIn(user)
             }
-            else { phase = .signedOut }
-        } catch {
+            else if generation == operationGeneration { phase = .signedOut }
+        } catch let error as AuthFlowError {
+            guard generation == operationGeneration else { return }
             backendMessage = error.localizedDescription
+            phase = .signedOut
+        } catch {
+            guard generation == operationGeneration else { return }
+            backendMessage = String(localized: "Giriş bağlantısı tamamlanamadı. Bağlantını kontrol edip tekrar dene.")
             phase = .signedOut
         }
     }
@@ -150,26 +193,50 @@ final class AppSession {
     }
 
     func acceptAppleCredential(identityToken: String, nonce: String?, fullName: String?) async throws {
-        phase = .signedIn(try await authRepository.signInWithApple(identityToken: identityToken, nonce: nonce, fullName: fullName))
+        operationGeneration += 1
+        let generation = operationGeneration
+        let result = try await authRepository.signInWithApple(identityToken: identityToken, nonce: nonce, fullName: fullName)
+        guard !Task.isCancelled, generation == operationGeneration else { return }
+        phase = .signedIn(result)
     }
 
 #if DEBUG
     func continueInDevicePreview() {
         isLocalPreview = true
-        backendMessage = "Cihaz test modu açık. Sunucu işlemleri bağlantı yeniden kurulana kadar yerel tutulur."
+        backendMessage = String(localized: "Cihaz test modu açık. Sunucu işlemleri bağlantı yeniden kurulana kadar yerel tutulur.")
         phase = .signedIn(UITestFixtures.creator)
     }
 #endif
 
     func signOut() async {
+        operationGeneration += 1
         let shouldSignOutRemotely = !isLocalPreview
+        if shouldSignOutRemotely { await NotificationService.shared.prepareForSignOut() }
         isLocalPreview = false
-        phase = .signedOut
         if shouldSignOutRemotely { await authRepository.signOut() }
+        await AvatarURLCache.shared.clear()
+        phase = .signedOut
     }
 
-    func deleteAccount() async throws {
-        try await authRepository.deleteAccount()
+    func accountDeletionMethod() async throws -> AccountDeletionMethod {
+        guard !isLocalPreview, case let .signedIn(user) = phase else { throw AuthFlowError.notSignedIn }
+        let method = try await authRepository.accountDeletionMethod()
+        guard case let .signedIn(current) = phase, current.id == user.id else { throw AuthFlowError.notSignedIn }
+        return method
+    }
+
+    func deleteAccount(password: String?) async throws {
+        guard !isLocalPreview, case let .signedIn(user) = phase else { throw AuthFlowError.notSignedIn }
+        do { try await authRepository.deleteAccount(password: password, expectedUserID: user.id) }
+        catch AuthFlowError.deletionPending {
+            LocalAccountDeletion.markAccepted(user.id)
+            if case let .signedIn(current) = phase, current.id != user.id { throw AuthFlowError.deletionPending }
+            phase = .signedOut
+            throw AuthFlowError.deletionPending
+        }
+        LocalAccountDeletion.markAccepted(user.id)
+        if case let .signedIn(current) = phase, current.id != user.id { return }
         phase = .signedOut
+        await NotificationService.shared.prepareForSignOut()
     }
 }

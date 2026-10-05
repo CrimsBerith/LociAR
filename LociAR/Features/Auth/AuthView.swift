@@ -35,7 +35,7 @@ struct AuthView: View {
                     }
                     if let message = message ?? session.backendMessage {
                         LociInlineNotice(
-                            title: "İşlem tamamlanamadı",
+                            title: String(localized: "İşlem tamamlanamadı"),
                             message: message,
                             symbol: "exclamationmark.circle.fill",
                             color: .orange
@@ -152,7 +152,7 @@ struct AuthView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel(showPassword ? "Şifreyi gizle" : "Şifreyi göster")
+                    .accessibilityLabel(showPassword ? String(localized: "Şifreyi gizle") : String(localized: "Şifreyi göster"))
                 }
                 .authFieldStyle()
 
@@ -168,7 +168,7 @@ struct AuthView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("En az 8 karakter", systemImage: password.count >= 8 ? "checkmark.circle.fill" : "circle")
                         if !passwordConfirmation.isEmpty {
-                            Label(passwordsMatch ? "Şifreler eşleşiyor" : "Şifreler farklı", systemImage: passwordsMatch ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                            Label(passwordsMatch ? String(localized: "Şifreler eşleşiyor") : String(localized: "Şifreler farklı"), systemImage: passwordsMatch ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                         }
                     }
                     .font(.caption2)
@@ -181,7 +181,7 @@ struct AuthView: View {
                     if isWorking {
                         ProgressView().tint(.black)
                     } else {
-                        Text(mode == .signIn ? "Giriş yap" : "Hesap oluştur")
+                        Text(mode == .signIn ? String(localized: "Giriş yap") : String(localized: "Hesap oluştur"))
                     }
                 }
                 .buttonStyle(LociPrimaryButtonStyle())
@@ -269,7 +269,7 @@ struct AuthView: View {
                   let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let tokenData = credential.identityToken,
                   let token = String(data: tokenData, encoding: .utf8) else {
-                message = "Apple ile giriş tamamlanamadı."
+                message = String(localized: "Apple ile giriş tamamlanamadı.")
                 return
             }
             let fullName = credential.fullName.map { PersonNameComponentsFormatter().string(from: $0) }
@@ -308,7 +308,7 @@ struct AuthView: View {
                     unconfirmedEmail = cleanEmail
                     password = ""
                     passwordConfirmation = ""
-                    message = "Hesabın oluşturuldu. E-postandaki doğrulama bağlantısına dokun, ardından giriş yap."
+                    message = String(localized: "Hesabın oluşturuldu. E-postandaki doğrulama bağlantısına dokun, ardından giriş yap.")
                 }
             }
         } catch AuthFlowError.emailNotVerified {
@@ -316,8 +316,8 @@ struct AuthView: View {
             message = AuthFlowError.emailNotVerified.localizedDescription
         } catch {
             let text = mode == .signIn
-                ? "Giriş yapılamadı. E-posta ve şifreni kontrol et."
-                : "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil."
+                ? String(localized: "Giriş yapılamadı. E-posta ve şifreni kontrol et.")
+                : String(localized: "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.")
 #if DEBUG
             // Surface the real cause while testing against the emulator; never in release.
             let nsError = error as NSError
@@ -339,7 +339,7 @@ struct AuthView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("E-posta Doğrulaması")
                             .font(.subheadline.bold())
-                        Text("\(targetEmail) adresine doğrulama bağlantısı gönderildi.")
+                        Text(String(localized: "\(targetEmail) adresine doğrulama bağlantısı gönderildi."))
                             .font(.caption)
                             .foregroundStyle(LociTheme.secondaryText)
                     }
@@ -378,9 +378,9 @@ struct AuthView: View {
         defer { isResendingEmail = false }
         do {
             try await session.resendVerificationEmail(email: targetEmail)
-            message = "Doğrulama bağlantısı tekrar gönderildi."
+            message = String(localized: "Doğrulama bağlantısı tekrar gönderildi.")
         } catch {
-            message = "E-posta gönderilemedi. Lütfen biraz sonra tekrar deneyin."
+            message = String(localized: "E-posta gönderilemedi. Lütfen biraz sonra tekrar deneyin.")
         }
     }
 
@@ -390,7 +390,7 @@ struct AuthView: View {
         do {
             try await session.acceptAppleCredential(identityToken: token, nonce: currentNonce, fullName: fullName)
         } catch {
-            message = "Apple ile giriş şu anda tamamlanamadı. Tekrar dene."
+            message = String(localized: "Apple ile giriş şu anda tamamlanamadı. Tekrar dene.")
         }
     }
 }
@@ -435,7 +435,7 @@ struct PasswordRecoveryView: View {
         isWorking = true
         defer { isWorking = false }
         do { try await session.updateRecoveredPassword(password) }
-        catch { message = "Şifre güncellenemedi. Kurtarma bağlantısını yeniden iste." }
+        catch { message = String(localized: "Şifre güncellenemedi. Kurtarma bağlantısını yeniden iste.") }
     }
 }
 
@@ -452,11 +452,11 @@ private struct ForgotPasswordView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Image(systemName: sent ? "envelope.badge.fill" : "key.horizontal.fill")
                     .font(.system(size: 38)).foregroundStyle(LociTheme.accent)
-                Text(sent ? "E-postanı kontrol et" : "Şifreni yenile")
+                Text(sent ? String(localized: "E-postanı kontrol et") : String(localized: "Şifreni yenile"))
                     .font(.title2.bold())
                 Text(sent
-                     ? "Şifre yenileme bağlantısını gönderdik. Bağlantı LociAR’da yeni şifre ekranını açacak."
-                     : "Hesabında kullandığın e-posta adresini yaz.")
+                     ? String(localized: "Şifre yenileme bağlantısını gönderdik. Bağlantı LociAR’da yeni şifre ekranını açacak.")
+                     : String(localized: "Hesabında kullandığın e-posta adresini yaz."))
                     .foregroundStyle(.secondary)
 
                 if !sent {
@@ -496,7 +496,7 @@ private struct ForgotPasswordView: View {
         do {
             try await session.requestPasswordReset(email: email.trimmingCharacters(in: .whitespacesAndNewlines))
             sent = true
-        } catch { message = "Bağlantı gönderilemedi. E-posta adresini ve bağlantını kontrol et." }
+        } catch { message = String(localized: "Bağlantı gönderilemedi. E-posta adresini ve bağlantını kontrol et.") }
     }
 }
 

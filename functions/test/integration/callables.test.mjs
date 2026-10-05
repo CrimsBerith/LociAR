@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { adminAuth, adminDb, closeClients, expectFailure, newUser, postBody } from './_harness.mjs';
 
 before(async () => {
-  // Must exist before the first createPost: the function caches protected zones for 5 minutes.
+  // Each createPost admission reads the current active zones without a process cache.
   await adminDb.collection('protected_zones').doc('test-zone').set({
     name: 'Test Zone', category: 'test', lat: 10, lng: 10, radius_meters: 300, active: true,
   });

@@ -16,12 +16,14 @@ final class AppRouter {
     var isCreatePresented = false
     var createPinRequested = false
     var pendingPostID: UUID?
+    var isActivityPresented = false
 
     func resetForAuthenticationGate() {
         selectedTab = .map
         isCreatePresented = false
         createPinRequested = false
         pendingPostID = nil
+        isActivityPresented = false
     }
 
     func requestCreatePin() {
@@ -32,6 +34,11 @@ final class AppRouter {
     func selectPost(id: UUID) {
         pendingPostID = id
         selectedTab = .discover
+    }
+
+    func selectActivity() {
+        selectedTab = .profile
+        isActivityPresented = true
     }
 
     @discardableResult

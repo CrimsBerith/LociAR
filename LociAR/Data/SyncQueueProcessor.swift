@@ -72,6 +72,8 @@ enum SyncQueueProcessor {
                 }
                 logger.info("Sync committed operation=\(record.operation, privacy: .public) id=\(record.id.uuidString, privacy: .public)")
                 modelContext.delete(record)
+            } catch AuthFlowError.notSignedIn {
+                return // Another account must not consume this owner's retry budget.
             } catch is CancellationError {
                 return
             } catch let error as PostPublishError {
@@ -98,8 +100,8 @@ enum SyncQueueProcessor {
         case creatorMismatch
         var errorDescription: String? {
             switch self {
-            case .unknownOperation(let operation): "Bilinmeyen sync işlemi: \(operation)"
-            case .creatorMismatch: "Bu sıradaki post farklı bir hesaba ait."
+            case .unknownOperation(let operation): String(localized: "Bilinmeyen sync işlemi: \(operation)")
+            case .creatorMismatch: String(localized: "Bu sıradaki post farklı bir hesaba ait.")
             }
         }
     }
