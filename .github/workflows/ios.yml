@@ -3,9 +3,9 @@ name: iOS
 on:
   push:
     branches: [main, 'claude/**']
-    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', '.github/workflows/ios.yml']
+    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', 'scripts/l10n/**', '.github/workflows/ios.yml']
   pull_request:
-    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', '.github/workflows/ios.yml']
+    paths: ['LociAR/**', 'LociARTests/**', 'LociARUITests/**', 'LociAR.xcodeproj/**', 'project.yml', 'Config/**', 'scripts/l10n/**', '.github/workflows/ios.yml']
   workflow_dispatch:
 
 permissions:
@@ -28,12 +28,39 @@ jobs:
         run: xcodebuild -version
       - name: Resolve Swift packages
         run: xcodebuild -resolvePackageDependencies -project LociAR.xcodeproj -scheme LociAR
+      - name: Localization catalogs complete and up to date
+        run: python3 scripts/l10n/build_catalog.py --check
       - name: Build for testing (generic iOS device, unsigned)
         run: |
           set -o pipefail
           xcodebuild build-for-testing \
             -project LociAR.xcodeproj -scheme LociAR \
             -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             | tee xcodebuild.log | grep -E "error:|warning: .*Sendable|BUILD (SUCCEEDED|FAILED)|TEST BUILD" || true
           grep -q "TEST BUILD SUCCEEDED\|BUILD SUCCEEDED" xcodebuild.log
+      - name: Every compiler-extracted string has a translation
+        run: python3 scripts/l10n/check_stringsdata.py build
+
+  unit-tests:
+    # Pure logic tests (policies, contracts, codecs, localization) on the simulator. AR, camera and
+    # live-backend checks stay on a physical iPhone (QA_MATRIX).
+    name: iOS unit tests (simulator)
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project LociAR.xcodeproj -scheme LociAR
+      - name: Run LociARTests
+        run: |
+          set -o pipefail
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,l in d.items() if 'iOS' in r for x in l if x['name'].startswith('iPhone')))")
+          xcodebuild test \
+            -project LociAR.xcodeproj -scheme LociAR \
+            -destination "id=$DEVICE" \
+            -only-testing:LociARTests \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee xcodetest.log | grep -E "error:|Test Case .* failed|Executed|TEST (SUCCEEDED|FAILED)" || true
+          grep -q "TEST SUCCEEDED" xcodetest.log

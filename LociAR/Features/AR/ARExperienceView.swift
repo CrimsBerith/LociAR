@@ -157,7 +157,7 @@ struct ARExperienceView: View {
                 VStack(spacing: 6) {
                     Text(isDiscovering ? "Yayınlar aranıyor" : nearbyPosts.isEmpty ? "Yakında yayın yok" : "Bu konumdaki yayınlar")
                         .font(.title3.bold())
-                    Text(discoveryMessage)
+                    Text(discoveryMessage.localizedUI)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -181,9 +181,9 @@ struct ARExperienceView: View {
                                 Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                     .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(post.caption.isEmpty ? "Mekânsal post" : post.caption)
+                                    Text(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
                                         .font(.subheadline.weight(.semibold)).lineLimit(1)
-                                    Text(distanceText(for: post))
+                                    Text(distanceText(for: post).localizedUI)
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
@@ -233,7 +233,7 @@ struct ARExperienceView: View {
             Circle().fill(reticleColor).frame(width: 8, height: 8)
         }
         .shadow(color: .black.opacity(0.7), radius: 4)
-        .accessibilityLabel(reticleLabel)
+        .accessibilityLabel(reticleLabel.localizedUI)
     }
 
     private var reticleColor: Color {
@@ -264,7 +264,7 @@ struct ARExperienceView: View {
                         Image(systemName: "checkmark.seal.fill").foregroundStyle(LociTheme.accent)
                     }
                 }
-                Text(userFacingStatusMessage).font(.footnote).foregroundStyle(.white.opacity(0.82))
+                Text(userFacingStatusMessage.localizedUI).font(.footnote).foregroundStyle(.white.opacity(0.82))
                 if let anchor = engine.currentAnchor {
                     Text(anchor.pinQuality.isPhysicalSurface ? "Fiziksel yüzeye yerleştirildi" : "Yaklaşık yerleştirme · 0,8 m")
                         .font(.caption.weight(.semibold))
@@ -329,7 +329,7 @@ struct ARExperienceView: View {
                         .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
                 if let prepareStatus {
-                    Text(prepareStatus)
+                    Text(prepareStatus.localizedUI)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -484,7 +484,7 @@ struct ARExperienceView: View {
                 ? "Cihaz test içeriği hazır."
                 : nearbyPosts.count == 1
                     ? "1 yayın var. Dokun, sonra nokta atışı yönlendirme başlar."
-                    : "\(nearbyPosts.count) yayın var. Birine dokun, sonra nokta atışı yönlendirme başlar."
+                    : String(localized: "\(nearbyPosts.count) yayın var. Birine dokun, sonra nokta atışı yönlendirme başlar.")
             return
         }
         location.start()
@@ -513,7 +513,7 @@ struct ARExperienceView: View {
             do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
             if collected.isEmpty, let networkError {
                 isDiscovering = false
-                discoveryMessage = "Bağlantı hatası: \(networkError.localizedDescription)"
+                discoveryMessage = String(localized: "Bağlantı hatası: \(networkError.localizedDescription)")
                 return
             }
         }
@@ -534,7 +534,7 @@ struct ARExperienceView: View {
         }
         discoveryMessage = nearbyPosts.count == 1
             ? "1 yayın var. Dokun, sonra nokta atışı yönlendirme başlar."
-            : "\(nearbyPosts.count) yayın var. Birine dokun, sonra nokta atışı yönlendirme başlar."
+            : String(localized: "\(nearbyPosts.count) yayın var. Birine dokun, sonra nokta atışı yönlendirme başlar.")
         if automaticallyOpen { openInAR(nearest) }
     }
 

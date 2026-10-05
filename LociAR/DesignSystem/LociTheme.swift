@@ -73,7 +73,7 @@ struct LociStatusPill: View {
     let color: Color
 
     var body: some View {
-        Label(title, systemImage: symbol)
+        Label(title.localizedUI, systemImage: symbol)
             .font(.caption.weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 10)
@@ -101,13 +101,13 @@ struct LociMetricLabel: View {
                     .monospacedDigit()
                     .contentTransition(.numericText(value: Double(value)))
                     .animation(reduceMotion ? nil : .snappy, value: value)
-                Text(title)
+                Text(title.localizedUI)
                     .font(.caption2)
                     .foregroundStyle(LociTheme.secondaryText)
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(value) \(title)")
+        .accessibilityLabel("\(value) " + title.localizedUI)
     }
 }
 
@@ -124,8 +124,8 @@ struct LociInlineNotice: View {
                 .foregroundStyle(color)
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.subheadline.weight(.semibold))
-                Text(message).font(.caption).foregroundStyle(LociTheme.secondaryText)
+                Text(title.localizedUI).font(.subheadline.weight(.semibold))
+                Text(message.localizedUI).font(.caption).foregroundStyle(LociTheme.secondaryText)
             }
             Spacer(minLength: 0)
         }
@@ -174,7 +174,7 @@ struct LociSectionLabel: View {
     let symbol: String
 
     var body: some View {
-        Label(title, systemImage: symbol)
+        Label(title.localizedUI, systemImage: symbol)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.white.opacity(0.88))
     }
@@ -186,7 +186,7 @@ struct LociLoadingView: View {
     var body: some View {
         VStack(spacing: 14) {
             ProgressView().controlSize(.large).tint(LociTheme.accent)
-            Text(title).font(.subheadline.weight(.medium)).foregroundStyle(LociTheme.secondaryText)
+            Text(title.localizedUI).font(.subheadline.weight(.medium)).foregroundStyle(LociTheme.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
@@ -207,11 +207,11 @@ struct LociEmptyState: View {
                 Image(systemName: symbol).font(.system(size: 29, weight: .semibold)).foregroundStyle(LociTheme.accent)
             }
             VStack(spacing: 7) {
-                Text(title).font(.title3.bold())
-                Text(message).font(.subheadline).foregroundStyle(LociTheme.secondaryText).multilineTextAlignment(.center)
+                Text(title.localizedUI).font(.title3.bold())
+                Text(message.localizedUI).font(.subheadline).foregroundStyle(LociTheme.secondaryText).multilineTextAlignment(.center)
             }
             if let actionTitle, let action {
-                Button(actionTitle, action: action)
+                Button(actionTitle.localizedUI, action: action)
                     .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
             }
         }

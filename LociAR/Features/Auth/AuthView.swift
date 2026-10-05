@@ -265,7 +265,7 @@ struct AuthView: View {
                 passwordConfirmation = ""
             }
         } label: {
-            Text(title)
+            Text(title.localizedUI)
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .contentShape(Rectangle())
@@ -445,7 +445,7 @@ struct PasswordRecoveryView: View {
                             .accessibilityIdentifier("auth-password-update")
                     }
                 }
-                if let message { Text(message).font(.footnote).foregroundStyle(.secondary) }
+                if let message { Text(message.localizedUI).font(.footnote).foregroundStyle(.secondary) }
                 Button("Giriş ekranına dön") { Task { await session.cancelPasswordRecovery() } }
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -500,7 +500,7 @@ private struct ForgotPasswordView: View {
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
                 }
-                if let message { Text(message).font(.footnote).foregroundStyle(.orange) }
+                if let message { Text(message.localizedUI).font(.footnote).foregroundStyle(.orange) }
                 Spacer()
             }
             .padding(24)

@@ -1,0 +1,44 @@
+{
+ "NSCameraUsageDescription": {
+  "tr": "LociAR, gerçek yüzeyleri algılamak ve postları sabitlemek için kamerayı kullanır. Görsel özellik verileri Google ARCore ile güvenli biçimde işlenir.",
+  "en": "LociAR uses the camera to detect real surfaces and pin posts to them. Visual feature data is processed securely by Google ARCore.",
+  "de": "LociAR nutzt die Kamera, um echte Flächen zu erkennen und Posts daran zu verankern. Visuelle Merkmalsdaten werden sicher von Google ARCore verarbeitet.",
+  "es": "LociAR usa la cámara para detectar superficies reales y fijar publicaciones en ellas. Los datos de rasgos visuales se procesan de forma segura con Google ARCore.",
+  "fr": "LociAR utilise la caméra pour détecter les surfaces réelles et y fixer des publications. Les données de caractéristiques visuelles sont traitées de manière sécurisée par Google ARCore.",
+  "pt": "O LociAR usa a câmera para detectar superfícies reais e fixar publicações nelas. Os dados de características visuais são processados com segurança pelo Google ARCore.",
+  "ru": "LociAR использует камеру, чтобы распознавать реальные поверхности и закреплять на них посты. Данные визуальных признаков безопасно обрабатываются Google ARCore.",
+  "ar": "يستخدم LociAR الكاميرا لاكتشاف الأسطح الحقيقية وتثبيت المنشورات عليها. تتم معالجة بيانات الملامح المرئية بأمان عبر Google ARCore.",
+  "hi": "LociAR असली सतहें पहचानने और उन पर पोस्ट पिन करने के लिए कैमरे का इस्तेमाल करता है। दृश्य विशेषता डेटा Google ARCore द्वारा सुरक्षित रूप से प्रोसेस किया जाता है।",
+  "bn": "LociAR বাস্তব পৃষ্ঠ শনাক্ত করতে এবং সেখানে পোস্ট পিন করতে ক্যামেরা ব্যবহার করে। দৃশ্যমান বৈশিষ্ট্যের ডেটা Google ARCore নিরাপদে প্রক্রিয়া করে।",
+  "ja": "LociARは、実際の面を検出して投稿を固定するためにカメラを使用します。視覚的な特徴データはGoogle ARCoreで安全に処理されます。",
+  "zh-Hans": "LociAR 使用相机检测真实表面并将帖子固定在上面。视觉特征数据由 Google ARCore 安全处理。"
+ },
+ "NSLocationWhenInUseUsageDescription": {
+  "tr": "LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır.",
+  "en": "LociAR uses your location to list nearby AR content and show it in the right place with Google ARCore Geospatial.",
+  "de": "LociAR nutzt deinen Standort, um AR-Inhalte in der Nähe aufzulisten und sie mit Google ARCore Geospatial am richtigen Ort anzuzeigen.",
+  "es": "LociAR usa tu ubicación para mostrar el contenido AR cercano y situarlo en el lugar correcto con Google ARCore Geospatial.",
+  "fr": "LociAR utilise votre position pour lister les contenus RA à proximité et les afficher au bon endroit avec Google ARCore Geospatial.",
+  "pt": "O LociAR usa sua localização para listar conteúdos de RA próximos e exibi-los no lugar certo com o Google ARCore Geospatial.",
+  "ru": "LociAR использует ваше местоположение, чтобы показывать AR-контент поблизости и размещать его в нужном месте с помощью Google ARCore Geospatial.",
+  "ar": "يستخدم LociAR موقعك لعرض محتوى الواقع المعزز القريب وإظهاره في المكان الصحيح باستخدام Google ARCore Geospatial.",
+  "hi": "LociAR आस-पास की AR सामग्री दिखाने और Google ARCore Geospatial से उसे सही जगह पर दिखाने के लिए आपके स्थान का इस्तेमाल करता है।",
+  "bn": "LociAR কাছাকাছি AR কনটেন্ট দেখাতে এবং Google ARCore Geospatial দিয়ে সঠিক জায়গায় প্রদর্শন করতে আপনার অবস্থান ব্যবহার করে।",
+  "ja": "LociARは、近くのARコンテンツを一覧表示し、Google ARCore Geospatialで正しい場所に表示するために位置情報を使用します。",
+  "zh-Hans": "LociAR 使用你的位置列出附近的 AR 内容，并通过 Google ARCore Geospatial 将其显示在正确的位置。"
+ },
+ "GeospatialAccuracy": {
+  "tr": "LociAR, AR postlarını harita ve cadde üzerinde tam doğrulukla yerleştirebilmek için geçici hassas konum iznine ihtiyaç duyar.",
+  "en": "LociAR needs temporary precise location to place AR posts accurately on the map and the street.",
+  "de": "LociAR benötigt vorübergehend den genauen Standort, um AR-Posts präzise auf der Karte und auf der Straße zu platzieren.",
+  "es": "LociAR necesita temporalmente tu ubicación precisa para colocar las publicaciones AR con exactitud en el mapa y en la calle.",
+  "fr": "LociAR a besoin de votre position précise de façon temporaire pour placer les publications RA avec exactitude sur la carte et dans la rue.",
+  "pt": "O LociAR precisa da localização precisa temporariamente para posicionar as publicações de RA com exatidão no mapa e na rua.",
+  "ru": "LociAR нужен временный доступ к точному местоположению, чтобы точно размещать AR-посты на карте и на улице.",
+  "ar": "يحتاج LociAR إلى إذن مؤقت بالموقع الدقيق لوضع منشورات الواقع المعزز بدقة على الخريطة وفي الشارع.",
+  "hi": "AR पोस्ट को मैप और सड़क पर सटीक रूप से रखने के लिए LociAR को अस्थायी रूप से सटीक स्थान की अनुमति चाहिए।",
+  "bn": "মানচিত্রে ও রাস্তায় AR পোস্ট নির্ভুলভাবে স্থাপন করতে LociAR-এর সাময়িকভাবে নির্ভুল অবস্থানের অনুমতি প্রয়োজন।",
+  "ja": "LociARは、AR投稿をマップや通りの上に正確に配置するために、一時的に正確な位置情報を必要とします。",
+  "zh-Hans": "LociAR 需要临时使用精确位置，以便将 AR 帖子准确放置在地图和街道上。"
+ }
+}

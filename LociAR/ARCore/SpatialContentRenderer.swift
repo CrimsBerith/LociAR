@@ -408,7 +408,7 @@ actor SpatialContentRenderer {
             context: context
         )
         drawText(
-            "Gönderi önizlemesi · Detaydan aç",
+            "Gönderi önizlemesi · Detaydan aç".localizedUI,
             in: CGRect(x: 82, y: previewRect.minY + 24, width: previewRect.width - 68, height: 42),
             fontSize: 22,
             color: accent,
@@ -423,6 +423,13 @@ actor SpatialContentRenderer {
     }
 
     nonisolated private static func externalPreviewTitle(
+        platform: ExternalMediaPlatform,
+        url: URL?
+    ) -> String {
+        externalPreviewTitleKey(platform: platform, url: url).localizedUI
+    }
+
+    nonisolated private static func externalPreviewTitleKey(
         platform: ExternalMediaPlatform,
         url: URL?
     ) -> String {
@@ -443,12 +450,12 @@ actor SpatialContentRenderer {
     }
 
     nonisolated private static func externalPreviewIdentifier(_ url: URL?) -> String {
-        guard let url else { return "Bağlantılı sosyal içerik" }
+        guard let url else { return "Bağlantılı sosyal içerik".localizedUI }
         let identifier = url.pathComponents
             .filter { $0 != "/" }
             .suffix(2)
             .joined(separator: " / ")
-        return identifier.isEmpty ? (url.host ?? "Bağlantılı sosyal içerik") : identifier
+        return identifier.isEmpty ? (url.host ?? "Bağlantılı sosyal içerik".localizedUI) : identifier
     }
 
     nonisolated private static func drawBrandLogo(

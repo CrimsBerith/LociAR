@@ -12,8 +12,10 @@
 		17F3C538925E63AA7FE82E27 /* ARCoreGeospatial in Frameworks */ = {isa = PBXBuildFile; productRef = E659B09B1577861722AADEC8 /* ARCoreGeospatial */; };
 		1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */; };
 		1BA718A73957DE66A7B47E27 /* SocialViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDF99EB769190C5D43A4E /* SocialViews.swift */; };
+		1E54355164B211BE39F93078 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED520F06CC3613D39D23784 /* Localization.swift */; };
 		223F8D8EBAF58FE925638A36 /* LociTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D39885DA91A93735B60CAD0 /* LociTheme.swift */; };
 		2C502B87EF1C9F5985ECFE17 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E3D29D96E27984134D0C362 /* libsqlite3.tbd */; };
+		2C81AAF48405225F48411DA1 /* EnglishSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4771EBA3971F58BE96D754D8 /* EnglishSmokeUITests.swift */; };
 		2CDCD676F2852A6E77BCE560 /* FirebaseBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3067562C1889E41845A4B37D /* FirebaseBackend.swift */; };
 		334C79D0B6B41743A5D57F60 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 1BCA7E39D1C6B6C63814D4C9 /* FirebaseStorage */; };
 		3B2CE130FB8E9BF469423264 /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60777F871AC0C3EE1BFD38F3 /* ARKit.framework */; };
@@ -24,6 +26,7 @@
 		4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E26683A2CA08CEF5A8E794 /* AppRouter.swift */; };
 		4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26517046B2409888717CB325 /* PersistenceModels.swift */; };
 		546E8916FDEB717C7FFA07A0 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 3CF89F180C12C721B4EDB4B7 /* FirebaseAppCheck */; };
+		5821095FE42FF0FEC7D5998A /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */; };
 		59F6095DAD6C3F9659393C55 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B8CE05A07DBFC412918542 /* MainTabView.swift */; };
 		5CD424BE6F1C83D9B7FCACD0 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = D79507527DE249B572FDC585 /* FirebaseAuth */; };
 		5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */; };
@@ -103,6 +106,7 @@
 /* Begin PBXFileReference section */
 		02D3113CEC157B882DCE675A /* AvatarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarStore.swift; sourceTree = "<group>"; };
 		041909C4E5F7479357846A3E /* ProximityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityPolicy.swift; sourceTree = "<group>"; };
+		04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		0656173096F4B80612408176 /* LociARTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialContentRenderer.swift; sourceTree = "<group>"; };
 		0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinStateMachineTests.swift; sourceTree = "<group>"; };
@@ -118,6 +122,7 @@
 		39E26683A2CA08CEF5A8E794 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPinningEngine.swift; sourceTree = "<group>"; };
 		461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreService.swift; sourceTree = "<group>"; };
+		4771EBA3971F58BE96D754D8 /* EnglishSmokeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnglishSmokeUITests.swift; sourceTree = "<group>"; };
 		498692924241AE844FFA8949 /* ARViewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARViewContainer.swift; sourceTree = "<group>"; };
 		4D9F628611DF77BEA62DDC3E /* LociAR.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LociAR.entitlements; sourceTree = "<group>"; };
 		51711F0650606E15028C1A33 /* PublishPostCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishPostCoordinator.swift; sourceTree = "<group>"; };
@@ -167,6 +172,7 @@
 		E3C09DE1100E41CE6D5859D9 /* PostRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostRepository.swift; sourceTree = "<group>"; };
 		E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueueProcessor.swift; sourceTree = "<group>"; };
+		EED520F06CC3613D39D23784 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreCoverageDebugView.swift; sourceTree = "<group>"; };
 		F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinPlacementPolicy.swift; sourceTree = "<group>"; };
 		FC7210EE62943F978879FE37 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestFixtures.swift; sourceTree = "<group>"; };
@@ -212,6 +218,7 @@
 		0A911B641A6093F0650884E9 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
+				EED520F06CC3613D39D23784 /* Localization.swift */,
 				9D39885DA91A93735B60CAD0 /* LociTheme.swift */,
 			);
 			path = DesignSystem;
@@ -338,6 +345,7 @@
 			isa = PBXGroup;
 			children = (
 				BA24E9E41EA62BF05C10DAA6 /* AuthGateUITests.swift */,
+				4771EBA3971F58BE96D754D8 /* EnglishSmokeUITests.swift */,
 			);
 			path = LociARUITests;
 			sourceTree = "<group>";
@@ -375,6 +383,7 @@
 			children = (
 				8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */,
 				2CA48A253CF4AF4E0438F347 /* Info.plist */,
+				04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */,
 				6B4C729B0D12809A5D15180A /* Localizable.xcstrings */,
 				4D9F628611DF77BEA62DDC3E /* LociAR.entitlements */,
 				E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */,
@@ -587,6 +596,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7692203B338A88B9E0405B1 /* Assets.xcassets in Resources */,
+				5821095FE42FF0FEC7D5998A /* InfoPlist.xcstrings in Resources */,
 				3F9EB5F8CEB1C81DFB76B87F /* Localizable.xcstrings in Resources */,
 				A332B937E77E814DAE2988B0 /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -625,6 +635,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B6F3EBAAC27911AD21899F0F /* AuthGateUITests.swift in Sources */,
+				2C81AAF48405225F48411DA1 /* EnglishSmokeUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -668,6 +679,7 @@
 				E5D82E2EDBE5691A52C16D02 /* HiddenPostStore.swift in Sources */,
 				881A6413A9230C295BDBD795 /* LegacyAsyncStorageImporter.swift in Sources */,
 				98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */,
+				1E54355164B211BE39F93078 /* Localization.swift in Sources */,
 				B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */,
 				B4E3F30C661575D41B716ED9 /* LociARApp.swift in Sources */,
 				223F8D8EBAF58FE925638A36 /* LociTheme.swift in Sources */,

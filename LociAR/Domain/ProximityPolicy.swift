@@ -161,7 +161,7 @@ enum ProximityPolicy {
                     headingAligned: false, pitchAligned: pitchAligned, closeEnough: true,
                     readyToReveal: false, signedHeadingDelta: signed, distanceMeters: distance,
                     title: "Sağa dön",
-                    message: "Paylaşırken baktığın yöne \(degrees)° sağa dön.",
+                    message: String(localized: "Paylaşırken baktığın yöne \(degrees)° sağa dön."),
                     symbol: "arrow.turn.up.right"
                 )
             }
@@ -169,7 +169,7 @@ enum ProximityPolicy {
                 headingAligned: false, pitchAligned: pitchAligned, closeEnough: true,
                 readyToReveal: false, signedHeadingDelta: signed, distanceMeters: distance,
                 title: "Sola dön",
-                message: "Paylaşırken baktığın yöne \(degrees)° sola dön.",
+                message: String(localized: "Paylaşırken baktığın yöne \(degrees)° sola dön."),
                 symbol: "arrow.turn.up.left"
             )
         }

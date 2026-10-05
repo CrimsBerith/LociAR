@@ -49,7 +49,7 @@ struct ARCameraBackdrop: View {
                     .symbolEffect(.pulse, isActive: !failed)
                 Text(failed ? "Kamera görüntüsü alınamadı" : "Canlı kamera hazırlanıyor")
                     .font(.headline)
-                Text(message)
+                Text(message.localizedUI)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

@@ -56,7 +56,7 @@ struct ARPostViewerView: View {
                             symbol: statusSymbol,
                             color: statusColor
                         )
-                        Text(message).font(.footnote)
+                        Text(message.localizedUI).font(.footnote)
                     }
                 }
                 Spacer()
@@ -154,7 +154,7 @@ struct ARPostViewerView: View {
         }
         .allowsHitTesting(false)
         .accessibilityIdentifier("ar-aim-reticle")
-        .accessibilityLabel(guidance.message)
+        .accessibilityLabel(guidance.message.localizedUI)
     }
 
     private var statusTitle: String {
@@ -256,7 +256,7 @@ struct ARPostViewerView: View {
                 let decision = ProximityPolicy.evaluate(post: post, viewer: current, viewerHeading: heading, targeted: true)
                 guard decision.allowed else {
                     if let meters = ProximityPolicy.roundedMeters(decision.distanceMeters) {
-                        message = "\(decision.reason) · \(meters) m"
+                        message = String(localized: "\(decision.reason.localizedUI) · \(meters) m")
                     } else {
                         message = decision.reason
                     }

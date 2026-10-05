@@ -129,7 +129,7 @@ final class ARPinningEngine: NSObject {
         case .extending: "genişliyor"
         case .mapped: "hazır"
         }
-        return "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh"
+        return String(localized: "Takip \(tracking.localizedUI) · Harita \(mapping.localizedUI) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh")
     }
 
     /// Receives every ARKit frame on the main actor (wired to ARCoreService by AppContainer).

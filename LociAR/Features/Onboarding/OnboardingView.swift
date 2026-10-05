@@ -91,17 +91,18 @@ struct OnboardingView: View {
             }
 
             VStack(spacing: 10) {
-                Text(step.subtitle.uppercased())
+                Text(step.subtitle.localizedUI)
+                    .textCase(.uppercase)
                     .font(.caption.weight(.bold))
                     .tracking(2)
                     .foregroundStyle(step.accentColor)
 
-                Text(step.title)
+                Text(step.title.localizedUI)
                     .font(.title.bold())
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
 
-                Text(step.description)
+                Text(step.description.localizedUI)
                     .font(.body)
                     .foregroundStyle(LociTheme.secondaryText)
                     .multilineTextAlignment(.center)

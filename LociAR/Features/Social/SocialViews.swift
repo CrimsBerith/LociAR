@@ -118,7 +118,7 @@ struct ActivityView: View {
                             Image(systemName: symbol(for: item.kind)).foregroundStyle(LociTheme.accent)
                         }
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(item.body).font(.headline)
+                            Text(item.body.localizedUI).font(.headline)
                             Text(item.createdAt, style: .relative).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -283,7 +283,7 @@ struct ProfileView: View {
         } message: { Text("Güvenlik için hesabını silmeden önce şifreni gir.") }
         .alert("Hesap silinemedi", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("Tamam", role: .cancel) {}
-        } message: { Text(message ?? "") }
+        } message: { Text((message ?? "").localizedUI) }
         .sheet(isPresented: $showEditProfile) {
             ProfileEditView(user: user)
         }
@@ -291,7 +291,7 @@ struct ProfileView: View {
     }
 
     private func profileSectionText(_ value: String) -> some View {
-        Text(value)
+        Text(value.localizedUI)
             .foregroundStyle(.white)
             .textCase(nil)
             .fixedSize(horizontal: false, vertical: true)
@@ -456,7 +456,7 @@ struct CollectionDetailView: View {
                             HStack(spacing: 12) {
                                 LociAvatar(handle: String(post.creatorID.uuidString.prefix(6)), size: 36)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(post.caption.isEmpty ? "Mekânsal post" : post.caption)
+                                    Text(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
                                         .font(.subheadline.bold())
                                         .lineLimit(2)
                                     Text(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "Fiziksel yüzey" : "Yaklaşık")
@@ -502,7 +502,7 @@ struct CollectionDetailView: View {
             }
             posts = loadedPosts
             if failedCount > 0 {
-                message = loadedPosts.isEmpty ? "Postlar yüklenemedi." : "\(failedCount) post şu anda yüklenemedi. Yenilemek için aşağı çek."
+                message = loadedPosts.isEmpty ? "Postlar yüklenemedi." : String(localized: "\(failedCount) post şu anda yüklenemedi. Yenilemek için aşağı çek.")
             }
         } catch {
             message = "Postlar yüklenemedi."
@@ -710,7 +710,7 @@ struct MyPostsView: View {
         )) {
             Button("Tamam", role: .cancel) {}
         } message: {
-            Text(deleteError ?? "")
+            Text((deleteError ?? "").localizedUI)
         }
     }
 
@@ -853,7 +853,7 @@ struct PublicProfileView: View {
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .accessibilityIdentifier("profile-report-user")
                     if let message, !posts.isEmpty {
-                        Text(message).font(.caption).foregroundStyle(.secondary)
+                        Text(message.localizedUI).font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -880,7 +880,7 @@ struct PublicProfileView: View {
         }
         .confirmationDialog("Neden bildiriyorsun?", isPresented: $reportingUser, titleVisibility: .visible) {
             ForEach(ReportReason.allCases) { reason in
-                Button(reason.rawValue) { Task { await reportUser(reason) } }
+                Button(reason.rawValue.localizedUI) { Task { await reportUser(reason) } }
             }
             Button("Vazgeç", role: .cancel) {}
         }
@@ -946,7 +946,7 @@ struct PublicProfileView: View {
     }
 
     private func profileMetric(value: Int, label: String) -> some View {
-        VStack(spacing: 2) { Text("\(value)").font(.headline); Text(label).font(.caption).foregroundStyle(.secondary) }
+        VStack(spacing: 2) { Text("\(value)").font(.headline); Text(label.localizedUI).font(.caption).foregroundStyle(.secondary) }
     }
 }
 
@@ -1148,7 +1148,7 @@ struct PostPreviewView: View {
                             .foregroundStyle(commentText.count > 500 ? .red : .secondary)
                     }
                 }
-                if let message { Text(message).font(.caption).foregroundStyle(.secondary) }
+                if let message { Text(message.localizedUI).font(.caption).foregroundStyle(.secondary) }
             }.padding()
         }
         .background(LociScreenBackground())
@@ -1173,7 +1173,7 @@ struct PostPreviewView: View {
             presenting: reportTarget
         ) { target in
             ForEach(ReportReason.allCases) { reason in
-                Button(reason.rawValue) { Task { await report(target, reason: reason) } }
+                Button(reason.rawValue.localizedUI) { Task { await report(target, reason: reason) } }
             }
             Button("Vazgeç", role: .cancel) {}
         } message: { _ in
@@ -1325,7 +1325,7 @@ struct PostPreviewView: View {
     }
     private func add(to collection: LociCollection) async {
         guard container.isBackendConfigured else { return }
-        do { try await container.social.add(postID: post.id, to: collection.id); message = "\(collection.title) koleksiyonuna eklendi." }
+        do { try await container.social.add(postID: post.id, to: collection.id); message = String(localized: "\(collection.title) koleksiyonuna eklendi.") }
         catch { message = "Koleksiyona eklenemedi." }
     }
 
@@ -1358,7 +1358,7 @@ private struct PostCard: View {
                     color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
                 )
             }
-            Text(post.caption.isEmpty ? "Mekânsal post" : post.caption)
+            Text(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
                 .font(.body.weight(.semibold))
                 .lineLimit(4)
                 .foregroundStyle(.white.opacity(0.94))
@@ -1434,7 +1434,7 @@ private struct PostActionLabel: View {
         VStack(spacing: 6) {
             Image(systemName: symbol).font(.headline).foregroundStyle(color)
                 .symbolEffect(.bounce, value: reduceMotion ? false : effectValue)
-            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.white)
+            Text(title.localizedUI).font(.caption.weight(.semibold)).foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, minHeight: 58)
         .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
@@ -1449,7 +1449,7 @@ private struct ProfileLinkRow: View {
 
     var body: some View {
         Label {
-            Text(title)
+            Text(title.localizedUI)
                 .font(.body)
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {

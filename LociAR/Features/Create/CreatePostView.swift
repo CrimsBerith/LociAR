@@ -51,7 +51,7 @@ struct CreatePostView: View {
                 if let savingStatus {
                     HStack(spacing: 10) {
                         ProgressView().tint(LociTheme.accent)
-                        Text(savingStatus).font(.subheadline.weight(.semibold))
+                        Text(savingStatus.localizedUI).font(.subheadline.weight(.semibold))
                     }
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(.ultraThinMaterial, in: Capsule())
@@ -110,7 +110,7 @@ struct CreatePostView: View {
                     if dismissAfterAlert { dismiss() }
                 }
             }
-        } message: { Text(message ?? "") }
+        } message: { Text((message ?? "").localizedUI) }
         .sheet(isPresented: $showExternalMediaPicker) { externalMediaPicker }
         .task(id: engine.currentAnchor?.id) {
             mappingWaitExpired = false
@@ -142,10 +142,10 @@ struct CreatePostView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: placementSymbol)
-                            Text(placementTitle).font(.caption.bold())
+                            Text(placementTitle.localizedUI).font(.caption.bold())
                         }
                         .foregroundStyle(engine.candidateQuality == nil ? Color.white : LociTheme.accent)
-                        Text(engine.statusMessage).font(.footnote).foregroundStyle(.secondary)
+                        Text(engine.statusMessage.localizedUI).font(.footnote).foregroundStyle(.secondary)
                         if engine.currentAnchor == nil {
                             Text(engine.mappingDiagnosticSummary)
                                 .font(.caption2.monospacedDigit())
@@ -188,10 +188,10 @@ struct CreatePostView: View {
                             .font(.caption.bold()).foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                         if anchor.pinQuality.isPhysicalSurface && !physicalPlacementReady {
                             VStack(spacing: 5) {
-                                Label(mappingStatusTitle, systemImage: "viewfinder")
+                                Label(mappingStatusTitle.localizedUI, systemImage: "viewfinder")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(.secondary)
-                                Text(mappingStatusGuidance)
+                                Text(mappingStatusGuidance.localizedUI)
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                                     .multilineTextAlignment(.center)
@@ -385,7 +385,7 @@ struct CreatePostView: View {
                                     }
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(selectedExternalPlatform?.rawValue ?? "Sosyal medya postu ekle")
+                                    Text(selectedExternalPlatform?.rawValue ?? String(localized: "Sosyal medya postu ekle"))
                                         .font(.subheadline.weight(.semibold))
                                     Text(selectedExternalPlatform == nil ? "Spotify · YouTube · Facebook · Instagram · X" : "Platformu değiştirmek için dokun")
                                         .font(.caption).foregroundStyle(.secondary)
@@ -401,7 +401,7 @@ struct CreatePostView: View {
 
                         if let selectedExternalPlatform {
                             HStack(spacing: 8) {
-                                TextField(selectedExternalPlatform.linkHint, text: $externalMediaURL)
+                                TextField(selectedExternalPlatform.linkHint.localizedUI, text: $externalMediaURL)
                                     .keyboardType(.URL)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
@@ -428,7 +428,7 @@ struct CreatePostView: View {
                             .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                             if parsedExternalMedia?.externalMedia?.platform == selectedExternalPlatform {
-                                LociStatusPill(title: "\(selectedExternalPlatform.rawValue) paylaşımı hazır", symbol: "checkmark", color: platformColor(selectedExternalPlatform))
+                                LociStatusPill(title: String(localized: "\(selectedExternalPlatform.rawValue) paylaşımı hazır"), symbol: "checkmark", color: platformColor(selectedExternalPlatform))
                                 if let external = parsedExternalMedia?.externalMedia {
                                     HStack(spacing: 12) {
                                         BrandLogoView(platform: external.platform, size: 30)
@@ -537,7 +537,7 @@ struct CreatePostView: View {
                 anchor.geoPose = retry
             } else {
                 dismissAfterAlert = false
-                message = "Konum doğruluğu yayın için yeterli değil (\(Int(accuracy)) m). Açık bir alanda birkaç saniye bekleyip tekrar dene."
+                message = String(localized: "Konum doğruluğu yayın için yeterli değil (\(Int(accuracy)) m). Açık bir alanda birkaç saniye bekleyip tekrar dene.")
                 return
             }
         }
@@ -672,7 +672,7 @@ struct CreatePostView: View {
 
                     if let selectedExternalPlatform {
                         LociInlineNotice(
-                            title: "\(selectedExternalPlatform.rawValue) içeriğini seç",
+                            title: String(localized: "\(selectedExternalPlatform.rawValue) içeriğini seç"),
                             message: "İçeriği aç, Paylaş menüsünden bağlantıyı kopyala ve bu ekrana dön. Tamam bağlantıyı doğrulayıp karta ekler.",
                             symbol: "arrowshape.turn.up.right.fill",
                             color: selectedExternalPlatform.brandColor
@@ -687,7 +687,7 @@ struct CreatePostView: View {
                     }
 
                     if let externalImportMessage {
-                        Label(externalImportMessage, systemImage: "exclamationmark.circle.fill")
+                        Label(externalImportMessage.localizedUI, systemImage: "exclamationmark.circle.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.orange)
                             .accessibilityIdentifier("external-import-error")
@@ -778,7 +778,7 @@ struct CreatePostView: View {
                 showExternalMediaPicker = false
                 return
             }
-            externalImportMessage = "Panoda geçerli bir \(platform.rawValue) paylaşım bağlantısı bulunamadı. İçerikte Paylaş → Bağlantıyı kopyala adımını kullan."
+            externalImportMessage = String(localized: "Panoda geçerli bir \(platform.rawValue) paylaşım bağlantısı bulunamadı. İçerikte Paylaş → Bağlantıyı kopyala adımını kullan.")
             return
         }
         externalMediaURL = external.url.absoluteString
@@ -811,8 +811,8 @@ struct CreatePostView: View {
     private var resolvedCaption: String {
         let clean = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if !clean.isEmpty { return clean }
-        if let platform = parsedExternalMedia?.externalMedia?.platform { return "\(platform.rawValue) paylaşımı" }
-        return "Mekânsal post"
+        if let platform = parsedExternalMedia?.externalMedia?.platform { return String(localized: "\(platform.rawValue) paylaşımı") }
+        return String(localized: "Mekânsal post")
     }
 
     private func startCommit(_ anchor: SurfaceAnchor) {

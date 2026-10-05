@@ -125,9 +125,9 @@ struct MapFeatureView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(selectedPost.caption.isEmpty ? "Mekânsal post" : selectedPost.caption)
+                            Text(selectedPost.caption.isEmpty ? "Mekânsal post".localizedUI : selectedPost.caption)
                                 .font(.headline).lineLimit(2)
-                            Label(distanceText(for: selectedPost), systemImage: "location.fill")
+                            Label(distanceText(for: selectedPost).localizedUI, systemImage: "location.fill")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -158,7 +158,7 @@ struct MapFeatureView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(isLoading ? "Yakın çevre taranıyor" : "Yakındaki postlar")
                                 .font(.headline)
-                            Text(message ?? (posts.isEmpty ? "Yakınında henüz post yok." : "\(posts.count) post bulundu. Haritadaki bir pine dokun."))
+                            Text(message?.localizedUI ?? (posts.isEmpty ? String(localized: "Yakınında henüz post yok.") : String(localized: "\(posts.count) post bulundu. Haritadaki bir pine dokun.")))
                                 .font(.caption).foregroundStyle(LociTheme.secondaryText).lineLimit(2)
                         }
                         Spacer(minLength: 0)
@@ -189,7 +189,7 @@ struct MapFeatureView: View {
                                         HStack(spacing: 10) {
                                             Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                                 .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
-                                            Text(post.caption.isEmpty ? "Mekânsal post" : post.caption)
+                                            Text(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
                                                 .font(.subheadline.weight(.semibold))
                                                 .foregroundStyle(.white)
                                                 .lineLimit(1)
@@ -202,7 +202,7 @@ struct MapFeatureView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .accessibilityElement(children: .ignore)
-                                    .accessibilityLabel(post.caption.isEmpty ? "Mekânsal post" : post.caption)
+                                    .accessibilityLabel(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
                                     .accessibilityIdentifier("map-open-\(post.caption)")
                                 }
                             }

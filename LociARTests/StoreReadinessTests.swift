@@ -5,14 +5,16 @@ import XCTest
 final class StoreReadinessTests: XCTestCase {
     func testShippedInfoPlistDeclaresStorePackagingRequirements() throws {
         let bundle = appBundle
-        XCTAssertEqual(
-            bundle.object(forInfoDictionaryKey: "NSCameraUsageDescription") as? String,
-            "LociAR, gerçek yüzeyleri algılamak ve postları seçtiğiniz yüzeye yerleştirmek için kamerayı kullanır."
+        // Usage descriptions are localized (InfoPlist.xcstrings); every language names the app and
+        // Google ARCore, which processes the camera / location data (ARCore disclosure).
+        for key in ["NSCameraUsageDescription", "NSLocationWhenInUseUsageDescription"] {
+            let text = try XCTUnwrap(bundle.object(forInfoDictionaryKey: key) as? String, key)
+            XCTAssertTrue(text.contains("LociAR") && text.contains("Google ARCore"), "\(key): \(text)")
+        }
+        let temporary = try XCTUnwrap(
+            bundle.object(forInfoDictionaryKey: "NSLocationTemporaryUsageDescriptionDictionary") as? [String: String]
         )
-        XCTAssertEqual(
-            bundle.object(forInfoDictionaryKey: "NSLocationWhenInUseUsageDescription") as? String,
-            "LociAR, yakındaki postları göstermek ve AR içeriğini doğru konumda açmak için konumunuzu kullanır."
-        )
+        XCTAssertNotNil(temporary["GeospatialAccuracy"], "purpose key used by LocationController")
         XCTAssertNil(
             bundle.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription"),
             "Photo library access was removed; Info.plist must not declare NSPhotoLibraryUsageDescription"
