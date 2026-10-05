@@ -207,6 +207,7 @@ içinde normale döner.
 | Metrik | Alarm koşulu | Ne yapılır |
 |--------|--------------|------------|
 | `lociar_server_errors` | 10 dk'da >10 ERROR satırı | Logs'ta `severity>=ERROR` filtresine bak |
+| `lociar_apple_revoke_failed` | herhangi biri | Apple anahtar/secret'larını kontrol et; hesap silme durdu |
 | `lociar_account_deletion_deferred` | 1 saatte herhangi biri | Silme işi zamanlayıcıyla yeniden denenir; tamamlandığını doğrula |
 | `lociar_storage_cleanup_deferred` | 1 saatte >3 | Storage yetkileri ve temizlik zamanlayıcıları |
 | `lociar_cloud_anchor_cleanup_failed` | 1 saatte herhangi biri | `arcoreManagement.ts` logları; iş kendini yeniden dener |

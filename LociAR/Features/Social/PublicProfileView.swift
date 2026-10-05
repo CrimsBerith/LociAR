@@ -153,6 +153,19 @@ struct PublicProfileView: View {
         }
     }
 
+    private func loadMore() async {
+        guard let cursor = nextCursor, !isLoadingMore, case let .signedIn(viewer) = session.phase else { return }
+        let generation = pageGeneration
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await container.posts.publicPostsPage(creatorID: user.id, cursor: cursor)
+            guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            var unique = Dictionary(posts.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest }); for post in page.posts { unique[post.id] = post }; posts = unique.values.sorted { $0.createdAt > $1.createdAt }
+            nextCursor = page.next
+        } catch { message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") }
+    }
+
     private func profileMetric(value: Int, label: String) -> some View {
         VStack(spacing: 2) { Text("\(value)").font(.headline); Text(label.localizedUI).font(.caption).foregroundStyle(.secondary) }
     }

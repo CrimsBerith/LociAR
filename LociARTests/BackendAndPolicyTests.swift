@@ -932,7 +932,7 @@ final class AdminContentDecodingTests: XCTestCase {
         let geo: [String: Any] = ["latitude": 41.0, "longitude": 29.0, "altitude": 0, "heading": 0]
         let anchor: [String: Any] = [
             "id": anchorID.uuidString, "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -1.5, 1],
-            "pinQuality": "freeSpaceApproximate", "hitSource": "frontOfCamera", "surfaceAlignment": "freeSpace",
+            "pinQuality": "freeSpaceApproximate", "hitSource": "frontOfCamera", "surfaceAlignment": "free_space",
             "trackingQuality": "unknown", "worldMappingStatus": "notAvailable", "geoPose": geo,
             "physicalRectMeters": ["width": 0.45, "height": 0.51], "capturedAt": "2026-10-05T00:00:00Z"
         ]

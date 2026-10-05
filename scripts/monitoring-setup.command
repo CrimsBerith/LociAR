@@ -6,7 +6,8 @@
 #
 # What gets an email:
 #   - Cloud Functions / App Hosting errors (more than 10 ERROR log lines in 10 minutes)
-#   - account deletions that had to be deferred or whose retry failed, Cloud Anchor deletion failures
+#   - Apple token revocation failures, account deletions that were deferred or whose retry failed,
+#     Cloud Anchor deletion failures
 #   - ARCore token / avatar screening outages, storage cleanup backlog, repeated push send failures
 #   - kill switch on (service_paused answers), so a forgotten switch is noticed
 #   - monthly billing budget at 50 / 90 / 100 %
@@ -58,7 +59,7 @@ else
 fi
 
 # Cloud Functions v2 and App Hosting both run on Cloud Run; the Firebase logger writes the event
-# name as the log message (functions/src: logger.error('post_quota_refund_failed', {...})).
+# name as the log message (functions/src: logger.error('cloud_anchor_delete_failed', {...})).
 RUN='resource.type="cloud_run_revision"'
 event() { # event names → filter on the log message
   local clauses=() name
@@ -79,6 +80,8 @@ metric() { # name, description, filter
 
 step "Log tabanlı metrikler"
 metric lociar_server_errors "ERROR log lines from Cloud Functions and App Hosting" "$RUN AND severity>=ERROR"
+metric lociar_apple_revoke_failed "Apple sign-in token revocation failed (account deletion aborted)" \
+  "$(event apple_revoke_failed apple_revoke_unavailable)"
 metric lociar_account_deletion_deferred "Account deletion accepted but deferred, or its automatic retry failed" \
   "$(event account_deletion_deferred account_deletion_retry_failed)"
 metric lociar_storage_cleanup_deferred "Media, avatar or orphan upload cleanup was deferred" \
@@ -127,6 +130,8 @@ step "Alarm politikaları"
 echo "(Yeni metrikler ilk log satırından sonra görünür; politika oluşturma bu yüzden bazen bir dakika bekletir.)"
 policy lociar_server_errors "Sunucu hataları" 10 600 \
   "More than 10 ERROR log lines in 10 minutes from Cloud Functions / App Hosting. Open Logs and filter severity>=ERROR."
+policy lociar_apple_revoke_failed "Apple token iptali başarısız" 0 300 \
+  "Account deletion was aborted because Apple token revocation failed (guideline 5.1.1(v)). Check the Apple sign-in secrets."
 policy lociar_account_deletion_deferred "Hesap silme ertelendi" 0 3600 \
   "An accepted account deletion could not finish in one go and is retried by the scheduler. Check that it completes (functions/src/accountDeletion.ts)."
 policy lociar_storage_cleanup_deferred "Depolama temizliği ertelendi" 3 3600 \
