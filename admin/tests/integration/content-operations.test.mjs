@@ -19,7 +19,7 @@ function input(author,extra={}){return parseContentInput({...emptyContent,author
 test('selected-author post creation is atomic, idempotent and produces an explicit native approximate placement',async()=>{
  const{actor,author}=await fixture(),key=randomUUID(),body=input(author);const[first,retry]=await Promise.all([saveAdminPost(body,actor,reason,key),saveAdminPost(body,actor,reason,key)]);assert.deepEqual(first,retry);
  const p=(await db.collection('posts').doc(first.id).get()).data();assert.equal(p.creator_id,author);assert.equal(p.created_by_admin,actor);assert.equal(p.multi_user_ready,false);assert.equal(p.status,'active');
- const anchor=JSON.parse(p.anchor_bundle_json);assert.equal(anchor.coordinateSpace,'admin_geo_estimate');assert.equal(anchor.anchor.pinQuality,'freeSpaceApproximate');assert.equal(anchor.anchor.transform.length,16);assert.ok(!anchor.anchor.persistence);
+ const anchor=JSON.parse(p.anchor_bundle_json);assert.equal(anchor.coordinateSpace,'admin_geo_estimate');assert.equal(anchor.anchor.pinQuality,'freeSpaceApproximate');assert.equal(anchor.anchor.surfaceAlignment,'free_space','iOS SurfaceAlignment raw value');assert.equal(anchor.anchor.transform.length,16);assert.ok(!anchor.anchor.persistence);
  assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('actor_id'),actor);
  await assert.rejects(saveAdminPost({...body,caption:'Changed request'},actor,reason,key),/idempotency_key_reused/);
 });
