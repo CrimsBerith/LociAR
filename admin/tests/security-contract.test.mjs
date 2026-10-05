@@ -52,7 +52,7 @@ test("write handlers require same-origin and authenticated admin context", () =>
 });
 
 test("moderation approval is fail-closed and flag decisions are audited", () => {
-  assert.match(ops, /before\.age_rating === '18_plus' \|\| before\.protected_zone_name/);
+  assert.match(ops, /before\.age_rating === '18_plus'/);
   assert.match(ops, /post_not_approvable/);
   assert.match(ops, /export async function resolveModerationFlag/);
   assert.match(ops, /action: `moderation_flag_\$\{action\}`/);
@@ -76,7 +76,7 @@ test("suspension and profile-photo decisions are permission-scoped, audited and 
 });
 
 test("posts deleted by their author cannot be restored by moderators", () => {
-  assert.match(ops, /before\.deleted_at && !before\.deleted_by && action !== 'soft_delete'/);
+  assert.match(ops, /if \(before\.deleted_at && !before\.deleted_by\)/);
   assert.match(ops, /post_deleted_by_author/);
 });
 
@@ -115,7 +115,7 @@ test("admin magic links support cross-browser completion without weakening MFA",
   assert.match(callback, /window\.history\.replaceState/);
   assert.match(callback, /auth\/multi-factor-auth-required/);
   assert.match(callback, /TotpMultiFactorGenerator\.assertionForSignIn/);
-  assert.match(sessionRoute, /request\.headers\.get\('origin'\) !== requestUrl\.origin/);
+  assert.match(sessionRoute, /requireSameOrigin\(request\)/);
   assert.match(sessionRoute, /verifyIdToken\(idToken, true\)/);
   assert.match(sessionRoute, /stale_sign_in/);
   assert.match(sessionRoute, /secondFactor \? '\/admin\/dashboard' : '\/admin\/mfa'/);
@@ -124,7 +124,7 @@ test("admin magic links support cross-browser completion without weakening MFA",
 });
 
 // ---- issue #13 ----
-import { inviteAcceptError, commentFlagTarget, isCommentFlag, originAllowed, restoredCommentFromFlag, INVITE_TTL_MS } from "../lib/policy.ts";
+import { inviteAcceptError, commentFlagTarget, isCommentFlag, originAllowed, INVITE_TTL_MS } from "../lib/policy.ts";
 
 test("admin deploys only to Firebase App Hosting and never needs a service-account key there", () => {
   for (const legacy of ["admin/Dockerfile", "admin/.dockerignore", ".dockerignore", "admin/vercel.json", "vercel.json"]) {
@@ -179,15 +179,13 @@ test("session cookie is short-lived and always secure in production; sign-in and
   assert.match(session, /NODE_ENV === 'production'/);
   assert.match(session, /admin_sign_in/);
   assert.match(readFileSync(join(repoRoot, "admin/app/api/auth/signout/route.ts"), "utf8"), /admin_sign_out/);
-  assert.match(readFileSync(join(repoRoot, "admin/app/api/admin/v1/approvals/route.ts"), "utf8"), /approval_requested/);
+  assert.match(readFileSync(join(repoRoot, "admin/app/api/admin/v1/approvals/route.ts"), "utf8"), /requestMetricApproval/);
 });
 
-test("approving a filtered-comment flag restores the comment as a false positive", () => {
-  const flag = { reason: "comment_filtered", post_id: "p1", metadata: { comment_id: "c1", author_id: "u1", text: "fine text" } };
-  assert.deepEqual(restoredCommentFromFlag(flag), { id: "c1", post_id: "p1", user_id: "u1", text: "fine text" });
-  assert.equal(restoredCommentFromFlag({ ...flag, reason: "spam" }), null);
-  assert.equal(restoredCommentFromFlag({ ...flag, metadata: { comment_id: "c1" } }), null);
+test("filtered-comment restoration uses only the server-owned archive", () => {
   const ops = readFileSync(join(repoRoot, "admin/lib/ops.ts"), "utf8");
+  assert.match(ops, /moderation_originals/);
+  assert.match(ops, /server_origin/);
   assert.match(ops, /admin_restored: true/);
   assert.match(ops, /filtered_comments/);
   const triggers = readFileSync(join(repoRoot, "functions/src/triggers.ts"), "utf8");
@@ -201,6 +199,9 @@ test("protected zones are validated before they are written", async () => {
   assert.ok("error" in parseZoneInput({ name: "Okul", category: "mall", lat: 41, lng: 29, radius_meters: 150 }));
   assert.ok("error" in parseZoneInput({ name: "Okul", category: "school", lat: 91, lng: 29, radius_meters: 150 }));
   assert.ok("error" in parseZoneInput({ name: "Okul", category: "school", lat: 41, lng: 29, radius_meters: 5000 }));
+  for (const invalid of [null, '', false, '41']) {
+    assert.ok("error" in parseZoneInput({ name: "Okul", category: "school", lat: invalid, lng: 29, radius_meters: 150 }));
+  }
   assert.equal(roleRevokeError("super_admin", 1), "cannot_revoke_last_super_admin");
   assert.equal(roleRevokeError("super_admin", 2), null);
   assert.equal(roleRevokeError("support_agent", 1), null);

@@ -47,7 +47,7 @@ struct ARCameraBackdrop: View {
                     .font(.system(size: 38, weight: .semibold))
                     .foregroundStyle(failed ? Color.orange : LociTheme.accent)
                     .symbolEffect(.pulse, isActive: !failed)
-                Text(failed ? "Kamera görüntüsü alınamadı" : "Canlı kamera hazırlanıyor")
+                Text(failed ? String(localized: "Kamera görüntüsü alınamadı") : String(localized: "Canlı kamera hazırlanıyor"))
                     .font(.headline)
                 Text(message.localizedUI)
                     .font(.footnote)

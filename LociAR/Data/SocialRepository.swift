@@ -2,7 +2,7 @@ import Foundation
 @preconcurrency import FirebaseFirestore
 
 struct SocialActivity: Codable, Identifiable, Hashable, Sendable {
-    let id: UUID
+    let id: String
     let kind: String
     let actorID: UUID?
     let recipientID: UUID
@@ -18,6 +18,11 @@ struct SocialActivity: Codable, Identifiable, Hashable, Sendable {
         case postID = "post_id"
         case createdAt = "created_at"
         case readAt = "read_at"
+    }
+
+    func markingRead(at date: Date) -> Self {
+        Self(id: id, kind: kind, actorID: actorID, recipientID: recipientID, postID: postID,
+             body: body, createdAt: createdAt, readAt: readAt ?? date)
     }
 }
 
@@ -52,10 +57,41 @@ struct LociComment: Codable, Identifiable, Hashable, Sendable {
         case userID = "user_id"
         case createdAt = "created_at"
     }
+
+    /// Older pages overlap after concurrent inserts/refreshes. Keep one row per ID in display order.
+    static func merging(_ existing: [Self], with incoming: [Self]) -> [Self] {
+        var byID = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
+        for comment in incoming { byID[comment.id] = comment }
+        return byID.values.sorted {
+            $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
+        }
+    }
 }
 
+struct CommentPageCursor: Equatable, Sendable {
+    let postID: UUID
+    let documentID: String
+    let seconds: Int64
+    let nanoseconds: Int32
+
+    func isValid(for requestedPostID: UUID) -> Bool {
+        postID == requestedPostID && !documentID.isEmpty && !documentID.contains("/")
+            && seconds >= -62_135_596_800 && seconds <= 253_402_300_799
+            && nanoseconds >= 0 && nanoseconds < 1_000_000_000
+    }
+}
+
+struct LociCommentPage: Sendable {
+    let comments: [LociComment]
+    let olderCursor: CommentPageCursor?
+}
+
+struct ActivityPage: Sendable { let items: [SocialActivity]; let next: String? }
+
 protocol SocialRepository: Sendable {
+    func activityPage(for userID: UUID, cursor: String?) async throws -> ActivityPage
     func activity(for userID: UUID) async throws -> [SocialActivity]
+    func markActivityRead(ids: [String], for userID: UUID) async throws -> [String: Date]
     func savedPostIDs(for userID: UUID) async throws -> [UUID]
     func likedPostIDs(for userID: UUID) async throws -> [UUID]
     func likeCount(for postID: UUID) async throws -> Int
@@ -72,6 +108,7 @@ protocol SocialRepository: Sendable {
     func postIDs(in collectionID: UUID) async throws -> [UUID]
     func remove(postID: UUID, from collectionID: UUID) async throws
     func comments(for postID: UUID) async throws -> [LociComment]
+    func commentPage(for postID: UUID, before cursor: CommentPageCursor?) async throws -> LociCommentPage
     func addComment(postID: UUID, user: LociUser, text: String) async throws -> LociComment
     func report(postID: UUID, userID: UUID, reason: String) async throws
     func reportComment(_ comment: LociComment, userID: UUID, reason: String) async throws
@@ -95,17 +132,22 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         try await query.getDocuments().documents.map { ($0.documentID, $0.data()) }
     }
 
-    func activity(for userID: UUID) async throws -> [SocialActivity] {
-        let rows = try await documents(
-            db.collection("activity_events")
-                .whereField("recipient_id", isEqualTo: key(userID))
-                .order(by: "created_at", descending: true)
-                .limit(to: 50)
-        )
-        return rows.compactMap { id, data in
+    func activity(for userID: UUID) async throws -> [SocialActivity] { try await activityPage(for: userID, cursor: nil).items }
+    private struct ActivityCursor: Codable { let owner: UUID; let id: String; let seconds: Int64; let nanoseconds: Int32 }
+    func activityPage(for userID: UUID, cursor: String?) async throws -> ActivityPage {
+        guard FirebaseIdentity.currentLUID() == userID else { throw AuthFlowError.notSignedIn }
+        var query = db.collection("activity_events").whereField("recipient_id", isEqualTo: key(userID))
+            .order(by: "created_at", descending: true).order(by: FieldPath.documentID(), descending: true)
+        if let cursor, let data = Data(base64Encoded: cursor), let position = try? JSONDecoder().decode(ActivityCursor.self, from: data), position.owner == userID {
+            query = query.start(after: [Timestamp(seconds: position.seconds, nanoseconds: position.nanoseconds), position.id])
+        } else if cursor != nil { throw BackendCallError.invalidResponse }
+        let snapshot = try await query.limit(to: 51).getDocuments()
+        let documents = Array(snapshot.documents.prefix(50))
+        let rows = documents.map { ($0.documentID, $0.data()) }
+        let items = rows.compactMap { id, data in
             guard let recipient = uuid(data["recipient_id"]) else { return nil }
             return SocialActivity(
-                id: UUID(uuidString: id) ?? FirebaseIdentity.luid(forFirebaseUID: id),
+                id: id,
                 kind: data["kind"] as? String ?? "activity",
                 actorID: uuid(data["actor_id"]),
                 recipientID: recipient,
@@ -115,6 +157,22 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
                 readAt: FirestoreJSON.date(data["read_at"])
             )
         }
+        let next: String?
+        if snapshot.documents.count > 50, let last = documents.last, let timestamp = last.data()["created_at"] as? Timestamp {
+            next = try JSONEncoder().encode(ActivityCursor(owner: userID, id: last.documentID, seconds: timestamp.seconds, nanoseconds: timestamp.nanoseconds)).base64EncodedString()
+        } else { next = nil }
+        guard !Task.isCancelled, FirebaseIdentity.currentLUID() == userID else { throw AuthFlowError.notSignedIn }
+        return ActivityPage(items: items, next: next)
+    }
+
+    func markActivityRead(ids: [String], for userID: UUID) async throws -> [String: Date] {
+        guard !ids.isEmpty else { return [:] }
+        guard FirebaseIdentity.currentLUID() == userID else { throw AuthFlowError.notSignedIn }
+        struct Payload: Encodable, Sendable { let activityIds: [String]; let userId: String }
+        struct Entry: Decodable, Sendable { let id: String; let readAt: Date }
+        struct Response: Decodable, Sendable { let activities: [Entry] }
+        let response: Response = try await callables.call("markActivityRead", payload: Payload(activityIds: ids, userId: key(userID)))
+        return Dictionary(response.activities.map { ($0.id, $0.readAt) }, uniquingKeysWith: { first, _ in first })
     }
 
     /// Upper bounds for per-user lists, so one account with a huge history cannot make a screen
@@ -273,16 +331,31 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
     }
 
     func comments(for postID: UUID) async throws -> [LociComment] {
-        let rows = try await documents(
-            db.collection("comments")
-                .whereField("post_id", isEqualTo: key(postID))
-                .order(by: "created_at")
-                .limit(to: 200)
-        )
-        let blocked = try await BlockListCache.shared.blockedIDs()
-        return rows.compactMap { id, data in
-            guard let commentID = UUID(uuidString: id), let user = uuid(data["user_id"]),
-                  !blocked.contains(key(user)) else { return nil }
+        try await commentPage(for: postID, before: nil).comments
+    }
+
+    func commentPage(for postID: UUID, before cursor: CommentPageCursor?) async throws -> LociCommentPage {
+        guard let viewerID = FirebaseIdentity.currentLUID() else { throw AuthFlowError.notSignedIn }
+        if let cursor, !cursor.isValid(for: postID) { throw BackendCallError.invalidResponse }
+        var query = db.collection("comments")
+            .whereField("post_id", isEqualTo: key(postID))
+            .order(by: "created_at", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+        if let cursor {
+            query = query.start(after: [Timestamp(seconds: cursor.seconds, nanoseconds: cursor.nanoseconds), cursor.documentID])
+        }
+        // Read one lookahead row; cursors use raw rows so blocked authors cannot stop pagination.
+        let snapshot = try await query.limit(to: 51).getDocuments()
+        let rows = Array(snapshot.documents.prefix(50))
+        struct EligibilityRequest: Encodable { let mode = "eligible_authors"; let authorIds: [String] }
+        struct EligibilityResponse: Decodable { let authorIds: [String] }
+        let eligibility: EligibilityResponse = try await callables.call("readPublicContent", payload: EligibilityRequest(authorIds: Array(Set(rows.compactMap { $0.data()["user_id"] as? String }))))
+        let eligible = Set(eligibility.authorIds)
+        guard !Task.isCancelled, FirebaseIdentity.currentLUID() == viewerID else { throw AuthFlowError.notSignedIn }
+        let comments = rows.compactMap { document -> LociComment? in
+            let data = document.data()
+            guard let commentID = UUID(uuidString: document.documentID), let user = uuid(data["user_id"]),
+                  eligible.contains(key(user)) else { return nil }
             return LociComment(
                 id: commentID,
                 postID: postID,
@@ -292,6 +365,14 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
                 createdAt: FirestoreJSON.date(data["created_at"]) ?? Date()
             )
         }
+        let olderCursor: CommentPageCursor?
+        if snapshot.documents.count > 50 {
+            guard let last = rows.last, let timestamp = last.data()["created_at"] as? Timestamp else { throw BackendCallError.invalidResponse }
+            olderCursor = CommentPageCursor(postID: postID, documentID: last.documentID, seconds: timestamp.seconds, nanoseconds: timestamp.nanoseconds)
+        } else {
+            olderCursor = nil
+        }
+        return LociCommentPage(comments: LociComment.merging([], with: comments), olderCursor: olderCursor)
     }
 
     func addComment(postID: UUID, user: LociUser, text: String) async throws -> LociComment {
@@ -353,6 +434,7 @@ actor PreviewSocialRepository: SocialRepository {
     private var collectionItems: [UUID: [UUID]] = [:]
 
     func activity(for userID: UUID) async throws -> [SocialActivity] { [] }
+    func markActivityRead(ids: [String], for userID: UUID) async throws -> [String: Date] { [:] }
     func savedPostIDs(for userID: UUID) async throws -> [UUID] { Array(saved) }
     func likedPostIDs(for userID: UUID) async throws -> [UUID] { Array(liked) }
     func likeCount(for postID: UUID) async throws -> Int { liked.contains(postID) ? 1 : 0 }
@@ -384,6 +466,9 @@ actor PreviewSocialRepository: SocialRepository {
         collectionItems[collectionID]?.removeAll { $0 == postID }
     }
     func comments(for postID: UUID) async throws -> [LociComment] { [] }
+    func commentPage(for postID: UUID, before cursor: CommentPageCursor?) async throws -> LociCommentPage {
+        LociCommentPage(comments: [], olderCursor: nil)
+    }
     func addComment(postID: UUID, user: LociUser, text: String) async throws -> LociComment {
         LociComment(id: UUID(), postID: postID, userID: user.id, username: user.handle, text: text, createdAt: Date())
     }
@@ -393,3 +478,6 @@ actor PreviewSocialRepository: SocialRepository {
     func deleteComment(id: UUID) async throws {}
 }
 
+extension SocialRepository {
+    func activityPage(for userID: UUID, cursor: String?) async throws -> ActivityPage { ActivityPage(items: cursor == nil ? try await activity(for: userID) : [], next: nil) }
+}

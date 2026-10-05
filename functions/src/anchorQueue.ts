@@ -20,7 +20,7 @@ const inEmulator = () => process.env.FUNCTIONS_EMULATOR === 'true';
 export async function deleteAnchorOrQueue(anchorId: string | null | undefined, deps: ManagementDeps = {}): Promise<boolean> {
   if (!anchorId) return false;
   const outcome = await deleteCloudAnchorDetailed(anchorId, deps);
-  if (outcome.ok) return true;
+  if (outcome.ok) { await anchorDeletionRef(anchorId).delete(); return true; }
   if (outcome.skipped && inEmulator()) return false; // emulator: API intentionally off, nothing to retry
   await anchorDeletionRef(anchorId).set({
     attempts: 0,
@@ -40,9 +40,22 @@ export async function drainAnchorDeletionQueue(now = Date.now(), limit = 100, de
     .get();
   let deleted = 0;
   for (const entry of due.docs) {
+    const safe = await db.runTransaction(async tx => {
+      const ref = db.collection('cloud_anchors').doc(entry.id);
+      const record = await tx.get(ref);
+      if (record.exists && !['deleting', 'deleted'].includes(String(record.get('state')))) return false;
+      tx.set(ref, { state: 'deleting', expires_at: FieldValue.delete() }, { merge: true });
+      return true;
+    });
+    if (!safe) { await entry.ref.update({ next_at: Timestamp.fromMillis(now + backoffMs(5)), last_error: 'anchor_binding_conflict' }); continue; }
     const outcome = await deleteCloudAnchorDetailed(entry.id, deps);
     if (outcome.ok) {
-      await entry.ref.delete();
+      await db.runTransaction(async tx => {
+        const ref = db.collection('cloud_anchors').doc(entry.id);
+        const record = await tx.get(ref);
+        if (record.exists) tx.set(ref, { state: 'deleted', expires_at: FieldValue.delete(), deleted_at: FieldValue.serverTimestamp() }, { merge: true });
+        tx.delete(entry.ref);
+      });
       deleted++;
     } else {
       const attempts = Number(entry.data().attempts ?? 0) + 1;

@@ -1,6 +1,7 @@
 import AVFoundation
 import SwiftUI
 import SwiftData
+import UIKit
 
 enum ReportReason: String, CaseIterable, Identifiable {
     case spam = "Spam veya yanıltıcı"
@@ -21,6 +22,19 @@ enum ReportTarget: Identifiable {
         case .comment(let comment): comment.id.uuidString
         }
     }
+    private func loadMore() async {
+        guard let cursor = nextCursor, !isLoadingMore, case let .signedIn(viewer) = session.phase else { return }
+        let generation = pageGeneration
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await container.posts.publicPostsPage(creatorID: user.id, cursor: cursor)
+            guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            var unique = Dictionary(posts.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest }); for post in page.posts { unique[post.id] = post }; posts = unique.values.sorted { $0.createdAt > $1.createdAt }
+            nextCursor = page.next
+        } catch { message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") }
+    }
+
 }
 
 struct PostPreviewView: View {
@@ -30,6 +44,10 @@ struct PostPreviewView: View {
     @Environment(\.dismiss) private var dismiss
     let post: LociPost
     @State private var comments: [LociComment] = []
+    @State private var olderCommentsCursor: CommentPageCursor?
+    @State private var isLoadingOlderComments = false
+    @State private var commentsFailed = false
+    @State private var commentsLoadID = UUID()
     @State private var commentText = ""
     @State private var saved = false
     @State private var liked = false
@@ -84,28 +102,28 @@ struct PostPreviewView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("post-open-profile")
                 LociInlineNotice(
-                    title: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "Konuma bağlı AR" : "Yaklaşık yerleştirme",
+                    title: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "Konuma bağlı AR") : String(localized: "Yaklaşık yerleştirme"),
                     message: post.anchorBundle.anchor.pinQuality.isPhysicalSurface
-                        ? "AR görünümü yalnız postun kaydedildiği konumda açılır."
-                        : "Bu içerik fiziksel bir yüzeye kilitli değildir.",
+                        ? String(localized: "AR görünümü yalnız postun kaydedildiği konumda açılır.")
+                        : String(localized: "Bu içerik fiziksel bir yüzeye kilitli değildir."),
                     symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "location.fill.viewfinder" : "exclamationmark.triangle.fill",
                     color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
                 )
                 HStack(spacing: 10) {
                     Button { Task { await toggleLike() } } label: {
-                        PostActionLabel(title: liked ? "Beğenildi" : "Beğen", symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white, effectValue: liked)
+                        PostActionLabel(title: liked ? String(localized: "Beğenildi") : String(localized: "Beğen"), symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white, effectValue: liked)
                     }
                     .buttonStyle(.plain)
                     .disabled(isLikeMutating)
                     .accessibilityIdentifier("post-like-button")
                     Button { Task { await toggleSaved() } } label: {
-                        PostActionLabel(title: saved ? "Kaydedildi" : "Kaydet", symbol: saved ? "bookmark.fill" : "bookmark", color: saved ? LociTheme.accent : .white, effectValue: saved)
+                        PostActionLabel(title: saved ? String(localized: "Kaydedildi") : "Kaydet", symbol: saved ? "bookmark.fill" : "bookmark", color: saved ? LociTheme.accent : .white, effectValue: saved)
                     }
                     .buttonStyle(.plain)
                     .disabled(isSaveMutating)
                     .accessibilityIdentifier("post-save-button")
                     Button { reportTarget = .post } label: {
-                        PostActionLabel(title: "Bildir", symbol: "exclamationmark.bubble", color: .white)
+                        PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: .white)
                     }
                     .buttonStyle(.plain)
                     .disabled(isReporting)
@@ -125,15 +143,29 @@ struct PostPreviewView: View {
                     .accessibilityLabel("Diğer seçenekler")
                     .accessibilityIdentifier("post-more-menu")
                     if !collections.isEmpty {
-                        Menu("Koleksiyona ekle") {
+                        Menu(String(localized: "Koleksiyona ekle")) {
                             ForEach(collections) { collection in Button(collection.title) { Task { await add(to: collection) } } }
                         }
                     }
                 }
 
                 LociSectionLabel(title: "Yorumlar", symbol: "bubble.left.and.bubble.right")
+                Button("Yeni yorumları yenile") { Task { await load() } }
+                    .disabled(isLoading || isLoadingOlderComments)
+                    .accessibilityIdentifier("comments-refresh")
+                if olderCommentsCursor != nil && !isLoading {
+                    Button { Task { await loadOlderComments() } } label: {
+                        if isLoadingOlderComments { ProgressView().tint(LociTheme.accent) }
+                        else { Text("Önceki yorumları yükle") }
+                    }
+                    .disabled(isLoadingOlderComments)
+                    .accessibilityIdentifier("comments-load-older")
+                }
                 if isLoading {
                     ProgressView().tint(LociTheme.accent).frame(maxWidth: .infinity).padding()
+                } else if commentsFailed {
+                    Text("Yorumlar şu anda yüklenemiyor. Tekrar dene.").font(.subheadline).foregroundStyle(.secondary)
+                    Button("Tekrar dene") { Task { await load() } }
                 } else if comments.isEmpty {
                     Text("İlk yorumu sen yaz.").font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 6)
                 } else {
@@ -208,7 +240,8 @@ struct PostPreviewView: View {
         .sensoryFeedback(.selection, trigger: likeTaps)
         .sensoryFeedback(.selection, trigger: saveTaps)
         .sensoryFeedback(.success, trigger: commentsSent)
-        .task { await load() }
+        .task(id: commentViewerID) { await load() }
+        .refreshable { await load() }
         .safeAreaInset(edge: .bottom) {
             Button("AR’da aç", systemImage: "viewfinder") { showAR = true }
                 .buttonStyle(LociPrimaryButtonStyle())
@@ -224,7 +257,7 @@ struct PostPreviewView: View {
             presenting: reportTarget
         ) { target in
             ForEach(ReportReason.allCases) { reason in
-                Button(reason.rawValue.localizedUI) { Task { await report(target, reason: reason) } }
+                Button(NSLocalizedString(reason.rawValue, comment: "Report reason")) { Task { await report(target, reason: reason) } }
             }
             Button("Vazgeç", role: .cancel) {}
         } message: { _ in
@@ -250,19 +283,31 @@ struct PostPreviewView: View {
 
     private func deleteComment(_ comment: LociComment) async {
         guard container.isBackendConfigured || session.isLocalPreview else { return }
+        let viewerID = commentViewerID
         do {
             try await container.social.deleteComment(id: comment.id)
+            guard !Task.isCancelled, commentViewerID == viewerID else { return }
             withAnimation { comments.removeAll { $0.id == comment.id } }
-            message = "Yorum silindi."
+            message = String(localized: "Yorum silindi.")
         } catch {
-            message = "Yorum silinemedi."
+            guard !Task.isCancelled, commentViewerID == viewerID else { return }
+            message = String(localized: "Yorum silinemedi.")
         }
     }
 
     private func load() async {
+        let requestID = UUID()
+        let viewerID = commentViewerID
+        commentsLoadID = requestID
+        comments = []
+        olderCommentsCursor = nil
+        commentsFailed = false
+        message = nil
+        isLoadingOlderComments = false
         isLoading = true
-        defer { isLoading = false }
+        defer { if commentsLoadID == requestID { isLoading = false } }
         await recordViewIfNeeded()
+        guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
         if UITestFixtures.sampleContentEnabled {
             comments = UITestFixtures.comments
             collections = []
@@ -270,19 +315,55 @@ struct PostPreviewView: View {
         }
         guard container.isBackendConfigured || session.isLocalPreview else { return }
         do {
-            comments = try await container.social.comments(for: post.id)
+            let page = try await container.social.commentPage(for: post.id, before: nil)
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+            comments = LociComment.merging(comments, with: page.comments)
+            olderCommentsCursor = page.olderCursor
         } catch {
-            message = "Yorumlar şu anda yüklenemedi."
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+            commentsFailed = true
         }
         if case let .signedIn(user) = session.phase {
             async let savedIDs = container.social.savedPostIDs(for: user.id)
             async let likedIDs = container.social.likedPostIDs(for: user.id)
             async let loadedLikeCount = container.social.likeCount(for: post.id)
             async let loadedCollections = container.social.collections(for: user.id)
-            saved = ((try? await savedIDs) ?? []).contains(post.id)
-            liked = ((try? await likedIDs) ?? []).contains(post.id)
-            likeCount = (try? await loadedLikeCount) ?? likeCount
-            collections = (try? await loadedCollections) ?? []
+            let savedResult = (try? await savedIDs) ?? []
+            let likedResult = (try? await likedIDs) ?? []
+            let countResult = (try? await loadedLikeCount) ?? likeCount
+            let collectionsResult = (try? await loadedCollections) ?? []
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+            saved = savedResult.contains(post.id)
+            liked = likedResult.contains(post.id)
+            likeCount = countResult
+            collections = collectionsResult
+        }
+    }
+
+    private var commentViewerID: UUID? {
+        if case let .signedIn(user) = session.phase { return user.id }
+        return nil
+    }
+
+    private func isCurrentCommentsLoad(_ requestID: UUID, viewerID: UUID?) -> Bool {
+        !Task.isCancelled && commentsLoadID == requestID && commentViewerID == viewerID
+    }
+
+    private func loadOlderComments() async {
+        guard !isLoading, !isLoadingOlderComments, let cursor = olderCommentsCursor else { return }
+        let requestID = commentsLoadID
+        let viewerID = commentViewerID
+        isLoadingOlderComments = true
+        message = nil
+        defer { if commentsLoadID == requestID { isLoadingOlderComments = false } }
+        do {
+            let page = try await container.social.commentPage(for: post.id, before: cursor)
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+            comments = LociComment.merging(comments, with: page.comments)
+            olderCommentsCursor = page.olderCursor
+        } catch {
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+            message = String(localized: "Yorumlar şu anda yüklenemiyor. Tekrar dene.")
         }
     }
     private func toggleLike() async {
@@ -302,7 +383,7 @@ struct PostPreviewView: View {
         catch {
             liked.toggle()
             likeCount = max(0, likeCount + (next ? -1 : 1))
-            message = "Beğeni güncellenemedi."
+            message = String(localized: "Beğeni güncellenemedi.")
         }
     }
 
@@ -321,23 +402,28 @@ struct PostPreviewView: View {
         isSaveMutating = true
         defer { isSaveMutating = false }
         saveTaps += 1
-        do { try await container.social.setSaved(!saved, postID: post.id, userID: user.id); saved.toggle() } catch { message = "Kaydetme durumu güncellenemedi." }
+        do { try await container.social.setSaved(!saved, postID: post.id, userID: user.id); saved.toggle() } catch { message = String(localized: "Kaydetme durumu güncellenemedi.") }
     }
     private func addComment() async {
         guard !isCommentSending else { return }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured || session.isLocalPreview else { return }
         let cleanText = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanText.isEmpty, cleanText.count <= 500 else { message = "Yorum en fazla 500 karakter olabilir."; return }
+        guard !cleanText.isEmpty, cleanText.count <= 500 else { message = String(localized: "Yorum en fazla 500 karakter olabilir."); return }
         isCommentSending = true
         defer { isCommentSending = false }
         do {
             let comment = try await container.social.addComment(postID: post.id, user: user, text: cleanText)
+            guard !Task.isCancelled, commentViewerID == user.id else { return }
             withAnimation(.spring(duration: 0.3)) {
-                comments.append(comment)
+                comments = LociComment.merging(comments, with: [comment])
             }
             commentsSent += 1
             commentText = ""
-        } catch { message = "Yorum gönderilemedi." }
+            commentsFailed = false
+        } catch {
+            guard !Task.isCancelled, commentViewerID == user.id else { return }
+            message = String(localized: "Yorum gönderilemedi.")
+        }
     }
     private func report(_ target: ReportTarget, reason: ReportReason) async {
         guard !isReporting else { return }
@@ -356,9 +442,9 @@ struct PostPreviewView: View {
                 try await container.social.reportComment(comment, userID: user.id, reason: reason.rawValue)
                 withAnimation { comments.removeAll { $0.id == comment.id } }
             }
-            message = "Bildirimin incelemeye gönderildi. Teşekkürler."
+            message = String(localized: "Bildirimin incelemeye gönderildi. Teşekkürler.")
         } catch {
-            message = "Bildirim gönderilemedi."
+            message = String(localized: "Bildirim gönderilemedi.")
         }
     }
     private func blockCreator() async {
@@ -371,13 +457,13 @@ struct PostPreviewView: View {
             // The creator's content must disappear right away, including this screen.
             dismiss()
         } catch {
-            message = "Kullanıcı engellenemedi."
+            message = String(localized: "Kullanıcı engellenemedi.")
         }
     }
     private func add(to collection: LociCollection) async {
         guard container.isBackendConfigured else { return }
         do { try await container.social.add(postID: post.id, to: collection.id); message = String(localized: "\(collection.title) koleksiyonuna eklendi.") }
-        catch { message = "Koleksiyona eklenemedi." }
+        catch { message = String(localized: "Koleksiyona eklenemedi.") }
     }
 
     private var creatorUser: LociUser {

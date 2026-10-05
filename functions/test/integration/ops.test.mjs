@@ -40,20 +40,19 @@ test('kill switch: content and cost paths answer service_paused, and recover whe
   await user.call('createPost', postBody({ pose: { latitude: 41.1, longitude: 29.1, heading: 0, accuracy: 5 } }));
 });
 
-test('createPost: failed publishes are refunded at most 3 times an hour', async () => {
+test('createPost: failed atomic publishes never consume quota', async () => {
   const user = await newUser();
   for (let i = 0; i < 4; i++) {
     const missingAnchor = `ua-${randomUUID().replace(/-/g, '')}`;
     const failed = await expectFailure(user.call('createPost', postBody({ pose: anchorPose(missingAnchor, 41.2 + i * 0.01, 29.2) })));
     assert.equal(failed.code, 'functions/invalid-argument');
   }
-  const hour = (await hourDoc(user.luid).get()).data();
-  assert.equal(hour.refunds, 3);
-  assert.equal(hour.count, 1, 'the fourth failure keeps its slot');
+  assert.equal((await hourDoc(user.luid).get()).exists, false, 'admission failure creates no quota receipt');
 });
 
 test('profile text flags: a redelivered event writes one flag', async () => {
-  const luid = randomUUID();
+  const user = await newUser();
+  const luid = user.luid;
   const before = { handle: 'h', bio: 'merhaba', display_name: 'x' };
   const afterData = { handle: 'h', bio: 'siktir git', display_name: 'x' };
   const event = {
@@ -61,6 +60,7 @@ test('profile text flags: a redelivered event writes one flag', async () => {
     params: { luid },
     data: { before: { data: () => before }, after: { data: () => afterData } },
   };
+  await adminDb.collection('profiles').doc(luid).update(afterData);
   await onProfileUpdated.run(event);
   await onProfileUpdated.run(event);
   const flagged = await adminDb.collection('moderation_flags').where('user_id', '==', luid).get();
@@ -157,4 +157,16 @@ test('a filtered comment restored by a moderator (admin_restored) is not filtere
   await onCommentCreated.run({ id: `evt-${id}`, params: { id }, data: snapshot });
   assert.equal((await adminDb.collection('comments').doc(id).get()).exists, true);
   assert.equal((await adminDb.collection('moderation_flags').doc(`comment_${id}`).get()).exists, false);
+});
+
+test('a stale filtered-comment delivery cannot remove a later moderator restoration', async () => {
+  const user = await newUser();
+  const id = randomUUID(), postId = randomUUID();
+  const ref = adminDb.collection('comments').doc(id);
+  await adminDb.collection('posts').doc(postId).set({ creator_id: user.luid, status: 'active', visibility: 'public' });
+  const original = { id, post_id: postId, user_id: user.luid, text: 'siktir git' };
+  await ref.set({ ...original, admin_restored: true });
+  await onCommentCreated.run({ id: `old-${id}`, params: { id }, data: { id, ref, data: () => original } });
+  assert.equal((await ref.get()).get('admin_restored'), true);
+  assert.equal((await adminDb.collection('filtered_comments').doc(id).get()).exists, false);
 });

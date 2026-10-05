@@ -24,6 +24,31 @@ final class AuthGateUITests: XCTestCase {
         _ = XCUIApplication.swizzleLaunchOnce
     }
 
+    func testAuthGateEnglishLocalization() {
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_SIGNED_OUT", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let signIn = app.buttons["auth-mode-signin"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 8))
+        XCTAssertEqual(signIn.label, "Sign in")
+        XCTAssertEqual(app.buttons["auth-mode-signup"].label, "Sign up")
+        XCTAssertFalse(app.staticTexts["İşlem tamamlanamadı"].exists)
+        capture(app, name: "auth-english-localization")
+    }
+
+    func testAuthGateArabicLocalizationAndRTL() {
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_SIGNED_OUT", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_SA"]
+        app.launch()
+        let signIn = app.buttons["auth-mode-signin"]
+        let signUp = app.buttons["auth-mode-signup"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 8))
+        XCTAssertEqual(signIn.label, "تسجيل الدخول")
+        XCTAssertTrue(signUp.exists)
+        XCTAssertGreaterThan(signIn.frame.midX, signUp.frame.midX, "Arabic mode tabs should follow right-to-left layout")
+        capture(app, name: "auth-arabic-rtl-localization")
+    }
+
     func testAuthGatePassesAutomatedAccessibilityAudit() throws {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_SIGNED_OUT")

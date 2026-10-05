@@ -31,7 +31,7 @@ enum AvatarReference {
     /// photos are shown; any other URL (legacy or external) is ignored.
     nonisolated static func resolve(avatarURL raw: String?, preset: String?) async -> URL? {
         if let raw, raw.hasPrefix("storage://avatars/"),
-           let url = await AvatarURLCache.shared.downloadURL(for: raw) {
+           let url = URL(string: raw), StorageAssetReference(url: url) != nil {
             return url
         }
         return preset.flatMap(presetURL)
@@ -65,13 +65,20 @@ enum AvatarReference {
 
 actor AvatarURLCache {
     static let shared = AvatarURLCache()
-    private var cache: [String: URL] = [:]
-
-    func downloadURL(for locator: String) async -> URL? {
-        if let hit = cache[locator] { return hit }
-        let path = String(locator.dropFirst("storage://".count))
-        guard let url = try? await Storage.storage().reference(withPath: path).downloadURL() else { return nil }
-        cache[locator] = url
-        return url
+    private var cache: [String: Data] = [:]
+    func clear() { cache.removeAll() }
+    func data(for locator: URL) async -> Data? {
+        guard let owner = FirebaseIdentity.currentLUID(), let reference = StorageAssetReference(url: locator), reference.bucket == "avatars" else { return nil }
+        let ref = MediaAssetStore.storageReference(reference)
+        // Re-check authorization even on a cache hit. Removed photos and changed accounts
+        // cannot reuse a global permanent download URL.
+        guard let metadata = try? await ref.getMetadata(), metadata.size > 0, metadata.size < 3 * 1_024 * 1_024,
+              FirebaseIdentity.currentLUID() == owner else { return nil }
+        let key = owner.uuidString + ":" + locator.absoluteString
+        if let hit = cache[key] { return hit }
+        guard let data = try? await ref.data(maxSize: 3 * 1_024 * 1_024), FirebaseIdentity.currentLUID() == owner else { return nil }
+        if cache.count > 100 { cache.removeAll() }
+        cache[key] = data
+        return data
     }
 }

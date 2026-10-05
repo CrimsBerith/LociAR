@@ -1,19 +1,38 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPushMessage, deviceDocId, PUSH_LOC_KEYS } from '../lib/push.js';
+import { invalidPushTokenCode, pushBody, pushDeliveryId, pushLocale, pushTokenId, validPushToken } from '../lib/pushPolicy.js';
 
-test('push messages are localized on the device (APNs loc-key) and carry the post id', () => {
-  const message = buildPushMessage('tok-123', 'like', 'ayse', 'p-1');
-  assert.equal(message.token, 'tok-123');
-  assert.deepEqual(message.apns.payload.aps.alert, { locKey: 'push.like', locArgs: ['@ayse'] });
-  assert.deepEqual(message.data, { kind: 'like', post_id: 'p-1' });
-  assert.deepEqual(buildPushMessage('t', 'follow', 'x', null).data, { kind: 'follow' });
-  assert.deepEqual(Object.values(PUSH_LOC_KEYS).sort(), ['push.comment', 'push.follow', 'push.like']);
+test('FCM tokens reject whitespace, non-ASCII and excessive lengths', () => {
+  assert.equal(validPushToken('x'.repeat(20)), true);
+  for (const token of [null, 123, '', 'short', 'x'.repeat(4097), 'x'.repeat(20) + '\n', 'x'.repeat(20) + ' ', 'é'.repeat(20)]) {
+    assert.equal(validPushToken(token), false);
+  }
 });
 
-test('device ids are a hash of the token, never the token itself', () => {
-  const id = deviceDocId('secret-token-value');
-  assert.match(id, /^[0-9a-f]{64}$/);
-  assert.equal(id.includes('secret'), false);
-  assert.equal(deviceDocId('secret-token-value'), id);
+test('token and delivery identifiers are safe document keys without exposing the token', () => {
+  const token = 'synthetic/token:with-specials-12345';
+  assert.match(pushTokenId(token), /^[a-f0-9]{64}$/);
+  assert.ok(!pushTokenId(token).includes(token));
+  assert.notEqual(pushDeliveryId('first', pushTokenId(token)), pushDeliveryId('second', pushTokenId(token)));
+});
+
+test('only token-specific FCM errors invalidate a registration', () => {
+  assert.equal(invalidPushTokenCode('messaging/registration-token-not-registered'), true);
+  assert.equal(invalidPushTokenCode('messaging/invalid-registration-token'), true);
+  for (const code of ['messaging/invalid-argument', 'messaging/internal-error', 'messaging/third-party-auth-error', undefined]) {
+    assert.equal(invalidPushTokenCode(code), false);
+  }
+});
+
+test('push language selection handles device locales and falls back to English', () => {
+  assert.equal(pushLocale('tr-TR'), 'tr');
+  assert.equal(pushLocale('pt_BR'), 'pt');
+  assert.equal(pushLocale('zh-Hans-CN'), 'zh-Hans');
+  assert.equal(pushLocale('unknown'), 'en');
+  assert.equal(pushLocale(null), 'en');
+  assert.equal(pushBody('like', 'tr'), 'Postun beğenildi.');
+  assert.equal(pushBody('unknown', 'en'), null);
+  for (const locale of ['tr', 'en', 'zh-Hans', 'hi', 'es', 'fr', 'ar', 'bn', 'pt', 'ru', 'de', 'ja']) {
+    for (const kind of ['like', 'comment', 'follow']) assert.ok(pushBody(kind, locale)?.length > 0);
+  }
 });

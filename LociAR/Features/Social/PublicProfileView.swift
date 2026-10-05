@@ -1,6 +1,7 @@
 import AVFoundation
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct PublicProfileView: View {
     @Environment(AppSession.self) private var session
@@ -10,6 +11,9 @@ struct PublicProfileView: View {
     @State private var posts: [LociPost] = []
     @State private var following = false
     @State private var message: String?
+    @State private var nextCursor: String?
+    @State private var pageGeneration = 0
+    @State private var isLoadingMore = false
     @State private var isLoading = true
     @State private var isFollowMutating = false
     @State private var isBlockMutating = false
@@ -27,10 +31,10 @@ struct PublicProfileView: View {
                         if let bio = profile?.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center) }
                     }
                     HStack(spacing: 22) {
-                        profileMetric(value: profile?.publicPostCount ?? posts.count, label: "Post")
-                        profileMetric(value: profile?.followerCount ?? 0, label: "Takipçi")
+                        profileMetric(value: profile?.publicPostCount ?? posts.count, label: String(localized: "Post"))
+                        profileMetric(value: profile?.followerCount ?? 0, label: String(localized: "Takipçi"))
                     }
-                    Button(following ? "Takibi bırak" : "Takip et") { Task { await toggleFollow() } }
+                    Button(following ? String(localized: "Takibi bırak") : String(localized: "Takip et")) { Task { await toggleFollow() } }
                         .buttonStyle(.borderedProminent).tint(following ? .white.opacity(0.16) : LociTheme.accent)
                         .foregroundStyle(following ? .white : .black).frame(maxWidth: .infinity)
                         .disabled(isFollowMutating || isBlockMutating || isBlocked)
@@ -56,7 +60,7 @@ struct PublicProfileView: View {
             }
             Section("Paylaşımlar") {
                 if isLoading { HStack { Spacer(); ProgressView().tint(LociTheme.accent); Spacer() }.padding() }
-                else if posts.isEmpty { LociEmptyState(title: "Henüz paylaşım yok", message: message ?? "Bu hesap henüz bir post paylaşmadı.", symbol: "rectangle.stack") }
+                else if posts.isEmpty { LociEmptyState(title: String(localized: "Henüz paylaşım yok"), message: message ?? String(localized: "Bu hesap henüz bir post paylaşmadı."), symbol: "rectangle.stack") }
                 ForEach(posts) { post in
                     NavigationLink(value: post) { PostCard(post: post) }.listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
@@ -67,6 +71,12 @@ struct PublicProfileView: View {
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
         .refreshable { await load() }
         .task { await load() }
+        .safeAreaInset(edge: .bottom) {
+            if nextCursor != nil {
+                Button("Daha fazla göster") { Task { await loadMore() } }
+                    .disabled(isLoadingMore || isLoading).padding().background(.ultraThinMaterial)
+            }
+        }
         .confirmationDialog("Kullanıcı engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
             Button("Engelle", role: .destructive) { Task { await block() } }
             Button("Vazgeç", role: .cancel) {}
@@ -75,7 +85,7 @@ struct PublicProfileView: View {
         }
         .confirmationDialog("Neden bildiriyorsun?", isPresented: $reportingUser, titleVisibility: .visible) {
             ForEach(ReportReason.allCases) { reason in
-                Button(reason.rawValue.localizedUI) { Task { await reportUser(reason) } }
+                Button(NSLocalizedString(reason.rawValue, comment: "Report reason")) { Task { await reportUser(reason) } }
             }
             Button("Vazgeç", role: .cancel) {}
         }
@@ -85,13 +95,15 @@ struct PublicProfileView: View {
         guard case let .signedIn(viewer) = session.phase, container.isBackendConfigured else { return }
         do {
             try await container.social.reportUser(targetID: user.id, userID: viewer.id, reason: reason.rawValue)
-            message = "Bildirimin incelemeye gönderildi. Teşekkürler."
+            message = String(localized: "Bildirimin incelemeye gönderildi. Teşekkürler.")
         } catch {
-            message = "Bildirim gönderilemedi."
+            message = String(localized: "Bildirim gönderilemedi.")
         }
     }
 
     private func load() async {
+        pageGeneration += 1
+        nextCursor = nil
         isLoading = true
         message = nil
         defer { isLoading = false }
@@ -104,15 +116,16 @@ struct PublicProfileView: View {
             posts = [UITestFixtures.post]
             return
         }
-        guard container.isBackendConfigured else { message = "Sunucu bağlantısı henüz hazır değil."; return }
+        guard container.isBackendConfigured else { message = String(localized: "Sunucu bağlantısı henüz hazır değil."); return }
         do {
             async let loadedProfile = container.posts.publicProfile(creatorID: user.id)
-            async let loadedPosts = container.posts.publicPosts(creatorID: user.id, limit: 60)
-            (profile, posts) = try await (loadedProfile, loadedPosts)
+            async let loadedPage = container.posts.publicPostsPage(creatorID: user.id, cursor: nil)
+            let (newProfile, page) = try await (loadedProfile, loadedPage)
+            profile = newProfile; posts = page.posts; nextCursor = page.next
             if case let .signedIn(viewer) = session.phase {
                 following = (try await container.social.followingIDs(for: viewer.id)).contains(user.id)
             }
-        } catch { message = "Profil şu anda yüklenemiyor." }
+        } catch { message = String(localized: "Profil şu anda yüklenemiyor.") }
     }
 
     private func toggleFollow() async {
@@ -121,7 +134,7 @@ struct PublicProfileView: View {
         isFollowMutating = true
         defer { isFollowMutating = false }
         do { try await container.social.setFollowing(!following, targetID: user.id, userID: viewer.id); following.toggle() }
-        catch { message = "Takip durumu güncellenemedi." }
+        catch { message = String(localized: "Takip durumu güncellenemedi.") }
     }
 
     private func block() async {
@@ -134,9 +147,9 @@ struct PublicProfileView: View {
             isBlocked = true
             following = false
             posts = []
-            message = "Kullanıcı engellendi."
+            message = String(localized: "Kullanıcı engellendi.")
         } catch {
-            message = "Hesap engellenemedi. Tekrar dene."
+            message = String(localized: "Hesap engellenemedi. Tekrar dene.")
         }
     }
 

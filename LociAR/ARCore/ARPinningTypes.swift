@@ -36,15 +36,15 @@ enum ARPinningError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unsupported: "Bu cihaz gelişmiş AR yüzey taramasını desteklemiyor."
-        case .cameraDenied: "Kamera izni verilmedi."
-        case .noAnchor: "Önce bir yüzey seçin."
-        case .mappingNotReady: "Yüzey kaydı henüz hazır değil. Çevreyi yavaşça tarayın."
-        case .mapUnavailable: "Yüzey kaydı oluşturulamadı."
-        case .invalidWorldMap: "Kaydedilmiş yüzey bilgisi açılamadı."
-        case .anchorMissing: "Postun bağlı olduğu yüzey kaydı bulunamadı."
-        case .renderAnchorMissing: "Yüzey bulundu ancak post anchor'ı sahneye bağlanamadı."
-        case .renderContentUnavailable: "Postun yüzey içeriği hazırlanamadı."
+        case .unsupported: String(localized: "Bu cihaz gelişmiş AR yüzey taramasını desteklemiyor.")
+        case .cameraDenied: String(localized: "Kamera izni verilmedi.")
+        case .noAnchor: String(localized: "Önce bir yüzey seçin.")
+        case .mappingNotReady: String(localized: "Yüzey kaydı henüz hazır değil. Çevreyi yavaşça tarayın.")
+        case .mapUnavailable: String(localized: "Yüzey kaydı oluşturulamadı.")
+        case .invalidWorldMap: String(localized: "Kaydedilmiş yüzey bilgisi açılamadı.")
+        case .anchorMissing: String(localized: "Postun bağlı olduğu yüzey kaydı bulunamadı.")
+        case .renderAnchorMissing: String(localized: "Yüzey bulundu ancak post anchor'ı sahneye bağlanamadı.")
+        case .renderContentUnavailable: String(localized: "Postun yüzey içeriği hazırlanamadı.")
         }
     }
 }

@@ -128,7 +128,7 @@ struct MapFeatureView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(selectedPost.caption.isEmpty ? "Mekânsal post".localizedUI : selectedPost.caption)
+                            Text(selectedPost.caption.isEmpty ? String(localized: "Mekânsal post") : selectedPost.caption)
                                 .font(.headline).lineLimit(2)
                             Label(distanceText(for: selectedPost).localizedUI, systemImage: "location.fill")
                                 .font(.caption).foregroundStyle(.secondary)
@@ -159,7 +159,7 @@ struct MapFeatureView: View {
                             else { Image(systemName: statusSymbol).foregroundStyle(LociTheme.accent) }
                         }
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(isLoading ? "Yakın çevre taranıyor" : "Yakındaki postlar")
+                            Text(isLoading ? String(localized: "Yakın çevre taranıyor") : String(localized: "Yakındaki postlar"))
                                 .font(.headline)
                             Text(message?.localizedUI ?? (posts.isEmpty ? String(localized: "Yakınında henüz post yok.") : String(localized: "\(posts.count) post bulundu. Haritadaki bir pine dokun.")))
                                 .font(.caption).foregroundStyle(LociTheme.secondaryText).lineLimit(2)
@@ -192,7 +192,7 @@ struct MapFeatureView: View {
                                         HStack(spacing: 10) {
                                             Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                                 .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
-                                            Text(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
+                                            Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
                                                 .font(.subheadline.weight(.semibold))
                                                 .foregroundStyle(.white)
                                                 .lineLimit(1)
@@ -205,7 +205,7 @@ struct MapFeatureView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .accessibilityElement(children: .ignore)
-                                    .accessibilityLabel(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
+                                    .accessibilityLabel(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
                                     .accessibilityIdentifier("map-open-\(post.caption)")
                                 }
                             }
@@ -251,7 +251,7 @@ struct MapFeatureView: View {
             if let error = location.errorMessage { message = error; return }
             try? await Task.sleep(for: .milliseconds(200))
         }
-        message = "Konum henüz netleşmedi. İç mekânda biraz bekleyip tekrar dene veya Ayarlar’dan konum iznini kontrol et."
+        message = String(localized: "Konum henüz netleşmedi. İç mekânda biraz bekleyip tekrar dene veya Ayarlar’dan konum iznini kontrol et.")
     }
 
     private func loadNearby(_ current: CLLocation) async {
@@ -262,17 +262,17 @@ struct MapFeatureView: View {
         }
         guard container.isBackendConfigured else {
             posts = mergedPosts([])
-            message = posts.isEmpty ? "Bağlantı ayarı tamamlandığında yakındaki postlar burada görünecek." : nil
+            message = posts.isEmpty ? String(localized: "Bağlantı ayarı tamamlandığında yakındaki postlar burada görünecek.") : nil
             return
         }
         do {
             posts = mergedPosts(try await container.posts.nearby(
                 latitude: current.coordinate.latitude, longitude: current.coordinate.longitude, radiusMeters: 50_000
             ))
-            message = posts.isEmpty ? "Yakında görünür post bulunamadı." : nil
+            message = posts.isEmpty ? String(localized: "Yakında görünür post bulunamadı.") : nil
         } catch {
             posts = mergedPosts([])
-            message = posts.isEmpty ? "Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene." : nil
+            message = posts.isEmpty ? String(localized: "Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.") : nil
         }
     }
 
@@ -296,10 +296,10 @@ struct MapFeatureView: View {
         guard let current = location.location,
               let geo = post.anchorBundle.anchor.geoPose,
               ProximityPolicy.isValidCoordinate(latitude: geo.latitude, longitude: geo.longitude) else {
-            return "Mesafe hesaplanamadı"
+            return String(localized: "Mesafe hesaplanamadı")
         }
         let distance = current.distance(from: CLLocation(latitude: geo.latitude, longitude: geo.longitude))
-        guard let meters = ProximityPolicy.roundedMeters(distance) else { return "Mesafe hesaplanamadı" }
-        return meters < 1_000 ? "\(meters) m" : String(format: "%.1f km", distance / 1_000)
+        guard let meters = ProximityPolicy.roundedMeters(distance) else { return String(localized: "Mesafe hesaplanamadı") }
+        return meters < 1_000 ? "\(meters.formatted()) m" : String(format: "%.1f km", locale: Locale.current, distance / 1_000)
     }
 }

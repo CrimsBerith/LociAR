@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';import test from 'node:test';
+process.env.FIREBASE_CONFIG=JSON.stringify({projectId:'demo-lociar',storageBucket:'demo-lociar.appspot.com'});
+process.env.GCLOUD_PROJECT='demo-lociar';
+const {revokeWorldMapToken}=await import('../lib/mapStorageFinalize.js');
+test('map finalization revokes bearer tokens only on the exact immutable generation',async()=>{const calls=[];const io={name:'demo-only',update:async(...args)=>calls.push(args)};
+ assert.equal(await revokeWorldMapToken({name:'post-world-maps/owner/post/map.lociarmap',bucket:'demo-only',generation:'12345678901234567'},io),'revoked');assert.deepEqual(calls,[['post-world-maps/owner/post/map.lociarmap','12345678901234567']]);
+ assert.equal(await revokeWorldMapToken({name:'avatars/owner/current/avatar.jpg',bucket:'demo-only',generation:'1'},io),'ignored');await assert.rejects(revokeWorldMapToken({name:'post-world-maps/x',bucket:'demo-only',generation:Number.MAX_SAFE_INTEGER+1},io),/generation/);
+});
+test('late map generations are harmless; metadata outages stay retryable',async()=>{for(const code of[404,412])assert.equal(await revokeWorldMapToken({name:'post-world-maps/x',bucket:'demo',generation:'1'},{name:'demo',update:async()=>{throw{code};}}),'superseded');
+ await assert.rejects(revokeWorldMapToken({name:'post-world-maps/x',bucket:'demo',generation:'1'},{name:'demo',update:async()=>{throw new Error('temporary outage');}}),/temporary outage/);});

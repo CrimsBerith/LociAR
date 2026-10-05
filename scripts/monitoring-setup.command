@@ -6,8 +6,8 @@
 #
 # What gets an email:
 #   - Cloud Functions / App Hosting errors (more than 10 ERROR log lines in 10 minutes)
-#   - any post quota refund failure, Apple token revocation failure, Cloud Anchor deletion failure
-#   - ARCore token / avatar screening outages, repeated push send failures
+#   - account deletions that had to be deferred or whose retry failed, Cloud Anchor deletion failures
+#   - ARCore token / avatar screening outages, storage cleanup backlog, repeated push send failures
 #   - kill switch on (service_paused answers), so a forgotten switch is noticed
 #   - monthly billing budget at 50 / 90 / 100 %
 set -euo pipefail
@@ -79,13 +79,14 @@ metric() { # name, description, filter
 
 step "Log tabanlı metrikler"
 metric lociar_server_errors "ERROR log lines from Cloud Functions and App Hosting" "$RUN AND severity>=ERROR"
-metric lociar_post_quota_refund_failed "A failed post was not refunded to the user's quota" "$(event post_quota_refund_failed)"
-metric lociar_apple_revoke_failed "Apple sign-in token revocation failed (account deletion aborted)" \
-  "$(event apple_revoke_failed apple_revoke_unavailable)"
+metric lociar_account_deletion_deferred "Account deletion accepted but deferred, or its automatic retry failed" \
+  "$(event account_deletion_deferred account_deletion_retry_failed)"
+metric lociar_storage_cleanup_deferred "Media, avatar or orphan upload cleanup was deferred" \
+  "$(event media_cleanup_deferred avatar_deletion_deferred orphan_upload_reclamation_failed)"
 metric lociar_cloud_anchor_cleanup_failed "Cloud Anchor deletion or deletion-queue failure" \
   "$(event cloud_anchor_delete_failed cloud_anchor_queue_failed cloud_anchor_cleanup_failed)"
 metric lociar_arcore_token_failed "getArcoreToken could not sign an ARCore token" \
-  "$(event arcore_token_failed arcore_signer_env_missing)"
+  "$(event arcore_token_failed)"
 metric lociar_avatar_screening_failed "Cloud Vision avatar screening or pending avatar cleanup failed" \
   "$(event avatar_screening_failed pending_avatar_cleanup_failed)"
 metric lociar_push_failed "FCM push send failures" "$(event push_failed push_send_failed)"
@@ -126,14 +127,14 @@ step "Alarm politikaları"
 echo "(Yeni metrikler ilk log satırından sonra görünür; politika oluşturma bu yüzden bazen bir dakika bekletir.)"
 policy lociar_server_errors "Sunucu hataları" 10 600 \
   "More than 10 ERROR log lines in 10 minutes from Cloud Functions / App Hosting. Open Logs and filter severity>=ERROR."
-policy lociar_post_quota_refund_failed "Kota iadesi başarısız" 0 300 \
-  "A user's post quota was not refunded after a failed publish. Fix the counter in users_private if needed."
-policy lociar_apple_revoke_failed "Apple token iptali başarısız" 0 300 \
-  "Account deletion was aborted because Apple token revocation failed (guideline 5.1.1(v)). Check the Apple sign-in secrets."
+policy lociar_account_deletion_deferred "Hesap silme ertelendi" 0 3600 \
+  "An accepted account deletion could not finish in one go and is retried by the scheduler. Check that it completes (functions/src/accountDeletion.ts)."
+policy lociar_storage_cleanup_deferred "Depolama temizliği ertelendi" 3 3600 \
+  "Media, avatar or orphan upload cleanup was deferred repeatedly. Check Storage permissions and the cleanup schedulers."
 policy lociar_cloud_anchor_cleanup_failed "Cloud Anchor silme hatası" 0 3600 \
   "Cloud Anchors were not deleted with their post/account. The cleanup job retries; check functions/src/arcoreManagement.ts logs."
 policy lociar_arcore_token_failed "ARCore token hatası" 3 600 \
-  "getArcoreToken failed repeatedly: AR re-localization falls back to world maps. Check the ARCore signer service account."
+  "getArcoreToken failed repeatedly: AR re-localization falls back to world maps. Check the Functions service account (Service Account Token Creator)."
 policy lociar_avatar_screening_failed "Avatar denetimi hatası" 3 3600 \
   "Cloud Vision SafeSearch screening failed repeatedly; new profile photos stay unpublished."
 policy lociar_push_failed "Push gönderim hataları" 20 3600 \

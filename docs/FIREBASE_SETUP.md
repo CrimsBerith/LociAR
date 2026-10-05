@@ -4,7 +4,14 @@ Her şey Firebase'de: Auth, Firestore, Storage, Cloud Functions, Cloud Messaging
 (Firebase App Hosting).
 Docker, Vercel veya başka bir barındırma kullanılmaz.
 
-## Canlı proje durumu — `lociar-2f38c` (5 Ekim 2026)
+Güncel kapsam ve yayın kararı: [RELEASE_READINESS.md](release/RELEASE_READINESS.md).
+
+## Tarihsel canlı proje bildirimi — `lociar-2f38c` (28 Eylül 2026)
+
+Aşağıdaki tablo önceki ekip bildirimidir; 4 Ekim bulut oturumunda canlı projeye yetkili GCP kimliği
+olmadığı için yeniden doğrulanmadı. Eski 20 Functions bildirimi yeni push/aktivite callable'larının
+dağıtıldığını göstermez. App Check'in izleme modunda olması üretim enforcement kabulü değildir;
+review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğrulanmalıdır.
 
 | Adım | Durum |
 |---|---|
@@ -29,11 +36,12 @@ Docker, Vercel veya başka bir barındırma kullanılmaz.
 | Kimlik | Firebase Auth (e-posta+şifre, Apple) | `LociAR/Data/AuthRepository.swift` |
 | Kullanıcı UUID'si | `luid` = UUIDv5(Firebase UID) + custom claim | `FirebaseBackend.swift`, `functions/src/core.ts` |
 | Veritabanı | Cloud Firestore | `firestore.rules`, `firestore.indexes.json` |
-| Dosyalar | Cloud Storage: yalnız profil fotoğrafları (`avatars/`) ve AR dünya haritaları (`post-world-maps/`); post medyası yok | `storage.rules`, `AvatarStore.swift`, `WorldMapStore.swift` |
-| Push | FCM (APNs üzerinden); token `registerPushToken`/`unregisterPushToken` callable'larıyla, gönderim tetikleyicilerden | `functions/src/push.ts`, `NotificationService.swift` |
+| Avatar / AR çevre haritası | Cloud Storage; post fotoğraf/video yüklemesi kapalı | `storage.rules`, `AvatarStore.swift`, `WorldMapStore.swift` |
+| Push | FCM (APNs üzerinden); token `registerPushToken`/`unregisterPushToken` (kurulum kimliğiyle), gönderim `onActivityCreated` tetikleyicisinden | `functions/src/push.ts`, `NotificationService.swift` |
 | Kill switch | `system/flags.kill_switch` (admin → System); callable'lar `service_paused` döner | `functions/src/core.ts`, `admin/app/admin/(protected)/system` |
 | create_post / delete_account | Callable Cloud Functions | `functions/src/posts.ts`, `account.ts`, `profile.ts` |
 | Sayaçlar, aktivite | Firestore tetikleyicileri | `functions/src/triggers.ts` |
+| Aktivite okundu durumu | Auth + App Check callable; doğrudan istemci yazması yok | `functions/src/activity.ts` |
 | Admin panel + yasal sayfalar | Next.js, Firebase App Hosting (`lociar-admin`), Admin SDK, session cookie, TOTP MFA | `admin/lib/admin.ts`, `admin/lib/ops.ts`, `admin/apphosting.yaml` |
 
 Önemli davranışlar:
@@ -41,9 +49,10 @@ Docker, Vercel veya başka bir barındırma kullanılmaz.
   varsayılan olarak kapalı (`LOCIAR_AUTO_PUBLISH_HIGH_QUALITY=true` ile açılabilir). App Review notlarıyla uyumlu.
 - Şifreli hesaplarda e-posta doğrulanmadan uygulamaya girilemez; Apple hesapları doğrulanmış sayılır.
 - "Giriş bağlantısı gönder" (magic link) iOS'ta kaldırıldı; Firebase e-posta bağlantısı Universal Link gerektirir.
-- Hesap silme: uygulama önce yeniden kimlik doğrular (Apple ile tekrar giriş veya şifre), Apple kullanıcılarında
-  Apple token'ı iptal edilir, sonra `deleteAccount` tüm postları, dosyaları, sosyal kayıtları, push cihazlarını ve
-  Auth kullanıcısını kalıcı siler.
+- Hesap silme: iOS Apple veya mevcut parola ile Firebase yeniden doğrulaması yapar
+  ve ID token'ı yeniler. Sunucu son 5 dakika `auth_time` şartını korur; Apple
+  kullanıcılarında önce token iptali, sonra `deleteAccount` kalıcı silme yapar.
+  Akış ve cihaz kabulü: [ACTIVITY_AND_ACCOUNT_DELETION.md](ACTIVITY_AND_ACCOUNT_DELETION.md).
 - Giriş ekranında gizlilik/topluluk kuralları onay kutusu zorunludur; `ensureProfile` kabul edilen sürümü
   `users_private.terms_version` / `terms_accepted_at` olarak kaydeder.
 
@@ -70,7 +79,7 @@ elle yapılışıdır.
    - Settings → Authorized domains: admin panel alan adını ekle: `lociar-admin--lociar-2f38c.us-central1.hosted.app` (özel alan adı bağlanırsa onu da).
 6. Authentication → Settings → **Upgrade to Identity Platform** (admin TOTP MFA için gerekli; 50K MAU'ya kadar ücretsiz katman).
 7. **App Check** → iOS uygulaması → App Attest'i kaydet. Firestore/Storage için önce "Unenforced" kalsın;
-   TestFlight doğrulandıktan sonra enforce et. **Callable Functions** konsoldan değil koddan zorlanır:
+   TestFlight doğrulandıktan sonra enforce et; üretim yayını öncesi Firestore/Storage enforcement doğrulanmış olmalı. **Callable Functions** konsoldan değil koddan zorlanır:
    `functions/src/core.ts` → `ENFORCE_APP_CHECK` (emulator dışında her zaman açık). Debug build'lerle canlı
    backend'e bağlanacaksan Xcode konsolunda basılan App Check debug token'ını konsolda "Manage debug tokens"
    altına ekle; yoksa callable'lar `unauthenticated` döner.
@@ -96,11 +105,10 @@ elle yapılışıdır.
 
 ```sh
 cd LociAR
-npm i -g firebase-tools        # veya: npx firebase-tools
-firebase login
 cp .firebaserc.example .firebaserc && sed -i '' 's/YOUR-FIREBASE-PROJECT-ID/<proje-id>/' .firebaserc
 cd functions && npm ci && npm test && cd ..
-firebase deploy --only firestore:rules,firestore:indexes,storage,functions
+./functions/node_modules/.bin/firebase login
+./functions/node_modules/.bin/firebase deploy --only firestore:rules,firestore:indexes,storage,functions
 ```
 
 Functions bölgesi `us-central1` (Firestore nam5 ile aynı bölge olmalı; Firestore trigger şartı) (değiştirmek için deploy öncesi `LOCIAR_FUNCTIONS_REGION` ortam değişkeni
@@ -125,7 +133,7 @@ App Review hesabı:
 1. Uygulamada `apple-review@lociar.app` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
    uygulamada bir kez giriş yap (profil oluşur).
 2. `node scripts/seed-review-content.mjs apple-review@lociar.app` → İstanbul ve Cupertino'da 7 onaylı örnek post.
-3. Şifreyi güçlü ve yeni bir değere ayarla; repoda duran eski örnek şifreyi kullanma.
+3. Parolayı [CREDENTIALS.md](CREDENTIALS.md) adımlarına göre yenile ve App Store Connect'in Sign-In Information alanına gir; inceleme notlarına veya depoya yazma.
 
 ## 4. iOS uygulaması
 
@@ -149,8 +157,9 @@ Sunucu, App Hosting backend'inin servis hesabıyla çalışır; **servis hesabı
 
 İlk kurulum (bir kez, Mac'te):
 ```sh
+npm ci --prefix functions        # depo kökünde; gözden geçirilen lockfile ve overrides
 gcloud services enable firebaseapphosting.googleapis.com --project lociar-2f38c
-npx firebase-tools@14 apphosting:backends:create --project lociar-2f38c \
+./functions/node_modules/.bin/firebase apphosting:backends:create --project lociar-2f38c \
   --backend lociar-admin --primary-region us-central1 --root-dir admin
 ```
 - Sihirbaz bir **web app** bağlamayı sorar → "LociAR Admin" web app'ini seç/oluştur. Public istemci kimlikleri
@@ -161,7 +170,7 @@ npx firebase-tools@14 apphosting:backends:create --project lociar-2f38c \
   `scripts/google-cloud-setup.command` bunu verir.
 - Authentication → Settings → Authorized domains: `lociar-admin--lociar-2f38c.us-central1.hosted.app`.
 
-Dağıtım: `npx firebase-tools@14 deploy --only apphosting --project lociar-2f38c` (ya da GitHub bağlantısıyla
+Dağıtım: `./functions/node_modules/.bin/firebase deploy --only apphosting --project lociar-2f38c` (ya da GitHub bağlantısıyla
 otomatik). Adres: `https://lociar-admin--lociar-2f38c.us-central1.hosted.app` — iOS `Config/Base.xcconfig`
 içindeki gizlilik/şartlar/destek bağlantıları bu adresi kullanır. Özel alan adı bağlanırsa (App Hosting →
 Settings → Custom domain) `Config/Base.xcconfig`, `admin/apphosting.yaml` (`ADMIN_ORIGIN`) ve App Store
@@ -174,11 +183,12 @@ Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yenide
 
 ## 6. Bilinen farklar / sonraki adımlar
 
-- Firestore'da tam metin arama yok: admin arama handle önekine ve son 500 post başlığına bakar.
+- Firestore'da tam metin arama yok: admin arama handle önekine ve cursor ile devam eden post caption sayfalarına bakar. Sonuçsuz bir sayfadan da eski kayıtlara devam edilebilir; küresel tam metin indeksi ayrıca ürün/altyapı kararıdır.
 - Engelleme yalnız engelleyen tarafta içerik gizler (Apple'ın beklediği davranış).
-- Push bildirimleri 1.0'da var: beğeni, yorum ve takipte FCM ile gönderilir (saatte en fazla 20, kullanıcı başına
-  10 cihaz). Bildirim metni cihaz dilinde gösterilir (`push.like` / `push.comment` / `push.follow` anahtarları).
-- Storage'da yalnız avatarlar ve AR dünya haritaları kalır; trafik büyürse önce dünya haritası boyutları izlenir.
+- Push APNs/Firebase Messaging üzerinden uygulanmıştır; Firebase Console APNs anahtarı,
+  Functions dağıtımı ve fiziksel cihaz/TestFlight kabulü ayrıca gereklidir.
+  Kayıt, gönderim ve test sözleşmesi: [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md).
+- ~5K aktif kullanıcıdan sonra medyayı Cloudflare R2'ye taşımak indirme maliyetini sıfırlar.
 
 ## 6a. Kill switch (acil durdurma)
 
@@ -197,10 +207,10 @@ içinde normale döner.
 | Metrik | Alarm koşulu | Ne yapılır |
 |--------|--------------|------------|
 | `lociar_server_errors` | 10 dk'da >10 ERROR satırı | Logs'ta `severity>=ERROR` filtresine bak |
-| `lociar_post_quota_refund_failed` | herhangi biri | Kullanıcının `post_quota` sayacını düzelt |
-| `lociar_apple_revoke_failed` | herhangi biri | Apple anahtar/secret'larını kontrol et; hesap silme durdu |
+| `lociar_account_deletion_deferred` | 1 saatte herhangi biri | Silme işi zamanlayıcıyla yeniden denenir; tamamlandığını doğrula |
+| `lociar_storage_cleanup_deferred` | 1 saatte >3 | Storage yetkileri ve temizlik zamanlayıcıları |
 | `lociar_cloud_anchor_cleanup_failed` | 1 saatte herhangi biri | `arcoreManagement.ts` logları; iş kendini yeniden dener |
-| `lociar_arcore_token_failed` | 10 dk'da >3 | ARCore imzalayıcı servis hesabı (`google-cloud-setup.command`) |
+| `lociar_arcore_token_failed` | 10 dk'da >3 | Functions servis hesabının Token Creator yetkisi (`google-cloud-setup.command`) |
 | `lociar_avatar_screening_failed` | 1 saatte >3 | Cloud Vision API / kota |
 | `lociar_push_failed` | 1 saatte >20 | Firebase Console → Cloud Messaging → APNs anahtarı |
 | `lociar_service_paused` | herhangi biri | Kill switch açık kaldıysa kapat (6a) |
@@ -223,9 +233,9 @@ Crashlytics çökme uyarıları ayrıca Firebase Console → Crashlytics → ⋮
 
 Uygula: `gcloud storage buckets update gs://lociar-2f38c.firebasestorage.app --lifecycle-file=lifecycle.json`; doğrula: `gcloud storage buckets describe gs://lociar-2f38c.firebasestorage.app --format="default(lifecycle_config)"`.
 
-**Firestore TTL.** `firestore.indexes.json` içindeki `expires_at` TTL alanları (`post_view_receipts` 30 gün, `activity_events` 180 gün, `filtered_comments` 90 gün, `trigger_receipts` 7 gün, `post_quota`, `arcore_token_quota`, `anchor_quota`, bağlanmamış `cloud_anchors` 30 gün, `push_devices` 60 gün, `push_quota`) `firebase deploy --only firestore:indexes` ile etkinleşir.
+**Firestore TTL.** `firestore.indexes.json` içindeki `expires_at` TTL alanları (`post_view_receipts` 30 gün, `activity_events` 180 gün, `filtered_comments` 90 gün, `trigger_receipts` 7 gün, `push_tokens` 30 gün, `push_delivery_receipts` 180 gün, `post_quota`, `arcore_token_quota`, `anchor_quota`, bağlanmamış `cloud_anchors` 30 gün) `firebase deploy --only firestore:indexes` ile etkinleşir.
 
-**Apple token iptali (sunucu, zorunlu).** iOS hesap silmede Sign in with Apple ile yeni bir `authorizationCode` alır ve `deleteAccount`'a gönderir; sunucu Apple'da iptal eder. Functions ortamında `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_CLIENT_ID` (`functions/.env.<PROJE>`) ve `APPLE_PRIVATE_KEY` (.p8 içeriği, Secret Manager) yoksa (`apple_revoke_unavailable`) ya da Apple iptali reddederse (`apple_revoke_failed`) **hiçbir şey silinmez**.
+**Apple token iptali (sunucu, zorunlu).** iOS nonce'lu Sign in with Apple yanıtının identity token'ıyla Firebase `reauthenticate` yapar, ID token'ı yeniler ve aynı yanıttaki `authorizationCode` değerini `deleteAccount`'a gönderir. Yeni code tek başına Firebase `auth_time` değerini yenilemez. Sunucu Apple'da iptal eder. Functions ortamında `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_CLIENT_ID` (`functions/.env.<PROJE>`) ve `APPLE_PRIVATE_KEY` (.p8 içeriği, Secret Manager) yoksa (`apple_revoke_unavailable`) ya da Apple iptali reddederse (`apple_revoke_failed`) **hiçbir şey silinmez**.
 
 **Cloud Anchor göç betikleri.** Eski postlar için bir kez: `FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/backfill-cloud-anchors.mjs --apply`; uzun `display_name` düzeltmesi: `node functions/scripts/fix-long-display-names.mjs --apply`. (Önce `--apply`sız kuru çalıştırma yap.)
 

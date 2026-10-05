@@ -34,38 +34,38 @@ enum ProximityPolicy {
                 latitude: viewer.coordinate.latitude,
                 longitude: viewer.coordinate.longitude
               ) else {
-            return ProximityDecision(allowed: false, distanceMeters: .infinity, headingDelta: 180, reason: "Post konum bilgisi eksik.")
+            return ProximityDecision(allowed: false, distanceMeters: .infinity, headingDelta: 180, reason: String(localized: "Post konum bilgisi eksik."))
         }
         let destination = CLLocation(latitude: target.latitude, longitude: target.longitude)
         let distance = viewer.distance(from: destination)
         guard distance.isFinite, distance >= 0 else {
-            return ProximityDecision(allowed: false, distanceMeters: .infinity, headingDelta: 180, reason: "Post konum bilgisi geçersiz.")
+            return ProximityDecision(allowed: false, distanceMeters: .infinity, headingDelta: 180, reason: String(localized: "Post konum bilgisi geçersiz."))
         }
         let maxDistance = distanceMeters * (targeted ? 1.35 : 1)
         guard distance < maxDistance else {
-            return ProximityDecision(allowed: false, distanceMeters: distance, headingDelta: 180, reason: "AR görüntüleme için posta yaklaşın.")
+            return ProximityDecision(allowed: false, distanceMeters: distance, headingDelta: 180, reason: String(localized: "AR görüntüleme için posta yaklaşın."))
         }
 
         if let viewerAltitude = viewer.verticalAccuracy >= 0 && viewer.altitude.isFinite ? viewer.altitude : nil,
            let targetAltitude = target.altitude, targetAltitude.isFinite,
            abs(viewerAltitude - targetAltitude) > (post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? 18 : 8) {
-            return ProximityDecision(allowed: false, distanceMeters: distance, headingDelta: 180, reason: "Post farklı bir yükseklikte.")
+            return ProximityDecision(allowed: false, distanceMeters: distance, headingDelta: 180, reason: String(localized: "Post farklı bir yükseklikte."))
         }
 
         guard let targetHeading = GeoPoseCaptureService.validHeading(target.heading) else {
-            return ProximityDecision(allowed: false, distanceMeters: distance, headingDelta: 180, reason: "Post yön bilgisi geçersiz.")
+            return ProximityDecision(allowed: false, distanceMeters: distance, headingDelta: 180, reason: String(localized: "Post yön bilgisi geçersiz."))
         }
         let delta = angularDelta(
             GeoPoseCaptureService.validHeading(viewerHeading) ?? targetHeading,
             targetHeading
         )
         if post.anchorBundle.anchor.pinQuality.isPhysicalSurface {
-            return ProximityDecision(allowed: true, distanceMeters: distance, headingDelta: delta, reason: "Doğru konumdasın. Yüzey aranıyor.")
+            return ProximityDecision(allowed: true, distanceMeters: distance, headingDelta: delta, reason: String(localized: "Doğru konumdasın. Yüzey aranıyor."))
         }
         let maxHeading = headingDegrees * (targeted ? 2.2 : 1.6)
         return ProximityDecision(
             allowed: delta < maxHeading, distanceMeters: distance, headingDelta: delta,
-            reason: delta < maxHeading ? "Yaklaşık görünüm hazır." : "Telefonu postun yönüne çevirin."
+            reason: delta < maxHeading ? String(localized: "Yaklaşık görünüm hazır.") : String(localized: "Telefonu postun yönüne çevirin.")
         )
     }
 
@@ -148,8 +148,8 @@ enum ProximityPolicy {
             return ViewAimGuidance(
                 headingAligned: false, pitchAligned: pitchAligned, closeEnough: true,
                 readyToReveal: false, signedHeadingDelta: 0, distanceMeters: distance,
-                title: "Yön kilitleniyor",
-                message: "Paylaşırken baktığın duvara dön. Telefonu yavaşça çevir.",
+                title: String(localized: "Yön kilitleniyor"),
+                message: String(localized: "Paylaşırken baktığın duvara dön. Telefonu yavaşça çevir."),
                 symbol: "location.north.line"
             )
         }
@@ -160,7 +160,7 @@ enum ProximityPolicy {
                 return ViewAimGuidance(
                     headingAligned: false, pitchAligned: pitchAligned, closeEnough: true,
                     readyToReveal: false, signedHeadingDelta: signed, distanceMeters: distance,
-                    title: "Sağa dön",
+                    title: String(localized: "Sağa dön"),
                     message: String(localized: "Paylaşırken baktığın yöne \(degrees)° sağa dön."),
                     symbol: "arrow.turn.up.right"
                 )
@@ -168,7 +168,7 @@ enum ProximityPolicy {
             return ViewAimGuidance(
                 headingAligned: false, pitchAligned: pitchAligned, closeEnough: true,
                 readyToReveal: false, signedHeadingDelta: signed, distanceMeters: distance,
-                title: "Sola dön",
+                title: String(localized: "Sola dön"),
                 message: String(localized: "Paylaşırken baktığın yöne \(degrees)° sola dön."),
                 symbol: "arrow.turn.up.left"
             )
@@ -179,27 +179,27 @@ enum ProximityPolicy {
                 return ViewAimGuidance(
                     headingAligned: true, pitchAligned: false, closeEnough: true,
                     readyToReveal: false, signedHeadingDelta: signed, distanceMeters: distance,
-                    title: "Kamerayı eğ",
-                    message: "Post zeminde. Nişanı yüzeye indir, ortala.",
+                    title: String(localized: "Kamerayı eğ"),
+                    message: String(localized: "Post zeminde. Nişanı yüzeye indir, ortala."),
                     symbol: "arrow.down.circle"
                 )
             }
             return ViewAimGuidance(
                 headingAligned: true, pitchAligned: false, closeEnough: true,
                 readyToReveal: false, signedHeadingDelta: signed, distanceMeters: distance,
-                title: "Kamerayı kaldır",
-                message: "Post duvarda. Nişanı o duvara tut, ortala.",
+                title: String(localized: "Kamerayı kaldır"),
+                message: String(localized: "Post duvarda. Nişanı o duvara tut, ortala."),
                 symbol: "arrow.up.circle"
             )
         }
 
         let surfaceHint = alignment == .vertical
-            ? "Nokta atışı. Duvarı kadrajın tam ortasına al."
-            : "Nokta atışı. Zemini kadrajın tam ortasına al."
+            ? String(localized: "Nokta atışı. Duvarı kadrajın tam ortasına al.")
+            : String(localized: "Nokta atışı. Zemini kadrajın tam ortasına al.")
         return ViewAimGuidance(
             headingAligned: true, pitchAligned: true, closeEnough: true,
             readyToReveal: true, signedHeadingDelta: signed, distanceMeters: distance,
-            title: "Nokta atışı",
+            title: String(localized: "Nokta atışı"),
             message: surfaceHint,
             symbol: "viewfinder"
         )

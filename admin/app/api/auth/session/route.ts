@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { acceptPendingAdminInvite } from '../../../../lib/admin-invite';
 import { activeRoles, SESSION_COOKIE } from '../../../../lib/admin';
 import { randomUUID } from 'node:crypto';
-import { adminAuth, adminDb } from '../../../../lib/firebase-admin';
-import { recordAudit } from '../../../../lib/ops';
+import { adminAuth } from '../../../../lib/firebase-admin';
+import { recordAudit, recordMfaEnrollment } from '../../../../lib/ops';
+import { requireSameOrigin } from '../../../../lib/api';
 
 const noStoreHeaders = { 'Cache-Control': 'private, no-store, max-age=0' };
 const SESSION_HOURS = 8;
@@ -15,7 +16,7 @@ function failure(status: number, reason: string) {
 /** Exchanges a fresh Firebase ID token for an httpOnly session cookie (admins only). */
 export async function POST(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  if (request.headers.get('origin') !== requestUrl.origin) return failure(403, 'origin');
+  if (requireSameOrigin(request)) return failure(403, 'origin');
   if (!request.headers.get('content-type')?.startsWith('application/json')) return failure(415, 'content_type');
 
   let body: unknown;
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return failure(400, 'invalid_json');
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return failure(400, 'invalid_json');
   const { idToken } = body as { idToken?: unknown };
   if (typeof idToken !== 'string' || idToken.length < 32 || idToken.length > 16_384) {
     return failure(400, 'invalid_id_token');
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   const expiresIn = SESSION_HOURS * 60 * 60 * 1000;
   const cookie = await adminAuth().createSessionCookie(idToken, { expiresIn });
-  const secondFactor = (decoded.firebase as { sign_in_second_factor?: string }).sign_in_second_factor;
+  const secondFactor = (decoded.firebase as { sign_in_second_factor?: string } | undefined)?.sign_in_second_factor;
   const response = NextResponse.json(
     { ok: true, redirect: secondFactor ? '/admin/dashboard' : '/admin/mfa' },
     { status: 200, headers: noStoreHeaders },
@@ -53,8 +55,8 @@ export async function POST(request: NextRequest) {
   await recordAudit(randomUUID(), {
     actorId: decoded.uid, action: 'admin_sign_in', resourceType: 'admin_session', resourceId: decoded.uid,
     after: { secondFactor: Boolean(secondFactor) }, reason: 'Administrator signed in.', permissionKey: 'session.sign_in', riskLevel: 'sensitive',
-  }).catch((error) => console.error('[admin-audit]', error));
-  await auditMfaEnrollment(decoded.uid).catch((error) => console.error('[admin-audit]', error));
+  }).catch(() => console.error('[admin-audit] write_failed'));
+  await auditMfaEnrollment(decoded.uid).catch(() => console.error('[admin-audit] write_failed'));
   response.cookies.set(SESSION_COOKIE, cookie, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production' || requestUrl.protocol === 'https:',
@@ -72,15 +74,5 @@ export async function POST(request: NextRequest) {
 async function auditMfaEnrollment(uid: string) {
   const user = await adminAuth().getUser(uid);
   const factors = (user.multiFactor?.enrolledFactors ?? []).map((f) => f.uid).sort();
-  const ref = adminDb().collection('admin_mfa_state').doc(uid);
-  const known: string[] = ((await ref.get()).data()?.factor_ids as string[] | undefined) ?? [];
-  const added = factors.filter((id) => !known.includes(id));
-  const removed = known.filter((id) => !factors.includes(id));
-  if (added.length === 0 && removed.length === 0) return;
-  await recordAudit(randomUUID(), {
-    actorId: uid, action: added.length ? 'admin_mfa_enrolled' : 'admin_mfa_removed', resourceType: 'admin_mfa', resourceId: uid,
-    before: { factors: known.length }, after: { factors: factors.length, added: added.length, removed: removed.length },
-    reason: 'Second-factor enrollment changed.', permissionKey: 'session.mfa', riskLevel: 'sensitive',
-  });
-  await ref.set({ factor_ids: factors, updated_at: new Date() });
+  await recordMfaEnrollment(uid, factors);
 }

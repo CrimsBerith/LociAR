@@ -1,6 +1,7 @@
 import AVFoundation
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct CollectionsView: View {
     @Environment(AppSession.self) private var session
@@ -13,23 +14,23 @@ struct CollectionsView: View {
 
     var body: some View {
         Group {
-            if isLoading { LociLoadingView(title: "Koleksiyonlar yükleniyor…") }
+            if isLoading { LociLoadingView(title: String(localized: "Koleksiyonlar yükleniyor…")) }
             else if collections.isEmpty {
                 if let message {
                     LociEmptyState.failure(message: message, retry: retryAction)
                 } else {
                     LociEmptyState(
-                        title: "Henüz koleksiyon yok",
-                        message: "Kaydettiğin postları özel koleksiyonlarda düzenleyebilirsin.",
+                        title: String(localized: "Henüz koleksiyon yok"),
+                        message: String(localized: "Kaydettiğin postları özel koleksiyonlarda düzenleyebilirsin."),
                         symbol: "square.stack.3d.up",
-                        actionTitle: "İlk koleksiyonu oluştur",
+                        actionTitle: String(localized: "İlk koleksiyonu oluştur"),
                         action: { showCreate = true }
                     )
                 }
             } else {
                 List {
                     if let message {
-                        LociInlineNotice(title: "Bir sorun oluştu", message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                        LociInlineNotice(title: String(localized: "Bir sorun oluştu"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
                             .listRowBackground(Color.clear)
                     }
                     ForEach(collections) { collection in
@@ -76,24 +77,24 @@ struct CollectionsView: View {
         message = nil
         defer { isLoading = false }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
-            message = "Koleksiyonlar için sunucu bağlantısı gerekiyor."
+            message = String(localized: "Koleksiyonlar için sunucu bağlantısı gerekiyor.")
             return
         }
         do { collections = try await container.social.collections(for: user.id) }
-        catch { message = "Koleksiyonlar şu anda yüklenemiyor." }
+        catch { message = String(localized: "Koleksiyonlar şu anda yüklenemiyor.") }
     }
 
     private func create() async {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured, !cleanTitle.isEmpty else { return }
-        guard cleanTitle.count <= 80 else { message = "Koleksiyon başlığı en fazla 80 karakter olabilir."; return }
+        guard cleanTitle.count <= 80 else { message = String(localized: "Koleksiyon başlığı en fazla 80 karakter olabilir."); return }
         message = nil
         do {
             let created = try await container.social.createCollection(title: cleanTitle, userID: user.id)
             collections.insert(created, at: 0)
             title = ""
             message = nil
-        } catch { message = "Koleksiyon oluşturulamadı. Biraz sonra tekrar dene." }
+        } catch { message = String(localized: "Koleksiyon oluşturulamadı. Biraz sonra tekrar dene.") }
     }
 }
 
@@ -108,22 +109,22 @@ struct CollectionDetailView: View {
     var body: some View {
         Group {
             if isLoading {
-                LociLoadingView(title: "Koleksiyon yükleniyor…")
+                LociLoadingView(title: String(localized: "Koleksiyon yükleniyor…"))
             } else if posts.isEmpty {
                 if let message {
                     // A failed load must not read as an empty collection.
                     LociEmptyState.failure(message: message, retry: { Task { await load() } })
                 } else {
                     LociEmptyState(
-                        title: "Bu koleksiyon boş",
-                        message: "Beğendiğin veya kaydettiğin postları detayından bu koleksiyona ekleyebilirsin.",
+                        title: String(localized: "Bu koleksiyon boş"),
+                        message: String(localized: "Beğendiğin veya kaydettiğin postları detayından bu koleksiyona ekleyebilirsin."),
                         symbol: "folder.badge.plus"
                     )
                 }
             } else {
                 List {
                     if let message {
-                        LociInlineNotice(title: "Bazı postlar gösterilemiyor", message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                        LociInlineNotice(title: String(localized: "Bazı postlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
                             .listRowBackground(Color.clear)
                     }
                     ForEach(posts) { post in
@@ -133,10 +134,10 @@ struct CollectionDetailView: View {
                             HStack(spacing: 12) {
                                 LociAvatar(handle: String(post.creatorID.uuidString.prefix(6)), size: 36)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
+                                    Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
                                         .font(.subheadline.bold())
                                         .lineLimit(2)
-                                    Text(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "Fiziksel yüzey" : "Yaklaşık")
+                                    Text(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "Fiziksel yüzey") : String(localized: "Yaklaşık"))
                                         .font(.caption2)
                                         .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                                 }
@@ -179,10 +180,10 @@ struct CollectionDetailView: View {
             }
             posts = loadedPosts
             if failedCount > 0 {
-                message = loadedPosts.isEmpty ? "Postlar yüklenemedi." : String(localized: "\(failedCount) post şu anda yüklenemedi. Yenilemek için aşağı çek.")
+                message = loadedPosts.isEmpty ? String(localized: "Postlar yüklenemedi.") : String(localized: "\(failedCount) post şu anda yüklenemedi. Yenilemek için aşağı çek.")
             }
         } catch {
-            message = "Postlar yüklenemedi."
+            message = String(localized: "Postlar yüklenemedi.")
         }
     }
 
@@ -193,7 +194,7 @@ struct CollectionDetailView: View {
                 posts.removeAll { $0.id == post.id }
             }
         } catch {
-            message = "Post koleksiyondan çıkarılamadı."
+            message = String(localized: "Post koleksiyondan çıkarılamadı.")
         }
     }
 }
@@ -206,9 +207,9 @@ struct SavedPostsView: View {
     @State private var isLoading = true
     var body: some View {
         Group {
-            if isLoading { LociLoadingView(title: "Kaydedilenler yükleniyor…") }
+            if isLoading { LociLoadingView(title: String(localized: "Kaydedilenler yükleniyor…")) }
             else if posts.isEmpty {
-                LociEmptyState(title: "Kaydedilen post yok", message: message ?? "Kaydettiğin postlar burada görünür.", symbol: "bookmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+                LociEmptyState(title: String(localized: "Kaydedilen post yok"), message: message ?? String(localized: "Kaydettiğin postlar burada görünür."), symbol: "bookmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
             } else {
                 List(posts) { post in
                     NavigationLink(value: post) { PostCard(post: post) }
@@ -227,7 +228,7 @@ struct SavedPostsView: View {
         message = nil
         defer { isLoading = false }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
-            message = "Kaydedilenler için sunucu bağlantısı gerekiyor."
+            message = String(localized: "Kaydedilenler için sunucu bağlantısı gerekiyor.")
             return
         }
         do {
@@ -254,9 +255,9 @@ struct SavedPostsView: View {
             }
             posts = loaded.0
             if loaded.1 > 0 {
-                message = "Kaydedilen postların bir kısmı yüklenemedi. Yenilemek için aşağı çek."
+                message = String(localized: "Kaydedilen postların bir kısmı yüklenemedi. Yenilemek için aşağı çek.")
             }
-        } catch { message = "Kaydedilen postlar şu anda yüklenemiyor." }
+        } catch { message = String(localized: "Kaydedilen postlar şu anda yüklenemiyor.") }
     }
 }
 
@@ -268,9 +269,9 @@ struct BlockedUsersView: View {
     @State private var isLoading = true
     var body: some View {
         Group {
-            if isLoading { LociLoadingView(title: "Engellenen hesaplar yükleniyor…") }
+            if isLoading { LociLoadingView(title: String(localized: "Engellenen hesaplar yükleniyor…")) }
             else if ids.isEmpty {
-                LociEmptyState(title: "Engellenen hesap yok", message: message ?? "Engellediğin hesaplar burada görünür.", symbol: "person.crop.circle.badge.xmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+                LociEmptyState(title: String(localized: "Engellenen hesap yok"), message: message ?? String(localized: "Engellediğin hesaplar burada görünür."), symbol: "person.crop.circle.badge.xmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
             } else {
                 List(ids, id: \.self) { id in
                     HStack(spacing: 12) {
@@ -292,11 +293,11 @@ struct BlockedUsersView: View {
         message = nil
         defer { isLoading = false }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
-            message = "Engellenen hesaplar için sunucu bağlantısı gerekiyor."
+            message = String(localized: "Engellenen hesaplar için sunucu bağlantısı gerekiyor.")
             return
         }
         do { ids = try await container.social.blockedUserIDs(for: user.id) }
-        catch { message = "Engellenen hesaplar şu anda yüklenemiyor." }
+        catch { message = String(localized: "Engellenen hesaplar şu anda yüklenemiyor.") }
     }
     private func unblock(_ id: UUID) async {
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else { return }
@@ -304,7 +305,7 @@ struct BlockedUsersView: View {
             try await container.social.setBlocked(false, targetID: id, userID: user.id)
             ids.removeAll { $0 == id }
             message = nil
-        } catch { message = "Engel kaldırılamadı. Tekrar dene." }
+        } catch { message = String(localized: "Engel kaldırılamadı. Tekrar dene.") }
     }
 }
 
@@ -316,6 +317,9 @@ struct MyPostsView: View {
     @State private var pendingIDs: Set<UUID> = []
     @State private var failedIDs: Set<UUID> = []
     @State private var message: String?
+    @State private var nextCursor: String?
+    @State private var pageGeneration = 0
+    @State private var isLoadingMore = false
     @State private var isLoading = true
     @State private var isRetrying = false
     @State private var postToDelete: LociPost?
@@ -324,19 +328,19 @@ struct MyPostsView: View {
 
     var body: some View {
         Group {
-            if isLoading { LociLoadingView(title: "Postların yükleniyor…") }
+            if isLoading { LociLoadingView(title: String(localized: "Postların yükleniyor…")) }
             else if posts.isEmpty {
-                LociEmptyState(title: "Henüz post yok", message: message ?? "Yayınlanan ve incelemedeki postların burada görünür.", symbol: "rectangle.stack.badge.plus", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+                LociEmptyState(title: String(localized: "Henüz post yok"), message: message ?? String(localized: "Yayınlanan ve incelemedeki postların burada görünür."), symbol: "rectangle.stack.badge.plus", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
             } else {
                 List(posts) { post in
                     NavigationLink(value: post) {
                         VStack(alignment: .leading, spacing: 8) {
                             if failedIDs.contains(post.id) {
-                                LociStatusPill(title: "İşlem gerekiyor", symbol: "exclamationmark.triangle.fill", color: .red)
+                                LociStatusPill(title: String(localized: "İşlem gerekiyor"), symbol: "exclamationmark.triangle.fill", color: .red)
                             } else if pendingIDs.contains(post.id) {
-                                LociStatusPill(title: "Yayın bekliyor", symbol: "arrow.triangle.2.circlepath", color: .orange)
+                                LociStatusPill(title: String(localized: "Yayın bekliyor"), symbol: "arrow.triangle.2.circlepath", color: .orange)
                             } else if post.status == .pendingReview {
-                                LociStatusPill(title: "İncelemede", symbol: "clock.fill", color: .orange)
+                                LociStatusPill(title: String(localized: "İncelemede"), symbol: "clock.fill", color: .orange)
                             }
                             PostCard(post: post)
                         }
@@ -364,6 +368,12 @@ struct MyPostsView: View {
             }
         }
         .task { await load() }
+        .safeAreaInset(edge: .bottom) {
+            if nextCursor != nil {
+                Button("Daha fazla göster") { Task { await loadMore() } }
+                    .disabled(isLoadingMore || isLoading).padding().background(.ultraThinMaterial)
+            }
+        }
         .confirmationDialog(
             "Bu post silinsin mi?",
             isPresented: Binding(
@@ -392,6 +402,8 @@ struct MyPostsView: View {
     }
 
     private func load() async {
+        pageGeneration += 1
+        nextCursor = nil
         isLoading = posts.isEmpty
         message = nil
         defer { isLoading = false }
@@ -399,7 +411,7 @@ struct MyPostsView: View {
             posts = []
             pendingIDs = []
             failedIDs = []
-            message = "Postları görmek için tekrar giriş yap."
+            message = String(localized: "Postları görmek için tekrar giriş yap.")
             return
         }
         let localPosts = loadLocalDrafts(ownerID: user.id)
@@ -412,16 +424,18 @@ struct MyPostsView: View {
             if posts.isEmpty { posts = [UITestFixtures.post] }
             return
         }
-        guard container.isBackendConfigured else { message = "Postların için sunucu bağlantısı gerekiyor."; return }
+        guard container.isBackendConfigured else { message = String(localized: "Postların için sunucu bağlantısı gerekiyor."); return }
         do {
-            let remotePosts = try await container.posts.myPosts(limit: 50)
+            let page = try await container.posts.myPostsPage(cursor: nil)
+            let remotePosts = page.posts
+            nextCursor = page.next
             let remoteIDs = Set(remotePosts.map(\.id))
             pendingIDs.subtract(remoteIDs)
             failedIDs.subtract(remoteIDs)
             posts = (remotePosts + localPosts.filter { !remoteIDs.contains($0.id) })
                 .sorted { $0.createdAt > $1.createdAt }
         } catch {
-            message = localPosts.isEmpty ? "Postların şu anda yüklenemiyor." : "Bekleyen post cihazda güvende. Yayını tekrar deneyebilirsin."
+            message = localPosts.isEmpty ? String(localized: "Postların şu anda yüklenemiyor.") : String(localized: "Bekleyen post cihazda güvende. Yayını tekrar deneyebilirsin.")
         }
     }
 
@@ -479,7 +493,20 @@ struct MyPostsView: View {
             pendingIDs.remove(post.id)
             failedIDs.remove(post.id)
         } catch {
-            deleteError = "Post şu anda silinemiyor. Bağlantını kontrol edip tekrar dene."
+            deleteError = String(localized: "Post şu anda silinemiyor. Bağlantını kontrol edip tekrar dene.")
         }
     }
+    private func loadMore() async {
+        guard let cursor = nextCursor, !isLoadingMore, case let .signedIn(viewer) = session.phase else { return }
+        let generation = pageGeneration
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await container.posts.myPostsPage(cursor: cursor)
+            guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            var unique = Dictionary(posts.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest }); for post in page.posts { unique[post.id] = post }; posts = unique.values.sorted { $0.createdAt > $1.createdAt }; pendingIDs.subtract(Set(page.posts.map(\.id))); failedIDs.subtract(Set(page.posts.map(\.id)))
+            nextCursor = page.next
+        } catch { message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") }
+    }
+
 }

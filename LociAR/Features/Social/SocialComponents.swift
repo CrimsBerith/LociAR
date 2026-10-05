@@ -1,6 +1,7 @@
 import AVFoundation
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct PostCard: View {
     let post: LociPost
@@ -21,12 +22,12 @@ struct PostCard: View {
                 .layoutPriority(1)
                 Spacer()
                 LociStatusPill(
-                    title: post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate ? "Yaklaşık" : "Sabit",
+                    title: post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate ? String(localized: "Yaklaşık") : "Sabit",
                     symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder" : "exclamationmark",
                     color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
                 )
             }
-            Text(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
+            Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
                 .font(.body.weight(.semibold))
                 .lineLimit(4)
                 .foregroundStyle(.white.opacity(0.94))
@@ -34,9 +35,9 @@ struct PostCard: View {
             PostMediaHero(post: post, openMedia: openMedia)
 
             HStack(spacing: 18) {
-                LociMetricLabel(value: likeCount ?? post.counts.likes, title: "beğeni", symbol: "heart.fill", color: .pink)
-                LociMetricLabel(value: viewCount ?? post.counts.views, title: "görüntülenme", symbol: "eye.fill", color: LociTheme.accent)
-                LociMetricLabel(value: post.counts.comments, title: "yorum", symbol: "bubble.right.fill", color: .white.opacity(0.8))
+                LociMetricLabel(value: likeCount ?? post.counts.likes, title: String(localized: "beğeni"), symbol: "heart.fill", color: .pink)
+                LociMetricLabel(value: viewCount ?? post.counts.views, title: String(localized: "görüntülenme"), symbol: "eye.fill", color: LociTheme.accent)
+                LociMetricLabel(value: post.counts.comments, title: String(localized: "yorum"), symbol: "bubble.right.fill", color: .white.opacity(0.8))
                 Spacer()
             }
         }

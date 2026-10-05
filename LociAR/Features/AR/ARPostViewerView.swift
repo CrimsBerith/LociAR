@@ -10,7 +10,7 @@ struct ARPostViewerView: View {
     let post: LociPost
     var onClose: (() -> Void)? = nil
     @State private var location = LocationController()
-    @State private var message = "Konum doğrulanıyor…"
+    @State private var message = String(localized: "Konum doğrulanıyor…")
     @State private var accessBlocked = false
     @State private var isAiming = false
     @State private var isLocalSurfaceScan = false
@@ -25,8 +25,8 @@ struct ARPostViewerView: View {
     private static let approximateOfferDelay: Duration = .seconds(8)
     @State private var guidance = ViewAimGuidance(
         headingAligned: false, pitchAligned: false, closeEnough: false, readyToReveal: false,
-        signedHeadingDelta: 0, distanceMeters: 0, title: "Yön aranıyor",
-        message: "Posta dokundun. Nokta atışı için kamerayı çevir.", symbol: "location.north.fill"
+        signedHeadingDelta: 0, distanceMeters: 0, title: String(localized: "Yön aranıyor"),
+        message: String(localized: "Posta dokundun. Nokta atışı için kamerayı çevir."), symbol: "location.north.fill"
     )
 
     var body: some View {
@@ -64,7 +64,7 @@ struct ARPostViewerView: View {
                 if accessBlocked {
                     VStack(spacing: 10) {
                         LociInlineNotice(
-                            title: "AR burada açılamıyor",
+                            title: String(localized: "AR burada açılamıyor"),
                             message: message,
                             symbol: "location.slash.fill",
                             color: .orange
@@ -99,8 +99,8 @@ struct ARPostViewerView: View {
                 isAiming = false
                 isLocalSurfaceScan = false
                 message = post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate
-                    ? "Yaklaşık görünüm kameranın 0,8 m önünde açıldı."
-                    : "Yüzey bulundu. İçerik hazır."
+                    ? String(localized: "Yaklaşık görünüm kameranın 0,8 m önünde açıldı.")
+                    : String(localized: "Yüzey bulundu. İçerik hazır.")
             }
         }
         .onChange(of: location.heading?.trueHeading) { _, _ in
@@ -146,8 +146,8 @@ struct ARPostViewerView: View {
                 .rotationEffect(.degrees(guidance.signedHeadingDelta))
                 .shadow(color: .black.opacity(0.7), radius: 4)
             Text(guidance.distanceMeters < 10
-                 ? String(format: "%.0f m", max(0, guidance.distanceMeters.isFinite ? guidance.distanceMeters : 0))
-                 : ProximityPolicy.roundedMeters(guidance.distanceMeters).map { "\($0) m" } ?? "Mesafe bilinmiyor")
+                 ? String(format: "%.0f m", locale: Locale.current, max(0, guidance.distanceMeters.isFinite ? guidance.distanceMeters : 0))
+                 : ProximityPolicy.roundedMeters(guidance.distanceMeters).map { "\($0.formatted()) m" } ?? String(localized: "Mesafe bilinmiyor"))
                 .font(.caption.weight(.semibold).monospacedDigit())
                 .foregroundStyle(.white)
                 .offset(y: 46)
@@ -159,14 +159,14 @@ struct ARPostViewerView: View {
     }
 
     private var statusTitle: String {
-        if accessBlocked { return "Konum uzak" }
-        if isApproximateView { return engine.state == .resolved ? "Yaklaşık görünüm" : "Yön aranıyor" }
-        if isLocalSurfaceScan { return "Yüzey aranıyor" }
+        if accessBlocked { return String(localized: "Konum uzak") }
+        if isApproximateView { return engine.state == .resolved ? String(localized: "Yaklaşık görünüm") : String(localized: "Yön aranıyor") }
+        if isLocalSurfaceScan { return String(localized: "Yüzey aranıyor") }
         if post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate {
-            return engine.state == .resolved ? "Yaklaşık görünüm" : "Yön aranıyor"
+            return engine.state == .resolved ? String(localized: "Yaklaşık görünüm") : String(localized: "Yön aranıyor")
         }
-        if engine.state == .resolved { return "Yüzey bulundu" }
-        if guidance.readyToReveal { return "Nokta atışı" }
+        if engine.state == .resolved { return String(localized: "Yüzey bulundu") }
+        if guidance.readyToReveal { return String(localized: "Nokta atışı") }
         return guidance.title
     }
 
@@ -257,7 +257,7 @@ struct ARPostViewerView: View {
                 let decision = ProximityPolicy.evaluate(post: post, viewer: current, viewerHeading: heading, targeted: true)
                 guard decision.allowed else {
                     if let meters = ProximityPolicy.roundedMeters(decision.distanceMeters) {
-                        message = String(localized: "\(decision.reason.localizedUI) · \(meters) m")
+                        message = "\(decision.reason.localizedUI) · \(meters) m"
                     } else {
                         message = decision.reason
                     }
@@ -282,7 +282,7 @@ struct ARPostViewerView: View {
             if let error = location.errorMessage { message = error; accessBlocked = true; return }
             do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
         }
-        message = "Konum doğrulanamadı. AR erişimi açılmadı."
+        message = String(localized: "Konum doğrulanamadı. AR erişimi açılmadı.")
         accessBlocked = true
     }
 
@@ -300,14 +300,14 @@ struct ARPostViewerView: View {
         guard engine.state != .failed, !Task.isCancelled else { return false }
         guard await arcore.waitUntilReady() else { return false }
         if let cloudAnchorId {
-            message = "Yüzey aranıyor. Kamerayı postun bırakıldığı yere doğrult ve yavaşça gezdir."
+            message = String(localized: "Yüzey aranıyor. Kamerayı postun bırakıldığı yere doğrult ve yavaşça gezdir.")
             if let transform = await arcore.resolveCloudAnchor(cloudAnchorId), !Task.isCancelled {
                 engine.placeResolvedForViewing(transform: transform, anchor: anchor, physical: true)
                 return await renderResolvedContent()
             }
         }
         if let geospatial {
-            message = "Konum doğrulanıyor. Kamerayı çevredeki binalara doğrult."
+            message = String(localized: "Konum doğrulanıyor. Kamerayı çevredeki binalara doğrult.")
             if await arcore.waitForEarthLocalization(), !Task.isCancelled,
                let transform = arcore.transform(for: geospatial) {
                 engine.placeResolvedForViewing(transform: transform, anchor: anchor, physical: false)
@@ -320,9 +320,9 @@ struct ARPostViewerView: View {
     private func renderResolvedContent() async -> Bool {
         do {
             try await engine.render(post: post)
-            message = "Yüzey bulundu. İçerik hazır."
+            message = String(localized: "Yüzey bulundu. İçerik hazır.")
         } catch {
-            message = "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene."
+            message = String(localized: "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene.")
         }
         return true
     }
@@ -336,7 +336,7 @@ struct ARPostViewerView: View {
               persistence.storagePath != nil,
               post.anchorBundle.anchor.pinQuality.isPhysicalSurface,
               let worldMaps = container.worldMaps else { return false }
-        message = "Kayıtlı yüzey haritası indiriliyor…"
+        message = String(localized: "Kayıtlı yüzey haritası indiriliyor…")
         guard let data = try? await worldMaps.download(persistence), !Task.isCancelled else { return false }
         await engine.requestCameraAndStart()
         guard engine.state != .failed else { return false }
@@ -346,21 +346,21 @@ struct ARPostViewerView: View {
             engine.stopSession()
             return false
         }
-        message = "Kaydedilen çevre aranıyor. Kamerayı postun sabitlendiği yüzeye doğru yavaşça gezdir."
+        message = String(localized: "Kaydedilen çevre aranıyor. Kamerayı postun sabitlendiği yüzeye doğru yavaşça gezdir.")
         while !Task.isCancelled {
             switch engine.state {
             case .resolved:
                 do {
                     try await engine.render(post: post)
-                    message = "Yüzey bulundu. İçerik hazır."
+                    message = String(localized: "Yüzey bulundu. İçerik hazır.")
                 } catch {
-                    message = "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene."
+                    message = String(localized: "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene.")
                 }
                 return true
             case .failed, .idle:
                 // Relocalization timed out; clear the initial world map before falling back.
                 engine.stopSession()
-                message = "Kaydedilen çevre bulunamadı. Yaklaşık konuma göre yönlendiriliyorsun."
+                message = String(localized: "Kaydedilen çevre bulunamadı. Yaklaşık konuma göre yönlendiriliyorsun.")
                 return false
             default:
                 try? await Task.sleep(for: .milliseconds(150))
@@ -376,9 +376,9 @@ struct ARPostViewerView: View {
             do {
                 try engine.placeApproximateForViewing(anchor: post.anchorBundle.anchor)
                 try await engine.render(post: post)
-                message = "Yaklaşık görünüm kameranın 0,8 m önünde açıldı."
+                message = String(localized: "Yaklaşık görünüm kameranın 0,8 m önünde açıldı.")
             } catch {
-                message = "Yaklaşık AR görünümü açılamadı."
+                message = String(localized: "Yaklaşık AR görünümü açılamadı.")
             }
             isLocalSurfaceScan = false
             return
@@ -392,16 +392,16 @@ struct ARPostViewerView: View {
             do {
                 try engine.placeVerticalWallForViewing(anchor: post.anchorBundle.anchor)
                 try await engine.render(post: post)
-                message = "Yüzey bulundu. İçerik hazır."
+                message = String(localized: "Yüzey bulundu. İçerik hazır.")
             } catch {
-                message = "Dikey yüzeyde AR görünümü açılamadı: \(error.localizedDescription)"
+                message = String(localized: "Dikey yüzeyde AR görünümü açılamadı. Tekrar dene.")
             }
             isLocalSurfaceScan = false
             return
         }
 #endif
         isLocalSurfaceScan = true
-        message = "Kartı açmak için kamerayı dokulu bir duvar, masa veya zemin üzerinde yavaşça gezdir."
+        message = String(localized: "Kartı açmak için kamerayı dokulu bir duvar, masa veya zemin üzerinde yavaşça gezdir.")
         guard await engine.beginAimAssistedReveal() else {
             message = engine.statusMessage
             isLocalSurfaceScan = false
@@ -414,9 +414,9 @@ struct ARPostViewerView: View {
             if engine.revealIfSurfaceReady(from: sourceAnchor) {
                 do {
                     try await engine.render(post: post)
-                    message = "Yüzey bulundu. İçerik hazır."
+                    message = String(localized: "Yüzey bulundu. İçerik hazır.")
                 } catch {
-                    message = "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene."
+                    message = String(localized: "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene.")
                 }
                 isLocalSurfaceScan = false
                 return
@@ -442,9 +442,9 @@ struct ARPostViewerView: View {
                 try engine.placeApproximateForViewing(anchor: post.anchorBundle.anchor)
                 try await engine.render(post: post)
                 isAiming = false
-                message = "Yaklaşık görünüm kameranın 0,8 m önünde açıldı."
+                message = String(localized: "Yaklaşık görünüm kameranın 0,8 m önünde açıldı.")
             } catch {
-                message = "Yaklaşık AR görünümü hazırlanamadı. Kamerayı postun yönüne tut."
+                message = String(localized: "Yaklaşık AR görünümü hazırlanamadı. Kamerayı postun yönüne tut.")
             }
             return
         }

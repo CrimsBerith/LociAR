@@ -11,7 +11,7 @@ struct AppConfiguration: Sendable {
         case missingBackendConfiguration
 
         var errorDescription: String? {
-            "Bağlantı ayarları henüz tamamlanmadı. Uygulama yöneticisiyle iletişime geçin."
+            String(localized: "Bağlantı ayarları henüz tamamlanmadı. Uygulama yöneticisiyle iletişime geçin.")
         }
     }
 

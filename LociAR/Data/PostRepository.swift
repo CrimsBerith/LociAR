@@ -3,7 +3,7 @@ import OSLog
 @preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseFirestore
 
-struct PostPublishReceipt: Equatable, Sendable {
+struct PostPublishReceipt: Decodable, Equatable, Sendable {
     let postID: UUID
     let status: PostStatus
     let placementState: String?
@@ -20,8 +20,33 @@ enum PostPublishError: LocalizedError, Sendable {
     }
 }
 
+struct PostPage: Sendable {
+    let posts: [LociPost]
+    let next: String?
+}
+
+/// One corrupt legacy row must not make every otherwise valid post on the page unavailable.
+/// The cursor still belongs to the raw server page, including discarded rows.
+struct BackendPostPageResponse: Decodable, Sendable {
+    let posts: [BackendPostRow]
+    let next: String?
+    private enum CodingKeys: String, CodingKey { case posts, next }
+    private struct Row: Decodable, Sendable {
+        let value: BackendPostRow?
+        init(from decoder: Decoder) throws { value = try? BackendPostRow(from: decoder) }
+    }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        posts = try values.decode([Row].self, forKey: .posts).compactMap(\.value)
+        next = try values.decodeIfPresent(String.self, forKey: .next)
+    }
+}
+
 protocol PostRepository: Sendable {
     func nearby(latitude: Double, longitude: Double, radiusMeters: Double) async throws -> [LociPost]
+    func discoverPage(cursor: String?) async throws -> PostPage
+    func myPostsPage(cursor: String?) async throws -> PostPage
+    func publicPostsPage(creatorID: UUID, cursor: String?) async throws -> PostPage
     func discover() async throws -> [LociPost]
     func publish(_ post: LociPost) async throws -> PostPublishReceipt
     func myPosts(limit: Int) async throws -> [LociPost]
@@ -31,8 +56,8 @@ protocol PostRepository: Sendable {
     func removeOwnPost(id: UUID) async throws
 }
 
-/// Posts are read straight from Firestore (Security Rules expose active public posts and the
-/// caller's own posts); writes go through the createPost / deleteOwnPost Cloud Functions.
+/// Public projections use readPublicContent for author fences and both block directions.
+/// Owner lists use Firestore; writes use createPost / deleteOwnPost.
 final class FirestorePostRepository: PostRepository, @unchecked Sendable {
     private let callables: CallableClient
     private let blockCache = BlockListCache.shared
@@ -42,86 +67,43 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
 
     private var posts: CollectionReference { Firestore.firestore().collection("posts") }
 
-    func nearby(latitude: Double, longitude: Double, radiusMeters: Double) async throws -> [LociPost] {
-        let radius = max(1, min(radiusMeters, 20_000_000))
-        let prefixes = Geohash.coverPrefixes(latitude: latitude, longitude: longitude, radiusMeters: radius)
-        var documents: [String: [String: Any]] = [:]
-
-        let publicBase = posts
-            .whereField("status", isEqualTo: PostStatus.active.rawValue)
-            .whereField("visibility", isEqualTo: Visibility.public.rawValue)
-        if prefixes.isEmpty {
-            for doc in try await publicBase.order(by: "created_at", descending: true).limit(to: 200).getDocuments().documents {
-                documents[doc.documentID] = doc.data()
-            }
-        } else {
-            try await withThrowingTaskGroup(of: DocumentBatch.self) { group in
-                for prefix in prefixes {
-                    group.addTask {
-                        let snapshot = try await publicBase
-                            .order(by: "geohash")
-                            .start(at: [prefix])
-                            .end(at: [prefix + "~"])
-                            .limit(to: 200)
-                            .getDocuments()
-                        return DocumentBatch(items: snapshot.documents.map { ($0.documentID, $0.data()) })
-                    }
-                }
-                for try await batch in group {
-                    for (id, data) in batch.items { documents[id] = data }
-                }
-            }
-        }
-
-        // The creator also sees their own pending/flagged posts on the map (Supabase parity).
-        if let me = FirebaseIdentity.currentLUID() {
-            let own = try? await posts
-                .whereField("creator_id", isEqualTo: FirebaseIdentity.key(me))
-                .order(by: "created_at", descending: true)
-                .limit(to: 100)
-                .getDocuments()
-            for doc in own?.documents ?? [] {
-                let status = doc.data()["status"] as? String
-                if ["active", "pending_review", "flagged"].contains(status ?? "") { documents[doc.documentID] = doc.data() }
-            }
-        }
-
-        let blocked = try await blockCache.blockedIDs()
-        let me = FirebaseIdentity.currentLUID().map(FirebaseIdentity.key)
-        let ranked = documents.compactMap { id, data -> (String, [String: Any], Double, Double)? in
-            guard let lat = data["lat"] as? Double, let lng = data["lng"] as? Double else { return nil }
-            let distance = Geohash.distanceMeters(latitude, longitude, lat, lng)
-            guard distance <= radius else { return nil }
-            let creator = data["creator_id"] as? String ?? ""
-            let isOwn = creator == me
-            guard isOwn || (FirestorePostMapper.isPubliclyListed(data) && !blocked.contains(creator)) else { return nil }
-            let score = (data["engagement_score"] as? NSNumber)?.doubleValue ?? 0
-            return (id, data, score, distance)
-        }
-        .sorted { $0.2 == $1.2 ? $0.3 < $1.3 : $0.2 > $1.2 }
-        .prefix(100)
-        return await withoutHidden(await materialize(ranked.map { ($0.0, $0.1) }))
+    private typealias PublicResponse = BackendPostPageResponse
+    private struct PublicRequest: Encodable {
+        let mode: String
+        var creatorId: String? = nil
+        var postId: String? = nil
+        var cursor: String? = nil
+        var latitude: Double? = nil
+        var longitude: Double? = nil
+        var radiusMeters: Double? = nil
     }
-
-    func discover() async throws -> [LociPost] {
-        let snapshot = try await posts
-            .whereField("status", isEqualTo: PostStatus.active.rawValue)
-            .whereField("visibility", isEqualTo: Visibility.public.rawValue)
-            .order(by: "created_at", descending: true)
-            .limit(to: 50)
-            .getDocuments()
-        let blocked = try await blockCache.blockedIDs()
-        let rows = snapshot.documents
-            .map { ($0.documentID, $0.data()) }
-            .filter { FirestorePostMapper.isPubliclyListed($0.1) && !blocked.contains($0.1["creator_id"] as? String ?? "") }
-        return await withoutHidden(await materialize(rows).filter(PublicSafetyPolicy.isListedInPublicDiscover))
+    private func projected(_ request: PublicRequest) async throws -> PostPage {
+        let response: PublicResponse = try await callables.call("readPublicContent", payload: request, timeout: 60)
+        let posts = response.posts.map { $0.domainPost() }
+        return PostPage(posts: await withoutHidden(posts), next: response.next)
+    }
+    func nearby(latitude: Double, longitude: Double, radiusMeters: Double) async throws -> [LociPost] {
+        try await projected(PublicRequest(mode: "nearby", latitude: latitude, longitude: longitude, radiusMeters: max(1,min(radiusMeters,20_000_000)))).posts
+    }
+    func discover() async throws -> [LociPost] { try await discoverPage(cursor: nil).posts }
+    func discoverPage(cursor: String?) async throws -> PostPage { try await projected(PublicRequest(mode: "discover", cursor: cursor)) }
+    func publicPostsPage(creatorID: UUID, cursor: String?) async throws -> PostPage {
+        try await projected(PublicRequest(mode: "creator", creatorId: FirebaseIdentity.key(creatorID), cursor: cursor))
     }
 
     func publish(_ post: LociPost) async throws -> PostPublishReceipt {
+        try Task.checkCancellation()
+        guard FirebaseIdentity.currentLUID() == post.creatorID else { throw AuthFlowError.notSignedIn }
+        // A lost createPost response can leave a completed post in the local queue. Read its
+        // authoritative receipt before reopening a map draft or accessing already removed files.
+        struct ExistingResponse: Decodable { let receipt: PostPublishReceipt? }
+        let existing: ExistingResponse = try await callables.call("readPublicContent", payload: PublicRequest(mode: "own_receipt", postId: FirebaseIdentity.key(post.id)))
+        guard FirebaseIdentity.currentLUID() == post.creatorID else { throw AuthFlowError.notSignedIn }
+        if let receipt = existing.receipt { return receipt }
         // Posts queued before photo/video removal (29 Sep 2026) would be refused by Storage and
         // createPost; fail them permanently instead of retrying uploads.
         if post.containsDeviceMedia {
-            throw PostPublishError.rejected("Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin veya sosyal bağlantı ile yeniden oluştur.")
+            throw PostPublishError.rejected(String(localized: "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin veya sosyal bağlantı ile yeniden oluştur."))
         }
         let worldMapReadyPost: LociPost
         do {
@@ -134,6 +116,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         guard let geo = post.anchorBundle.anchor.geoPose else { throw PostContractError.missingGeoPose }
         let placement = BackendPlacementContract(anchor: post.anchorBundle.anchor)
         let payload = CreatePostPayload(
+            userId: FirebaseIdentity.key(post.creatorID),
             clientMutationId: post.id.uuidString.lowercased(),
             pose: PublishPose(geo: geo, surface: post.anchorBundle.anchor),
             refImageUri: "native-ar-reference://none", // camera frames are not stored (privacy)
@@ -179,58 +162,37 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
     }
 
     func publicPosts(creatorID: UUID, limit: Int = 60) async throws -> [LociPost] {
-        let creator = FirebaseIdentity.key(creatorID)
-        guard !(try await blockCache.blockedIDs()).contains(creator) else { return [] }
-        let snapshot = try await posts
-            .whereField("creator_id", isEqualTo: creator)
-            .whereField("status", isEqualTo: PostStatus.active.rawValue)
-            .whereField("visibility", isEqualTo: Visibility.public.rawValue)
-            .order(by: "created_at", descending: true)
-            .limit(to: max(1, min(limit, 100)))
-            .getDocuments()
-        let rows = snapshot.documents.map { ($0.documentID, $0.data()) }.filter { FirestorePostMapper.isPubliclyListed($0.1) }
-        return await withoutHidden(await materialize(rows))
+        Array(try await publicPostsPage(creatorID: creatorID, cursor: nil).posts.prefix(limit))
     }
-
     func publicProfile(creatorID: UUID) async throws -> PublicProfileProjection? {
-        let id = FirebaseIdentity.key(creatorID)
-        guard !(try await blockCache.blockedIDs()).contains(id) else { return nil }
-        let snapshot = try await Firestore.firestore().collection("profiles").document(id).getDocument()
-        guard let data = snapshot.data(),
-              data["deleted_at"] == nil || data["deleted_at"] is NSNull,
-              (data["suspended"] as? Bool) != true else { return nil }
-        let avatar = await AvatarReference.resolve(
-            avatarURL: data["avatar_url"] as? String,
-            preset: data["avatar_preset"] as? String
-        )
-        return PublicProfileProjection(
-            id: creatorID,
-            handle: data["handle"] as? String ?? "loci",
-            avatarURL: avatar,
-            bio: data["bio"] as? String,
-            publicPostCount: (data["public_post_count"] as? NSNumber)?.intValue ?? 0,
-            followerCount: (data["follower_count"] as? NSNumber)?.intValue ?? 0,
-            followingCount: (data["following_count"] as? NSNumber)?.intValue ?? 0
-        )
+        struct Profile: Decodable { let id: UUID; let handle: String; let avatar_url: String?; let avatar_preset: String?; let bio: String?; let public_post_count: Int; let follower_count: Int; let following_count: Int }
+        struct Response: Decodable { let profile: Profile? }
+        let response: Response = try await callables.call("readPublicContent", payload: PublicRequest(mode: "profile", creatorId: FirebaseIdentity.key(creatorID)))
+        guard let p = response.profile else { return nil }
+        let avatar = await AvatarReference.resolve(avatarURL: p.avatar_url, preset: p.avatar_preset)
+        return PublicProfileProjection(id: p.id, handle: p.handle, avatarURL: avatar, bio: p.bio,
+            publicPostCount: p.public_post_count, followerCount: p.follower_count, followingCount: p.following_count)
+    }
+    func publicPost(id: UUID) async throws -> LociPost? {
+        try await projected(PublicRequest(mode: "single", postId: FirebaseIdentity.key(id))).posts.first
     }
 
-    func publicPost(id: UUID) async throws -> LociPost? {
-        // Rules deny reads of documents the caller may not see; treat that as "not found".
-        // Network and other failures are thrown so the caller can say so and offer a retry.
-        let snapshot: DocumentSnapshot
-        do {
-            snapshot = try await posts.document(FirebaseIdentity.key(id)).getDocument()
-        } catch let error as NSError where error.domain == FirestoreErrorDomain
-            && error.code == FirestoreErrorCode.permissionDenied.rawValue {
-            return nil
-        }
-        guard let data = snapshot.data(),
-              FirestorePostMapper.isPubliclyListed(data),
-              let row = try? FirestorePostMapper.row(id: snapshot.documentID, data: data) else { return nil }
-        if try await blockCache.blockedIDs().contains(data["creator_id"] as? String ?? "") { return nil }
-        let post = await MediaAssetStore.materializeRemoteAssets(in: row.domainPost())
-        return await withoutHidden([post]).first
+    func myPostsPage(cursor: String?) async throws -> PostPage {
+        guard let me = FirebaseIdentity.currentLUID() else { return PostPage(posts: [], next: nil) }
+        var query = posts.whereField("creator_id", isEqualTo: FirebaseIdentity.key(me))
+            .order(by: "created_at", descending: true).order(by: FieldPath.documentID(), descending: true)
+        if let cursor, let data = Data(base64Encoded: cursor), let position = try? JSONDecoder().decode(OwnCursor.self, from: data), position.owner == me {
+            query = query.start(after: [Timestamp(seconds: position.seconds, nanoseconds: position.nanoseconds), position.id])
+        } else if cursor != nil { throw BackendCallError.invalidResponse }
+        let page = try await query.limit(to: 51).getDocuments()
+        let docs = Array(page.documents.prefix(50))
+        let next: String?
+        if page.documents.count > 50, let last = docs.last, let timestamp = last.data()["created_at"] as? Timestamp {
+            next = try JSONEncoder().encode(OwnCursor(owner: me, id: last.documentID, seconds: timestamp.seconds, nanoseconds: timestamp.nanoseconds)).base64EncodedString()
+        } else { next = nil }
+        return PostPage(posts: await materialize(docs.map { ($0.documentID, $0.data()) }), next: next)
     }
+    private struct OwnCursor: Codable { let owner: UUID; let id: String; let seconds: Int64; let nanoseconds: Int32 }
 
     func removeOwnPost(id: UUID) async throws {
         let postId = FirebaseIdentity.key(id)
@@ -239,7 +201,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         // Server marks the post removed, fixes counters and deletes its Storage folder.
         let response: Response = try await callables.call("deleteOwnPost", payload: Payload(postId: postId))
         guard response.removed else {
-            throw PostPublishError.rejected("Post bulunamadı ya da zaten kaldırılmış.")
+            throw PostPublishError.rejected(String(localized: "Post bulunamadı ya da zaten kaldırılmış."))
         }
     }
 
@@ -247,33 +209,34 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         // Prefer the server's machine-readable reason; the English-text checks below stay as the
         // fallback for older server versions and for errors that carry no reason.
         switch reason {
-        case "identity_unverified": return "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor."
-        case "account_suspended": return "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin."
-        case "protected_zone": return "Bu korumalı bölgede post yayınlanamaz."
-        case "rate_limited": return "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin."
+        case "identity_unverified": return String(localized: "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor.")
+        case "account_suspended": return String(localized: "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin.")
+        case "protected_zone": return String(localized: "Bu korumalı bölgede post yayınlanamaz.")
+        case "draft_expired": return String(localized: "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun.")
+        case "rate_limited": return String(localized: "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin.")
         default: break
         }
         if raw.contains("verified Apple") || raw.contains("verified Apple, Google, or email identity") {
-            return "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor."
+            return String(localized: "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor.")
         }
-        if raw.contains("Content not allowed") { return "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene." }
-        if raw.contains("Invalid caption") { return "Caption boş olamaz ve 220 karakteri geçemez." }
+        if raw.contains("Content not allowed") { return String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene.") }
+        if raw.contains("Invalid caption") { return String(localized: "Caption boş olamaz ve 220 karakteri geçemez.") }
         if raw.contains("Invalid pose") || raw.contains("GPS accuracy") {
-            return "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin."
+            return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         }
-        if raw.contains("protected zone") { return "Bu korumalı bölgede post yayınlanamaz." }
-        if raw.contains("Only text posts") { return "Postlar yalnızca metin ve sosyal medya bağlantısı içerebilir; fotoğraf ve video desteklenmiyor." }
-        if raw.contains("Only social media links") { return "Yalnızca Spotify, YouTube, Instagram, X ve Facebook bağlantıları eklenebilir." }
-        if raw.contains("Invalid social media link") { return "Sosyal medya bağlantısı geçersiz. Paylaşım bağlantısını uygulamadan tekrar kopyala." }
-        if raw.contains("18+ content") { return "18+ içerik bu sürümde kabul edilmez." }
-        if raw.contains("Invalid reference image") { return "AR referans görüntüsü geçersiz. Yüzeyi yeniden tarayıp tekrar dene." }
-        if raw.contains("At least one edit layer") { return "Yayın için caption veya sosyal bağlantı ekleyin." }
+        if raw.contains("protected zone") { return String(localized: "Bu korumalı bölgede post yayınlanamaz.") }
+        if raw.contains("Only text posts") { return String(localized: "Postlar yalnızca metin ve sosyal medya bağlantısı içerebilir; fotoğraf ve video desteklenmiyor.") }
+        if raw.contains("Only social media links") { return String(localized: "Yalnızca Spotify, YouTube, Instagram, X ve Facebook bağlantıları eklenebilir.") }
+        if raw.contains("Invalid social media link") { return String(localized: "Sosyal medya bağlantısı geçersiz. Paylaşım bağlantısını uygulamadan tekrar kopyala.") }
+        if raw.contains("18+ content") { return String(localized: "18+ içerik bu sürümde kabul edilmez.") }
+        if raw.contains("Invalid reference image") { return String(localized: "AR referans görüntüsü geçersiz. Yüzeyi yeniden tarayıp tekrar dene.") }
+        if raw.contains("At least one edit layer") { return String(localized: "Yayın için caption veya sosyal bağlantı ekleyin.") }
         if raw.contains("Physical AR world lock evidence is incomplete") {
-            return "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun."
+            return String(localized: "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun.")
         }
-        if raw.contains("Creation limit reached") { return "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin." }
-        if raw.contains("cannot publish") { return "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin." }
-        return raw.isEmpty ? "Yayın sunucu tarafından reddedildi." : raw
+        if raw.contains("Creation limit reached") { return String(localized: "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin.") }
+        if raw.contains("cannot publish") { return String(localized: "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin.") }
+        return raw.isEmpty ? String(localized: "Yayın sunucu tarafından reddedildi.") : raw
     }
 
     /// Drops posts the user reported (see HiddenPostStore). Never applied to `myPosts`.
@@ -354,6 +317,7 @@ struct DocumentBatch: @unchecked Sendable {
 }
 
 private struct CreatePostPayload: Encodable, Sendable {
+    let userId: String
     let clientMutationId: String
     let pose: PublishPose
     let refImageUri: String
@@ -488,4 +452,10 @@ actor PreviewPostRepository: PostRepository {
     func publicProfile(creatorID: UUID) async throws -> PublicProfileProjection? { nil }
     func publicPost(id: UUID) async throws -> LociPost? { posts.first { $0.id == id } }
     func removeOwnPost(id: UUID) async throws { posts.removeAll { $0.id == id } }
+}
+
+extension PostRepository {
+    func discoverPage(cursor: String?) async throws -> PostPage { PostPage(posts: cursor == nil ? try await discover() : [], next: nil) }
+    func myPostsPage(cursor: String?) async throws -> PostPage { PostPage(posts: cursor == nil ? try await myPosts(limit: 50) : [], next: nil) }
+    func publicPostsPage(creatorID: UUID, cursor: String?) async throws -> PostPage { PostPage(posts: cursor == nil ? try await publicPosts(creatorID: creatorID, limit: 60) : [], next: nil) }
 }

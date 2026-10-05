@@ -125,18 +125,18 @@ final class ReliabilityTests: XCTestCase {
 
     // MARK: Localization
 
-    /// Push loc-keys sent by functions/src/push.ts must resolve in every shipped language,
-    /// otherwise iOS shows the raw key on the lock screen.
-    func testPushLocKeysAreTranslatedInEveryLanguage() throws {
+    /// Every shipped language has its own translation of the sign-in screen (catalog built by
+    /// scripts/l10n/build_catalog.py), so a missing .lproj or catalog entry fails here.
+    func testSignInTextsAreTranslatedInEveryLanguage() throws {
         let app = Bundle(for: AppContainer.self)
         let languages = ["tr", "en", "zh-Hans", "hi", "es", "fr", "ar", "bn", "pt", "ru", "de", "ja"]
         for language in languages {
             let path = try XCTUnwrap(app.path(forResource: language, ofType: "lproj"), "\(language).lproj missing")
             let bundle = try XCTUnwrap(Bundle(path: path))
-            for key in ["push.like", "push.comment", "push.follow"] {
-                let value = bundle.localizedString(forKey: key, value: nil, table: "Localizable")
-                XCTAssertNotEqual(value, key, "\(key) untranslated in \(language)")
-                XCTAssertTrue(value.contains("%@"), "\(key) in \(language) must keep the actor placeholder")
+            for key in ["Giriş yap", "Kayıt ol"] {
+                let value = bundle.localizedString(forKey: key, value: "", table: "Localizable")
+                XCTAssertFalse(value.isEmpty, "\(key) missing in \(language)")
+                if language != "tr" { XCTAssertNotEqual(value, key, "\(key) untranslated in \(language)") }
             }
         }
     }

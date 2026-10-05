@@ -17,7 +17,11 @@ before(async () => {
     storage: { rules: readFileSync(new URL('../../../storage.rules', import.meta.url), 'utf8') },
     firestore: { rules: readFileSync(new URL('../../../firestore.rules', import.meta.url), 'utf8') },
   });
+  await env.clearFirestore();
+  await env.clearStorage();
   await env.withSecurityRulesDisabled(async (ctx) => {
+    for (const luid of [ALICE, BOB]) await setDoc(doc(ctx.firestore(), 'profiles', luid), { suspended: false, deleted_at: null });
+    for (const luid of [ALICE, BOB]) await setDoc(doc(ctx.firestore(), 'account_access', luid), { state: 'active' });
     await setDoc(doc(ctx.firestore(), 'posts', ACTIVE), { creator_id: ALICE, status: 'active', visibility: 'public' });
     await setDoc(doc(ctx.firestore(), 'posts', PENDING), { creator_id: ALICE, status: 'pending_review', visibility: 'public' });
     await setDoc(doc(ctx.firestore(), 'posts', FRIENDS), { creator_id: ALICE, status: 'active', visibility: 'friends' });
@@ -28,8 +32,12 @@ after(async () => env?.cleanup());
 const as = (luid) => env.authenticatedContext(`uid-${luid}`, { luid }).storage();
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
 
-test('owners upload into their own folder only', async () => {
+test('owners upload into their own draft only and committed maps are immutable', async () => {
+  await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(),'storage_reclamations',ACTIVE),{creator_id:ALICE,state:'draft'}); });
   await assertSucceeds(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`), new Uint8Array([1,2,3,4]), { contentType: 'application/x-lociarmap' }), 'a draft object is create-only too');
+  await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(),'storage_reclamations',ACTIVE),{creator_id:ALICE,state:'committed',world_map_path:`post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`,public_readable:true}); });
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/another.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }), 'publishing freezes new map uploads');
   await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
   await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/anchor.exe`), jpeg, { contentType: 'application/octet-stream' }));
 });
@@ -45,6 +53,7 @@ test('surface texture upload denied', async () => {
 
 test('world maps: readable for active posts (signed in) and always by the owner; never for pending posts of others', async () => {
   const seed = async (postId) => env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(),'storage_reclamations',postId),{creator_id:ALICE,state:'committed',world_map_path:`post-world-maps/${ALICE}/${postId}/anchor.lociarmap`,public_readable:postId===ACTIVE});
     await uploadBytes(ref(ctx.storage(), `post-world-maps/${ALICE}/${postId}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' });
   });
   await seed(ACTIVE);
@@ -58,6 +67,7 @@ test('world maps: readable for active posts (signed in) and always by the owner;
 test('world maps of active friends-only and private posts are readable by the owner only', async () => {
   for (const postId of [FRIENDS, PRIVATE]) {
     await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(),'storage_reclamations',postId),{creator_id:ALICE,state:'committed',world_map_path:`post-world-maps/${ALICE}/${postId}/anchor.lociarmap`,public_readable:false});
       await uploadBytes(ref(ctx.storage(), `post-world-maps/${ALICE}/${postId}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' });
     });
     await assertFails(getBytes(ref(as(BOB), `post-world-maps/${ALICE}/${postId}/anchor.lociarmap`)));
@@ -67,9 +77,9 @@ test('world maps of active friends-only and private posts are readable by the ow
 
 test('world maps under a folder that is not the post creator are never served to others', async () => {
   // Bob uploads a map into his own folder using Alice's active public post id.
-  await assertSucceeds(uploadBytes(ref(as(BOB), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
+  await env.withSecurityRulesDisabled(async ctx => { await uploadBytes(ref(ctx.storage(),`post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`),jpeg,{contentType:'application/x-lociarmap'}); });
   await assertFails(getBytes(ref(as(ALICE), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`)));
-  await assertSucceeds(getBytes(ref(as(BOB), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`)));
+  await assertFails(getBytes(ref(as(BOB), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`)), 'the UUID is already admitted for another owner');
 });
 
 test('world maps: post folder must be a UUID', async () => {
@@ -87,7 +97,7 @@ test('legacy folders: no uploads, owners may delete leftovers, others may not', 
   }
 });
 
-const AVATAR_SLOT = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+const AVATAR_SLOT = 'eeeeeeee-cccc-4ccc-8ddd-123123123123';
 async function grantAvatarSlot(id, luid, expiresInMs = 3_600_000) {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'avatar_uploads', id), { luid, expires_at: Timestamp.fromMillis(Date.now() + expiresInMs) });
@@ -114,12 +124,13 @@ test('avatars: only the owner uploads to pending; current is never client-writab
   await grantAvatarSlot(id, ALICE);
   const path = `avatars/${ALICE}/pending/${id}.jpg`;
   await assertSucceeds(uploadBytes(ref(as(ALICE), path), jpeg, { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(as(ALICE), path), jpeg, { contentType: 'image/jpeg' }), 'an admitted pending avatar is immutable');
   await assertFails(uploadBytes(ref(as(BOB), path), jpeg, { contentType: 'image/jpeg' }));
   await assertFails(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/current/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));
 });
 
 test('avatars: owner uploads JPEGs to pending only; only screened photos are readable', async () => {
-  const id = AVATAR_SLOT;
+  const id = '12345678-bbbb-4ccc-8ddd-eeeeeeeeeeee';
   await grantAvatarSlot(id, ALICE);
   await assertSucceeds(uploadBytes(ref(as(ALICE), `avatars/${ALICE}/pending/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));
   await assertFails(uploadBytes(ref(as(ALICE), `avatars/${BOB}/pending/${id}.jpg`), jpeg, { contentType: 'image/jpeg' }));
@@ -128,6 +139,7 @@ test('avatars: owner uploads JPEGs to pending only; only screened photos are rea
   await assertFails(getBytes(ref(as(BOB), `avatars/${ALICE}/pending/${id}.jpg`)));
   await env.withSecurityRulesDisabled(async (ctx) => {
     await uploadBytes(ref(ctx.storage(), `avatars/${ALICE}/current/${id}.jpg`), jpeg, { contentType: 'image/jpeg' });
+    await setDoc(doc(ctx.firestore(),'profiles',ALICE),{avatar_url:`storage://avatars/${ALICE}/current/${id}.jpg`,deleted_at:null});
   });
   await assertSucceeds(getBytes(ref(as(BOB), `avatars/${ALICE}/current/${id}.jpg`)));
   await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), `avatars/${ALICE}/current/${id}.jpg`)));

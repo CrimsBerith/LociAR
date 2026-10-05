@@ -6,6 +6,16 @@ service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() { return request.auth != null && request.auth.token.luid is string; }
     function owner(luid) { return signedIn() && request.auth.token.luid == luid; }
+    function activeOwner(luid) {
+      return owner(luid)
+        // Storage permits at most two distinct Firestore document reads per evaluation.
+        // This single server-maintained access record leaves one for the slot/draft claim.
+        && firestore.get(/databases/(default)/documents/account_access/$(luid)).data.state == 'active';
+    }
+    function draftNotReclaimed(postId) {
+      let claim = firestore.get(/databases/(default)/documents/storage_reclamations/$(postId.lower())).data;
+      return claim.state == 'draft' && claim.creator_id == request.auth.token.luid;
+    }
     function under(mb) { return request.resource.size < mb * 1024 * 1024; }
     function isImage() { return request.resource.contentType.matches('image/(jpeg|png|heic|webp)'); }
 
@@ -13,38 +23,41 @@ service firebase.storage {
     // post-layer-assets / post-video-assets folders. Owners may still delete leftovers.
     match /post-layer-assets/{luid}/{rest=**} {
       allow read, create, update: if false;
-      allow delete: if owner(luid);
+      allow delete: if activeOwner(luid);
     }
     match /post-video-assets/{luid}/{rest=**} {
       allow read, create, update: if false;
-      allow delete: if owner(luid);
+      allow delete: if activeOwner(luid);
     }
     function uuid(v) { return v.matches('[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'); }
     // Maps describe real places: only the owner, or any signed-in user while the post is active
     // and public, may read them. Friends-only and private posts keep their geometry to the owner.
     // Needs the cross-service grant for Storage rules to read Firestore (see docs/FIREBASE_SETUP.md).
-    // The folder owner must be the post's creator: otherwise anyone could upload a map under their
-    // own folder with someone else's public post id and have it served to every viewer.
-    function postIsPublicActiveBy(postId, luid) {
-      let p = firestore.get(/databases/(default)/documents/posts/$(postId.lower())).data;
-      return p.status == 'active' && p.visibility == 'public' && p.creator_id == luid;
+    function mapAccess(postId, luid, file) {
+      let claim = firestore.get(/databases/(default)/documents/storage_reclamations/$(postId.lower())).data;
+      let access = firestore.get(/databases/(default)/documents/account_access/$(luid)).data;
+      return access.state == 'active' && claim.creator_id == luid
+        && (claim.state == 'draft' && owner(luid)
+          || claim.state == 'committed' && claim.get('world_map_path', null) == 'post-world-maps/' + luid + '/' + postId + '/' + file
+            && (owner(luid) || claim.get('public_readable', false)));
     }
     match /post-world-maps/{luid}/{postId}/{file} {
-      allow read: if owner(luid) || (signedIn() && uuid(postId) && postIsPublicActiveBy(postId, luid));
-      allow create, update: if owner(luid) && uuid(postId) && under(20) && file.matches('.*\\.lociarmap')
+      allow read: if signedIn() && uuid(postId) && mapAccess(postId, luid, file);
+      allow create: if resource == null && activeOwner(luid) && uuid(postId) && draftNotReclaimed(postId) && under(20) && file.matches('.*\\.lociarmap')
         && request.resource.contentType == 'application/x-lociarmap';
-      allow delete: if owner(luid);
+      allow update: if false;
+      allow delete: if activeOwner(luid) && draftNotReclaimed(postId);
     }
     // Camera reference frames are no longer collected (privacy). Owners may still delete leftovers.
     match /post-reference-images/{luid}/{rest=**} {
       allow read, create, update: if false;
-      allow delete: if owner(luid);
+      allow delete: if activeOwner(luid);
     }
     match /post-surface-textures/{luid}/{rest=**} {
       // Closed: surface textures were an unmoderated image channel. Owners may delete leftovers.
       allow read: if signedIn();
       allow create, update: if false;
-      allow delete: if owner(luid);
+      allow delete: if activeOwner(luid);
     }
     // Profile photos: the app uploads a JPEG to pending/, the screenAvatar callable (called by the app after upload) screens it
     // and publishes accepted photos to current/. Pending photos are never readable.
@@ -57,12 +70,14 @@ service firebase.storage {
     }
     match /avatars/{luid}/pending/{file} {
       allow read: if false;
-      allow create: if owner(luid) && under(3) && request.resource.contentType == 'image/jpeg'
+      allow create: if resource == null && activeOwner(luid) && under(3) && request.resource.contentType == 'image/jpeg'
         && file.matches('[0-9a-f-]{36}\\.jpg') && ownsUploadSlot(luid, file);
       allow update, delete: if false;
     }
     match /avatars/{luid}/current/{file} {
-      allow read: if signedIn();
+      allow read: if signedIn()
+        && firestore.get(/databases/(default)/documents/profiles/$(luid)).data.avatar_url == 'storage://avatars/' + luid + '/current/' + file
+        && firestore.get(/databases/(default)/documents/profiles/$(luid)).data.get('deleted_at', null) == null;
       allow write: if false;
     }
     match /avatars/{luid}/{rest=**} {

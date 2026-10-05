@@ -1,34 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
 
 const CATEGORIES = ['school', 'hospital', 'worship', 'government', 'military', 'heritage', 'memorial', 'other'];
 
 /** Adds a hard-block zone through the audited /api/admin/v1/zones endpoint. */
 export default function ZoneForm() {
   const router = useRouter();
+  const mutation = useRef(createMutationClient());
   const [form, setForm] = useState({ name: '', category: 'school', lat: '', lng: '', radius_meters: '150', reason: '' });
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) => setForm({ ...form, [key]: event.target.value });
 
   async function submit() {
+    if (busy) return;
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch('/api/admin/v1/zones', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
-        body: JSON.stringify({ ...form, lat: Number(form.lat), lng: Number(form.lng), radius_meters: Number(form.radius_meters) }),
-      });
-      const payload = await response.json();
+      const { response, result: payload } = await mutation.current.post('/api/admin/v1/zones',
+        { ...form, lat: Number(form.lat), lng: Number(form.lng), radius_meters: Number(form.radius_meters) });
       if (!response.ok) throw new Error(payload.error ?? 'Zone could not be saved');
-      setMessage('Zone saved. New posts inside it are blocked within 5 minutes.');
+      setMessage('Zone saved. New posts inside it are blocked as soon as the zone is saved.');
+      mutation.current.clear();
       setForm({ ...form, name: '', lat: '', lng: '', reason: '' });
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Zone could not be saved');
+      setMessage(mutationError(error));
     } finally {
       setBusy(false);
     }

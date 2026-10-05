@@ -63,7 +63,7 @@ ENGLISH = re.compile(r"\b(the|failed|Invalid|invalid|error|session|with|not|reac
 # DEBUG-only paths, identifiers and unit-only formats (numbers and units stay as formatted).
 EXCLUDE = {
     '\n[DEBUG] %@ %@: %@', '%@ m', '%lld m', 'AR frame: %@', 'AR state=%@ tracking=%@ mapping=%@ message=%@',
-    'Bilinmeyen sync işlemi: %@', 'Dikey yüzeyde AR görünümü açılamadı: %@', 'Geçersiz AR durum geçişi: %@ → %@',
+    'Dikey yüzeyde AR görünümü açılamadı: %@', 'Geçersiz AR durum geçişi: %@ → %@',
     'World map size raw=%lld compressed=%lld', 'World-map %lld. denemede alındı; %lld anchor içeriyor.',
     'World-map alma denemesi %lld/%@ başarısız: %@', 'Publish committed post=%@', 'Publish intent persisted post=%@',
     'Publish paused post=%@', 'Publish queued post=%@ reason=offline', 'Sync committed operation=%@ id=%@', 'Sync paused id=%@',
@@ -72,17 +72,17 @@ EXCLUDE = {
     ' : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._', 'AIza', 'YOUR-', 'begin ', 'LZM1',
     'GeospatialAccuracy', 'LociARStagedMedia', 'LociARWorldMaps', 'RCTAsyncLocalStorage', 'RCTAsyncLocalStorage_V1',
     'RNCAsyncLocalStorage_V1', 'Legacy dead-letter', '^[a-z0-9_.]{3,30}$', 'cannot publish', 'protected zone', 'verified Apple',
-    'verified Apple, Google, or email identity', '18+ content', 'CAPTION', 'E', 'Giriş Yapmadan Test Et (Önizleme)',
-    'Doğrulama e-postası yeniden gönderildi (Önizleme).', 'Kalıcı world-map storage yolu bulunamadı.', 'LociAR Pin',
-    'ARCore başlatılamadı', 'İptal edildi', '⚠️ Ağ hatası', '⚠️ Kota aşıldı', '⚠️ VPS zaman aşımı',
-    '⚠️ Yetki yok (token / ARCore API)', '⚠️ İç hata', '✅ VPS mevcut', '❌ VPS yok', '❓ Bilinmiyor',
+    'verified Apple, Google, or email identity', '18+ content', 'E', 'LociAR Pin',
+    '⚠️ Yetki yok (token / ARCore API)', '✅ VPS mevcut', '❌ VPS yok', '❓ Bilinmiyor',
     'ARCore kapsam kontrolü (debug)', 'ARCore kapsamı', 'Kontrol ediliyor…', 'VPS kapsamını kontrol et', 'Loci', '%lld', '%lld/500', '%lld/220', 'Only social media links', 'Only text posts',
-    'Physical AR world lock evidence is incomplete', 'Facebook', 'Instagram', 'Spotify', 'YouTube', 'AR', 'LociAR',
+    'Physical AR world lock evidence is incomplete', 'Facebook', 'Instagram', 'Spotify', 'YouTube',
+    ') : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._', 'LociAR.Push', 'Report reason',
+    '^[A-Za-z0-9_-]{1,200}$', 'lociar.acceptedAccountDeletions',
 }
 
 # Shown to users but not written as a literal in the app: activity texts written by Cloud
-# Functions (functions/src/triggers.ts) and push notification loc-keys (functions/src/push.ts).
-EXTRA = ['yorum', 'bilinmiyor', 'normal', 'Postunu beğendi.', 'Postuna yorum yaptı.', 'Seni takip etmeye başladı.', 'push.like', 'push.comment', 'push.follow']
+# Functions (functions/src/triggers.ts).
+EXTRA = ['yorum', 'bilinmiyor', 'normal', 'Postunu beğendi.', 'Postuna yorum yaptı.', 'Seni takip etmeye başladı.']
 
 UI_CONTEXT = re.compile(r"(Text|Button|Label|navigationTitle|alert|confirmationDialog|TextField|SecureField|Toggle|Section|Link|Menu|accessibilityLabel|accessibilityHint|Annotation|String\(localized:)\(?\s*$")
 

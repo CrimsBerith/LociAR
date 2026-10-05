@@ -88,7 +88,9 @@ App Store Connect'te **App Review Information** bölümüne girilecek metin:
 ### Giriş Bilgileri (Sign-In Information)
 * **Giriş Gerekli mi (Sign-in required):** Evet (Kutu işaretlenmeli)
 * **Kullanıcı Adı (Username):** `apple-review@lociar.app`
-* **Şifre (Password):** App Store Connect'e girilir; repoya, belgelere veya issue'lara **yazılmaz**. `functions/scripts/provision-review-account.mjs --rotate` yeni şifre üretir ve yalnız terminale basar.
+* **Şifre (Password):** Parola yöneticisindeki güncel değeri yalnızca App Store Connect'in Sign-In Information alanına girin; depoya veya inceleme notlarına yazmayın.
+
+Daha önce depoda bulunan parola canlı hesapta değiştirilmeli ve App Store Connect güncellenmelidir. Güvenli oluşturma/yenileme adımları: [CREDENTIALS.md](../CREDENTIALS.md).
 
 ### İnceleme Notları (Notes for Reviewer - İngilizce)
 ```text
@@ -100,12 +102,12 @@ Thank you for reviewing LociAR.
 LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes and social media links (Spotify, YouTube, Instagram, X, Facebook) onto physical surfaces in the real world.
 
 2. DEMO ACCOUNT & PRE-SEEDED CONTENT:
-- Credentials: apple-review@lociar.app / (password provided in the App Review Information sign-in fields)
+- Sign-in credentials are provided in the App Review Information sign-in fields.
 - A pre-seeded sample post is located directly at Apple Park, Cupertino (Lat: 37.3318, Lng: -122.0312): "LociAR demo note · Cupertino".
 - You can immediately see and interact with this post on the Map tab or Discover tab upon signing in.
 
 3. HOW TO TEST AR CREATION (A PHYSICAL ARKIT IPHONE IS REQUIRED; NO LIDAR NEEDED):
-- Step 1: Sign in using the demo account credentials provided above (or use Sign in with Apple).
+- Step 1: Sign in using the demo account credentials in the App Review Information sign-in fields (or use Sign in with Apple).
 - Step 1b: Tick the privacy policy / community rules checkbox on the sign-in screen (explicit consent).
 - Step 2: Grant Camera and Location permissions when prompted, and acknowledge the Google AR notice (Google processes sensor data for AR positioning).
 - Step 3: Tap the 'Share' ('Paylaş') tab to open the AR camera.

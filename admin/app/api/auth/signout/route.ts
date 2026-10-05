@@ -3,10 +3,10 @@ import { SESSION_COOKIE } from '../../../../lib/admin';
 import { randomUUID } from 'node:crypto';
 import { adminAuth } from '../../../../lib/firebase-admin';
 import { recordAudit } from '../../../../lib/ops';
+import { requireSameOrigin } from '../../../../lib/api';
 
 export async function POST(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  if (request.headers.get('origin') !== requestUrl.origin) {
+  if (requireSameOrigin(request)) {
     return NextResponse.json({ ok: false, reason: 'origin' }, { status: 403 });
   }
   const session = request.cookies.get(SESSION_COOKIE)?.value;

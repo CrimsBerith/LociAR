@@ -34,7 +34,10 @@ fi
 "$GH" auth setup-git --hostname github.com
 
 # 3) Gönder
-rm -f .git/index.lock 2>/dev/null || true
+if [ -e .git/index.lock ]; then
+  echo "❌ Git işlemi kilitli. Açık Git işlemini tamamlayıp tekrar dene."
+  pause; exit 1
+fi
 git remote get-url origin >/dev/null 2>&1 && git remote set-url origin "$REPO_URL" || git remote add origin "$REPO_URL"
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 if [ -z "$CURRENT_BRANCH" ] || [ "$CURRENT_BRANCH" = "HEAD" ] || [ "$CURRENT_BRANCH" = "main" ]; then
@@ -47,3 +50,4 @@ status=${PIPESTATUS[0]}
 echo ""
 if [ "$status" -eq 0 ]; then echo "✅ Bitti: ${REPO_URL%.git}"; else echo "❌ Gönderim başarısız (kod $status). Ayrıntı: $LOG"; fi
 pause
+exit "$status"

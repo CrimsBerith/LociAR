@@ -24,6 +24,9 @@ for jdk in /opt/homebrew/opt/openjdk@21/bin /opt/homebrew/opt/openjdk/bin /usr/l
 done
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
+# Install the reviewed CLI even when reusing existing emulators.
+( cd functions && npm ci --no-fund --no-audit >/dev/null 2>&1 ) || { log "HATA: functions bağımlılıkları"; exit 1; }
+
 # 1) LAN IP -> Local.xcconfig (the phone reaches the Mac over Wi-Fi)
 LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || true)"
 [ -z "$LAN_IP" ] && LAN_IP="$(ipconfig getifaddr en1 2>/dev/null || true)"
@@ -44,8 +47,8 @@ else
   done
   sleep 2
   log "Functions build + emulator baslatiliyor..."
-  ( cd functions && npm install --no-fund --no-audit >/dev/null 2>&1 && npm run build >/dev/null 2>&1 ) || { log "HATA: functions build"; exit 1; }
-  nohup npx -y firebase-tools@latest emulators:start --only auth,firestore,storage,functions \
+  ( cd functions && npm run build >/dev/null 2>&1 ) || { log "HATA: functions build"; exit 1; }
+  nohup ./functions/node_modules/.bin/firebase emulators:start --only auth,firestore,storage,functions \
     --project "$PROJECT_ID" > "$ROOT/scripts/.emulator.log" 2>&1 &
   disown || true
   for i in $(seq 1 90); do
@@ -76,8 +79,8 @@ trap 'kill $VERIFY_PID 2>/dev/null' EXIT
 
 # 4) Build once, then run tests one by one in a fixed order
 export TEST_RUNNER_E2E_EMAIL="e2e$(date +%s)@lociar.test"
-# Throwaway account on the local emulator only; a fresh random password per run.
-export TEST_RUNNER_E2E_PASSWORD="E2e-$(openssl rand -hex 12)"
+export TEST_RUNNER_E2E_PASSWORD="$(openssl rand -hex 24)"
+[ -n "$TEST_RUNNER_E2E_PASSWORD" ] || { log "HATA: test parolası üretilemedi"; exit 1; }
 log "Test hesabi: $TEST_RUNNER_E2E_EMAIL"
 COMMON=(-project LociAR.xcodeproj -scheme LociAR -destination "id=$DEVICE_ID" -allowProvisioningUpdates)
 log "build-for-testing..."

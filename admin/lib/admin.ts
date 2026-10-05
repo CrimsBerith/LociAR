@@ -2,7 +2,8 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from './firebase-admin';
-import { permissionsFor } from './rbac';
+import { isKnownRole, permissionsFor } from './rbac';
+import { accountDeletionStarted } from './account-lifecycle';
 
 export { required } from './firebase-admin';
 
@@ -16,12 +17,13 @@ export type AdminContext = {
 };
 
 export async function activeRoles(uid: string): Promise<string[]> {
+  if (await accountDeletionStarted(uid)) return [];
   const snap = await adminDb()
     .collection('admin_role_assignments')
     .where('user_id', '==', uid)
     .where('revoked_at', '==', null)
     .get();
-  return [...new Set(snap.docs.map((d) => String(d.data().role_key)))];
+  return [...new Set(snap.docs.map((d) => String(d.data().role_key)).filter(isKnownRole))];
 }
 
 export async function getAdminContext(): Promise<AdminContext | null> {

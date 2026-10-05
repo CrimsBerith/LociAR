@@ -164,7 +164,12 @@ extension AuthGateUITests {
         delete.tap()
         let alert = app.alerts["Hesabı kalıcı olarak sil?"]
         XCTAssertTrue(alert.waitForExistence(timeout: 5))
-        alert.buttons["Hesabı sil"].tap()
+        alert.buttons["Devam et"].tap()
+        let password = app.secureTextFields["account-delete-password"]
+        XCTAssertTrue(password.waitForExistence(timeout: 10), "Silmeden önce parola ile yeniden doğrulama gerekir.")
+        password.tap()
+        password.typeText(e2ePassword)
+        app.buttons["account-delete-confirm"].tap()
         XCTAssertTrue(e2eField(app, "auth-email-field").waitForExistence(timeout: 30),
                       "Hesap silme (deleteAccount callable) başarısız: \(e2eMessageText(app))")
         capture(app, name: "e2e-account-deleted")

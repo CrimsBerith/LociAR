@@ -53,7 +53,7 @@ if ! java -version >/dev/null 2>&1; then
 fi
 
 echo "Cloud Functions build ediliyor..."
-( cd functions && npm install --no-fund --no-audit && npm run build ) || { echo "XX Functions build basarisiz."; pause; exit 1; }
+( cd functions && npm ci --no-fund --no-audit && npm run build ) || { echo "XX Functions build basarisiz."; pause; exit 1; }
 
 echo ""
 echo ">> Emulator Suite baslatiliyor (Auth :9099, Firestore :8080, Storage :9199, Functions :5001)"
@@ -69,7 +69,7 @@ for port in 9099 8080 9199 5001 4400 4500 9150; do
 done
 sleep 1
 
-npx -y firebase-tools@latest emulators:start \
+./functions/node_modules/.bin/firebase emulators:start \
   --only auth,firestore,storage,functions \
   --project lociar-2f38c \
   --import=./.emulator-data \

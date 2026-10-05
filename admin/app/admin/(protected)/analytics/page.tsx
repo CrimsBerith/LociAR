@@ -1,28 +1,39 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
+import PageNavigation from '../PageNavigation';
+import { pageCursors, readDocumentPage, textParameter, type DocumentPage, type SearchParameters } from '../../../../lib/pagination';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
   await requireAdmin({ permission: 'dashboard.read' });
-  // Counts are aggregation queries (cheap); the per-event breakdown reads at most 1,000 recent events.
-  const since = Timestamp.fromMillis(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const since7 = Timestamp.fromMillis(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  let last30 = 0;
+  const params = await searchParams;
+  const requestedSince = textParameter(params.since, 10);
+  const defaultSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const date = new Date(`${requestedSince}T00:00:00.000Z`);
+  const sinceDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedSince) && Number.isFinite(date.getTime())
+    && date.toISOString().slice(0, 10) === requestedSince && date.getTime() <= Date.now() && date.getUTCFullYear() >= 2000
+    ? requestedSince : defaultSince;
+  const since = Timestamp.fromDate(new Date(`${sinceDate}T00:00:00.000Z`));
   const collection = adminDb().collection('analytics_events');
+  const window = collection.where('created_at', '>=', since);
+  let page: DocumentPage = { documents: [], next: null, previous: null };
   let allTime = 0;
+  let windowCount = 0;
   let events: Array<{ event_name: string; created_at: string; user_id: string | null; post_id: string | null }> = [];
   let failed = false;
   try {
-    const [count, count30, snap] = await Promise.all([
+    const cursors = pageCursors(params);
+    const [count, windowTotal, loadedPage] = await Promise.all([
       collection.count().get(),
-      collection.where('created_at', '>=', since).count().get(),
-      collection.where('created_at', '>=', since7).orderBy('created_at', 'desc').limit(1000).get(),
+      window.count().get(),
+      readDocumentPage(window, { scope: JSON.stringify(['analytics', sinceDate]), cursors, size: 500 }),
     ]);
     allTime = count.data().count;
-    last30 = count30.data().count;
-    events = snap.docs.map(d => {
+    windowCount = windowTotal.data().count;
+    page = loadedPage;
+    events = page.documents.map(d => {
       const data = d.data();
       return { event_name: String(data.event_name), created_at: iso(data.created_at), user_id: data.user_id ?? null, post_id: data.post_id ?? null };
     });
@@ -43,18 +54,20 @@ export default async function AnalyticsPage() {
     <main className="page">
       <div className="pageHeading"><div><p className="eyebrow">Measured behavior</p><h1>Analytics</h1></div><p className="muted">Real analytics_events only. Uncollected reliability metrics are not estimated.</p></div>
       <section className="metricGrid">
-        <article className="metricCard"><span>All-time events</span><strong>{allTime.toLocaleString()}</strong></article>
-        <article className="metricCard"><span>Events, last 30 days</span><strong>{last30.toLocaleString()}</strong><small>Breakdown below: last 7 days{events.length === 1000 ? ', latest 1,000' : ''}</small></article>
+        <article className="metricCard"><span>Retained events</span><strong>{allTime.toLocaleString()}</strong></article>
+        <article className="metricCard"><span>Events in query window</span><strong>{windowCount.toLocaleString()}</strong><small>Since {sinceDate} UTC · exact server count</small></article>
         <article className="metricCard"><span>Crash-free sessions</span><strong className="notInstrumented">Not instrumented</strong></article>
         <article className="metricCard"><span>AR resolve success</span><strong className="notInstrumented">Not instrumented</strong></article>
       </section>
       <section className="panel actionPanel">
+        <p className="readOnlyNotice">Event summaries for this batch of {events.length} records. Counts of known users and posts are distinct within this batch. Use Next records to inspect the entire query window.</p>
         <div className="dataRow analytics header"><span>Event</span><span>Count</span><span>Known users / posts</span><span>Latest</span></div>
-        {failed ? <p className="emptyState">Analytics events could not be loaded.</p> : rows.length === 0 ? <p className="emptyState">No analytics events in the last 7 days.</p> : rows.map(([name, value]) => (
+        {failed ? <p className="emptyState">Analytics events could not be loaded.</p> : rows.length === 0 ? <p className="emptyState">No analytics events in the last 30 days.</p> : rows.map(([name, value]) => (
           <div className="dataRow analytics" key={name}>
             <span><b>{name}</b></span><span>{value.count.toLocaleString()}</span><span>{value.users.size} / {value.posts.size}</span><span>{new Date(value.latest).toLocaleString('en-US')}</span>
           </div>
         ))}
+        {!failed ? <PageNavigation path="/admin/analytics" parameters={{ since: sinceDate }} next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/analytics">Return to the first page.</a></p>}
       </section>
     </main>
   );

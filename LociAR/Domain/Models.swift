@@ -351,11 +351,11 @@ enum ExternalMediaPlatform: String, CaseIterable, Hashable, Identifiable, Sendab
 
     var linkHint: String {
         switch self {
-        case .spotify: "open.spotify.com bağlantısı"
-        case .youtube: "youtube.com veya youtu.be bağlantısı"
-        case .facebook: "facebook.com gönderi, video veya Reels bağlantısı"
-        case .instagram: "instagram.com gönderi veya Reels bağlantısı"
-        case .x: "x.com gönderi bağlantısı"
+        case .spotify: String(localized: "open.spotify.com bağlantısı")
+        case .youtube: String(localized: "youtube.com veya youtu.be bağlantısı")
+        case .facebook: String(localized: "facebook.com gönderi, video veya Reels bağlantısı")
+        case .instagram: String(localized: "instagram.com gönderi veya Reels bağlantısı")
+        case .x: String(localized: "x.com gönderi bağlantısı")
         }
     }
 }

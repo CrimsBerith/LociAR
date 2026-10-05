@@ -3,6 +3,7 @@ import { auth, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsE
 import { reasonError } from './errors';
 import { handleIsBlocked, isReservedHandle, anyBlocked } from './moderation';
 import { handleCooldownRemaining } from './limits';
+import { assertAccountNotDeleting } from './profileGuard';
 
 export const HANDLE_PATTERN = /^[a-z0-9_.]{3,30}$/;
 
@@ -38,6 +39,9 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
   const caller = requireCaller(request);
   const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown; termsVersion?: unknown };
 
+  // Reject an already accepted deletion before touching custom Auth claims too.
+  await db.runTransaction(tx => assertAccountNotDeleting(tx, caller.luid));
+
   const userRecord = await auth.getUser(caller.uid);
   const claims = { ...(userRecord.customClaims ?? {}) } as Record<string, unknown>;
   let claimsUpdated = false;
@@ -51,7 +55,12 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
   const privateRef = db.collection('users_private').doc(caller.luid);
 
   const profile = await db.runTransaction(async (tx) => {
+    await assertAccountNotDeleting(tx, caller.luid);
     const snap = await tx.get(profileRef);
+    // Explicit consent (checkbox on the sign-in screen): which terms version was accepted and when.
+    // users_private is server-only, so this record cannot be forged by a client write.
+    const consent = termsConsentUpdate(data.termsVersion, (await tx.get(privateRef)).data()?.terms_version);
+    const consentFields = consent ? { ...consent, terms_accepted_at: FieldValue.serverTimestamp() } : {};
     if (snap.exists) {
       const existing = snap.data()!;
       if (existing.deleted_at) throw new HttpsError('permission-denied', 'Account was deleted');
@@ -61,6 +70,13 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
         const reservation = await tx.get(handleRef(handle));
         if (!reservation.exists) tx.set(handleRef(handle), { luid: caller.luid, created_at: FieldValue.serverTimestamp() });
       }
+      tx.set(privateRef, {
+        uid: caller.uid, email: caller.email, auth_provider: caller.provider,
+        identity_verified: caller.isAppleUser || caller.emailVerified,
+        last_seen_at: FieldValue.serverTimestamp(),
+        ...consentFields,
+      }, { merge: true });
+      tx.set(db.collection('account_access').doc(caller.luid), { state: existing.suspended === true ? 'suspended' : 'active' });
       return existing;
     }
     const requested = typeof data.handle === 'string' ? data.handle.trim().toLowerCase() : '';
@@ -92,23 +108,15 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
       updated_at: FieldValue.serverTimestamp(),
     };
     tx.set(profileRef, created);
-    return { ...created, created_at: null, updated_at: null };
-  });
-
-  // Explicit consent (checkbox on the sign-in screen): which terms version was accepted and when.
-  // users_private is server-only, so this record cannot be forged by a client write.
-  const consent = termsConsentUpdate(data.termsVersion, (await privateRef.get()).data()?.terms_version);
-  await privateRef.set(
-    {
-      uid: caller.uid,
-      email: caller.email,
-      auth_provider: caller.provider,
+    tx.set(db.collection('account_access').doc(caller.luid), { state: 'active' });
+    tx.set(privateRef, {
+      uid: caller.uid, email: caller.email, auth_provider: caller.provider,
       identity_verified: caller.isAppleUser || caller.emailVerified,
       last_seen_at: FieldValue.serverTimestamp(),
-      ...(consent ? { ...consent, terms_accepted_at: FieldValue.serverTimestamp() } : {}),
-    },
-    { merge: true },
-  );
+      ...consentFields,
+    }, { merge: true });
+    return { ...created, created_at: null, updated_at: null };
+  });
 
   return {
     luid: caller.luid,
@@ -126,6 +134,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
  */
 export const updateHandle = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
+  if ((request.data as { userId?: unknown })?.userId !== caller.luid) throw reasonError('permission-denied', 'Profile session changed', 'session_changed');
   const requested = (request.data as { handle?: unknown })?.handle;
   const handle = typeof requested === 'string' ? requested.trim().toLowerCase() : '';
   if (!HANDLE_PATTERN.test(handle)) throw new HttpsError('invalid-argument', 'Invalid handle');
@@ -134,6 +143,7 @@ export const updateHandle = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInst
 
   const profileRef = db.collection('profiles').doc(caller.luid);
   await db.runTransaction(async (tx) => {
+    await assertAccountNotDeleting(tx, caller.luid);
     const [profile, reservation] = await Promise.all([tx.get(profileRef), tx.get(handleRef(handle))]);
     if (!profile.exists || profile.data()!.deleted_at) throw reasonError('failed-precondition', 'Profile missing; call ensureProfile first', 'profile_missing');
     if (profile.data()!.suspended === true) throw reasonError('permission-denied', 'This account cannot publish', 'account_suspended');

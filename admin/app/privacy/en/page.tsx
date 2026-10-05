@@ -78,7 +78,7 @@ export default function PrivacyPageEn() {
       <ul>
         <li>Account data and content: until you delete your account.</li>
         <li>On account deletion your profile, posts, comments, likes, follows, collections, notification tokens, AR files, profile
-          photos and your sign-in account are permanently deleted immediately. Reports you filed are kept de-identified; a record
+          photos and your sign-in account enter permanent deletion immediately. Temporary service errors are retried in the background until deletion completes. Reports you filed are kept de-identified; a record
           of the deletion itself (pseudonymous ID and counts) is kept for security.</li>
         <li>Usage and security events (including approximate location): at most {E.analyticsRetentionDays} days, then deleted automatically.</li>
         <li>Crash reports: {E.crashRetentionDays} days.</li>

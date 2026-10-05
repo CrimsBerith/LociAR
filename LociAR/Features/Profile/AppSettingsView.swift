@@ -3,6 +3,7 @@ import UserNotifications
 
 /// Profile → Settings: notification permission and the crash-report opt-out promised in the privacy policy.
 struct AppSettingsView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
     @State private var crashReports = CrashReportingPreference.isEnabled
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
@@ -38,7 +39,7 @@ struct AppSettingsView: View {
             }
 
             Section {
-                Toggle("Çökme raporları", isOn: $crashReports)
+                Toggle(String(localized: "Çökme raporları"), isOn: $crashReports)
                     .onChange(of: crashReports) { _, enabled in CrashReportingPreference.isEnabled = enabled }
                     .accessibilityIdentifier("settings-crash-reports")
             } header: {
@@ -50,13 +51,14 @@ struct AppSettingsView: View {
         .navigationTitle("Ayarlar")
         .navigationBarTitleDisplayMode(.inline)
         .task { await refresh() }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { Task { await refresh() } } }
     }
 
-    private var notificationStatusText: LocalizedStringKey {
+    private var notificationStatusText: String {
         switch notificationStatus {
-        case .authorized, .provisional, .ephemeral: "Açık"
-        case .denied: "Kapalı"
-        default: "Sorulmadı"
+        case .authorized, .provisional, .ephemeral: String(localized: "Açık")
+        case .denied: String(localized: "Kapalı")
+        default: String(localized: "Sorulmadı")
         }
     }
 

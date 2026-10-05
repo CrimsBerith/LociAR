@@ -33,7 +33,8 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 
 - SMS auth is disabled unless the owner re-enables it.
 - **iOS only.** Do not add Android, Expo, Metro, or React Native.
-- Protected zones and 18+ content are hard-blocked in the MVP.
+- Mobile users cannot publish in protected zones; authorized admins may use a separately permissioned, reasoned zone exception (owner decision, 5 Oct 2026). 18+ content remains hard-blocked for everyone.
+- Admin delegated posts/comments identify the selected user publicly and record the acting admin separately in audit. New managed content identities have disabled, unverified Auth logins and no admin role. See `docs/release/ADMIN_CONTENT_OPERATIONS.md`.
 - Pin uses the center reticle against detected plane geometry. Approximate placement is explicit.
 - AR re-localization uses **Google ARCore on top of the ARKit session** (SPM `arcore-ios-sdk`): Cloud Anchors
   (365-day TTL) first, then Geospatial (VPS), then the legacy ARKit world map, then aim-guided reveal.
@@ -45,13 +46,14 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   `/privacy`, `/terms`, `/support` pages the iOS app links to. Everything runs on Firebase: no Docker, no Vercel,
   no Supabase. On App Hosting the Admin SDK uses the backend's service account; no key file.
 - **Push notifications:** Enabled via APNs & FirebaseMessaging (`NotificationService.swift`, `LociAR.entitlements` `aps-environment`).
-  Tokens go through the `registerPushToken` / `unregisterPushToken` callables (server-only `push_devices`); pushes are
-  sent by `functions/src/push.ts` with loc-keys `push.like` / `push.comment` / `push.follow`.
+  Tokens go through the `registerPushToken` / `unregisterPushToken` callables (server-only `push_tokens`, keyed by
+  installation id); `onActivityCreated` (`functions/src/push.ts`) sends texts localized on the server (`pushPolicy.ts`).
 - **Localization:** 12 languages (`tr`, `en`, `zh-Hans`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `de`, `ja`) via
   `Localizable.xcstrings` + `InfoPlist.xcstrings`. Development region is `en` (fallback for other languages); catalog keys
   are the Turkish source literals. Never edit the catalogs by hand: add translations to `scripts/l10n/translations/*.json`
   and run `python3 scripts/l10n/build_catalog.py` (CI runs `--check` and verifies the compiler-extracted keys).
-  Text kept in `String` properties is shown with `.localizedUI`; interpolated messages use `String(localized:)`.
+  Messages use `String(localized:)`; text kept in `String` properties is shown with `.localizedUI`.
+  `node scripts/check-localization.mjs --release` must pass too (no raw Turkish UI strings).
 - **Crash reporting:** Firebase Crashlytics enabled.
 - **Store availability:** Global (all territories).
 - **Media model:** Text and social media links only. Legacy device photo/video upload remnants completely removed.

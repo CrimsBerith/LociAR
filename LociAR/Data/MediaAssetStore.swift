@@ -1,5 +1,6 @@
 import Foundation
 @preconcurrency import FirebaseStorage
+import CryptoKit
 
 enum MediaAssetStore {
     static let signedURLLifetimeSeconds = 60 * 60
@@ -19,7 +20,11 @@ enum MediaAssetStore {
 
 
     nonisolated static func removeLocalAssets(in post: LociPost) async {
-        await Task.detached(priority: .utility) {
+        try? await removeLocalAssetsChecked(in: post)
+    }
+
+    nonisolated static func removeLocalAssetsChecked(in post: LociPost) async throws {
+        try await Task.detached(priority: .utility) {
             var urls = post.editData.layers.compactMap(\.assetURL)
             if let surfaceTextureURL = post.editData.surfaceTextureURL { urls.append(surfaceTextureURL) }
             if let persistence = post.anchorBundle.anchor.persistence {
@@ -31,7 +36,7 @@ enum MediaAssetStore {
             default: break
             }
             for url in Set(urls) where isOwnedLocalAsset(url) {
-                try? FileManager.default.removeItem(at: url)
+                if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
             }
         }.value
     }
@@ -94,10 +99,12 @@ enum MediaAssetStore {
     nonisolated static func upload(_ data: Data, bucket: String, path: String, contentType: String) async throws -> URL {
         let metadata = StorageMetadata()
         metadata.contentType = contentType
+        let checksum = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        metadata.customMetadata = ["sha256": checksum]
         let ref = Storage.storage().reference(withPath: "\(bucket)/\(path)")
         // Paths are deterministic per post, so a retry after a transient createPost failure finds
         // the object already there and skips re-uploading (world maps can be up to 50 MB).
-        if let existing = try? await ref.getMetadata(), existing.size == Int64(data.count) {
+        if let existing = try? await ref.getMetadata(), existing.size == Int64(data.count), existing.customMetadata?["sha256"] == checksum {
             return storageURL(bucket: bucket, path: path)
         }
         _ = try await ref.putDataAsync(data, metadata: metadata)

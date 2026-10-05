@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { FieldValue } from 'firebase-admin/firestore';
 import { apiError, enforceRateLimit, requireSameOrigin, unauthorized } from '../../../../../../lib/api';
 import { requireAdminApi } from '../../../../../../lib/admin';
-import { adminDb } from '../../../../../../lib/firebase-admin';
-import { recordAudit } from '../../../../../../lib/ops';
+import { setServicePaused } from '../../../../../../lib/ops';
 import { idempotencyKey, parseJson, requiredString } from '../../../../../../lib/validation';
 
 /**
@@ -21,14 +19,7 @@ export async function POST(request: Request) {
     const body = await parseJson(request);
     if (typeof body.enabled !== 'boolean') return NextResponse.json({ error: 'enabled must be a boolean' }, { status: 400 });
     const reason = requiredString(body.reason, 'reason', 8, 1000);
-    const ref = adminDb().collection('system').doc('flags');
-    const before = (await ref.get()).data() ?? {};
-    const after = { kill_switch: body.enabled, kill_reason: body.enabled ? reason : null };
-    await ref.set({ ...after, updated_by: access.context.user.id, updated_at: FieldValue.serverTimestamp() }, { merge: true });
-    await recordAudit(idempotencyKey(request), {
-      actorId: access.context.user.id, action: body.enabled ? 'kill_switch_on' : 'kill_switch_off', resourceType: 'system_flags',
-      resourceId: 'flags', before, after, reason, permissionKey: 'system.kill_switch', riskLevel: 'critical',
-    });
+    const after = await setServicePaused(body.enabled, access.context.user.id, reason, idempotencyKey(request));
     return NextResponse.json({ flags: after });
   } catch (error) {
     return apiError(error);

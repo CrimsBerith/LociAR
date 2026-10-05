@@ -60,7 +60,7 @@ struct CreatePostView: View {
                     .accessibilityIdentifier("create-saving-status")
                 }
             }
-            .navigationTitle(selectedAnchor == nil ? "Yüzey seç" : "İçerik oluştur")
+            .navigationTitle(selectedAnchor == nil ? String(localized: "Yüzey seç") : String(localized: "İçerik oluştur"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } }
@@ -186,7 +186,7 @@ struct CreatePostView: View {
                                 .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
                         }
                     } else if let anchor = engine.currentAnchor {
-                        Text(anchor.pinQuality == .freeSpaceApproximate ? "Yaklaşık yerleştirme" : "Yüzey bulundu")
+                        Text(anchor.pinQuality == .freeSpaceApproximate ? String(localized: "Yaklaşık yerleştirme") : String(localized: "Yüzey bulundu"))
                             .font(.caption.bold()).foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                         if anchor.pinQuality.isPhysicalSurface && !physicalPlacementReady {
                             VStack(spacing: 5) {
@@ -255,13 +255,13 @@ struct CreatePostView: View {
     }
 
     private var placementTitle: String {
-        if engine.state == .failed { return placementUnsupported ? "AR desteklenmiyor" : "Kamera açılamadı" }
-        if engine.currentAnchor != nil { return "Yerleştirme hazır" }
-        if engine.candidateQuality == .planeGeometry { return "Kesin yüzey hazır" }
-        if engine.candidateQuality == .estimatedPlane { return "Tahmini yüzey bulundu" }
-        if engine.candidateQuality != nil { return "Yüzey hazır" }
-        if engine.state == .approximateOffered { return "Yüzey bulunamadı" }
-        return "Yüzey aranıyor"
+        if engine.state == .failed { return placementUnsupported ? "AR desteklenmiyor" : String(localized: "Kamera açılamadı") }
+        if engine.currentAnchor != nil { return String(localized: "Yerleştirme hazır") }
+        if engine.candidateQuality == .planeGeometry { return String(localized: "Kesin yüzey hazır") }
+        if engine.candidateQuality == .estimatedPlane { return String(localized: "Tahmini yüzey bulundu") }
+        if engine.candidateQuality != nil { return String(localized: "Yüzey hazır") }
+        if engine.state == .approximateOffered { return String(localized: "Yüzey bulunamadı") }
+        return String(localized: "Yüzey aranıyor")
     }
 
     private var trackingUsableForPlacement: Bool {
@@ -274,29 +274,29 @@ struct CreatePostView: View {
 
     private var mappingStatusTitle: String {
         switch engine.mappingQuality {
-        case .notAvailable: return "Çevre haritası başlatılıyor"
-        case .limited: return "Çevre haritası sınırlı"
-        case .extending: return "Çevre haritası genişletiliyor"
-        case .mapped: return "Çevre haritası hazır"
+        case .notAvailable: return String(localized: "Çevre haritası başlatılıyor")
+        case .limited: return String(localized: "Çevre haritası sınırlı")
+        case .extending: return String(localized: "Çevre haritası genişletiliyor")
+        case .mapped: return String(localized: "Çevre haritası hazır")
         }
     }
 
     private var mappingStatusGuidance: String {
         if engine.isPausedForThermalPressure {
-            return "Cihazı serin ve gölgeli bir yerde beklet. Sıcaklık normale dönünce AR taraması otomatik devam eder."
+            return String(localized: "Cihazı serin ve gölgeli bir yerde beklet. Sıcaklık normale dönünce AR taraması otomatik devam eder.")
         }
         if mappingWaitExpired {
-            return "Harita hazır olmadı. Daha iyi ışıkta dokulu yüzeyi farklı açılardan tara; sonra Tekrar tara'yı seç veya Kapat ile iptal et."
+            return String(localized: "Harita hazır olmadı. Daha iyi ışıkta dokulu yüzeyi farklı açılardan tara; sonra Tekrar tara'yı seç veya Kapat ile iptal et.")
         }
         switch engine.mappingQuality {
         case .notAvailable:
-            return "Devam etmek için telefonu dokulu yüzeyin çevresinde yavaşça gezdir ve ışığı artır."
+            return String(localized: "Devam etmek için telefonu dokulu yüzeyin çevresinde yavaşça gezdir ve ışığı artır.")
         case .limited:
-            return "Yüzey kaydı sınırlı da olsa kullanılabilir. Daha sağlam kilit için telefonu yavaş gezdir."
+            return String(localized: "Yüzey kaydı sınırlı da olsa kullanılabilir. Daha sağlam kilit için telefonu yavaş gezdir.")
         case .extending:
-            return "Çevre haritası genişliyor. Yerleşimi şimdi kullanabilirsin."
+            return String(localized: "Çevre haritası genişliyor. Yerleşimi şimdi kullanabilirsin.")
         case .mapped:
-            return "Yüzey kaydı hazır."
+            return String(localized: "Yüzey kaydı hazır.")
         }
     }
 
@@ -332,9 +332,9 @@ struct CreatePostView: View {
                             .font(.title2)
                             .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                         VStack(alignment: .leading) {
-                            Text(anchor.pinQuality.isPhysicalSurface ? surfaceTitle(anchor.surfaceAlignment) : "Yaklaşık yerleştirme")
+                            Text(anchor.pinQuality.isPhysicalSurface ? surfaceTitle(anchor.surfaceAlignment) : String(localized: "Yaklaşık yerleştirme"))
                                 .font(.headline)
-                            Text(anchor.pinQuality.isPhysicalSurface ? "İçerik bu fiziksel yüzeye sabitlenecek." : "İçerik kameranın 0,8 m önünde görünecek.")
+                            Text(anchor.pinQuality.isPhysicalSurface ? String(localized: "İçerik bu fiziksel yüzeye sabitlenecek.") : String(localized: "İçerik kameranın 0,8 m önünde görünecek."))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -345,7 +345,7 @@ struct CreatePostView: View {
 
                 LociCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        LociSectionLabel(title: "Caption", symbol: "text.quote")
+                        LociSectionLabel(title: String(localized: "Caption"), symbol: "text.quote")
                         TextField("Bu yüzeyde ne var?", text: $caption, axis: .vertical)
                             .lineLimit(2...6)
                             .padding(12)
@@ -369,7 +369,7 @@ struct CreatePostView: View {
                         }
 
                         Divider().overlay(LociTheme.hairline)
-                        LociSectionLabel(title: "İçerik", symbol: "rectangle.stack.badge.plus")
+                        LociSectionLabel(title: String(localized: "İçerik"), symbol: "rectangle.stack.badge.plus")
 
 
                         Button {
@@ -389,7 +389,7 @@ struct CreatePostView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(selectedExternalPlatform?.rawValue ?? String(localized: "Sosyal medya postu ekle"))
                                         .font(.subheadline.weight(.semibold))
-                                    Text(selectedExternalPlatform == nil ? "Spotify · YouTube · Facebook · Instagram · X" : "Platformu değiştirmek için dokun")
+                                    Text(selectedExternalPlatform == nil ? "Spotify · YouTube · Facebook · Instagram · X" : String(localized: "Platformu değiştirmek için dokun"))
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
@@ -435,7 +435,7 @@ struct CreatePostView: View {
                                     HStack(spacing: 12) {
                                         BrandLogoView(platform: external.platform, size: 30)
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text("\(external.platform.rawValue) içeriği eklendi")
+                                            Text(String(localized: "\(external.platform.rawValue) içeriği eklendi"))
                                                 .font(.subheadline.weight(.semibold))
                                             Text(external.url.absoluteString)
                                                 .font(.caption2)
@@ -454,7 +454,7 @@ struct CreatePostView: View {
                                     .accessibilityIdentifier("external-media-selection-preview")
                                 }
                             } else if !externalMediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                Label("Geçerli bir \(selectedExternalPlatform.rawValue) paylaşım bağlantısı yapıştır.", systemImage: "exclamationmark.circle")
+                                Label(String(localized: "Geçerli bir \(selectedExternalPlatform.rawValue) paylaşım bağlantısı yapıştır."), systemImage: "exclamationmark.circle")
                                     .font(.caption).foregroundStyle(.orange)
                             }
                         }
@@ -502,16 +502,16 @@ struct CreatePostView: View {
 
     private func surfaceTitle(_ alignment: SurfaceAlignment) -> String {
         switch alignment {
-        case .horizontal: "Yatay yüzey hazır"
-        case .vertical: "Dikey yüzey hazır"
-        case .angled: "Açılı yüzey hazır"
-        default: "Yüzey hazır"
+        case .horizontal: String(localized: "Yatay yüzey hazır")
+        case .vertical: String(localized: "Dikey yüzey hazır")
+        case .angled: String(localized: "Açılı yüzey hazır")
+        default: String(localized: "Yüzey hazır")
         }
     }
 
     private func publish(anchor: SurfaceAnchor) async {
         guard case .signedIn(let user) = session.phase else {
-            message = "Yayınlamak için tekrar giriş yapın."
+            message = String(localized: "Yayınlamak için tekrar giriş yapın.")
             return
         }
         defer { isPublishing = false }
@@ -554,8 +554,8 @@ struct CreatePostView: View {
             }
             dismissAfterAlert = false
             message = offerLocationSettings
-                ? "Post yayınlamak için konum iznini Ayarlar'dan açın."
-                : "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin."
+                ? String(localized: "Post yayınlamak için konum iznini Ayarlar'dan açın.")
+                : String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin.")
             return
         }
 
@@ -583,27 +583,27 @@ struct CreatePostView: View {
                 askForNotificationsAfterAlert = true
                 switch receipt.status {
                 case .active:
-                    message = "Post yayınlandı. Keşfet ve profilinde görünür."
+                    message = String(localized: "Post yayınlandı. Keşfet ve profilinde görünür.")
                 case .pendingReview:
-                    message = "Post gönderildi ve incelemeye alındı. Durumu Profil > Postlarım'dan takip edebilirsin."
+                    message = String(localized: "Post gönderildi ve incelemeye alındı. Durumu Profil > Postlarım'dan takip edebilirsin.")
                 default:
-                    message = "Post sunucuya kaydedildi. Durumu Profil > Postlarım'da görünür."
+                    message = String(localized: "Post sunucuya kaydedildi. Durumu Profil > Postlarım'da görünür.")
                 }
             case .queued(.offline):
                 message = session.isLocalPreview
-                    ? "Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir."
-                    : "İnternet bağlantısı yok. Post cihazda sıraya alındı ve bağlantı geri geldiğinde yeniden denenecek."
+                    ? String(localized: "Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir.")
+                    : String(localized: "İnternet bağlantısı yok. Post cihazda sıraya alındı ve bağlantı geri geldiğinde yeniden denenecek.")
             case .queued(.servicePaused):
-                message = "LociAR geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak."
+                message = String(localized: "LociAR geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak.")
             case .queued(.backendUnavailable):
-                message = "Yayın ilk denemede tamamlanamadı. Post Profil > Postlarım’da görünür; uygulama 15 saniyede bir yeniden dener veya ‘Şimdi yayınla’ ile hemen gönderebilirsin."
+                message = String(localized: "Yayın ilk denemede tamamlanamadı. Post Profil > Postlarım’da görünür; uygulama 15 saniyede bir yeniden dener veya ‘Şimdi yayınla’ ile hemen gönderebilirsin.")
             case .rejected(let reason):
                 dismissAfterAlert = false
                 message = reason
             }
         } catch {
             dismissAfterAlert = false
-            message = "Post cihazda güvenle saklanamadı. Alanı boşaltıp tekrar deneyin."
+            message = String(localized: "Post cihazda güvenle saklanamadı. Alanı boşaltıp tekrar deneyin.")
         }
     }
 
@@ -675,13 +675,13 @@ struct CreatePostView: View {
                     if let selectedExternalPlatform {
                         LociInlineNotice(
                             title: String(localized: "\(selectedExternalPlatform.rawValue) içeriğini seç"),
-                            message: "İçeriği aç, Paylaş menüsünden bağlantıyı kopyala ve bu ekrana dön. Tamam bağlantıyı doğrulayıp karta ekler.",
+                            message: String(localized: "İçeriği aç, Paylaş menüsünden bağlantıyı kopyala ve bu ekrana dön. Tamam bağlantıyı doğrulayıp karta ekler."),
                             symbol: "arrowshape.turn.up.right.fill",
                             color: selectedExternalPlatform.brandColor
                         )
                         .accessibilityIdentifier("external-import-instruction")
 
-                        Button("\(selectedExternalPlatform.rawValue) uygulamasını aç", systemImage: "arrow.up.forward.app") {
+                        Button(String(localized: "\(selectedExternalPlatform.rawValue) uygulamasını aç"), systemImage: "arrow.up.forward.app") {
                             openExternalPlatform(selectedExternalPlatform)
                         }
                         .buttonStyle(LociPrimaryButtonStyle())
@@ -696,8 +696,8 @@ struct CreatePostView: View {
                     }
 
                     LociInlineNotice(
-                        title: "Bağlantı güvenli biçimde eklenir",
-                        message: "Yalnız seçtiğin platforma ait geçerli paylaşım bağlantısı kabul edilir.",
+                        title: String(localized: "Bağlantı güvenli biçimde eklenir"),
+                        message: String(localized: "Yalnız seçtiğin platforma ait geçerli paylaşım bağlantısı kabul edilir."),
                         symbol: "checkmark.seal.fill"
                     )
                 }
@@ -847,7 +847,7 @@ struct CreatePostView: View {
             engine.stopSession()
         case .worldMapFailed:
             offerFallbackToApproximate = true
-            message = "Fiziksel çevre haritası kaydedilemedi. Dilersen 'Yaklaşık olarak devam et' ile postunu hemen oluşturabilir veya tekrar tarayabilirsin."
+            message = String(localized: "Fiziksel çevre haritası kaydedilemedi. Dilersen 'Yaklaşık olarak devam et' ile postunu hemen oluşturabilir veya tekrar tarayabilirsin.")
         case .cancelled:
             break
         }

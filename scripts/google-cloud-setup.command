@@ -15,6 +15,9 @@ if ! command -v gcloud >/dev/null 2>&1; then
   pause "Kurduktan sonra bu dosyayı tekrar aç. Kapatmak için Enter…"; exit 1
 fi
 
+step "Lockfile ile Firebase CLI kuruluyor"
+npm ci --prefix functions --no-audit --no-fund
+
 step "Google hesabıyla giriş (projenin sahibi olan hesap). Tarayıcı açılacak."
 if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q .; then
   gcloud auth login
@@ -47,6 +50,7 @@ gcloud services enable \
   storage.googleapis.com \
   firestore.googleapis.com \
   firebaseappcheck.googleapis.com \
+  fcm.googleapis.com \
   identitytoolkit.googleapis.com \
   firebaseapphosting.googleapis.com \
   secretmanager.googleapis.com \
@@ -102,9 +106,9 @@ echo "   ℹ️  Cloud Anchor silme hatası (PERMISSION_DENIED) olursa anchor 'c
 echo "      girer ve günlük yeniden denenir. Editor verme; logdaki hatayı issue #6'ya ekle."
 
 step "Admin paneli: Firebase App Hosting (backend lociar-admin)"
-if ! npx --yes firebase-tools@14 apphosting:backends:get lociar-admin --project "$PROJECT" >/dev/null 2>&1; then
+if ! ./functions/node_modules/.bin/firebase apphosting:backends:get lociar-admin --project "$PROJECT" >/dev/null 2>&1; then
   echo "App Hosting backend yok; oluşturuluyor. Sihirbaz bir web app soracak → 'LociAR Admin' seç/oluştur."
-  npx --yes firebase-tools@14 apphosting:backends:create --project "$PROJECT" \
+  ./functions/node_modules/.bin/firebase apphosting:backends:create --project "$PROJECT" \
     --backend lociar-admin --primary-region us-central1 --root-dir admin
 fi
 AH_SA="firebase-app-hosting-compute@${PROJECT}.iam.gserviceaccount.com"
@@ -150,7 +154,7 @@ step "Backend deploy (kurallar, indeksler, TTL, Storage kuralları, Cloud Functi
 bash scripts/firebase-deploy.command
 
 step "Admin paneli + yasal sayfalar deploy (Firebase App Hosting)"
-npx --yes firebase-tools@14 deploy --only apphosting --project "$PROJECT"
+./functions/node_modules/.bin/firebase deploy --only apphosting --project "$PROJECT"
 echo "✅ https://lociar-admin--${PROJECT}.us-central1.hosted.app/privacy"
 
 step "İsteğe bağlı: eski referans kamera karelerini temizle (önce sayar)"

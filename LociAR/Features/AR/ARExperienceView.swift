@@ -27,7 +27,7 @@ struct ARExperienceView: View {
     @State private var location = LocationController()
     @State private var nearbyPosts: [LociPost] = []
     @State private var viewingPost: LociPost?
-    @State private var discoveryMessage = "Yakındaki AR yayınları aranıyor…"
+    @State private var discoveryMessage = String(localized: "Yakındaki AR yayınları aranıyor…")
     @State private var isDiscovering = true
     @State private var isCreationMode = false
     @State private var isStartingCreationMode = false
@@ -155,7 +155,7 @@ struct ARExperienceView: View {
                 )
                 .accessibilityIdentifier("ar-camera-status")
                 VStack(spacing: 6) {
-                    Text(isDiscovering ? "Yayınlar aranıyor" : nearbyPosts.isEmpty ? "Yakında yayın yok" : "Bu konumdaki yayınlar")
+                    Text(isDiscovering ? String(localized: "Yayınlar aranıyor") : nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar"))
                         .font(.title3.bold())
                     Text(discoveryMessage.localizedUI)
                         .font(.footnote)
@@ -181,7 +181,7 @@ struct ARExperienceView: View {
                                 Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                     .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(post.caption.isEmpty ? "Mekânsal post".localizedUI : post.caption)
+                                    Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
                                         .font(.subheadline.weight(.semibold)).lineLimit(1)
                                     Text(distanceText(for: post).localizedUI)
                                         .font(.caption).foregroundStyle(.secondary)
@@ -247,10 +247,10 @@ struct ARExperienceView: View {
 
     private var reticleLabel: String {
         switch engine.candidateQuality {
-        case .planeGeometry: "Gerçek yüzey hazır"
-        case .estimatedPlane: "Tahmini yüzey hazır"
-        case .freeSpaceApproximate: "Yaklaşık yerleşim"
-        case nil: "Yüzey aranıyor"
+        case .planeGeometry: String(localized: "Gerçek yüzey hazır")
+        case .estimatedPlane: String(localized: "Tahmini yüzey hazır")
+        case .freeSpaceApproximate: String(localized: "Yaklaşık yerleşim")
+        case nil: String(localized: "Yüzey aranıyor")
         }
     }
 
@@ -267,7 +267,7 @@ struct ARExperienceView: View {
                 }
                 Text(userFacingStatusMessage.localizedUI).font(.footnote).foregroundStyle(.white.opacity(0.82))
                 if let anchor = engine.currentAnchor {
-                    Text(anchor.pinQuality.isPhysicalSurface ? "Fiziksel yüzeye yerleştirildi" : "Yaklaşık yerleştirme · 0,8 m")
+                    Text(anchor.pinQuality.isPhysicalSurface ? String(localized: "Fiziksel yüzeye yerleştirildi") : String(localized: "Yaklaşık yerleştirme · 0,8 m"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                         .accessibilityIdentifier("ar-pin-diagnostic")
@@ -285,8 +285,8 @@ struct ARExperienceView: View {
         VStack(spacing: 12) {
             if engine.state == .approximateOffered {
                 LociInlineNotice(
-                    title: "Yüzey henüz bulunamadı",
-                    message: "Biraz daha tara veya açıkça yaklaşık yerleştirmeyi seç.",
+                    title: String(localized: "Yüzey henüz bulunamadı"),
+                    message: String(localized: "Biraz daha tara veya açıkça yaklaşık yerleştirmeyi seç."),
                     symbol: "exclamationmark.triangle.fill",
                     color: .orange
                 )
@@ -316,10 +316,10 @@ struct ARExperienceView: View {
                     .buttonStyle(LociSecondaryButtonStyle())
                 if !canPrepareContent {
                     LociInlineNotice(
-                        title: mappingWaitExpired ? "Çevre haritası hazır olmadı" : "Çevre haritası hazırlanıyor",
+                        title: mappingWaitExpired ? String(localized: "Çevre haritası hazır olmadı") : String(localized: "Çevre haritası hazırlanıyor"),
                         message: mappingWaitExpired
-                            ? "Daha iyi ışıkta dokulu yüzeyi farklı açılardan tara. Tekrar tara veya İptal et."
-                            : "Postu aynı yüzeyde yeniden açabilmek için telefonu çevrede yavaşça gezdir.",
+                            ? String(localized: "Daha iyi ışıkta dokulu yüzeyi farklı açılardan tara. Tekrar tara veya İptal et.")
+                            : String(localized: "Postu aynı yüzeyde yeniden açabilmek için telefonu çevrede yavaşça gezdir."),
                         symbol: "viewfinder",
                         color: .orange
                     )
@@ -381,17 +381,17 @@ struct ARExperienceView: View {
     }
 
     private var arStatusTitle: String {
-        if engine.state == .failed { return isUnsupported ? "AR desteklenmiyor" : "Kamera açılamadı" }
+        if engine.state == .failed { return isUnsupported ? "AR desteklenmiyor" : String(localized: "Kamera açılamadı") }
         if engine.currentAnchor?.pinQuality.isPhysicalSurface == true, !canPrepareContent {
-            return "Yüzey kilitli · haritalanıyor"
+            return String(localized: "Yüzey kilitli · haritalanıyor")
         }
-        if engine.currentAnchor != nil { return "Yerleştirildi" }
-        if engine.candidateQuality == .planeGeometry { return "Kesin yüzey hazır" }
-        if engine.candidateQuality == .estimatedPlane { return "Tahmini yüzey hazır" }
-        if engine.candidateQuality != nil { return "Yüzey hazır" }
-        if engine.trackingQuality == .normal { return "Yüzey aranıyor" }
-        if engine.hasRecentCameraFrame { return "Kamera açık · tarama sınırlı" }
-        return "Kamera hazırlanıyor"
+        if engine.currentAnchor != nil { return String(localized: "Yerleştirildi") }
+        if engine.candidateQuality == .planeGeometry { return String(localized: "Kesin yüzey hazır") }
+        if engine.candidateQuality == .estimatedPlane { return String(localized: "Tahmini yüzey hazır") }
+        if engine.candidateQuality != nil { return String(localized: "Yüzey hazır") }
+        if engine.trackingQuality == .normal { return String(localized: "Yüzey aranıyor") }
+        if engine.hasRecentCameraFrame { return String(localized: "Kamera açık · tarama sınırlı") }
+        return String(localized: "Kamera hazırlanıyor")
     }
 
     private var arStatusSymbol: String {
@@ -409,13 +409,13 @@ struct ARExperienceView: View {
     private var userFacingStatusMessage: String {
         if engine.state == .failed { return engine.statusMessage }
         if engine.currentAnchor?.pinQuality.isPhysicalSurface == true, !canPrepareContent {
-            return "Yüzey kilitli. Yeniden açılabilir kayıt için telefonu yüzeyin çevresinde yavaşça gezdir."
+            return String(localized: "Yüzey kilitli. Yeniden açılabilir kayıt için telefonu yüzeyin çevresinde yavaşça gezdir.")
         }
-        if engine.currentAnchor != nil { return "İçeriğini ekleyebilir veya farklı bir yüzey seçebilirsin." }
-        if engine.candidateQuality != nil { return "Telefonu sabit tut ve Yüzeye sabitle’ye dokun." }
-        if engine.trackingQuality == .normal { return "Merkez halkayı masa, zemin veya duvar üzerinde gezdir." }
+        if engine.currentAnchor != nil { return String(localized: "İçeriğini ekleyebilir veya farklı bir yüzey seçebilirsin.") }
+        if engine.candidateQuality != nil { return String(localized: "Telefonu sabit tut ve Yüzeye sabitle’ye dokun.") }
+        if engine.trackingQuality == .normal { return String(localized: "Merkez halkayı masa, zemin veya duvar üzerinde gezdir.") }
         if engine.hasRecentCameraFrame { return engine.statusMessage }
-        return "Telefonu yavaşça hareket ettirerek çevreyi tara."
+        return String(localized: "Telefonu yavaşça hareket ettirerek çevreyi tara.")
     }
 
     private var isUnsupported: Bool {
@@ -429,10 +429,10 @@ struct ARExperienceView: View {
     }
 
     private var discoveryCameraTitle: String {
-        if cameraPermissionDenied { return "Kamera izni gerekli" }
-        if engine.state == .failed { return "Kamera başlatılamadı" }
-        if engine.hasRecentCameraFrame { return "Kamera açık" }
-        return "Kamera hazırlanıyor"
+        if cameraPermissionDenied { return String(localized: "Kamera izni gerekli") }
+        if engine.state == .failed { return String(localized: "Kamera başlatılamadı") }
+        if engine.hasRecentCameraFrame { return String(localized: "Kamera açık") }
+        return String(localized: "Kamera hazırlanıyor")
     }
 
     private var discoveryCameraSymbol: String {
@@ -477,14 +477,14 @@ struct ARExperienceView: View {
     private func discoverAndOpenNearestPost(automaticallyOpen: Bool = false) async {
         isCreationMode = false
         isDiscovering = true
-        discoveryMessage = "Yakındaki AR yayınları aranıyor…"
+        discoveryMessage = String(localized: "Yakındaki AR yayınları aranıyor…")
         if session.isLocalPreview {
             nearbyPosts = Array(localDraftsForCurrentUser().prefix(2)) + [UITestFixtures.post]
             isDiscovering = false
             discoveryMessage = nearbyPosts.isEmpty
-                ? "Cihaz test içeriği hazır."
+                ? String(localized: "Cihaz test içeriği hazır.")
                 : nearbyPosts.count == 1
-                    ? "1 yayın var. Dokun, sonra nokta atışı yönlendirme başlar."
+                    ? String(localized: "1 yayın var. Dokun, sonra nokta atışı yönlendirme başlar.")
                     : String(localized: "\(nearbyPosts.count) yayın var. Birine dokun, sonra nokta atışı yönlendirme başlar.")
             return
         }
@@ -495,7 +495,7 @@ struct ARExperienceView: View {
         }
         guard let currentLocation = location.location else {
             isDiscovering = false
-            discoveryMessage = location.errorMessage ?? "Konum alınamadı. Yeni pin oluşturabilir veya tekrar deneyebilirsin."
+            discoveryMessage = location.errorMessage ?? String(localized: "Konum alınamadı. Yeni pin oluşturabilir veya tekrar deneyebilirsin.")
             return
         }
 
@@ -514,7 +514,7 @@ struct ARExperienceView: View {
             do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
             if collected.isEmpty, let networkError {
                 isDiscovering = false
-                discoveryMessage = String(localized: "Bağlantı hatası: \(networkError.localizedDescription)")
+                discoveryMessage = String(localized: "Bağlantı kurulamadı. Biraz sonra tekrar dene.")
                 return
             }
         }
@@ -530,11 +530,11 @@ struct ARExperienceView: View {
         isDiscovering = false
 
         guard let nearest = nearbyPosts.first else {
-            discoveryMessage = "Bu konumda görüntülenebilir bir yayın bulunamadı."
+            discoveryMessage = String(localized: "Bu konumda görüntülenebilir bir yayın bulunamadı.")
             return
         }
         discoveryMessage = nearbyPosts.count == 1
-            ? "1 yayın var. Dokun, sonra nokta atışı yönlendirme başlar."
+            ? String(localized: "1 yayın var. Dokun, sonra nokta atışı yönlendirme başlar.")
             : String(localized: "\(nearbyPosts.count) yayın var. Birine dokun, sonra nokta atışı yönlendirme başlar.")
         if automaticallyOpen { openInAR(nearest) }
     }
@@ -582,11 +582,11 @@ struct ARExperienceView: View {
         guard let current = location.location,
               let geo = post.anchorBundle.anchor.geoPose,
               ProximityPolicy.isValidCoordinate(latitude: geo.latitude, longitude: geo.longitude) else {
-            return "Konum bilinmiyor"
+            return String(localized: "Konum bilinmiyor")
         }
         let meters = current.distance(from: CLLocation(latitude: geo.latitude, longitude: geo.longitude))
-        guard let roundedMeters = ProximityPolicy.roundedMeters(meters) else { return "Konum bilinmiyor" }
-        return roundedMeters < 1_000 ? "\(roundedMeters) m" : String(format: "%.1f km", meters / 1_000)
+        guard let roundedMeters = ProximityPolicy.roundedMeters(meters) else { return String(localized: "Konum bilinmiyor") }
+        return roundedMeters < 1_000 ? "\(roundedMeters.formatted()) m" : String(format: "%.1f km", locale: Locale.current, meters / 1_000)
     }
 
     /// Sets the busy flag before the task starts, so a double tap cannot start two saves.
@@ -619,7 +619,7 @@ struct ARExperienceView: View {
             showCreate = true
         case .worldMapFailed(let reason):
             errorMessage = reason.isEmpty
-                ? "Çevre haritası henüz kaydedilemedi. Aynı yüzeyi biraz daha tarayıp tekrar deneyin."
+                ? String(localized: "Çevre haritası henüz kaydedilemedi. Aynı yüzeyi biraz daha tarayıp tekrar deneyin.")
                 : reason
         case .cancelled:
             break

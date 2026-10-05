@@ -244,3 +244,42 @@ final class DomainContractTests: XCTestCase {
         )
     }
 }
+
+extension DomainContractTests {
+    func testCommentPagesMergeWithoutDuplicatingTheNewestCommentAndDisplayChronologically() {
+        let postID = UUID()
+        let userID = UUID()
+        func comment(_ number: Int) -> LociComment {
+            LociComment(id: UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", number))!,
+                        postID: postID, userID: userID, username: "loci", text: "Comment \(number)",
+                        createdAt: Date(timeIntervalSince1970: Double(number)))
+        }
+        let newest = (151...201).map(comment)
+        let older = (101...151).map(comment)
+        let merged = LociComment.merging(newest, with: older)
+        XCTAssertEqual(merged.count, 101)
+        XCTAssertEqual(merged.first?.text, "Comment 101")
+        XCTAssertEqual(merged.last?.text, "Comment 201")
+        XCTAssertEqual(Set(merged.map(\.id)).count, merged.count)
+        XCTAssertEqual(LociComment.merging(merged, with: [comment(201)]).count, merged.count)
+    }
+
+    func testCommentPagesHaveDeterministicDisplayOrderWhenTimestampsMatch() {
+        let postID = UUID(), userID = UUID(), date = Date(timeIntervalSince1970: 12)
+        let lowerID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let higherID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let first = LociComment(id: lowerID, postID: postID, userID: userID, username: "loci", text: "First", createdAt: date)
+        let second = LociComment(id: higherID, postID: postID, userID: userID, username: "loci", text: "Second", createdAt: date)
+        XCTAssertEqual(LociComment.merging([second], with: [first]).map(\.id), [lowerID, higherID])
+    }
+
+    func testCommentCursorBindsToItsPostAndPreservesValidNanosecondBoundaries() {
+        let postID = UUID()
+        let valid = CommentPageCursor(postID: postID, documentID: "comment-id", seconds: 12, nanoseconds: 999_999_999)
+        XCTAssertTrue(valid.isValid(for: postID))
+        XCTAssertFalse(valid.isValid(for: UUID()))
+        XCTAssertFalse(CommentPageCursor(postID: postID, documentID: "other/comment", seconds: 12, nanoseconds: 0).isValid(for: postID))
+        XCTAssertFalse(CommentPageCursor(postID: postID, documentID: "comment-id", seconds: 12, nanoseconds: -1).isValid(for: postID))
+        XCTAssertFalse(CommentPageCursor(postID: postID, documentID: "comment-id", seconds: 12, nanoseconds: 1_000_000_000).isValid(for: postID))
+    }
+}

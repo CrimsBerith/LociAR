@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
 
 type Props = {
   postId: string;
@@ -15,65 +16,51 @@ export default function PostActions(props: Props) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const mutation = useRef(createMutationClient());
 
   async function moderate(action: 'approve' | 'flag' | 'soft_delete' | 'restore') {
     const reason = window.prompt('Reason (minimum 8 characters)');
     if (!reason) return;
     setBusy(true);
-    const response = await fetch(`/api/admin/v1/posts/${props.postId}/moderate`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
-      body: JSON.stringify({ action, reason }),
-    });
-    const result = await response.json() as { error?: string };
-    setBusy(false);
-    setMessage(response.ok ? 'Post updated. Refreshing…' : result.error ?? 'Update failed.');
-    if (response.ok) window.location.reload();
+    setMessage('');
+    try {
+      const { response, result } = await mutation.current.post(`/api/admin/v1/posts/${props.postId}/moderate`, { action, reason });
+      setMessage(response.ok ? 'Post updated. Refreshing…' : result.error ?? 'Update failed. Please retry.');
+      if (response.ok) window.location.reload();
+    } catch (error) {
+      setMessage(mutationError(error));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function setMetrics(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
+    setMessage('');
     const form = new FormData(event.currentTarget);
-    const response = await fetch(`/api/admin/v1/posts/${props.postId}/metrics`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
-      body: JSON.stringify({
-        viewsCount: Number(form.get('views')),
-        likesCount: Number(form.get('likes')),
-        commentsCount: Number(form.get('comments')),
-        reason: form.get('reason'),
-      }),
-    });
-    const result = await response.json() as { error?: string; code?: string };
-    if (response.status === 409 && result.code === 'approval_required') {
-      const approvalResponse = await fetch('/api/admin/v1/approvals', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
-        body: JSON.stringify({
-          action: 'post_metrics_set',
-          resourceType: 'post',
-          resourceId: props.postId,
-          reason: form.get('reason'),
-          payload: {
-            viewsCount: Number(form.get('views')),
-            likesCount: Number(form.get('likes')),
-            commentsCount: Number(form.get('comments')),
-          },
-        }),
-      });
-      const approvalResult = await approvalResponse.json() as { error?: string };
+    const payload = {
+      viewsCount: Number(form.get('views')), likesCount: Number(form.get('likes')),
+      commentsCount: Number(form.get('comments')), reason: form.get('reason'),
+    };
+    try {
+      const { response, result } = await mutation.current.post(`/api/admin/v1/posts/${props.postId}/metrics`, payload);
+      if (response.status === 409 && result.code === 'approval_required') {
+        const approval = await mutation.current.post('/api/admin/v1/approvals', {
+          action: 'post_metrics_set', resourceType: 'post', resourceId: props.postId, reason: payload.reason,
+          payload: { viewsCount: payload.viewsCount, likesCount: payload.likesCount, commentsCount: payload.commentsCount },
+        });
+        setMessage(approval.response.ok ? 'Large change sent for independent approval.'
+          : approval.result.error ?? 'Approval request failed. Please retry.');
+        return;
+      }
+      setMessage(response.ok ? 'Metrics updated. Refreshing…' : result.error ?? 'Update failed. Please retry.');
+      if (response.ok) window.location.reload();
+    } catch (error) {
+      setMessage(mutationError(error));
+    } finally {
       setBusy(false);
-      setMessage(
-        approvalResponse.ok
-          ? 'Large change sent for independent approval.'
-          : approvalResult.error ?? 'Approval request failed.',
-      );
-      return;
     }
-    setBusy(false);
-    setMessage(response.ok ? 'Metrics updated. Refreshing…' : result.error ?? 'Update failed.');
-    if (response.ok) window.location.reload();
   }
 
   return (

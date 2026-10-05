@@ -1,123 +1,134 @@
-import { createHash } from 'node:crypto';
 import { onCall } from 'firebase-functions/v2/https';
-import { getMessaging, type TokenMessage } from 'firebase-admin/messaging';
-import {
-  assertServiceEnabled, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, logger, requireCaller, Timestamp,
-} from './core';
-import { profileBlock } from './profileGuard';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { getMessaging, type Message } from 'firebase-admin/messaging';
+import { assertServiceEnabled, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID, requireCaller, Timestamp } from './core';
+import { assertAccountNotDeleting, accountDeletionRef, profileBlock } from './profileGuard';
 import { reasonError } from './errors';
+import { invalidPushTokenCode, MAX_PUSH_DEVICES, pushBody, pushDeliveryId, pushLocale, PUSH_RECEIPT_RETENTION_DAYS, PUSH_TOKEN_RETENTION_DAYS, pushTokenId, validPushToken } from './pushPolicy';
 
-/**
- * Push notifications (Firebase Cloud Messaging → APNs). Device tokens live in
- * `push_devices/{sha256(token)}` = { luid, token, locale, updated_at, expires_at }: server-only
- * (firestore.rules default-deny), removed on sign-out (unregisterPushToken), on account deletion,
- * when FCM reports them dead, and by TTL after 60 days without a refresh.
- */
-export const PUSH_TOKEN_TTL_DAYS = 60;
-export const MAX_DEVICES_PER_USER = 10;
-export const MAX_PUSHES_PER_HOUR = 20;
-const TOKEN_PATTERN = /^[A-Za-z0-9_:\-.]{20,4096}$/;
-const DAY_MS = 86_400_000;
+type Registration = { token?: unknown; installationId?: unknown; userId?: unknown; locale?: unknown };
+const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
 
-export const deviceDocId = (token: string) => createHash('sha256').update(token).digest('hex');
+function registrationIdentity(data: Registration | null, luid: string): string {
+  if (!isUUID(data?.installationId)) throw new HttpsError('invalid-argument', 'Valid installationId required');
+  // Binds a queued request to its intended session even if Auth changes while the SDK fetches a token.
+  if (data?.userId !== luid) throw new HttpsError('permission-denied', 'Push session changed');
+  return data.installationId.toLowerCase();
+}
 
-export const registerPushToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
+export const registerPushToken = onCall(options, async request => {
   const caller = requireCaller(request);
   await assertServiceEnabled('push_register');
-  const { token, locale } = (request.data ?? {}) as { token?: unknown; locale?: unknown };
-  if (typeof token !== 'string' || !TOKEN_PATTERN.test(token)) throw new HttpsError('invalid-argument', 'Invalid push token');
-  const blocked = profileBlock((await db.collection('profiles').doc(caller.luid).get()).data());
-  if (blocked) throw reasonError('permission-denied', blocked.message, blocked.reason);
-  const ref = db.collection('push_devices').doc(deviceDocId(token));
-  await ref.set({
-    luid: caller.luid,
-    token,
-    platform: 'ios',
-    locale: typeof locale === 'string' ? locale.slice(0, 16) : null,
-    updated_at: FieldValue.serverTimestamp(),
-    expires_at: Timestamp.fromMillis(Date.now() + PUSH_TOKEN_TTL_DAYS * DAY_MS),
-  });
-  // Keep the newest few devices per account; older registrations are dropped.
-  const devices = await db.collection('push_devices').where('luid', '==', caller.luid).orderBy('updated_at', 'desc').get();
-  await Promise.all(devices.docs.slice(MAX_DEVICES_PER_USER).map((d) => d.ref.delete()));
-  return { registered: true };
-});
-
-export const unregisterPushToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
-  const caller = requireCaller(request);
-  const token = (request.data as { token?: unknown } | undefined)?.token;
-  if (typeof token !== 'string' || !TOKEN_PATTERN.test(token)) throw new HttpsError('invalid-argument', 'Invalid push token');
-  const ref = db.collection('push_devices').doc(deviceDocId(token));
-  const snap = await ref.get();
-  if (snap.exists && snap.data()!.luid === caller.luid) await ref.delete();
-  return { unregistered: true };
-});
-
-export type PushKind = 'like' | 'comment' | 'follow';
-
-/** APNs localization keys; the texts live in the app's Localizable.xcstrings (all 12 languages). */
-export const PUSH_LOC_KEYS: Record<PushKind, string> = {
-  like: 'push.like',
-  comment: 'push.comment',
-  follow: 'push.follow',
-};
-
-export type PushMessage = TokenMessage;
-
-export function buildPushMessage(token: string, kind: PushKind, actorHandle: string, postId: string | null): PushMessage {
-  const data: Record<string, string> = { kind };
-  if (postId) data.post_id = postId;
-  return {
-    token,
-    apns: { payload: { aps: { alert: { locKey: PUSH_LOC_KEYS[kind], locArgs: [`@${actorHandle}`] }, sound: 'default', threadId: kind } } },
-    data,
-  };
-}
-
-export type PushDeps = { send?: (message: PushMessage) => Promise<unknown> };
-const realSend = (message: PushMessage) => getMessaging().send(message);
-const DEAD_TOKEN_CODES = new Set(['messaging/registration-token-not-registered', 'messaging/invalid-registration-token', 'messaging/invalid-argument']);
-
-/**
- * Sends one activity notification to every registered device of `recipientId`, unless the
- * recipient blocked the actor or already received MAX_PUSHES_PER_HOUR this hour. Never throws:
- * a push failure must not fail the trigger that recorded the activity.
- */
-export async function sendActivityPush(kind: PushKind, actorId: string, recipientId: string, postId: string | null, deps: PushDeps = {}): Promise<number> {
-  try {
-    if (actorId === recipientId) return 0;
-    const inEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
-    if (inEmulator && !deps.send) return 0;
-    const [block, devices, actor] = await Promise.all([
-      db.collection('user_blocks').doc(`${recipientId}_${actorId}`).get(),
-      db.collection('push_devices').where('luid', '==', recipientId).limit(MAX_DEVICES_PER_USER).get(),
-      db.collection('profiles').doc(actorId).get(),
-    ]);
-    if (block.exists || devices.empty || !actor.exists) return 0;
-    const quotaRef = db.collection('push_quota').doc(`${recipientId}_h${Math.floor(Date.now() / 3_600_000)}`);
-    const allowed = await db.runTransaction(async (tx) => {
-      const count = Number((await tx.get(quotaRef)).data()?.count ?? 0);
-      if (count >= MAX_PUSHES_PER_HOUR) return false;
-      tx.set(quotaRef, { owner_luid: recipientId, count: count + 1, expires_at: Timestamp.fromMillis(Date.now() + 2 * 3_600_000) }, { merge: true });
-      return true;
-    });
-    if (!allowed) return 0;
-    const handle = String(actor.data()!.handle ?? 'loci');
-    const send = deps.send ?? realSend;
-    let sent = 0;
-    for (const device of devices.docs) {
-      try {
-        await send(buildPushMessage(String(device.data().token), kind, handle, postId));
-        sent++;
-      } catch (error) {
-        const code = (error as { code?: string }).code ?? '';
-        if (DEAD_TOKEN_CODES.has(code)) await device.ref.delete();
-        else logger.warn('push_send_failed', { luid: recipientId, code });
-      }
+  const data = request.data as Registration | null;
+  const installationId = registrationIdentity(data, caller.luid);
+  if (!identityVerified(caller)) throw reasonError('permission-denied', 'Verified identity required', 'identity_unverified');
+  if (!validPushToken(data?.token)) throw new HttpsError('invalid-argument', 'Valid FCM token required');
+  const token = data.token;
+  const ref = db.collection('push_tokens').doc(pushTokenId(token));
+  await db.runTransaction(async tx => {
+    await assertAccountNotDeleting(tx, caller.luid);
+    const [profile, previous] = await tx.getAll(db.collection('profiles').doc(caller.luid), ref);
+    const blocked = profileBlock(profile.data());
+    if (blocked) throw reasonError('permission-denied', blocked.message, blocked.reason);
+    const owned = await tx.get(db.collection('push_tokens').where('owner_luid', '==', caller.luid).limit(MAX_PUSH_DEVICES + 1));
+    const kept = owned.docs.filter(d => d.id !== ref.id && d.get('installation_id') !== installationId);
+    if (kept.length >= MAX_PUSH_DEVICES) throw reasonError('resource-exhausted', 'Too many push devices', 'rate_limited');
+    // Rotation removes this account's older token on the same installation. A global token hash
+    // also makes an account switch an atomic ownership transfer, with no duplicate targets.
+    for (const doc of owned.docs) {
+      if (doc.id !== ref.id && doc.get('installation_id') === installationId) tx.delete(doc.ref);
     }
-    return sent;
-  } catch (error) {
-    logger.error('push_failed', { luid: recipientId, error: String(error) });
-    return 0;
+    tx.set(ref, {
+      owner_luid: caller.luid, installation_id: installationId, token, locale: pushLocale(data?.locale),
+      created_at: previous.get('created_at') ?? FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
+      expires_at: Timestamp.fromMillis(Date.now() + PUSH_TOKEN_RETENTION_DAYS * 86_400_000),
+    });
+  });
+  return { ok: true };
+});
+
+export const unregisterPushToken = onCall(options, async request => {
+  const caller = requireCaller(request);
+  const installationId = registrationIdentity(request.data as Registration | null, caller.luid);
+  // Cleanup remains available to suspended/deleting accounts. Other accounts' tokens are untouched.
+  await db.runTransaction(async tx => {
+    const owned = await tx.get(db.collection('push_tokens').where('owner_luid', '==', caller.luid));
+    for (const doc of owned.docs) if (doc.get('installation_id') === installationId) tx.delete(doc.ref);
+  });
+  return { ok: true };
+});
+
+export type PushSender = (message: Message) => Promise<string>;
+
+/** One best-effort send attempt per activity/device. The claim is committed BEFORE calling FCM:
+ * concurrent/redelivered events cannot send twice. A crash at the external boundary may lose a
+ * push; the durable activity feed remains available. FCM is not a transactional Firestore service.
+ */
+export async function deliverActivityPush(activityId: string, send: PushSender, now = Date.now()): Promise<number> {
+  const activityRef = db.collection('activity_events').doc(activityId);
+  const initial = (await activityRef.get()).data();
+  if (!initial || !isUUID(initial.actor_id) || !isUUID(initial.recipient_id)
+    || initial.actor_id === initial.recipient_id || !pushBody(initial.kind, 'en')) return 0;
+  const devices = await db.collection('push_tokens').where('owner_luid', '==', initial.recipient_id).limit(MAX_PUSH_DEVICES).get();
+  let attempts = 0;
+  for (const device of devices.docs) {
+    const receiptRef = db.collection('push_delivery_receipts').doc(pushDeliveryId(activityId, device.id));
+    const claimed = await db.runTransaction(async tx => {
+      const refs = [activityRef, device.ref, receiptRef,
+        db.collection('profiles').doc(initial.recipient_id), db.collection('profiles').doc(initial.actor_id),
+        db.collection('user_blocks').doc(`${initial.recipient_id}_${initial.actor_id}`),
+        db.collection('user_blocks').doc(`${initial.actor_id}_${initial.recipient_id}`),
+        accountDeletionRef(initial.recipient_id), accountDeletionRef(initial.actor_id)];
+      if (isUUID(initial.post_id)) refs.push(db.collection('posts').doc(initial.post_id));
+      const [activitySnap, target, receipt, recipient, actor, blockA, blockB, recipientDeletion, actorDeletion, post] = await tx.getAll(...refs);
+      const activity = activitySnap.data();
+      const body = pushBody(String(activity?.kind), target.get('locale'));
+      if (!activity || activity.recipient_id !== initial.recipient_id || activity.actor_id !== initial.actor_id
+        || activity.post_id !== initial.post_id || activity.kind !== initial.kind
+        || (activity.expires_at instanceof Timestamp && activity.expires_at.toMillis() <= now)
+        || activity.read_at || !body || receipt.exists || !target.exists
+        || target.get('owner_luid') !== initial.recipient_id || !validPushToken(target.get('token'))
+        || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now
+        || profileBlock(recipient.data()) || profileBlock(actor.data()) || blockA.exists || blockB.exists
+        || recipientDeletion.exists || actorDeletion.exists) return null;
+      if (activity.kind !== 'follow' && (!post?.exists || post.get('creator_id') !== initial.recipient_id
+        || post.get('status') !== 'active' || post.get('deleted_at'))) return null;
+      tx.create(receiptRef, {
+        owner_luid: initial.recipient_id, activity_id: activityId, status: 'attempted',
+        created_at: FieldValue.serverTimestamp(),
+        expires_at: Timestamp.fromMillis(now + PUSH_RECEIPT_RETENTION_DAYS * 86_400_000),
+      });
+      return {
+        token: target.get('token') as string,
+        notification: { title: 'LociAR', body },
+        data: { activity_id: activityId, recipient_id: initial.recipient_id, post_id: isUUID(activity.post_id) ? activity.post_id : '' },
+        apns: { headers: { 'apns-collapse-id': pushTokenId(activityId), 'apns-expiration': String(Math.floor(now / 1000) + 3600) }, payload: { aps: { sound: 'default' } } },
+      } satisfies Message;
+    });
+    if (!claimed) continue;
+    attempts++;
+    try {
+      await send(claimed);
+      await receiptRef.update({ status: 'sent' }).catch(error => { if (error.code !== 5) throw error; });
+    } catch (error) {
+      const code = (error as { code?: string }).code ?? 'unknown';
+      // A stale failure must never delete a token which was transferred to another account.
+      if (invalidPushTokenCode(code)) {
+        await db.runTransaction(async tx => {
+          const latest = await tx.get(device.ref);
+          if (latest.get('owner_luid') === initial.recipient_id && latest.get('token') === claimed.token) tx.delete(device.ref);
+        });
+      }
+      await receiptRef.update({ status: 'failed', error_code: code }).catch(updateError => { if (updateError.code !== 5) throw updateError; });
+      console.warn('push_send_failed', { code }); // Never log a token, FCM payload or user content.
+    }
   }
+  return attempts;
 }
+
+export const onActivityCreated = onDocumentCreated('activity_events/{activityId}', async event => {
+  // FCM has no local emulator. Demo activity must never reach the live messaging API.
+  if (process.env.FUNCTIONS_EMULATOR === 'true') return;
+  await deliverActivityPush(event.params.activityId, message => getMessaging().send(message));
+});

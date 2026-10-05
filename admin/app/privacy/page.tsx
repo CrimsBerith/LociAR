@@ -84,7 +84,7 @@ export default function PrivacyPage() {
       <ul>
         <li>Hesap verileri ve içerikler: hesap silinene kadar.</li>
         <li>Hesap silindiğinde: profil, gönderiler, yorumlar, beğeniler, takipler, koleksiyonlar, bildirim belirteçleri, AR dosyaları,
-          profil fotoğrafları ve giriş hesabı derhal kalıcı olarak silinir. Yaptığınız raporlar kimliğinizden arındırılarak saklanır;
+          profil fotoğrafları ve giriş hesabı için kalıcı silme hemen başlar. Geçici hizmet hatalarında işlem arka planda yeniden denenerek tamamlanır. Yaptığınız raporlar kimliğinizden arındırılarak saklanır;
           silme işleminin kendisi (anonim kimlik ve silinen kayıt sayısı) güvenlik amacıyla kayıt altında tutulur.</li>
         <li>Kullanım ve güvenlik olayları (yaklaşık konum dahil): en fazla {E.analyticsRetentionDays} gün, sonra otomatik silinir.</li>
         <li>Çökme raporları: {E.crashRetentionDays} gün.</li>

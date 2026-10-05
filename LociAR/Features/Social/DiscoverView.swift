@@ -1,6 +1,7 @@
 import AVFoundation
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct DiscoverView: View {
     @Environment(AppSession.self) private var session
@@ -9,16 +10,19 @@ struct DiscoverView: View {
     @State private var posts: [LociPost] = []
     @State private var query = ""
     @State private var message: String?
+    @State private var nextCursor: String?
+    @State private var pageGeneration = 0
+    @State private var isLoadingMore = false
     @State private var isLoading = true
 
     var body: some View {
         Group {
             if isLoading {
-                LociLoadingView(title: "Keşfet hazırlanıyor…")
+                LociLoadingView(title: String(localized: "Keşfet hazırlanıyor…"))
             } else if filteredPosts.isEmpty {
                 LociEmptyState(
-                    title: query.isEmpty ? "Henüz içerik yok" : "Sonuç bulunamadı",
-                    message: message ?? (query.isEmpty ? "Yeni mekânsal postlar burada görünecek." : "Farklı bir kelimeyle tekrar ara."),
+                    title: query.isEmpty ? String(localized: "Henüz içerik yok") : String(localized: "Sonuç bulunamadı"),
+                    message: message ?? (query.isEmpty ? String(localized: "Yeni mekânsal postlar burada görünecek.") : String(localized: "Farklı bir kelimeyle tekrar ara.")),
                     symbol: "sparkle.magnifyingglass",
                     actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene",
                     action: message == nil ? nil : { Task { await load() } }
@@ -38,8 +42,14 @@ struct DiscoverView: View {
         }
         .background(LociScreenBackground())
         .navigationTitle("Keşfet")
-        .searchable(text: $query, prompt: "Kişi, yer veya içerik")
+        .searchable(text: $query, prompt: String(localized: "Kişi, yer veya içerik"))
         .task { await load() }
+        .safeAreaInset(edge: .bottom) {
+            if nextCursor != nil {
+                Button("Daha fazla göster") { Task { await loadMore() } }
+                    .disabled(isLoadingMore || isLoading).padding().background(.ultraThinMaterial)
+            }
+        }
         .accessibilityIdentifier("screen-discover")
     }
 
@@ -53,6 +63,8 @@ struct DiscoverView: View {
     }
 
     private func load() async {
+        pageGeneration += 1
+        nextCursor = nil
         isLoading = posts.isEmpty
         message = nil
         defer { isLoading = false }
@@ -63,13 +75,13 @@ struct DiscoverView: View {
         }
         guard container.isBackendConfigured else {
             posts = local
-            message = posts.isEmpty ? "Bağlantı ayarları tamamlandığında içerikler burada görünecek." : nil
+            message = posts.isEmpty ? String(localized: "Bağlantı ayarları tamamlandığında içerikler burada görünecek.") : nil
             return
         }
-        do { posts = mergedDiscoverPosts(local + (try await container.posts.discover())) }
+        do { let page = try await container.posts.discoverPage(cursor: nil); posts = mergedDiscoverPosts(local + page.posts); nextCursor = page.next }
         catch {
             posts = local
-            message = posts.isEmpty ? "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene." : nil
+            message = posts.isEmpty ? String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") : nil
         }
     }
 
@@ -89,4 +101,17 @@ struct DiscoverView: View {
         for post in source { unique[post.id] = post }
         return Array(unique.values).sorted { $0.createdAt > $1.createdAt }
     }
+    private func loadMore() async {
+        guard let cursor = nextCursor, !isLoadingMore, case let .signedIn(viewer) = session.phase else { return }
+        let generation = pageGeneration
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await container.posts.discoverPage(cursor: cursor)
+            guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            posts = mergedDiscoverPosts(posts + page.posts)
+            nextCursor = page.next
+        } catch { message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") }
+    }
+
 }

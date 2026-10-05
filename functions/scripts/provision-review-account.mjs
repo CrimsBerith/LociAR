@@ -1,28 +1,27 @@
-import { randomBytes } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
-import { auth, db, luidForUid } from './_admin.mjs';
+import { createReviewCredentialsFile } from './review-credentials.mjs';
 
 // Usage: node scripts/provision-review-account.mjs [--rotate]
 // Creates the App Review account if missing. An existing account keeps its password unless --rotate
 // is passed, so the credential entered in App Store Connect never changes silently. A new password is
 // printed to this terminal only — paste it into App Store Connect, never into the repo or an issue.
 const email = 'apple-review@lociar.app';
-const rotate = process.argv.includes('--rotate');
-const newPassword = () => `${randomBytes(18).toString('base64url')}!9a`;
+const { password, filePath } = createReviewCredentialsFile(process.env.REVIEW_CREDENTIALS_FILE, email);
+console.log('Private credential file created:', filePath);
+const { auth, db, luidForUid } = await import('./_admin.mjs');
 
 let user;
 let password = null;
 try {
   user = await auth.getUserByEmail(email);
-  if (rotate) {
-    password = newPassword();
-    await auth.updateUser(user.uid, { password });
-    console.log('Rotated the password of the existing review account, uid:', user.uid);
-  } else {
-    console.log('Review account exists; password unchanged (pass --rotate to replace it), uid:', user.uid);
-  }
-} catch {
-  password = newPassword();
+} catch (error) {
+  if (error.code !== 'auth/user-not-found') throw error;
+}
+if (user) {
+  await auth.updateUser(user.uid, { password });
+  await auth.revokeRefreshTokens(user.uid);
+  console.log('User already exists in Auth, updated password, uid:', user.uid);
+} else {
   user = await auth.createUser({
     email,
     password,
@@ -68,8 +67,7 @@ if (!profileSnap.exists) {
   console.log('Profile already exists for luid:', luid);
 }
 
-console.log('--- REVIEW ACCOUNT ---');
+console.log('Provisioning complete. Transfer the private file to your password manager and App Store Connect.');
 console.log('Email:', email);
-if (password) console.log('Password (enter in App Store Connect, do not store it anywhere else):', password);
 console.log('LUID:', luid);
 console.log('Handle:', handle);

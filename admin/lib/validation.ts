@@ -27,11 +27,16 @@ export function nonnegativeInteger(value: unknown, field: string) {
 }
 
 export async function parseJson(request: Request) {
+  let body: unknown;
   try {
-    return await request.json() as Record<string, unknown>;
+    body = await request.json();
   } catch {
     throw new ValidationError('Request body must be valid JSON');
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new ValidationError('Request body must be a JSON object');
+  }
+  return body as Record<string, unknown>;
 }
 
 export function idempotencyKey(request: Request) {
