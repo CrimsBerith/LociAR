@@ -1,10 +1,11 @@
 import SwiftUI
 
 /// Google ARCore user notice (required for Cloud Anchors / Geospatial): shown prominently the
-/// first time an AR screen that activates ARCore opens, with Google's "learn more" link.
+/// first time an AR screen that activates ARCore opens, with Google's "learn more" link. ARCore
+/// processes no camera frame until the notice is acknowledged (`ARCoreService.consume`).
 /// https://developers.google.com/ar/develop/privacy-requirements
 struct ARCoreDisclosureModifier: ViewModifier {
-    @AppStorage("arcore_disclosure_acknowledged_v1") private var acknowledged = false
+    @AppStorage(ARCoreService.disclosureAcknowledgedKey) private var acknowledged = false
     @Environment(\.openURL) private var openURL
     @Environment(AppContainer.self) private var container
     @State private var isPresented = false

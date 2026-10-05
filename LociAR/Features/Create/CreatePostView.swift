@@ -806,66 +806,24 @@ struct CreatePostView: View {
     }
 
     private func commitPlacement(_ anchor: SurfaceAnchor) async {
-        if !anchor.pinQuality.isPhysicalSurface {
+        let outcome = await PinCommitCoordinator.commit(
+            anchor,
+            engine: engine,
+            arcore: container.arcore,
+            isOnline: container.connectivity.isOnline,
+            isLocalPreview: session.isLocalPreview,
+            status: { savingStatus = $0 }
+        )
+        switch outcome {
+        case .committed:
             selectedAnchor = engine.currentAnchor ?? anchor
             engine.stopSession()
-            return
-        }
-        if session.isLocalPreview {
-            selectedAnchor = engine.currentAnchor ?? anchor
-            engine.stopSession()
-            return
-        }
-        defer { savingStatus = nil }
-        // Geo-tag the pin precisely when ARCore Geospatial is localized (outdoors, VPS coverage).
-        if let transform = engine.currentPinTransform, let geospatial = container.arcore.geospatialPose(for: transform) {
-            engine.attachGeospatial(geospatial)
-        }
-        // 1) Google Cloud Anchor: exact surface for every viewer, no world-map upload.
-        if let persistence = await hostCloudAnchor(for: anchor) {
-            engine.attachPersistence(persistence)
-            selectedAnchor = engine.currentAnchor ?? anchor
-            engine.stopSession()
-            return
-        }
-        // 2) Fallback: ARKit world map (offline, no token, or hosting failed).
-        savingStatus = "Yüzey kaydı hazırlanıyor…"
-        do {
-            let package = try await engine.saveWorldMap()
-            engine.attachPersistence(package.persistence)
-            selectedAnchor = engine.currentAnchor ?? anchor
-            engine.stopSession()
-        } catch {
+        case .worldMapFailed:
             offerFallbackToApproximate = true
             message = "Fiziksel çevre haritası kaydedilemedi. Dilersen 'Yaklaşık olarak devam et' ile postunu hemen oluşturabilir veya tekrar tarayabilirsin."
-            return
+        case .cancelled:
+            break
         }
-    }
-
-    /// Hosts the pin as a Google Cloud Anchor. Waits (bounded) until ARCore has seen the surface
-    /// well enough, guiding the user to move around it. Returns nil to fall back to the world map.
-    private func hostCloudAnchor(for anchor: SurfaceAnchor) async -> WorldLockPersistence? {
-        let arcore = container.arcore
-        guard container.connectivity.isOnline else { return nil }
-        savingStatus = "Google AR hazırlanıyor…"
-        guard await arcore.waitUntilReady(), let arAnchor = engine.currentPinARAnchor() else { return nil }
-        let deadline = Date().addingTimeInterval(20)
-        func sufficient() -> Bool {
-            guard let transform = engine.currentPinTransform else { return false }
-            return arcore.isHostingQualitySufficient(for: transform)
-        }
-        while !sufficient(), Date() < deadline {
-            savingStatus = "Telefonu yüzeyin etrafında yavaşça gezdir…"
-            try? await Task.sleep(for: .milliseconds(400))
-        }
-        guard sufficient() else { return nil }
-        savingStatus = "Yüzey Google AR'a kaydediliyor…"
-        guard let cloudAnchorId = await arcore.hostCloudAnchor(arAnchor) else { return nil }
-        var persistence = WorldLockPersistence(originalNativeAnchorId: engine.currentAnchor?.id ?? anchor.id, hostedAt: Date())
-        persistence.kind = .arcoreCloudAnchor
-        persistence.cloudAnchorId = cloudAnchorId
-        persistence.expiresAt = Calendar.current.date(byAdding: .day, value: ARCoreService.cloudAnchorTTLDays, to: Date())
-        return persistence
     }
 }
 

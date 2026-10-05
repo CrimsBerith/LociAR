@@ -53,6 +53,7 @@
 		A9042B9B2E8428333BAAC37D /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = F91401E7C595CEF73FB3FEAC /* FirebaseMessaging */; };
 		A94F8A4350B3331FF77EAB40 /* WorldMapCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275E3BB8F4215EF4AF15295E /* WorldMapCodec.swift */; };
 		A9F8BB7422598DD2E9795B48 /* ARCoreGARSession in Frameworks */ = {isa = PBXBuildFile; productRef = 8C118F10620E3EACA2FE5BA6 /* ARCoreGARSession */; };
+		AC781F66C329CD3224975507 /* PinCommitCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597BC7A038A1D23F0F47A688 /* PinCommitCoordinator.swift */; };
 		B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */; };
 		B392B96F3820C075F8BF6136 /* ProximityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041909C4E5F7479357846A3E /* ProximityPolicy.swift */; };
 		B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9309C5EFBE40B5DE193B3ECF /* LocationController.swift */; };
@@ -125,6 +126,7 @@
 		52470082EDD9AD2FC77F69EB /* PublicSafetyPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicSafetyPolicy.swift; sourceTree = "<group>"; };
 		53768F263588C9A54C898060 /* AppSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsView.swift; sourceTree = "<group>"; };
 		53B8CE05A07DBFC412918542 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		597BC7A038A1D23F0F47A688 /* PinCommitCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCommitCoordinator.swift; sourceTree = "<group>"; };
 		597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyImporterTests.swift; sourceTree = "<group>"; };
 		5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainContractTests.swift; sourceTree = "<group>"; };
 		5F3FB818959D6EA5ADDE7F1E /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -383,6 +385,7 @@
 		AC9F05A20F0B2AC1702FE8DC /* Application */ = {
 			isa = PBXGroup;
 			children = (
+				597BC7A038A1D23F0F47A688 /* PinCommitCoordinator.swift */,
 				51711F0650606E15028C1A33 /* PublishPostCoordinator.swift */,
 			);
 			path = Application;
@@ -675,6 +678,7 @@
 				60C720C4226E7EADD4D73BD5 /* NotificationService.swift in Sources */,
 				F06E6E1085B1AE5E8DC2A43A /* OnboardingView.swift in Sources */,
 				4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */,
+				AC781F66C329CD3224975507 /* PinCommitCoordinator.swift in Sources */,
 				C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */,
 				802D0F1A682E49E233E5475B /* PostRepository.swift in Sources */,
 				93FD42006BCC639A5349A74B /* ProfileEditView.swift in Sources */,

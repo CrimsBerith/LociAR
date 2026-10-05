@@ -445,9 +445,14 @@ final class ARPinningEngine: NSObject {
         return arView.session.currentFrame?.anchors.first { $0.name == anchorName(for: id) }
     }
 
-    /// Current pin transform (for hosting-quality estimates and geo-tagging).
+    /// Current pin transform (for geo-tagging).
     var currentPinTransform: simd_float4x4? {
         currentAnchor.flatMap { Self.unflatten($0.transform) }
+    }
+
+    /// Camera transform of the latest frame (what ARCore's hosting-quality estimate expects).
+    var currentCameraTransform: simd_float4x4? {
+        arView.session.currentFrame?.camera.transform
     }
 
     /// Shows a post at a transform found by ARCore (resolved Cloud Anchor or Geospatial pose).

@@ -17,6 +17,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     /// Most recently received FCM registration token (nil until first token delivery).
     private(set) var fcmToken: String?
+    /// Hex form of the last APNs device token (diagnostics; FCM uses the raw data).
+    private(set) var deviceTokenString: String?
     var onPostNotificationTapped: ((UUID) -> Void)?
     /// Set by AppContainer when the backend is configured; nil in previews and UI tests.
     var callables: CallableClient?
@@ -108,6 +110,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func didRegisterForRemoteNotifications(deviceToken: Data) {
+        deviceTokenString = deviceToken.map { String(format: "%02x", $0) }.joined()
         guard isConfigured else { return }
         // Forward the APNs token to Firebase so it can map it to an FCM token.
         Messaging.messaging().apnsToken = deviceToken

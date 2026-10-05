@@ -21,6 +21,9 @@ struct ARExperienceView: View {
     @State private var showCreate = false
     @State private var errorMessage: String?
     @State private var isPreparingContent = false
+    /// Banner text while the pin is saved (Cloud Anchor hosting or world map).
+    @State private var prepareStatus: String?
+    @State private var prepareTask: Task<Void, Never>?
     @State private var location = LocationController()
     @State private var nearbyPosts: [LociPost] = []
     @State private var viewingPost: LociPost?
@@ -88,8 +91,11 @@ struct ARExperienceView: View {
                 tabChangeTask?.cancel()
                 tabChangeTask = Task { await startCreationMode() }
             } else if mode == .create {
+                prepareTask?.cancel()
+                prepareTask = nil
                 showCreate = false
                 isPreparingContent = false
+                prepareStatus = nil
                 errorMessage = nil
                 isCreationMode = false
             } else if mode == .discover, tab == .ar {
@@ -106,6 +112,7 @@ struct ARExperienceView: View {
         .onDisappear {
             tabChangeTask?.cancel()
             pinRequestTask?.cancel()
+            prepareTask?.cancel()
             location.stop()
             let siblingARTabActive = (mode == .discover && router.selectedTab == .create)
                 || (mode == .create && router.selectedTab == .ar)
@@ -321,8 +328,15 @@ struct ARExperienceView: View {
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
+                if let prepareStatus {
+                    Text(prepareStatus)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("ar-saving-status")
+                }
                 Button {
-                    Task { await prepareContent() }
+                    startPreparingContent()
                 } label: {
                     if isPreparingContent { ProgressView().tint(.black) }
                     else if canPrepareContent { Label("İçerik ekle", systemImage: "plus.circle.fill") }
@@ -351,7 +365,7 @@ struct ARExperienceView: View {
                 Button {
                     engine.offerApproximatePlacement()
                     engine.placeApproximate()
-                    Task { await prepareContent() }
+                    startPreparingContent()
                 } label: {
                     Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
                 }
@@ -496,7 +510,7 @@ struct ARExperienceView: View {
             async let ownRequest = container.posts.myPosts(limit: 50)
             var networkError: Error?
             do { collected.append(contentsOf: try await nearbyRequest) } catch { networkError = error }
-            do { collected.append(contentsOf: try await ownRequest) } catch { if networkError != nil { networkError = error } }
+            do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
             if collected.isEmpty, let networkError {
                 isDiscovering = false
                 discoveryMessage = "Bağlantı hatası: \(networkError.localizedDescription)"
@@ -572,23 +586,41 @@ struct ARExperienceView: View {
         return roundedMeters < 1_000 ? "\(roundedMeters) m" : String(format: "%.1f km", meters / 1_000)
     }
 
-    private func prepareContent() async {
-        guard let anchor = engine.currentAnchor else { return }
-        if !anchor.pinQuality.isPhysicalSurface || anchor.persistence != nil {
-            showCreate = true
-            return
-        }
+    /// Sets the busy flag before the task starts, so a double tap cannot start two saves.
+    private func startPreparingContent() {
+        guard !isPreparingContent, engine.currentAnchor != nil else { return }
         isPreparingContent = true
-        defer { isPreparingContent = false }
-        do {
-            let package = try await engine.saveWorldMap()
-            engine.attachPersistence(package.persistence)
-        } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription
-                ?? "Çevre haritası henüz kaydedilemedi. Aynı yüzeyi biraz daha tarayıp tekrar deneyin."
-            return
+        prepareTask?.cancel()
+        prepareTask = Task { await prepareContent() }
+    }
+
+    /// Saves the pin like the map's create flow (Geospatial tag, Cloud Anchor, world-map fallback)
+    /// and then opens the editor for it.
+    private func prepareContent() async {
+        defer {
+            isPreparingContent = false
+            prepareStatus = nil
         }
-        showCreate = true
+        guard let anchor = engine.currentAnchor else { return }
+        let outcome = await PinCommitCoordinator.commit(
+            anchor,
+            engine: engine,
+            arcore: container.arcore,
+            isOnline: container.connectivity.isOnline,
+            isLocalPreview: session.isLocalPreview,
+            status: { prepareStatus = $0 }
+        )
+        switch outcome {
+        case .committed:
+            guard !Task.isCancelled else { return }
+            showCreate = true
+        case .worldMapFailed(let reason):
+            errorMessage = reason.isEmpty
+                ? "Çevre haritası henüz kaydedilemedi. Aynı yüzeyi biraz daha tarayıp tekrar deneyin."
+                : reason
+        case .cancelled:
+            break
+        }
     }
 
     private var canPrepareContent: Bool {
