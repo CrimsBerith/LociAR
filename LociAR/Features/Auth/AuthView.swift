@@ -238,7 +238,7 @@ struct AuthView: View {
         .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
     }
 
-    private func modeButton(_ title: String, value: Mode, identifier: String) -> some View {
+    private func modeButton(_ title: LocalizedStringKey, value: Mode, identifier: String) -> some View {
         Button {
             withAnimation(.easeOut(duration: 0.18)) {
                 mode = value
