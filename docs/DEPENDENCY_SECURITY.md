@@ -22,30 +22,21 @@ Upstream paketler hâlâ eski aralıkları istediği için aşağıdaki kurallar
 
 Upstream aralıkları yamalı sürümlere geçtiğinde bu overrides kaldırılabilir; ardından `npm ci`, audit, tip kontrolleri, birim/emülatör testleri ve admin build çalıştırılmalıdır. `npm audit fix --force` önerdiği major değişimi veya eski sürüme dönüşü doğrulamadan uygulamayın.
 
-## 5 Ekim 2026 kontrolü ve kalan geliştirme açığı
+## 5 Ekim 2026 kontrolü
 
-CI, iki projede de `npm audit --omit=dev --audit-level=moderate` komutunu zorunlu çalıştırır; orta ve üzeri üretim açıkları işi başarısız kılar. Admin'deki önceki `continue-on-error` kaldırıldı. Admin'in tam ağacı ve Functions'ın üretim ağacı sıfır açık gösterir.
+CI, iki projede de `npm audit --omit=dev --audit-level=moderate` komutunu zorunlu çalıştırır; orta ve üzeri üretim açıkları işi başarısız kılar. Admin'deki önceki `continue-on-error` kaldırıldı. 5 Ekim'de OpenTelemetry güncellemesi iki moderate bulguyu kapattı.
 
-5 Ekim'de OpenTelemetry güncellemesi iki moderate bulguyu kapattı. Functions'ın tam taramasında yalnızca `dev: true` paketlerde tek kaynak kaldı; npm bağımlılık zinciriyle birlikte **3 high bulgu** raporluyor:
+## 6 Ekim 2026: CLI dosya izleyicisi (braces) kapatıldı
 
-- `braces 3.0.3` → `chokidar 3.6.0` → `firebase-tools 15.32.1`: [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm). Registry'de güncel CLI hâlâ 15.32.1, güncel braces 3.0.3; yayımlanmış yamalı braces yok. İzole karşılaştırmada Chokidar 3.6.0 `**/src` ve `**/*.local` ignore kurallarını uygularken 4.0.3 bu dizin/dosyaları izledi. Firebase CLI bu biçimde ignore dizileri kullandığından doğrudan major override uygulanmadı. Npm'in önerdiği CLI 6.8.0'a dönüş de mevcut emülatör/Gen2/App Hosting iş akışı için uygun bir çözüm değildir.
+Functions geliştirme ağacında kalan son kaynak `firebase-tools 15.32.1` → `chokidar 3.6.0` → `braces 3.0.3` zinciriydi ([GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), 3 high bulgu). Yamalı braces yayımlanmadı ve güncel CLI hâlâ chokidar 3 istiyor. Çözüm yalnız CLI'a uygulanan override:
 
-Kalan geliştirme açığı çözülmüş sayılmaz. Upstream CLI/paket yamalarını takip edin ve `cd functions && npm audit` ile tam ağacı yeniden tarayın. Üretim için temiz audit sonucu, geliştirme araçlarının tamamının temiz olduğu anlamına gelmez.
+- `firebase-tools` → `chokidar ^4.0.3` (lockfile: 4.0.3; tek bağımlılığı `readdirp`). braces, anymatch, glob-parent ve fsevents ağaçtan çıktı.
+- CLI chokidar'ı yalnız emülatörlerde kullanır: Firestore/Storage/Database rules dosyası izleyicileri ve functions emülatörünün kaynak izleyicisi. Deploy paketlemesi chokidar kullanmaz.
+- Bilinen fark: chokidar 4 glob desteklemez. CLI'ın `firebase.json` `functions.ignore` girdilerinden ürettiği `**/src`, `**/test`, `**/*.local` dizgileri birebir yol olarak okunur. Sonuç yalnız fazladan yeniden yüklemedir: yerel emülatör `src/`, `test/` veya `tsconfig.json` değişince de tetikleyicileri yeniden yükler (yüklenen kod yine `lib/`). Hiçbir değişiklik kaçırılmaz.
+- CLI'ın regex kuralları aynen çalışır: `node_modules`, nokta dosyaları (`.secret.local`, `.env.*`) ve `*.log` izlenmez. `functions/test/firebase-cli-dependencies.test.mjs` bunu CLI'ın çözdüğü chokidar ile, CLI'daki ignore biçimiyle doğrular. CI'daki emülatör işleri (`test:rules`, `test:emulator`) izleyicileri gerçek CLI ile çalıştırır.
+- Upstream CLI chokidar 4'e geçtiğinde bu override kaldırılır; ardından `npm ci`, audit ve emülatör testleri çalıştırılır.
 
-CI artık tam ağacı da `scripts/check-dependency-audit.mjs` ile denetler. Geçici istisna yalnız Functions
-geliştirme zincirindeki `braces 3.0.3`, `chokidar 3.6.0`, `firebase-tools 15.32.1` için geçerlidir.
-Paket sürümü, lockfile `dev: true`, severity, advisory URL ve bağımlılık nedeni eşleşmelidir.
-Yeni bulgu, sürüm farkı, üretim ağacına taşınma veya registry/audit hatası CI'ı durdurur.
-Admin için istisna yoktur. Eski OpenTelemetry/Pub/Sub bulguları artık istisna kapsamında değildir;
-geri gelmeleri CI'ı durdurur.
-
-`.github/workflows/dependency-audit.yml` her gün 05:23 UTC'de ve `workflow_dispatch` ile iki kilitli
-ağacı yeniden kurup üretim/tam audit kapılarını çalıştırır. Yeni advisory ve istisna bitişi,
-yeni commit olmasa da değerlendirilir. İş yalnız `contents: read` kullanır; canlı kimlik/deploy yoktur.
-
-İstisna **18 Ekim 2026 00:00 UTC** tarihinde sona erer; bu tarihten sonra mevcut ağaç bile CI'ı durdurur.
-Bakım sorumlusu yamalı upstream CLI'ı veya uyumluluğu test edilmiş alternatif geçişi bu tarihten önce hazırlamalıdır.
-İstisna açıkları düzeltmez ve otomatik uzatılmaz.
+`scripts/check-dependency-audit.mjs` artık istisna içermez: iki projede de tam ağaçta (üretim ve geliştirme) herhangi bir bulgu, bozuk registry yanıtı veya audit hatası CI'ı durdurur. `.github/workflows/dependency-audit.yml` her gün 05:23 UTC'de ve `workflow_dispatch` ile iki kilitli ağacı yeniden kurup (`--ignore-scripts`) üretim/tam audit kapılarını çalıştırır; yeni advisory, yeni commit olmasa da yakalanır. İş yalnız `contents: read` kullanır; canlı kimlik/deploy yoktur.
 
 ```sh
 node scripts/check-dependency-audit.mjs functions

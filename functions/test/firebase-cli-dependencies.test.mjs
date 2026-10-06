@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 
 // Exercise the dependencies resolved by the locked CLI, including a possible
@@ -67,4 +70,43 @@ test('patched baggage propagation bounds untrusted entries, including multiple h
   const huge = Array.from({ length: 8 }, (_, i) => `key${i}=${'x'.repeat(3000)}`);
   const bounded = propagator.extract(api.ROOT_CONTEXT, { baggage: huge }, api.defaultTextMapGetter);
   assert.equal(api.propagation.getBaggage(bounded).getAllEntries().length, 2);
+});
+
+// package.json overrides the CLI's chokidar 3 (braces GHSA-vfj7-8cjw-p6xm) with 4.x. The functions
+// emulator watches the source directory with these ignore rules (firebase-tools
+// lib/emulator/functionsEmulator.js). 4.x reads the `**/` strings from firebase.json literally, so
+// src/test edits also reload triggers; the regex rules below must still keep dependencies, dotfiles
+// (.secret.local, .env.*) and logs out of the watch.
+test('the CLI file watcher (chokidar 4) keeps the emulator ignore rules', async () => {
+  const chokidar = cliRequire('chokidar');
+  const manifest = JSON.parse(readFileSync(join(dirname(cliRequire.resolve('chokidar')), 'package.json'), 'utf8'));
+  assert.equal(manifest.version.split('.')[0], '4');
+  const root = mkdtempSync(join(tmpdir(), 'lociar-watch-'));
+  try {
+    mkdirSync(join(root, 'lib'));
+    mkdirSync(join(root, 'node_modules', 'pkg'), { recursive: true });
+    for (const file of ['lib/index.js', 'node_modules/pkg/index.js', '.secret.local', 'firebase-debug.log']) {
+      writeFileSync(join(root, file), '');
+    }
+    const watcher = chokidar.watch(root, {
+      ignored: [
+        /(^|[\/\\])\../,
+        /.+\.log/,
+        /.+?[\\\/]node_modules[\\\/].+?/,
+        /.+?[\\\/]venv[\\\/].+?/,
+        ...['node_modules', '.git', '*.local', 'src', 'test', 'tsconfig.json'].map((i) => `**/${i}`),
+      ],
+      persistent: true,
+    });
+    await new Promise((resolve, reject) => watcher.on('ready', resolve).on('error', reject));
+    const watched = watcher.getWatched();
+    await watcher.close();
+    assert.deepEqual(watched[join(root, 'lib')], ['index.js']);
+    assert.deepEqual(watched[join(root, 'node_modules')] ?? [], [], 'dependencies are not watched');
+    assert.equal(watched[join(root, 'node_modules', 'pkg')], undefined);
+    assert.ok(!watched[root].includes('.secret.local'), 'dotfiles are not watched');
+    assert.ok(!watched[root].includes('firebase-debug.log'), 'logs are not watched');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

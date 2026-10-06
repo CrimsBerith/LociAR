@@ -27,7 +27,7 @@ Expo, Android, Supabase, Docker ve Vercel dönemindeki arşivler bu sürümün k
 | F01 — Eksik koleksiyon belgesi okuması | İmzalı kullanıcı için eksik belge `get` davranışı ve sahiplik/list rules testleri | Canlı rules dağıtımı |
 | F02 — Yazarın sildiği postun admin ile geri gelmesi | Admin restore/relabel engeli; gerçek Firestore işlem testi | Aday admin ve Functions deploy |
 | F03 — Filtrelenmiş yorum sayacının tekrar azalması | İşlem kaydı, hedef ve filtre işareti tek transaction; eşzamanlı tekrar testleri | Canlı tetikleyici sürümü |
-| F04 — Bağımlılıklar | Next/sharp/CLI ve geçişli yamalar, kilitli kurulum, üretim ve tam audit CI; Pub/Sub'a özel OpenTelemetry yaması iki moderate bulguyu kapattı | Tek braces açığının CLI geliştirme zincirindeki 3 high bulgusu açık; [istisna](../DEPENDENCY_SECURITY.md) 18 Ekim 2026'da biter |
+| F04 — Bağımlılıklar | Next/sharp/CLI ve geçişli yamalar, kilitli kurulum, üretim ve tam audit CI; Pub/Sub'a özel OpenTelemetry yaması iki moderate bulguyu kapattı | Kapandı (6 Ekim): CLI'ın chokidar'ı 4.x'e zorlandı, braces ağaçtan çıktı; tam audit iki projede temiz, istisna kaldırıldı ([ayrıntı](../DEPENDENCY_SECURITY.md)) |
 | F05 — Depoda test/review parolaları | Literal değerler kaldırıldı; redakte scanner, özel dosya, mevcut hesabı yenileme ve refresh token iptali testleri | Eski canlı parolalar değiştirilmeli; parola yöneticisi/App Store Connect güncellenmeli |
 | F06 — Push akışı | Token sahipliği/rotasyonu/sınırı, gizli payload, engelleme, çıkış/silme, tek gönderim girişimi; native oturum koordinatörü | Gerçek APNs/FCM, izin/Ayarlar, soğuk açılış, hesap değişimi, TestFlight |
 | F07 — Statik admin güvenlik kontrolleri | Gerçek Next HTTP ve Auth/Firestore emülatör testleri: cookie, origin, MFA claim, RBAC, role iptali, onay, audit/idempotency, rate limit | Canlı Identity Platform TOTP challenge ve App Hosting origin |
@@ -58,8 +58,8 @@ depo betikleri 40 ve gerçek Chromium'da 8 public tarayıcı testi. Admin entegr
 6 gerçek authenticated/mobile Chromium işlem akışını da içerir; toplamda ayrıca sayılmaz.
 18 kapılı tam preflight; Functions/admin tipleri, admin production build, production/tam
 audit, secret taraması, 586 anahtar/12 dil, actionlint ve betik/plist/JSON kontrolleri geçti.
-Production dependency audit temiz; tek braces açığının 3 bilinen geliştirme CLI bulgusu
-tarihli istisna kapsamındadır. OpenTelemetry zinciri artık istisna kapsamında değildir.
+Production dependency audit temiz. 6 Ekim'de CLI'ın chokidar'ı 4.x'e zorlandı; braces ağaçtan çıktı,
+tam audit de iki projede temiz ve istisna kaldırıldı.
 Test toplamı native testleri içermez. Xcode mock testleri yalnız betik hata kodunu sınar.
 Offline metadata validator'unun 17 Python fixture'ı depo regresyon testinin içinde koşulur;
 bu toplama ayrıca eklenmez. MFA state temizleme değişikliği son tam derleme/entegrasyon
@@ -89,13 +89,12 @@ bakım penceresinde uygulanır. Yerel preflight bu canlı veri göçünü gerçe
 
 | Sorumlu | Kapı | Kapanma kanıtı |
 |---|---|---|
-| iOS / CI | macOS native build ve test | Aday commit için `ios` CI başarılı; `.xcresult`, Xcode sürümü, bundle/dil testleri |
+| iOS / CI | macOS native build ve test | Aday commit için CI'daki `iOS simulator` işi başarılı; `.xcresult`, Xcode sürümü, bundle/dil testleri |
 | QA / iOS | İki cihaz AR ve erişilebilirlik | [Saha matrisi](../../FIELD_TEST_CHECKLIST.md), 23 gerçek koşu; log/video, ölçülmüş drift ve kilit süresi; VoiceOver/RTL/büyük font |
 | iOS / Firebase | Apple silme ve APNs | [Push](../PUSH_NOTIFICATIONS.md) ve [silme](../ACTIVITY_AND_ACCOUNT_DELETION.md) kabul matrisleri; Release entitlement/APNs yapılandırması; TestFlight teslimi |
 | Firebase / yayın sorumlusu | Canlı erişim ve credential yenileme | Doğru projeye yetkili GCP kimliği; eski parola girişinin reddi, yeni girişin başarısı, refresh session iptali; özel kaydın güvenli aktarılması |
 | Firebase / admin | Canlı altyapı | Aday rules/indexes/Functions/App Hosting, TTL, Scheduler, Storage lifecycle, Vision/ARCore/signing yetkileri, App Check enforcement, Apple secret metadata |
 | Admin / QA | Canlı admin güvenliği | Gerçek TOTP AAL2 girişi, rol iptali, origin politikası, audit, iki kişi onayı; public yasal/destek URL'leri HTTP 200 |
-| Güvenlik / bakım | Geliştirme audit istisnası | Upstream yamalı CLI veya uyumluluğu kanıtlanmış geçiş; 18 Ekim sonrası mevcut istisna CI'ı durdurur |
 | Yayın sorumlusu | Son aday kararı | İmzalı arşiv, doğru build/commit, privacy/App Review metadata, tüm kapılara bağlı kanıt |
 
 Bu bulut ortamında Swift/Xcode ve fiziksel iPhone yoktur. Yönetilen GCP bağlantı manifesti boştur;

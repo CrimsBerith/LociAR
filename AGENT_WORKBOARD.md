@@ -17,7 +17,7 @@ Kod kuralları: [AGENTS.md](AGENTS.md). Test komutları: [docs/QA_MATRIX.md](doc
 | Push, aktivite okundu, hesap silme reauth | Kod ve backend testleri tamamlandı | İmzalı iPhone/TestFlight üzerinde Apple ve APNs kabulü |
 | 12 dil, AR kopyası, izin açıklamaları | Katalog ve kaynak kontrolleri geçti | macOS derleme, RTL, VoiceOver ve büyük font kabulü |
 | macOS ve public tarayıcı CI | İşler hazır; tarayıcı testleri yerelde geçti | macOS işini aday kaynaklarla çalıştır |
-| Bağımlılık güvenliği | Admin tam ağaç / Functions üretim ağacı temiz; OpenTelemetry yaması iki moderate bulguyu kapattı | Tek braces açığının CLI geliştirme zincirindeki 3 high bulgusu açık; istisna 18 Ekim'de sona erer |
+| Bağımlılık güvenliği | Admin ve Functions tam ağaç temiz; CLI chokidar 4 override'ı braces açığını kapattı (6 Ekim) | Upstream CLI chokidar 4'e geçince override kaldırılır |
 | Canlı credential yenileme | Güvenli yardımcı ve emülatör kanıtı hazır | Yetkili GCP kimliğiyle eski parolaları geçersiz kıl |
 | Fiziksel AR matrisi | Kanıt şablonu ve doğrulayıcı hazır | İki iPhone üzerinde 23 koşu + log/video |
 | Canlı altyapı ve yayın | Bu oturumda doğrulanmadı | Release planındaki canlı kapıları kapat |
@@ -42,8 +42,8 @@ son log düzenlemesinden sonra admin tip/birim/production build ayrıca geçti.
 ## Yerel yayın kontrolleri — 5 Ekim 2026
 
 Pub/Sub tüketicisine özel OpenTelemetry core 2.11.0 yaması iki moderate bulguyu kapattı;
-eski OpenTelemetry istisnası kaldırıldı. Braces/chokidar/CLI zincirindeki 3 high bulgu açık.
-Chokidar 4 karşılaştırması CLI ignore kurallarının bozulduğunu doğruladı; major zorlanmadı.
+eski OpenTelemetry istisnası kaldırıldı. 6 Ekim: braces/chokidar/CLI zinciri chokidar 4 override'ı ile
+kapandı; glob ignore farkının etkisi ve testi `docs/DEPENDENCY_SECURITY.md`'de.
 Preflight, başarı kodunun yanında tamamlanmış ve tüm testleri geçen Node/Playwright özeti
 ister; boş, kesilmiş, skip/cancel içeren koşu deploy'u durdurur.
 
