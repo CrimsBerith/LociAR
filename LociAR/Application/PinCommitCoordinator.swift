@@ -45,16 +45,20 @@ enum PinCommitCoordinator {
 
         // 1) Google Cloud Anchor: exact surface for every viewer, no world-map upload.
         if isOnline, let persistence = await hostCloudAnchor(for: anchor, engine: engine, arcore: arcore, status: status) {
+            // The engine's pin changed while hosting ("Tekrar tara", approximate fallback): the
+            // persistence belongs to the old surface, so do not attach it to the new pin.
+            guard engine.currentAnchor?.id == anchor.id else { return .cancelled }
             engine.attachPersistence(persistence)
             return .committed
         }
         if Task.isCancelled { return .cancelled }
+        guard engine.currentAnchor?.id == anchor.id else { return .cancelled }
 
         // 2) Fallback: ARKit world map (offline, no token, or hosting failed).
         status(String(localized: "Yüzey kaydı hazırlanıyor…"))
         do {
             let package = try await engine.saveWorldMap()
-            if Task.isCancelled { return .cancelled }
+            if Task.isCancelled || engine.currentAnchor?.id != anchor.id { return .cancelled }
             engine.attachPersistence(package.persistence)
             return .committed
         } catch {

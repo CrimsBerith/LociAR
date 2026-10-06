@@ -22,6 +22,7 @@ struct CreatePostView: View {
     /// True while the pin is being saved; set before the task starts so a double tap cannot
     /// start a second save.
     @State private var isCommitting = false
+    @State private var commitGeneration = 0
     @State private var placementTask: Task<Void, Never>?
     /// One post id per editor session: a double tap or a retry after an error re-sends the same
     /// id, which createPost treats as an idempotent replay instead of a second post.
@@ -88,6 +89,7 @@ struct CreatePostView: View {
             }
             if offerFallbackToApproximate {
                 Button("Yaklaşık olarak devam et") {
+                    guard !isCommitting else { return }
                     offerFallbackToApproximate = false
                     engine.offerApproximatePlacement()
                     engine.placeApproximate()
@@ -160,6 +162,7 @@ struct CreatePostView: View {
                 VStack(spacing: 10) {
                     if engine.state == .approximateOffered {
                         Button("Yaklaşık yerleştir · 0,8 m") {
+                            guard !isCommitting else { return }
                             engine.placeApproximate()
                             if let anchor = engine.currentAnchor {
                                 startCommit(anchor)
@@ -210,6 +213,7 @@ struct CreatePostView: View {
                                 }
                                 .buttonStyle(.bordered)
                                 Button("Yaklaşık devam et") {
+                                    guard !isCommitting else { return }
                                     engine.offerApproximatePlacement()
                                     engine.placeApproximate()
                                     if let approx = engine.currentAnchor {
@@ -229,6 +233,7 @@ struct CreatePostView: View {
                             .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
                             .accessibilityIdentifier("create-pin-surface")
                         Button {
+                            guard !isCommitting else { return }
                             engine.offerApproximatePlacement()
                             engine.placeApproximate()
                             if let anchor = engine.currentAnchor {
@@ -820,9 +825,12 @@ struct CreatePostView: View {
     private func startCommit(_ anchor: SurfaceAnchor) {
         guard !isCommitting else { return }
         isCommitting = true
+        commitGeneration += 1
+        let generation = commitGeneration
         placementTask = Task {
             await commitPlacement(anchor)
-            isCommitting = false
+            // A cancelled older commit that finishes late must not unlock a newer one.
+            if generation == commitGeneration { isCommitting = false }
         }
     }
 

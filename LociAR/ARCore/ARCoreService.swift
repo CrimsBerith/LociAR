@@ -286,11 +286,15 @@ final class ARCoreService {
         timeout: Duration,
         _ start: (ResumeOnce<Value>) throws -> GARFuture
     ) async -> Value? {
+        // Closed screen / cancelled commit: never start a host or resolve request (quota, orphans).
+        guard !Task.isCancelled else { return nil }
         let id = UUID()
         let once = ResumeOnce<Value>()
         let result: Value? = await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 once.attach(continuation)
+                // onCancel may already have resumed `once` (task cancelled after the guard above).
+                guard !Task.isCancelled else { return }
                 do {
                     pendingFutures[id] = try start(once)
                 } catch {

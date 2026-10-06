@@ -1,17 +1,12 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { createReviewCredentialsFile } from './review-credentials.mjs';
 
-// Usage: node scripts/provision-review-account.mjs [--rotate]
-// Creates the App Review account if missing. An existing account keeps its password unless --rotate
-// is passed, so the credential entered in App Store Connect never changes silently. A new password is
-// printed to this terminal only — paste it into App Store Connect, never into the repo or an issue.
 const email = 'apple-review@lociar.app';
 const { password, filePath } = createReviewCredentialsFile(process.env.REVIEW_CREDENTIALS_FILE, email);
 console.log('Private credential file created:', filePath);
 const { auth, db, luidForUid } = await import('./_admin.mjs');
 
 let user;
-let password = null;
 try {
   user = await auth.getUserByEmail(email);
 } catch (error) {

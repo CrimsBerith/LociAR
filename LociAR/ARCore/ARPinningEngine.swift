@@ -80,7 +80,12 @@ final class ARPinningEngine: NSObject {
         case .extending: String(localized: "genişliyor")
         case .mapped: String(localized: "hazır")
         }
-        return String(localized: "Takip \(tracking.localizedUI) · Harita \(mapping.localizedUI) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh")
+        return String(localized: "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh")
+    }
+
+    /// Same counters for logs and exported diagnostics: language-independent, so support can search them.
+    var mappingDiagnosticLog: String {
+        "tracking=\(trackingQuality.rawValue) mapping=\(mappingQuality.rawValue) features=\(rawFeaturePointCount) planes=\(planeAnchorCount) meshes=\(meshAnchorCount)"
     }
 
     /// Receives every ARKit frame on the main actor (wired to ARCoreService by AppContainer).
@@ -1338,7 +1343,7 @@ extension ARPinningEngine: ARSessionDelegate {
         }
         if mappingChanged || lastFrameDiagnosticAt.map({ now.timeIntervalSince($0) >= 5 }) != false {
             lastFrameDiagnosticAt = now
-            let message = "AR frame: \(mappingDiagnosticSummary)"
+            let message = "AR frame: \(mappingDiagnosticLog)"
             logger.info("\(message, privacy: .public)")
             recordDiagnostic(message)
         }

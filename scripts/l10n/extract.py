@@ -62,7 +62,7 @@ ENGLISH = re.compile(r"\b(the|failed|Invalid|invalid|error|session|with|not|reac
 # Literals the extractor would pick up but that are never shown to users: log/diagnostic lines,
 # DEBUG-only paths, identifiers and unit-only formats (numbers and units stay as formatted).
 EXCLUDE = {
-    '\n[DEBUG] %@ %@: %@', '%@ m', '%lld m', 'AR frame: %@', 'AR state=%@ tracking=%@ mapping=%@ message=%@',
+    '\n[DEBUG] %@ %@: %@', '%@ m', '%lld m', 'AR frame: %@', 'tracking=%@ mapping=%@ features=%lld planes=%lld meshes=%lld', 'AR state=%@ tracking=%@ mapping=%@ message=%@',
     'Dikey yüzeyde AR görünümü açılamadı: %@', 'Geçersiz AR durum geçişi: %@ → %@',
     'World map size raw=%lld compressed=%lld', 'World-map %lld. denemede alındı; %lld anchor içeriyor.',
     'World-map alma denemesi %lld/%@ başarısız: %@', 'Publish committed post=%@', 'Publish intent persisted post=%@',

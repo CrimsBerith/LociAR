@@ -24,6 +24,7 @@ struct ARExperienceView: View {
     /// Banner text while the pin is saved (Cloud Anchor hosting or world map).
     @State private var prepareStatus: String?
     @State private var prepareTask: Task<Void, Never>?
+    @State private var prepareGeneration = 0
     @State private var location = LocationController()
     @State private var nearbyPosts: [LociPost] = []
     @State private var viewingPost: LociPost?
@@ -594,15 +595,20 @@ struct ARExperienceView: View {
         guard !isPreparingContent, engine.currentAnchor != nil else { return }
         isPreparingContent = true
         prepareTask?.cancel()
-        prepareTask = Task { await prepareContent() }
+        prepareGeneration += 1
+        let generation = prepareGeneration
+        prepareTask = Task { await prepareContent(generation: generation) }
     }
 
     /// Saves the pin like the map's create flow (Geospatial tag, Cloud Anchor, world-map fallback)
     /// and then opens the editor for it.
-    private func prepareContent() async {
+    private func prepareContent(generation: Int) async {
         defer {
-            isPreparingContent = false
-            prepareStatus = nil
+            // A cancelled older run that finishes late must not clear the state of a newer one.
+            if generation == prepareGeneration {
+                isPreparingContent = false
+                prepareStatus = nil
+            }
         }
         guard let anchor = engine.currentAnchor else { return }
         let outcome = await PinCommitCoordinator.commit(

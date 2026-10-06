@@ -305,7 +305,6 @@ actor BlockListCache {
     private nonisolated static func fetch(blocker: String) async throws -> Set<String> {
         let snapshot = try await Firestore.firestore().collection("user_blocks")
             .whereField("blocker_id", isEqualTo: blocker)
-            .limit(to: 1000)
             .getDocuments()
         return Set(snapshot.documents.compactMap { $0.data()["blocked_id"] as? String })
     }

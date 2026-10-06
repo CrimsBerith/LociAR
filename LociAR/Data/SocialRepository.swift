@@ -175,18 +175,18 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         return Dictionary(response.activities.map { ($0.id, $0.readAt) }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// Upper bounds for per-user lists, so one account with a huge history cannot make a screen
-    /// read thousands of documents. Blocks get a larger bound because filtering needs all of them.
+    /// Upper bound for ordered display lists (collections, collection items). Membership lists
+    /// (likes, saves, follows, blocks) are read whole: a truncated set would answer "liked?",
+    /// "following?" or "blocked?" wrongly for older entries.
     nonisolated static let edgeListLimit = 500
-    nonisolated static let blockListLimit = 1000
 
     func savedPostIDs(for userID: UUID) async throws -> [UUID] {
-        try await documents(db.collection("post_saves").whereField("user_id", isEqualTo: key(userID)).limit(to: Self.edgeListLimit))
+        try await documents(db.collection("post_saves").whereField("user_id", isEqualTo: key(userID)))
             .compactMap { uuid($0.1["post_id"]) }
     }
 
     func likedPostIDs(for userID: UUID) async throws -> [UUID] {
-        try await documents(db.collection("likes").whereField("user_id", isEqualTo: key(userID)).limit(to: Self.edgeListLimit))
+        try await documents(db.collection("likes").whereField("user_id", isEqualTo: key(userID)))
             .compactMap { uuid($0.1["post_id"]) }
     }
 
@@ -247,12 +247,12 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
     }
 
     func followingIDs(for userID: UUID) async throws -> [UUID] {
-        try await documents(db.collection("follows").whereField("follower_id", isEqualTo: key(userID)).limit(to: Self.edgeListLimit))
+        try await documents(db.collection("follows").whereField("follower_id", isEqualTo: key(userID)))
             .compactMap { uuid($0.1["following_id"]) }
     }
 
     func blockedUserIDs(for userID: UUID) async throws -> [UUID] {
-        try await documents(db.collection("user_blocks").whereField("blocker_id", isEqualTo: key(userID)).limit(to: Self.blockListLimit))
+        try await documents(db.collection("user_blocks").whereField("blocker_id", isEqualTo: key(userID)))
             .compactMap { uuid($0.1["blocked_id"]) }
     }
 

@@ -12,6 +12,8 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var wantsLocationUpdates = false
     @ObservationIgnored private var wantsPreciseAccuracy = false
+    /// One temporary full-accuracy prompt per AR session (reset by stop()), not one per retry.
+    @ObservationIgnored private var didRequestPreciseAccuracy = false
 
     /// Purpose key in Info.plist `NSLocationTemporaryUsageDescriptionDictionary`.
     nonisolated static let geospatialAccuracyPurposeKey = "GeospatialAccuracy"
@@ -48,16 +50,20 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     /// ARCore Geospatial needs precise location. When the user granted only approximate location,
     /// ask once per AR session for temporary full accuracy (iOS shows the purpose string).
     func requestPreciseAccuracyIfNeeded() {
-        wantsPreciseAccuracy = true
+        guard !didRequestPreciseAccuracy else { return }
         let status = manager.authorizationStatus
+        // Not decided yet: ask once the user answers the location prompt (authorization callback).
+        wantsPreciseAccuracy = status == .notDetermined
         guard status == .authorizedWhenInUse || status == .authorizedAlways,
               manager.accuracyAuthorization == .reducedAccuracy else { return }
-        wantsPreciseAccuracy = false
+        didRequestPreciseAccuracy = true
         manager.requestTemporaryFullAccuracyAuthorization(withPurposeKey: Self.geospatialAccuracyPurposeKey)
     }
 
     func stop() {
         wantsLocationUpdates = false
+        wantsPreciseAccuracy = false
+        didRequestPreciseAccuracy = false
         manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
     }

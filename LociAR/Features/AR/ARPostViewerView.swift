@@ -20,6 +20,8 @@ struct ARPostViewerView: View {
     @State private var offerTask: Task<Void, Never>?
     /// Shown when exact resolving takes long: skip straight to the approximate, aim-guided view.
     @State private var offerApproximate = false
+    /// Location and proximity passed for this attempt; the approximate shortcut must never skip that check.
+    @State private var proximityVerified = false
     @State private var isApproximateView = false
     /// How long exact resolving may run before the "Yaklaşık göster" shortcut appears.
     private static let approximateOfferDelay: Duration = .seconds(8)
@@ -218,15 +220,21 @@ struct ARPostViewerView: View {
         offerTask?.cancel()
         offerApproximate = false
         isApproximateView = false
+        proximityVerified = false
         resolveTask = Task { await verifyAndOpen() }
         offerTask = Task {
             do { try await Task.sleep(for: Self.approximateOfferDelay) } catch { return }
-            if engine.state != .resolved, !accessBlocked { offerApproximate = true }
+            // Offer only after the location/proximity check passed (it may still be waiting for GPS).
+            while !proximityVerified, !accessBlocked {
+                do { try await Task.sleep(for: .milliseconds(500)) } catch { return }
+            }
+            if proximityVerified, engine.state != .resolved, !accessBlocked { offerApproximate = true }
         }
     }
 
     /// Stops exact resolving and reveals the post by GPS direction and distance (aim-guided).
     private func showApproximately() {
+        guard proximityVerified else { return }
         let running = resolveTask
         running?.cancel()
         offerTask?.cancel()
@@ -265,6 +273,7 @@ struct ARPostViewerView: View {
                     return
                 }
                 message = decision.reason
+                proximityVerified = true
                 if await engine.resumePreservedWorldLock(anchorID: post.anchorBundle.anchor.id) {
                     _ = await renderResolvedContent()
                     return

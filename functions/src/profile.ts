@@ -17,10 +17,14 @@ export const handleRef = (handle: string) => db.collection('handles').doc(handle
 /** Terms/privacy version the app shows on its consent checkbox, e.g. "2026-10-04". */
 export const TERMS_VERSION_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-/** The consent record to merge into users_private, or null when nothing (valid) was sent. */
+/**
+ * The consent record to merge into users_private, or null when nothing (valid and newer) was sent.
+ * Versions are ISO dates, so string order is date order: an older app build on another device can
+ * never replace a newer accepted version (or reset terms_accepted_at).
+ */
 export function termsConsentUpdate(value: unknown, alreadyAccepted: unknown): { terms_version: string } | null {
   if (typeof value !== 'string' || !TERMS_VERSION_PATTERN.test(value)) return null;
-  if (value === alreadyAccepted) return null;
+  if (typeof alreadyAccepted === 'string' && TERMS_VERSION_PATTERN.test(alreadyAccepted) && value <= alreadyAccepted) return null;
   return { terms_version: value };
 }
 
