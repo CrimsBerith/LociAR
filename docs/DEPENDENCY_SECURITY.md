@@ -36,7 +36,7 @@ Functions geliştirme ağacında kalan son kaynak `firebase-tools 15.32.1` → `
 - CLI'ın regex kuralları aynen çalışır: `node_modules`, nokta dosyaları (`.secret.local`, `.env.*`) ve `*.log` izlenmez. `functions/test/firebase-cli-dependencies.test.mjs` bunu CLI'ın çözdüğü chokidar ile, CLI'daki ignore biçimiyle doğrular. CI'daki emülatör işleri (`test:rules`, `test:emulator`) izleyicileri gerçek CLI ile çalıştırır.
 - Upstream CLI chokidar 4'e geçtiğinde bu override kaldırılır; ardından `npm ci`, audit ve emülatör testleri çalıştırılır.
 
-`scripts/check-dependency-audit.mjs` artık istisna içermez: iki projede de tam ağaçta (üretim ve geliştirme) herhangi bir bulgu, bozuk registry yanıtı veya audit hatası CI'ı durdurur. `.github/workflows/dependency-audit.yml` her gün 05:23 UTC'de ve `workflow_dispatch` ile iki kilitli ağacı yeniden kurup (`--ignore-scripts`) üretim/tam audit kapılarını çalıştırır; yeni advisory, yeni commit olmasa da yakalanır. İş yalnız `contents: read` kullanır; canlı kimlik/deploy yoktur.
+`scripts/check-dependency-audit.mjs` artık istisna içermez: iki projede de tam ağaçta (üretim ve geliştirme) herhangi bir bulgu, bozuk registry yanıtı veya audit hatası CI'ı durdurur. `.github/workflows/dependency-audit.yml` her gün 05:23 UTC'de ve `workflow_dispatch` ile iki kilitli ağacı yeniden kurup üretim/tam audit kapılarını çalıştırır; yeni advisory, yeni commit olmasa da yakalanır. İş yalnız `contents: read` kullanır; canlı kimlik/deploy yoktur.
 
 ```sh
 node scripts/check-dependency-audit.mjs functions
