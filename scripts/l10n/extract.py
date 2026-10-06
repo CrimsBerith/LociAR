@@ -80,9 +80,10 @@ EXCLUDE = {
     '^[A-Za-z0-9_-]{1,200}$', 'lociar.acceptedAccountDeletions',
 }
 
-# Shown to users but not written as a literal in the app: activity texts written by Cloud
-# Functions (functions/src/triggers.ts).
-EXTRA = ['yorum', 'bilinmiyor', 'normal', 'Postunu beğendi.', 'Postuna yorum yaptı.', 'Seni takip etmeye başladı.']
+# Shown to users but not written as a literal in the app (activity texts written by Cloud
+# Functions, functions/src/triggers.ts), or nested inside an interpolation the scanner skips
+# ('kullanıcı' in ProfileEditView).
+EXTRA = ['kullanıcı', 'yorum', 'bilinmiyor', 'normal', 'Postunu beğendi.', 'Postuna yorum yaptı.', 'Seni takip etmeye başladı.']
 
 UI_CONTEXT = re.compile(r"(Text|Button|Label|navigationTitle|alert|confirmationDialog|TextField|SecureField|Toggle|Section|Link|Menu|accessibilityLabel|accessibilityHint|Annotation|String\(localized:)\(?\s*$")
 

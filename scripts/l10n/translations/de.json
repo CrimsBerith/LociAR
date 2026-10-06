@@ -596,5 +596,6 @@
  "⚠️ Ağ hatası": "⚠️ Netzwerkfehler",
  "⚠️ Kota aşıldı": "⚠️Kontingent überschritten",
  "⚠️ VPS zaman aşımı": "⚠️ VPS-Timeout",
- "⚠️ İç hata": "⚠️ Interner Fehler"
+ "⚠️ İç hata": "⚠️ Interner Fehler",
+ "kullanıcı": "Benutzer"
 }

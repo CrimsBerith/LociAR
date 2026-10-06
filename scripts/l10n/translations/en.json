@@ -596,5 +596,6 @@
  "⚠️ Ağ hatası": "⚠️ Network error",
  "⚠️ Kota aşıldı": "⚠️ Quota exceeded",
  "⚠️ VPS zaman aşımı": "⚠️ VPS timeout",
- "⚠️ İç hata": "⚠️ Internal error"
+ "⚠️ İç hata": "⚠️ Internal error",
+ "kullanıcı": "user"
 }
