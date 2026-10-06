@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  # PR branches run through pull_request only; listing them under push too ran every job twice.
   push:
-    branches: [main, 'claude/**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
