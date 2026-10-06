@@ -61,11 +61,11 @@ function placement(input: ContentInput, postId: string) {
   const transform = [Math.cos(yaw),0,-Math.sin(yaw),0, 0,1,0,0, Math.sin(yaw),0,Math.cos(yaw),0, 0,0,-1.5,1];
   const geoPose = { latitude: input.lat, longitude: input.lng, altitude: input.altitude, heading: input.heading, accuracy: null };
   const rect = { width: input.width, height: input.height };
-  const anchor = { id: derivedKey(postId,'anchor'), transform, pinQuality: 'freeSpaceApproximate', hitSource: 'frontOfCamera', surfaceAlignment: 'freeSpace',
-    trackingQuality: 'unknown', worldMappingStatus: 'notAvailable', geoPose, physicalRectMeters: rect, capturedAt };
+  const anchor = { id: derivedKey(postId,'anchor'), pinQuality: 'freeSpaceApproximate', hitSource: 'frontOfCamera', surfaceAlignment: 'free_space',
+    trackingQuality: 'unknown', worldMappingStatus: 'notAvailable', physicalRectMeters: rect, transform, geoPose, capturedAt };
   return {
-    pose_json: JSON.stringify({ ...geoPose, anchor: { coordinateSpace: 'admin_geo_estimate', provider: 'admin', x: 0,y:0,z:-1.5,yaw,pitch:0,roll:0,
-      nativeAnchorId: anchor.id, capturedAt, trackingQuality:'unknown',surfaceAlignment:'freeSpace',physicalRectMeters:rect } }),
+    pose_json: JSON.stringify({ ...geoPose, anchor: { coordinateSpace: 'admin_geo_estimate', provider: 'admin', x: 0,y:0,z:-1.5,pitch:0,roll:0,
+      nativeAnchorId: anchor.id, trackingQuality:'unknown',surfaceAlignment:'free_space',physicalRectMeters:rect, yaw, capturedAt } }),
     anchor_bundle_json: JSON.stringify({ schemaVersion:2, provider:'admin', coordinateSpace:'admin_geo_estimate', anchor }),
     placement_state:'free_space_approximate', placement_quality:0, native_provider:'admin', multi_user_ready:false,
     resolver_strategy:['aim_guided_reveal'], cloud_anchor_id:null, geospatial:false, world_map_path:null,

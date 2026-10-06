@@ -190,5 +190,5 @@ test hesabı dışında kullanılmamalıdır; canlı hesap silme bu çalışma k
 | Arapça, uzun Almanca, Dynamic Type, VoiceOver | Yeni ekran, parolanın gizliliği, butonlar ve okunmamış etiketi erişilebilir kalır |
 
 Yeni aktivite/silme metinleri 12 dilde katalogdadır; tüm uygulamanın yerelleştirme
-eksikleri bu iki akıştan ayrı olarak devam eder. `generate-translations.mjs` artık
-depo içindeki katalog yolunu kullanır ve sonradan eklenen anahtarları korur.
+eksikleri bu iki akıştan ayrı olarak devam eder. Katalog
+`scripts/l10n/build_catalog.py` ile `scripts/l10n/translations/*.json` tablolarından üretilir.

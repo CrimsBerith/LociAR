@@ -1,6 +1,7 @@
 # LociAR — Firebase kurulum ve canlıya alma rehberi
 
-Her şey Firebase'de: Auth, Firestore, Storage, Cloud Functions ve admin paneli (Firebase App Hosting).
+Her şey Firebase'de: Auth, Firestore, Storage, Cloud Functions, Cloud Messaging (push), Crashlytics ve admin paneli
+(Firebase App Hosting).
 Docker, Vercel veya başka bir barındırma kullanılmaz.
 
 Güncel kapsam ve yayın kararı: [RELEASE_READINESS.md](release/RELEASE_READINESS.md).
@@ -15,14 +16,17 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | Adım | Durum |
 |---|---|
 | Firestore (nam5) + güvenli kurallar | ✅ yayında |
-| Auth: E-posta/Şifre + E-posta bağlantısı, Apple | ✅ açık — ⚠️ Apple `.p8` anahtarı developer.apple.com'dan alınıp Firebase Console'a girilmeli (hesap silme token iptali) |
+| Auth: E-posta/Şifre + E-posta bağlantısı, Apple | ✅ açık — ⚠️ Sign in with Apple `.p8` anahtarı Firebase Console'a ve Functions'a (`APPLE_PRIVATE_KEY`, hesap silmede token iptali) girilmeli |
+| Push (FCM + APNs) | ⚠️ kod hazır — APNs Auth Key (`.p8`, ayrı anahtar) Firebase Console → Project settings → Cloud Messaging → Apple app configuration'a yüklenmeli |
+| Crashlytics | ✅ SDK + dSYM yükleme fazı (`project.yml`); kullanıcı Profil → Ayarlar'dan kapatabilir |
 | Cloud Vision API (profil fotoğrafı denetimi) | ✅ etkinleştirildi |
 | iOS uygulaması Team ID (ZSRUTGX74S), App Check / App Attest | ✅ (App Check izleme modunda) |
 | E-posta şablon dili | ✅ Türkçe |
 | Blaze planı | ✅ aktif |
 | Storage + storage.rules | ✅ yayında |
-| İndeksler, TTL, Cloud Functions (`us-central1`) | ✅ 20 fonksiyon yayında |
-| Identity Platform + ilk süper admin | ✅ yapıldı (`khankartal@gmail.com`, TOTP MFA açık) |
+| İndeksler, TTL, Cloud Functions (`us-central1`) | ⚠️ 24 fonksiyon — yeni sürüm (push, kill switch, `terms_version`) deploy bekliyor |
+| Admin + yasal sayfalar (App Hosting, backend `lociar-admin`) | ⚠️ yeni sürüm (EN sayfalar, kill switch paneli, nonce CSP) deploy bekliyor |
+| Identity Platform + ilk süper admin | ✅ yapıldı (proje sahibinin hesabı, TOTP MFA açık) |
 | İnceleme hesabı + seed içerik | ✅ yapıldı (`apple-review@lociar.app`, 7 onaylı post) |
 
 ## Mimari özeti
@@ -33,10 +37,12 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | Kullanıcı UUID'si | `luid` = UUIDv5(Firebase UID) + custom claim | `FirebaseBackend.swift`, `functions/src/core.ts` |
 | Veritabanı | Cloud Firestore | `firestore.rules`, `firestore.indexes.json` |
 | Avatar / AR çevre haritası | Cloud Storage; post fotoğraf/video yüklemesi kapalı | `storage.rules`, `AvatarStore.swift`, `WorldMapStore.swift` |
+| Push | FCM (APNs üzerinden); token `registerPushToken`/`unregisterPushToken` (kurulum kimliğiyle), gönderim `onActivityCreated` tetikleyicisinden | `functions/src/push.ts`, `NotificationService.swift` |
+| Kill switch | `system/flags.kill_switch` (admin → System); callable'lar `service_paused` döner | `functions/src/core.ts`, `admin/app/admin/(protected)/system` |
 | create_post / delete_account | Callable Cloud Functions | `functions/src/posts.ts`, `account.ts`, `profile.ts` |
 | Sayaçlar, aktivite | Firestore tetikleyicileri | `functions/src/triggers.ts` |
 | Aktivite okundu durumu | Auth + App Check callable; doğrudan istemci yazması yok | `functions/src/activity.ts` |
-| Admin panel | Next.js + Firebase Admin SDK, session cookie, TOTP MFA | `admin/lib/admin.ts`, `admin/lib/ops.ts` |
+| Admin panel + yasal sayfalar | Next.js, Firebase App Hosting (`lociar-admin`), Admin SDK, session cookie, TOTP MFA | `admin/lib/admin.ts`, `admin/lib/ops.ts`, `admin/apphosting.yaml` |
 
 Önemli davranışlar:
 - Her yeni post `pending_review` olarak açılır; yüksek kaliteli AR kilidinin otomatik yayını
@@ -47,13 +53,16 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
   ve ID token'ı yeniler. Sunucu son 5 dakika `auth_time` şartını korur; Apple
   kullanıcılarında önce token iptali, sonra `deleteAccount` kalıcı silme yapar.
   Akış ve cihaz kabulü: [ACTIVITY_AND_ACCOUNT_DELETION.md](ACTIVITY_AND_ACCOUNT_DELETION.md).
+- Giriş ekranında gizlilik/topluluk kuralları onay kutusu zorunludur; `ensureProfile` kabul edilen sürümü
+  `users_private.terms_version` / `terms_accepted_at` olarak kaydeder.
 
 ## 0. Tek komutla kurulum (önerilen)
 
 Mac'te `scripts/google-cloud-setup.command` dosyasına çift tıkla. Sırayla: Google girişi, Blaze kontrolü,
 gerekli API'ler (ARCore, Cloud Vision, IAM Credentials, Cloud Scheduler, Functions/Run/Build, Eventarc, Pub/Sub,
-Storage, Firestore, App Check, Identity Toolkit), Functions servis hesabı yetkileri (ARCore anahtarsız token için
-Token Creator), Storage bucket kontrolü, elle yapılacakların listesi (Apple .p8, App Check debug token, bütçe) ve
+Storage, Firestore, App Check, Identity Toolkit, Cloud Messaging, Crashlytics, App Hosting), Functions servis hesabı
+yetkileri (ARCore anahtarsız token için Token Creator), Storage bucket kontrolü, elle yapılacakların listesi
+(Sign in with Apple .p8, APNs .p8, App Check debug token, bütçe) ve
 `scripts/firebase-deploy.command` ile deploy. Tekrar çalıştırmak güvenlidir. Aşağıdaki adımlar aynı işin
 elle yapılışıdır.
 
@@ -133,11 +142,16 @@ cp Config/Local.xcconfig.example Config/Local.xcconfig   # değerleri doldur
 xcodegen generate            # veya mevcut LociAR.xcodeproj'u aç (Firebase paketleri eklendi)
 ```
 Xcode ilk açılışta firebase-ios-sdk'yı indirir (File → Packages → Resolve Package Versions).
-Signing & Capabilities: Sign in with Apple ve App Attest entitlement'ları `LociAR.entitlements` içinde.
+Signing & Capabilities: Sign in with Apple, App Attest ve Push Notifications (`aps-environment`) entitlement'ları
+`LociAR.entitlements` içinde. `aps-environment` dosyada `development`; App Store için arşivlenip dağıtıldığında Xcode
+imzalama sırasında `production` yapar.
+Yerelleştirme: `LociAR/Resources/Localizable.xcstrings` + `InfoPlist.xcstrings` (12 dil) `scripts/l10n/build_catalog.py`
+ile üretilir; elle düzenlenmez (bkz. `scripts/l10n/`).
 
 ## 5. Admin panel ve yasal sayfalar (Firebase App Hosting)
 
-Admin paneli ve uygulamanın bağlantı verdiği `/privacy`, `/terms`, `/support` sayfaları `admin/` içindeki Next.js
+Admin paneli ve uygulamanın bağlantı verdiği `/privacy`, `/terms`, `/support` (İngilizceleri `/privacy/en`, `/terms/en`,
+`/support/en`) sayfaları `admin/` içindeki Next.js
 uygulamasıdır ve **Firebase App Hosting** üzerinde çalışır (`admin/apphosting.yaml`, `firebase.json` → `apphosting`).
 Sunucu, App Hosting backend'inin servis hesabıyla çalışır; **servis hesabı anahtarı yoktur**.
 
@@ -150,10 +164,10 @@ gcloud services enable firebaseapphosting.googleapis.com --project lociar-2f38c
 ```
 - Sihirbaz bir **web app** bağlamayı sorar → "LociAR Admin" web app'ini seç/oluştur. Public istemci kimlikleri
   derleme sırasında `FIREBASE_WEBAPP_CONFIG` olarak gelir (`admin/next.config.ts`), elle girilmez.
-- Backend servis hesabına (`firebase-app-hosting-compute@lociar-2f38c.iam.gserviceaccount.com`) şu roller gerekir:
-  `Firebase Admin SDK Administrator Service Agent` (Auth/Firestore/Storage) ve kendi üzerinde
-  `Service Account Token Creator` (avatar incelemesindeki imzalı URL'ler ve oturum çerezleri için).
-  `scripts/google-cloud-setup.command` bunları verir.
+- Backend servis hesabına (`firebase-app-hosting-compute@lociar-2f38c.iam.gserviceaccount.com`)
+  `Firebase Admin SDK Administrator Service Agent` rolü gerekir (Auth/Firestore/Storage). Avatar incelemesi
+  görüntüyü sunucu üzerinden aktarır (imzalı URL yok), bu yüzden kendi üzerinde Token Creator verilmez.
+  `scripts/google-cloud-setup.command` bunu verir.
 - Authentication → Settings → Authorized domains: `lociar-admin--lociar-2f38c.us-central1.hosted.app`.
 
 Dağıtım: `./functions/node_modules/.bin/firebase deploy --only apphosting --project lociar-2f38c` (ya da GitHub bağlantısıyla
@@ -175,6 +189,36 @@ Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yenide
   Functions dağıtımı ve fiziksel cihaz/TestFlight kabulü ayrıca gereklidir.
   Kayıt, gönderim ve test sözleşmesi: [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md).
 - ~5K aktif kullanıcıdan sonra medyayı Cloudflare R2'ye taşımak indirme maliyetini sıfırlar.
+
+## 6a. Kill switch (acil durdurma)
+
+Admin → System → "Kill switch": `system/flags.kill_switch` açılınca post oluşturma, Cloud Anchor kaydı, ARCore token
+ve avatar yükleme callable'ları `unavailable` + `service_paused` döner. Uygulama "LociAR geçici olarak durduruldu"
+mesajını gösterir, sıradaki postlar deneme hakkı harcamadan bekler. İşlem audit log'a yazılır; kapatınca 15 sn
+içinde normale döner.
+
+## 6b. İzleme ve alarmlar (bir kez, owner)
+
+`scripts/monitoring-setup.command` (Mac'te çift tıkla; tekrar çalıştırılabilir) şunları kurar:
+
+- **E-posta bildirim kanalı:** adresi betik sorar. Google'ın doğrulama e-postasını onayla.
+- **Log tabanlı metrikler ve alarmlar** (Cloud Functions ve App Hosting logları):
+
+| Metrik | Alarm koşulu | Ne yapılır |
+|--------|--------------|------------|
+| `lociar_server_errors` | 10 dk'da >10 ERROR satırı | Logs'ta `severity>=ERROR` filtresine bak |
+| `lociar_apple_revoke_failed` | herhangi biri | Apple anahtar/secret'larını kontrol et; hesap silme durdu |
+| `lociar_account_deletion_deferred` | 1 saatte herhangi biri | Silme işi zamanlayıcıyla yeniden denenir; tamamlandığını doğrula |
+| `lociar_storage_cleanup_deferred` | 1 saatte >3 | Storage yetkileri ve temizlik zamanlayıcıları |
+| `lociar_cloud_anchor_cleanup_failed` | 1 saatte herhangi biri | `arcoreManagement.ts` logları; iş kendini yeniden dener |
+| `lociar_arcore_token_failed` | 10 dk'da >3 | Functions servis hesabının Token Creator yetkisi (`google-cloud-setup.command`) |
+| `lociar_avatar_screening_failed` | 1 saatte >3 | Cloud Vision API / kota |
+| `lociar_push_failed` | 1 saatte >20 | Firebase Console → Cloud Messaging → APNs anahtarı |
+| `lociar_service_paused` | herhangi biri | Kill switch açık kaldıysa kapat (6a) |
+
+- **Aylık bütçe:** varsayılan 50 USD. %50, %90 ve %100'de e-posta gelir.
+
+Crashlytics çökme uyarıları ayrıca Firebase Console → Crashlytics → ⋮ → *Alert settings* üzerinden açılır.
 
 ## 7. Güvenlik/maliyet ek adımları (owner)
 

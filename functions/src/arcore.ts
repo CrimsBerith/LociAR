@@ -50,7 +50,8 @@ export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
   try {
     const claims = buildArcoreClaims(await runtimeServiceAccountEmail(), now / 1000);
     const token = await signJwt(claims.iss, claims);
-    return { token, expiresAt: new Date(claims.exp * 1000).toISOString() };
+    // expiresIn (seconds) lets the app compute expiry on its own clock; expiresAt stays for old builds.
+    return { token, expiresAt: new Date(claims.exp * 1000).toISOString(), expiresIn: Math.max(0, Math.floor(claims.exp - now / 1000)) };
   } catch (error) {
     logger.error('arcore_token_failed', { code: safeErrorCode(error) });
     // Signing failed (IAM outage): give the slot back so the user is not locked out for an hour.

@@ -25,6 +25,18 @@ protocol AuthRepository: Sendable {
     func deleteAccount(password: String?, expectedUserID: UUID) async throws
 }
 
+/// Explicit consent to the privacy policy and community rules (App Store guideline 1.2):
+/// the sign-in screen requires the checkbox before creating or using an account, and
+/// `ensureProfile` stores the accepted version server-side.
+enum TermsConsent {
+    /// Date of the current privacy policy / terms (admin/app/legal-entity.ts).
+    nonisolated static let currentVersion = "2026-10-04"
+    nonisolated static let storageKey = "terms_accepted_version"
+
+    nonisolated static var isAccepted: Bool { UserDefaults.standard.string(forKey: storageKey) == currentVersion }
+    nonisolated static var acceptedVersion: String? { isAccepted ? currentVersion : nil }
+}
+
 struct AuthSignUpResult: Sendable {
     let user: LociUser
     let requiresEmailConfirmation: Bool
@@ -120,6 +132,8 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     private struct EnsureProfilePayload: Encodable, Sendable {
         let userId: String
         let displayName: String?
+        /// Accepted terms version (consent checkbox); stored server-side by ensureProfile.
+        let termsVersion: String?
     }
 
     nonisolated private static func isVerified(_ user: User) -> Bool {
@@ -145,7 +159,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         try Self.assertSession(user)
         let response: EnsureProfileResponse = try await callables.call(
             "ensureProfile",
-            payload: EnsureProfilePayload(userId: FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: user.uid)), displayName: displayName)
+            payload: EnsureProfilePayload(userId: FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: user.uid)), displayName: displayName, termsVersion: TermsConsent.acceptedVersion)
         )
         if response.claimsUpdated {
             _ = try await user.getIDTokenResult(forcingRefresh: true)

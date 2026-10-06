@@ -6,55 +6,6 @@ import OSLog
 @preconcurrency import RealityKit
 import UIKit
 
-struct PinDiagnosticSnapshot: Codable, Sendable {
-    var timestamp: Date
-    var state: PinSessionState
-    var trackingQuality: TrackingQuality
-    var mappingQuality: WorldMappingQuality
-    var pinQuality: PinQuality?
-    var hitSource: PinHitSource?
-    var surfaceAlignment: SurfaceAlignment?
-    var anchorID: UUID?
-    var message: String
-    var rawFeaturePointCount: Int = 0
-    var planeAnchorCount: Int = 0
-    var meshAnchorCount: Int = 0
-    var secondsSinceSessionStart: Double?
-    var secondsSincePhysicalPin: Double?
-}
-
-struct SavedWorldMapPackage: Sendable {
-    var mapData: Data
-    var referenceImageData: Data?
-    var persistence: WorldLockPersistence
-}
-
-enum ARPinningError: LocalizedError {
-    case unsupported
-    case cameraDenied
-    case noAnchor
-    case mappingNotReady
-    case mapUnavailable
-    case invalidWorldMap
-    case anchorMissing
-    case renderAnchorMissing
-    case renderContentUnavailable
-
-    var errorDescription: String? {
-        switch self {
-        case .unsupported: String(localized: "Bu cihaz gelişmiş AR yüzey taramasını desteklemiyor.")
-        case .cameraDenied: String(localized: "Kamera izni verilmedi.")
-        case .noAnchor: String(localized: "Önce bir yüzey seçin.")
-        case .mappingNotReady: String(localized: "Yüzey kaydı henüz hazır değil. Çevreyi yavaşça tarayın.")
-        case .mapUnavailable: String(localized: "Yüzey kaydı oluşturulamadı.")
-        case .invalidWorldMap: String(localized: "Kaydedilmiş yüzey bilgisi açılamadı.")
-        case .anchorMissing: String(localized: "Postun bağlı olduğu yüzey kaydı bulunamadı.")
-        case .renderAnchorMissing: String(localized: "Yüzey bulundu ancak post anchor'ı sahneye bağlanamadı.")
-        case .renderContentUnavailable: String(localized: "Postun yüzey içeriği hazırlanamadı.")
-        }
-    }
-}
-
 @MainActor
 @Observable
 final class ARPinningEngine: NSObject {
@@ -99,8 +50,11 @@ final class ARPinningEngine: NSObject {
     @ObservationIgnored private var videoPlayers: [UUID: AVPlayer] = [:]
     @ObservationIgnored private var activeInitialWorldMap: ARWorldMap?
     @ObservationIgnored private var pausedForThermalPressure = false
+    /// AR is paused because the device is too hot (resumes on its own when it cools down).
+    var isPausedForThermalPressure: Bool { state == .interrupted && pausedForThermalPressure }
     @ObservationIgnored private var compassWorldAlignment = false
     @ObservationIgnored private var lastFrameReceivedAt: Date?
+    @ObservationIgnored private var lastFrameCountersAt = Date.distantPast
     @ObservationIgnored private var sessionStartedAt: Date?
     @ObservationIgnored private var physicalPinPlacedAt: Date?
     @ObservationIgnored private var lastFrameDiagnosticAt: Date?
@@ -126,7 +80,12 @@ final class ARPinningEngine: NSObject {
         case .extending: String(localized: "genişliyor")
         case .mapped: String(localized: "hazır")
         }
-        return "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh"
+        return String(localized: "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh")
+    }
+
+    /// Same counters for logs and exported diagnostics: language-independent, so support can search them.
+    var mappingDiagnosticLog: String {
+        "tracking=\(trackingQuality.rawValue) mapping=\(mappingQuality.rawValue) features=\(rawFeaturePointCount) planes=\(planeAnchorCount) meshes=\(meshAnchorCount)"
     }
 
     /// Receives every ARKit frame on the main actor (wired to ARCoreService by AppContainer).
@@ -445,9 +404,14 @@ final class ARPinningEngine: NSObject {
         return arView.session.currentFrame?.anchors.first { $0.name == anchorName(for: id) }
     }
 
-    /// Current pin transform (for hosting-quality estimates and geo-tagging).
+    /// Current pin transform (for geo-tagging).
     var currentPinTransform: simd_float4x4? {
         currentAnchor.flatMap { Self.unflatten($0.transform) }
+    }
+
+    /// Camera transform of the latest frame (what ARCore's hosting-quality estimate expects).
+    var currentCameraTransform: simd_float4x4? {
+        arView.session.currentFrame?.camera.transform
     }
 
     /// Shows a post at a transform found by ARCore (resolved Cloud Anchor or Geospatial pose).
@@ -1322,37 +1286,68 @@ extension ARPinningEngine: ARSessionDelegate {
         let meshCount = frame.anchors.reduce(into: 0) { count, anchor in
             if anchor is ARMeshAnchor { count += 1 }
         }
+        let sample = FrameSample(
+            quality: quality, pitch: pitch, yaw: yaw,
+            featurePointCount: featurePointCount, planeCount: planeCount, meshCount: meshCount
+        )
+        // No delegateQueue is set, so ARKit calls this on the main thread: handle the frame inline
+        // instead of allocating a Task per frame (60 Hz). The fallback hop keeps it safe if a
+        // delegate queue is ever configured.
         let forwarded = SendableARFrame(frame: frame)
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            // ARCore (Geospatial + Cloud Anchors) runs on these same ARKit frames.
-            self.frameSink?(forwarded.frame)
-            let now = Date()
-            let mappingChanged = self.mappingQuality != quality
-            self.lastFrameReceivedAt = now
-            if !self.hasRecentCameraFrame { self.hasRecentCameraFrame = true }
-            self.mappingQuality = quality
-            self.rawFeaturePointCount = featurePointCount
-            self.planeAnchorCount = planeCount
-            self.meshAnchorCount = meshCount
-            self.currentAnchor?.worldMappingStatus = quality
-            if abs(self.cameraPitchDegrees - pitch) >= 1.5 {
-                self.cameraPitchDegrees = pitch
-            }
-            if self.compassWorldAlignment {
-                let shouldPublish = self.cameraYawDegrees.map { abs($0 - yaw) >= 1.5 } ?? true
-                if shouldPublish { self.cameraYawDegrees = yaw }
-            } else if self.cameraYawDegrees != nil {
-                self.cameraYawDegrees = nil
-            }
-            if mappingChanged || self.lastFrameDiagnosticAt.map({ now.timeIntervalSince($0) >= 5 }) != false {
-                self.lastFrameDiagnosticAt = now
-                let message = "AR frame: \(self.mappingDiagnosticSummary)"
-                self.logger.info("\(message, privacy: .public)")
-                self.recordDiagnostic(message)
-            }
-            self.probeCenterCandidateIfNeeded()
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { self.handleFrame(forwarded.frame, sample: sample) }
+        } else {
+            Task { @MainActor [weak self] in self?.handleFrame(forwarded.frame, sample: sample) }
         }
+    }
+
+    private struct FrameSample: Sendable {
+        let quality: WorldMappingQuality
+        let pitch: Double
+        let yaw: Double
+        let featurePointCount: Int
+        let planeCount: Int
+        let meshCount: Int
+    }
+
+    /// Diagnostic counters change nearly every frame; publishing them at most this often keeps
+    /// views that read them from re-rendering at frame rate.
+    nonisolated static let frameCountersMinimumInterval: TimeInterval = 0.25
+
+    private func handleFrame(_ frame: ARFrame, sample: FrameSample) {
+        // ARCore (Geospatial + Cloud Anchors) runs on these same ARKit frames, every frame.
+        frameSink?(frame)
+        let now = Date()
+        let quality = sample.quality
+        let mappingChanged = mappingQuality != quality
+        lastFrameReceivedAt = now
+        if !hasRecentCameraFrame { hasRecentCameraFrame = true }
+        if mappingChanged { mappingQuality = quality }
+        if let anchor = currentAnchor, anchor.worldMappingStatus != quality {
+            currentAnchor?.worldMappingStatus = quality
+        }
+        if mappingChanged || now.timeIntervalSince(lastFrameCountersAt) >= Self.frameCountersMinimumInterval {
+            lastFrameCountersAt = now
+            if rawFeaturePointCount != sample.featurePointCount { rawFeaturePointCount = sample.featurePointCount }
+            if planeAnchorCount != sample.planeCount { planeAnchorCount = sample.planeCount }
+            if meshAnchorCount != sample.meshCount { meshAnchorCount = sample.meshCount }
+        }
+        if abs(cameraPitchDegrees - sample.pitch) >= 1.5 {
+            cameraPitchDegrees = sample.pitch
+        }
+        if compassWorldAlignment {
+            let shouldPublish = cameraYawDegrees.map { abs($0 - sample.yaw) >= 1.5 } ?? true
+            if shouldPublish { cameraYawDegrees = sample.yaw }
+        } else if cameraYawDegrees != nil {
+            cameraYawDegrees = nil
+        }
+        if mappingChanged || lastFrameDiagnosticAt.map({ now.timeIntervalSince($0) >= 5 }) != false {
+            lastFrameDiagnosticAt = now
+            let message = "AR frame: \(mappingDiagnosticLog)"
+            logger.info("\(message, privacy: .public)")
+            recordDiagnostic(message)
+        }
+        probeCenterCandidateIfNeeded()
     }
 
     nonisolated func sessionWasInterrupted(_ session: ARSession) {

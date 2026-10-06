@@ -408,7 +408,7 @@ actor SpatialContentRenderer {
             context: context
         )
         drawText(
-            "Gönderi önizlemesi · Detaydan aç",
+            "Gönderi önizlemesi · Detaydan aç".localizedUI,
             in: CGRect(x: 82, y: previewRect.minY + 24, width: previewRect.width - 68, height: 42),
             fontSize: 22,
             color: accent,
@@ -423,6 +423,13 @@ actor SpatialContentRenderer {
     }
 
     nonisolated private static func externalPreviewTitle(
+        platform: ExternalMediaPlatform,
+        url: URL?
+    ) -> String {
+        externalPreviewTitleKey(platform: platform, url: url).localizedUI
+    }
+
+    nonisolated private static func externalPreviewTitleKey(
         platform: ExternalMediaPlatform,
         url: URL?
     ) -> String {

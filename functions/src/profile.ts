@@ -14,6 +14,20 @@ export function defaultHandle(luid: string, length = 8): string {
 /** handles/{handle} → { luid } reserves a username so no two profiles share one. */
 export const handleRef = (handle: string) => db.collection('handles').doc(handle);
 
+/** Terms/privacy version the app shows on its consent checkbox, e.g. "2026-10-04". */
+export const TERMS_VERSION_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * The consent record to merge into users_private, or null when nothing (valid and newer) was sent.
+ * Versions are ISO dates, so string order is date order: an older app build on another device can
+ * never replace a newer accepted version (or reset terms_accepted_at).
+ */
+export function termsConsentUpdate(value: unknown, alreadyAccepted: unknown): { terms_version: string } | null {
+  if (typeof value !== 'string' || !TERMS_VERSION_PATTERN.test(value)) return null;
+  if (typeof alreadyAccepted === 'string' && TERMS_VERSION_PATTERN.test(alreadyAccepted) && value <= alreadyAccepted) return null;
+  return { terms_version: value };
+}
+
 function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean {
   return !snap.exists || snap.data()!.luid === luid;
 }
@@ -27,7 +41,7 @@ function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean
  */
 export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
-  const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown };
+  const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown; termsVersion?: unknown };
 
   // Reject an already accepted deletion before touching custom Auth claims too.
   await db.runTransaction(tx => assertAccountNotDeleting(tx, caller.luid));
@@ -47,6 +61,10 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
   const profile = await db.runTransaction(async (tx) => {
     await assertAccountNotDeleting(tx, caller.luid);
     const snap = await tx.get(profileRef);
+    // Explicit consent (checkbox on the sign-in screen): which terms version was accepted and when.
+    // users_private is server-only, so this record cannot be forged by a client write.
+    const consent = termsConsentUpdate(data.termsVersion, (await tx.get(privateRef)).data()?.terms_version);
+    const consentFields = consent ? { ...consent, terms_accepted_at: FieldValue.serverTimestamp() } : {};
     if (snap.exists) {
       const existing = snap.data()!;
       if (existing.deleted_at) throw new HttpsError('permission-denied', 'Account was deleted');
@@ -60,6 +78,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
         uid: caller.uid, email: caller.email, auth_provider: caller.provider,
         identity_verified: caller.isAppleUser || caller.emailVerified,
         last_seen_at: FieldValue.serverTimestamp(),
+        ...consentFields,
       }, { merge: true });
       tx.set(db.collection('account_access').doc(caller.luid), { state: existing.suspended === true ? 'suspended' : 'active' });
       return existing;
@@ -98,6 +117,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
       uid: caller.uid, email: caller.email, auth_provider: caller.provider,
       identity_verified: caller.isAppleUser || caller.emailVerified,
       last_seen_at: FieldValue.serverTimestamp(),
+      ...consentFields,
     }, { merge: true });
     return { ...created, created_at: null, updated_at: null };
   });

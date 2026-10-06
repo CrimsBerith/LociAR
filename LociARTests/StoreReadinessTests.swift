@@ -5,14 +5,16 @@ import XCTest
 final class StoreReadinessTests: XCTestCase {
     func testShippedInfoPlistDeclaresStorePackagingRequirements() throws {
         let bundle = appBundle
-        XCTAssertEqual(
-            bundle.object(forInfoDictionaryKey: "NSCameraUsageDescription") as? String,
-            "LociAR, gerçek yüzeyleri algılamak ve postları sabitlemek için kamerayı kullanır. Görsel özellik verileri Google ARCore ile güvenli biçimde işlenir."
+        // Usage descriptions are localized (InfoPlist.xcstrings); every language names the app and
+        // Google ARCore, which processes the camera / location data (ARCore disclosure).
+        for key in ["NSCameraUsageDescription", "NSLocationWhenInUseUsageDescription"] {
+            let text = try XCTUnwrap(bundle.object(forInfoDictionaryKey: key) as? String, key)
+            XCTAssertTrue(text.contains("LociAR") && text.contains("Google ARCore"), "\(key): \(text)")
+        }
+        let temporary = try XCTUnwrap(
+            bundle.object(forInfoDictionaryKey: "NSLocationTemporaryUsageDescriptionDictionary") as? [String: String]
         )
-        XCTAssertEqual(
-            bundle.object(forInfoDictionaryKey: "NSLocationWhenInUseUsageDescription") as? String,
-            "LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır."
-        )
+        XCTAssertNotNil(temporary["GeospatialAccuracy"], "purpose key used by LocationController")
         XCTAssertNil(
             bundle.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription"),
             "Photo library access was removed; Info.plist must not declare NSPhotoLibraryUsageDescription"
@@ -147,7 +149,11 @@ final class StoreReadinessTests: XCTestCase {
         guard let root = sourceCheckoutRootIfPresent() else {
             throw XCTSkip("UI kaynak denetimi Mac checkout gerektirir.")
         }
-        let profile = try String(contentsOf: root.appendingPathComponent("LociAR/Features/Social/SocialViews.swift"), encoding: .utf8)
+        let socialFolder = root.appendingPathComponent("LociAR/Features/Social")
+        let profile = try FileManager.default.contentsOfDirectory(at: socialFolder, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "swift" }
+            .map { try String(contentsOf: $0, encoding: .utf8) }
+            .joined(separator: "\n")
         let auth = try String(contentsOf: root.appendingPathComponent("LociAR/Features/Auth/AuthView.swift"), encoding: .utf8)
         XCTAssertTrue(profile.contains("accessibilityIdentifier(\"profile-privacy\")"))
         XCTAssertTrue(profile.contains("accessibilityIdentifier(\"profile-terms\")"))

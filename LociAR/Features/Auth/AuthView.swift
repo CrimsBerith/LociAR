@@ -20,6 +20,7 @@ struct AuthView: View {
     @State private var unconfirmedEmail: String?
     @State private var message: String?
     @State private var currentNonce: String?
+    @AppStorage(TermsConsent.storageKey) private var acceptedTermsVersion = ""
     @FocusState private var focusedField: Field?
 
     var body: some View {
@@ -74,7 +75,24 @@ struct AuthView: View {
     @ViewBuilder
     private var legalNotice: some View {
         VStack(spacing: 7) {
-            Text("Devam ederek gizlilik ve topluluk kurallarını kabul edersiniz.")
+            Button {
+                acceptedTermsVersion = termsAccepted ? "" : TermsConsent.currentVersion
+            } label: {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: termsAccepted ? "checkmark.square.fill" : "square")
+                        .font(.title3)
+                        .foregroundStyle(termsAccepted ? LociTheme.accent : .white)
+                    Text("Gizlilik politikasını ve topluluk kurallarını okudum, kabul ediyorum. Sakıncalı içerik ve kötüye kullanıma sıfır tolerans uygulanır.")
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(termsAccepted ? [.isButton, .isSelected] : .isButton)
+            .accessibilityIdentifier("auth-terms-consent")
             HStack(spacing: 8) {
                 if let url = container.configuration.privacyPolicyURL {
                     Link("Gizlilik", destination: url)
@@ -247,7 +265,7 @@ struct AuthView: View {
                 passwordConfirmation = ""
             }
         } label: {
-            Text(title)
+            Text(title.localizedUI)
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .contentShape(Rectangle())
@@ -278,6 +296,9 @@ struct AuthView: View {
         .signInWithAppleButtonStyle(.white)
         .frame(height: 52)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        // Apple sign-in can create an account, so it also needs the consent checkbox.
+        .disabled(!termsAccepted)
+        .opacity(termsAccepted ? 1 : 0.5)
         .accessibilityIdentifier("auth-apple")
     }
 
@@ -288,8 +309,10 @@ struct AuthView: View {
     }
 
     private var passwordsMatch: Bool { password == passwordConfirmation }
+    private var termsAccepted: Bool { acceptedTermsVersion == TermsConsent.currentVersion }
     private var canSubmit: Bool {
-        isEmailValid && password.count >= 8 && (mode == .signIn || (!passwordConfirmation.isEmpty && passwordsMatch))
+        isEmailValid && password.count >= 8 && termsAccepted
+            && (mode == .signIn || (!passwordConfirmation.isEmpty && passwordsMatch))
     }
 
     private func submit() async {
@@ -422,7 +445,7 @@ struct PasswordRecoveryView: View {
                             .accessibilityIdentifier("auth-password-update")
                     }
                 }
-                if let message { Text(message).font(.footnote).foregroundStyle(.secondary) }
+                if let message { Text(message.localizedUI).font(.footnote).foregroundStyle(.secondary) }
                 Button("Giriş ekranına dön") { Task { await session.cancelPasswordRecovery() } }
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -477,7 +500,7 @@ private struct ForgotPasswordView: View {
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
                 }
-                if let message { Text(message).font(.footnote).foregroundStyle(.orange) }
+                if let message { Text(message.localizedUI).font(.footnote).foregroundStyle(.orange) }
                 Spacer()
             }
             .padding(24)
@@ -507,7 +530,8 @@ private extension View {
     }
 }
 
-private enum Nonce {
+/// Sign in with Apple nonce (also used by AppleReauthenticator for account deletion).
+enum Nonce {
     static func make(length: Int = 32) -> String {
         let characters = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
         var generator = SystemRandomNumberGenerator()

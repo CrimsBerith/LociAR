@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.7",
-    "firebase-admin": "^13.5.0",
-    "firebase-functions": "^6.4.0",
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0",
     "google-auth-library": "^10.9.1",
     "uuid": "^11.1.1"
   },
@@ -44,6 +44,9 @@
     },
     "@google-cloud/pubsub": {
       "@opentelemetry/core": "^2.8.0"
+    },
+    "firebase-tools": {
+      "chokidar": "^4.0.3"
     }
   }
 }

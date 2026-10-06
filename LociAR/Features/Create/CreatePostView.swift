@@ -19,6 +19,14 @@ struct CreatePostView: View {
     @State private var externalPickerDetent: PresentationDetent = .large
     @State private var externalImportMessage: String?
     @State private var isPublishing = false
+    /// True while the pin is being saved; set before the task starts so a double tap cannot
+    /// start a second save.
+    @State private var isCommitting = false
+    @State private var commitGeneration = 0
+    @State private var placementTask: Task<Void, Never>?
+    /// One post id per editor session: a double tap or a retry after an error re-sends the same
+    /// id, which createPost treats as an idempotent replay instead of a second post.
+    @State private var postID = UUID()
     @State private var message: String?
     @State private var dismissAfterAlert = false
     /// After the first successful publish the app asks for notification permission (once the alert closes).
@@ -44,7 +52,7 @@ struct CreatePostView: View {
                 if let savingStatus {
                     HStack(spacing: 10) {
                         ProgressView().tint(LociTheme.accent)
-                        Text(savingStatus).font(.subheadline.weight(.semibold))
+                        Text(savingStatus.localizedUI).font(.subheadline.weight(.semibold))
                     }
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(.ultraThinMaterial, in: Capsule())
@@ -81,6 +89,7 @@ struct CreatePostView: View {
             }
             if offerFallbackToApproximate {
                 Button("Yaklaşık olarak devam et") {
+                    guard !isCommitting else { return }
                     offerFallbackToApproximate = false
                     engine.offerApproximatePlacement()
                     engine.placeApproximate()
@@ -103,19 +112,20 @@ struct CreatePostView: View {
                     if dismissAfterAlert { dismiss() }
                 }
             }
-        } message: { Text(message ?? "") }
+        } message: { Text((message ?? "").localizedUI) }
         .sheet(isPresented: $showExternalMediaPicker) { externalMediaPicker }
         .task(id: engine.currentAnchor?.id) {
             mappingWaitExpired = false
             guard engine.currentAnchor?.pinQuality.isPhysicalSurface == true,
                   !physicalPlacementReady else { return }
-            try? await Task.sleep(for: .seconds(45))
+            do { try await Task.sleep(for: .seconds(45)) } catch { return }
             if engine.currentAnchor?.pinQuality.isPhysicalSurface == true,
                !physicalPlacementReady {
                 mappingWaitExpired = true
             }
         }
         .onDisappear {
+            placementTask?.cancel()
             if selectedAnchor == nil {
                 engine.stopSession()
             }
@@ -134,10 +144,12 @@ struct CreatePostView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: placementSymbol)
-                            Text(placementTitle).font(.caption.bold())
+                            Text(placementTitle.localizedUI).font(.caption.bold())
+                            Spacer(minLength: 4)
+                            ARCoreNoticeButton()
                         }
                         .foregroundStyle(engine.candidateQuality == nil ? Color.white : LociTheme.accent)
-                        Text(engine.statusMessage).font(.footnote).foregroundStyle(.secondary)
+                        Text(engine.statusMessage.localizedUI).font(.footnote).foregroundStyle(.secondary)
                         if engine.currentAnchor == nil {
                             Text(engine.mappingDiagnosticSummary)
                                 .font(.caption2.monospacedDigit())
@@ -150,9 +162,10 @@ struct CreatePostView: View {
                 VStack(spacing: 10) {
                     if engine.state == .approximateOffered {
                         Button("Yaklaşık yerleştir · 0,8 m") {
+                            guard !isCommitting else { return }
                             engine.placeApproximate()
                             if let anchor = engine.currentAnchor {
-                                Task { await commitPlacement(anchor) }
+                                startCommit(anchor)
                             }
                         }
                         .buttonStyle(.borderedProminent).tint(.orange)
@@ -180,10 +193,10 @@ struct CreatePostView: View {
                             .font(.caption.bold()).foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                         if anchor.pinQuality.isPhysicalSurface && !physicalPlacementReady {
                             VStack(spacing: 5) {
-                                Label(mappingStatusTitle, systemImage: "viewfinder")
+                                Label(mappingStatusTitle.localizedUI, systemImage: "viewfinder")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(.secondary)
-                                Text(mappingStatusGuidance)
+                                Text(mappingStatusGuidance.localizedUI)
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                                     .multilineTextAlignment(.center)
@@ -200,18 +213,19 @@ struct CreatePostView: View {
                                 }
                                 .buttonStyle(.bordered)
                                 Button("Yaklaşık devam et") {
+                                    guard !isCommitting else { return }
                                     engine.offerApproximatePlacement()
                                     engine.placeApproximate()
                                     if let approx = engine.currentAnchor {
-                                        Task { await commitPlacement(approx) }
+                                        startCommit(approx)
                                     }
                                 }
                                 .buttonStyle(.bordered).tint(.orange)
                             }
                         }
-                        Button("Bu yerleşimi kullan") { Task { await commitPlacement(anchor) } }
+                        Button("Bu yerleşimi kullan") { startCommit(anchor) }
                             .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
-                            .disabled(!canUsePlacement(anchor))
+                            .disabled(!canUsePlacement(anchor) || isCommitting)
                             .accessibilityIdentifier("create-use-placement")
                     } else {
                         Button("Yüzeye sabitle") { engine.requestPin() }
@@ -219,10 +233,11 @@ struct CreatePostView: View {
                             .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
                             .accessibilityIdentifier("create-pin-surface")
                         Button {
+                            guard !isCommitting else { return }
                             engine.offerApproximatePlacement()
                             engine.placeApproximate()
                             if let anchor = engine.currentAnchor {
-                                Task { await commitPlacement(anchor) }
+                                startCommit(anchor)
                             }
                         } label: {
                             Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
@@ -272,7 +287,7 @@ struct CreatePostView: View {
     }
 
     private var mappingStatusGuidance: String {
-        if engine.statusMessage.localizedCaseInsensitiveContains(String(localized: "sıcaklığı yüksek")) {
+        if engine.isPausedForThermalPressure {
             return String(localized: "Cihazı serin ve gölgeli bir yerde beklet. Sıcaklık normale dönünce AR taraması otomatik devam eder.")
         }
         if mappingWaitExpired {
@@ -303,7 +318,7 @@ struct CreatePostView: View {
     }
 
     private var placementUnsupported: Bool {
-        engine.state == .failed && engine.statusMessage.localizedCaseInsensitiveContains("desteklemiyor")
+        engine.state == .failed && engine.failureReason == .unsupported
     }
 
     private var cameraPermissionDenied: Bool {
@@ -393,7 +408,7 @@ struct CreatePostView: View {
 
                         if let selectedExternalPlatform {
                             HStack(spacing: 8) {
-                                TextField(selectedExternalPlatform.linkHint, text: $externalMediaURL)
+                                TextField(selectedExternalPlatform.linkHint.localizedUI, text: $externalMediaURL)
                                     .keyboardType(.URL)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
@@ -463,7 +478,7 @@ struct CreatePostView: View {
             Button {
                 isCaptionFocused = false
                 dismissKeyboard()
-                Task { await publish(anchor: anchor) }
+                startPublish(anchor: anchor)
             } label: {
                 if isPublishing { ProgressView().tint(.black) }
                 else { Label("Yüzeyde yayınla", systemImage: "paperplane.fill") }
@@ -504,7 +519,6 @@ struct CreatePostView: View {
             message = String(localized: "Yayınlamak için tekrar giriş yapın.")
             return
         }
-        isPublishing = true
         defer { isPublishing = false }
 
         var anchor = anchor
@@ -550,7 +564,6 @@ struct CreatePostView: View {
             return
         }
 
-        let postID = UUID()
         var layers: [EditLayer] = []
         let finalCaption = resolvedCaption
         if !finalCaption.isEmpty {
@@ -585,6 +598,8 @@ struct CreatePostView: View {
                 message = session.isLocalPreview
                     ? String(localized: "Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir.")
                     : String(localized: "İnternet bağlantısı yok. Post cihazda sıraya alındı ve bağlantı geri geldiğinde yeniden denenecek.")
+            case .queued(.servicePaused):
+                message = String(localized: "LociAR geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak.")
             case .queued(.backendUnavailable):
                 message = String(localized: "Yayın ilk denemede tamamlanamadı. Post Profil > Postlarım’da görünür; uygulama 15 saniyede bir yeniden dener veya ‘Şimdi yayınla’ ile hemen gönderebilirsin.")
             case .rejected(let reason):
@@ -679,7 +694,7 @@ struct CreatePostView: View {
                     }
 
                     if let externalImportMessage {
-                        Label(externalImportMessage, systemImage: "exclamationmark.circle.fill")
+                        Label(externalImportMessage.localizedUI, systemImage: "exclamationmark.circle.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.orange)
                             .accessibilityIdentifier("external-import-error")
@@ -737,7 +752,9 @@ struct CreatePostView: View {
     }
 
     private func openExternalPlatform(_ platform: ExternalMediaPlatform) {
+#if DEBUG
         guard !ProcessInfo.processInfo.arguments.contains("UITEST_DISABLE_EXTERNAL_APP_LAUNCH") else { return }
+#endif
         openURL(platform.appLaunchURL) { accepted in
             if !accepted { openURL(platform.webLaunchURL) }
         }
@@ -805,67 +822,43 @@ struct CreatePostView: View {
         return String(localized: "Mekânsal post")
     }
 
-    private func commitPlacement(_ anchor: SurfaceAnchor) async {
-        if !anchor.pinQuality.isPhysicalSurface {
-            selectedAnchor = engine.currentAnchor ?? anchor
-            engine.stopSession()
-            return
-        }
-        if session.isLocalPreview {
-            selectedAnchor = engine.currentAnchor ?? anchor
-            engine.stopSession()
-            return
-        }
-        defer { savingStatus = nil }
-        // Geo-tag the pin precisely when ARCore Geospatial is localized (outdoors, VPS coverage).
-        if let transform = engine.currentPinTransform, let geospatial = container.arcore.geospatialPose(for: transform) {
-            engine.attachGeospatial(geospatial)
-        }
-        // 1) Google Cloud Anchor: exact surface for every viewer, no world-map upload.
-        if let persistence = await hostCloudAnchor(for: anchor) {
-            engine.attachPersistence(persistence)
-            selectedAnchor = engine.currentAnchor ?? anchor
-            engine.stopSession()
-            return
-        }
-        // 2) Fallback: ARKit world map (offline, no token, or hosting failed).
-        savingStatus = String(localized: "Yüzey kaydı hazırlanıyor…")
-        do {
-            let package = try await engine.saveWorldMap()
-            engine.attachPersistence(package.persistence)
-            selectedAnchor = engine.currentAnchor ?? anchor
-            engine.stopSession()
-        } catch {
-            offerFallbackToApproximate = true
-            message = String(localized: "Fiziksel çevre haritası kaydedilemedi. Dilersen 'Yaklaşık olarak devam et' ile postunu hemen oluşturabilir veya tekrar tarayabilirsin.")
-            return
+    private func startCommit(_ anchor: SurfaceAnchor) {
+        guard !isCommitting else { return }
+        isCommitting = true
+        commitGeneration += 1
+        let generation = commitGeneration
+        placementTask = Task {
+            await commitPlacement(anchor)
+            // A cancelled older commit that finishes late must not unlock a newer one.
+            if generation == commitGeneration { isCommitting = false }
         }
     }
 
-    /// Hosts the pin as a Google Cloud Anchor. Waits (bounded) until ARCore has seen the surface
-    /// well enough, guiding the user to move around it. Returns nil to fall back to the world map.
-    private func hostCloudAnchor(for anchor: SurfaceAnchor) async -> WorldLockPersistence? {
-        let arcore = container.arcore
-        guard container.connectivity.isOnline else { return nil }
-        savingStatus = String(localized: "Google AR hazırlanıyor…")
-        guard await arcore.waitUntilReady(), let arAnchor = engine.currentPinARAnchor() else { return nil }
-        let deadline = Date().addingTimeInterval(20)
-        func sufficient() -> Bool {
-            guard let transform = engine.currentPinTransform else { return false }
-            return arcore.isHostingQualitySufficient(for: transform)
+    private func startPublish(anchor: SurfaceAnchor) {
+        guard canPublish else { return }
+        isPublishing = true
+        Task { await publish(anchor: anchor) }
+    }
+
+    private func commitPlacement(_ anchor: SurfaceAnchor) async {
+        let outcome = await PinCommitCoordinator.commit(
+            anchor,
+            engine: engine,
+            arcore: container.arcore,
+            isOnline: container.connectivity.isOnline,
+            isLocalPreview: session.isLocalPreview,
+            status: { savingStatus = $0 }
+        )
+        switch outcome {
+        case .committed:
+            selectedAnchor = engine.currentAnchor ?? anchor
+            engine.stopSession()
+        case .worldMapFailed:
+            offerFallbackToApproximate = true
+            message = String(localized: "Fiziksel çevre haritası kaydedilemedi. Dilersen 'Yaklaşık olarak devam et' ile postunu hemen oluşturabilir veya tekrar tarayabilirsin.")
+        case .cancelled:
+            break
         }
-        while !sufficient(), Date() < deadline {
-            savingStatus = String(localized: "Telefonu yüzeyin etrafında yavaşça gezdir…")
-            try? await Task.sleep(for: .milliseconds(400))
-        }
-        guard sufficient() else { return nil }
-        savingStatus = String(localized: "Yüzey Google AR'a kaydediliyor…")
-        guard let cloudAnchorId = await arcore.hostCloudAnchor(arAnchor) else { return nil }
-        var persistence = WorldLockPersistence(originalNativeAnchorId: engine.currentAnchor?.id ?? anchor.id, hostedAt: Date())
-        persistence.kind = .arcoreCloudAnchor
-        persistence.cloudAnchorId = cloudAnchorId
-        persistence.expiresAt = Calendar.current.date(byAdding: .day, value: ARCoreService.cloudAnchorTTLDays, to: Date())
-        return persistence
     }
 }
 

@@ -82,13 +82,12 @@ scripts/.commit-msg.txt
 # Functions emulator secrets (functions/test/integration/prepare-env.mjs)
 .secret.local
 
-# Local production test identity and exported review credentials
+# Local-only script inputs, logs and exported review credentials
 scripts/.prod-email.txt
 *.credentials.json
+scripts/*.log
+admin/artifacts/
 
 # Python metadata helpers
 __pycache__/
 *.py[cod]
-
-# Local command outputs
-scripts/*.log

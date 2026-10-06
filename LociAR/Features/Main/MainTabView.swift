@@ -5,6 +5,7 @@ struct MainTabView: View {
     @Environment(AppRouter.self) private var router
     @Environment(AppContainer.self) private var container
     @State private var deepLinkedPost: LociPost?
+    @State private var deepLinkMessage: String?
 
     var body: some View {
         @Bindable var router = router
@@ -70,16 +71,24 @@ struct MainTabView: View {
         .onChange(of: router.pendingPostID, initial: true) { _, postID in
             guard let postID else { return }
             Task {
-                let post = try? await container.posts.publicPost(id: postID)
+                let result: Result<LociPost?, Error>
+                do { result = .success(try await container.posts.publicPost(id: postID)) } catch { result = .failure(error) }
                 guard case let .signedIn(current) = container.session.phase,
                       current.id == user.id, router.pendingPostID == postID else { return }
-                if let post {
+                switch result {
+                case .success(let post?):
                     deepLinkedPost = post
-                } else {
+                case .success(nil):
                     router.selectActivity()
+                    deepLinkMessage = String(localized: "Bu post bulunamadı ya da artık görüntülenemiyor.")
+                case .failure:
+                    deepLinkMessage = String(localized: "Post şu anda açılamadı. Bağlantını kontrol edip tekrar dene.")
                 }
                 router.pendingPostID = nil
             }
         }
+        .alert("LociAR", isPresented: Binding(get: { deepLinkMessage != nil }, set: { if !$0 { deepLinkMessage = nil } })) {
+            Button("Tamam", role: .cancel) {}
+        } message: { Text((deepLinkMessage ?? "").localizedUI) }
     }
 }

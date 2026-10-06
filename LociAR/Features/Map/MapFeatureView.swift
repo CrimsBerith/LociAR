@@ -15,6 +15,9 @@ struct MapFeatureView: View {
     @State private var location = LocationController()
     @State private var message: String?
     @State private var isLoading = false
+    /// Set when a reload is requested while one is running (e.g. right after a post is created);
+    /// the running load then runs once more so the new post is not missed.
+    @State private var reloadRequested = false
 
     var body: some View {
         Map(position: $camera, selection: $selection) {
@@ -127,7 +130,7 @@ struct MapFeatureView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(selectedPost.caption.isEmpty ? String(localized: "Mekânsal post") : selectedPost.caption)
                                 .font(.headline).lineLimit(2)
-                            Label(distanceText(for: selectedPost), systemImage: "location.fill")
+                            Label(distanceText(for: selectedPost).localizedUI, systemImage: "location.fill")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -158,7 +161,7 @@ struct MapFeatureView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(isLoading ? String(localized: "Yakın çevre taranıyor") : String(localized: "Yakındaki postlar"))
                                 .font(.headline)
-                            Text(message ?? (posts.isEmpty ? String(localized: "Yakınında henüz post yok.") : "\(posts.count) post bulundu. Haritadaki bir pine dokun."))
+                            Text(message?.localizedUI ?? (posts.isEmpty ? String(localized: "Yakınında henüz post yok.") : String(localized: "\(posts.count) post bulundu. Haritadaki bir pine dokun.")))
                                 .font(.caption).foregroundStyle(LociTheme.secondaryText).lineLimit(2)
                         }
                         Spacer(minLength: 0)
@@ -217,9 +220,16 @@ struct MapFeatureView: View {
     private var statusSymbol: String { posts.isEmpty ? "location.magnifyingglass" : "mappin.and.ellipse" }
 
     private func startAndLoad() async {
-        guard !isLoading else { return }
+        guard !isLoading else { reloadRequested = true; return }
         isLoading = true
         defer { isLoading = false }
+        repeat {
+            reloadRequested = false
+            await loadOnce()
+        } while reloadRequested && !Task.isCancelled
+    }
+
+    private func loadOnce() async {
 #if DEBUG
         if UITestFixtures.locationPermissionDenied {
             location.start()

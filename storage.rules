@@ -63,6 +63,7 @@ service firebase.storage {
     // and publishes accepted photos to current/. Pending photos are never readable.
     // Each upload needs a slot from the beginAvatarUpload callable (avatar_uploads/{id}, counted
     // against the hourly quota), so uploads themselves are rate limited, not just screening.
+    // The slot must belong to the uploader and still be valid (TTL deletion can lag up to a day).
     function ownsUploadSlot(luid, file) {
       let slot = firestore.get(/databases/(default)/documents/avatar_uploads/$(file.split('\\.')[0])).data;
       return slot.luid == luid && slot.expires_at > request.time;

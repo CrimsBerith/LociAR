@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const LANGUAGES = ['tr', 'en', 'zh-Hans', 'hi', 'es', 'fr', 'ar', 'bn', 'pt', 'ru', 'de', 'ja'];
-const formatArguments = value => [...value.matchAll(/%(?:\d+\$)?(@|lld|lli|d|f|g)/g)].map(item => item[1]).sort();
+const formatArguments = value => [...value.matchAll(/%(?:\d+\$)?(@|lld|lli|d|f|g)/g)].map(item => item[1]).sort((a, b) => a.localeCompare(b));
 function units(value) {
   if (value.stringUnit) return [value.stringUnit];
   return Object.values(value.variations ?? {}).flatMap(variation => Object.values(variation).flatMap(units));
@@ -68,7 +68,7 @@ export function swiftStrings(source) {
 
 export function localizationKey(value) {
   return value.replace(/\\\(Int\(accuracy\)\)/g, '%lld').replace(/\\\(([^()]+)\)/g, (_, expression) =>
-    ['degrees', 'nearbyPosts.count', 'failedCount', 'value'].includes(expression) ? '%lld' : '%@'
+    ['degrees', 'nearbyPosts.count', 'posts.count', 'failedCount', 'value'].includes(expression) ? '%lld' : '%@'
   ).replace(/\\n/g, '\n');
 }
 function sourceFiles(root) {
@@ -81,7 +81,7 @@ export function missingSourceKeys(source, catalog) {
     const line = source.slice(source.lastIndexOf('\n', token.start) + 1, source.indexOf('\n', token.end) < 0 ? source.length : source.indexOf('\n', token.end));
     // Technical logs, diagnostic composites, debug menu and a preview user's bio
     // are not shipping UI keys. User captions, handles and URLs remain verbatim.
-    if (['logger.', 'logger?', 'World-map ', 'Geçersiz AR durum', 'Takip \\(tracking)', 'ARCore kapsam kontrolü (debug)', 'Şehrin unutulan hikâyelerini'].some(value => line.includes(value))) continue;
+    if (['logger.', 'logger?', 'World-map ', 'Geçersiz AR durum', 'Takip \\(tracking', 'ARCore kapsam kontrolü (debug)', 'Şehrin unutulan hikâyelerini'].some(value => line.includes(value))) continue;
     const explicit = /(?:String\(localized:\s*|NSLocalizedString\(\s*)$/.test(prefix);
     const ui = /(?:Text|Label|Button|TextField|SecureField|navigationTitle|alert|confirmationDialog|accessibilityLabel|accessibilityHint|Section|Link)\(\s*$/.test(prefix) ||
       /(?:title|message|actionTitle|prompt):\s*$/.test(prefix);

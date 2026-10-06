@@ -58,9 +58,17 @@ final class ARCoreService {
     /// False in previews, UI tests and emulator builds, where ARCore never starts.
     var isEnabled: Bool { callables != nil }
 
+    /// ARCore is enabled and its session did not fail to start (cloud anchors / geospatial possible).
+    var isUsable: Bool { isEnabled && !isStartFailed }
+
+    /// Set by `ARCoreDisclosure` when the user acknowledges Google's sensor-data notice. ARCore does
+    /// not process any frame before that.
+    nonisolated static let disclosureAcknowledgedKey = "arcore_disclosure_acknowledged_v1"
+    private var disclosureAcknowledged: Bool { UserDefaults.standard.bool(forKey: Self.disclosureAcknowledgedKey) }
+
     /// Called by ARPinningEngine on the main actor for every ARKit frame.
     func consume(_ frame: ARFrame) {
-        guard callables != nil, !isStartFailed else { return }
+        guard callables != nil, !isStartFailed, disclosureAcknowledged else { return }
         if session == nil { start() }
         guard let session else { return }
         refreshTokenIfNeeded()
@@ -123,12 +131,14 @@ final class ARCoreService {
         if let tokenExpiry, tokenExpiry.timeIntervalSinceNow > Self.tokenRefreshMargin { return }
         if let tokenRetryAt, tokenRetryAt.timeIntervalSinceNow > 0 { return }
         tokenTask = Task { [weak self] in
-            struct Response: Decodable, Sendable { let token: String; let expiresAt: Date }
+            struct Response: Decodable, Sendable { let token: String; let expiresAt: Date; let expiresIn: Double? }
             do {
                 let response: Response = try await callables.call("getArcoreToken")
                 guard let self else { return }
                 self.session?.setAuthToken(response.token)
-                self.tokenExpiry = response.expiresAt
+                // expiresIn is relative, so a wrong device clock cannot make a fresh token look expired
+                // (or an expired one look valid); expiresAt is the fallback for older servers.
+                self.tokenExpiry = response.expiresIn.map { Date().addingTimeInterval($0) } ?? response.expiresAt
                 self.tokenRetryAt = nil
                 self.tokenTask = nil
             } catch {
@@ -160,7 +170,7 @@ final class ARCoreService {
 
     /// VPS (Street View based) coverage at a coordinate; works anywhere, no need to be there.
     func vpsAvailability(at coordinate: CLLocationCoordinate2D) async -> String {
-        if session == nil { start() }
+        if session == nil, disclosureAcknowledged { start() }
         guard let session else { return String(localized: "ARCore başlatılamadı") }
         refreshTokenIfNeeded()
         // Wait up to 5 s for the first token before making the call.
@@ -174,7 +184,7 @@ final class ARCoreService {
             }
             // Guard against ARCore never calling back (e.g. no network).
             let timeoutTask = Task { try? await Task.sleep(for: .seconds(10)); once.resume(nil) }
-            once.onResume = { timeoutTask.cancel() }
+            once.setOnResume { timeoutTask.cancel() }
         }
         return result ?? String(localized: "⚠️ VPS zaman aşımı")
     }
@@ -192,76 +202,116 @@ final class ARCoreService {
 
     /// Waits up to `timeout` for ARCore + token (the first ARKit frames start the session).
     func waitUntilReady(timeout: Duration = .seconds(8)) async -> Bool {
+        guard isUsable else { return false }
         let deadline = ContinuousClock.now + timeout
         while ContinuousClock.now < deadline {
             if isReadyForCloudAnchors { return true }
+            if isStartFailed { return false }
             do { try await Task.sleep(for: .milliseconds(200)) } catch { return false }
         }
         return isReadyForCloudAnchors
     }
 
-    /// Whether the last few seconds of camera motion describe the surface well enough to host.
-    func isHostingQualitySufficient(for transform: simd_float4x4) -> Bool {
-        guard let session, let quality = try? session.estimateFeatureMapQualityForHosting(transform) else { return false }
-        return quality == .sufficient || quality == .good
+    /// Whether the features seen in the last few seconds, from the given **camera** transform
+    /// (`ARFrame.camera.transform`, not the pin), are good enough to host a Cloud Anchor.
+    func isHostingQualitySufficient(cameraTransform: simd_float4x4) -> Bool {
+        guard let session else { return false }
+        do {
+            let quality = try session.estimateFeatureMapQualityForHosting(cameraTransform)
+            return quality == .sufficient || quality == .good
+        } catch {
+            // NotTracking / IllegalState: simply not ready yet.
+            return false
+        }
     }
 
-    /// Hosts `anchor` as a Cloud Anchor. Returns its identifier, or nil on failure/timeout
-    /// (callers then fall back to the ARKit world map).
+    /// Hosts `anchor` as a Cloud Anchor and registers it to this user. Returns its identifier, or
+    /// nil on failure, timeout or cancellation (callers then fall back to the ARKit world map).
     func hostCloudAnchor(_ anchor: ARAnchor, timeout: Duration = .seconds(60)) async -> String? {
         guard let session, isReadyForCloudAnchors else { return nil }
-        let result: String? = await withCheckedContinuation { continuation in
-            let once = ResumeOnce<String>(continuation)
-            do {
-                let future = try session.hostCloudAnchor(anchor, ttlDays: Self.cloudAnchorTTLDays) { identifier, state in
-                    once.resume(state == .success ? identifier : nil)
-                }
-                pendingFutures.append(future)
-            } catch {
-                once.resume(nil)
+        let result: String? = await runFuture(timeout: timeout) { once in
+            try session.hostCloudAnchor(anchor, ttlDays: Self.cloudAnchorTTLDays) { identifier, state in
+                once.resume(state == .success ? identifier : nil)
             }
-            let timeoutTask = Task { try? await Task.sleep(for: timeout); once.resume(nil) }
-            once.onResume = { timeoutTask.cancel() }
         }
-        pendingFutures.removeAll()
-        if result == nil { logger.info("Cloud Anchor hosting failed or timed out") }
-        guard let hostedId = result else { return nil }
-        // The backend only accepts anchors that are registered to this user (takeover protection).
+        guard let hostedId = result else {
+            logger.info("Cloud Anchor hosting failed, timed out or was cancelled")
+            return nil
+        }
+        // The backend only accepts anchors registered to this user (takeover protection). An anchor
+        // that never gets registered is deleted by the server's orphan sweep (cleanup.ts).
+        return await register(hostedId)
+    }
+
+    private func register(_ hostedId: String) async -> String? {
         guard let callables else { return nil }
         struct Registration: Encodable, Sendable { let cloudAnchorId: String }
         struct Ack: Decodable, Sendable { let registered: Bool }
-        do {
-            let ack: Ack = try await callables.call("registerCloudAnchor", payload: Registration(cloudAnchorId: hostedId))
-            return ack.registered ? hostedId : nil
-        } catch {
-            logger.error("registerCloudAnchor failed: \(error.localizedDescription)")
-            return nil
+        for (attempt, backoff) in [Duration.zero, .seconds(1), .seconds(3)].enumerated() {
+            if backoff > .zero {
+                do { try await Task.sleep(for: backoff) } catch { return nil }
+            }
+            do {
+                let ack: Ack = try await callables.call("registerCloudAnchor", payload: Registration(cloudAnchorId: hostedId))
+                return ack.registered ? hostedId : nil
+            } catch let error as BackendCallError {
+                // Rejected (quota, ownership): retrying cannot help.
+                logger.error("registerCloudAnchor rejected: \(error.localizedDescription, privacy: .public)")
+                return nil
+            } catch {
+                logger.error("registerCloudAnchor attempt \(attempt + 1) failed: \(error.localizedDescription, privacy: .public)")
+            }
         }
+        return nil
     }
 
     /// Resolves a hosted Cloud Anchor in the current ARKit world and returns its transform.
     func resolveCloudAnchor(_ identifier: String, timeout: Duration = .seconds(20)) async -> simd_float4x4? {
         guard let session, isReadyForCloudAnchors else { return nil }
-        let result: simd_float4x4? = await withCheckedContinuation { continuation in
-            let once = ResumeOnce<simd_float4x4>(continuation)
-            do {
-                let future = try session.resolveCloudAnchor(identifier) { anchor, state in
-                    guard state == .success, let anchor, anchor.hasValidTransform else { once.resume(nil); return }
-                    once.resume(anchor.transform)
-                }
-                pendingFutures.append(future)
-            } catch {
-                once.resume(nil)
+        return await runFuture(timeout: timeout) { once in
+            try session.resolveCloudAnchor(identifier) { anchor, state in
+                guard state == .success, let anchor, anchor.hasValidTransform else { once.resume(nil); return }
+                once.resume(anchor.transform)
             }
-            let timeoutTask = Task { try? await Task.sleep(for: timeout); once.resume(nil) }
-            once.onResume = { timeoutTask.cancel() }
         }
-        pendingFutures.removeAll()
-        return result
     }
 
-    /// Keeps async ARCore futures alive until their callbacks run.
-    @ObservationIgnored private var pendingFutures: [NSObject] = []
+    /// Keeps each async ARCore future alive until its callback runs, keyed per operation so
+    /// concurrent host/resolve calls never drop each other's futures.
+    @ObservationIgnored private var pendingFutures: [UUID: GARFuture] = [:]
+
+    /// Starts an ARCore future and waits for its callback. On timeout or task cancellation the
+    /// future itself is cancelled, so ARCore stops hosting/resolving in the background.
+    private func runFuture<Value: Sendable>(
+        timeout: Duration,
+        _ start: (ResumeOnce<Value>) throws -> GARFuture
+    ) async -> Value? {
+        // Closed screen / cancelled commit: never start a host or resolve request (quota, orphans).
+        guard !Task.isCancelled else { return nil }
+        let id = UUID()
+        let once = ResumeOnce<Value>()
+        let result: Value? = await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                once.attach(continuation)
+                // onCancel may already have resumed `once` (task cancelled after the guard above).
+                guard !Task.isCancelled else { return }
+                do {
+                    pendingFutures[id] = try start(once)
+                } catch {
+                    logger.error("ARCore future failed to start: \(error.localizedDescription, privacy: .public)")
+                    once.resume(nil)
+                }
+                let timeoutTask = Task { try? await Task.sleep(for: timeout); once.resume(nil) }
+                once.setOnResume { timeoutTask.cancel() }
+            }
+        } onCancel: {
+            once.resume(nil)
+        }
+        if let future = pendingFutures.removeValue(forKey: id), future.state == .pending {
+            _ = future.cancel()
+        }
+        return result
+    }
 
     // MARK: - Geospatial
 
@@ -319,20 +369,54 @@ final class ARCoreService {
     }
 }
 
-/// Resumes a continuation exactly once (ARCore callback vs. timeout race).
-private final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
+/// Resumes a continuation exactly once (ARCore callback vs. timeout vs. cancellation race).
+/// A resume that arrives before the continuation is attached is remembered and delivered on attach.
+final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
     private var continuation: CheckedContinuation<Value?, Never>?
+    private var finished = false
+    private var earlyValue: Value?
+    private var onResume: (() -> Void)?
     private let lock = NSLock()
-    /// Called with the lock held, on the first (and only) resume. Use for side-effects like
-    /// cancelling the timeout task.
-    var onResume: (() -> Void)?
 
-    init(_ continuation: CheckedContinuation<Value?, Never>) { self.continuation = continuation }
+    init() {}
+
+    convenience init(_ continuation: CheckedContinuation<Value?, Never>) {
+        self.init()
+        attach(continuation)
+    }
+
+    func attach(_ continuation: CheckedContinuation<Value?, Never>) {
+        lock.lock()
+        if finished {
+            let value = earlyValue
+            lock.unlock()
+            continuation.resume(returning: value)
+        } else {
+            self.continuation = continuation
+            lock.unlock()
+        }
+    }
+
+    /// Side effect for the first (and only) resume, e.g. cancelling the timeout task. Runs at once
+    /// if the resume already happened.
+    func setOnResume(_ action: @escaping () -> Void) {
+        lock.lock()
+        if finished {
+            lock.unlock()
+            action()
+        } else {
+            onResume = action
+            lock.unlock()
+        }
+    }
 
     func resume(_ value: Value?) {
         lock.lock()
+        guard !finished else { lock.unlock(); return }
+        finished = true
         let pending = continuation
         continuation = nil
+        if pending == nil { earlyValue = value }
         let action = onResume
         onResume = nil
         lock.unlock()

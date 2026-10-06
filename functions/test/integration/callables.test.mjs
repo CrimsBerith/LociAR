@@ -22,6 +22,19 @@ test('ensureProfile creates the profile, reserves the handle and is idempotent',
   assert.equal(again.claimsUpdated, false);
 });
 
+test('ensureProfile records the accepted terms version once, ignoring malformed values', async () => {
+  const user = await newUser();
+  const privateDoc = () => adminDb.collection('users_private').doc(user.luid).get().then((d) => d.data());
+  await user.call('ensureProfile', { termsVersion: 'not a version' });
+  assert.equal((await privateDoc()).terms_version, undefined);
+  await user.call('ensureProfile', { termsVersion: '2026-10-04' });
+  const first = await privateDoc();
+  assert.equal(first.terms_version, '2026-10-04');
+  assert.ok(first.terms_accepted_at);
+  await user.call('ensureProfile', { termsVersion: '2026-10-04' });
+  assert.equal((await privateDoc()).terms_accepted_at.toMillis(), first.terms_accepted_at.toMillis(), 'same version keeps the first acceptance time');
+});
+
 test('usernames are unique: a taken handle is refused with a machine-readable reason', async () => {
   await newUser('taken_name');
   const other = await newUser();

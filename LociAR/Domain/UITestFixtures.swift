@@ -83,7 +83,11 @@ enum UITestFixtures {
     }
 
     static var post: LociPost {
+#if DEBUG
         let platformKey = ProcessInfo.processInfo.environment["UITEST_FIXTURE_PLATFORM"]?.lowercased()
+#else
+        let platformKey: String? = nil
+#endif
         let source: ContentSource
         let caption: String
         var layers: [EditLayer] = []

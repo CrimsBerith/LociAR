@@ -4,7 +4,7 @@ import { defineSecret } from 'firebase-functions/params';
 import { appleConfigFromEnv, revokeAppleAuthorization } from './apple';
 import { reasonError, withContentionGuard } from './errors';
 import { isRecentAuth } from './limits';
-import { CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, HttpsError, requireCaller } from './core';
+import { CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, HttpsError, logger, requireCaller, safeErrorCode } from './core';
 import { accountDeletionRef } from './profileGuard';
 import { acceptAccountDeletion, retryPendingAccountDeletions, runAccountDeletion } from './accountDeletion';
 
@@ -25,10 +25,17 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
   if (!accepted.exists && caller.isAppleUser) {
     const code = (request.data as { appleAuthorizationCode?: unknown } | null)?.appleAuthorizationCode;
     const config = appleConfigFromEnv();
-    if (!config) throw reasonError('failed-precondition', 'Apple token revocation is not configured', 'apple_revoke_unavailable');
+    if (!config) {
+      // Logged for the monitoring alert (scripts/monitoring-setup.command): every Apple user is blocked from deleting.
+      logger.error('apple_revoke_unavailable');
+      throw reasonError('failed-precondition', 'Apple token revocation is not configured', 'apple_revoke_unavailable');
+    }
     if (typeof code !== 'string' || !code) throw reasonError('failed-precondition', 'Apple token revocation is required', 'apple_revoke_failed');
     try { await revokeAppleAuthorization(config, code); }
-    catch { throw reasonError('failed-precondition', 'Apple token revocation failed', 'apple_revoke_failed'); }
+    catch (error) {
+      logger.error('apple_revoke_failed', { code: safeErrorCode(error) });
+      throw reasonError('failed-precondition', 'Apple token revocation failed', 'apple_revoke_failed');
+    }
   }
   await withContentionGuard(() => acceptAccountDeletion(caller));
   try {

@@ -11,7 +11,8 @@ mkdir -p "$OUT"
 SUMMARY="$OUT/summary.txt"
 if [ -z "${DEVICE_ID:-}" ]; then
   DETECTED_DEVICE="$(xcrun devicectl list devices 2>/dev/null | grep "available" | awk '{print $3}' | head -1)"
-  DEVICE_ID="${DETECTED_DEVICE:-B2E7EFB8-A5CD-5671-BBE9-2A86FE9D7EB8}"
+  DEVICE_ID="$DETECTED_DEVICE"
+  [ -z "$DEVICE_ID" ] && { echo "HATA: bagli iPhone yok (DEVICE_ID=...)"; exit 1; }
 fi
 PROJECT_ID="lociar-2f38c"
 AUTH="127.0.0.1:9099"

@@ -144,7 +144,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         let snapshot = try await query.limit(to: 51).getDocuments()
         let documents = Array(snapshot.documents.prefix(50))
         let rows = documents.map { ($0.documentID, $0.data()) }
-        let items = rows.compactMap { id, data in
+        let items: [SocialActivity] = rows.compactMap { id, data in
             guard let recipient = uuid(data["recipient_id"]) else { return nil }
             return SocialActivity(
                 id: id,
@@ -174,6 +174,11 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         let response: Response = try await callables.call("markActivityRead", payload: Payload(activityIds: ids, userId: key(userID)))
         return Dictionary(response.activities.map { ($0.id, $0.readAt) }, uniquingKeysWith: { first, _ in first })
     }
+
+    /// Upper bound for ordered display lists (collections, collection items). Membership lists
+    /// (likes, saves, follows, blocks) are read whole: a truncated set would answer "liked?",
+    /// "following?" or "blocked?" wrongly for older entries.
+    nonisolated static let edgeListLimit = 500
 
     func savedPostIDs(for userID: UUID) async throws -> [UUID] {
         try await documents(db.collection("post_saves").whereField("user_id", isEqualTo: key(userID)))
@@ -266,6 +271,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
             db.collection("collections")
                 .whereField("owner_id", isEqualTo: key(userID))
                 .order(by: "updated_at", descending: true)
+                .limit(to: Self.edgeListLimit)
         )
         return rows.compactMap { id, data in
             guard let collectionID = UUID(uuidString: id), let owner = uuid(data["owner_id"]) else { return nil }
@@ -316,6 +322,7 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
                 .whereField("collection_id", isEqualTo: key(collectionID))
                 .whereField("owner_id", isEqualTo: key(me))
                 .order(by: "sort_order")
+                .limit(to: Self.edgeListLimit)
         ).compactMap { uuid($0.1["post_id"]) }
     }
 

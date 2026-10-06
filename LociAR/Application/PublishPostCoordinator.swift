@@ -5,6 +5,8 @@ import SwiftData
 enum PublishDeferralReason: Equatable, Sendable {
     case offline
     case backendUnavailable
+    /// Kill switch on: kept in the queue without using up retry attempts.
+    case servicePaused
 }
 
 enum PublishOutcome: Equatable, Sendable {
@@ -83,6 +85,12 @@ final class PublishPostCoordinator: PublishPostUseCase {
             try modelContext.save()
             logger.error("Publish rejected post=\(postID.uuidString, privacy: .public) error=\(message, privacy: .public)")
             return .rejected(message)
+        } catch BackendTransientError.servicePaused {
+            queue.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.servicePausedDelay)
+            queue.lastErrorMessage = BackendTransientError.servicePaused.localizedDescription
+            try modelContext.save()
+            logger.info("Publish paused post=\(postID.uuidString, privacy: .public)")
+            return .queued(.servicePaused)
         } catch {
             queue.attemptCount += 1
             queue.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.delay(afterAttempt: queue.attemptCount))

@@ -1,0 +1,30 @@
+{
+ "%lld post": {
+  "en": {"one": "%lld post", "other": "%lld posts"},
+  "de": {"one": "%lld Post", "other": "%lld Posts"},
+  "es": {"one": "%lld publicación", "other": "%lld publicaciones"},
+  "fr": {"one": "%lld publication", "other": "%lld publications"},
+  "pt": {"one": "%lld publicação", "other": "%lld publicações"}
+ },
+ "%lld post bulundu. Haritadaki bir pine dokun.": {
+  "en": {"one": "%lld post found. Tap a pin on the map.", "other": "%lld posts found. Tap a pin on the map."},
+  "de": {"one": "%lld Post gefunden. Tippe auf eine Markierung auf der Karte.", "other": "%lld Posts gefunden. Tippe auf eine Markierung auf der Karte."},
+  "es": {"one": "Se encontró %lld publicación. Toca un pin en el mapa.", "other": "Se encontraron %lld publicaciones. Toca un pin en el mapa."},
+  "fr": {"one": "%lld publication trouvée. Touchez un repère sur la carte.", "other": "%lld publications trouvées. Touchez un repère sur la carte."},
+  "pt": {"one": "%lld publicação encontrada. Toque em um marcador no mapa.", "other": "%lld publicações encontradas. Toque em um marcador no mapa."}
+ },
+ "%lld post şu anda yüklenemedi. Yenilemek için aşağı çek.": {
+  "en": {"one": "%lld post can’t be loaded right now. Pull down to refresh.", "other": "%lld posts can’t be loaded right now. Pull down to refresh."},
+  "de": {"one": "%lld Post kann gerade nicht geladen werden. Zum Aktualisieren nach unten ziehen.", "other": "%lld Posts können gerade nicht geladen werden. Zum Aktualisieren nach unten ziehen."},
+  "es": {"one": "%lld publicación no se puede cargar ahora. Desliza hacia abajo para actualizar.", "other": "%lld publicaciones no se pueden cargar ahora. Desliza hacia abajo para actualizar."},
+  "fr": {"one": "%lld publication ne peut pas être chargée pour le moment. Tirez vers le bas pour actualiser.", "other": "%lld publications ne peuvent pas être chargées pour le moment. Tirez vers le bas pour actualiser."},
+  "pt": {"one": "Não é possível carregar %lld publicação agora. Puxe para baixo para atualizar.", "other": "Não é possível carregar %lld publicações agora. Puxe para baixo para atualizar."}
+ },
+ "%lld yayın var. Birine dokun, sonra nokta atışı yönlendirme başlar.": {
+  "en": {"one": "%lld post here. Tap it to start precise aiming guidance.", "other": "%lld posts here. Tap one to start precise aiming guidance."},
+  "de": {"one": "Hier gibt es %lld Post. Tippe darauf, dann startet die präzise Zielführung.", "other": "Hier gibt es %lld Posts. Tippe auf einen, dann startet die präzise Zielführung."},
+  "es": {"one": "Hay %lld publicación. Tócala y empezará la guía de apuntado precisa.", "other": "Hay %lld publicaciones. Toca una y empezará la guía de apuntado precisa."},
+  "fr": {"one": "%lld publication ici. Touchez-la pour lancer le guidage de visée précis.", "other": "%lld publications ici. Touchez-en une pour lancer le guidage de visée précis."},
+  "pt": {"one": "Há %lld publicação aqui. Toque nela para iniciar a mira guiada precisa.", "other": "Há %lld publicações aqui. Toque em uma para iniciar a mira guiada precisa."}
+ }
+}

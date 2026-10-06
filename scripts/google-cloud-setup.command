@@ -54,6 +54,8 @@ gcloud services enable \
   identitytoolkit.googleapis.com \
   firebaseapphosting.googleapis.com \
   secretmanager.googleapis.com \
+  fcm.googleapis.com \
+  firebasecrashlytics.googleapis.com \
   --project "$PROJECT"
 echo "✅ API'ler açık."
 
@@ -140,7 +142,11 @@ cat <<TXT
   2) App Check: iOS uygulamasında App Attest kayıtlı olmalı. Debug build ile canlıya bağlanacaksan
      Xcode konsolundaki App Check debug token'ını ekle:
      https://console.firebase.google.com/project/$PROJECT/appcheck/apps
-  3) Bütçe uyarısı ($10 / $50): https://console.cloud.google.com/billing/budgets?project=$PROJECT
+  3) Push bildirimleri için APNs Auth Key (.p8, Apple Developer → Keys → "Apple Push Notifications service"):
+     https://console.firebase.google.com/project/$PROJECT/settings/cloudmessaging
+     → Apple app configuration → APNs Authentication Key: .p8 dosyası, Key ID ve Team ID ZSRUTGX74S.
+     (Sign in with Apple .p8'inden ayrı bir anahtardır.)
+  4) Bütçe uyarısı ($10 / $50): https://console.cloud.google.com/billing/budgets?project=$PROJECT
 TXT
 pause "Bunları yaptıysan (veya sonra yapacaksan) deploy için Enter…"
 

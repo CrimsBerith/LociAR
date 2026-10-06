@@ -122,6 +122,21 @@ enum BackendCallError: LocalizedError, Sendable {
     }
 }
 
+/// Retryable server conditions with a user-facing message (the raw Functions error is English).
+enum BackendTransientError: LocalizedError, Sendable {
+    /// Kill switch on (`system/flags.kill_switch`): the service is paused for everyone.
+    case servicePaused
+    /// Quota counter contention; retrying a moment later succeeds.
+    case busy
+
+    var errorDescription: String? {
+        switch self {
+        case .servicePaused: String(localized: "LociAR geçici olarak durduruldu. Lütfen biraz sonra tekrar dene.")
+        case .busy: String(localized: "Sunucu şu anda yoğun. Birkaç saniye sonra tekrar dene.")
+        }
+    }
+}
+
 /// Which Cloud Functions failures are final and which are worth retrying. Pure, so it is unit-tested.
 enum BackendErrorPolicy {
     /// The server said the request itself is wrong or not allowed: retrying cannot help.
@@ -131,6 +146,16 @@ enum BackendErrorPolicy {
             true
         default:
             false
+        }
+    }
+
+    /// Transient failures that carry a known reason (still retryable, but with a readable message).
+    nonisolated static func transient(code: Int, userInfo: [String: Any]) -> BackendTransientError? {
+        guard FunctionsErrorCode(rawValue: code) == .unavailable else { return nil }
+        switch (userInfo["details"] as? [String: Any])?["reason"] as? String {
+        case "service_paused": return .servicePaused
+        case "busy_retry": return .busy
+        default: return nil
         }
     }
 
@@ -196,6 +221,7 @@ struct CallableClient: Sendable {
                     _ = try? await user.getIDTokenResult(forcingRefresh: true)
                     continue
                 }
+                if let transient = BackendErrorPolicy.transient(code: error.code, userInfo: error.userInfo) { throw transient }
                 throw BackendErrorPolicy.map(code: error.code, message: error.localizedDescription, userInfo: error.userInfo) ?? error
             }
         }

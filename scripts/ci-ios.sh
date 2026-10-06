@@ -28,6 +28,8 @@ xcodebuild -project LociAR.xcodeproj -scheme LociAR \
   -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
   -resultBundlePath "$output_dir/native-tests.xcresult" -only-testing:LociARTests \
   -testLanguage tr -testRegion TR CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "$output_dir/native-tests.log"
+# Every string the Swift compiler extracted must be in the generated catalog (scripts/l10n).
+python3 scripts/l10n/check_stringsdata.py "$output_dir/DerivedData"
 xcodebuild -project LociAR.xcodeproj -scheme LociAR \
   -configuration Debug -destination "platform=iOS Simulator,id=$simulator_id" \
   -derivedDataPath "$output_dir/DerivedData" -clonedSourcePackagesDirPath "$output_dir/SourcePackages" \

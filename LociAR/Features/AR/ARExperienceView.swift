@@ -21,6 +21,10 @@ struct ARExperienceView: View {
     @State private var showCreate = false
     @State private var errorMessage: String?
     @State private var isPreparingContent = false
+    /// Banner text while the pin is saved (Cloud Anchor hosting or world map).
+    @State private var prepareStatus: String?
+    @State private var prepareTask: Task<Void, Never>?
+    @State private var prepareGeneration = 0
     @State private var location = LocationController()
     @State private var nearbyPosts: [LociPost] = []
     @State private var viewingPost: LociPost?
@@ -88,8 +92,11 @@ struct ARExperienceView: View {
                 tabChangeTask?.cancel()
                 tabChangeTask = Task { await startCreationMode() }
             } else if mode == .create {
+                prepareTask?.cancel()
+                prepareTask = nil
                 showCreate = false
                 isPreparingContent = false
+                prepareStatus = nil
                 errorMessage = nil
                 isCreationMode = false
             } else if mode == .discover, tab == .ar {
@@ -106,6 +113,7 @@ struct ARExperienceView: View {
         .onDisappear {
             tabChangeTask?.cancel()
             pinRequestTask?.cancel()
+            prepareTask?.cancel()
             location.stop()
             let siblingARTabActive = (mode == .discover && router.selectedTab == .create)
                 || (mode == .create && router.selectedTab == .ar)
@@ -150,7 +158,7 @@ struct ARExperienceView: View {
                 VStack(spacing: 6) {
                     Text(isDiscovering ? String(localized: "Yayınlar aranıyor") : nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar"))
                         .font(.title3.bold())
-                    Text(discoveryMessage)
+                    Text(discoveryMessage.localizedUI)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -176,7 +184,7 @@ struct ARExperienceView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
                                         .font(.subheadline.weight(.semibold)).lineLimit(1)
-                                    Text(distanceText(for: post))
+                                    Text(distanceText(for: post).localizedUI)
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
@@ -226,7 +234,7 @@ struct ARExperienceView: View {
             Circle().fill(reticleColor).frame(width: 8, height: 8)
         }
         .shadow(color: .black.opacity(0.7), radius: 4)
-        .accessibilityLabel(reticleLabel)
+        .accessibilityLabel(reticleLabel.localizedUI)
     }
 
     private var reticleColor: Color {
@@ -256,8 +264,9 @@ struct ARExperienceView: View {
                     if engine.currentAnchor != nil {
                         Image(systemName: "checkmark.seal.fill").foregroundStyle(LociTheme.accent)
                     }
+                    ARCoreNoticeButton()
                 }
-                Text(userFacingStatusMessage).font(.footnote).foregroundStyle(.white.opacity(0.82))
+                Text(userFacingStatusMessage.localizedUI).font(.footnote).foregroundStyle(.white.opacity(0.82))
                 if let anchor = engine.currentAnchor {
                     Text(anchor.pinQuality.isPhysicalSurface ? String(localized: "Fiziksel yüzeye yerleştirildi") : String(localized: "Yaklaşık yerleştirme · 0,8 m"))
                         .font(.caption.weight(.semibold))
@@ -321,8 +330,15 @@ struct ARExperienceView: View {
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
+                if let prepareStatus {
+                    Text(prepareStatus.localizedUI)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("ar-saving-status")
+                }
                 Button {
-                    Task { await prepareContent() }
+                    startPreparingContent()
                 } label: {
                     if isPreparingContent { ProgressView().tint(.black) }
                     else if canPrepareContent { Label("İçerik ekle", systemImage: "plus.circle.fill") }
@@ -351,7 +367,7 @@ struct ARExperienceView: View {
                 Button {
                     engine.offerApproximatePlacement()
                     engine.placeApproximate()
-                    Task { await prepareContent() }
+                    startPreparingContent()
                 } label: {
                     Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
                 }
@@ -496,7 +512,7 @@ struct ARExperienceView: View {
             async let ownRequest = container.posts.myPosts(limit: 50)
             var networkError: Error?
             do { collected.append(contentsOf: try await nearbyRequest) } catch { networkError = error }
-            do { collected.append(contentsOf: try await ownRequest) } catch { if networkError != nil { networkError = error } }
+            do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
             if collected.isEmpty, let networkError {
                 isDiscovering = false
                 discoveryMessage = String(localized: "Bağlantı kurulamadı. Biraz sonra tekrar dene.")
@@ -535,6 +551,8 @@ struct ARExperienceView: View {
         defer { isStartingCreationMode = false }
         isCreationMode = true
         viewingPost = nil
+        // Geo-tagging the new pin (ARCore Geospatial) needs precise location.
+        location.requestPreciseAccuracyIfNeeded()
         if await engine.prepareNewPinSession() == false {
             return
         }
@@ -572,23 +590,46 @@ struct ARExperienceView: View {
         return roundedMeters < 1_000 ? "\(roundedMeters.formatted()) m" : String(format: "%.1f km", locale: Locale.current, meters / 1_000)
     }
 
-    private func prepareContent() async {
-        guard let anchor = engine.currentAnchor else { return }
-        if !anchor.pinQuality.isPhysicalSurface || anchor.persistence != nil {
-            showCreate = true
-            return
-        }
+    /// Sets the busy flag before the task starts, so a double tap cannot start two saves.
+    private func startPreparingContent() {
+        guard !isPreparingContent, engine.currentAnchor != nil else { return }
         isPreparingContent = true
-        defer { isPreparingContent = false }
-        do {
-            let package = try await engine.saveWorldMap()
-            engine.attachPersistence(package.persistence)
-        } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription
-                ?? String(localized: "Çevre haritası henüz kaydedilemedi. Aynı yüzeyi biraz daha tarayıp tekrar deneyin.")
-            return
+        prepareTask?.cancel()
+        prepareGeneration += 1
+        let generation = prepareGeneration
+        prepareTask = Task { await prepareContent(generation: generation) }
+    }
+
+    /// Saves the pin like the map's create flow (Geospatial tag, Cloud Anchor, world-map fallback)
+    /// and then opens the editor for it.
+    private func prepareContent(generation: Int) async {
+        defer {
+            // A cancelled older run that finishes late must not clear the state of a newer one.
+            if generation == prepareGeneration {
+                isPreparingContent = false
+                prepareStatus = nil
+            }
         }
-        showCreate = true
+        guard let anchor = engine.currentAnchor else { return }
+        let outcome = await PinCommitCoordinator.commit(
+            anchor,
+            engine: engine,
+            arcore: container.arcore,
+            isOnline: container.connectivity.isOnline,
+            isLocalPreview: session.isLocalPreview,
+            status: { prepareStatus = $0 }
+        )
+        switch outcome {
+        case .committed:
+            guard !Task.isCancelled else { return }
+            showCreate = true
+        case .worldMapFailed(let reason):
+            errorMessage = reason.isEmpty
+                ? String(localized: "Çevre haritası henüz kaydedilemedi. Aynı yüzeyi biraz daha tarayıp tekrar deneyin.")
+                : reason
+        case .cancelled:
+            break
+        }
     }
 
     private var canPrepareContent: Bool {

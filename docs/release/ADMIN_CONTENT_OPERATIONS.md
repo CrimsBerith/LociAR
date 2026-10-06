@@ -49,6 +49,8 @@ olayları yeniden denenebilir; yinelenen olaylar işlem kayıtlarıyla korunur.
 
 ## Canlı geçiş — daha sonra yetkili Firebase oturumunda
 
+Adım adım uygulanacak sıra: [`LIVE_MIGRATION_RUNBOOK.md`](LIVE_MIGRATION_RUNBOOK.md).
+
 Bu bölüm yürütülmedi. Kurallar, yeni Functions, admin ve mobil sürüm birlikte planlanmalıdır.
 `createPost`/`updateHandle` artık hedef `userId` ister. Public Firestore listeleri kapanır;
 mobil public okumaları `readPublicContent` kullanır. Eski istemci sürümleri bu yeni kurallarla

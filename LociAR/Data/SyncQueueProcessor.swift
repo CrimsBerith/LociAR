@@ -6,6 +6,8 @@ enum RetryPolicy {
     static let maximumAttempts = 5
     /// How long a record being published in the foreground is hidden from the background loop.
     static let inFlightLease: TimeInterval = 120
+    /// Kill switch on: check again in five minutes.
+    static let servicePausedDelay: TimeInterval = 300
 
     static func delay(afterAttempt attempt: Int) -> TimeInterval {
         min(3_600, pow(2, Double(max(0, attempt))) * 15)
@@ -76,6 +78,11 @@ enum SyncQueueProcessor {
                 return // Another account must not consume this owner's retry budget.
             } catch is CancellationError {
                 return
+            } catch BackendTransientError.servicePaused {
+                // Paused for everyone: wait without spending an attempt (no dead-lettering).
+                record.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.servicePausedDelay)
+                record.lastErrorMessage = BackendTransientError.servicePaused.localizedDescription
+                logger.info("Sync paused id=\(record.id.uuidString, privacy: .public)")
             } catch let error as PostPublishError {
                 record.attemptCount = RetryPolicy.maximumAttempts
                 record.deadLetterReason = error.localizedDescription

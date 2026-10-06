@@ -10,7 +10,8 @@ ROOT="$(pwd)"
 OUT="$ROOT/scripts/.e2e"
 mkdir -p "$OUT"
 SUMMARY="$OUT/summary-prod-rest.txt"
-DEVICE_ID="${DEVICE_ID:-00008120-001079DE0E07C01E}"
+DEVICE_ID="${DEVICE_ID:-$(xcrun devicectl list devices 2>/dev/null | grep available | awk '{print $3}' | head -1)}"
+[ -z "$DEVICE_ID" ] && { echo "HATA: bagli iPhone yok (DEVICE_ID=...)"; exit 1; }
 log() { echo "$(date +%H:%M:%S) $*" | tee -a "$SUMMARY"; }
 : > "$SUMMARY"
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
