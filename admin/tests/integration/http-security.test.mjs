@@ -7,14 +7,17 @@ import { spawn } from 'node:child_process';
 import test, { before, after } from 'node:test';
 import { initializeApp, deleteApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
+import { setCacheBustingSearchParam } from 'next/dist/client/components/router-reducer/set-cache-busting-search-param.js';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 // The Auth emulator accepts unsigned JWT fixtures. This tests claim enforcement,
 // not the live TOTP challenge or Google's production JWT signature verification.
 assert.match(process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '', /^(127\.0\.0\.1|localhost):\d+$/);
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? '', /^(127\.0\.0\.1|localhost):\d+$/);
+assert.match(process.env.FIREBASE_STORAGE_EMULATOR_HOST ?? '', /^(127\.0\.0\.1|localhost):\d+$/);
 assert.ok(existsSync('.next/BUILD_ID'), 'Run npm run build:ci before admin integration tests');
-initializeApp({ projectId: 'demo-lociar' });
+initializeApp({ projectId: 'demo-lociar', storageBucket: 'demo-lociar.firebasestorage.app' });
 const auth = getAuth();
 const db = getFirestore();
 let server, origin, output = '';
@@ -137,12 +140,14 @@ test('signout revokes the captured session and clears the cookie', async () => {
   assert.equal(response.status, 200); assert.match(response.headers.get('set-cookie'), /Max-Age=0/i);
   assert.equal((await post(actionPath(randomUUID()), { action: 'approve', reason }, cookie)).status, 401);
 });
-test('protected pages redirect AAL1 to MFA and permissionless AAL2 to unauthorized', async () => {
+test('protected pages redirect before streaming for missing/invalid sessions, AAL1 and permissionless AAL2', async () => {
   const aal1 = await session(await identity('super_admin', false));
   const observer = await session(await identity('engineering_observer'));
-  for (const [cookie, destination] of [[aal1.cookie, '/admin/mfa'], [observer.cookie, '/admin/unauthorized']]) {
+  for (const [cookie, destination] of [['', '/admin/login'], ['__session=invalid', '/admin/login'], [aal1.cookie, '/admin/mfa'], [observer.cookie, '/admin/unauthorized']]) {
     const response = await fetch(origin + '/admin/posts', { headers: { cookie }, redirect: 'manual' });
     assert.equal(response.status, 307); assert.equal(new URL(response.headers.get('location'), origin).pathname, destination);
+    assert.match(response.headers.get('cache-control'), /private, no-store/);
+    assert.doesNotMatch(await response.text(), /adminContent|dataRow|Production controls/);
   }
 });
 
@@ -233,4 +238,87 @@ test('audited zone creation returns an ID accepted by the toggle route, and perm
   const support = await session(await identity('support_agent'));
   assert.equal((await post('/api/admin/v1/zones', payload, support.cookie, { 'idempotency-key': randomUUID() })).status, 403);
   assert.equal((await post('/api/admin/v1/zones', payload, cookie, { 'idempotency-key': randomUUID(), origin: 'https://foreign.example' })).status, 403);
+});
+
+
+test('user lookup rejects missing sessions and unsupported methods through the real route', async () => {
+  const path = '/api/admin/v1/users/lookup?q=lookup';
+  assert.equal((await fetch(origin + path)).status, 401);
+  assert.equal((await fetch(origin + path, { method: 'POST' })).status, 405);
+  const { cookie } = await session(await identity('super_admin'));
+  const luid = randomUUID(), handle = 'lookup_' + luid.slice(0, 8);
+  await db.collection('profiles').doc(luid).set({ handle, suspended: false, deleted_at: null });
+  const response = await fetch(origin + '/api/admin/v1/users/lookup?q=' + handle, { headers: { cookie } });
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).users, [{ id: luid, handle, managed: false }]);
+  assert.match(response.headers.get('cache-control'), /private/);
+});
+
+test('avatar image requires an authorized MFA session and rejects malformed or foreign-owner paths', async () => {
+  assert.equal((await fetch(origin + `/api/admin/v1/avatars/${randomUUID()}/image`)).status, 401);
+  const { cookie } = await session(await identity('super_admin'));
+  for (const invalid of ['not-a-uuid', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa']) {
+    assert.equal((await fetch(origin + `/api/admin/v1/avatars/${invalid}/image`, { headers: { cookie } })).status, 400);
+  }
+  const luid = randomUUID();
+  assert.equal((await fetch(origin + `/api/admin/v1/avatars/${luid}/image`, { headers: { cookie } })).status, 404);
+  await db.collection('avatar_reviews').doc(luid).set({ path: `avatars/${randomUUID()}/current/${randomUUID()}.jpg` });
+  assert.equal((await fetch(origin + `/api/admin/v1/avatars/${luid}/image`, { headers: { cookie } })).status, 404);
+  const observer = await session(await identity('engineering_observer'));
+  assert.equal((await fetch(origin + `/api/admin/v1/avatars/${luid}/image`, { headers: { cookie: observer.cookie } })).status, 403);
+});
+
+test('avatar JPEG streams actual Storage bytes with private no-store caching', async () => {
+  const { cookie } = await session(await identity('super_admin'));
+  const luid = randomUUID(), path = `avatars/${luid}/current/${randomUUID()}.jpg`;
+  const jpeg = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDqaKKK3Pzc/9k=', 'base64');
+  const file = getStorage().bucket().file(path);
+  await file.save(jpeg, { resumable: false, metadata: { contentType: 'image/jpeg' } });
+  try {
+    await db.collection('avatar_reviews').doc(luid).set({ path, status: 'pending' });
+    const response = await fetch(origin + `/api/admin/v1/avatars/${luid}/image`, { headers: { cookie } });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'image/jpeg');
+    assert.match(response.headers.get('cache-control'), /private/);
+    assert.match(response.headers.get('cache-control'), /no-store/);
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
+  } finally {
+    await file.delete({ ignoreNotFound: true });
+    await db.collection('avatar_reviews').doc(luid).delete();
+  }
+});
+
+
+test('protected page permissions apply before streaming across content, people and operations routes', async () => {
+  const observer = await session(await identity('engineering_observer'));
+  const support = await session(await identity('support_agent'));
+  for (const [cookie, paths] of [
+    [observer.cookie, ['/admin/posts', '/admin/posts/new', '/admin/users', '/admin/moderation', '/admin/avatars', '/admin/approvals']],
+    [support.cookie, ['/admin/anchors', '/admin/places', '/admin/zones', '/admin/audit']],
+  ]) {
+    for (const path of paths) {
+      const response = await fetch(origin + path, { headers: { cookie }, redirect: 'manual' });
+      assert.equal(response.status, 307, path);
+      assert.equal(new URL(response.headers.get('location'), origin).pathname, '/admin/unauthorized', path);
+      assert.match(response.headers.get('cache-control'), /private, no-store/);
+      assert.doesNotMatch(await response.text(), /adminContent|dataRow|Production controls/);
+    }
+  }
+});
+
+test('valid RSC prefetch requests redirect before streaming without private page data', async () => {
+  const aal1 = await session(await identity('super_admin', false));
+  const observer = await session(await identity('engineering_observer'));
+  for (const [cookie, destination] of [['', '/admin/login'], [aal1.cookie, '/admin/mfa'], [observer.cookie, '/admin/unauthorized']]) {
+    const headers = { cookie, 'next-router-prefetch': '1', purpose: 'prefetch', RSC: '1' };
+    const url = new URL(origin + '/admin/posts');
+    // Match the installed Next router's RSC cache key, avoiding a protocol-normalization redirect.
+    await setCacheBustingSearchParam(url, headers);
+    const response = await fetch(url, { headers, redirect: 'manual' });
+    assert.equal(response.status, 307);
+    assert.equal(new URL(response.headers.get('location'), origin).pathname, destination);
+    assert.match(response.headers.get('cache-control'), /private, no-store/);
+    assert.doesNotMatch(await response.text(), /adminContent|dataRow|Production controls/);
+  }
 });

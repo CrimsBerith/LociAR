@@ -43,7 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </form>
           <span className="envBadge">Production controls</span>
         </header>
-        {children}
+        <main id="main" tabIndex={-1}>{children}</main>
       </div>
     </div>
   );

@@ -74,7 +74,7 @@ export default function AdminMfa() {
   }
 
   return (
-    <main className="authPage">
+    <main id="main" tabIndex={-1} className="authPage">
       <section className="authCard">
         <div className="brandMark">L</div>
         <p className="eyebrow">Required security step</p>

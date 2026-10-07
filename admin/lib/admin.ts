@@ -26,9 +26,11 @@ export async function activeRoles(uid: string): Promise<string[]> {
   return [...new Set(snap.docs.map((d) => String(d.data().role_key)).filter(isKnownRole))];
 }
 
-export async function getAdminContext(): Promise<AdminContext | null> {
-  const cookieStore = await cookies();
-  const session = cookieStore.get(SESSION_COOKIE)?.value;
+export async function getAdminContext(sessionOverride?: string | null): Promise<AdminContext | null> {
+  // Proxy supplies its request cookie explicitly; server components use the request cookie store.
+  const session = sessionOverride === undefined
+    ? (await cookies()).get(SESSION_COOKIE)?.value
+    : sessionOverride;
   if (!session) return null;
   let decoded;
   try {

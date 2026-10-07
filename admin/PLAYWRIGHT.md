@@ -55,3 +55,25 @@ Unsigned MFA-claim fixtures accepted by the Auth emulator do not prove live TOTP
 Production TOTP and signed-token authenticated browser validation remains a separate live gate.
 No production credentials are needed for these emulator browser flows.
 The shared emulator CI job builds admin and runs these tests after the Functions integration suite.
+
+## Accessibility and streamed-route checks
+
+The public suite runs axe against `/privacy`, `/terms`, `/support`, `/en/privacy`,
+`/privacy/en` and `/login` in desktop and mobile Chromium. `/en/privacy` is a permanent
+redirect to the canonical English page `/privacy/en`. Serious and critical violations
+fail the suite; keyboard checks also verify the visible skip link and single main landmark.
+
+`npm run test:emulator` now starts **Auth, Firestore and Storage** for `demo-lociar`.
+The real HTTP lookup/image tests require all three loopback emulator endpoints.
+A tiny JPEG fixture is uploaded to Storage, streamed through the MFA/RBAC-protected
+avatar route and deleted afterward; byte equality, `image/jpeg` and `private, no-store`
+headers are checked without live credentials.
+
+Root and protected loading boundaries can otherwise start an HTTP 200 response before
+a server component redirects. The Node-runtime proxy therefore checks protected-page
+sessions, MFA and the current route permission before rendering, preserving HTTP 307
+for missing/invalid sessions, AAL1 and insufficient permissions. Page/layout and API
+authorization checks remain independently enforced. Protected-page RSC prefetches
+also pass through this proxy gate; public prefetch behavior is unchanged. HTTP integration
+checks use the installed Next router's RSC cache key and ensure rejected pages contain
+no protected layout or data rows.

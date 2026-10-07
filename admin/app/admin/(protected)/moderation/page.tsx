@@ -33,7 +33,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   }
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Trust & safety</p><h1>Moderation queue</h1></div>
         <p className="muted">Every decision requires MFA, scoped permission, a reason, idempotency, rate limiting and an audit record.</p>
@@ -57,6 +57,6 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         })}
         {!failed ? <PageNavigation path="/admin/moderation" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/moderation">Return to the first page.</a></p>}
       </section>
-    </main>
+    </section>
   );
 }

@@ -23,7 +23,7 @@ export default async function ZonesPage({ searchParams }: { searchParams: Promis
     failed = true;
   }
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading"><div><p className="eyebrow">Safety perimeter</p><h1>Restricted zones</h1></div><p className="muted">Protected zones block new post placement.</p></div>
       <p className="readOnlyNotice">Hard-block policy is enforced by the createPost Cloud Function. Changes apply to subsequent placements.</p>
       {canWrite ? <section className="panel"><div className="panelHeader"><h2>Add a zone</h2></div><ZoneForm /></section> : null}
@@ -41,6 +41,6 @@ export default async function ZonesPage({ searchParams }: { searchParams: Promis
         ))}
         {!failed ? <PageNavigation path="/admin/zones" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/zones">Return to the first page.</a></p>}
       </section>
-    </main>
+    </section>
   );
 }

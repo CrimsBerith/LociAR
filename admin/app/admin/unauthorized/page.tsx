@@ -1,6 +1,6 @@
 export default function UnauthorizedPage() {
   return (
-    <main className="authPage">
+    <main id="main" tabIndex={-1} className="authPage">
       <section className="authCard">
         <p className="eyebrow">Access denied</p>
         <h1>Permission required</h1>

@@ -44,7 +44,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Identity & enforcement</p><h1>Users</h1></div>
         <InviteUserForm />
@@ -95,6 +95,6 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
           <PageNavigation path="/admin/users" parameters={{ q }} prefix="roles" next={rolesPage.next} previous={rolesPage.previous} />
         </>}
       </section> : null}
-    </main>
+    </section>
   );
 }

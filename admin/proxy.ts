@@ -1,7 +1,28 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getAdminContext, SESSION_COOKIE } from './lib/admin';
 
-// Authorization is intentionally enforced in server components and server actions:
-// they validate the Firebase session cookie and admin roles with server-only credentials.
+// Resolve page authorization before loading boundaries can begin streaming. Server components
+// and API handlers still independently enforce their session, MFA and permission checks.
+const PAGE_PERMISSIONS: Record<string, string> = {
+  users: 'users.read', posts: 'posts.read', moderation: 'posts.read', avatars: 'users.suspend',
+  approvals: 'posts.metrics.write', anchors: 'anchors.read', places: 'anchors.read',
+  zones: 'anchors.read', audit: 'audit.read',
+};
+
+async function protectedPageRedirect(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  if (!pathname.startsWith('/admin/') || ['/admin/login', '/admin/mfa', '/admin/unauthorized'].includes(pathname)) return null;
+  const admin = await getAdminContext(request.cookies.get(SESSION_COOKIE)?.value ?? null);
+  if (!admin) return NextResponse.redirect(new URL('/admin/login?reason=admin_required', request.url));
+  if (admin.assuranceLevel !== 'aal2') return NextResponse.redirect(new URL('/admin/mfa', request.url));
+  const permission = pathname === '/admin/posts/new'
+    ? 'posts.create'
+    : PAGE_PERMISSIONS[pathname.split('/')[2]] ?? 'dashboard.read';
+  if (!admin.permissions.has('dashboard.read') || !admin.permissions.has(permission)) {
+    return NextResponse.redirect(new URL('/admin/unauthorized', request.url));
+  }
+  return null;
+}
 
 const CONNECT = "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com";
 const COMMON = "img-src 'self' data: blob:; font-src 'self'; object-src 'none'; frame-src https://*.firebaseapp.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
@@ -11,7 +32,8 @@ function isDynamicAdminPath(pathname: string): boolean {
   return pathname.startsWith('/admin') || pathname === '/login' || pathname.startsWith('/auth');
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
+  const earlyRedirect = await protectedPageRedirect(request);
   const isDev = process.env.NODE_ENV === 'development';
   let csp: string;
   let response: NextResponse;
@@ -22,13 +44,14 @@ export function proxy(request: NextRequest) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-nonce', nonce);
     requestHeaders.set('Content-Security-Policy', csp);
-    response = NextResponse.next({ request: { headers: requestHeaders } });
+    response = earlyRedirect ?? NextResponse.next({ request: { headers: requestHeaders } });
   } else {
     // Public legal pages are prerendered at build time (no per-request nonce possible); they hold no
     // forms or secrets, and still forbid every third-party script.
     csp = `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; ${CONNECT}; ${COMMON}`;
-    response = NextResponse.next();
+    response = earlyRedirect ?? NextResponse.next();
   }
+  if (earlyRedirect) response.headers.set('Cache-Control', 'private, no-store');
   response.headers.set('Content-Security-Policy', csp);
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
@@ -39,6 +62,8 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Protected pages also enforce the gate for router prefetch requests.
+    '/admin/:path*',
     {
       source: '/((?!_next/static|_next/image|favicon.ico).*)',
       missing: [

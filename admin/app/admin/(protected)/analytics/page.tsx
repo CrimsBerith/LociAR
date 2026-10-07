@@ -51,7 +51,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const rows = [...aggregates.entries()].sort((left, right) => right[1].count - left[1].count);
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading"><div><p className="eyebrow">Measured behavior</p><h1>Analytics</h1></div><p className="muted">Real analytics_events only. Uncollected reliability metrics are not estimated.</p></div>
       <section className="metricGrid">
         <article className="metricCard"><span>Retained events</span><strong>{allTime.toLocaleString()}</strong></article>
@@ -69,6 +69,6 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         ))}
         {!failed ? <PageNavigation path="/admin/analytics" parameters={{ since: sinceDate }} next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/analytics">Return to the first page.</a></p>}
       </section>
-    </main>
+    </section>
   );
 }

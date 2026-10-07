@@ -19,7 +19,7 @@ export default function LegalLayout({
 }) {
   const t = NAV[lang];
   return (
-    <main className="legalPage" lang={lang}>
+    <main id="main" tabIndex={-1} className="legalPage" lang={lang}>
       <header className="legalHeader">
         <p className="eyebrow">LociAR</p>
         <h1>{title}</h1>

@@ -21,7 +21,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
   }
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Four-eyes control</p><h1>Pending approvals</h1></div>
         <p className="muted">You cannot approve your own request. Changed targets are invalidated before execution.</p>
@@ -49,6 +49,6 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
         )}
         {!failed ? <PageNavigation path="/admin/approvals" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/approvals">Return to the first page.</a></p>}
       </section>
-    </main>
+    </section>
   );
 }
