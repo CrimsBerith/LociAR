@@ -191,8 +191,9 @@ async function screenAvatarObject(luid: string, id: string, path: string): Promi
 }
 
 /** Durable deletion is only for exact, immutable paths previously selected by the server. */
+const AVATAR_OBJECT_PATH = /^avatars\/([^/]+)\/(?:current|pending)\/[0-9a-f-]{36}\.jpg$/;
 export function enqueueAvatarDelete(tx: FirebaseFirestore.Transaction, luid: string, path: string) {
-  if (!new RegExp(`^avatars/${luid}/(current|pending)/[0-9a-f-]{36}\\.jpg$`).test(path)) throw new Error('invalid_avatar_deletion_path');
+  if (AVATAR_OBJECT_PATH.exec(path)?.[1] !== luid) throw new Error('invalid_avatar_deletion_path');
   const key = path.split('/').at(-1)!.replace('.jpg', '') + '_' + path.split('/')[2];
   tx.set(db.collection('avatar_deletions').doc(key), { luid, path, next_at: Timestamp.now(), attempts: 0 });
 }
