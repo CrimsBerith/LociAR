@@ -1,0 +1,31 @@
+name: Özellik önerisi
+description: Bir ihtiyacı ve önerilen çözümü paylaşın.
+title: "[Feature] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Öneriyi ürünün mevcut kapsamını gözeterek açıklayın. Gizli bilgi veya kullanıcı verisi paylaşmayın.
+  - type: textarea
+    id: problem
+    attributes:
+      label: İhtiyaç / sorun
+      description: Hangi kullanıcı ihtiyacı karşılanmıyor?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Önerilen çözüm
+      description: Kullanıcının ne yapabilmesini istiyorsunuz?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Değerlendirilen alternatifler
+  - type: textarea
+    id: impact
+    attributes:
+      label: Ek bilgiler ve etkiler
+      description: Varsa erişilebilirlik, yerelleştirme, gizlilik veya veri modeli etkileri.

@@ -1,0 +1,55 @@
+name: Hata bildirimi
+description: Bir hatayı yeniden üretme adımlarıyla bildirin.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Güvenlik açıklarını burada paylaşmayın. [SECURITY.md](https://github.com/CrimsBerith/LociAR/blob/main/SECURITY.md) uyarınca özel olarak bildirin. Şifre, token, kullanıcı verisi veya hassas log eklemeyin.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Etkilenen bölüm
+      options:
+        - iOS uygulaması
+        - Admin paneli / public sayfalar
+        - Firebase backend / kurallar
+        - Dokümanlar / geliştirme araçları
+        - Diğer
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Hata açıklaması
+      description: Ne yaparken ne oldu?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Yeniden üretme adımları
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Beklenen davranış
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Sürüm ve ortam
+      description: Uygulama sürümü/build veya commit; cihaz, iOS sürümü ya da tarayıcı. Kimlik bilgileri eklemeyin.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Ekran görüntüsü / ek bilgiler
+      description: Varsa kişisel verilerden ve gizli bilgilerden arındırılmış görüntü veya hata çıktısı.

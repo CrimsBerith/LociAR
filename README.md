@@ -42,3 +42,16 @@ bash scripts/qa-live-urls.sh /path/to/LociAR.app
 `ci-ios.sh` macOS ve Xcode gerektirir; kurulu iPhone simülatörünü seçer, kilitli SPM sürümleriyle native testleri ve İngilizce/Arapça arayüz testlerini çalıştırır. Güncel doğrulama komutları ve kapılar [docs/QA_MATRIX.md](docs/QA_MATRIX.md) içindedir; test sayıları burada tutulmaz (CI çıktısına bakın). İmzalı fiziksel cihaz ve canlı backend kapıları ayrıca doğrulanmalıdır.
 
 Simulator build/test, fiziksel AR kilidi kanıtı değildir. LiDAR ve LiDAR olmayan iPhone kabul matrisi [FIELD_TEST_CHECKLIST.md](FIELD_TEST_CHECKLIST.md) ile kapatılmalıdır. Backend testleri: `cd functions && npm test` (birim) ve `npm run test:rules` (Security Rules, Firebase Emulator + Java 21).
+
+## English
+
+![CI](https://github.com/CrimsBerith/LociAR/actions/workflows/ci.yml/badge.svg)
+
+LociAR is a native iOS AR app built with SwiftUI, ARKit/RealityKit, and ARCore.
+Users pin text notes and social media links to real places. Firebase powers the
+backend, and a Next.js admin panel runs on Firebase App Hosting.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development requirements and verification
+commands, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+
+License: see [LICENSE](LICENSE).
