@@ -68,10 +68,20 @@ test('social links must use the platform host over https', () => {
   assert.equal(validateCreatePostBody(link('youtube', 'https://youtu.be/abc')), null);
   assert.equal(validateCreatePostBody(link('x', 'https://x.com/user/status/1')), null);
   assert.equal(validateCreatePostBody(link('twitter', 'https://twitter.com/user/status/1')), null);
+  assert.equal(validateCreatePostBody(link('tiktok', 'https://www.tiktok.com/@user/video/7300000000000000000')), null);
+  assert.equal(validateCreatePostBody(link('tiktok', 'https://vm.tiktok.com/ZMabc123/')), null);
+  assert.equal(validateCreatePostBody(link('tiktok', 'https://vt.tiktok.com/ZSabc123/')), null);
+  assert.equal(validateCreatePostBody(link('tiktok', 'https://tiktok.com.evil.example/@user/video/1')), 'Invalid social media link');
+  assert.equal(validateCreatePostBody(link('tiktok', 'http://www.tiktok.com/@user/video/1')), 'Invalid social media link');
+  assert.equal(validateCreatePostBody(link('tiktok', 'https://example.com/@user/video/1')), 'Invalid social media link');
+  // X preview-proxy hosts are not accepted by the server; the iOS parser rewrites them to x.com.
+  assert.equal(validateCreatePostBody(link('x', 'https://fixupx.com/user/status/1')), 'Invalid social media link');
   assert.equal(validateCreatePostBody(link('spotify', 'https://evil.example/track/1')), 'Invalid social media link');
   assert.equal(validateCreatePostBody(link('spotify', 'https://open.spotify.com.evil.example/track/1')), 'Invalid social media link');
   assert.equal(validateCreatePostBody(link('instagram', 'http://instagram.com/p/1')), 'Invalid social media link');
-  assert.equal(validateCreatePostBody(link('facebook', 'https://user:pw@facebook.com/reel/1')), 'Invalid social media link');
+  // Facebook is not a supported platform (removed 2 Oct 2026): every Facebook link is refused.
+  assert.equal(validateCreatePostBody(link('facebook', 'https://www.facebook.com/reel/1')), 'Only social media links are allowed');
+  assert.equal(validateCreatePostBody(link('facebook', 'https://fb.watch/abc')), 'Only social media links are allowed');
 });
 
 test('reference image must be a storage path or the pending placeholder', () => {
@@ -151,4 +161,20 @@ test('admin_geo_estimate coordinate space is rejected from clients', () => {
   const body = base();
   body.pose.anchor = { coordinateSpace: 'admin_geo_estimate', x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, capturedAt: new Date().toISOString(), nativeAnchorId: 'a' };
   assert.equal(validateCreatePostBody(body), 'Invalid coordinate space');
+});
+
+test('drawing and layer shape limits', () => {
+  const withLayers = (layers) => ({ ...base(), editData: { version: 1, layers } });
+  const stroke = (n, extra = {}) => ({ id: 'd', type: 'drawing', color: '#FFFFFF', points: Array.from({ length: n }, (_, i) => ({ x: i / n, y: 0.5 })), ...extra });
+  assert.equal(validateCreatePostBody(withLayers([stroke(50)])), null);
+  assert.equal(validateCreatePostBody(withLayers([stroke(2000)])), null);
+  assert.equal(validateCreatePostBody(withLayers([stroke(2001)])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([stroke(2000), stroke(2000), stroke(1)])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: [{ x: 'a', y: 1 }] }])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: [{ x: 1e9, y: 1 }] }])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: [{ x: null, y: 1 }] }])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: 'x' }])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([stroke(5, { color: 'red' })])), 'Invalid layer color');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'a'.repeat(1001) }])), 'Layer text is too long');
+  assert.equal(validateCreatePostBody(withLayers(Array.from({ length: 21 }, (_, i) => ({ id: `t${i}`, type: 'text', text: 'x' })))), 'Too many edit layers');
 });

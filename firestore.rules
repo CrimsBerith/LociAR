@@ -212,6 +212,12 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    // Curated landmarks (functions/scripts/import-places.mjs); public read, operator-written only.
+    match /places/{placeId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /protected_zones/{zoneId} {
       allow read: if true;
       allow write: if false;

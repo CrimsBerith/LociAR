@@ -7,6 +7,10 @@ import {
 import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
 import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
 import { reasonError } from './errors';
+import { fetchLinkPreview, storedContentSource } from './linkPreview';
+import { placeAt } from './places';
+import { INVITE_REQUIRED, inviteGate } from './invites';
+import { TRUSTED_AUTO_PUBLISH, authorIsTrusted, hasDrawingLayer } from './trust';
 import { anchorBindError, consumePostQuota, deleteAnchorOfPost, refundPostQuota } from './anchors';
 
 /**
@@ -77,6 +81,10 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   if (profile.suspended === true || profile.deleted_at) {
     throw reasonError('permission-denied', 'This account cannot publish', 'account_suspended');
   }
+  if (INVITE_REQUIRED) {
+    const priv = await db.collection('users_private').doc(caller.luid).get();
+    if (inviteGate(priv.data(), true)) throw reasonError('permission-denied', 'An invite code is required to publish', 'invite_required');
+  }
 
   const postId = body.clientMutationId!.toLowerCase();
   const postRef = db.collection('posts').doc(postId);
@@ -114,7 +122,12 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   // From here on the slot is consumed; any path that does not create the post gives it back.
   const insertPost = async () => {
     const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
-    const publishStatus = AUTO_PUBLISH_HIGH_QUALITY && placement.autoPublishEligible ? 'active' : 'pending_review';
+    const autoPublish = placement.autoPublishEligible && !hasDrawingLayer(body.editData)
+      && (AUTO_PUBLISH_HIGH_QUALITY || (TRUSTED_AUTO_PUBLISH && await authorIsTrusted(caller.luid, profile, Date.now()).catch(() => false)));
+    const publishStatus = autoPublish ? 'active' : 'pending_review';
+    const source = body.contentSource ?? null;
+    const place = await placeAt(lat, lng);
+    const preview = source ? await fetchLinkPreview(String(source.platform ?? '').toLowerCase(), source.url) : null;
 
     const document = {
       id: postId,
@@ -123,10 +136,11 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
       lat,
       lng,
       geohash: encodeGeohash(lat, lng, 10),
+      place_id: place?.id ?? null,
       pose_json: JSON.stringify(body.pose),
       ref_image_url: body.refImageUri,
       edit_data_json: JSON.stringify(body.editData),
-      content_source_json: body.contentSource ? JSON.stringify(body.contentSource) : null,
+      content_source_json: source ? JSON.stringify(storedContentSource(source, preview)) : null,
       anchor_bundle_json: body.anchorBundle ? JSON.stringify(body.anchorBundle) : null,
       calibration_json: JSON.stringify(placement.calibration),
       caption: body.caption.trim(),

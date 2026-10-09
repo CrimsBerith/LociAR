@@ -57,6 +57,7 @@ Apple'ın zorunlu kıldığı `PrivacyInfo.xcprivacy` dosyasıyla birebir uyumlu
 | **Fotoğraflar ve Videolar** | Evet | Hayır | Uygulama İşlevselliği (yalnızca isteğe bağlı profil fotoğrafı; kamera karesi saklanmaz, post olarak fotoğraf/video paylaşılamaz) |
 | **Diğer Kullanıcı İçerikleri** | Evet | Hayır | Uygulama İşlevselliği (Başlıklar, yorumlar, beğeniler, AR kayıtları) |
 | **Kesin Konum** ve **Diğer Veri (kamera kaynaklı görsel özellikler)** — üçüncü taraf: **Google ARCore** | Hayır (Google ile kimlik paylaşılmaz) | Hayır | Uygulama İşlevselliği (Cloud Anchors / Geospatial ile AR yeniden konumlandırma). App Store Connect'te "Data shared with third parties" olarak işaretle |
+| **Cihaz Kimliği (Device ID)** | Evet | Hayır | Uygulama İşlevselliği (bildirim izni verilirse FCM/APNs belirteci; çıkışta ve hesap silmede silinir). `PrivacyInfo.xcprivacy` içinde `NSPrivacyCollectedDataTypeDeviceID` olarak da tanımlı |
 | **Ürün Etkileşimi (Product Interaction)** | Evet | Hayır | Uygulama İşlevselliği + Analitik (görüntülenme/beğeni sayaçları, `analytics_events`, 180 gün saklama) |
 
 ---
@@ -89,7 +90,7 @@ Dear Apple Review Team,
 Thank you for reviewing LociAR.
 
 1. ABOUT THE APP:
-LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes and social media links (Spotify, YouTube, Instagram, X, Facebook) onto physical surfaces in the real world.
+LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes and social media links (Spotify, YouTube, TikTok, Instagram, X) onto physical surfaces in the real world.
 
 2. DEMO ACCOUNT & PRE-SEEDED CONTENT:
 - Credentials: apple-review@lociar.app / Review_5a4b23b2e56dba64_2026!
@@ -101,7 +102,7 @@ LociAR is a spatial augmented reality social application that allows users to di
 - Step 2: Grant Camera and Location permissions when prompted.
 - Step 3: Tap the '+' (Create/Paylaş) tab to open the AR Camera.
 - Step 4: Aim the center reticle at any well-lit surface (floor, table, or wall). When the reticle detects plane geometry, tap 'Pin to Surface' ('Yüzeye sabitle'). You can also tap 'Place in front of me (0.8m)' ('Önüme yerleştir') for immediate placement.
-- Step 5: Type a caption or attach a social media link (YouTube/Spotify/Instagram/X), then tap 'Publish' ('Yayınla').
+- Step 5: Type a caption or attach a social media link (YouTube/Spotify/TikTok/Instagram/X), then tap 'Publish' ('Yayınla').
 
 4. USER-GENERATED CONTENT (UGC) & SAFETY (GUIDELINE 1.2 COMPLIANCE):
 - Zero tolerance for objectionable content: 18+ content and sensitive protected zones (schools, hospitals, places of worship) are hard-blocked at the server level.
@@ -115,6 +116,14 @@ LociAR is a spatial augmented reality social application that allows users to di
 
 If you have any questions or require additional details, please reach out to us at support@lociar.app.
 ```
+
+### 6.1 Büyüme kapıları açılmadan önce (inceleme notlarına etkisi)
+
+Aşağıdaki ortam değişkenleri varsayılan olarak **kapalıdır**; kapalıyken yukarıdaki inceleme metni doğrudur. Açmadan önce notları güncelle:
+
+* `LOCIAR_INVITE_REQUIRED=true` (davet kodu kapısı): inceleme hesabına `users_private/{luid}.invite_exempt = true` yaz, aksi halde reviewer post yayınlayamaz. Notlara ekle: "Browsing is open to everyone; publishing requires an invite code. The demo account is exempt."
+* `LOCIAR_TRUSTED_AUTO_PUBLISH=true` (güvenilir yazar): 4. maddedeki "Newly created posts are held in 'pending_review'" cümlesi artık her yazar için doğru değildir. Şöyle değiştir: "New posts from new accounts are held in 'pending_review'. Established accounts with a clean history may publish immediately; posts containing drawings always require approval. All posts remain reportable and removable."
+* Bildirimler: izin isteğe bağlıdır; reddedilirse uygulama aynı çalışır. Gerekirse notlara "Push notifications are optional (likes, comments, follows, post approval; max 3/day)" ekle.
 
 ---
 

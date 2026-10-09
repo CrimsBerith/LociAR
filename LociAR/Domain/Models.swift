@@ -314,6 +314,7 @@ enum ContentSource: Hashable, Sendable {
     case video(URL)
     case spotify(URL)
     case youtube(URL)
+    case tiktok(URL)
     case facebook(URL)
     case instagram(URL)
     case x(URL)
@@ -323,9 +324,10 @@ enum ContentSource: Hashable, Sendable {
 enum ExternalMediaPlatform: String, CaseIterable, Hashable, Identifiable, Sendable {
     case spotify = "Spotify"
     case youtube = "YouTube"
-    case facebook = "Facebook"
+    case tiktok = "TikTok"
     case instagram = "Instagram"
     case x = "X"
+    case facebook = "Facebook"
 
     var id: Self { self }
 
@@ -333,6 +335,7 @@ enum ExternalMediaPlatform: String, CaseIterable, Hashable, Identifiable, Sendab
         switch self {
         case .spotify: URL(string: "spotify:")!
         case .youtube: URL(string: "youtube://")!
+        case .tiktok: URL(string: "snssdk1233://")!
         case .facebook: URL(string: "fb://")!
         case .instagram: URL(string: "instagram://")!
         case .x: URL(string: "twitter://")!
@@ -343,6 +346,7 @@ enum ExternalMediaPlatform: String, CaseIterable, Hashable, Identifiable, Sendab
         switch self {
         case .spotify: URL(string: "https://open.spotify.com/search")!
         case .youtube: URL(string: "https://www.youtube.com")!
+        case .tiktok: URL(string: "https://www.tiktok.com")!
         case .facebook: URL(string: "https://www.facebook.com")!
         case .instagram: URL(string: "https://www.instagram.com")!
         case .x: URL(string: "https://x.com")!
@@ -353,6 +357,7 @@ enum ExternalMediaPlatform: String, CaseIterable, Hashable, Identifiable, Sendab
         switch self {
         case .spotify: "open.spotify.com bağlantısı"
         case .youtube: "youtube.com veya youtu.be bağlantısı"
+        case .tiktok: "tiktok.com video bağlantısı"
         case .facebook: "facebook.com gönderi, video veya Reels bağlantısı"
         case .instagram: "instagram.com gönderi veya Reels bağlantısı"
         case .x: "x.com gönderi bağlantısı"
@@ -365,6 +370,7 @@ extension ContentSource {
         switch self {
         case .spotify(let url): (.spotify, url)
         case .youtube(let url): (.youtube, url)
+        case .tiktok(let url): (.tiktok, url)
         case .facebook(let url): (.facebook, url)
         case .instagram(let url): (.instagram, url)
         case .x(let url): (.x, url)
@@ -416,6 +422,19 @@ enum ExternalMediaParser {
             let isKnownVideoPath = ["shorts", "live", "embed"].contains(first) && rawPathParts.count >= 2
             if isWatch || isKnownVideoPath { return .youtube(url) }
         }
+        if ["vm.tiktok.com", "vt.tiktok.com"].contains(host), rawPathParts.count == 1, !rawPathParts[0].isEmpty {
+            return .tiktok(url)
+        }
+        if ["tiktok.com", "www.tiktok.com", "m.tiktok.com"].contains(host) {
+            if rawPathParts.count >= 3, rawPathParts[0].hasPrefix("@"), rawPathParts[0].count > 1,
+               ["video", "photo"].contains(rawPathParts[1].lowercased()),
+               rawPathParts[2].allSatisfy(\.isNumber) {
+                return .tiktok(url)
+            }
+            if rawPathParts.count == 2, rawPathParts[0].lowercased() == "t", !rawPathParts[1].isEmpty {
+                return .tiktok(url)
+            }
+        }
         if host == "fb.watch", !rawPathParts.isEmpty {
             return .facebook(url)
         }
@@ -437,10 +456,22 @@ enum ExternalMediaParser {
             if first == "share" && rawPathParts.count >= 3 && ["p", "r"].contains(rawPathParts[1].lowercased()) {
                 return .instagram(url)
             }
+            // Profile-scoped links: instagram.com/<user>/reel/<id> and /<user>/p/<id>.
+            if rawPathParts.count >= 3, ["p", "reel", "tv"].contains(rawPathParts[1].lowercased()), !rawPathParts[2].isEmpty {
+                return .instagram(url)
+            }
         }
-        if ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com", "fixupx.com", "vxtwitter.com", "fxtwitter.com"].contains(host),
+        let xHosts = ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"]
+        let xPreviewProxyHosts = ["fixupx.com", "vxtwitter.com", "fxtwitter.com"]
+        if (xHosts + xPreviewProxyHosts).contains(host),
            rawPathParts.count >= 3, rawPathParts[1].lowercased() == "status",
            rawPathParts[2].allSatisfy(\.isNumber) {
+            // The server only accepts X's own hosts, so preview-proxy links are stored as x.com.
+            if xPreviewProxyHosts.contains(host) {
+                var canonical = components
+                canonical.host = "x.com"
+                return .x(canonical.url ?? url)
+            }
             return .x(url)
         }
         return nil
@@ -460,6 +491,7 @@ extension ContentSource: Codable {
         case ("own_video", let url?): self = .video(url)
         case ("spotify", let url?): self = .spotify(url)
         case ("youtube", let url?): self = .youtube(url)
+        case ("tiktok", let url?): self = .tiktok(url)
         case ("facebook", let url?): self = .facebook(url)
         case ("instagram", let url?): self = .instagram(url)
         case ("x", let url?), ("twitter", let url?): self = .x(url)
@@ -489,6 +521,10 @@ extension ContentSource: Codable {
             try values.encode("embed", forKey: .mediaKind)
         case .youtube(let url):
             try values.encode("youtube", forKey: .platform)
+            try values.encode(url, forKey: .url)
+            try values.encode("embed", forKey: .mediaKind)
+        case .tiktok(let url):
+            try values.encode("tiktok", forKey: .platform)
             try values.encode(url, forKey: .url)
             try values.encode("embed", forKey: .mediaKind)
         case .facebook(let url):
@@ -620,6 +656,41 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var editData: EditData
     var contentSource: ContentSource?
     var counts: PostCounts
+    /// Title, author and cover the server read from the platform's public oEmbed (createPost). Display only.
+    var linkPreview: LinkPreview?
+}
+
+struct LinkPreview: Codable, Hashable, Sendable {
+    var title: String?
+    var author: String?
+    var thumbnailURL: URL?
+
+    private enum CodingKeys: String, CodingKey {
+        case title, author
+        case thumbnailURL = "thumbnailUrl"
+    }
+
+    init(title: String? = nil, author: String? = nil, thumbnailURL: URL? = nil) {
+        self.title = title
+        self.author = author
+        self.thumbnailURL = thumbnailURL
+    }
+
+    /// Lenient: a malformed field drops that field only, and covers must be https.
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        title = Self.clean((try? values.decodeIfPresent(String.self, forKey: .title)) ?? nil)
+        author = Self.clean((try? values.decodeIfPresent(String.self, forKey: .author)) ?? nil)
+        let cover = (try? values.decodeIfPresent(URL.self, forKey: .thumbnailURL)) ?? nil
+        thumbnailURL = cover?.scheme?.lowercased() == "https" ? cover : nil
+    }
+
+    var isEmpty: Bool { title == nil && author == nil && thumbnailURL == nil }
+
+    private static func clean(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
+        return String(trimmed.prefix(200))
+    }
 }
 
 struct PostCounts: Codable, Hashable, Sendable {

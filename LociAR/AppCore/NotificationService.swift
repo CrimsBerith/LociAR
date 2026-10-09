@@ -13,6 +13,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     /// Most recently received FCM registration token (nil until first token delivery).
     private(set) var fcmToken: String?
     var onPostNotificationTapped: ((UUID) -> Void)?
+    /// Set by the auth layer: receives every new FCM token so the server can target this device.
+    var onFCMTokenUpdate: (@Sendable (String) -> Void)?
 
     private override init() {
         super.init()
@@ -88,9 +90,9 @@ extension NotificationService: MessagingDelegate {
         guard let fcmToken else { return }
         Task { @MainActor in
             self.fcmToken = fcmToken
+            self.onFCMTokenUpdate?(fcmToken)
         }
-        // FCM token is available for server-side targeting if needed.
-        // Do NOT send it to Firestore directly — use server-side Functions to fan out.
+        // The token reaches the server only through the `registerPushToken` callable (FirebaseAuthRepository).
     }
 }
 

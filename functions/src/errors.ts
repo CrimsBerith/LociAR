@@ -19,6 +19,8 @@ export const REASONS = [
   'reauth_required',
   'apple_revoke_failed',
   'apple_revoke_unavailable',
+  'invite_required',
+  'invite_invalid',
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

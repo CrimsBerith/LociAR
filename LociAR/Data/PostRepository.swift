@@ -108,13 +108,34 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             .whereField("status", isEqualTo: PostStatus.active.rawValue)
             .whereField("visibility", isEqualTo: Visibility.public.rawValue)
             .order(by: "created_at", descending: true)
-            .limit(to: 50)
+            .limit(to: 100)
             .getDocuments()
         let blocked = try await blockCache.blockedIDs()
+        let now = Date()
         let rows = snapshot.documents
             .map { ($0.documentID, $0.data()) }
             .filter { FirestorePostMapper.isPubliclyListed($0.1) && !blocked.contains($0.1["creator_id"] as? String ?? "") }
-        return await withoutHidden(await materialize(rows).filter(PublicSafetyPolicy.isListedInPublicDiscover))
+        let ranked = Self.rankedForDiscover(rows, now: now).prefix(50)
+        let listed = await materialize(Array(ranked)).filter(PublicSafetyPolicy.isListedInPublicDiscover)
+        return await withoutHidden(listed)
+    }
+
+    /// Newest 100 public posts, re-ordered so engaging posts stay visible longer than silent ones.
+    /// The sort is stable on score ties, so equally scored posts keep their newest-first order.
+    nonisolated static func rankedForDiscover(_ rows: [(String, [String: Any])], now: Date) -> [(String, [String: Any])] {
+        let scored = rows.enumerated().map { index, row -> (Int, Double) in
+            let engagement = (row.1["engagement_score"] as? NSNumber)?.doubleValue ?? 0
+            let created = (row.1["created_at"] as? Timestamp)?.dateValue() ?? now
+            return (index, discoverScore(engagement: engagement, ageHours: now.timeIntervalSince(created) / 3600))
+        }
+        return scored
+            .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }
+            .map { rows[$0.0] }
+    }
+
+    /// Hacker-News style decay: `(1 + engagement) / (age + 2)^1.5`, engagement clamped at 0.
+    nonisolated static func discoverScore(engagement: Double, ageHours: Double) -> Double {
+        (1 + max(0, engagement)) / pow(max(0, ageHours) + 2, 1.5)
     }
 
     func publish(_ post: LociPost) async throws -> PostPublishReceipt {
@@ -244,6 +265,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         case "account_suspended": return "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin."
         case "protected_zone": return "Bu korumalı bölgede post yayınlanamaz."
         case "rate_limited": return "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin."
+        case "invite_required": return "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir."
         default: break
         }
         if raw.contains("verified Apple") || raw.contains("verified Apple, Google, or email identity") {
@@ -256,7 +278,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         }
         if raw.contains("protected zone") { return "Bu korumalı bölgede post yayınlanamaz." }
         if raw.contains("Only text posts") { return "Postlar yalnızca metin ve sosyal medya bağlantısı içerebilir; fotoğraf ve video desteklenmiyor." }
-        if raw.contains("Only social media links") { return "Yalnızca Spotify, YouTube, Instagram, X ve Facebook bağlantıları eklenebilir." }
+        if raw.contains("Only social media links") { return "Yalnızca Spotify, YouTube, TikTok, Instagram ve X bağlantıları eklenebilir." }
         if raw.contains("Invalid social media link") { return "Sosyal medya bağlantısı geçersiz. Paylaşım bağlantısını uygulamadan tekrar kopyala." }
         if raw.contains("18+ content") { return "18+ içerik bu sürümde kabul edilmez." }
         if raw.contains("Invalid reference image") { return "AR referans görüntüsü geçersiz. Yüzeyi yeniden tarayıp tekrar dene." }

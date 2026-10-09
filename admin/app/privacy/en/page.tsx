@@ -26,7 +26,11 @@ export default function PrivacyPageEn() {
         <li><strong>Location:</strong> while the app is in use, to show nearby content and store where you place a post.</li>
         <li><strong>Camera and media:</strong> used only for AR placement (posts are text and social media links; no photos or videos are uploaded); the camera feed is not
           recorded. When you pin content, only the AR map file for that surface is stored (a feature map, not a photo); no camera image is saved.</li>
-        <li><strong>User content:</strong> posts, captions, comments, likes, saves, follows, blocks and reports.</li>
+        <li><strong>User content:</strong> posts, captions, comments, likes, saves, follows, blocks and reports.
+          For YouTube, Spotify and TikTok links, our server reads the platform&apos;s public preview (title, author, cover image) once and attaches it to the post; the cover image is loaded to your device from that platform&apos;s servers when you open the post.</li>
+        <li><strong>Notification token:</strong> if you allow notifications, your device&apos;s Apple/Firebase push token is stored against your account
+          to deliver like, comment, follow and post-approval notifications; it is deleted when you sign out or delete your account.
+          At most 3 notifications are sent per day.</li>
         <li><strong>Security:</strong> session tokens, device attestation (Apple App Attest / Firebase App Check), IP address
           processed by our infrastructure provider, and abuse-prevention records.</li>
       </ul>

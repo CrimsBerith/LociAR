@@ -78,7 +78,14 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     private let callables: CallableClient
 
     init(functionsRegion: String) {
-        callables = CallableClient(region: functionsRegion)
+        let client = CallableClient(region: functionsRegion)
+        callables = client
+        // New FCM tokens go to the server; calls made while signed out fail and are ignored.
+        Task { @MainActor in
+            NotificationService.shared.onFCMTokenUpdate = { token in
+                Task { _ = try? await client.callRaw("registerPushToken", object: ["token": token]) }
+            }
+        }
     }
 
     private struct EnsureProfileResponse: Decodable, Sendable {
@@ -119,6 +126,10 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         )
         if response.claimsUpdated {
             _ = try await user.getIDTokenResult(forcingRefresh: true)
+        }
+        let pushToken = await NotificationService.shared.fcmToken
+        if let token = pushToken {
+            _ = try? await callables.callRaw("registerPushToken", object: ["token": token])
         }
         let avatar = await AvatarReference.resolve(avatarURL: response.avatarURL, preset: response.avatarPreset)
         if user.displayName != response.handle {
@@ -264,6 +275,10 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     }
 
     func signOut() async {
+        let pushToken = await NotificationService.shared.fcmToken
+        if let token = pushToken {
+            _ = try? await callables.callRaw("unregisterPushToken", object: ["token": token])
+        }
         try? Auth.auth().signOut()
     }
 

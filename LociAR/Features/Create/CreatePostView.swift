@@ -371,7 +371,7 @@ struct CreatePostView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(selectedExternalPlatform?.rawValue ?? "Sosyal medya postu ekle")
                                         .font(.subheadline.weight(.semibold))
-                                    Text(selectedExternalPlatform == nil ? "Spotify · YouTube · Facebook · Instagram · X" : "Platformu değiştirmek için dokun")
+                                    Text(selectedExternalPlatform == nil ? "Spotify · YouTube · TikTok · Instagram · X" : "Platformu değiştirmek için dokun")
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
@@ -607,7 +607,8 @@ struct CreatePostView: View {
                         .font(.subheadline)
                         .foregroundStyle(LociTheme.secondaryText)
 
-                    let platforms = ExternalMediaPlatform.allCases
+                    // Facebook is not offered (2 Oct 2026); the enum case stays so old stored posts still decode.
+                    let platforms = ExternalMediaPlatform.allCases.filter { $0 != .facebook }
                     let columnCount = 3
                     VStack(spacing: 12) {
                         ForEach(0..<((platforms.count + columnCount - 1) / columnCount), id: \.self) { row in

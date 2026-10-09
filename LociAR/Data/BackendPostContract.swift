@@ -20,6 +20,7 @@ struct BackendPostRow: Decodable, Sendable {
     let pose: BackendPose
     let editData: EditData
     let contentSource: ContentSource?
+    let linkPreview: LinkPreview?
     let caption: String
     let status: PostStatus
     let visibility: Visibility
@@ -36,6 +37,7 @@ struct BackendPostRow: Decodable, Sendable {
         case createdAt = "created_at"
         case editData = "edit_data"
         case contentSource = "content_source"
+        case linkPreview = "link_preview"
         case ageRating = "age_rating"
         case anchorBundle = "anchor_bundle"
         case viewsCount = "views_count"
@@ -55,7 +57,8 @@ struct BackendPostRow: Decodable, Sendable {
             id: id, creatorID: creatorID, creatorHandle: creatorHandle, createdAt: createdAt,
             caption: caption, status: status, visibility: visibility, ageRating: ageRating,
             anchorBundle: bundle, editData: editData, contentSource: contentSource,
-            counts: PostCounts(views: viewsCount ?? 0, likes: likesCount ?? 0, comments: commentsCount ?? 0)
+            counts: PostCounts(views: viewsCount ?? 0, likes: likesCount ?? 0, comments: commentsCount ?? 0),
+            linkPreview: (linkPreview?.isEmpty ?? true) ? nil : linkPreview
         )
     }
 }

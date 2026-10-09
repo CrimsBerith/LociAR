@@ -33,6 +33,13 @@ Docker, Vercel veya başka bir barındırma kullanılmaz.
 Önemli davranışlar:
 - Her yeni post `pending_review` olarak açılır; yüksek kaliteli AR kilidinin otomatik yayını
   varsayılan olarak kapalı (`LOCIAR_AUTO_PUBLISH_HIGH_QUALITY=true` ile açılabilir). App Review notlarıyla uyumlu.
+- Güvenilir yazar otomatik yayını: `LOCIAR_TRUSTED_AUTO_PUBLISH=true` (varsayılan kapalı; açmadan önce App Review notları güncellenmeli).
+  Kural `functions/src/trust.ts`: hesap 7 günden eski, en az 5 onaylı herkese açık post, `flagged` post yok,
+  `users_private.trust_revoked` değil; ayrıca AR kilidi yüksek kaliteli olmalı. Çizim içeren postlar hiçbir zaman otomatik yayınlanmaz.
+  Moderatör `removed` kararları algılanmaz: tekrar eden ihlalde admin `trust_revoked: true` yazmalı.
+- Davet kodu (beta): `createInvites` (kullanıcı başına 3 kod) ve `redeemInvite` callable'ları `functions/src/invites.ts` içinde.
+  `LOCIAR_INVITE_REQUIRED=true` iken kod kullanmamış hesap post yayınlayamaz (`invite_required`); gezmek serbest.
+  App Review demo hesabının `users_private/{luid}` belgesine `invite_exempt: true` yazılmalı.
 - Şifreli hesaplarda e-posta doğrulanmadan uygulamaya girilemez; Apple hesapları doğrulanmış sayılır.
 - "Giriş bağlantısı gönder" (magic link) iOS'ta kaldırıldı; Firebase e-posta bağlantısı Universal Link gerektirir.
 - Hesap silme: Apple kullanıcılarında önce Apple token'ı iptal edilir, sonra `deleteAccount` tüm
@@ -185,3 +192,21 @@ Uygula: `gcloud storage buckets update gs://lociar-2f38c.firebasestorage.app --l
 **Cloud Anchor göç betikleri.** Eski postlar için bir kez: `FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/backfill-cloud-anchors.mjs --apply`; uzun `display_name` düzeltmesi: `node functions/scripts/fix-long-display-names.mjs --apply`. (Önce `--apply`sız kuru çalıştırma yap.)
 
 **Admin.** `ADMIN_ORIGIN` `admin/apphosting.yaml` içinde App Hosting adresine sabit (Origin kontrolü buna bakar); özel alan adına geçince orada güncelle.
+
+**Bütçe uyarısı (Faz 3.4, owner).** Blaze planında kötüye kullanım veya hatalı bir döngü faturayı sessizce büyütebilir. Faturalama hesabı için aylık bütçe ve eşik uyarıları kur (tutarı kendi hedefine göre değiştir; e-posta alıcıları Billing > Budgets & alerts ekranından eklenir):
+
+```bash
+gcloud billing accounts list
+gcloud billing budgets create --billing-account=<FATURA_HESABI_ID> \
+  --display-name="lociar-aylik" --budget-amount=20USD \
+  --filter-projects=projects/lociar-2f38c \
+  --threshold-rule=percent=0.5 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0
+```
+
+Bütçe harcamayı durdurmaz, yalnızca haber verir. Uyarı gelirse sırayla bak: Functions çağrı sayıları (özellikle `createPost`, `redeemInvite`, `registerPushToken`), Firestore okuma/yazma, FCM gönderimi. Post oluşturma (saatlik/günlük kota), davet kodu denemeleri (saatte 10 hatalı) ve push (günde kullanıcı başına 3) sınırlıdır; diğer callable'ların kendi kotası yoktur, `maxInstances` ile sınırlanır.
+
+**App Check izleme (Faz 3.4, owner).** Firebase Console > App Check > APIs: Cloud Functions, Firestore ve Storage için "Verified / Unverified requests" oranına bak. Callable'larda zorlama açık (`ENFORCE_APP_CHECK`); Firestore ve Storage için zorlamayı, doğrulanmamış istek oranı yaklaşık sıfıra inmeden açma, yoksa App Attest'e geçemeyen eski sürümler kilitlenir. TestFlight/App Store sürümü yayınlandıktan sonra bir hafta bu oranı izle.
+
+**Büyüme hunisi.** `analytics_events` içinde admin Analytics sayfasında şu olaylar sayılır: `post_published_active`, `post_pending_review_created`, `invite_redeemed`, `protected_zone_blocked`, `avatar_accepted`. Davet kapısı açıldıktan sonra `invite_redeemed` ile `post_*` olaylarını karşılaştırarak kayıttan ilk posta geçişi okunur.
+
+**Mekan katmanı (Faz 2.5, sunucu).** `places/{id}` (`name`, `city`, `lat`, `lng`, `radius_meters`, `active`) herkese açık okunur, yalnızca betikle yazılır. `createPost` bir postun konumu bir mekanın yarıçapına düşüyorsa sunucuda `place_id` yazar (en yakın merkez kazanır; istemciye güvenilmez; mekan okunamazsa post yine yayınlanır, `place_id: null`). Mekanları yüklemek için: `cd functions && FIREBASE_PROJECT_ID=lociar-2f38c node scripts/import-places.mjs scripts/places.sample.json` (kuru çalıştırma), sonra `--apply`. Betik, korumalı bölgeyle çakışan mekanı reddeder: `createPost` orada post yayınlamayı zaten engellediği için listeye girmemeli. `places.sample.json` içindeki koordinatlar yaklaşıktır; yüklemeden önce haritadan doğrula ve her mekan için ARCore VPS uygunluğunu kontrol et. Henüz iOS mekan haritası/sayfası yok. Deploy sonrası `firebase deploy --only firestore:rules` gerekir.

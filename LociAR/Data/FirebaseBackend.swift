@@ -266,6 +266,7 @@ enum FirestorePostMapper {
     /// single decoding path for posts.
     nonisolated static func row(id: String, data: [String: Any]) throws -> BackendPostRow {
         let createdAt = FirestoreJSON.date(data["created_at"]) ?? Date()
+        let contentSource = FirestoreJSON.parseEmbedded(data["content_source_json"])
         let object: [String: Any] = [
             "id": id,
             "creator_id": data["creator_id"] ?? NSNull(),
@@ -273,7 +274,8 @@ enum FirestorePostMapper {
             "created_at": FirestoreJSON.isoString(createdAt),
             "pose": FirestoreJSON.parseEmbedded(data["pose_json"]),
             "edit_data": FirestoreJSON.parseEmbedded(data["edit_data_json"]),
-            "content_source": FirestoreJSON.parseEmbedded(data["content_source_json"]),
+            "content_source": contentSource,
+            "link_preview": (contentSource as? [String: Any])?["preview"] ?? NSNull(),
             "anchor_bundle": FirestoreJSON.parseEmbedded(data["anchor_bundle_json"]),
             "caption": data["caption"] ?? "",
             "status": data["status"] ?? "pending_review",

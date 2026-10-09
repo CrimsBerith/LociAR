@@ -138,8 +138,8 @@ function hasStrictARKitWorldLockEvidence(body: CreatePostBody): boolean {
 const SOCIAL_HOSTS: Record<string, string[]> = {
   spotify: ['open.spotify.com', 'spotify.link'],
   youtube: ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'],
-  facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.watch'],
   instagram: ['instagram.com', 'www.instagram.com'],
+  tiktok: ['tiktok.com', 'www.tiktok.com', 'm.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com'],
   x: ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com', 'mobile.twitter.com'],
 };
 SOCIAL_HOSTS.twitter = SOCIAL_HOSTS.x;
@@ -167,9 +167,40 @@ function layerTexts(body: CreatePostBody): string[] {
 
 const ALLOWED_LAYER_TYPES = new Set(['text', 'drawing']);
 
+export const MAX_EDIT_LAYERS = 20;
+export const MAX_POINTS_PER_DRAWING = 2000;
+export const MAX_TOTAL_DRAWING_POINTS = 4000;
+const MAX_LAYER_TEXT = 1000;
+const MAX_POINT_ABS = 100_000;
+const LAYER_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+/** Shape limits for edit layers: bounded count, text length, colours and drawing points. */
+function layerShapeError(layers: unknown[]): string | null {
+  if (layers.length > MAX_EDIT_LAYERS) return 'Too many edit layers';
+  let totalPoints = 0;
+  for (const raw of layers) {
+    const layer = (raw ?? {}) as Record<string, unknown>;
+    if (layer.color != null && (typeof layer.color !== 'string' || !LAYER_COLOR.test(layer.color))) return 'Invalid layer color';
+    if (typeof layer.text === 'string' && layer.text.length > MAX_LAYER_TEXT) return 'Layer text is too long';
+    if (String(layer.type ?? layer.kind) !== 'drawing' || layer.points == null) continue;
+    const points = layer.points;
+    if (!Array.isArray(points) || points.length > MAX_POINTS_PER_DRAWING) return 'Invalid drawing';
+    for (const point of points) {
+      const p = (point ?? {}) as { x?: unknown; y?: unknown };
+      if (typeof p.x !== 'number' || typeof p.y !== 'number' || !Number.isFinite(p.x) || !Number.isFinite(p.y)
+        || Math.abs(p.x) > MAX_POINT_ABS || Math.abs(p.y) > MAX_POINT_ABS) return 'Invalid drawing';
+    }
+    totalPoints += points.length;
+    if (totalPoints > MAX_TOTAL_DRAWING_POINTS) return 'Invalid drawing';
+  }
+  return null;
+}
+
 function contentPolicyError(body: CreatePostBody): string | null {
   if (anyBlocked([body.caption, ...layerTexts(body)])) return 'Content not allowed';
   const layers = (body.editData as { layers?: unknown[] }).layers ?? [];
+  const shapeError = layerShapeError(layers);
+  if (shapeError) return shapeError;
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
     if (!ALLOWED_LAYER_TYPES.has(String(layer.type ?? layer.kind))) return 'Only text posts and social media links are allowed';

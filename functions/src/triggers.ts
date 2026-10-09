@@ -4,6 +4,7 @@ import { analyticsEventDoc, db, FieldValue, Timestamp } from './core';
 import { applyCountersOnce } from './counters';
 import { anyBlocked, containsBlockedTerm } from './moderation';
 import { schedulePurgeOnStatusChange } from './cleanup';
+import { notifyPostApproved } from './push';
 
 async function safeUpdate(path: string, data: Record<string, unknown>): Promise<void> {
   try {
@@ -143,6 +144,9 @@ export const onPostWritten = onDocumentWritten('posts/{postId}', async (event) =
   const creator = (after ?? before)?.creator_id;
   if (delta !== 0 && creator) await applyCountersOnce(event.id, [{ path: `profiles/${creator}`, changes: { public_post_count: delta } }]);
   if (before?.status !== after?.status) await schedulePurgeOnStatusChange(event.params.postId, before, after);
+  if (before?.status === 'pending_review' && after?.status === 'active' && typeof after.creator_id === 'string') {
+    await notifyPostApproved(after.creator_id, event.params.postId);
+  }
 });
 
 const FANOUT_PAGE = 500;

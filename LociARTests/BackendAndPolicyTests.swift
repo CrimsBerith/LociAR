@@ -193,6 +193,43 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(post.counts.likes, 2)
     }
 
+    func testLinkPreviewFromStoredContentSourceReachesDomainPost() throws {
+        func json(_ object: Any) throws -> String {
+            String(decoding: try JSONSerialization.data(withJSONObject: object), as: UTF8.self)
+        }
+        func document(preview: [String: Any]?) throws -> [String: Any] {
+            var source: [String: Any] = ["platform": "youtube", "url": "https://youtu.be/abc"]
+            if let preview { source["preview"] = preview }
+            return [
+                "creator_id": UUID().uuidString,
+                "pose_json": try json(["latitude": 41.0, "longitude": 29.0, "heading": 90.0]),
+                "edit_data_json": try json(["version": 1, "canvas": ["width": 1080, "height": 1920], "layers": [[
+                    "id": UUID().uuidString, "type": "text", "text": "Loci", "color": "#FFFFFF", "opacity": 1, "scale": 1, "rotation": 0
+                ]]]),
+                "content_source_json": try json(source),
+                "caption": "c", "status": "active", "visibility": "public", "age_rating": "all",
+            ]
+        }
+
+        let full = try FirestorePostMapper.row(id: UUID().uuidString, data: document(preview: [
+            "title": "  Song  ", "author": "Artist", "thumbnailUrl": "https://i.ytimg.com/vi/abc/hqdefault.jpg",
+        ])).domainPost()
+        XCTAssertEqual(full.linkPreview?.title, "Song")
+        XCTAssertEqual(full.linkPreview?.author, "Artist")
+        XCTAssertEqual(full.linkPreview?.thumbnailURL?.host, "i.ytimg.com")
+
+        // Plain-http covers are dropped; the rest of the preview survives.
+        let insecure = try FirestorePostMapper.row(id: UUID().uuidString, data: document(preview: [
+            "title": "Song", "thumbnailUrl": "http://i.ytimg.com/vi/abc/hqdefault.jpg",
+        ])).domainPost()
+        XCTAssertNil(insecure.linkPreview?.thumbnailURL)
+        XCTAssertEqual(insecure.linkPreview?.title, "Song")
+
+        // Posts without a preview (older posts, failed oEmbed) have none.
+        XCTAssertNil(try FirestorePostMapper.row(id: UUID().uuidString, data: document(preview: nil)).domainPost().linkPreview)
+        XCTAssertNil(try FirestorePostMapper.row(id: UUID().uuidString, data: document(preview: [:])).domainPost().linkPreview)
+    }
+
     func testSpatialRendererProducesTextureImage() async {
         let layer = EditLayer(id: UUID(), kind: .text, text: "LociAR", assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0)
         let image = await SpatialContentRenderer().render(EditData(layers: [layer], canvasWidth: 320, canvasHeight: 480))
@@ -258,7 +295,22 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(ExternalMediaParser.parse("https://www.facebook.com/loci/posts/123")?.externalMedia?.platform, .facebook)
         XCTAssertEqual(ExternalMediaParser.parse("https://fb.watch/abc123/")?.externalMedia?.platform, .facebook)
         XCTAssertEqual(ExternalMediaParser.parse("https://www.instagram.com/reel/ABC123/")?.externalMedia?.platform, .instagram)
+        XCTAssertEqual(ExternalMediaParser.parse("https://www.instagram.com/loci/reel/ABC123/")?.externalMedia?.platform, .instagram)
+        XCTAssertEqual(ExternalMediaParser.parse("https://www.instagram.com/loci/p/ABC123/")?.externalMedia?.platform, .instagram)
+        XCTAssertNil(ExternalMediaParser.parse("https://www.instagram.com/loci/reels/"))
         XCTAssertEqual(ExternalMediaParser.parse("https://x.com/loci/status/123")?.externalMedia?.platform, .x)
+        XCTAssertEqual(ExternalMediaParser.parse("https://www.tiktok.com/@loci/video/7300000000000000000")?.externalMedia?.platform, .tiktok)
+        XCTAssertEqual(ExternalMediaParser.parse("https://vm.tiktok.com/ZMabc123/")?.externalMedia?.platform, .tiktok)
+        XCTAssertEqual(ExternalMediaParser.parse("https://vt.tiktok.com/ZSabc123/")?.externalMedia?.platform, .tiktok)
+        XCTAssertEqual(ExternalMediaParser.parse("https://www.tiktok.com/t/ZTabc123/")?.externalMedia?.platform, .tiktok)
+        XCTAssertNil(ExternalMediaParser.parse("https://www.tiktok.com/@loci"))
+        XCTAssertNil(ExternalMediaParser.parse("https://www.tiktok.com/@loci/video/not-a-number"))
+        XCTAssertNil(ExternalMediaParser.parse("http://www.tiktok.com/@loci/video/123"))
+        XCTAssertNil(ExternalMediaParser.parse("https://tiktok.com.example.org/@loci/video/123"))
+        XCTAssertNil(ExternalMediaParser.parse("https://vm.tiktok.com/"))
+        // X preview-proxy hosts are rewritten to x.com because the server accepts only X's own hosts.
+        XCTAssertEqual(ExternalMediaParser.parse("https://fixupx.com/loci/status/123")?.externalMedia?.url.host, "x.com")
+        XCTAssertEqual(ExternalMediaParser.parse("https://vxtwitter.com/loci/status/123")?.externalMedia?.platform, .x)
         XCTAssertNil(ExternalMediaParser.parse("http://x.com/loci/status/123"))
         XCTAssertNil(ExternalMediaParser.parse("https://x.com.example.org/loci/status/123"))
         XCTAssertNil(ExternalMediaParser.parse("https://youtube.com/channel/not-a-post"))
@@ -519,6 +571,35 @@ final class BackendAndPolicyTests: XCTestCase {
             FirestorePostRepository.serverMessage("Creation is blocked in protected zone: X"),
             "Bu korumalı bölgede post yayınlanamaz."
         )
+    }
+
+    func testDiscoverScoreFavoursEngagementAndDecaysWithAge() {
+        XCTAssertGreaterThan(
+            FirestorePostRepository.discoverScore(engagement: 30, ageHours: 24),
+            FirestorePostRepository.discoverScore(engagement: 0, ageHours: 1)
+        )
+        XCTAssertGreaterThan(
+            FirestorePostRepository.discoverScore(engagement: 5, ageHours: 1),
+            FirestorePostRepository.discoverScore(engagement: 5, ageHours: 48)
+        )
+        XCTAssertEqual(
+            FirestorePostRepository.discoverScore(engagement: -9, ageHours: -3),
+            FirestorePostRepository.discoverScore(engagement: 0, ageHours: 0)
+        )
+    }
+
+    func testDiscoverRankKeepsNewestFirstOnTies() {
+        let rows: [(String, [String: Any])] = [("a", [:]), ("b", [:]), ("c", ["engagement_score": 40])]
+        let order = FirestorePostRepository.rankedForDiscover(rows, now: Date()).map(\.0)
+        XCTAssertEqual(order, ["c", "a", "b"])
+    }
+
+    func testInviteRequiredReasonIsShownInTurkish() {
+        let message = FirestorePostRepository.serverMessage("An invite code is required", reason: "invite_required")
+        XCTAssertTrue(message.contains("davet kodu"))
+        XCTAssertNotEqual(message, "An invite code is required")
+        XCTAssertNotNil(InviteFlowError.invalid.errorDescription)
+        XCTAssertNotEqual(InviteFlowError.invalid.errorDescription, InviteFlowError.rateLimited.errorDescription)
     }
 
     func testHiddenPostStoreIsScopedPerAccount() async throws {

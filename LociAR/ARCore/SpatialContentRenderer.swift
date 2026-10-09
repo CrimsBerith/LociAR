@@ -186,31 +186,75 @@ actor SpatialContentRenderer {
     }
 
     nonisolated private static func drawTextPost(_ text: String) -> CGImage? {
+        let w = Int(externalPreviewCardPixelSize.width)
+        let h = Int(externalPreviewCardPixelSize.height)
+        guard let ctx = makeContext(width: w, height: h) else { return nil }
+        let teal = CGColor(red: 0.0, green: 0.91, blue: 0.80, alpha: 1)
+
+        // Deep black background
+        ctx.setFillColor(CGColor(red: 0.010, green: 0.010, blue: 0.014, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+
+        // Neon teal glowing border
+        let bi: CGFloat = 14
+        let cr: CGFloat = 40
+        let borderRect = CGRect(x: bi, y: bi, width: CGFloat(w) - bi * 2, height: CGFloat(h) - bi * 2)
+        let borderPath = CGPath(roundedRect: borderRect, cornerWidth: cr, cornerHeight: cr, transform: nil)
+
+        ctx.saveGState()
+        ctx.setShadow(offset: .zero, blur: 18, color: CGColor(red: 0, green: 0.91, blue: 0.80, alpha: 0.65))
+        ctx.setStrokeColor(CGColor(red: 0, green: 0.91, blue: 0.80, alpha: 0.55))
+        ctx.setLineWidth(2.5)
+        ctx.addPath(borderPath)
+        ctx.strokePath()
+        ctx.restoreGState()
+
+        ctx.setStrokeColor(CGColor(red: 0, green: 0.91, blue: 0.80, alpha: 0.80))
+        ctx.setLineWidth(2)
+        ctx.addPath(borderPath)
+        ctx.strokePath()
+
+        // Corner bracket accents
+        let arm: CGFloat = 34, thick: CGFloat = 3
+        let bx = bi, by = bi
+        let bw = CGFloat(w) - bi * 2, bh = CGFloat(h) - bi * 2
+        ctx.setFillColor(teal)
+        ctx.fill(CGRect(x: bx, y: by, width: arm, height: thick))
+        ctx.fill(CGRect(x: bx, y: by, width: thick, height: arm))
+        ctx.fill(CGRect(x: bx + bw - arm, y: by, width: arm, height: thick))
+        ctx.fill(CGRect(x: bx + bw - thick, y: by, width: thick, height: arm))
+        ctx.fill(CGRect(x: bx, y: by + bh - thick, width: arm, height: thick))
+        ctx.fill(CGRect(x: bx, y: by + bh - arm, width: thick, height: arm))
+        ctx.fill(CGRect(x: bx + bw - arm, y: by + bh - thick, width: arm, height: thick))
+        ctx.fill(CGRect(x: bx + bw - thick, y: by + bh - arm, width: thick, height: arm))
+
+        // Measure text for vertical centering
         let count = text.count
-        let fontSize: CGFloat = count <= 42 ? 52 : count <= 105 ? 43 : 36
-        let maxTextWidth: CGFloat = 640
-        let attributes: [CFString: Any] = [
+        let fontSize: CGFloat = count <= 40 ? 56 : count <= 100 ? 44 : 36
+        let maxTextW: CGFloat = CGFloat(w) - 160
+        let textAttrs: [CFString: Any] = [
             kCTFontAttributeName: CTFontCreateWithName("HelveticaNeue-Bold" as CFString, fontSize, nil),
             kCTForegroundColorAttributeName: CGColor(gray: 1, alpha: 1)
         ]
-        guard let attributed = CFAttributedStringCreate(nil, text as CFString, attributes as CFDictionary) else { return nil }
-        let framesetter = CTFramesetterCreateWithAttributedString(attributed)
-        let fit = CTFramesetterSuggestFrameSizeWithConstraints(
-            framesetter,
-            CFRange(location: 0, length: 0),
-            nil,
-            CGSize(width: maxTextWidth, height: CGFloat.greatestFiniteMagnitude),
-            nil
+        guard let attrStr = CFAttributedStringCreate(nil, text as CFString, textAttrs as CFDictionary) else { return nil }
+        let setter = CTFramesetterCreateWithAttributedString(attrStr)
+        let measured = CTFramesetterSuggestFrameSizeWithConstraints(
+            setter, CFRange(location: 0, length: 0), nil,
+            CGSize(width: maxTextW, height: .greatestFiniteMagnitude), nil
         )
-        let padX: CGFloat = 10
-        let padY: CGFloat = 6
-        let width = max(24, Int(ceil(min(maxTextWidth, fit.width) + padX * 2)))
-        let height = max(24, Int(ceil(fit.height + padY * 2)))
-        guard let context = makeContext(width: width, height: height) else { return nil }
-        let textRect = CGRect(x: padX, y: padY, width: CGFloat(width) - padX * 2, height: CGFloat(height) - padY * 2)
-        context.setShadow(offset: CGSize(width: 0, height: -1), blur: 5, color: CGColor(gray: 0, alpha: 0.72))
-        drawText(text, in: textRect, fontSize: fontSize, color: CGColor(gray: 1, alpha: 1), context: context)
-        return context.makeImage()
+        let textW = min(maxTextW, measured.width)
+        let textH = max(measured.height, fontSize)
+        let textX = (CGFloat(w) - textW) / 2
+        let textY = (CGFloat(h) - textH) / 2
+
+        ctx.saveGState()
+        ctx.setShadow(offset: .zero, blur: 10, color: CGColor(red: 0, green: 0.91, blue: 0.80, alpha: 0.30))
+        drawText(text, in: CGRect(x: textX, y: textY, width: textW, height: textH),
+                 fontSize: fontSize, color: CGColor(gray: 1, alpha: 1), context: ctx)
+        ctx.restoreGState()
+
+        applySurfaceIntegrationFade(context: ctx, width: w, height: h)
+        return ctx.makeImage()
     }
 
     nonisolated private static func drawImagePost(_ image: CGImage, caption: String) -> CGImage? {
@@ -251,16 +295,24 @@ actor SpatialContentRenderer {
         let height = Int(externalPreviewCardPixelSize.height)
         guard let context = makeContext(width: width, height: height) else { return nil }
         let bounds = CGRect(x: 8, y: 8, width: width - 16, height: height - 16)
-        drawRoundedPanel(in: bounds, context: context)
+        let accent = accentColor(platform)
+
         context.saveGState()
-        context.addPath(CGPath(roundedRect: bounds, cornerWidth: 54, cornerHeight: 54, transform: nil))
+        context.addPath(CGPath(roundedRect: bounds, cornerWidth: 48, cornerHeight: 48, transform: nil))
         context.clip()
         drawExternalCard(platform: platform, url: url, caption: caption, context: context, width: width, height: height)
         context.restoreGState()
-        context.setStrokeColor(CGColor(red: 0.22, green: 0.88, blue: 0.72, alpha: 0.66))
-        context.setLineWidth(7)
-        context.addPath(CGPath(roundedRect: bounds, cornerWidth: 54, cornerHeight: 54, transform: nil))
+
+        // Muted platform-tinted border
+        context.saveGState()
+        context.setShadow(offset: .zero, blur: 5, color: accent.copy(alpha: 0.18))
+        context.setStrokeColor(accent.copy(alpha: 0.28) ?? accent)
+        context.setLineWidth(2)
+        context.addPath(CGPath(roundedRect: bounds, cornerWidth: 48, cornerHeight: 48, transform: nil))
         context.strokePath()
+        context.restoreGState()
+
+        applySurfaceIntegrationFade(context: context, width: width, height: height)
         return context.makeImage()
     }
 
@@ -273,24 +325,6 @@ actor SpatialContentRenderer {
         return context
     }
 
-    nonisolated private static func drawRoundedPanel(in rect: CGRect, context: CGContext) {
-        context.saveGState()
-        let path = CGPath(roundedRect: rect, cornerWidth: 54, cornerHeight: 54, transform: nil)
-        context.addPath(path)
-        context.clip()
-        let colors = [
-            CGColor(red: 0.055, green: 0.23, blue: 0.23, alpha: 0.94),
-            CGColor(red: 0.055, green: 0.10, blue: 0.16, alpha: 0.94)
-        ] as CFArray
-        if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
-            context.drawLinearGradient(gradient, start: CGPoint(x: rect.minX, y: rect.maxY), end: CGPoint(x: rect.maxX, y: rect.minY), options: [])
-        }
-        context.restoreGState()
-        context.setStrokeColor(CGColor(red: 0.22, green: 0.88, blue: 0.72, alpha: 0.66))
-        context.setLineWidth(7)
-        context.addPath(path)
-        context.strokePath()
-    }
 
     nonisolated private static func decodedImage(_ data: Data) -> CGImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
@@ -364,62 +398,128 @@ actor SpatialContentRenderer {
         width: Int,
         height: Int
     ) {
-        let accent: CGColor
-        switch platform {
-        case .spotify: accent = CGColor(red: 30 / 255, green: 215 / 255, blue: 96 / 255, alpha: 1)
-        case .youtube: accent = CGColor(red: 1, green: 0, blue: 51 / 255, alpha: 1)
-        case .facebook: accent = CGColor(red: 8 / 255, green: 102 / 255, blue: 1, alpha: 1)
-        case .instagram: accent = CGColor(red: 0.79, green: 0.16, blue: 0.48, alpha: 1)
-        case .x: accent = CGColor(gray: 0.92, alpha: 1)
+        let w = CGFloat(width)
+        let h = CGFloat(height)
+
+        // Deep black gradient background
+        let bgColors = [
+            CGColor(red: 0.012, green: 0.012, blue: 0.018, alpha: 1),
+            CGColor(red: 0.006, green: 0.006, blue: 0.010, alpha: 1)
+        ] as CFArray
+        if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: bgColors, locations: [0, 1]) {
+            context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: h), end: CGPoint(x: w, y: 0), options: [])
         }
-        let canvasWidth = CGFloat(width)
-        let canvasHeight = CGFloat(height)
-        let header = CGRect(x: 0, y: canvasHeight * 0.76, width: canvasWidth, height: canvasHeight * 0.24)
-        context.setFillColor(accent)
-        context.fill(header)
-        let headerColor = platform == .x ? CGColor(gray: 0.04, alpha: 1) : CGColor(gray: 1, alpha: 1)
-        let logoRect = CGRect(x: 58, y: canvasHeight * 0.805, width: 82, height: 82)
-        drawBrandLogo(platform, in: logoRect, forHeader: true, context: context)
-        drawText(platform.rawValue, in: CGRect(x: 164, y: canvasHeight * 0.79, width: canvasWidth - 222, height: canvasHeight * 0.14), fontSize: 54, color: headerColor, context: context)
 
-        let previewRect = CGRect(x: 48, y: 164, width: canvasWidth - 96, height: canvasHeight * 0.47)
-        context.setFillColor(CGColor(red: 0.025, green: 0.045, blue: 0.07, alpha: 0.92))
-        context.addPath(CGPath(roundedRect: previewRect, cornerWidth: 34, cornerHeight: 34, transform: nil))
-        context.fillPath()
-        context.setStrokeColor(accent.copy(alpha: 0.55) ?? accent)
-        context.setLineWidth(4)
-        context.addPath(CGPath(roundedRect: previewRect, cornerWidth: 34, cornerHeight: 34, transform: nil))
-        context.strokePath()
+        // Platform logo badge (top-left)
+        let badgeSize: CGFloat = 72
+        let badgeRect = CGRect(x: 34, y: h - 110, width: badgeSize, height: badgeSize)
+        drawLogoInBadge(platform, in: badgeRect, context: context)
 
-        let previewLogo = CGRect(x: 82, y: previewRect.midY - 66, width: 132, height: 132)
-        drawBrandLogo(platform, in: previewLogo, forHeader: false, context: context)
-        drawText(
-            externalPreviewTitle(platform: platform, url: url),
-            in: CGRect(x: 250, y: previewRect.midY + 8, width: previewRect.maxX - 286, height: 72),
-            fontSize: externalPreviewTitleFontSize,
-            color: CGColor(gray: 1, alpha: 1),
-            context: context
-        )
-        drawText(
-            externalPreviewIdentifier(url),
-            in: CGRect(x: 250, y: previewRect.midY - 60, width: previewRect.maxX - 286, height: 54),
-            fontSize: 27,
-            color: CGColor(gray: 0.72, alpha: 1),
-            context: context
-        )
-        drawText(
-            "Gönderi önizlemesi · Detaydan aç",
-            in: CGRect(x: 82, y: previewRect.minY + 24, width: previewRect.width - 68, height: 42),
-            fontSize: 22,
-            color: accent,
-            context: context
-        )
+        // Main preview title (center)
+        let title = externalPreviewTitle(platform: platform, url: url)
+        let titleRect = CGRect(x: 52, y: h * 0.37, width: w - 80, height: h * 0.26)
+        drawText(title, in: titleRect, fontSize: 52, color: CGColor(gray: 1, alpha: 1), context: context)
 
+        // URL identifier (below title)
+        let identifier = externalPreviewIdentifier(url)
+        let urlRect = CGRect(x: 52, y: h * 0.24, width: w - 80, height: h * 0.12)
+        drawText(identifier, in: urlRect, fontSize: 26, color: CGColor(gray: 0.62, alpha: 1), context: context)
+
+        // Caption (bottom)
         let cleanCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if !cleanCaption.isEmpty {
-            drawText("CAPTION", in: CGRect(x: 58, y: 116, width: canvasWidth - 116, height: 24), fontSize: 17, color: CGColor(gray: 0.54, alpha: 1), context: context)
-            drawText(cleanCaption, in: CGRect(x: 58, y: 48, width: canvasWidth - 116, height: 64), fontSize: externalCaptionFontSize, color: CGColor(gray: 0.90, alpha: 1), context: context)
+            let captionRect = CGRect(x: 52, y: 36, width: w - 80, height: h * 0.20)
+            drawText(cleanCaption, in: captionRect, fontSize: 28, color: CGColor(gray: 0.88, alpha: 1), context: context)
         }
+    }
+
+    nonisolated private static func accentColor(_ platform: ExternalMediaPlatform) -> CGColor {
+        switch platform {
+        case .spotify:   return CGColor(red: 30/255,  green: 215/255, blue: 96/255,  alpha: 1)
+        case .youtube:   return CGColor(red: 1,        green: 0,        blue: 51/255,  alpha: 1)
+        case .tiktok:    return CGColor(red: 37/255,   green: 244/255,  blue: 238/255, alpha: 1)
+        case .facebook:  return CGColor(red: 8/255,    green: 102/255,  blue: 1,       alpha: 1)
+        case .instagram: return CGColor(red: 0.79,     green: 0.16,     blue: 0.48,    alpha: 1)
+        case .x:         return CGColor(gray: 0.92,    alpha: 1)
+        }
+    }
+
+    nonisolated private static func drawLogoInBadge(_ platform: ExternalMediaPlatform, in rect: CGRect, context: CGContext) {
+        // Platform logos from Logolar have their own background/shape — draw directly.
+        // Facebook fallback uses existing brand asset on a colored circle.
+        let assetName: String
+        switch platform {
+        case .spotify:   assetName = "LogoSpotify"
+        case .youtube:   assetName = "LogoYouTube"
+        case .instagram: assetName = "LogoInstagram"
+        case .tiktok:
+            // Placeholder badge until the official TikTok logo asset is added.
+            context.addPath(CGPath(ellipseIn: rect, transform: nil))
+            context.setFillColor(CGColor(gray: 0, alpha: 1))
+            context.fillPath()
+            guard let note = UIImage(systemName: "music.note")?
+                .withTintColor(UIColor(cgColor: accentColor(platform)), renderingMode: .alwaysOriginal)
+                .cgImage else { return }
+            let noteInset = rect.width * 0.24
+            context.saveGState()
+            context.interpolationQuality = .high
+            context.draw(note, in: rect.insetBy(dx: noteInset, dy: noteInset))
+            context.restoreGState()
+            return
+        case .x:
+            // X logo is dark — needs white circle background for visibility on dark card
+            let circlePath = CGPath(ellipseIn: rect, transform: nil)
+            context.addPath(circlePath)
+            context.setFillColor(CGColor(gray: 1, alpha: 1))
+            context.fillPath()
+            guard let xImage = UIImage(named: "LogoX")?.cgImage else { return }
+            let xInset = rect.width * 0.14
+            context.saveGState()
+            context.interpolationQuality = .high
+            context.draw(xImage, in: rect.insetBy(dx: xInset, dy: xInset))
+            context.restoreGState()
+            return
+        case .facebook:
+            let circlePath = CGPath(ellipseIn: rect, transform: nil)
+            context.addPath(circlePath)
+            context.setFillColor(accentColor(platform))
+            context.fillPath()
+            guard let fbImage = UIImage(named: "BrandFacebookWhite")?.cgImage else { return }
+            let inset = rect.width * 0.18
+            context.saveGState()
+            context.interpolationQuality = .high
+            context.draw(fbImage, in: rect.insetBy(dx: inset, dy: inset))
+            context.restoreGState()
+            return
+        }
+        guard let image = UIImage(named: assetName)?.cgImage else { return }
+        context.saveGState()
+        context.interpolationQuality = .high
+        context.draw(image, in: rect)
+        context.restoreGState()
+    }
+
+    // Fades the bottom edge of the card to transparent so it blends with the AR surface.
+    // This creates the visual impression of the card sitting on (not floating above) the surface.
+    nonisolated private static func applySurfaceIntegrationFade(context: CGContext, width: Int, height: Int) {
+        let h = CGFloat(height)
+        context.saveGState()
+        context.setBlendMode(.destinationIn)
+        // Opaque across top 70%, then linear fade to transparent at the bottom edge.
+        let maskColors = [
+            CGColor(red: 1, green: 1, blue: 1, alpha: 1.0),
+            CGColor(red: 1, green: 1, blue: 1, alpha: 1.0),
+            CGColor(red: 1, green: 1, blue: 1, alpha: 0.0),
+        ] as CFArray
+        let locations: [CGFloat] = [0.0, 0.70, 1.0]
+        if let mask = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: maskColors, locations: locations) {
+            // start = visual top (high y in CG), end = visual bottom (y=0)
+            context.drawLinearGradient(mask,
+                start: CGPoint(x: 0, y: h),
+                end: CGPoint(x: 0, y: 0),
+                options: [])
+        }
+        context.restoreGState()
     }
 
     nonisolated private static func externalPreviewTitle(
@@ -436,6 +536,7 @@ actor SpatialContentRenderer {
             default: return "Parça önizlemesi"
             }
         case .youtube: return "Video önizlemesi"
+        case .tiktok: return "Video önizlemesi"
         case .facebook: return firstPath == "reel" ? "Reels önizlemesi" : "Gönderi önizlemesi"
         case .instagram: return firstPath == "reel" ? "Reels önizlemesi" : "Gönderi önizlemesi"
         case .x: return "Gönderi önizlemesi"
@@ -451,32 +552,6 @@ actor SpatialContentRenderer {
         return identifier.isEmpty ? (url.host ?? "Bağlantılı sosyal içerik") : identifier
     }
 
-    nonisolated private static func drawBrandLogo(
-        _ platform: ExternalMediaPlatform,
-        in rect: CGRect,
-        forHeader: Bool,
-        context: CGContext
-    ) {
-        let assetName: String
-        switch (platform, forHeader) {
-        case (.spotify, true): assetName = "BrandSpotifyBlack"
-        case (.youtube, true): assetName = "BrandYouTubeWhite"
-        case (.facebook, true): assetName = "BrandFacebookWhite"
-        case (.instagram, true): assetName = "BrandInstagramWhite"
-        case (.x, true): assetName = "BrandXBlack"
-        case (.spotify, false): assetName = "BrandSpotify"
-        case (.youtube, false): assetName = "BrandYouTube"
-        case (.facebook, false): assetName = "BrandFacebook"
-        case (.instagram, false): assetName = "BrandInstagram"
-        case (.x, false): assetName = "BrandXWhite"
-        }
-        guard let image = UIImage(named: assetName)?.cgImage else { return }
-
-        context.saveGState()
-        defer { context.restoreGState() }
-        context.interpolationQuality = .high
-        context.draw(image, in: rect)
-    }
 
     nonisolated private static func drawText(
         _ text: String,

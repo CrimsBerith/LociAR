@@ -795,11 +795,31 @@ final class ARPinningEngine: NSObject {
         )
         var options = TextureResource.CreateOptions(semantic: .color)
         options.mipmapsMode = .allocateAndGenerateAll
-        let texture = try TextureResource.generate(from: image, withName: "lociar-\(post.id)", options: options)
+        // CGImage origin is bottom-left; Metal textures are top-left. Flip vertically
+        // so the texture renders right-side-up on the RealityKit plane.
+        let textureImage = Self.verticallyFlipped(image) ?? image
+        let texture = try TextureResource.generate(from: textureImage, withName: "lociar-\(post.id)", options: options)
         var material = UnlitMaterial()
         material.color = .init(tint: .white, texture: .init(texture))
         material.blending = .transparent(opacity: .init(floatLiteral: 1.0))
         model.model?.materials = [material]
+    }
+
+    private static func verticallyFlipped(_ image: CGImage) -> CGImage? {
+        let w = image.width, h = image.height
+        guard let ctx = CGContext(
+            data: nil, width: w, height: h,
+            bitsPerComponent: image.bitsPerComponent,
+            bytesPerRow: 0,
+            space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: image.bitmapInfo.rawValue
+        ) else { return nil }
+        // Both U and V are inverted by the CGImage→Metal→RealityKit pipeline,
+        // so a 180° rotation (flip both axes) produces the correct orientation.
+        ctx.translateBy(x: CGFloat(w), y: CGFloat(h))
+        ctx.scaleBy(x: -1, y: -1)
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return ctx.makeImage()
     }
 
     var isCandidateStable: Bool {

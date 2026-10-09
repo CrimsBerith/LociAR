@@ -85,9 +85,15 @@ struct DiscoverView: View {
     }
 
     private func mergedDiscoverPosts(_ source: [LociPost]) -> [LociPost] {
-        var unique: [UUID: LociPost] = [:]
-        for post in source { unique[post.id] = post }
-        return Array(unique.values).sorted { $0.createdAt > $1.createdAt }
+        // Keeps the caller's order (own drafts first, then the server's ranked feed); a server copy
+        // replaces a local draft with the same id.
+        var latest: [UUID: LociPost] = [:]
+        var order: [UUID] = []
+        for post in source {
+            if latest[post.id] == nil { order.append(post.id) }
+            latest[post.id] = post
+        }
+        return order.compactMap { latest[$0] }
     }
 }
 
@@ -209,6 +215,12 @@ struct ProfileView: View {
                 NavigationLink { SavedPostsView() } label: { ProfileLinkRow(title: "Kaydedilenler", symbol: "bookmark.fill", color: .blue) }
             } header: {
                 profileSectionText("İçerik")
+            }
+            Section {
+                NavigationLink { InviteView() } label: { ProfileLinkRow(title: "Davet kodu", symbol: "ticket.fill", color: .green) }
+                    .accessibilityIdentifier("profile-invite")
+            } header: {
+                profileSectionText("Davet")
             }
             Section {
                 NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: "Engellenen hesaplar", symbol: "person.crop.circle.badge.xmark", color: .orange) }
@@ -1370,17 +1382,37 @@ private struct PostMediaHero: View {
     }
 
     private func externalMediaBanner(external: (platform: ExternalMediaPlatform, url: URL)) -> some View {
-        HStack(spacing: 14) {
-            BrandLogoView(platform: external.platform, size: 42)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(external.platform.rawValue).font(.headline)
-                Text("Paylaşımı görüntüle").font(.caption).foregroundStyle(.white.opacity(0.66))
+        VStack(alignment: .leading, spacing: 0) {
+            if let cover = post.linkPreview?.thumbnailURL {
+                AsyncImage(url: cover) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Color.white.opacity(0.06)
+                    }
+                }
+                .frame(height: 150)
+                .frame(maxWidth: .infinity)
+                .clipped()
+                .accessibilityHidden(true)
             }
-            Spacer()
-            Image(systemName: "arrow.up.right").font(.subheadline.weight(.bold))
+            HStack(spacing: 14) {
+                BrandLogoView(platform: external.platform, size: 42)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(post.linkPreview?.title ?? external.platform.rawValue)
+                        .font(.headline)
+                        .lineLimit(2)
+                    Text(post.linkPreview?.author ?? "Paylaşımı görüntüle")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.66))
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "arrow.up.right").font(.subheadline.weight(.bold))
+            }
+            .padding(15)
         }
         .foregroundStyle(.white)
-        .padding(15)
         .background(
             LinearGradient(
                 colors: [external.platform.brandColor.opacity(0.34), external.platform.brandColor.opacity(0.10)],
@@ -1389,6 +1421,7 @@ private struct PostMediaHero: View {
             ),
             in: RoundedRectangle(cornerRadius: 16, style: .continuous)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(external.platform.brandColor.opacity(0.28)))
     }
 }
@@ -1430,5 +1463,115 @@ private struct ProfileLinkRow: View {
                 .frame(width: 26)
         }
         .padding(.vertical, 3)
+    }
+}
+
+// MARK: - Invites
+
+struct InviteView: View {
+    @Environment(AppContainer.self) private var container
+    @State private var codeInput = ""
+    @State private var invites: [InviteCode] = []
+    @State private var message: String?
+    @State private var info: String?
+    @State private var isBusy = false
+    @State private var isLoading = true
+
+    private var normalizedInput: String {
+        codeInput.uppercased().filter { $0.isLetter || $0.isNumber }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                TextField("Davet kodu", text: $codeInput)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+                    .accessibilityIdentifier("invite-code-field")
+                Button {
+                    Task { await redeem() }
+                } label: {
+                    Label("Kodu kullan", systemImage: "ticket.fill")
+                }
+                .disabled(isBusy || normalizedInput.count < 8)
+                .accessibilityIdentifier("invite-redeem-button")
+            } header: {
+                Text("Sana verilen kod")
+            } footer: {
+                Text("Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.")
+            }
+            Section {
+                if isLoading {
+                    ProgressView()
+                } else if invites.isEmpty {
+                    Text("Kodlarını görmek için önce sana verilen kodu gir.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(invites) { invite in
+                        HStack {
+                            Text(invite.code)
+                                .font(.system(.body, design: .monospaced).weight(.semibold))
+                                .strikethrough(invite.redeemed)
+                                .foregroundStyle(invite.redeemed ? .secondary : .primary)
+                            Spacer()
+                            if invite.redeemed {
+                                Text("Kullanıldı").font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                ShareLink(item: "LociAR'a davetlisin. Davet kodun: \(invite.code)") {
+                                    Image(systemName: "square.and.arrow.up")
+                                }
+                                .accessibilityLabel("Kodu paylaş")
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Senin kodların")
+            } footer: {
+                Text("Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.")
+            }
+            if let info {
+                Section { Text(info).foregroundStyle(LociTheme.accent) }
+            }
+            if let message {
+                Section { Text(message).foregroundStyle(.red) }
+            }
+        }
+        .lociListStyle()
+        .navigationTitle("Davet kodu")
+        .task { await loadInvites() }
+    }
+
+    private func redeem() async {
+        guard !isBusy else { return }
+        isBusy = true
+        message = nil
+        info = nil
+        defer { isBusy = false }
+        do {
+            try await container.invites.redeem(code: normalizedInput)
+            codeInput = ""
+            info = "Kod kabul edildi. Artık post paylaşabilirsin."
+            await loadInvites()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func loadInvites() async {
+        guard container.isBackendConfigured else {
+            isLoading = false
+            return
+        }
+        defer { isLoading = false }
+        do {
+            invites = try await container.invites.myInvites()
+        } catch InviteFlowError.needsInviteFirst {
+            invites = []
+        } catch {
+            message = error.localizedDescription
+        }
     }
 }

@@ -317,6 +317,7 @@ extension ExternalMediaPlatform {
         switch self {
         case .spotify: Color(red: 30 / 255, green: 215 / 255, blue: 96 / 255)
         case .youtube: Color(red: 1, green: 0, blue: 51 / 255)
+        case .tiktok: Color(red: 37 / 255, green: 244 / 255, blue: 238 / 255)
         case .facebook: Color(red: 8 / 255, green: 102 / 255, blue: 1)
         case .instagram: Color(red: 0.88, green: 0.22, blue: 0.52)
         case .x: .white
@@ -327,6 +328,7 @@ extension ExternalMediaPlatform {
         switch self {
         case .spotify: "BrandSpotify"
         case .youtube: "BrandYouTube"
+        case .tiktok: "BrandTikTok"
         case .facebook: "BrandFacebook"
         case .instagram: "BrandInstagram"
         case .x: "BrandXBlack"
@@ -340,7 +342,17 @@ struct BrandLogoView: View {
 
     var body: some View {
         Group {
-            if platform == .x {
+            if platform == .tiktok {
+                // Placeholder until the official TikTok asset (per TikTok brand guidelines) is added as BrandTikTok.
+                ZStack {
+                    Circle().fill(.black)
+                    Image(systemName: "music.note")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(platform.brandColor)
+                        .padding(size * 0.26)
+                }
+            } else if platform == .x {
                 ZStack {
                     Circle().fill(.white)
                     Image(platform.brandAssetName)

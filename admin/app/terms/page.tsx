@@ -38,7 +38,7 @@ export default function TermsPage() {
       </ul>
       <h2>Üçüncü taraf bağlantılar</h2>
       <p>
-        Spotify, YouTube, Instagram, Facebook ve X bağlantıları ilgili platformların kurallarına tabidir.
+        Spotify, YouTube, TikTok, Instagram ve X bağlantıları ilgili platformların kurallarına tabidir.
         LociAR bu platformlardan video akışını çekmez veya yeniden barındırmaz.
       </p>
     </LegalLayout>
