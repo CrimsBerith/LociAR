@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️ VPS সময়সীমা",
  "⚠️ İç hata": "⚠️ অভ্যন্তরীণ ত্রুটি",
  "kullanıcı": "ব্যবহারকারী",
- "Yayınlamak için bir caption yaz.": "প্রকাশ করতে একটি ক্যাপশন লিখুন।",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "পোস্টে শুধুমাত্র পাঠ্য থাকতে পারে; ফটো, ভিডিও এবং লিঙ্ক সমর্থিত নয়।",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "ফটো এবং ভিডিও সম্বলিত পোস্ট আর সমর্থিত নয়। পোস্টটি পাঠ্য হিসেবে পুনরায় তৈরি করুন।",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "AR পৃষ্ঠে স্থির করার সুবিধা দিয়ে আপনার ভাবনাগুলো ছোট নোট হিসেবে বাস্তব দেয়াল ও স্থানে যুক্ত করুন।",
  "Davet": "আমন্ত্রণ",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "শেয়ার করতে আমন্ত্রণ কোড প্রয়োজন। প্রোফাইল > আমন্ত্রণ কোড অংশে আপনাকে দেওয়া কোডটি লিখুন।",
  "Sana verilen kod": "আপনাকে দেওয়া কোড",
  "Senin kodların": "আপনার কোড",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "অনেকবার ভুল চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।"
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "অনেকবার ভুল চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "এখন GIF লোড করা যাচ্ছে না। আবার চেষ্টা করুন।",
+ "Bir posta en fazla bir GIF eklenebilir.": "একটি পোস্টে সর্বোচ্চ একটি GIF থাকতে পারে।",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "এই GIF আর পাওয়া যাচ্ছে না। অন্য একটি GIF বেছে নিন।",
+ "GIF ara": "GIF খুঁজুন",
+ "GIF bulunamadı.": "কোনো GIF পাওয়া যায়নি।",
+ "GIF ekle": "GIF যোগ করুন",
+ "GIF seç": "GIF বেছে নিন",
+ "GIF": "GIF",
+ "Kaldır": "সরান",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "পোস্টে শুধু পাঠ্য ও GIF থাকতে পারে; ফটো, ভিডিও, আঁকা ছবি ও লিঙ্ক সমর্থিত নয়।",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "প্রকাশ করতে একটি বার্তা লিখুন বা GIF যোগ করুন।",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "অনেক বেশি GIF খোঁজা হয়েছে। একটু পরে আবার চেষ্টা করুন।"
 }

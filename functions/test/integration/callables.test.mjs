@@ -1,6 +1,25 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
 import { adminAuth, adminDb, closeClients, expectFailure, newUser, postBody } from './_harness.mjs';
+import { GIPHY_STUB_PORT } from './prepare-env.mjs';
+
+// Stub for https://api.giphy.com/v1/gifs/{id}; GIPHY_API_BASE_URL points here in the emulator.
+const giphyGifs = {
+  okGif1: { id: 'okGif1', title: 'Wave', rating: 'g', images: { original: { width: '480', height: '270' } } },
+  adultGif: { id: 'adultGif', title: 'x', rating: 'r', images: { original: { width: '480', height: '270' } } },
+};
+const giphyStub = createServer((req, res) => {
+  const url = new URL(req.url, 'http://stub');
+  const gif = giphyGifs[url.pathname.replace('/v1/gifs/', '')];
+  if (url.searchParams.get('api_key') !== 'emulator-giphy-key' || !gif) {
+    res.writeHead(404, { 'content-type': 'application/json' }).end('{}');
+    return;
+  }
+  res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ data: gif }));
+});
+before(() => new Promise((resolve) => giphyStub.listen(GIPHY_STUB_PORT, '127.0.0.1', resolve)));
+after(() => new Promise((resolve) => giphyStub.close(resolve)));
 
 before(async () => {
   // Each createPost admission reads the current active zones without a process cache.
@@ -74,9 +93,25 @@ test('createPost: only text is accepted, no photos and no links', async () => {
   const photo = await expectFailure(user.call('createPost', postBody({
     editData: { version: 1, layers: [{ id: 'i', type: 'image', uri: 'storage://post-layer-assets/a/b.jpg' }] },
   })));
-  assert.match(photo.message, /Only text posts/);
+  assert.match(photo.message, /Only text and GIF posts/);
   const ok = await user.call('createPost', postBody());
   assert.equal(ok.publishStatus, 'pending_review');
+});
+
+test('createPost: a GIPHY GIF is stored by id with the size GIPHY reports', async () => {
+  const user = await newUser();
+  const gif = (gifId) => postBody({ editData: { version: 1, layers: [
+    { id: 'aaaaaaaa-0000-4000-8000-000000000001', type: 'text', text: 'Selam' },
+    { id: 'aaaaaaaa-0000-4000-8000-000000000002', type: 'gif', gifId, width: 1, height: 1 },
+  ] } });
+  const body = gif('okGif1');
+  await user.call('createPost', body);
+  const stored = JSON.parse((await adminDb.collection('posts').doc(body.clientMutationId).get()).get('edit_data_json'));
+  assert.deepEqual(stored.layers[1], { id: 'aaaaaaaa-0000-4000-8000-000000000002', type: 'gif', gifId: 'okGif1', width: 480, height: 270, x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, zIndex: 0 });
+  for (const gifId of ['unknownGif', 'adultGif']) {
+    const refused = await expectFailure(user.call('createPost', gif(gifId)));
+    assert.equal(refused.details?.reason, 'gif_invalid', gifId);
+  }
 });
 
 test('createPost: protected zones are hard-blocked with a reason', async () => {

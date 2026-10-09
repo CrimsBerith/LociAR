@@ -118,7 +118,7 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ['collection_items', 'owner_id'], ['collections', 'owner_id'],
       ['activity_events', 'recipient_id'], ['activity_events', 'actor_id'],
       ['post_view_receipts', 'user_id'], ['analytics_events', 'user_id'],
-      ['post_quota', 'owner_luid'], ['anchor_quota', 'owner_luid'], ['arcore_token_quota', 'owner_luid'],
+      ['post_quota', 'owner_luid'], ['anchor_quota', 'owner_luid'], ['arcore_token_quota', 'owner_luid'], ['gif_search_quota', 'owner_luid'],
       ['push_tokens', 'owner_luid'], ['push_devices', 'luid'], ['push_quota', 'owner_luid'], ['push_delivery_receipts', 'owner_luid'],
       ['handles', 'luid'], ['avatar_reviews', 'luid'], ['avatar_uploads', 'luid'], ['avatar_screenings', 'luid'], ['avatar_deletions', 'luid'], ['moderation_originals', 'user_id'],
       ['storage_reclamations', 'creator_id'], ['storage_reclamation_queue', 'creator_id'],

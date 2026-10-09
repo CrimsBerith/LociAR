@@ -1,13 +1,16 @@
-/** Moderator-facing summary of a stored post: text layers, drawing strokes and the linked source. */
+/** Moderator-facing summary of a stored post: text layers, the GIPHY GIF, legacy drawing strokes and legacy links. */
 
 export type DrawingStroke = { color: string; points: Array<{ x: number; y: number }> };
 export type PostContentSummary = {
   texts: string[];
+  /** GIPHY ids (letters and digits only, as createPost stores them). */
+  gifs: string[];
   strokes: DrawingStroke[];
   source: { platform: string; url: string | null; title: string | null; author: string | null } | null;
 };
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
+const GIF_ID = /^[A-Za-z0-9]{1,64}$/;
 const MAX_TEXTS = 20;
 const MAX_STROKES = 20;
 const MAX_POINTS = 2000;
@@ -31,13 +34,16 @@ function str(value: unknown, max: number): string | null {
 
 export function summarizePostContent(post: Record<string, unknown>): PostContentSummary {
   const texts: string[] = [];
+  const gifs: string[] = [];
   const strokes: DrawingStroke[] = [];
   const edit = parseJson(post.edit_data_json) as { layers?: unknown } | null;
   const layers = Array.isArray(edit?.layers) ? edit.layers : [];
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
     const type = String(layer.type ?? layer.kind ?? '');
-    if (type === 'drawing' && Array.isArray(layer.points) && strokes.length < MAX_STROKES) {
+    if (type === 'gif') {
+      if (typeof layer.gifId === 'string' && GIF_ID.test(layer.gifId) && gifs.length < 1) gifs.push(layer.gifId);
+    } else if (type === 'drawing' && Array.isArray(layer.points) && strokes.length < MAX_STROKES) {
       const points = layer.points.slice(0, MAX_POINTS).flatMap((p: unknown) => {
         const { x, y } = (p ?? {}) as { x?: unknown; y?: unknown };
         return typeof x === 'number' && typeof y === 'number' && Number.isFinite(x) && Number.isFinite(y) ? [{ x, y }] : [];
@@ -57,7 +63,12 @@ export function summarizePostContent(post: Record<string, unknown>): PostContent
         author: str(preview.author, 120),
       }
     : null;
-  return { texts, strokes, source };
+  return { texts, gifs, strokes, source };
+}
+
+/** The small animated rendition of a GIPHY GIF, built from a validated id only. */
+export function giphyPreviewUrl(id: string): string | null {
+  return GIF_ID.test(id) ? `https://media.giphy.com/media/${id}/200w.gif` : null;
 }
 
 /** Maps all strokes into a `size`×`size` box, keeping aspect ratio. Returns SVG polyline `points` strings. */

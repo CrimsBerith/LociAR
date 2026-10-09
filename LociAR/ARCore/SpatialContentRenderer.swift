@@ -4,10 +4,17 @@ import Foundation
 @preconcurrency import ImageIO
 @preconcurrency import UIKit
 
+/// A post texture plus, for GIF posts, where the GIF sits in it (normalized, top-left origin) so
+/// the AR view can lay the looping GIPHY video over that area.
+struct RenderedPost: @unchecked Sendable {
+    let image: CGImage
+    let gifRect: CGRect?
+}
+
 actor SpatialContentRenderer {
 
     private var assetDataCache: [URL: Data] = [:]
-    private var renderedPostCache: [String: CGImage] = [:]
+    private var renderedPostCache: [String: RenderedPost] = [:]
     private var renderedCacheOrder: [String] = []
     private static let maximumRenderCacheCount = 30
     private static let maximumAssetCacheCount = 40
@@ -20,6 +27,10 @@ actor SpatialContentRenderer {
     }
 
     func render(_ post: LociPost) async -> CGImage? {
+        await renderPost(post)?.image
+    }
+
+    func renderPost(_ post: LociPost) async -> RenderedPost? {
         let key = postCacheKey(post)
         if let cached = renderedPostCache[key] {
             return cached
@@ -28,16 +39,19 @@ actor SpatialContentRenderer {
         let sourceImageData: Data?
         if case .image(let url)? = post.contentSource {
             sourceImageData = await loadAsset(url)
+        } else if let gif = post.gif {
+            // Poster frame under the AR video (and the whole GIF area if the video cannot play).
+            sourceImageData = await loadAsset(gif.stillURL)
         } else {
             sourceImageData = nil
         }
-        let image = await Task.detached(priority: .userInitiated) {
+        let rendered = await Task.detached(priority: .userInitiated) {
             Self.drawPost(post, assets: assets, sourceImageData: sourceImageData)
         }.value
-        if let image {
-            recordRenderedImage(image, forKey: key)
+        if let rendered {
+            recordRenderedImage(rendered, forKey: key)
         }
-        return image
+        return rendered
     }
 
     func handleMemoryPressure() {
@@ -50,7 +64,7 @@ actor SpatialContentRenderer {
         "\(post.id.uuidString)_\(post.hashValue)"
     }
 
-    private func recordRenderedImage(_ image: CGImage, forKey key: String) {
+    private func recordRenderedImage(_ image: RenderedPost, forKey key: String) {
         if renderedCacheOrder.count >= Self.maximumRenderCacheCount {
             let oldest = renderedCacheOrder.removeFirst()
             renderedPostCache.removeValue(forKey: oldest)
@@ -68,7 +82,7 @@ actor SpatialContentRenderer {
             return false
         }()
         let hasDrawing = post.editData.layers.contains(where: { $0.kind == .drawing })
-        let textOnly = !hasImage && !hasDrawing && {
+        let textOnly = !hasImage && !hasDrawing && post.gif == nil && {
             if case .video? = post.contentSource { return false }
             return true
         }()
@@ -144,56 +158,101 @@ actor SpatialContentRenderer {
         _ post: LociPost,
         assets: [UUID: Data],
         sourceImageData: Data?
-    ) -> CGImage? {
+    ) -> RenderedPost? {
+        if let gif = post.gif {
+            return drawMessageBubble(
+                text: post.messageText, handle: post.creatorHandle, gif: gif,
+                gifStill: sourceImageData.flatMap(decodedImage)
+            )
+        }
+        // Legacy posts: photos (removed 29 Sep 2026) and drawings (removed 9 Oct 2026) keep their look.
         let orderedImageData = post.editData.layers.compactMap { layer in
             layer.kind == .image ? assets[layer.id] : nil
         }
         if let primaryImageData = orderedImageData.first ?? sourceImageData,
            let primaryImage = decodedImage(primaryImageData) {
-            return drawImagePost(primaryImage, caption: post.caption)
+            return drawImagePost(primaryImage, caption: post.caption).map { RenderedPost(image: $0, gifRect: nil) }
+        }
+        if post.editData.layers.contains(where: { $0.kind == .drawing }) {
+            return trimmedToVisibleContent(draw(post.editData, assets: assets)).map { RenderedPost(image: $0, gifRect: nil) }
         }
 
-        let layerText = post.editData.layers
-            .filter { $0.kind == .text }
-            .compactMap(\.text)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first(where: { !$0.isEmpty })
         let cleanCaption = post.caption.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !cleanCaption.isEmpty {
-            return drawTextPost(cleanCaption)
-        } else if let layerText {
-            return drawTextPost(layerText)
+        if let text = post.messageText ?? (cleanCaption.isEmpty ? nil : cleanCaption) {
+            return drawMessageBubble(text: text, handle: post.creatorHandle, gif: nil, gifStill: nil)
         }
-
-        return trimmedToVisibleContent(draw(post.editData, assets: assets))
+        return trimmedToVisibleContent(draw(post.editData, assets: assets)).map { RenderedPost(image: $0, gifRect: nil) }
     }
 
-    nonisolated private static func drawTextPost(_ text: String) -> CGImage? {
-        let count = text.count
-        let fontSize: CGFloat = count <= 42 ? 52 : count <= 105 ? 43 : 36
-        let maxTextWidth: CGFloat = 640
-        let attributes: [CFString: Any] = [
-            kCTFontAttributeName: CTFontCreateWithName("HelveticaNeue-Bold" as CFString, fontSize, nil),
-            kCTForegroundColorAttributeName: CGColor(gray: 1, alpha: 1)
-        ]
-        guard let attributed = CFAttributedStringCreate(nil, text as CFString, attributes as CFDictionary) else { return nil }
-        let framesetter = CTFramesetterCreateWithAttributedString(attributed)
-        let fit = CTFramesetterSuggestFrameSizeWithConstraints(
-            framesetter,
-            CFRange(location: 0, length: 0),
-            nil,
-            CGSize(width: maxTextWidth, height: CGFloat.greatestFiniteMagnitude),
-            nil
-        )
-        let padX: CGFloat = 10
-        let padY: CGFloat = 6
-        let width = max(24, Int(ceil(min(maxTextWidth, fit.width) + padX * 2)))
-        let height = max(24, Int(ceil(fit.height + padY * 2)))
+    /// A chat-style message bubble: the author's handle, then the GIF (if any), then the text.
+    /// Returns the GIF area so the AR view can play the GIPHY video over it.
+    nonisolated static func drawMessageBubble(text: String?, handle: String?, gif: GifReference?, gifStill: CGImage?) -> RenderedPost? {
+        let text = text?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        let handle = handle?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty.map { "@\($0)" }
+        guard text != nil || gif != nil else { return nil }
+        let padding: CGFloat = 18
+        let gap: CGFloat = 8
+        let gifWidth: CGFloat = 560
+        let maxTextWidth: CGFloat = gif != nil ? gifWidth : 640
+        let fontSize: CGFloat = (text?.count ?? 0) <= 42 ? 46 : (text?.count ?? 0) <= 105 ? 40 : 34
+        let textColor = CGColor(gray: 1, alpha: 1)
+        let handleColor = CGColor(red: 0.55, green: 0.95, blue: 0.82, alpha: 1)
+        let textFrame = text.map { measure($0, fontSize: fontSize, weight: "HelveticaNeue-Medium", maxWidth: maxTextWidth) } ?? .zero
+        let handleFrame = handle.map { measure($0, fontSize: 24, weight: "HelveticaNeue-Bold", maxWidth: maxTextWidth) } ?? .zero
+        let gifHeight: CGFloat = gif.map { gifWidth / CGFloat(min(max($0.aspectRatio, 0.6), 1.8)) } ?? 0
+
+        let contentWidth = gif != nil ? gifWidth : min(maxTextWidth, max(textFrame.width, handleFrame.width))
+        let sections: [CGFloat] = [handleFrame.height, gifHeight, textFrame.height].filter { $0 > 0 }
+        let contentHeight = sections.reduce(0, +) + gap * CGFloat(max(0, sections.count - 1))
+        let width = Int(ceil(contentWidth + padding * 2))
+        let height = Int(ceil(contentHeight + padding * 2))
         guard let context = makeContext(width: width, height: height) else { return nil }
-        let textRect = CGRect(x: padX, y: padY, width: CGFloat(width) - padX * 2, height: CGFloat(height) - padY * 2)
-        context.setShadow(offset: CGSize(width: 0, height: -1), blur: 5, color: CGColor(gray: 0, alpha: 0.72))
-        drawText(text, in: textRect, fontSize: fontSize, color: CGColor(gray: 1, alpha: 1), context: context)
-        return context.makeImage()
+
+        let bounds = CGRect(x: 0, y: 0, width: width, height: height)
+        let bubble = CGPath(roundedRect: bounds, cornerWidth: 30, cornerHeight: 30, transform: nil)
+        context.addPath(bubble)
+        context.setFillColor(CGColor(red: 0.0, green: 0.30, blue: 0.25, alpha: 0.94))
+        context.fillPath()
+
+        // CoreGraphics draws bottom-up: walk down from the top edge.
+        var top = CGFloat(height) - padding
+        if let handle {
+            top -= handleFrame.height
+            drawText(handle, in: CGRect(x: padding, y: top, width: contentWidth, height: handleFrame.height), fontSize: 24, color: handleColor, context: context, fontName: "HelveticaNeue-Bold")
+            top -= gap
+        }
+        var gifRect: CGRect?
+        if gif != nil {
+            top -= gifHeight
+            let area = CGRect(x: padding, y: top, width: gifWidth, height: gifHeight)
+            context.saveGState()
+            context.addPath(CGPath(roundedRect: area, cornerWidth: 18, cornerHeight: 18, transform: nil))
+            context.clip()
+            context.setFillColor(CGColor(gray: 0.08, alpha: 1))
+            context.fill(area)
+            if let gifStill { context.draw(gifStill, in: aspectFill(image: gifStill, rect: area)) }
+            context.restoreGState()
+            gifRect = CGRect(
+                x: area.minX / CGFloat(width), y: (CGFloat(height) - area.maxY) / CGFloat(height),
+                width: area.width / CGFloat(width), height: area.height / CGFloat(height)
+            )
+            top -= gap
+        }
+        if let text {
+            top -= textFrame.height
+            drawText(text, in: CGRect(x: padding, y: top, width: contentWidth, height: textFrame.height), fontSize: fontSize, color: textColor, context: context, fontName: "HelveticaNeue-Medium")
+        }
+        return context.makeImage().map { RenderedPost(image: $0, gifRect: gifRect) }
+    }
+
+    nonisolated private static func measure(_ text: String, fontSize: CGFloat, weight: String, maxWidth: CGFloat) -> CGSize {
+        let attributes: [CFString: Any] = [kCTFontAttributeName: CTFontCreateWithName(weight as CFString, fontSize, nil)]
+        guard let attributed = CFAttributedStringCreate(nil, text as CFString, attributes as CFDictionary) else { return .zero }
+        let fit = CTFramesetterSuggestFrameSizeWithConstraints(
+            CTFramesetterCreateWithAttributedString(attributed), CFRange(location: 0, length: 0), nil,
+            CGSize(width: maxWidth, height: .greatestFiniteMagnitude), nil
+        )
+        return CGSize(width: ceil(min(maxWidth, fit.width)), height: ceil(fit.height))
     }
 
     nonisolated private static func drawImagePost(_ image: CGImage, caption: String) -> CGImage? {
@@ -279,6 +338,8 @@ actor SpatialContentRenderer {
                    let image = CGImageSourceCreateImageAtIndex(source, 0, nil) {
                     context.draw(image, in: aspectFit(image: image, rect: CGRect(x: 0, y: 0, width: width, height: height)))
                 }
+            case .gif:
+                break // Drawn by drawMessageBubble.
             }
             context.restoreGState()
         }
@@ -297,10 +358,11 @@ actor SpatialContentRenderer {
         in rect: CGRect,
         fontSize: CGFloat,
         color: CGColor,
-        context: CGContext
+        context: CGContext,
+        fontName: String = "HelveticaNeue-Bold"
     ) {
         let attributes: [CFString: Any] = [
-            kCTFontAttributeName: CTFontCreateWithName("HelveticaNeue-Bold" as CFString, fontSize, nil),
+            kCTFontAttributeName: CTFontCreateWithName(fontName as CFString, fontSize, nil),
             kCTForegroundColorAttributeName: color
         ]
         guard let attributed = CFAttributedStringCreate(nil, text as CFString, attributes as CFDictionary) else { return }
@@ -377,4 +439,8 @@ actor SpatialContentRenderer {
         guard clean.count == 6, let value = UInt64(clean, radix: 16) else { return CGColor(gray: 1, alpha: 1) }
         return CGColor(red: CGFloat((value >> 16) & 0xff) / 255, green: CGFloat((value >> 8) & 0xff) / 255, blue: CGFloat(value & 0xff) / 255, alpha: 1)
     }
+}
+
+private extension String {
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }

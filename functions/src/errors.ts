@@ -26,6 +26,8 @@ export const REASONS = [
   'busy_retry',
   'invite_required',
   'invite_invalid',
+  'gif_invalid',
+  'gif_unavailable',
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

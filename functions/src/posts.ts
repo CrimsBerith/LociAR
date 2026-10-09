@@ -14,6 +14,7 @@ import { assertAccountNotDeleting, requireActiveAccount } from './profileGuard';
 import { INVITE_REQUIRED, inviteGate } from './invites';
 import { TRUSTED_AUTO_PUBLISH, authorIsTrusted, hasDrawingLayer } from './trust';
 import { placeAt } from './places';
+import { GIPHY_API_KEY, resolveGifLayers } from './giphy';
 
 /**
  * High-quality world locks used to go live without review in the Supabase build. App Review
@@ -31,7 +32,7 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
   return { id, placement_state: data.placement_state ?? null, status: data.status };
 }
 
-export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
+export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [GIPHY_API_KEY] }, async (request) => {
   const caller = requireCaller(request);
   await assertServiceEnabled('create_post');
   const body = request.data as CreatePostBody;
@@ -66,6 +67,8 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   // Storage validation can perform network I/O. Do it before opening a transaction; no quota
   // has been consumed, so a timeout or an invalid anchor cannot leak admission slots.
   const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
+  // A GIF layer keeps only the GIPHY id; its size comes from GIPHY, never from the client.
+  await resolveGifLayers(body.editData as { layers?: unknown[] });
   // Drawings always go to review. Trusted authors (growth plan 3.3, off by default) may skip it.
   const trusted = async () => {
     const profile = (await db.collection('profiles').doc(caller.luid).get()).data();

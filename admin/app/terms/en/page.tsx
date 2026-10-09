@@ -30,7 +30,7 @@ export default function TermsPageEn() {
 
       <h2>Content rules</h2>
       <ul>
-        <li>Posts are short text only; photos, videos and links cannot be shared.</li>
+        <li>Posts are a short text message and/or one GIF from GIPHY; photos, videos, drawings and links cannot be shared. GIFs are subject to GIPHY&apos;s terms.</li>
         <li>Sexual / 18+ content is prohibited and is rejected by the server.</li>
         <li>Creating content in protected places such as schools, hospitals, places of worship and government sites is prohibited.</li>
         <li>Harassment, bullying, hate speech, threats, incitement to violence, illegal content, infringing content, spam and

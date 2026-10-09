@@ -1,4 +1,5 @@
 import { anyBlocked } from './moderation';
+import { GIF_ID } from './giphyId';
 
 /**
  * Ported 1:1 from supabase/functions/create_post/index.ts (placement scoring and world-lock
@@ -146,7 +147,12 @@ function layerTexts(body: CreatePostBody): string[] {
   });
 }
 
-const ALLOWED_LAYER_TYPES = new Set(['text', 'drawing']);
+/**
+ * New posts are a message: text and/or one GIPHY GIF (owner decision, 9 Oct 2026). Drawings, device
+ * media and links are refused; existing drawing posts keep rendering.
+ */
+const ALLOWED_LAYER_TYPES = new Set(['text', 'gif']);
+export const MAX_GIF_LAYERS = 1;
 
 export const MAX_EDIT_LAYERS = 20;
 export const MAX_POINTS_PER_DRAWING = 2000;
@@ -182,17 +188,24 @@ function contentPolicyError(body: CreatePostBody): string | null {
   const layers = (body.editData as { layers?: unknown[] }).layers ?? [];
   const shapeError = layerShapeError(layers);
   if (shapeError) return shapeError;
+  let gifs = 0;
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
-    if (!ALLOWED_LAYER_TYPES.has(String(layer.type ?? layer.kind))) return 'Only text posts are allowed';
-    if (layer.uri != null && layer.uri !== '') return 'Only text posts are allowed';
+    const type = String(layer.type ?? layer.kind);
+    if (!ALLOWED_LAYER_TYPES.has(type)) return 'Only text and GIF posts are allowed';
+    if (layer.uri != null && layer.uri !== '') return 'Only text and GIF posts are allowed';
+    if (type === 'gif') {
+      gifs += 1;
+      if (gifs > MAX_GIF_LAYERS) return 'Only one GIF is allowed';
+      if (typeof layer.gifId !== 'string' || !GIF_ID.test(layer.gifId)) return 'Invalid GIF';
+    }
   }
   const source = body.contentSource;
   if (source != null) {
     if (typeof source !== 'object') return 'Invalid content source';
     const platform = String(source.platform ?? '').toLowerCase();
     const mediaKind = String(source.mediaKind ?? '').toLowerCase();
-    if (['image', 'photo', 'video'].includes(mediaKind) || platform === 'own_video') return 'Only text posts are allowed';
+    if (['image', 'photo', 'video'].includes(mediaKind) || platform === 'own_video') return 'Only text and GIF posts are allowed';
     if (source.url != null && source.url !== '') return 'Links are not allowed';
   }
   return null;

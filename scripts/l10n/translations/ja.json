@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️ VPS タイムアウト",
  "⚠️ İç hata": "⚠️ 内部エラー",
  "kullanıcı": "ユーザー",
- "Yayınlamak için bir caption yaz.": "公開するにはキャプションを入力してください。",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "投稿にはテキストのみを含めることができます。写真、ビデオ、リンクはサポートされていません。",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "写真やビデオを含む投稿はサポートされなくなりました。テキストとして投稿を再作成してください。",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "AR サーフェス ロックを使用して、考えを短いメモとして実際の壁や空間にピン留めします。",
  "Davet": "招待",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "共有するには招待コードが必要です。プロフィール > 招待コード で受け取ったコードを入力してください。",
  "Sana verilen kod": "受け取ったコード",
  "Senin kodların": "あなたのコード",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "失敗した試行が多すぎます。しばらくしてからもう一度お試しください。"
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "失敗した試行が多すぎます。しばらくしてからもう一度お試しください。",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "現在 GIF を読み込めません。もう一度お試しください。",
+ "Bir posta en fazla bir GIF eklenebilir.": "1 つの投稿に追加できる GIF は 1 つまでです。",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "この GIF は利用できなくなりました。別の GIF を選んでください。",
+ "GIF ara": "GIF を検索",
+ "GIF bulunamadı.": "GIF が見つかりません。",
+ "GIF ekle": "GIF を追加",
+ "GIF seç": "GIF を選択",
+ "GIF": "GIF",
+ "Kaldır": "削除",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "投稿にはテキストと GIF のみを含めることができます。写真、ビデオ、手描き、リンクはサポートされていません。",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "公開するにはメッセージを入力するか GIF を追加してください。",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "GIF の検索回数が多すぎます。しばらくしてからもう一度お試しください。"
 }

@@ -72,7 +72,7 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 ## 5. Yaş Derecelendirmesi (Age Rating)
 
 Uygulama Kullanıcı Tarafından Üretilen İçerik (UGC) barındırdığı için Apple anketinde şu yanıtlar verilmelidir:
-* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin notları paylaşabilir; fotoğraf, video veya bağlantı yok)
+* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin mesajı ve/veya GIPHY'den bir GIF paylaşabilir; fotoğraf, video, çizim veya bağlantı yok. GIF'ler GIPHY `pg-13` sınırıyla aranır ve sunucuda yeniden doğrulanır; tüm postlar yayından önce incelenir)
 * **Konum Paylaşımı:** Evet (Gönderiler gerçek koordinatlara sabitlenir)
 * **Kısıtlanmamış Web Erişimi:** Hayır
 * **18+ / Müstehcenlik:** Hayır (Sunucu tarafında hard-block; profil fotoğrafları otomatik SafeSearch taramasından geçer)
@@ -99,7 +99,7 @@ Dear Apple Review Team,
 Thank you for reviewing LociAR.
 
 1. ABOUT THE APP:
-LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes onto physical surfaces in the real world. Posts are text only: no photos, videos or links.
+LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes onto physical surfaces in the real world. Posts are a short text message and/or one GIF from GIPHY (rating at most PG-13, verified on our server; every post is reviewed before it goes public): no photos, videos, drawings or links.
 
 2. DEMO ACCOUNT & PRE-SEEDED CONTENT:
 - Sign-in credentials are provided in the App Review Information sign-in fields.

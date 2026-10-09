@@ -1,14 +1,14 @@
-import { strokePolylines, summarizePostContent } from '../../../../lib/postContent';
+import { giphyPreviewUrl, strokePolylines, summarizePostContent } from '../../../../lib/postContent';
 
 /** Read-only view of what a post actually contains, so drawings can be reviewed before approval. */
 export default function PostContentPreview({ post }: { post: Record<string, unknown> }) {
-  const { texts, strokes, source } = summarizePostContent(post);
-  if (texts.length === 0 && strokes.length === 0 && !source?.url) return null;
+  const { texts, gifs, strokes, source } = summarizePostContent(post);
+  if (texts.length === 0 && gifs.length === 0 && strokes.length === 0 && !source?.url) return null;
   const lines = strokePolylines(strokes);
   return (
     <details>
       <summary>
-        Content{strokes.length > 0 ? ` · drawing (${strokes.length})` : ''}{source?.url ? ' · legacy link' : ''}
+        Content{gifs.length > 0 ? ' · GIF' : ''}{strokes.length > 0 ? ` · drawing (${strokes.length})` : ''}{source?.url ? ' · legacy link' : ''}
       </summary>
       {lines.length > 0 ? (
         <svg width={160} height={160} viewBox="0 0 160 160" role="img" aria-label="Drawing preview" style={{ background: '#111820', borderRadius: 8, display: 'block', margin: '8px 0' }}>
@@ -17,6 +17,11 @@ export default function PostContentPreview({ post }: { post: Record<string, unkn
           ))}
         </svg>
       ) : null}
+      {gifs.map((id) => {
+        const src = giphyPreviewUrl(id);
+        // eslint-disable-next-line @next/next/no-img-element -- GIPHY media, allowed by the admin CSP only.
+        return src ? <img key={id} src={src} alt={`GIPHY GIF ${id}`} width={200} referrerPolicy="no-referrer" style={{ display: 'block', margin: '8px 0', borderRadius: 8 }} /> : null;
+      })}
       {texts.map((text, i) => <small key={i}>“{text}”</small>)}
       {source?.url ? (
         <small>

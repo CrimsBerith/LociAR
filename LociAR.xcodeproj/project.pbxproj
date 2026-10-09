@@ -23,6 +23,7 @@
 		3B5BFD9AA99D8A7E9B4C81A7 /* UITestFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7210EE62943F978879FE37 /* UITestFixtures.swift */; };
 		3F9EB5F8CEB1C81DFB76B87F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6B4C729B0D12809A5D15180A /* Localizable.xcstrings */; };
 		43B96545756282CA639C2CC8 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E4C13C9339C31F48DD7E6E /* MapKit.framework */; };
+		4516F427622ADCD714BC3434 /* GifRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */; };
 		49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */; };
 		4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E26683A2CA08CEF5A8E794 /* AppRouter.swift */; };
 		4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26517046B2409888717CB325 /* PersistenceModels.swift */; };
@@ -34,6 +35,7 @@
 		5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */; };
 		5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8263073D47812D536F4369 /* GeoPoseCaptureService.swift */; };
 		60C720C4226E7EADD4D73BD5 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C46B83A003BDC6A241B3BDD /* NotificationService.swift */; };
+		6C577AC0F64E4A21D26BE1BA /* AnimatedGIFView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219981EF4B8583A7F231C146 /* AnimatedGIFView.swift */; };
 		6E537DA4B254594AFBFAF0D8 /* ARPostViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */; };
 		6EE96CC69E25FE252051A562 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5172273B7111934A8D310E05 /* Models.swift */; };
 		6F65592608C6DAC2FB86B779 /* AppSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53768F263588C9A54C898060 /* AppSettingsView.swift */; };
@@ -74,10 +76,12 @@
 		C719C12194E99361130F262A /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 77582291DD5FBFA6CDBA3E81 /* FirebaseFunctions */; };
 		C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */; };
 		C9BCF2F1BCC8DB65916C2B78 /* ARCoreDisclosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = A066184A4986CA47D43E7043 /* ARCoreDisclosure.swift */; };
+		CC256423BC31FBAF0318E3AC /* GifPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A13E7C0C1A465129B5A5346 /* GifPickerView.swift */; };
 		CC5234BFC2BBC32AEB7F3925 /* UITestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCDF1EBD87F62594CC8B8C8F /* UITestHelpers.swift */; };
 		CF38CD57A83674691699A5B0 /* AuthenticationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACB2AEF3923D50E72B4765F9 /* AuthenticationServices.framework */; };
 		D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */; };
 		D208F4B728D6F0F7FD84C54E /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2C002889FAF74276EADB893 /* ActivityView.swift */; };
+		D5D44603AAEDBFBE61BC3067 /* GifPostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24971089F9EF41DDADCD30AC /* GifPostTests.swift */; };
 		D761C9CEA29A60B3F1ED10AF /* ARCoreCoverageDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */; };
 		D79733A2FF29F7EC54C148D0 /* WorldMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */; };
 		DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D3113CEC157B882DCE675A /* AvatarStore.swift */; };
@@ -121,8 +125,11 @@
 		04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		0656173096F4B80612408176 /* LociARTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialContentRenderer.swift; sourceTree = "<group>"; };
+		0A13E7C0C1A465129B5A5346 /* GifPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifPickerView.swift; sourceTree = "<group>"; };
 		0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinStateMachineTests.swift; sourceTree = "<group>"; };
 		15467FD09987F01C8665AFE9 /* HiddenPostStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenPostStore.swift; sourceTree = "<group>"; };
+		219981EF4B8583A7F231C146 /* AnimatedGIFView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedGIFView.swift; sourceTree = "<group>"; };
+		24971089F9EF41DDADCD30AC /* GifPostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifPostTests.swift; sourceTree = "<group>"; };
 		26517046B2409888717CB325 /* PersistenceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceModels.swift; sourceTree = "<group>"; };
 		275E3BB8F4215EF4AF15295E /* WorldMapCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldMapCodec.swift; sourceTree = "<group>"; };
 		29542377FC89A2155057D35C /* StoreReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreReadinessTests.swift; sourceTree = "<group>"; };
@@ -185,6 +192,7 @@
 		B673A12AAA93EA6AEF0A6476 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRepository.swift; sourceTree = "<group>"; };
 		BA24E9E41EA62BF05C10DAA6 /* AuthGateUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateUITests.swift; sourceTree = "<group>"; };
+		BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifRepository.swift; sourceTree = "<group>"; };
 		D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARExperienceView.swift; sourceTree = "<group>"; };
 		D5D91864B39E041B2748830A /* AuthGateUserFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateUserFlowUITests.swift; sourceTree = "<group>"; };
 		DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LociARApp.swift; sourceTree = "<group>"; };
@@ -242,6 +250,7 @@
 		0A911B641A6093F0650884E9 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
+				219981EF4B8583A7F231C146 /* AnimatedGIFView.swift */,
 				EED520F06CC3613D39D23784 /* Localization.swift */,
 				9D39885DA91A93735B60CAD0 /* LociTheme.swift */,
 			);
@@ -295,6 +304,7 @@
 			isa = PBXGroup;
 			children = (
 				6EF5BC023488AB03C976EEEC /* CreatePostView.swift */,
+				0A13E7C0C1A465129B5A5346 /* GifPickerView.swift */,
 			);
 			path = Create;
 			sourceTree = "<group>";
@@ -317,6 +327,7 @@
 				67595FAB2CD41468A70ED743 /* ArchitectureAndPublishTests.swift */,
 				61A27A11D2DC46B7BCDA5DC4 /* BackendAndPolicyTests.swift */,
 				5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */,
+				24971089F9EF41DDADCD30AC /* GifPostTests.swift */,
 				597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */,
 				0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */,
 				745BCE5D71F4B98D69FDDE61 /* ReliabilityTests.swift */,
@@ -455,6 +466,7 @@
 				02D3113CEC157B882DCE675A /* AvatarStore.swift */,
 				E144FD8B340551FC39132078 /* BackendPostContract.swift */,
 				3067562C1889E41845A4B37D /* FirebaseBackend.swift */,
+				BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */,
 				15467FD09987F01C8665AFE9 /* HiddenPostStore.swift */,
 				8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */,
 				E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */,
@@ -686,6 +698,7 @@
 				98C217A811653B8F23CF0F8D /* ArchitectureAndPublishTests.swift in Sources */,
 				92CB2579F9A4D9FA6136AF3D /* BackendAndPolicyTests.swift in Sources */,
 				788505617997733A088C4578 /* DomainContractTests.swift in Sources */,
+				D5D44603AAEDBFBE61BC3067 /* GifPostTests.swift in Sources */,
 				49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */,
 				5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */,
 				99FBBC4D6F718E4D5DA21753 /* ReliabilityTests.swift in Sources */,
@@ -706,6 +719,7 @@
 				6E537DA4B254594AFBFAF0D8 /* ARPostViewerView.swift in Sources */,
 				F3C20A7CF79DC0951AC69910 /* ARViewContainer.swift in Sources */,
 				D208F4B728D6F0F7FD84C54E /* ActivityView.swift in Sources */,
+				6C577AC0F64E4A21D26BE1BA /* AnimatedGIFView.swift in Sources */,
 				1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */,
 				B9506EFFBDF4A5BAD96C8B74 /* AppContainer.swift in Sources */,
 				4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */,
@@ -720,6 +734,8 @@
 				A46198DE013220502EEEAF5F /* DiscoverView.swift in Sources */,
 				2CDCD676F2852A6E77BCE560 /* FirebaseBackend.swift in Sources */,
 				5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */,
+				CC256423BC31FBAF0318E3AC /* GifPickerView.swift in Sources */,
+				4516F427622ADCD714BC3434 /* GifRepository.swift in Sources */,
 				E5D82E2EDBE5691A52C16D02 /* HiddenPostStore.swift in Sources */,
 				881A6413A9230C295BDBD795 /* LegacyAsyncStorageImporter.swift in Sources */,
 				98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */,

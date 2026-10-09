@@ -377,13 +377,16 @@ final class BackendAndPolicyTests: XCTestCase {
 
     func testServerRejectionsUseLocalizedMessages() {
         XCTAssertEqual(FirestorePostRepository.serverMessage("Creation is blocked in protected zone: Ayasofya"), String(localized: "Bu korumalı bölgede post yayınlanamaz."))
-        let textOnly = String(localized: "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.")
+        let textOnly = String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Only text and GIF posts are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Links are not allowed"), textOnly)
         // Older servers still answer with the social-link wording.
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts and social media links are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Invalid social media link"), textOnly)
-        XCTAssertEqual(FirestorePostRepository.serverMessage("At least one edit layer is required"), String(localized: "Yayınlamak için bir caption yaz."))
+        XCTAssertEqual(FirestorePostRepository.serverMessage("At least one edit layer is required"), String(localized: "Yayınlamak için bir mesaj yaz veya GIF ekle."))
+        XCTAssertEqual(FirestorePostRepository.serverMessage("GIF not available", reason: "gif_invalid"), String(localized: "Bu GIF artık kullanılamıyor. Başka bir GIF seç."))
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Only one GIF is allowed"), String(localized: "Bir posta en fazla bir GIF eklenebilir."))
         XCTAssertEqual(
             FirestorePostRepository.serverMessage("An invite code is required to publish", reason: "invite_required"),
             String(localized: "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.")

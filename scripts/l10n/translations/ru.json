@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️ Тайм-аут VPS",
  "⚠️ İç hata": "⚠️ Внутренняя ошибка",
  "kullanıcı": "пользователь",
- "Yayınlamak için bir caption yaz.": "Напишите подпись, чтобы опубликовать.",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "Публикации могут содержать только текст; фото, видео и ссылки не поддерживаются.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "Публикации с фотографиями и видео больше не поддерживаются. Создайте публикацию заново в виде текста.",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Прикрепляйте свои мысли в виде коротких заметок к реальным стенам и пространствам с помощью блокировки поверхности AR.",
  "Davet": "Приглашение",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "Для публикации нужен код приглашения. Введите полученный код в разделе Профиль > Код приглашения.",
  "Sana verilen kod": "Полученный код",
  "Senin kodların": "Ваши коды",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Слишком много неудачных попыток. Повторите попытку позже."
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Слишком много неудачных попыток. Повторите попытку позже.",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "Сейчас не удаётся загрузить GIF. Попробуйте ещё раз.",
+ "Bir posta en fazla bir GIF eklenebilir.": "В публикации может быть не больше одного GIF.",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "Этот GIF больше недоступен. Выберите другой GIF.",
+ "GIF ara": "Поиск GIF",
+ "GIF bulunamadı.": "GIF не найдены.",
+ "GIF ekle": "Добавить GIF",
+ "GIF seç": "Выбрать GIF",
+ "GIF": "GIF",
+ "Kaldır": "Удалить",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "Публикации могут содержать только текст и GIF; фото, видео, рисунки и ссылки не поддерживаются.",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "Напишите сообщение или добавьте GIF, чтобы опубликовать.",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "Слишком много поисков GIF. Попробуйте чуть позже."
 }

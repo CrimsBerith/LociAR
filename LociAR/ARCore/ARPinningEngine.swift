@@ -48,6 +48,8 @@ final class ARPinningEngine: NSObject {
     @ObservationIgnored private var notificationTokens: [NSObjectProtocol] = []
     @ObservationIgnored private let contentRenderer = SpatialContentRenderer()
     @ObservationIgnored private var videoPlayers: [UUID: AVPlayer] = [:]
+    /// Keeps GIF videos looping; released together with their players.
+    @ObservationIgnored private var gifLoopers: [UUID: AVPlayerLooper] = [:]
     @ObservationIgnored private var activeInitialWorldMap: ARWorldMap?
     @ObservationIgnored private var pausedForThermalPressure = false
     /// AR is paused because the device is too hot (resumes on its own when it cools down).
@@ -276,6 +278,7 @@ final class ARPinningEngine: NSObject {
         trackedRaycast = nil
         videoPlayers.values.forEach { $0.pause() }
         videoPlayers.removeAll()
+        gifLoopers.removeAll()
         for entity in anchorEntities.values { entity.removeFromParent() }
         anchorEntities.removeAll()
         relocalizationTimeoutTask?.cancel()
@@ -747,7 +750,8 @@ final class ARPinningEngine: NSObject {
             player.play()
             return
         }
-        guard let image = await contentRenderer.render(post) else { throw ARPinningError.renderContentUnavailable }
+        guard let rendered = await contentRenderer.renderPost(post) else { throw ARPinningError.renderContentUnavailable }
+        let image = rendered.image
         let size = SpatialContentRenderer.physicalSize(
             for: post,
             renderedPixelSize: CGSize(width: image.width, height: image.height)
@@ -764,6 +768,49 @@ final class ARPinningEngine: NSObject {
         material.color = .init(tint: .white, texture: .init(texture))
         material.blending = .transparent(opacity: .init(floatLiteral: 1.0))
         model.model?.materials = [material]
+
+        model.findEntity(named: Self.gifVideoEntityName)?.removeFromParent()
+        videoPlayers.removeValue(forKey: post.id)?.pause()
+        gifLoopers.removeValue(forKey: post.id)
+        if let gif = post.gif, let area = rendered.gifRect {
+            attachGifVideo(gif, area: area, bubbleSize: size, to: model, postID: post.id)
+        }
+    }
+
+    private static let gifVideoEntityName = "gif-video"
+
+    /// Plays the GIPHY MP4 (muted, looping) over the GIF area of the message bubble. The plane is
+    /// added only once the video is ready, so the poster frame stays visible while it loads or if it fails.
+    private func attachGifVideo(_ gif: GifReference, area: CGRect, bubbleSize: PhysicalRectMeters, to model: ModelEntity, postID: UUID) {
+        let player = AVQueuePlayer()
+        player.isMuted = true
+        player.preventsDisplaySleepDuringVideoPlayback = false
+        let looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: gif.videoURL))
+        videoPlayers[postID] = player
+        gifLoopers[postID] = looper
+        let width = bubbleSize.width * Float(area.width)
+        let height = bubbleSize.height * Float(area.height)
+        let position = SIMD3<Float>(
+            (Float(area.midX) - 0.5) * bubbleSize.width,
+            (0.5 - Float(area.midY)) * bubbleSize.height,
+            0.001
+        )
+        Task { [weak self, weak model] in
+            for _ in 0..<100 {
+                if player.currentItem?.status == .readyToPlay { break }
+                if player.currentItem?.status == .failed { return }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            guard let self, let model, self.videoPlayers[postID] === player, player.currentItem?.status == .readyToPlay else { return }
+            let video = ModelEntity(
+                mesh: .generatePlane(width: width, height: height, cornerRadius: min(width, height) * 0.03),
+                materials: [VideoMaterial(avPlayer: player)]
+            )
+            video.name = Self.gifVideoEntityName
+            video.position = position
+            model.addChild(video)
+            player.play()
+        }
     }
 
     var isCandidateStable: Bool {
@@ -1022,6 +1069,7 @@ final class ARPinningEngine: NSObject {
     private func clearPlacedAnchors() {
         videoPlayers.values.forEach { $0.pause() }
         videoPlayers.removeAll()
+        gifLoopers.removeAll()
         for entity in anchorEntities.values { entity.removeFromParent() }
         anchorEntities.removeAll()
         for anchor in arView.session.currentFrame?.anchors ?? [] where anchor.name?.hasPrefix("lociar_surface_") == true {

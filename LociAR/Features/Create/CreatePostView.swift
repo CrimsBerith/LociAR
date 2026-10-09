@@ -13,6 +13,9 @@ struct CreatePostView: View {
     @Environment(ARPinningEngine.self) private var engine
     @State private var selectedAnchor: SurfaceAnchor?
     @State private var caption = ""
+    /// The post's GIPHY GIF (at most one); posts are a message: text and/or a GIF.
+    @State private var selectedGif: GifReference?
+    @State private var showGifPicker = false
     @State private var isPublishing = false
     /// True while the pin is being saved; set before the task starts so a double tap cannot
     /// start a second save.
@@ -322,7 +325,7 @@ struct CreatePostView: View {
     }
 
     private func editor(anchor: SurfaceAnchor) -> some View {
-        // Device photo/video attachments were removed: posts are text and/or a social link.
+        // Posts are a message: text and/or one GIPHY GIF (no photos, videos, drawings or links).
         ScrollView {
             VStack(spacing: 16) {
                 LociCard {
@@ -365,12 +368,48 @@ struct CreatePostView: View {
                         }
                     }
                 }
+
+                gifCard
             }
             .padding()
+        }
+        .sheet(isPresented: $showGifPicker) {
+            GifPickerView { selectedGif = $0 }
         }
         .background(LociTheme.background)
         .scrollDismissesKeyboard(.immediately)
         .safeAreaInset(edge: .bottom) { publishBar(anchor: anchor) }
+    }
+
+    private var gifCard: some View {
+        LociCard {
+            VStack(alignment: .leading, spacing: 12) {
+                LociSectionLabel(title: String(localized: "GIF"), symbol: "photo.stack")
+                if let gif = selectedGif {
+                    AnimatedGIFView(url: gif.previewURL)
+                        .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityIdentifier("create-gif-preview")
+                    HStack {
+                        Button("Değiştir") { showGifPicker = true }
+                            .buttonStyle(.bordered).controlSize(.small)
+                        Button("Kaldır", role: .destructive) { selectedGif = nil }
+                            .buttonStyle(.bordered).controlSize(.small)
+                            .accessibilityIdentifier("create-gif-remove")
+                        Spacer()
+                        Text(verbatim: "Powered by GIPHY").font(.caption2.weight(.bold)).foregroundStyle(.secondary)
+                    }
+                } else {
+                    Button { showGifPicker = true } label: {
+                        Label("GIF ekle", systemImage: "plus.circle.fill")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("create-gif-add")
+                }
+            }
+        }
     }
 
     private func publishBar(anchor: SurfaceAnchor) -> some View {
@@ -387,7 +426,7 @@ struct CreatePostView: View {
             .disabled(!canPublish)
             .accessibilityIdentifier("create-publish")
             if !hasMeaningfulContent {
-                Text("Yayınlamak için bir caption yaz.")
+                Text("Yayınlamak için bir mesaj yaz veya GIF ekle.")
                     .font(.caption2).foregroundStyle(.secondary)
             }
         }
@@ -466,8 +505,12 @@ struct CreatePostView: View {
 
         var layers: [EditLayer] = []
         let finalCaption = resolvedCaption
-        if !finalCaption.isEmpty {
-            layers.append(EditLayer(id: UUID(), kind: .text, text: finalCaption, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0))
+        let messageText = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !messageText.isEmpty {
+            layers.append(EditLayer(id: UUID(), kind: .text, text: messageText, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0))
+        }
+        if let selectedGif {
+            layers.append(EditLayer(id: UUID(), kind: .gif, text: nil, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0, gif: selectedGif))
         }
         let post = LociPost(
             id: postID, creatorID: user.id, creatorHandle: user.handle, createdAt: Date(), caption: finalCaption,
@@ -512,7 +555,7 @@ struct CreatePostView: View {
     }
 
     private var hasMeaningfulContent: Bool {
-        !caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        selectedGif != nil || !caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func dismissKeyboard() {
@@ -522,7 +565,8 @@ struct CreatePostView: View {
     private var resolvedCaption: String {
         let clean = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if !clean.isEmpty { return clean }
-        return String(localized: "Mekânsal post")
+        // GIF-only posts still need a caption for the map, search and VoiceOver.
+        return selectedGif != nil ? String(localized: "GIF") : String(localized: "Mekânsal post")
     }
 
     private func startCommit(_ anchor: SurfaceAnchor) {
