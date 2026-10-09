@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "Write a caption to publish.",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "Posts may contain only text; photos, videos and links are not supported.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "Posts containing photos and videos are no longer supported. Recreate the post as text.",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Pin your thoughts as short notes to real walls and spaces with AR surface locking."
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Pin your thoughts as short notes to real walls and spaces with AR surface locking.",
+ "Davet": "Invite",
+ "Davet kodu": "Invite code",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "The invite code is invalid or has already been used.",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "Invites are unavailable right now. Try again.",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "Browsing is open to everyone. An invite code may be needed only to share posts.",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "Each account can give out up to 3 codes. Each code can be used once.",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "To see your own codes, first enter the invite code you were given.",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "Code accepted. You can now share posts.",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "To see your codes, first enter the code you were given.",
+ "Kodu kullan": "Use code",
+ "Kodu paylaş": "Share code",
+ "Kullanıldı": "Used",
+ "LociAR'a davetlisin. Davet kodun: %@": "You're invited to LociAR. Your invite code: %@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "You need an invite code to share. Enter the code you were given in Profile > Invite code.",
+ "Sana verilen kod": "Code you were given",
+ "Senin kodların": "Your codes",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Too many failed attempts. Try again later."
 }

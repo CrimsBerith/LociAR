@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "请填写说明后再发布。",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "帖子只能包含文本；不支持照片、视频和链接。",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "不再支持包含照片和视频的帖子。请以文本形式重新创建帖子。",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "通过 AR 表面锁定，将您的想法以简短笔记的形式固定到真实的墙壁和空间。"
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "通过 AR 表面锁定，将您的想法以简短笔记的形式固定到真实的墙壁和空间。",
+ "Davet": "邀请",
+ "Davet kodu": "邀请码",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "邀请码无效或已被使用。",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "暂时无法处理邀请。请重试。",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "浏览不受限制。仅分享帖子时可能需要邀请码。",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "每个账号最多可发放 3 个邀请码。每个邀请码只能使用一次。",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "要查看你自己的邀请码，请先输入你收到的邀请码。",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "邀请码已接受。现在你可以分享帖子了。",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "要查看你的邀请码，请先输入你收到的邀请码。",
+ "Kodu kullan": "使用邀请码",
+ "Kodu paylaş": "分享邀请码",
+ "Kullanıldı": "已使用",
+ "LociAR'a davetlisin. Davet kodun: %@": "你受邀加入 LociAR。你的邀请码：%@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "分享需要邀请码。请在 个人资料 > 邀请码 中输入你收到的邀请码。",
+ "Sana verilen kod": "你收到的邀请码",
+ "Senin kodların": "你的邀请码",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "失败次数过多。请稍后再试。"
 }

@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "اكتب وصفًا للنشر.",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "يمكن أن تحتوي المنشورات على نص فقط؛ الصور ومقاطع الفيديو والروابط غير مدعومة.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "لم تعد المنشورات التي تحتوي على صور ومقاطع فيديو مدعومة. أعد إنشاء المنشور كنص.",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "ثبّت أفكارك كملاحظات قصيرة على الجدران والمساحات الحقيقية باستخدام قفل السطح AR."
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "ثبّت أفكارك كملاحظات قصيرة على الجدران والمساحات الحقيقية باستخدام قفل السطح AR.",
+ "Davet": "الدعوة",
+ "Davet kodu": "رمز الدعوة",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "رمز الدعوة غير صالح أو تم استخدامه من قبل.",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "الدعوات غير متاحة حاليًا. حاول مرة أخرى.",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "التصفح متاح للجميع. قد تحتاج إلى رمز دعوة فقط لمشاركة المنشورات.",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "يمكن لكل حساب منح 3 رموز كحد أقصى. كل رمز صالح للاستخدام مرة واحدة.",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "لرؤية رموزك، أدخل أولًا رمز الدعوة الذي حصلت عليه.",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "تم قبول الرمز. يمكنك الآن مشاركة المنشورات.",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "لرؤية رموزك، أدخل أولًا الرمز الذي حصلت عليه.",
+ "Kodu kullan": "استخدم الرمز",
+ "Kodu paylaş": "مشاركة الرمز",
+ "Kullanıldı": "مُستخدَم",
+ "LociAR'a davetlisin. Davet kodun: %@": "أنت مدعو إلى LociAR. رمز دعوتك: %@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "تحتاج إلى رمز دعوة للمشاركة. أدخل الرمز الذي حصلت عليه في الملف الشخصي > رمز الدعوة.",
+ "Sana verilen kod": "الرمز الذي حصلت عليه",
+ "Senin kodların": "رموزك",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "محاولات فاشلة كثيرة جدًا. حاول مرة أخرى لاحقًا."
 }

@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "Escribe una descripción para publicar.",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "Las publicaciones solo pueden contener texto; no se admiten fotos, vídeos ni enlaces.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "Ya no se admiten publicaciones que contengan fotos y vídeos. Recrea la publicación como texto.",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Fija tus pensamientos como notas breves en paredes y espacios reales con bloqueo de superficie AR."
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Fija tus pensamientos como notas breves en paredes y espacios reales con bloqueo de superficie AR.",
+ "Davet": "Invitación",
+ "Davet kodu": "Código de invitación",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "El código de invitación no es válido o ya se ha usado.",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "Las invitaciones no están disponibles en este momento. Inténtalo de nuevo.",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "Explorar es libre. Es posible que solo necesites un código de invitación para compartir publicaciones.",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "Cada cuenta puede dar hasta 3 códigos. Cada código es de un solo uso.",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "Para ver tus propios códigos, primero introduce el código de invitación que te dieron.",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "Código aceptado. Ya puedes compartir publicaciones.",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "Para ver tus códigos, primero introduce el código que te dieron.",
+ "Kodu kullan": "Usar código",
+ "Kodu paylaş": "Compartir código",
+ "Kullanıldı": "Usado",
+ "LociAR'a davetlisin. Davet kodun: %@": "Estás invitado a LociAR. Tu código de invitación: %@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "Necesitas un código de invitación para compartir. Introduce el código que te dieron en Perfil > Código de invitación.",
+ "Sana verilen kod": "Código que te dieron",
+ "Senin kodların": "Tus códigos",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Demasiados intentos fallidos. Inténtalo más tarde."
 }

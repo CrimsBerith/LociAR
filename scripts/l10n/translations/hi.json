@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "प्रकाशित करने के लिए एक कैप्शन लिखें।",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "पोस्ट में केवल टेक्स्ट हो सकता है; फ़ोटो, वीडियो और लिंक समर्थित नहीं हैं।",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "फ़ोटो और वीडियो वाले पोस्ट अब समर्थित नहीं हैं। पोस्ट को टेक्स्ट के रूप में दोबारा बनाएं।",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "अपने विचारों को छोटे नोट्स के रूप में AR सरफेस लॉकिंग के साथ वास्तविक दीवारों और स्थानों पर पिन करें।"
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "अपने विचारों को छोटे नोट्स के रूप में AR सरफेस लॉकिंग के साथ वास्तविक दीवारों और स्थानों पर पिन करें।",
+ "Davet": "आमंत्रण",
+ "Davet kodu": "आमंत्रण कोड",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "आमंत्रण कोड अमान्य है या पहले ही इस्तेमाल हो चुका है।",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "आमंत्रण अभी उपलब्ध नहीं है। फिर से कोशिश करें।",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "ब्राउज़ करना सबके लिए खुला है। आमंत्रण कोड सिर्फ़ पोस्ट शेयर करने के लिए ज़रूरी हो सकता है।",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "हर खाता अधिकतम 3 कोड दे सकता है। हर कोड सिर्फ़ एक बार इस्तेमाल हो सकता है।",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "अपने कोड देखने के लिए पहले आपको दिया गया आमंत्रण कोड डालें।",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "कोड स्वीकार हो गया। अब आप पोस्ट शेयर कर सकते हैं।",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "अपने कोड देखने के लिए पहले आपको दिया गया कोड डालें।",
+ "Kodu kullan": "कोड इस्तेमाल करें",
+ "Kodu paylaş": "कोड शेयर करें",
+ "Kullanıldı": "इस्तेमाल हो चुका",
+ "LociAR'a davetlisin. Davet kodun: %@": "आपको LociAR पर आमंत्रित किया गया है। आपका आमंत्रण कोड: %@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "शेयर करने के लिए आमंत्रण कोड ज़रूरी है। प्रोफ़ाइल > आमंत्रण कोड में आपको दिया गया कोड डालें।",
+ "Sana verilen kod": "आपको दिया गया कोड",
+ "Senin kodların": "आपके कोड",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "बहुत ज़्यादा गलत प्रयास। कुछ देर बाद फिर से कोशिश करें।"
 }

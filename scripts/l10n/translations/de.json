@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "Schreiben Sie eine Beschreibung, um zu veröffentlichen.",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "Beiträge dürfen nur Text enthalten; Fotos, Videos und Links werden nicht unterstützt.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "Beiträge mit Fotos und Videos werden nicht mehr unterstützt. Erstellen Sie den Beitrag als Text neu.",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Pinnen Sie Ihre Gedanken als kurze Notizen mit der AR-Oberflächensperre an reale Wände und Räume."
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Pinnen Sie Ihre Gedanken als kurze Notizen mit der AR-Oberflächensperre an reale Wände und Räume.",
+ "Davet": "Einladung",
+ "Davet kodu": "Einladungscode",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "Der Einladungscode ist ungültig oder wurde bereits verwendet.",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "Einladungen sind gerade nicht verfügbar. Versuchen Sie es erneut.",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "Stöbern ist für alle offen. Ein Einladungscode wird möglicherweise nur zum Teilen von Beiträgen benötigt.",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "Jedes Konto kann bis zu 3 Codes vergeben. Jeder Code ist nur einmal verwendbar.",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "Um Ihre eigenen Codes zu sehen, geben Sie zuerst den Einladungscode ein, den Sie erhalten haben.",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "Code akzeptiert. Sie können jetzt Beiträge teilen.",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "Um Ihre Codes zu sehen, geben Sie zuerst den Code ein, den Sie erhalten haben.",
+ "Kodu kullan": "Code verwenden",
+ "Kodu paylaş": "Code teilen",
+ "Kullanıldı": "Verwendet",
+ "LociAR'a davetlisin. Davet kodun: %@": "Sie sind zu LociAR eingeladen. Ihr Einladungscode: %@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "Zum Teilen ist ein Einladungscode erforderlich. Geben Sie den erhaltenen Code unter Profil > Einladungscode ein.",
+ "Sana verilen kod": "Erhaltener Code",
+ "Senin kodların": "Ihre Codes",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Zu viele fehlgeschlagene Versuche. Versuchen Sie es später erneut."
 }

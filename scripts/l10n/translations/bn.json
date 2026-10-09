@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "প্রকাশ করতে একটি ক্যাপশন লিখুন।",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "পোস্টে শুধুমাত্র পাঠ্য থাকতে পারে; ফটো, ভিডিও এবং লিঙ্ক সমর্থিত নয়।",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "ফটো এবং ভিডিও সম্বলিত পোস্ট আর সমর্থিত নয়। পোস্টটি পাঠ্য হিসেবে পুনরায় তৈরি করুন।",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "AR পৃষ্ঠে স্থির করার সুবিধা দিয়ে আপনার ভাবনাগুলো ছোট নোট হিসেবে বাস্তব দেয়াল ও স্থানে যুক্ত করুন।"
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "AR পৃষ্ঠে স্থির করার সুবিধা দিয়ে আপনার ভাবনাগুলো ছোট নোট হিসেবে বাস্তব দেয়াল ও স্থানে যুক্ত করুন।",
+ "Davet": "আমন্ত্রণ",
+ "Davet kodu": "আমন্ত্রণ কোড",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "আমন্ত্রণ কোডটি অবৈধ বা আগেই ব্যবহার করা হয়েছে।",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "আমন্ত্রণ এখন উপলব্ধ নয়। আবার চেষ্টা করুন।",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "ঘুরে দেখা সবার জন্য উন্মুক্ত। শুধু পোস্ট শেয়ার করতে আমন্ত্রণ কোড লাগতে পারে।",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "প্রতিটি অ্যাকাউন্ট সর্বোচ্চ 3টি কোড দিতে পারে। প্রতিটি কোড একবারই ব্যবহার করা যায়।",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "নিজের কোড দেখতে আগে আপনাকে দেওয়া আমন্ত্রণ কোডটি লিখুন।",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "কোড গৃহীত হয়েছে। এখন আপনি পোস্ট শেয়ার করতে পারবেন।",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "আপনার কোড দেখতে আগে আপনাকে দেওয়া কোডটি লিখুন।",
+ "Kodu kullan": "কোড ব্যবহার করুন",
+ "Kodu paylaş": "কোড শেয়ার করুন",
+ "Kullanıldı": "ব্যবহৃত",
+ "LociAR'a davetlisin. Davet kodun: %@": "আপনাকে LociAR-এ আমন্ত্রণ জানানো হয়েছে। আপনার আমন্ত্রণ কোড: %@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "শেয়ার করতে আমন্ত্রণ কোড প্রয়োজন। প্রোফাইল > আমন্ত্রণ কোড অংশে আপনাকে দেওয়া কোডটি লিখুন।",
+ "Sana verilen kod": "আপনাকে দেওয়া কোড",
+ "Senin kodların": "আপনার কোড",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "অনেকবার ভুল চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।"
 }

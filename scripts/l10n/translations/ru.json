@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "Напишите подпись, чтобы опубликовать.",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "Публикации могут содержать только текст; фото, видео и ссылки не поддерживаются.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "Публикации с фотографиями и видео больше не поддерживаются. Создайте публикацию заново в виде текста.",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Прикрепляйте свои мысли в виде коротких заметок к реальным стенам и пространствам с помощью блокировки поверхности AR."
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Прикрепляйте свои мысли в виде коротких заметок к реальным стенам и пространствам с помощью блокировки поверхности AR.",
+ "Davet": "Приглашение",
+ "Davet kodu": "Код приглашения",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "Код приглашения недействителен или уже использован.",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "Приглашения сейчас недоступны. Попробуйте ещё раз.",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "Просматривать можно свободно. Код приглашения может понадобиться только для публикации постов.",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "Каждый аккаунт может выдать до 3 кодов. Каждый код одноразовый.",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "Чтобы увидеть свои коды, сначала введите полученный код приглашения.",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "Код принят. Теперь вы можете публиковать посты.",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "Чтобы увидеть свои коды, сначала введите полученный код.",
+ "Kodu kullan": "Использовать код",
+ "Kodu paylaş": "Поделиться кодом",
+ "Kullanıldı": "Использован",
+ "LociAR'a davetlisin. Davet kodun: %@": "Вас пригласили в LociAR. Ваш код приглашения: %@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "Для публикации нужен код приглашения. Введите полученный код в разделе Профиль > Код приглашения.",
+ "Sana verilen kod": "Полученный код",
+ "Senin kodların": "Ваши коды",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Слишком много неудачных попыток. Повторите попытку позже."
 }

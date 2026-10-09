@@ -560,5 +560,22 @@
  "Yayınlamak için bir caption yaz.": "公開するにはキャプションを入力してください。",
  "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "投稿にはテキストのみを含めることができます。写真、ビデオ、リンクはサポートされていません。",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "写真やビデオを含む投稿はサポートされなくなりました。テキストとして投稿を再作成してください。",
- "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "AR サーフェス ロックを使用して、考えを短いメモとして実際の壁や空間にピン留めします。"
+ "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "AR サーフェス ロックを使用して、考えを短いメモとして実際の壁や空間にピン留めします。",
+ "Davet": "招待",
+ "Davet kodu": "招待コード",
+ "Davet kodu geçersiz ya da daha önce kullanılmış.": "招待コードが無効か、すでに使用されています。",
+ "Davet işlemi şu anda yapılamıyor. Tekrar dene.": "現在、招待を利用できません。もう一度お試しください。",
+ "Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.": "閲覧は自由です。招待コードは投稿を共有する場合にのみ必要になることがあります。",
+ "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.": "各アカウントが配布できるコードは最大 3 つです。各コードは 1 回のみ使用できます。",
+ "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.": "自分のコードを見るには、まず受け取った招待コードを入力してください。",
+ "Kod kabul edildi. Artık post paylaşabilirsin.": "コードが承認されました。投稿を共有できるようになりました。",
+ "Kodlarını görmek için önce sana verilen kodu gir.": "コードを見るには、まず受け取ったコードを入力してください。",
+ "Kodu kullan": "コードを使用",
+ "Kodu paylaş": "コードを共有",
+ "Kullanıldı": "使用済み",
+ "LociAR'a davetlisin. Davet kodun: %@": "LociAR に招待されています。招待コード: %@",
+ "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "共有するには招待コードが必要です。プロフィール > 招待コード で受け取ったコードを入力してください。",
+ "Sana verilen kod": "受け取ったコード",
+ "Senin kodların": "あなたのコード",
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "失敗した試行が多すぎます。しばらくしてからもう一度お試しください。"
 }
