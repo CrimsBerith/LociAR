@@ -27,7 +27,7 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - `firestore.rules` / `storage.rules` are default-deny; changes must keep `functions/test/rules/*` passing.
 - Blaze plan is required (Storage + Functions). Never weaken rules to work around Spark limits.
 - Service-account keys and Admin SDK credentials never ship in the iOS app or in `NEXT_PUBLIC_*`.
-- Posts are **text and/or a social media link only** (Spotify, YouTube, Instagram, X, Facebook). Device photo/video uploads were removed on 29 Sep 2026: `createPost` rejects image layers / own video / non-social links (`functions/src/placement.ts`), and Storage denies uploads to `post-layer-assets` and `post-video-assets`. Do not re-add media upload without a product decision.
+- Posts are **text only** (text and drawing layers). Device photo/video uploads were removed on 29 Sep 2026 and social media links (Spotify, YouTube, TikTok, Instagram, X, Facebook) on 9 Oct 2026: `createPost` and the admin content editor reject image layers, own video and any URL (`functions/src/placement.ts`, `admin/lib/content-ops.ts`), and Storage denies uploads to `post-layer-assets` and `post-video-assets`. Old posts may still carry a link in `content_source_json`; clients must decode it without crashing and never show it. Do not re-add media or links without a product decision.
 
 ## Product decisions
 
@@ -56,5 +56,5 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   `node scripts/check-localization.mjs --release` must pass too (no raw Turkish UI strings).
 - **Crash reporting:** Firebase Crashlytics enabled.
 - **Store availability:** Global (all territories).
-- **Media model:** Text and social media links only. Legacy device photo/video upload remnants completely removed.
+- **Media model:** Text only (no photos, videos or links). Social media links removed 9 Oct 2026.
 

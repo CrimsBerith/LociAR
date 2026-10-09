@@ -5,9 +5,6 @@ import Foundation
 @preconcurrency import UIKit
 
 actor SpatialContentRenderer {
-    nonisolated static let externalPreviewCardPixelSize = CGSize(width: 900, height: 620)
-    nonisolated static let externalPreviewTitleFontSize: CGFloat = 46
-    nonisolated static let externalCaptionFontSize: CGFloat = 26
 
     private var assetDataCache: [URL: Data] = [:]
     private var renderedPostCache: [String: CGImage] = [:]
@@ -71,7 +68,7 @@ actor SpatialContentRenderer {
             return false
         }()
         let hasDrawing = post.editData.layers.contains(where: { $0.kind == .drawing })
-        let textOnly = !hasImage && !hasDrawing && post.contentSource?.externalMedia == nil && {
+        let textOnly = !hasImage && !hasDrawing && {
             if case .video? = post.contentSource { return false }
             return true
         }()
@@ -93,16 +90,6 @@ actor SpatialContentRenderer {
             width = min(width, PhysicalRectMeters.textMaximum.width)
             height = min(height, PhysicalRectMeters.textMaximum.height)
             return PhysicalRectMeters(width: width, height: height)
-        }
-
-        if post.contentSource?.externalMedia != nil {
-            var width = maximumWidth
-            var height = width / aspect
-            if height > PhysicalRectMeters.externalMaximumHeight {
-                height = PhysicalRectMeters.externalMaximumHeight
-                width = height * aspect
-            }
-            return PhysicalRectMeters(width: min(width, maximumWidth), height: min(height, PhysicalRectMeters.externalMaximumHeight))
         }
 
         var width = maximumWidth
@@ -158,10 +145,6 @@ actor SpatialContentRenderer {
         assets: [UUID: Data],
         sourceImageData: Data?
     ) -> CGImage? {
-        if let external = post.contentSource?.externalMedia {
-            return drawExternalPost(platform: external.platform, url: external.url, caption: post.caption)
-        }
-
         let orderedImageData = post.editData.layers.compactMap { layer in
             layer.kind == .image ? assets[layer.id] : nil
         }
@@ -242,28 +225,6 @@ actor SpatialContentRenderer {
         return context.makeImage()
     }
 
-    nonisolated private static func drawExternalPost(
-        platform: ExternalMediaPlatform,
-        url: URL,
-        caption: String
-    ) -> CGImage? {
-        let width = Int(externalPreviewCardPixelSize.width)
-        let height = Int(externalPreviewCardPixelSize.height)
-        guard let context = makeContext(width: width, height: height) else { return nil }
-        let bounds = CGRect(x: 8, y: 8, width: width - 16, height: height - 16)
-        drawRoundedPanel(in: bounds, context: context)
-        context.saveGState()
-        context.addPath(CGPath(roundedRect: bounds, cornerWidth: 54, cornerHeight: 54, transform: nil))
-        context.clip()
-        drawExternalCard(platform: platform, url: url, caption: caption, context: context, width: width, height: height)
-        context.restoreGState()
-        context.setStrokeColor(CGColor(red: 0.22, green: 0.88, blue: 0.72, alpha: 0.66))
-        context.setLineWidth(7)
-        context.addPath(CGPath(roundedRect: bounds, cornerWidth: 54, cornerHeight: 54, transform: nil))
-        context.strokePath()
-        return context.makeImage()
-    }
-
     nonisolated private static func makeContext(width: Int, height: Int) -> CGContext? {
         guard let context = CGContext(
             data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
@@ -271,25 +232,6 @@ actor SpatialContentRenderer {
         ) else { return nil }
         context.clear(CGRect(x: 0, y: 0, width: width, height: height))
         return context
-    }
-
-    nonisolated private static func drawRoundedPanel(in rect: CGRect, context: CGContext) {
-        context.saveGState()
-        let path = CGPath(roundedRect: rect, cornerWidth: 54, cornerHeight: 54, transform: nil)
-        context.addPath(path)
-        context.clip()
-        let colors = [
-            CGColor(red: 0.055, green: 0.23, blue: 0.23, alpha: 0.94),
-            CGColor(red: 0.055, green: 0.10, blue: 0.16, alpha: 0.94)
-        ] as CFArray
-        if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
-            context.drawLinearGradient(gradient, start: CGPoint(x: rect.minX, y: rect.maxY), end: CGPoint(x: rect.maxX, y: rect.minY), options: [])
-        }
-        context.restoreGState()
-        context.setStrokeColor(CGColor(red: 0.22, green: 0.88, blue: 0.72, alpha: 0.66))
-        context.setLineWidth(7)
-        context.addPath(path)
-        context.strokePath()
     }
 
     nonisolated private static func decodedImage(_ data: Data) -> CGImage? {
@@ -304,8 +246,7 @@ actor SpatialContentRenderer {
     nonisolated private static func draw(
         _ editData: EditData,
         assets: [UUID: Data],
-        caption: String? = nil,
-        externalPlatform: ExternalMediaPlatform? = nil
+        caption: String? = nil
     ) -> CGImage? {
         let width = max(1, Int(editData.canvasWidth))
         let height = max(1, Int(editData.canvasHeight))
@@ -314,11 +255,6 @@ actor SpatialContentRenderer {
             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return nil }
         context.clear(CGRect(x: 0, y: 0, width: width, height: height))
-
-        if let externalPlatform {
-            drawExternalCard(platform: externalPlatform, url: nil, caption: caption ?? "", context: context, width: width, height: height)
-            return context.makeImage()
-        }
 
         for layer in editData.layers {
             context.saveGState()
@@ -354,135 +290,6 @@ actor SpatialContentRenderer {
             drawText(caption, in: panel.insetBy(dx: 34, dy: 28), fontSize: 54, color: CGColor(gray: 1, alpha: 1), context: context)
         }
         return context.makeImage()
-    }
-
-    nonisolated private static func drawExternalCard(
-        platform: ExternalMediaPlatform,
-        url: URL?,
-        caption: String,
-        context: CGContext,
-        width: Int,
-        height: Int
-    ) {
-        let accent: CGColor
-        switch platform {
-        case .spotify: accent = CGColor(red: 30 / 255, green: 215 / 255, blue: 96 / 255, alpha: 1)
-        case .youtube: accent = CGColor(red: 1, green: 0, blue: 51 / 255, alpha: 1)
-        case .facebook: accent = CGColor(red: 8 / 255, green: 102 / 255, blue: 1, alpha: 1)
-        case .instagram: accent = CGColor(red: 0.79, green: 0.16, blue: 0.48, alpha: 1)
-        case .x: accent = CGColor(gray: 0.92, alpha: 1)
-        }
-        let canvasWidth = CGFloat(width)
-        let canvasHeight = CGFloat(height)
-        let header = CGRect(x: 0, y: canvasHeight * 0.76, width: canvasWidth, height: canvasHeight * 0.24)
-        context.setFillColor(accent)
-        context.fill(header)
-        let headerColor = platform == .x ? CGColor(gray: 0.04, alpha: 1) : CGColor(gray: 1, alpha: 1)
-        let logoRect = CGRect(x: 58, y: canvasHeight * 0.805, width: 82, height: 82)
-        drawBrandLogo(platform, in: logoRect, forHeader: true, context: context)
-        drawText(platform.rawValue, in: CGRect(x: 164, y: canvasHeight * 0.79, width: canvasWidth - 222, height: canvasHeight * 0.14), fontSize: 54, color: headerColor, context: context)
-
-        let previewRect = CGRect(x: 48, y: 164, width: canvasWidth - 96, height: canvasHeight * 0.47)
-        context.setFillColor(CGColor(red: 0.025, green: 0.045, blue: 0.07, alpha: 0.92))
-        context.addPath(CGPath(roundedRect: previewRect, cornerWidth: 34, cornerHeight: 34, transform: nil))
-        context.fillPath()
-        context.setStrokeColor(accent.copy(alpha: 0.55) ?? accent)
-        context.setLineWidth(4)
-        context.addPath(CGPath(roundedRect: previewRect, cornerWidth: 34, cornerHeight: 34, transform: nil))
-        context.strokePath()
-
-        let previewLogo = CGRect(x: 82, y: previewRect.midY - 66, width: 132, height: 132)
-        drawBrandLogo(platform, in: previewLogo, forHeader: false, context: context)
-        drawText(
-            externalPreviewTitle(platform: platform, url: url),
-            in: CGRect(x: 250, y: previewRect.midY + 8, width: previewRect.maxX - 286, height: 72),
-            fontSize: externalPreviewTitleFontSize,
-            color: CGColor(gray: 1, alpha: 1),
-            context: context
-        )
-        drawText(
-            externalPreviewIdentifier(url),
-            in: CGRect(x: 250, y: previewRect.midY - 60, width: previewRect.maxX - 286, height: 54),
-            fontSize: 27,
-            color: CGColor(gray: 0.72, alpha: 1),
-            context: context
-        )
-        drawText(
-            "Gönderi önizlemesi · Detaydan aç".localizedUI,
-            in: CGRect(x: 82, y: previewRect.minY + 24, width: previewRect.width - 68, height: 42),
-            fontSize: 22,
-            color: accent,
-            context: context
-        )
-
-        let cleanCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !cleanCaption.isEmpty {
-            drawText("CAPTION", in: CGRect(x: 58, y: 116, width: canvasWidth - 116, height: 24), fontSize: 17, color: CGColor(gray: 0.54, alpha: 1), context: context)
-            drawText(cleanCaption, in: CGRect(x: 58, y: 48, width: canvasWidth - 116, height: 64), fontSize: externalCaptionFontSize, color: CGColor(gray: 0.90, alpha: 1), context: context)
-        }
-    }
-
-    nonisolated private static func externalPreviewTitle(
-        platform: ExternalMediaPlatform,
-        url: URL?
-    ) -> String {
-        externalPreviewTitleKey(platform: platform, url: url).localizedUI
-    }
-
-    nonisolated private static func externalPreviewTitleKey(
-        platform: ExternalMediaPlatform,
-        url: URL?
-    ) -> String {
-        let firstPath = url?.pathComponents.dropFirst().first?.lowercased()
-        switch platform {
-        case .spotify:
-            switch firstPath {
-            case "album": return String(localized: "Albüm önizlemesi")
-            case "playlist": return String(localized: "Çalma listesi")
-            case "episode", "show": return String(localized: "Podcast önizlemesi")
-            default: return String(localized: "Parça önizlemesi")
-            }
-        case .youtube: return String(localized: "Video önizlemesi")
-        case .facebook: return firstPath == "reel" ? String(localized: "Reels önizlemesi") : String(localized: "Gönderi önizlemesi")
-        case .instagram: return firstPath == "reel" ? String(localized: "Reels önizlemesi") : String(localized: "Gönderi önizlemesi")
-        case .x: return String(localized: "Gönderi önizlemesi")
-        }
-    }
-
-    nonisolated private static func externalPreviewIdentifier(_ url: URL?) -> String {
-        guard let url else { return String(localized: "Bağlantılı sosyal içerik") }
-        let identifier = url.pathComponents
-            .filter { $0 != "/" }
-            .suffix(2)
-            .joined(separator: " / ")
-        return identifier.isEmpty ? (url.host ?? String(localized: "Bağlantılı sosyal içerik")) : identifier
-    }
-
-    nonisolated private static func drawBrandLogo(
-        _ platform: ExternalMediaPlatform,
-        in rect: CGRect,
-        forHeader: Bool,
-        context: CGContext
-    ) {
-        let assetName: String
-        switch (platform, forHeader) {
-        case (.spotify, true): assetName = "BrandSpotifyBlack"
-        case (.youtube, true): assetName = "BrandYouTubeWhite"
-        case (.facebook, true): assetName = "BrandFacebookWhite"
-        case (.instagram, true): assetName = "BrandInstagramWhite"
-        case (.x, true): assetName = "BrandXBlack"
-        case (.spotify, false): assetName = "BrandSpotify"
-        case (.youtube, false): assetName = "BrandYouTube"
-        case (.facebook, false): assetName = "BrandFacebook"
-        case (.instagram, false): assetName = "BrandInstagram"
-        case (.x, false): assetName = "BrandXWhite"
-        }
-        guard let image = UIImage(named: assetName)?.cgImage else { return }
-
-        context.saveGState()
-        defer { context.restoreGState() }
-        context.interpolationQuality = .high
-        context.draw(image, in: rect)
     }
 
     nonisolated private static func drawText(

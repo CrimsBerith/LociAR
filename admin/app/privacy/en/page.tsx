@@ -11,7 +11,7 @@ export default function PrivacyPageEn() {
   return (
     <LegalLayout title="Privacy policy" updated={E.updatedEn} lang="en">
       <p>
-        LociAR is an iOS app for sharing short text notes and social media links anchored to real-world surfaces. This
+        LociAR is an iOS app for sharing short text notes anchored to real-world surfaces. This
         policy explains which personal data we process. <Link href="/privacy">Türkçe sürüm</Link>
       </p>
 
@@ -25,8 +25,8 @@ export default function PrivacyPageEn() {
         <li><strong>Identity:</strong> Sign in with Apple identifier or email address, username, display name, profile photo.</li>
         <li><strong>Location:</strong> while the app is in use, to show nearby content and store where you place a post (precise
           location; iOS asks for temporary precise location when AR positioning needs it).</li>
-        <li><strong>Camera:</strong> used only for AR placement; the camera feed is not recorded. Posts are text and social media
-          links; there are no photo or video posts. When you pin content, an AR map file for that surface (a feature map, not a
+        <li><strong>Camera:</strong> used only for AR placement; the camera feed is not recorded. Posts are text
+          only; there are no photo, video or link posts. When you pin content, an AR map file for that surface (a feature map, not a
           photo) may be stored.</li>
         <li><strong>Profile photo:</strong> a photo you upload is screened automatically before it is shown (see &quot;Google Cloud Vision&quot;).</li>
         <li><strong>User content:</strong> posts, captions, comments, likes, saves, collections, follows, blocks and reports.</li>

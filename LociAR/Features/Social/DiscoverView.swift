@@ -96,10 +96,20 @@ struct DiscoverView: View {
             .filter { $0.creatorID == user.id }
     }
 
+    /// Keeps the caller's order: own drafts first, then the server's feed (its first page is ranked
+    /// by engagement, later pages are chronological). A later copy of a post replaces an earlier one.
     private func mergedDiscoverPosts(_ source: [LociPost]) -> [LociPost] {
-        var unique: [UUID: LociPost] = [:]
-        for post in source { unique[post.id] = post }
-        return Array(unique.values).sorted { $0.createdAt > $1.createdAt }
+        Self.orderPreservingMerge(source)
+    }
+
+    nonisolated static func orderPreservingMerge(_ source: [LociPost]) -> [LociPost] {
+        var latest: [UUID: LociPost] = [:]
+        var order: [UUID] = []
+        for post in source {
+            if latest[post.id] == nil { order.append(post.id) }
+            latest[post.id] = post
+        }
+        return order.compactMap { latest[$0] }
     }
     private func loadMore() async {
         guard let cursor = nextCursor, !isLoadingMore, case let .signedIn(viewer) = session.phase else { return }

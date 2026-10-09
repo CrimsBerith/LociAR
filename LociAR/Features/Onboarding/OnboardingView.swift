@@ -16,7 +16,7 @@ struct OnboardingView: View {
         OnboardingStep(
             title: String(localized: "Fiziksel Dünyaya Sabitle"),
             subtitle: String(localized: "Mekânsal İçerik Üretimi"),
-            description: String(localized: "Düşüncelerini ve favori sosyal medya bağlantılarını (Spotify, YouTube, Instagram...) gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle."),
+            description: String(localized: "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle."),
             symbol: "location.viewfinder",
             accentColor: LociTheme.accent
         ),

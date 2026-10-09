@@ -30,7 +30,7 @@ export default function TermsPageEn() {
 
       <h2>Content rules</h2>
       <ul>
-        <li>Posts are short text and supported social media links (Spotify, YouTube, Instagram, X, Facebook).</li>
+        <li>Posts are short text only; photos, videos and links cannot be shared.</li>
         <li>Sexual / 18+ content is prohibited and is rejected by the server.</li>
         <li>Creating content in protected places such as schools, hospitals, places of worship and government sites is prohibited.</li>
         <li>Harassment, bullying, hate speech, threats, incitement to violence, illegal content, infringing content, spam and
@@ -57,8 +57,7 @@ export default function TermsPageEn() {
       <h2>AR and third-party services</h2>
       <p>
         AR positioning uses Google ARCore; Google processes sensor data under its own terms (see the{' '}
-        <Link href="/privacy/en">privacy policy</Link>). Links to Spotify, YouTube, Instagram, Facebook and X are subject to
-        those platforms&apos; rules; LociAR does not re-host their content.
+        <Link href="/privacy/en">privacy policy</Link>).
       </p>
 
       <h2>Liability</h2>

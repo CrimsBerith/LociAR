@@ -20,7 +20,7 @@ domain is attached, update `Config/Base.xcconfig`, `admin/apphosting.yaml` (`ADM
 - Location while in use (nearby posts, the post's location; temporary precise location for AR positioning).
 - Camera for AR placement only; no camera images are stored. Visual feature data goes to Google ARCore.
 - Account data: email, Apple sign-in name, username, optional profile photo (screened by Google Cloud Vision).
-- User content: text posts and social media links, comments, likes, saves, collections, follows, blocks, reports.
+- User content: text posts, comments, likes, saves, collections, follows, blocks, reports.
 - Push notification token (Firebase Cloud Messaging via APNs) when notifications are allowed.
 - Crash reports and diagnostics (Firebase Crashlytics, 90 days; can be turned off in Profile → Settings).
 - Account deletion: full hard delete from Profile → Delete account permanently.

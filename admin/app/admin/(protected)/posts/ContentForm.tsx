@@ -9,19 +9,17 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  const router=useRouter(),mutation=useRef(createMutationClient());const[value,setValue]=useState(initial),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  function set<K extends keyof ContentInput>(key:K,v:ContentInput[K]){setValue(old=>({...old,[key]:v}));}
  async function submit(event:React.FormEvent){event.preventDefault();setBusy(true);setMessage('');try{
-  const{response,result}=await mutation.current.post(postId?`/api/admin/v1/posts/${postId}/edit`:'/api/admin/v1/posts',{...value,reason});
+  const{response,result}=await mutation.current.post(postId?`/api/admin/v1/posts/${postId}/edit`:'/api/admin/v1/posts',{...value,platform:'text',url:'',reason});
   if(!response.ok)throw new Error(result.error??'Post save failed');mutation.current.clear();
   router.push(`/admin/posts/${(result.post as {id:string}).id}`);router.refresh();setMessage('Post saved and audited.');
  }catch(error){setMessage(mutationError(error));}finally{setBusy(false);}}
  const numericFields=[['lat','Latitude',-90,90],['lng','Longitude',-180,180],['altitude','Altitude (m)',-500,10000],['heading','Heading (°)',0,360],['width','Width (m)',0.15,20],['height','Height (m)',0.15,20],['opacity','Opacity',0.05,1],['scale','Text scale',0.1,5],['rotation','Text rotation (°)',-360,360]] as const;
  return <form onSubmit={submit} className="contentEditor">
  <AuthorPicker value={value.authorId} onChange={id=>set('authorId',id)} disabled={Boolean(postId)}/>
- <fieldset><legend>Text and social link</legend><label>Caption<input value={value.caption} onChange={e=>set('caption',e.target.value)} required maxLength={220}/></label>
+ <fieldset><legend>Text</legend><label>Caption<input value={value.caption} onChange={e=>set('caption',e.target.value)} required maxLength={220}/></label>
  <label>AR text<textarea value={value.text} onChange={e=>set('text',e.target.value)} maxLength={2000}/></label>
- <label>Platform<select value={value.platform} onChange={e=>set('platform',e.target.value)}>{['text','spotify','youtube','instagram','x','facebook'].map(p=><option key={p}>{p}</option>)}</select></label>
- {value.platform!=='text'?<label>HTTPS link<input type="url" value={value.url} onChange={e=>set('url',e.target.value)} required maxLength={2048}/></label>:null}
  <label>Text color<input type="color" value={value.color} onChange={e=>set('color',e.target.value)}/></label>
- <div className="contentPreview" style={{color:value.color,background:value.background,opacity:value.opacity}} aria-label="Content preview"><p style={{transform:`rotate(${value.rotation}deg) scale(${value.scale})`}}>{value.text||value.caption}</p>{value.platform!=='text'?<small>{value.platform} · {value.url}</small>:null}</div>
+ <div className="contentPreview" style={{color:value.color,background:value.background,opacity:value.opacity}} aria-label="Content preview"><p style={{transform:`rotate(${value.rotation}deg) scale(${value.scale})`}}>{value.text||value.caption}</p></div>
  </fieldset>
  <fieldset><legend>Location and approximate AR placement</legend><p className="muted">Choose any coordinate. This is an approximate placement; a physical world lock requires scanning at the location.</p>
  <svg viewBox="0 0 720 360" role="img" aria-label="World coordinate picker" className="coordinatePicker" onClick={event=>{const box=event.currentTarget.getBoundingClientRect();setValue(old=>({...old,lng:Math.round(((event.clientX-box.left)/box.width*360-180)*1e5)/1e5,lat:Math.round((90-(event.clientY-box.top)/box.height*180)*1e5)/1e5}));}}>

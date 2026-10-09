@@ -7,7 +7,6 @@ struct PostCard: View {
     let post: LociPost
     var likeCount: Int? = nil
     var viewCount: Int? = nil
-    var openMedia: (() -> Void)? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
@@ -32,8 +31,6 @@ struct PostCard: View {
                 .lineLimit(4)
                 .foregroundStyle(.white.opacity(0.94))
 
-            PostMediaHero(post: post, openMedia: openMedia)
-
             HStack(spacing: 18) {
                 LociMetricLabel(value: likeCount ?? post.counts.likes, title: String(localized: "beğeni"), symbol: "heart.fill", color: .pink)
                 LociMetricLabel(value: viewCount ?? post.counts.views, title: String(localized: "görüntülenme"), symbol: "eye.fill", color: LociTheme.accent)
@@ -48,48 +45,6 @@ struct PostCard: View {
     }
 
 }
-
-struct PostMediaHero: View {
-    let post: LociPost
-    var openMedia: (() -> Void)? = nil
-
-    @ViewBuilder var body: some View {
-        if let external = post.contentSource?.externalMedia {
-            if let openMedia {
-                Button(action: openMedia) {
-                    externalMediaBanner(external: external)
-                }
-                .buttonStyle(.plain)
-            } else {
-                externalMediaBanner(external: external)
-            }
-        }
-    }
-
-    private func externalMediaBanner(external: (platform: ExternalMediaPlatform, url: URL)) -> some View {
-        HStack(spacing: 14) {
-            BrandLogoView(platform: external.platform, size: 42)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(external.platform.rawValue).font(.headline)
-                Text("Paylaşımı görüntüle").font(.caption).foregroundStyle(.white.opacity(0.66))
-            }
-            Spacer()
-            Image(systemName: "arrow.up.right").font(.subheadline.weight(.bold))
-        }
-        .foregroundStyle(.white)
-        .padding(15)
-        .background(
-            LinearGradient(
-                colors: [external.platform.brandColor.opacity(0.34), external.platform.brandColor.opacity(0.10)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(external.platform.brandColor.opacity(0.28)))
-    }
-}
-
 
 struct PostActionLabel: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

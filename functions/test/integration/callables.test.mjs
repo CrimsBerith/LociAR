@@ -63,17 +63,19 @@ test('createPost: text post is created pending review and replays idempotently',
   assert.equal(stored.likes_count, 0);
 });
 
-test('createPost: only real social links, text and no photos are accepted', async () => {
+test('createPost: only text is accepted, no photos and no links', async () => {
   const user = await newUser();
   const link = (platform, url) => postBody({ contentSource: { platform, url, mediaKind: 'embed' } });
-  const spoofed = await expectFailure(user.call('createPost', link('spotify', 'https://evil.example/track/1')));
-  assert.equal(spoofed.code, 'functions/invalid-argument');
-  assert.match(spoofed.message, /Invalid social media link/);
+  for (const [platform, url] of [['youtube', 'https://youtu.be/dQw4w9WgXcQ'], ['spotify', 'https://evil.example/track/1']]) {
+    const refused = await expectFailure(user.call('createPost', link(platform, url)));
+    assert.equal(refused.code, 'functions/invalid-argument');
+    assert.match(refused.message, /Links are not allowed/);
+  }
   const photo = await expectFailure(user.call('createPost', postBody({
     editData: { version: 1, layers: [{ id: 'i', type: 'image', uri: 'storage://post-layer-assets/a/b.jpg' }] },
   })));
   assert.match(photo.message, /Only text posts/);
-  const ok = await user.call('createPost', link('youtube', 'https://youtu.be/dQw4w9WgXcQ'));
+  const ok = await user.call('createPost', postBody());
   assert.equal(ok.publishStatus, 'pending_review');
 });
 

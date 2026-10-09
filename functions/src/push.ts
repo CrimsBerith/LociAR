@@ -4,7 +4,7 @@ import { getMessaging, type Message } from 'firebase-admin/messaging';
 import { assertServiceEnabled, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID, requireCaller, Timestamp } from './core';
 import { assertAccountNotDeleting, accountDeletionRef, profileBlock } from './profileGuard';
 import { reasonError } from './errors';
-import { invalidPushTokenCode, MAX_PUSH_DEVICES, pushBody, pushDeliveryId, pushLocale, PUSH_RECEIPT_RETENTION_DAYS, PUSH_TOKEN_RETENTION_DAYS, pushTokenId, validPushToken } from './pushPolicy';
+import { invalidPushTokenCode, MAX_PUSH_DEVICES, postApprovedBody, pushBody, pushDeliveryId, pushLocale, pushQuotaDecision, pushQuotaId, PUSH_QUOTA_RETENTION_DAYS, PUSH_RECEIPT_RETENTION_DAYS, PUSH_TOKEN_RETENTION_DAYS, pushTokenId, utcDay, validPushToken } from './pushPolicy';
 
 type Registration = { token?: unknown; installationId?: unknown; userId?: unknown; locale?: unknown };
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
@@ -74,14 +74,15 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
   let attempts = 0;
   for (const device of devices.docs) {
     const receiptRef = db.collection('push_delivery_receipts').doc(pushDeliveryId(activityId, device.id));
+    const quotaRef = db.collection('push_quota').doc(pushQuotaId(initial.recipient_id, now));
     const claimed = await db.runTransaction(async tx => {
       const refs = [activityRef, device.ref, receiptRef,
         db.collection('profiles').doc(initial.recipient_id), db.collection('profiles').doc(initial.actor_id),
         db.collection('user_blocks').doc(`${initial.recipient_id}_${initial.actor_id}`),
         db.collection('user_blocks').doc(`${initial.actor_id}_${initial.recipient_id}`),
-        accountDeletionRef(initial.recipient_id), accountDeletionRef(initial.actor_id)];
+        accountDeletionRef(initial.recipient_id), accountDeletionRef(initial.actor_id), quotaRef];
       if (isUUID(initial.post_id)) refs.push(db.collection('posts').doc(initial.post_id));
-      const [activitySnap, target, receipt, recipient, actor, blockA, blockB, recipientDeletion, actorDeletion, post] = await tx.getAll(...refs);
+      const [activitySnap, target, receipt, recipient, actor, blockA, blockB, recipientDeletion, actorDeletion, quota, post] = await tx.getAll(...refs);
       const activity = activitySnap.data();
       const body = pushBody(String(activity?.kind), target.get('locale'));
       if (!activity || activity.recipient_id !== initial.recipient_id || activity.actor_id !== initial.actor_id
@@ -94,6 +95,15 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
         || recipientDeletion.exists || actorDeletion.exists) return null;
       if (activity.kind !== 'follow' && (!post?.exists || post.get('creator_id') !== initial.recipient_id
         || post.get('status') !== 'active' || post.get('deleted_at'))) return null;
+      // At most PUSH_DAILY_LIMIT engagement pushes per recipient and UTC day; the feed still shows the rest.
+      const quotaDecision = pushQuotaDecision(quota.data(), activityId);
+      if (!quotaDecision.allow) return null;
+      if (quotaDecision.next) {
+        tx.set(quotaRef, {
+          owner_luid: initial.recipient_id, day: utcDay(now), ...quotaDecision.next,
+          expires_at: Timestamp.fromMillis(now + PUSH_QUOTA_RETENTION_DAYS * 86_400_000),
+        });
+      }
       tx.create(receiptRef, {
         owner_luid: initial.recipient_id, activity_id: activityId, status: 'attempted',
         created_at: FieldValue.serverTimestamp(),
@@ -122,6 +132,62 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
       }
       await receiptRef.update({ status: 'failed', error_code: code }).catch(updateError => { if (updateError.code !== 5) throw updateError; });
       console.warn('push_send_failed', { code }); // Never log a token, FCM payload or user content.
+    }
+  }
+  return attempts;
+}
+
+/**
+ * One best-effort "your post is live" push per device when a moderator approves a post
+ * (pending_review -> active). Same claim-before-send contract as activity pushes; exempt from the
+ * daily engagement cap. The payload carries no caption, handle or location.
+ */
+export async function deliverPostApprovedPush(postId: string, send: PushSender, now = Date.now()): Promise<number> {
+  if (!isUUID(postId)) return 0;
+  const postRef = db.collection('posts').doc(postId);
+  const initial = (await postRef.get()).data();
+  const recipientId = initial?.creator_id;
+  if (!initial || !isUUID(recipientId) || initial.status !== 'active' || initial.deleted_at) return 0;
+  const deliveryKey = `post_approved_${postId}`;
+  const devices = await db.collection('push_tokens').where('owner_luid', '==', recipientId).limit(MAX_PUSH_DEVICES).get();
+  let attempts = 0;
+  for (const device of devices.docs) {
+    const receiptRef = db.collection('push_delivery_receipts').doc(pushDeliveryId(deliveryKey, device.id));
+    const claimed = await db.runTransaction(async tx => {
+      const [post, target, receipt, recipient, recipientDeletion] = await tx.getAll(
+        postRef, device.ref, receiptRef, db.collection('profiles').doc(recipientId), accountDeletionRef(recipientId));
+      if (!post.exists || post.get('creator_id') !== recipientId || post.get('status') !== 'active' || post.get('deleted_at')
+        || receipt.exists || !target.exists || target.get('owner_luid') !== recipientId || !validPushToken(target.get('token'))
+        || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now
+        || profileBlock(recipient.data()) || recipientDeletion.exists) return null;
+      tx.create(receiptRef, {
+        owner_luid: recipientId, activity_id: deliveryKey, status: 'attempted',
+        created_at: FieldValue.serverTimestamp(),
+        expires_at: Timestamp.fromMillis(now + PUSH_RECEIPT_RETENTION_DAYS * 86_400_000),
+      });
+      return {
+        token: target.get('token') as string,
+        notification: { title: 'LociAR', body: postApprovedBody(target.get('locale')) },
+        // No activity_id: the client opens the post directly.
+        data: { recipient_id: recipientId, post_id: postId },
+        apns: { headers: { 'apns-collapse-id': pushTokenId(deliveryKey), 'apns-expiration': String(Math.floor(now / 1000) + 86_400) }, payload: { aps: { sound: 'default' } } },
+      } satisfies Message;
+    });
+    if (!claimed) continue;
+    attempts++;
+    try {
+      await send(claimed);
+      await receiptRef.update({ status: 'sent' }).catch(error => { if (error.code !== 5) throw error; });
+    } catch (error) {
+      const code = (error as { code?: string }).code ?? 'unknown';
+      if (invalidPushTokenCode(code)) {
+        await db.runTransaction(async tx => {
+          const latest = await tx.get(device.ref);
+          if (latest.get('owner_luid') === recipientId && latest.get('token') === claimed.token) tx.delete(device.ref);
+        });
+      }
+      await receiptRef.update({ status: 'failed', error_code: code }).catch(updateError => { if (updateError.code !== 5) throw updateError; });
+      console.warn('push_send_failed', { code });
     }
   }
   return attempts;

@@ -5,6 +5,8 @@ import { applyCountersOnce, isPublicActive } from './counters';
 import { isAccountDeleting } from './profileGuard';
 import { anyBlocked, containsBlockedTerm } from './moderation';
 import { schedulePurgeOnStatusChange } from './cleanup';
+import { getMessaging } from 'firebase-admin/messaging';
+import { deliverPostApprovedPush } from './push';
 
 async function safeUpdate(path: string, data: Record<string, unknown>, owner: string): Promise<void> {
   await db.runTransaction(async (tx) => {
@@ -165,6 +167,12 @@ export const onPostWritten = onDocumentWritten({ document: 'posts/{postId}', ret
     });
   }
   if (before?.status !== after?.status) await schedulePurgeOnStatusChange(event.params.postId, before, after);
+  // Moderator approval: tell the author once. FCM has no emulator; a push failure never fails the trigger.
+  if (before?.status === 'pending_review' && after?.status === 'active' && !after.deleted_at
+    && process.env.FUNCTIONS_EMULATOR !== 'true') {
+    await deliverPostApprovedPush(event.params.postId, message => getMessaging().send(message))
+      .catch(error => console.warn('post_approved_push_failed', { code: (error as { code?: string }).code ?? 'unknown' }));
+  }
 });
 
 const FANOUT_PAGE = 500;

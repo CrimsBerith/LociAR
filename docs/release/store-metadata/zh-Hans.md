@@ -8,24 +8,24 @@
 LociAR：留在真实地点的AR笔记
 ```
 
-## Subtitle (12/30)
+## Subtitle (9/30)
 
 ```text
-把笔记和链接钉在真实地点
+把笔记钉在真实地点
 ```
 
-## Promotional Text (78/170)
+## Promotional Text (39/170)
 
 ```text
-把笔记以及 Spotify、YouTube、Instagram、X、Facebook 链接钉在真实表面上，用 AR 发现身边他人留下的内容，就在原来的位置。
+把简短的笔记钉在真实表面上，用 AR 发现身边他人留下的内容，就在原来的位置。
 ```
 
-## Description (462/4000)
+## Description (409/4000)
 
 ```text
-在真实地点留下笔记和你喜爱的社交内容。
+在真实地点留下笔记。
 
-借助 LociAR，你可以把简短的文字笔记以及 Spotify、YouTube、Instagram、X 和 Facebook 链接钉在真实表面（桌面、地面、墙面）上，让别人在你留下的位置找到它们。
+借助 LociAR，你可以把简短的文字笔记钉在真实表面（桌面、地面、墙面）上，让别人在你留下的位置找到它们。
 
 功能
 • 钉在真实表面：中心准星会锁定 ARKit 检测到的表面；Google ARCore 云锚点（Cloud Anchors）和地理空间（Geospatial）会在同一位置再次显示你的帖子。
@@ -46,8 +46,8 @@ LociAR：留在真实地点的AR笔记
 增强现实,地图,相机,社交,笔记,表面,发现,位置,附近
 ```
 
-## What's New in This Version (63/4000)
+## What's New in This Version (58/4000)
 
 ```text
-首个版本：把文字笔记和社交链接钉在真实表面上，在地图上发现附近的帖子，并支持点赞、评论、合集、关注和通知。支持 12 种语言。
+首个版本：把文字笔记钉在真实表面上，在地图上发现附近的帖子，并支持点赞、评论、合集、关注和通知。支持 12 种语言。
 ```

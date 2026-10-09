@@ -8,24 +8,24 @@
 LociAR: Notas AR en lugares
 ```
 
-## Subtitle (30/30)
+## Subtitle (28/30)
 
 ```text
-Fija notas y enlaces en sitios
+Fija notas en lugares reales
 ```
 
-## Promotional Text (156/170)
+## Promotional Text (108/170)
 
 ```text
-Fija notas y enlaces de Spotify, YouTube, Instagram, X o Facebook en superficies reales y descubre en AR lo que otros dejaron cerca, justo donde lo dejaron.
+Fija notas cortas en superficies reales y descubre en AR lo que otros dejaron cerca, justo donde lo dejaron.
 ```
 
-## Description (1220/4000)
+## Description (1135/4000)
 
 ```text
-Deja notas y tus publicaciones favoritas en lugares reales.
+Deja notas en lugares reales.
 
-LociAR te permite fijar notas de texto cortas y enlaces de Spotify, YouTube, Instagram, X y Facebook en superficies reales (una mesa, el suelo, una pared) para que otros los encuentren justo donde los dejaste.
+LociAR te permite fijar notas de texto cortas en superficies reales (una mesa, el suelo, una pared) para que otros las encuentren justo donde las dejaste.
 
 FUNCIONES
 • Fija en superficies reales: la retícula central se ajusta a las superficies detectadas por ARKit; Google ARCore Cloud Anchors y Geospatial muestran tu publicación de nuevo en el mismo punto.
@@ -46,8 +46,8 @@ Requiere un iPhone compatible con ARKit.
 realidad aumentada,mapa,cámara,social,nota,superficie,descubrir,ubicación,lugar
 ```
 
-## What's New in This Version (212/4000)
+## What's New in This Version (193/4000)
 
 ```text
-Primera versión: fija notas de texto y enlaces sociales en superficies reales, descubre publicaciones cercanas en el mapa, además de me gusta, comentarios, colecciones, seguidores y notificaciones. En 12 idiomas.
+Primera versión: fija notas de texto en superficies reales, descubre publicaciones cercanas en el mapa, además de me gusta, comentarios, colecciones, seguidores y notificaciones. En 12 idiomas.
 ```
