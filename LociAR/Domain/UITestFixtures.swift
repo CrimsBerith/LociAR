@@ -100,18 +100,6 @@ enum UITestFixtures {
                 layers = [
                     EditLayer(id: UUID(), kind: .text, text: caption, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0)
                 ]
-            case "youtube":
-                source = .youtube(URL(string: "https://youtu.be/dQw4w9WgXcQ")!)
-                caption = "YouTube videosu bu duvara sabitlendi."
-            case "facebook":
-                source = .facebook(URL(string: "https://www.facebook.com/loci/posts/101584920482910")!)
-                caption = "Facebook topluluk gönderisi bu duvara sabitlendi."
-            case "instagram":
-                source = .instagram(URL(string: "https://www.instagram.com/p/DF123XYZ/")!)
-                caption = "Instagram anısı bu duvara mühürlendi."
-            case "x":
-                source = .x(URL(string: "https://x.com/apple/status/1880000000000000000")!)
-                caption = "X üzerindeki güncel duyuru burada."
             case "photo":
                 caption = "Tarihi taş duvarın özel anı fotoğrafı."
                 let photoURL = samplePhotoURL
@@ -120,12 +108,10 @@ enum UITestFixtures {
                     EditLayer(id: UUID(), kind: .image, text: nil, assetURL: photoURL, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0)
                 ]
             default:
-                source = .spotify(URL(string: "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU")!)
-                caption = "Spotify müzik anısı bu duvara sabitlendi."
+                // Social media links were removed (9 Oct 2026); any other key falls back to a text post.
+                caption = "Bu tarihi taş duvar, mahallenin hafızasını taşıyor."
+                source = .text(caption)
             }
-        } else if socialARPreviewEnabled {
-            source = .spotify(URL(string: "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU")!)
-            caption = "Spotify müzik anısı bu duvara sabitlendi."
         } else {
             source = .text("Buradaydık.")
             caption = "Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."

@@ -8,24 +8,24 @@
 LociAR: Notas AR em lugares
 ```
 
-## Subtitle (29/30)
+## Subtitle (27/30)
 
 ```text
-Fixe notas e links em lugares
+Fixe notas em lugares reais
 ```
 
-## Promotional Text (143/170)
+## Promotional Text (137/170)
 
 ```text
-Fixe notas e links do Spotify, YouTube, Instagram, X ou Facebook em superfícies reais e descubra em AR o que outras pessoas deixaram por perto.
+Deixe mensagens curtas e GIFs em superfícies reais e descubra em AR o que outras pessoas deixaram por perto, exatamente onde foi deixado.
 ```
 
-## Description (1213/4000)
+## Description (1187/4000)
 
 ```text
-Deixe notas e suas publicações favoritas em lugares reais.
+Deixe notas em lugares reais.
 
-O LociAR permite fixar notas de texto curtas e links do Spotify, YouTube, Instagram, X e Facebook em superfícies reais (uma mesa, o chão, uma parede) para que outras pessoas os encontrem exatamente onde você os deixou.
+O LociAR permite fixar mensagens curtas e GIFs em superfícies reais (uma mesa, o chão, uma parede) para que outras pessoas os encontrem como um balão de mensagem exatamente onde você os deixou. GIFs fornecidos pelo GIPHY.
 
 RECURSOS
 • Fixe em superfícies reais: a mira central se prende às superfícies detectadas pelo ARKit; o Google ARCore Cloud Anchors e o Geospatial mostram sua publicação de novo no mesmo ponto.
@@ -40,14 +40,14 @@ Câmera e localização são usadas apenas para a experiência AR. Para o posici
 Requer um iPhone compatível com ARKit.
 ```
 
-## Keywords (76/100)
+## Keywords (80/100)
 
 ```text
-realidade aumentada,mapa,câmera,social,nota,superfície,descobrir,local,lugar
+realidade aumentada,mapa,câmera,social,nota,superfície,descobrir,local,lugar,gif
 ```
 
-## What's New in This Version (196/4000)
+## What's New in This Version (189/4000)
 
 ```text
-Primeira versão: fixe notas de texto e links sociais em superfícies reais, descubra publicações próximas no mapa, além de curtidas, comentários, coleções, seguidores e notificações. Em 12 idiomas.
+Primeira versão: fixe mensagens curtas e GIFs em superfícies reais, descubra publicações próximas no mapa, além de curtidas, comentários, coleções, seguidores e notificações. Em 12 idiomas.
 ```

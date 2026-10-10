@@ -11,7 +11,7 @@ LociAR, insanların gerçek şehir yüzeylerine konuma ve bakış açısına ba�
 ## Ana kullanıcılar
 
 - Şehrini yeni bir katmanla keşfetmek isteyen izleyici
-- Bir mekâna kısa yazı ve sosyal bağlantı (Spotify, YouTube, Instagram, X, Facebook) bırakmak isteyen üretici
+- Bir mekâna kısa yazı bırakmak isteyen üretici
 - Yayına alınacak kullanıcı içeriğini denetleyen operasyon sahibi
 
 ## İlk değer anı

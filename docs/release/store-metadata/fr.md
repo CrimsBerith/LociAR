@@ -8,24 +8,24 @@
 LociAR : notes AR in situ
 ```
 
-## Subtitle (30/30)
+## Subtitle (29/30)
 
 ```text
-Notes et liens sur lieux réels
+Des notes sur des lieux réels
 ```
 
-## Promotional Text (158/170)
+## Promotional Text (139/170)
 
 ```text
-Épinglez des notes et des liens Spotify, YouTube, Instagram, X ou Facebook sur de vraies surfaces, et découvrez en AR ce que d'autres ont laissé près de vous.
+Laissez de courts messages et des GIF sur de vraies surfaces et découvrez en AR ce que d'autres ont laissé près de vous, à l'endroit exact.
 ```
 
-## Description (1297/4000)
+## Description (1278/4000)
 
 ```text
-Laissez des notes et vos publications préférées dans des lieux réels.
+Laissez des notes dans des lieux réels.
 
-LociAR vous permet d'épingler de courtes notes et des liens Spotify, YouTube, Instagram, X et Facebook sur de vraies surfaces (une table, le sol, un mur) pour que d'autres les trouvent exactement là où vous les avez laissés.
+LociAR vous permet d'épingler de courts messages et des GIF sur de vraies surfaces (une table, le sol, un mur) pour que d'autres les trouvent sous forme de bulle de message exactement là où vous les avez laissés. GIF fournis par GIPHY.
 
 FONCTIONNALITÉS
 • Épinglez sur de vraies surfaces : le réticule central se cale sur les surfaces détectées par ARKit ; Google ARCore Cloud Anchors et Geospatial réaffichent votre publication au même endroit.
@@ -40,14 +40,14 @@ La caméra et la position ne servent qu'à l'expérience AR. Pour le positionnem
 Nécessite un iPhone compatible ARKit.
 ```
 
-## Keywords (74/100)
+## Keywords (78/100)
 
 ```text
-réalité augmentée,carte,caméra,social,note,surface,découvrir,lieu,position
+réalité augmentée,carte,caméra,social,note,surface,découvrir,lieu,position,gif
 ```
 
-## What's New in This Version (216/4000)
+## What's New in This Version (215/4000)
 
 ```text
-Première version : épinglez des notes et des liens sociaux sur de vraies surfaces, découvrez les publications proches sur la carte, avec j'aime, commentaires, collections, abonnements et notifications. En 12 langues.
+Première version : épinglez de courts messages et des GIF sur de vraies surfaces, découvrez les publications proches sur la carte, avec j'aime, commentaires, collections, abonnements et notifications. En 12 langues.
 ```

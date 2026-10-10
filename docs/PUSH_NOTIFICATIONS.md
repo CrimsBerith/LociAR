@@ -39,6 +39,16 @@ oturumdaki posta, takip veya erişilemeyen post için Aktivite ekranına gider.
 Hedef açıldığında `activity_id` için okundu callable'ı çağrılır; uygulama doğrudan
 aktivite belgesine yazmaz. Akış: [ACTIVITY_AND_ACCOUNT_DELETION.md](ACTIVITY_AND_ACCOUNT_DELETION.md).
 
+**Günlük sınır.** Bir alıcıya UTC günü başına en fazla 3 beğeni/yorum/takip bildirimi gider
+(`PUSH_DAILY_LIMIT`, `push_quota/{luid}_{gün}`; aktivite başına sayılır, aynı aktivitenin ikinci
+cihazı yeni hak harcamaz). Sınırı aşan aktiviteler yine Aktivite akışında görünür. Kota belgeleri
+2 gün sonra TTL ile silinir ve hesap silmede kaldırılır.
+
+**Post onayı.** Moderatör bir postu `pending_review` → `active` yaptığında `onPostWritten`
+yazara bir kez "Postun onaylandı ve yayında" bildirimi gönderir (`deliverPostApprovedPush`,
+12 dil, günlük sınırdan muaf). Veri alanları `recipient_id` ve `post_id`'dir; `activity_id` yoktur,
+dokunma doğrudan postu açar. Emülatörde gönderilmez; gönderim hatası trigger'ı başarısız yapmaz.
+
 `push_delivery_receipts` bir aktivite/token için FCM çağrısından **önce** oluşturulur;
 eşzamanlı/redelivered trigger ikinci gönderim girişimi yapamaz. Bu en fazla bir
 girişim modelidir: FCM transaction'a katılamaz; çökme/ağ hatasında push kaybolabilir.
@@ -101,6 +111,8 @@ Fiziksel iPhone'da iki doğrulanmış hesapla aşağıdaki sonuçları kaydet:
 | Başka hesap beğeni / yorum / takip | Ön plan, arka plan ve soğuk açılışta APNs ulaşır; doğru hesaba ait post/aktivite açılır |
 | Aynı olayın tekrar teslimi | Her token için tek FCM girişimi; okunmuş aktivite yeniden bildirim üretmez |
 | Engelleme / hesap askıya alma / post kaldırma | Yeni aktivite bildirimi bastırılır |
+| Aynı gün 4. beğeni/yorum/takip | Bildirim gelmez; Aktivite akışında görünür |
+| Moderatör post onayı | Yazara tek bildirim; dokunma postu açar |
 | Çevrimiçi çıkış / hesap değişimi | Eski kayıt silinir; yeni token yeni hesaba bağlıdır; eski hedef uygulamada açılmaz |
 | Çevrimdışı çıkış / daha önce kuyruğa alınmış APNs | Temizlik hatası ve genel OS uyarısı sınırı gözlemlenir; eski hesabın içeriğine yönlendirme olmaz |
 | Ayarlar'dan izin kapatma / yeniden açma | Uygulamaya dönüşte kayıt temizlenir/yenilenir |

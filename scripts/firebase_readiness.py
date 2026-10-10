@@ -10,7 +10,12 @@ PROJECT = 'lociar-2f38c'
 REGION = 'us-central1'
 BUCKET = f'{PROJECT}.firebasestorage.app'
 SCHEMA_VERSION = 1
-RESOURCE_KEYS = ('project', 'services', 'firestore', 'ttl', 'functions', 'scheduler', 'storage', 'apple_secret_versions')
+RESOURCE_KEYS = ('project', 'services', 'firestore', 'ttl', 'functions', 'scheduler', 'storage', 'apple_secret_versions', 'giphy_secret_versions')
+# Secret Manager secrets the Functions need; only version names and states are read, never values.
+REQUIRED_SECRETS = {
+    'apple_secret_versions': ('APPLE_PRIVATE_KEY', 'apple_secret_unavailable', 'At least one Apple private-key secret version must be ENABLED; no value is read.'),
+    'giphy_secret_versions': ('GIPHY_API_KEY', 'giphy_secret_unavailable', 'At least one GIPHY API key secret version must be ENABLED (GIF search and GIF posts); no value is read.'),
+}
 LEGACY_PREFIXES = {'post-layer-assets/', 'post-video-assets/', 'post-reference-images/', 'post-surface-textures/'}
 
 
@@ -65,7 +70,7 @@ def sanitized_report(report: Any) -> dict:
                        'buildConfig': _projected(_dict(item).get('buildConfig'), ('runtime',))} for item in _list(resources.get('functions'))],
         'scheduler': [_projected(item, ('name', 'state', 'schedule', 'timeZone')) for item in _list(resources.get('scheduler'))],
         'storage': _projected(resources.get('storage'), ('name',)),
-        'apple_secret_versions': [_projected(item, ('name', 'state')) for item in _list(resources.get('apple_secret_versions'))],
+        **{key: [_projected(item, ('name', 'state')) for item in _list(resources.get(key))] for key in REQUIRED_SECRETS},
     }
     # Only lifecycle rule metadata is retained. Unknown conditions are marked (not echoed),
     # so a rule restricted to different objects cannot accidentally satisfy the release gate.
@@ -170,12 +175,9 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
             covered.update(condition.get('matchesPrefix', []))
     for prefix in sorted(LEGACY_PREFIXES - covered):
         fail('lifecycle_missing', prefix, 'Legacy prefix must have a Delete lifecycle rule at age 30 with no extra conditions.')
-    secret_enabled = False
-    for version in resources['apple_secret_versions']:
-        name = version.get('name')
-        if isinstance(name, str) and re.fullmatch(r'projects/(' + '|'.join(re.escape(p) for p in project_ids) + r')/secrets/APPLE_PRIVATE_KEY/versions/\d+', name) and version.get('state') == 'ENABLED':
-            secret_enabled = True
-    if not secret_enabled:
-        fail('apple_secret_unavailable', 'APPLE_PRIVATE_KEY', 'At least one Apple private-key secret version must be ENABLED; no value is read.')
+    for key, (secret, code, message) in REQUIRED_SECRETS.items():
+        pattern = r'projects/(' + '|'.join(re.escape(p) for p in project_ids) + r')/secrets/' + secret + r'/versions/\d+'
+        if not any(isinstance(v.get('name'), str) and re.fullmatch(pattern, v['name']) and v.get('state') == 'ENABLED' for v in resources[key]):
+            fail(code, secret, message)
     clean['readiness'] = {'ready': not findings, 'findings': findings}
     return clean

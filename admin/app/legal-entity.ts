@@ -7,6 +7,6 @@ export const LEGAL_ENTITY = {
   analyticsRetentionDays: 180,
   /** Crash reports are kept by Firebase Crashlytics for 90 days. */
   crashRetentionDays: 90,
-  updatedTr: '4 Ekim 2026',
-  updatedEn: '4 October 2026',
+  updatedTr: '10 Ekim 2026',
+  updatedEn: '10 October 2026',
 };

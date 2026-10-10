@@ -12,5 +12,7 @@ export { getArcoreToken } from './arcore';
 export { registerCloudAnchor } from './anchors';
 export { registerPushToken, unregisterPushToken, onActivityCreated } from './push';
 export { markActivityRead } from './activity';
+export { createInvites, redeemInvite } from './invites';
+export { searchGifs } from './giphy';
 export { readPublicContent } from './publicContent';
 export { onWorldMapFinalized } from './mapStorageFinalize';

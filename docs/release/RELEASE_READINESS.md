@@ -8,7 +8,7 @@ deploy, canlı parola değişikliği veya App Store gönderimi yapılmadı.
 
 - iOS 17+, Swift 6, SwiftUI, ARKit/RealityKit, ARCore Cloud Anchors/Geospatial, MapKit ve SwiftData.
 - Firebase `lociar-2f38c`: Firestore `nam5`, Functions `us-central1`; üretimde callable App Check zorunlu.
-- Postlar metin ve/veya desteklenen sosyal bağlantı içerir. Fotoğraf/video post yüklemesi kapalıdır;
+- Postlar metin ve/veya 1 GIPHY GIF'i içerir (GIPHY anahtarı `GIPHY_API_KEY` secret'ı). Sosyal medya bağlantısı, çizim ve fotoğraf/video post yüklemesi kapalıdır;
   avatar fotoğrafları Cloud Vision incelemesinden geçer.
 - Mobil yeni postlar `pending_review`; korumalı bölge ve 18+ engelleri korunur.
   Yetkili admin seçilen kullanıcı adına yayın/yorum oluşturabilir; korumalı bölge istisnası

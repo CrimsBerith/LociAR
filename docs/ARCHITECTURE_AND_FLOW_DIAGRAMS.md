@@ -1,6 +1,6 @@
-> **ARŞİV (28 Eylül 2026):** Bu belge Supabase dönemine aittir. Backend artık Firebase — güncel kaynaklar: `AGENTS.md`, `docs/FIREBASE_SETUP.md`, `ARCHITECTURE.md`.
+> **ARŞİV (28 Eylül 2026):** Bu belge Supabase dönemine aittir. Backend artık Firebase — güncel kaynaklar: `AGENTS.md`, `docs/FIREBASE_SETUP.md`, `ARCHITECTURE.md`. Sosyal medya bağlantıları (Spotify, YouTube, TikTok, Instagram, Facebook, X), fotoğraf/video ve çizim postları 9 Ekim 2026'da kaldırıldı; postlar metin ve/veya 1 GIPHY GIF'idir. Burada geçen platform adları yalnızca tarihî kayıttır.
 
-ben # LociAR Architecture and Flow Diagrams
+# LociAR Architecture and Flow Diagrams
 
 Updated: 2026-08-09  
 Scope: iOS user app, Supabase backend, web/mobile admin, native Visual Surface/ARKit bridge  

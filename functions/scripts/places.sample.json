@@ -1,0 +1,5 @@
+[
+  { "name": "Galata Kulesi", "city": "istanbul", "lat": 41.0256, "lng": 28.9742, "radius_meters": 120 },
+  { "name": "Kadıköy İskelesi", "city": "istanbul", "lat": 40.9915, "lng": 29.0226, "radius_meters": 120 },
+  { "name": "Moda Sahili", "city": "istanbul", "lat": 40.9810, "lng": 29.0250, "radius_meters": 150 }
+]

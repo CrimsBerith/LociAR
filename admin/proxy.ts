@@ -25,7 +25,10 @@ async function protectedPageRedirect(request: NextRequest) {
 }
 
 const CONNECT = "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com";
-const COMMON = "img-src 'self' data: blob:; font-src 'self'; object-src 'none'; frame-src https://*.firebaseapp.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+const COMMON = "font-src 'self'; object-src 'none'; frame-src https://*.firebaseapp.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+const IMG = "img-src 'self' data: blob:";
+// Moderators review GIF posts: admin pages may show GIPHY media (images only, no scripts or frames).
+const ADMIN_IMG = `${IMG} https://media.giphy.com`;
 
 /** Admin and sign-in pages are rendered per request, so they get a per-request script nonce. */
 function isDynamicAdminPath(pathname: string): boolean {
@@ -40,7 +43,7 @@ export async function proxy(request: NextRequest) {
   if (isDynamicAdminPath(request.nextUrl.pathname)) {
     // No 'unsafe-inline' scripts: only scripts carrying this request's nonce (and what they load) run.
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-    csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}; style-src 'self' 'unsafe-inline'; ${CONNECT}; ${COMMON}`;
+    csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}; style-src 'self' 'unsafe-inline'; ${CONNECT}; ${ADMIN_IMG}; ${COMMON}`;
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-nonce', nonce);
     requestHeaders.set('Content-Security-Policy', csp);
@@ -48,7 +51,7 @@ export async function proxy(request: NextRequest) {
   } else {
     // Public legal pages are prerendered at build time (no per-request nonce possible); they hold no
     // forms or secrets, and still forbid every third-party script.
-    csp = `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; ${CONNECT}; ${COMMON}`;
+    csp = `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; ${CONNECT}; ${IMG}; ${COMMON}`;
     response = earlyRedirect ?? NextResponse.next();
   }
   if (earlyRedirect) response.headers.set('Cache-Control', 'private, no-store');

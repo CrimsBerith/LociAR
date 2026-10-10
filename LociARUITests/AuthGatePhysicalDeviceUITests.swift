@@ -23,14 +23,13 @@ extension AuthGateUITests {
 #endif
     }
 
-    func testPhysicalNormalAccountPublishesSocialARPostAndDeletesIt() throws {
+    func testPhysicalNormalAccountPublishesTextARPostAndDeletesIt() throws {
 #if targetEnvironment(simulator)
         throw XCTSkip("Canlı AR yayını ve sosyal akış doğrulaması fiziksel iPhone gerektirir.")
 #else
-        let caption = "Canlı AR sosyal \(UUID().uuidString.prefix(6))"
+        let caption = "Canlı AR metin \(UUID().uuidString.prefix(6))"
         let app = XCUIApplication()
         app.launchArguments += ["UITEST_DISABLE_EXTERNAL_APP_LAUNCH", "-arcore_disclosure_acknowledged_v1", "YES"]
-        app.launchEnvironment["UITEST_EXTERNAL_MEDIA_URL"] = "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU"
         addPrivacyAlertMonitor()
         app.launch()
 
@@ -74,13 +73,7 @@ extension AuthGateUITests {
         XCTAssertTrue(captionField.waitForExistence(timeout: 5))
         captionField.tap()
         captionField.typeText(caption)
-        app.buttons["create-external-media-picker"].tap()
-        XCTAssertTrue(app.navigationBars["Platform seç"].waitForExistence(timeout: 5))
-        app.buttons["external-platform-spotify"].tap()
-        XCTAssertTrue(app.buttons["external-import-complete"].waitForExistence(timeout: 5))
-        app.buttons["external-import-complete"].tap()
-        XCTAssertTrue(app.staticTexts["Spotify paylaşımı hazır"].waitForExistence(timeout: 5))
-        capture(app, name: "physical-live-social-editor")
+        capture(app, name: "physical-live-text-editor")
 
         app.buttons["create-publish"].tap()
         let resultAlert = app.alerts["LociAR"]
@@ -124,7 +117,7 @@ extension AuthGateUITests {
 #endif
     }
 
-    func testPhysicalRetriesExistingSocialARDeadLetterAndDeletesIt() throws {
+    func testPhysicalRetriesExistingTextARDeadLetterAndDeletesIt() throws {
 #if targetEnvironment(simulator)
         throw XCTSkip("Canlı dead-letter kurtarma doğrulaması fiziksel iPhone gerektirir.")
 #else
@@ -146,16 +139,16 @@ extension AuthGateUITests {
         }
         let queuedPost = app.staticTexts.matching(NSPredicate(
             format: "label BEGINSWITH %@",
-            "Canlı AR sosyal "
+            "Canlı AR metin "
         )).firstMatch
-        XCTAssertTrue(queuedPost.waitForExistence(timeout: 8), "Bekleyen sosyal AR postu listelenmedi.")
+        XCTAssertTrue(queuedPost.waitForExistence(timeout: 8), "Bekleyen metin AR postu listelenmedi.")
         let caption = queuedPost.label
         retry.tap()
 
         app.tabBars.buttons["Keşfet"].tap()
         XCTAssertTrue(app.navigationBars["Keşfet"].waitForExistence(timeout: 12))
         XCTAssertTrue(app.staticTexts[caption].waitForExistence(timeout: 25), "Kurtarılan post Keşfet'te görünmedi.")
-        capture(app, name: "physical-retried-social-post-discover")
+        capture(app, name: "physical-retried-text-post-discover")
 
         app.tabBars.buttons["AR"].tap()
         XCTAssertTrue(app.staticTexts[caption].waitForExistence(timeout: 20), "Kurtarılan post AR listesinde görünmedi.")
@@ -172,7 +165,7 @@ extension AuthGateUITests {
         XCTAssertTrue(app.buttons["Postu sil"].waitForExistence(timeout: 5))
         app.buttons["Postu sil"].tap()
         XCTAssertFalse(ownPost.waitForExistence(timeout: 20), "Silinen kurtarma postu listeden kalkmadı.")
-        capture(app, name: "physical-retried-social-post-deleted")
+        capture(app, name: "physical-retried-text-post-deleted")
 #endif
     }
 
@@ -416,14 +409,8 @@ extension AuthGateUITests {
 #else
         continueAfterFailure = true
         let token = String(UUID().uuidString.prefix(4))
-        let socialCases: [(caption: String, platform: String?, url: String?, readyLabel: String?)] = [
-            ("Metin post \(token)", nil, nil, nil),
-            ("Spotify post \(token)", "spotify", "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU", "Spotify paylaşımı hazır"),
-            ("YouTube post \(token)", "youtube", "https://youtu.be/dQw4w9WgXcQ", "YouTube paylaşımı hazır"),
-            ("Facebook post \(token)", "facebook", "https://www.facebook.com/loci/posts/123", "Facebook paylaşımı hazır"),
-            ("Instagram post \(token)", "instagram", "https://www.instagram.com/p/ABC123/", "Instagram paylaşımı hazır"),
-            ("X post \(token)", "x", "https://x.com/loci/status/123", "X paylaşımı hazır"),
-        ]
+        // Posts are text only since 9 Oct 2026 (social media links removed).
+        let textCases = ["Metin post \(token)", "İkinci metin post \(token)"]
         var published: [String] = []
         var failures: [String] = []
 
@@ -433,11 +420,11 @@ extension AuthGateUITests {
         app.launch()
         XCTAssertTrue(app.buttons["map-create"].waitForExistence(timeout: 10))
 
-        for item in socialCases {
-            if publishPhysicalPost(app, caption: item.caption, platform: item.platform, url: item.url, readyLabel: item.readyLabel) {
-                published.append(item.caption)
+        for caption in textCases {
+            if publishPhysicalPost(app, caption: caption) {
+                published.append(caption)
             } else {
-                failures.append("Yayınlanamadı: \(item.caption)")
+                failures.append("Yayınlanamadı: \(caption)")
                 recoverToMap(app)
             }
             RunLoop.current.run(until: Date().addingTimeInterval(1.2))
@@ -448,7 +435,7 @@ extension AuthGateUITests {
         app.launch()
         XCTAssertTrue(app.buttons["map-create"].waitForExistence(timeout: 10))
         let photoCaption = "Fotoğraf post \(token)"
-        if publishPhysicalPost(app, caption: photoCaption, platform: nil, url: nil, readyLabel: nil) {
+        if publishPhysicalPost(app, caption: photoCaption) {
             published.append(photoCaption)
         } else {
             failures.append("Yayınlanamadı: \(photoCaption)")
@@ -506,32 +493,6 @@ extension AuthGateUITests {
         XCTAssertTrue(app.staticTexts["Yüzey bulundu"].exists)
         XCTAssertFalse(app.staticTexts["Canlı kamera hazırlanıyor"].exists)
         capture(app, name: "physical-saved-pin-relocalized")
-#endif
-    }
-
-    func testPhysicalSocialPreviewCardRendersOnRealSurfaceWithSmallCaption() throws {
-#if targetEnvironment(simulator)
-        throw XCTSkip("Sosyal önizleme kartının AR yüzey render'ı fiziksel iPhone gerektirir.")
-#else
-        let app = XCUIApplication()
-        app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_SOCIAL_AR_PREVIEW"]
-        app.launch()
-
-        XCTAssertTrue(app.tabBars.buttons["AR"].waitForExistence(timeout: 8))
-        app.tabBars.buttons["AR"].tap()
-        XCTAssertTrue(app.otherElements["screen-ar"].waitForExistence(timeout: 8))
-        let socialPost = app.buttons["ar-nearby-post-33333333-3333-3333-3333-333333333333"]
-        XCTAssertTrue(socialPost.waitForExistence(timeout: 12))
-        socialPost.tap()
-        XCTAssertTrue(app.otherElements["ar-post-viewer"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Kapat"].waitForExistence(timeout: 10))
-        XCTAssertTrue(
-            app.staticTexts["Yüzey bulundu. İçerik hazır."].waitForExistence(timeout: 60),
-            "Sosyal önizleme kartı gerçek plane üzerinde açılamadı."
-        )
-        XCTAssertFalse(app.buttons["Yüzeye bağla"].exists)
-        XCTAssertFalse(app.buttons["Bu yüzeye bağla"].exists)
-        capture(app, name: "physical-social-preview-card-small-caption")
 #endif
     }
 
@@ -711,11 +672,6 @@ extension AuthGateUITests {
 
         let items: [WallItem] = [
             WallItem(key: "text", name: "Metin", isSocial: false, isPhoto: false, url: nil, caption: "Bu tarihi taş duvar, mahallenin hafızasını taşıyor."),
-            WallItem(key: "spotify", name: "Spotify", isSocial: true, isPhoto: false, url: "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU", caption: "Spotify müzik anısı bu duvara sabitlendi."),
-            WallItem(key: "youtube", name: "YouTube", isSocial: true, isPhoto: false, url: "https://youtu.be/dQw4w9WgXcQ", caption: "YouTube videosu bu duvara sabitlendi."),
-            WallItem(key: "facebook", name: "Facebook", isSocial: true, isPhoto: false, url: "https://www.facebook.com/loci/posts/101584920482910", caption: "Facebook topluluk gönderisi bu duvara sabitlendi."),
-            WallItem(key: "instagram", name: "Instagram", isSocial: true, isPhoto: false, url: "https://www.instagram.com/p/DF123XYZ/", caption: "Instagram anısı bu duvara mühürlendi."),
-            WallItem(key: "x", name: "X", isSocial: true, isPhoto: false, url: "https://x.com/apple/status/1880000000000000000", caption: "X üzerindeki güncel duyuru burada."),
             WallItem(key: "photo", name: "Fotoğraf", isSocial: false, isPhoto: true, url: nil, caption: "Tarihi taş duvarın özel anı fotoğrafı.")
         ]
 
@@ -723,30 +679,14 @@ extension AuthGateUITests {
             // 1. Editor verification & capture (Anchored to Vertical Wall)
             let editorApp = XCUIApplication()
             var editorArgs = ["UITEST_AUTHENTICATED", "UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY"]
-            if item.isSocial {
-                editorArgs.append("UITEST_DISABLE_EXTERNAL_APP_LAUNCH")
-            }
             if item.isPhoto {
                 editorArgs.append("UITEST_ATTACH_SAMPLE_IMAGE")
             }
             editorApp.launchArguments = editorArgs
-            if let url = item.url {
-                editorApp.launchEnvironment["UITEST_EXTERNAL_MEDIA_URL"] = url
-            }
             editorApp.launch()
 
             XCTAssertTrue(editorApp.navigationBars["İçerik oluştur"].waitForExistence(timeout: 8))
             XCTAssertTrue(editorApp.staticTexts["Dikey yüzey hazır"].waitForExistence(timeout: 5))
-
-            if item.isSocial {
-                editorApp.buttons["create-external-media-picker"].tap()
-                XCTAssertTrue(editorApp.navigationBars["Platform seç"].waitForExistence(timeout: 5))
-                editorApp.buttons["external-platform-\(item.key)"].tap()
-                XCTAssertTrue(editorApp.buttons["external-import-complete"].waitForExistence(timeout: 5))
-                editorApp.buttons["external-import-complete"].tap()
-                XCTAssertTrue(editorApp.staticTexts["\(item.name) paylaşımı hazır"].waitForExistence(timeout: 5))
-                XCTAssertTrue(editorApp.descendants(matching: .any)["external-media-selection-preview"].waitForExistence(timeout: 5))
-            }
 
             let captionField = editorApp.textFields["create-caption"]
             XCTAssertTrue(captionField.waitForExistence(timeout: 5))

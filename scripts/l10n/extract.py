@@ -74,8 +74,8 @@ EXCLUDE = {
     'RNCAsyncLocalStorage_V1', 'Legacy dead-letter', '^[a-z0-9_.]{3,30}$', 'cannot publish', 'protected zone', 'verified Apple',
     'verified Apple, Google, or email identity', '18+ content', 'E', 'LociAR Pin',
     '⚠️ Yetki yok (token / ARCore API)', '✅ VPS mevcut', '❌ VPS yok', '❓ Bilinmiyor',
-    'ARCore kapsam kontrolü (debug)', 'ARCore kapsamı', 'Kontrol ediliyor…', 'VPS kapsamını kontrol et', 'Loci', '%lld', '%lld/500', '%lld/220', 'Only social media links', 'Only text posts',
-    'Physical AR world lock evidence is incomplete', 'Facebook', 'Instagram', 'Spotify', 'YouTube',
+    'ARCore kapsam kontrolü (debug)', 'ARCore kapsamı', 'Kontrol ediliyor…', 'VPS kapsamını kontrol et', 'Loci', '%lld', '%lld/500', '%lld/220', 'Only text', 'Only one GIF', 'Powered by GIPHY',
+    'Physical AR world lock evidence is incomplete',
     ') : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._', 'LociAR.Push', 'Report reason',
     '^[A-Za-z0-9_-]{1,200}$', 'lociar.acceptedAccountDeletions',
 }

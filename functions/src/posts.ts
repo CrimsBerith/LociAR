@@ -11,6 +11,10 @@ import { admitPost, anchorBindError, deleteAnchorOfPost } from './anchors';
 import { activeDensity, readDensityLocks, updateDensityLock } from './postAdmission';
 import { protectedZoneAt } from './protectedZones';
 import { assertAccountNotDeleting, requireActiveAccount } from './profileGuard';
+import { INVITE_REQUIRED, inviteGate } from './invites';
+import { TRUSTED_AUTO_PUBLISH, authorIsTrusted, hasDrawingLayer } from './trust';
+import { placeAt } from './places';
+import { GIPHY_API_KEY, resolveGifLayers } from './giphy';
 
 /**
  * High-quality world locks used to go live without review in the Supabase build. App Review
@@ -28,7 +32,7 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
   return { id, placement_state: data.placement_state ?? null, status: data.status };
 }
 
-export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
+export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [GIPHY_API_KEY] }, async (request) => {
   const caller = requireCaller(request);
   await assertServiceEnabled('create_post');
   const body = request.data as CreatePostBody;
@@ -37,6 +41,11 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   if (validationError) throw new HttpsError('invalid-argument', validationError);
   if (!identityVerified(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
+  }
+  // Closed-beta gate (growth plan 2.1): browsing stays open, publishing needs a redeemed invite.
+  if (INVITE_REQUIRED) {
+    const priv = await db.collection('users_private').doc(caller.luid).get();
+    if (inviteGate(priv.data(), true)) throw reasonError('permission-denied', 'An invite code is required to publish', 'invite_required');
   }
 
   const postId = body.clientMutationId!.toLowerCase();
@@ -58,7 +67,18 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   // Storage validation can perform network I/O. Do it before opening a transaction; no quota
   // has been consumed, so a timeout or an invalid anchor cannot leak admission slots.
   const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
-  const publishStatus = AUTO_PUBLISH_HIGH_QUALITY && placement.autoPublishEligible ? 'active' : 'pending_review';
+  // A GIF layer keeps only the GIPHY id; its size comes from GIPHY, never from the client.
+  await resolveGifLayers(body.editData as { layers?: unknown[] });
+  // Drawings always go to review. Trusted authors (growth plan 3.3, off by default) may skip it.
+  const trusted = async () => {
+    const profile = (await db.collection('profiles').doc(caller.luid).get()).data();
+    return profile ? authorIsTrusted(caller.luid, profile, Date.now()) : false;
+  };
+  const autoPublish = placement.autoPublishEligible && !hasDrawingLayer(body.editData)
+    && (AUTO_PUBLISH_HIGH_QUALITY || (TRUSTED_AUTO_PUBLISH && await trusted().catch(() => false)));
+  const publishStatus = autoPublish ? 'active' : 'pending_review';
+  // Landmark layer (growth plan 2.5): computed here, never trusted from the client; null on failure.
+  const place = await placeAt(lat, lng);
   const mapURI = body.pose.anchor?.persistence?.kind === 'arkit_world_map' ? body.pose.anchor.persistence.assetURI ?? body.pose.anchor.persistence.assetUri ?? body.pose.anchor.persistence.storagePath : null;
   const worldMapPath = typeof mapURI === 'string' && mapURI.startsWith('storage://') ? mapURI.slice(10) : null;
   const document = {
@@ -69,6 +89,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     lat,
     lng,
     geohash: encodeGeohash(lat, lng, 10),
+    place_id: place?.id ?? null,
     pose_json: JSON.stringify(body.pose),
     ref_image_url: body.refImageUri,
     edit_data_json: JSON.stringify(body.editData),

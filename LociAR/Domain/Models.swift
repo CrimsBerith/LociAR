@@ -308,163 +308,29 @@ struct LociUser: Codable, Hashable, Sendable, Identifiable {
     var role: String = "user"
 }
 
+/// What a post carries besides its edit layers. Posts are text only: social media links were removed
+/// on 9 Oct 2026 and device photos/videos on 29 Sep 2026. `.image`/`.video` remain only so locally
+/// queued legacy drafts can be detected and failed (`LociPost.containsDeviceMedia`).
 enum ContentSource: Hashable, Sendable {
     case text(String)
     case image(URL)
     case video(URL)
-    case spotify(URL)
-    case youtube(URL)
-    case facebook(URL)
-    case instagram(URL)
-    case x(URL)
-    case external(URL)
-}
-
-enum ExternalMediaPlatform: String, CaseIterable, Hashable, Identifiable, Sendable {
-    case spotify = "Spotify"
-    case youtube = "YouTube"
-    case facebook = "Facebook"
-    case instagram = "Instagram"
-    case x = "X"
-
-    var id: Self { self }
-
-    var appLaunchURL: URL {
-        switch self {
-        case .spotify: URL(string: "spotify:")!
-        case .youtube: URL(string: "youtube://")!
-        case .facebook: URL(string: "fb://")!
-        case .instagram: URL(string: "instagram://")!
-        case .x: URL(string: "twitter://")!
-        }
-    }
-
-    var webLaunchURL: URL {
-        switch self {
-        case .spotify: URL(string: "https://open.spotify.com/search")!
-        case .youtube: URL(string: "https://www.youtube.com")!
-        case .facebook: URL(string: "https://www.facebook.com")!
-        case .instagram: URL(string: "https://www.instagram.com")!
-        case .x: URL(string: "https://x.com")!
-        }
-    }
-
-    var linkHint: String {
-        switch self {
-        case .spotify: String(localized: "open.spotify.com bağlantısı")
-        case .youtube: String(localized: "youtube.com veya youtu.be bağlantısı")
-        case .facebook: String(localized: "facebook.com gönderi, video veya Reels bağlantısı")
-        case .instagram: String(localized: "instagram.com gönderi veya Reels bağlantısı")
-        case .x: String(localized: "x.com gönderi bağlantısı")
-        }
-    }
-}
-
-extension ContentSource {
-    var externalMedia: (platform: ExternalMediaPlatform, url: URL)? {
-        switch self {
-        case .spotify(let url): (.spotify, url)
-        case .youtube(let url): (.youtube, url)
-        case .facebook(let url): (.facebook, url)
-        case .instagram(let url): (.instagram, url)
-        case .x(let url): (.x, url)
-        default: nil
-        }
-    }
-}
-
-enum ExternalMediaParser {
-    static func parseSharedText(_ input: String) -> ContentSource? {
-        if let direct = parse(input) { return direct }
-        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
-            return nil
-        }
-        let range = NSRange(input.startIndex..<input.endIndex, in: input)
-        for match in detector.matches(in: input, options: [], range: range) {
-            guard let url = match.url, let parsed = parse(url.absoluteString) else { continue }
-            return parsed
-        }
-        return nil
-    }
-
-    static func parse(_ input: String) -> ContentSource? {
-        let clean = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let components = URLComponents(string: clean),
-              components.scheme?.lowercased() == "https",
-              components.user == nil,
-              components.password == nil,
-              let url = components.url,
-              let host = components.host?.lowercased() else { return nil }
-
-        let rawPathParts = components.path.split(separator: "/").map(String.init)
-        if host == "spotify.link", rawPathParts.count == 1, !rawPathParts[0].isEmpty {
-            return .spotify(url)
-        }
-        let spotifyParts = (rawPathParts.first?.lowercased().hasPrefix("intl-") == true)
-            ? Array(rawPathParts.dropFirst())
-            : rawPathParts
-        if host == "open.spotify.com", spotifyParts.count >= 2,
-           ["track", "album", "playlist", "episode", "show", "artist"].contains(spotifyParts[0].lowercased()) {
-            return .spotify(url)
-        }
-        if host == "youtu.be", rawPathParts.count == 1, !rawPathParts[0].isEmpty {
-            return .youtube(url)
-        }
-        if ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"].contains(host) {
-            let first = rawPathParts.first?.lowercased()
-            let isWatch = components.path == "/watch" && components.queryItems?.contains(where: { $0.name == "v" && !($0.value ?? "").isEmpty }) == true
-            let isKnownVideoPath = ["shorts", "live", "embed"].contains(first) && rawPathParts.count >= 2
-            if isWatch || isKnownVideoPath { return .youtube(url) }
-        }
-        if host == "fb.watch", !rawPathParts.isEmpty {
-            return .facebook(url)
-        }
-        if ["facebook.com", "www.facebook.com", "m.facebook.com"].contains(host) {
-            let first = rawPathParts.first?.lowercased()
-            let second = rawPathParts.count > 1 ? rawPathParts[1].lowercased() : nil
-            let isDirectMedia = ["reel", "reels", "videos"].contains(first) && rawPathParts.count >= 2
-            let isProfilePost = rawPathParts.count >= 3 && ["posts", "videos"].contains(second)
-            let isSharedMedia = first == "share" && rawPathParts.count >= 3 && ["p", "r", "v"].contains(second)
-            let isWatch = first == "watch" && components.queryItems?.contains(where: { $0.name == "v" && !($0.value ?? "").isEmpty }) == true
-            if isDirectMedia || isProfilePost || isSharedMedia || isWatch { return .facebook(url) }
-        }
-        if ["instagram.com", "www.instagram.com"].contains(host),
-           rawPathParts.count >= 2 {
-            let first = rawPathParts[0].lowercased()
-            if ["p", "reel", "reels", "tv"].contains(first) && !rawPathParts[1].isEmpty {
-                return .instagram(url)
-            }
-            if first == "share" && rawPathParts.count >= 3 && ["p", "r"].contains(rawPathParts[1].lowercased()) {
-                return .instagram(url)
-            }
-        }
-        if ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com", "fixupx.com", "vxtwitter.com", "fxtwitter.com"].contains(host),
-           rawPathParts.count >= 3, rawPathParts[1].lowercased() == "status",
-           rawPathParts[2].allSatisfy(\.isNumber) {
-            return .x(url)
-        }
-        return nil
-    }
 }
 
 extension ContentSource: Codable {
     private enum CodingKeys: String, CodingKey { case platform, url, title, mediaKind }
 
+    /// Older posts and drafts may carry a Spotify/YouTube/Instagram/X/Facebook or other link. It is
+    /// decoded as text (the link is dropped and never shown), so legacy data cannot break decoding.
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         let platform = try values.decodeIfPresent(String.self, forKey: .platform) ?? "other"
-        let url = try values.decodeIfPresent(URL.self, forKey: .url)
+        let url = try? values.decodeIfPresent(URL.self, forKey: .url)
         let title = try values.decodeIfPresent(String.self, forKey: .title) ?? ""
         let mediaKind = try values.decodeIfPresent(String.self, forKey: .mediaKind) ?? ""
         switch (platform.lowercased(), url) {
         case ("own_video", let url?): self = .video(url)
-        case ("spotify", let url?): self = .spotify(url)
-        case ("youtube", let url?): self = .youtube(url)
-        case ("facebook", let url?): self = .facebook(url)
-        case ("instagram", let url?): self = .instagram(url)
-        case ("x", let url?), ("twitter", let url?): self = .x(url)
         case (_, let url?) where ["image", "photo"].contains(mediaKind): self = .image(url)
-        case (_, let url?): self = .external(url)
         default: self = .text(title)
         }
     }
@@ -483,36 +349,46 @@ extension ContentSource: Codable {
             try values.encode("own_video", forKey: .platform)
             try values.encode(url, forKey: .url)
             try values.encode("video", forKey: .mediaKind)
-        case .spotify(let url):
-            try values.encode("spotify", forKey: .platform)
-            try values.encode(url, forKey: .url)
-            try values.encode("embed", forKey: .mediaKind)
-        case .youtube(let url):
-            try values.encode("youtube", forKey: .platform)
-            try values.encode(url, forKey: .url)
-            try values.encode("embed", forKey: .mediaKind)
-        case .facebook(let url):
-            try values.encode("facebook", forKey: .platform)
-            try values.encode(url, forKey: .url)
-            try values.encode("embed", forKey: .mediaKind)
-        case .instagram(let url):
-            try values.encode("instagram", forKey: .platform)
-            try values.encode(url, forKey: .url)
-            try values.encode("embed", forKey: .mediaKind)
-        case .x(let url):
-            try values.encode("x", forKey: .platform)
-            try values.encode(url, forKey: .url)
-            try values.encode("embed", forKey: .mediaKind)
-        case .external(let url):
-            try values.encode("other", forKey: .platform)
-            try values.encode(url, forKey: .url)
-            try values.encode("link", forKey: .mediaKind)
         }
     }
 }
 
+/// A GIPHY GIF carried by a post. Posts store only the id (createPost reads the size from GIPHY);
+/// media URLs are built from the id on GIPHY's media host, so a post can never carry a link.
+struct GifReference: Hashable, Sendable {
+    let id: String
+    let width: Int
+    let height: Int
+
+    init?(id: String, width: Int, height: Int) {
+        guard GifReference.isValidID(id) else { return nil }
+        self.id = id
+        self.width = min(max(width, 1), 4_096)
+        self.height = min(max(height, 1), 4_096)
+    }
+
+    /// Letters and digits only, as functions/src/giphyId.ts enforces.
+    static func isValidID(_ id: String) -> Bool {
+        (1...64).contains(id.count) && id.unicodeScalars.allSatisfy { $0.isASCII && CharacterSet.alphanumerics.contains($0) }
+    }
+
+    var aspectRatio: Double { Double(width) / Double(height) }
+
+    /// Looping MP4 used in AR and in post cards.
+    var videoURL: URL { media("giphy.mp4") }
+    /// Small animated GIF (200 px wide) for the picker and cards.
+    var previewURL: URL { media("200w.gif") }
+    /// First frame, used as the poster under the AR video.
+    var stillURL: URL { media("giphy_s.gif") }
+
+    private func media(_ file: String) -> URL {
+        URL(string: "https://media.giphy.com/media/\(id)/\(file)")!
+    }
+}
+
 struct EditLayer: Hashable, Sendable, Identifiable {
-    enum Kind: String, Codable, Sendable { case drawing, text, image }
+    /// `drawing` and `image` remain only so existing posts keep rendering; new posts are text and/or one GIF.
+    enum Kind: String, Codable, Sendable { case drawing, text, image, gif }
     var id: UUID
     var kind: Kind
     var text: String?
@@ -522,12 +398,13 @@ struct EditLayer: Hashable, Sendable, Identifiable {
     var opacity: Double
     var scale: Double
     var rotation: Double
+    var gif: GifReference? = nil
 }
 
 extension EditLayer: Codable {
     private enum CodingKeys: String, CodingKey {
         case id, type, text, uri, points, color, opacity, scale, rotation
-        case x, y, zIndex, strokeWidth, fontSize, width, height
+        case x, y, zIndex, strokeWidth, fontSize, width, height, gifId
     }
 
     init(from decoder: Decoder) throws {
@@ -545,6 +422,16 @@ extension EditLayer: Codable {
         opacity = try values.decodeIfPresent(Double.self, forKey: .opacity) ?? 1
         scale = try values.decodeIfPresent(Double.self, forKey: .scale) ?? 1
         rotation = try values.decodeIfPresent(Double.self, forKey: .rotation) ?? 0
+        if kind == .gif {
+            guard let gif = GifReference(
+                id: try values.decodeIfPresent(String.self, forKey: .gifId) ?? "",
+                width: try values.decodeIfPresent(Int.self, forKey: .width) ?? 1,
+                height: try values.decodeIfPresent(Int.self, forKey: .height) ?? 1
+            ) else {
+                throw DecodingError.dataCorruptedError(forKey: .gifId, in: values, debugDescription: "Invalid GIPHY id")
+            }
+            self.gif = gif
+        }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -570,8 +457,19 @@ extension EditLayer: Codable {
         case .image:
             try values.encode(1_080, forKey: .width)
             try values.encode(1_920, forKey: .height)
+        case .gif:
+            try values.encodeIfPresent(gif?.id, forKey: .gifId)
+            try values.encodeIfPresent(gif?.width, forKey: .width)
+            try values.encodeIfPresent(gif?.height, forKey: .height)
         }
     }
+}
+
+/// Decodes one layer and keeps going when it is malformed or of a type this build does not know,
+/// so a newer post never makes a whole feed fail to decode.
+private struct LossyLayer: Decodable {
+    let layer: EditLayer?
+    init(from decoder: Decoder) throws { layer = try? EditLayer(from: decoder) }
 }
 
 private struct Vector2: Codable, Hashable, Sendable { let x: Float; let y: Float }
@@ -591,7 +489,7 @@ extension EditData: Codable {
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         version = try values.decodeIfPresent(Int.self, forKey: .version) ?? 1
-        layers = try values.decodeIfPresent([EditLayer].self, forKey: .layers) ?? []
+        layers = (try values.decodeIfPresent([LossyLayer].self, forKey: .layers) ?? []).compactMap(\.layer)
         let canvas = try values.decodeIfPresent(Canvas.self, forKey: .canvas) ?? Canvas(width: 1_080, height: 1_920)
         canvasWidth = canvas.width
         canvasHeight = canvas.height
@@ -620,6 +518,20 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var editData: EditData
     var contentSource: ContentSource?
     var counts: PostCounts
+}
+
+extension LociPost {
+    /// The post's GIPHY GIF, if any (a post has at most one).
+    var gif: GifReference? { editData.layers.first(where: { $0.kind == .gif })?.gif }
+
+    /// The message text written by the author: the first non-empty text layer. GIF-only posts have
+    /// none (their caption is a fallback used for search, the map and VoiceOver).
+    var messageText: String? {
+        editData.layers.lazy
+            .filter { $0.kind == .text }
+            .compactMap { $0.text?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { !$0.isEmpty })
+    }
 }
 
 struct PostCounts: Codable, Hashable, Sendable {

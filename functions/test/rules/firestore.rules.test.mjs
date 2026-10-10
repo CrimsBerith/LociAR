@@ -302,8 +302,16 @@ test('user_blocks: only the blocker reads; protected_zones are public read-only'
   await assertFails(setDoc(doc(as(ALICE), 'protected_zones', 'z2'), { name: 'Z' }));
 });
 
+test('places are public read-only', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'places', 'p1'), { name: 'P', city: 'istanbul', lat: 1, lng: 2, radius_meters: 80, active: true });
+  });
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'places', 'p1')));
+  await assertFails(setDoc(doc(as(ALICE), 'places', 'p2'), { name: 'P' }));
+});
+
 test('server-only collections stay closed for clients (reads and writes)', async () => {
-  for (const name of ['handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
+  for (const name of ['invites', 'invite_attempts', 'gif_search_quota', 'handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
     await assertFails(getDoc(doc(as(ALICE), name, 'x')));
     await assertFails(setDoc(doc(as(ALICE), name, 'x'), { owner_luid: ALICE }));
   }

@@ -8,24 +8,24 @@
 LociAR: AR-Notizen vor Ort
 ```
 
-## Subtitle (29/30)
+## Subtitle (28/30)
 
 ```text
-Notizen & Links an echte Orte
+Notizen an echte Orte heften
 ```
 
-## Promotional Text (157/170)
+## Promotional Text (159/170)
 
 ```text
-Hefte Notizen und Links von Spotify, YouTube, Instagram, X oder Facebook an echte Flächen und entdecke, was andere in deiner Nähe hinterlassen haben – in AR.
+Hinterlasse kurze Nachrichten und GIFs auf echten Flächen und entdecke in AR, was andere in deiner Nähe hinterlassen haben – genau dort, wo es platziert wurde.
 ```
 
-## Description (1226/4000)
+## Description (1195/4000)
 
 ```text
-Hinterlasse Notizen und deine liebsten Social-Media-Beiträge an echten Orten.
+Hinterlasse Notizen an echten Orten.
 
-Mit LociAR heftest du kurze Textnotizen und Links von Spotify, YouTube, Instagram, X und Facebook an echte Flächen (Tisch, Boden, Wand), damit andere sie genau dort finden, wo du sie hinterlassen hast.
+Mit LociAR heftest du kurze Nachrichten und GIFs an echte Flächen (Tisch, Boden, Wand), damit andere sie als Nachrichtenblase genau dort finden, wo du sie hinterlassen hast. GIFs werden von GIPHY bereitgestellt.
 
 FUNKTIONEN
 • An echte Flächen heften: Das Fadenkreuz in der Mitte rastet auf von ARKit erkannte Flächen ein; Google ARCore Cloud Anchors und Geospatial zeigen deinen Beitrag wieder an derselben Stelle.
@@ -40,14 +40,14 @@ Kamera und Standort werden nur für das AR-Erlebnis verwendet. Für die AR-Posit
 Erfordert ein iPhone mit ARKit-Unterstützung.
 ```
 
-## Keywords (77/100)
+## Keywords (81/100)
 
 ```text
-augmented reality,karte,kamera,sozial,notiz,fläche,entdecken,standort,pin,ort
+augmented reality,karte,kamera,sozial,notiz,fläche,entdecken,standort,pin,ort,gif
 ```
 
-## What's New in This Version (193/4000)
+## What's New in This Version (191/4000)
 
 ```text
-Erste Version: Textnotizen und Social-Links an echte Flächen heften, Beiträge in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen, Follower und Mitteilungen. In 12 Sprachen.
+Erste Version: kurze Nachrichten und GIFs an echte Flächen heften, Beiträge in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen, Follower und Mitteilungen. In 12 Sprachen.
 ```

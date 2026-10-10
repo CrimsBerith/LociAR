@@ -10,11 +10,6 @@ import { checkReceipt, ConflictError, derivedKey, mutationHash, requireActorAcco
 
 import type { ContentInput } from './content-models';
 export type { ContentInput } from './content-models';
-const HOSTS: Record<string, string[]> = {
-  spotify: ['open.spotify.com', 'spotify.link'], youtube: ['youtube.com','www.youtube.com','m.youtube.com','music.youtube.com','youtu.be'],
-  instagram: ['instagram.com','www.instagram.com'], x: ['x.com','www.x.com','twitter.com','www.twitter.com','mobile.twitter.com'],
-  facebook: ['facebook.com','www.facebook.com','m.facebook.com','fb.watch'],
-};
 function number(value: unknown, field: string, min: number, max: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new ValidationError(`${field} must be ${min}–${max}`);
   return value;
@@ -24,10 +19,8 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
   const text = typeof body.text === 'string' ? body.text.trim() : caption;
   if (text.length > 2000 || anyBlocked([caption, text])) throw new ValidationError('content_not_allowed');
   const platform = String(body.platform ?? 'text'); const url = typeof body.url === 'string' ? body.url.trim() : '';
-  if (platform !== 'text') {
-    let parsed: URL; try { parsed = new URL(url); } catch { throw new ValidationError('invalid_social_link'); }
-    if (!HOSTS[platform]?.includes(parsed.hostname.toLowerCase()) || parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port || url.length > 2048) throw new ValidationError('invalid_social_link');
-  } else if (url) throw new ValidationError('select_social_platform');
+  // Posts are text only: social media links were removed from LociAR on 9 Oct 2026 (createPost refuses them too).
+  if (platform !== 'text' || url) throw new ValidationError('links_not_allowed');
   if (!['all','13_plus','16_plus'].includes(String(body.ageRating ?? 'all'))) throw new ValidationError('18+ content is disabled');
   if (!['public','friends','private'].includes(String(body.visibility ?? 'public'))) throw new ValidationError('invalid_visibility');
   if (!['active','pending_review'].includes(String(body.status ?? 'pending_review'))) throw new ValidationError('invalid_status');
@@ -101,7 +94,7 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
     if (moved && physical && !input.replacePlacement) throw new ConflictError('confirm_approximate_replacement');
     const editData = { version:1, canvas:{width:1080,height:1920}, backgroundColor:input.background,
       layers:[{id:derivedKey(id,'text'),type:'text',text:input.text,color:input.color,opacity:input.opacity,scale:input.scale,rotation:input.rotation,x:0,y:0,zIndex:0,fontSize:32}] };
-    const contentSource = input.platform === 'text' ? {platform:'other',title:input.text} : {platform:input.platform,url:input.url,mediaKind:'embed',title:input.caption};
+    const contentSource = {platform:'other',title:input.text};
     const changed = {
       caption:input.caption,edit_data_json:JSON.stringify(editData),content_source_json:JSON.stringify(contentSource),
       lat:input.lat,lng:input.lng,geohash:encodeGeohash(input.lat,input.lng,10),visibility:input.visibility,age_rating:input.ageRating,status:input.status,

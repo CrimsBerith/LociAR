@@ -60,7 +60,7 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 | **Email Address** | Evet | Hayır | App Functionality — giriş ve hesap doğrulama |
 | **Name** | Evet | Hayır | App Functionality — Apple ile girişte paylaşılan ad |
 | **Photos or Videos** | Evet | Hayır | App Functionality — yalnız isteğe bağlı profil fotoğrafı (post olarak fotoğraf/video yok) |
-| **Other User Content** | Evet | Hayır | App Functionality — metin, sosyal bağlantı, yorum, beğeni, AR kaydı |
+| **Other User Content** | Evet | Hayır | App Functionality — metin mesajı, GIPHY GIF kimliği, yorum, beğeni, AR kaydı |
 | **Product Interaction** | Evet | Hayır | App Functionality, Analytics — görüntülenme/beğeni sayaçları |
 | **Device ID** | Evet | Hayır | App Functionality — push bildirim belirteci (FCM/APNs) |
 | **Crash Data** | Hayır | Hayır | App Functionality — Firebase Crashlytics (kapatılabilir) |
@@ -72,7 +72,7 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 ## 5. Yaş Derecelendirmesi (Age Rating)
 
 Uygulama Kullanıcı Tarafından Üretilen İçerik (UGC) barındırdığı için Apple anketinde şu yanıtlar verilmelidir:
-* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar metin ve sosyal medya bağlantısı paylaşabilir)
+* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin mesajı ve/veya GIPHY'den bir GIF paylaşabilir; fotoğraf, video, çizim veya bağlantı yok. GIF'ler GIPHY `pg-13` sınırıyla aranır ve sunucuda yeniden doğrulanır; tüm postlar yayından önce incelenir)
 * **Konum Paylaşımı:** Evet (Gönderiler gerçek koordinatlara sabitlenir)
 * **Kısıtlanmamış Web Erişimi:** Hayır
 * **18+ / Müstehcenlik:** Hayır (Sunucu tarafında hard-block; profil fotoğrafları otomatik SafeSearch taramasından geçer)
@@ -99,7 +99,7 @@ Dear Apple Review Team,
 Thank you for reviewing LociAR.
 
 1. ABOUT THE APP:
-LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes and social media links (Spotify, YouTube, Instagram, X, Facebook) onto physical surfaces in the real world.
+LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes onto physical surfaces in the real world. Posts are a short text message and/or one GIF from GIPHY (rating at most PG-13, verified on our server; every post is reviewed before it goes public): no photos, videos, drawings or links.
 
 2. DEMO ACCOUNT & PRE-SEEDED CONTENT:
 - Sign-in credentials are provided in the App Review Information sign-in fields.
@@ -112,7 +112,7 @@ LociAR is a spatial augmented reality social application that allows users to di
 - Step 2: Grant Camera and Location permissions when prompted, and acknowledge the Google AR notice (Google processes sensor data for AR positioning).
 - Step 3: Tap the 'Share' ('Paylaş') tab to open the AR camera.
 - Step 4: Aim the center reticle at any well-lit surface (floor, table, or wall). When the reticle detects plane geometry, tap 'Pin to Surface' ('Yüzeye sabitle'). You can also tap 'Place in front of me (0.8m)' ('Önüme yerleştir') for immediate placement.
-- Step 5: Tap 'Add content', type a caption or attach a social media link (Spotify, YouTube, Instagram, X or Facebook), then tap 'Publish on surface' ('Yüzeyde yayınla').
+- Step 5: Tap 'Add content', type a caption, then tap 'Publish on surface' ('Yüzeyde yayınla').
 - After the first publish the app asks for notification permission (likes, comments and follows are sent as push notifications).
 
 4. USER-GENERATED CONTENT (UGC) & SAFETY (GUIDELINE 1.2 COMPLIANCE):
@@ -128,6 +128,14 @@ LociAR is a spatial augmented reality social application that allows users to di
 
 If you have any questions or require additional details, please reach out to us at support@lociar.app.
 ```
+
+
+### 6.1 Büyüme kapıları açılmadan önce (inceleme notlarına etkisi)
+
+Aşağıdaki ortam değişkenleri varsayılan olarak **kapalıdır**; kapalıyken yukarıdaki inceleme metni doğrudur. Açmadan önce notları güncelle:
+
+* `LOCIAR_INVITE_REQUIRED=true` (davet kodu kapısı): inceleme hesabına `users_private/{luid}.invite_exempt = true` yaz, aksi halde reviewer post yayınlayamaz. Notlara ekle: "Browsing is open to everyone; publishing requires an invite code (Profile > Invite code). The demo account is exempt."
+* `LOCIAR_TRUSTED_AUTO_PUBLISH=true` (güvenilir yazar): 4. maddedeki "Newly created posts are held in 'pending_review'" cümlesi artık her yazar için doğru değildir. Şöyle değiştir: "New posts from new accounts are held in 'pending_review'. Established accounts with a clean history may publish immediately; posts containing drawings always require approval. All posts remain reportable and removable."
 
 ---
 
@@ -148,7 +156,7 @@ App Store Connect yüklemesi için aşağıdaki iki ana boyutta ekran görüntü
 2. **6.7" Ekran (iPhone 15 Pro Max):** 1290 x 2796 piksel (Dikey)
 
 ### Önerilen 4 Temel Sahne:
-1. **Sahne 1 (AR Kamera):** Merkez nişangâh (reticle) ve gerçek duvar/masa üzerine yerleştirilmiş metin/sosyal bağlantı kartı.  
+1. **Sahne 1 (AR Kamera):** Merkez nişangâh (reticle) ve gerçek duvar/masa üzerine yerleştirilmiş mesaj balonu (metin ve/veya GIF).  
    *Pazarlama Başlığı:* "Anılarınızı Gerçek Dünyaya Sabitleyin"
 2. **Sahne 2 (Harita / Keşfet):** Yakındaki mekânsal pinlerin ve AR noktalarının haritada gösterimi.  
    *Pazarlama Başlığı:* "Çevrenizdeki Mekânsal Hikâyeleri Keşfedin"

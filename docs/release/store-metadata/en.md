@@ -8,24 +8,24 @@
 LociAR: Spatial AR Notes
 ```
 
-## Subtitle (27/30)
+## Subtitle (24/30)
 
 ```text
-Pin notes & links to places
+Pin notes to real places
 ```
 
-## Promotional Text (152/170)
+## Promotional Text (118/170)
 
 ```text
-Pin notes and Spotify, YouTube, Instagram, X or Facebook links to real surfaces, and discover what others left nearby, in AR, right where it was placed.
+Leave short messages and GIFs on real surfaces and discover what others left nearby, in AR, right where it was placed.
 ```
 
-## Description (1072/4000)
+## Description (1036/4000)
 
 ```text
-Leave notes and your favorite social posts on real places.
+Leave notes on real places.
 
-LociAR lets you pin short text notes and links from Spotify, YouTube, Instagram, X and Facebook to real surfaces (a table, the floor, a wall) so others find them right where you left them.
+LociAR lets you pin short messages and GIFs to real surfaces (a table, the floor, a wall) so others find them as a message bubble right where you left them. GIFs are powered by GIPHY.
 
 FEATURES
 • Pin to real surfaces: the center reticle locks onto surfaces detected by ARKit; Google ARCore Cloud Anchors and Geospatial bring your post back in the same spot.
@@ -40,14 +40,14 @@ Camera and location are used only for the AR experience. For AR positioning, Goo
 Requires an iPhone with ARKit support.
 ```
 
-## Keywords (78/100)
+## Keywords (82/100)
 
 ```text
-augmented reality,spatial,map,camera,social,note,surface,discover,location,pin
+augmented reality,spatial,map,camera,social,note,surface,discover,location,pin,gif
 ```
 
-## What's New in This Version (177/4000)
+## What's New in This Version (173/4000)
 
 ```text
-First release: pin text notes and social links to real surfaces, discover nearby posts on the map, plus likes, comments, collections, follows and notifications. In 12 languages.
+First release: pin short messages and GIFs to real surfaces, discover nearby posts on the map, plus likes, comments, collections, follows and notifications. In 12 languages.
 ```

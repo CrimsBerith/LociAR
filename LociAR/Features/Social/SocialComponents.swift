@@ -7,7 +7,6 @@ struct PostCard: View {
     let post: LociPost
     var likeCount: Int? = nil
     var viewCount: Int? = nil
-    var openMedia: (() -> Void)? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
@@ -27,12 +26,32 @@ struct PostCard: View {
                     color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
                 )
             }
-            Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                .font(.body.weight(.semibold))
-                .lineLimit(4)
-                .foregroundStyle(.white.opacity(0.94))
-
-            PostMediaHero(post: post, openMedia: openMedia)
+            if let gif = post.gif {
+                AnimatedGIFView(url: gif.previewURL)
+                    .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(alignment: .bottomTrailing) {
+                        Text(verbatim: "GIPHY")
+                            .font(.caption2.weight(.heavy))
+                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .background(.black.opacity(0.55), in: Capsule())
+                            .padding(6)
+                    }
+                    .accessibilityElement()
+                    .accessibilityLabel(Text("GIF"))
+                if let text = post.messageText {
+                    Text(text)
+                        .font(.body.weight(.semibold))
+                        .lineLimit(4)
+                        .foregroundStyle(.white.opacity(0.94))
+                }
+            } else {
+                Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
+                    .font(.body.weight(.semibold))
+                    .lineLimit(4)
+                    .foregroundStyle(.white.opacity(0.94))
+            }
 
             HStack(spacing: 18) {
                 LociMetricLabel(value: likeCount ?? post.counts.likes, title: String(localized: "beğeni"), symbol: "heart.fill", color: .pink)
@@ -48,48 +67,6 @@ struct PostCard: View {
     }
 
 }
-
-struct PostMediaHero: View {
-    let post: LociPost
-    var openMedia: (() -> Void)? = nil
-
-    @ViewBuilder var body: some View {
-        if let external = post.contentSource?.externalMedia {
-            if let openMedia {
-                Button(action: openMedia) {
-                    externalMediaBanner(external: external)
-                }
-                .buttonStyle(.plain)
-            } else {
-                externalMediaBanner(external: external)
-            }
-        }
-    }
-
-    private func externalMediaBanner(external: (platform: ExternalMediaPlatform, url: URL)) -> some View {
-        HStack(spacing: 14) {
-            BrandLogoView(platform: external.platform, size: 42)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(external.platform.rawValue).font(.headline)
-                Text("Paylaşımı görüntüle").font(.caption).foregroundStyle(.white.opacity(0.66))
-            }
-            Spacer()
-            Image(systemName: "arrow.up.right").font(.subheadline.weight(.bold))
-        }
-        .foregroundStyle(.white)
-        .padding(15)
-        .background(
-            LinearGradient(
-                colors: [external.platform.brandColor.opacity(0.34), external.platform.brandColor.opacity(0.10)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(external.platform.brandColor.opacity(0.28)))
-    }
-}
-
 
 struct PostActionLabel: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

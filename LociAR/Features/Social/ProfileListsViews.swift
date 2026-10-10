@@ -510,3 +510,113 @@ struct MyPostsView: View {
     }
 
 }
+
+// MARK: - Invites
+
+struct InviteView: View {
+    @Environment(AppContainer.self) private var container
+    @State private var codeInput = ""
+    @State private var invites: [InviteCode] = []
+    @State private var message: String?
+    @State private var info: String?
+    @State private var isBusy = false
+    @State private var isLoading = true
+
+    private var normalizedInput: String {
+        codeInput.uppercased().filter { $0.isLetter || $0.isNumber }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                TextField("Davet kodu", text: $codeInput)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+                    .accessibilityIdentifier("invite-code-field")
+                Button {
+                    Task { await redeem() }
+                } label: {
+                    Label("Kodu kullan", systemImage: "ticket.fill")
+                }
+                .disabled(isBusy || normalizedInput.count < 8)
+                .accessibilityIdentifier("invite-redeem-button")
+            } header: {
+                Text("Sana verilen kod")
+            } footer: {
+                Text("Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.")
+            }
+            Section {
+                if isLoading {
+                    ProgressView()
+                } else if invites.isEmpty {
+                    Text("Kodlarını görmek için önce sana verilen kodu gir.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(invites) { invite in
+                        HStack {
+                            Text(invite.code)
+                                .font(.system(.body, design: .monospaced).weight(.semibold))
+                                .strikethrough(invite.redeemed)
+                                .foregroundStyle(invite.redeemed ? .secondary : .primary)
+                            Spacer()
+                            if invite.redeemed {
+                                Text("Kullanıldı").font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                ShareLink(item: String(localized: "LociAR'a davetlisin. Davet kodun: \(invite.code)")) {
+                                    Image(systemName: "square.and.arrow.up")
+                                }
+                                .accessibilityLabel("Kodu paylaş")
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Senin kodların")
+            } footer: {
+                Text("Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.")
+            }
+            if let info {
+                Section { Text(info).foregroundStyle(LociTheme.accent) }
+            }
+            if let message {
+                Section { Text(message).foregroundStyle(.red) }
+            }
+        }
+        .lociListStyle()
+        .navigationTitle("Davet kodu")
+        .task { await loadInvites() }
+    }
+
+    private func redeem() async {
+        guard !isBusy else { return }
+        isBusy = true
+        message = nil
+        info = nil
+        defer { isBusy = false }
+        do {
+            try await container.invites.redeem(code: normalizedInput)
+            codeInput = ""
+            info = String(localized: "Kod kabul edildi. Artık post paylaşabilirsin.")
+            await loadInvites()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func loadInvites() async {
+        guard container.isBackendConfigured else {
+            isLoading = false
+            return
+        }
+        defer { isLoading = false }
+        do {
+            invites = try await container.invites.myInvites()
+        } catch InviteFlowError.needsInviteFirst {
+            invites = []
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+}

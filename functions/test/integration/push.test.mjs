@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { adminAuth, adminDb, closeClients, expectFailure, newUser, PROJECT } from './_harness.mjs';
-import { deliverActivityPush } from '../../lib/push.js';
+import { deliverActivityPush, deliverPostApprovedPush } from '../../lib/push.js';
 import { MAX_PUSH_DEVICES, pushDeliveryId, pushTokenId } from '../../lib/pushPolicy.js';
 import { onLikeCreated } from '../../lib/triggers.js';
 
@@ -206,4 +206,40 @@ test('concurrent social-trigger redelivery creates one activity and preserves it
   await onLikeCreated.run(event);
   assert.equal((await ref.get()).get('read_at').toMillis(), readAt.toMillis());
   assert.equal((await adminDb.collection('posts').doc(postId).get()).get('likes_count'), 1);
+});
+
+test('engagement pushes stop after the daily cap; the activity feed is untouched', async () => {
+  const first = await activityFixture();
+  const sent = [];
+  const send = async message => { sent.push(message); return 'fixture-message'; };
+  const ids = [first.id];
+  for (let i = 0; i < 3; i++) {
+    const id = `push-${randomUUID()}`;
+    await adminDb.collection('activity_events').doc(id).set({ id, kind: 'like', actor_id: first.actor.luid, recipient_id: first.recipient.luid, post_id: first.postId, body: 'x', read_at: null, created_at: Timestamp.now() });
+    ids.push(id);
+  }
+  for (const id of ids) await deliverActivityPush(id, send);
+  assert.equal(sent.length, 3);
+  assert.ok((await adminDb.collection('activity_events').doc(ids[3]).get()).exists);
+});
+
+test('post approval sends one push per device with the post and no activity id', async () => {
+  const recipient = await newUser();
+  const payload = registration(recipient);
+  await recipient.call('registerPushToken', payload);
+  const postId = randomUUID();
+  const ref = adminDb.collection('posts').doc(postId);
+  await ref.set({ creator_id: recipient.luid, status: 'pending_review', visibility: 'public', caption: 'Private caption' });
+  const sent = [];
+  const send = async message => { sent.push(message); return 'fixture-message'; };
+  assert.equal(await deliverPostApprovedPush(postId, send), 0);
+  await ref.update({ status: 'active' });
+  await Promise.all([deliverPostApprovedPush(postId, send), deliverPostApprovedPush(postId, send)]);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].token, payload.token);
+  assert.equal(sent[0].data.post_id, postId);
+  assert.equal(sent[0].data.recipient_id, recipient.luid);
+  assert.equal(sent[0].data.activity_id, undefined);
+  assert.equal(sent[0].notification.body, 'Postun onaylandı ve yayında.');
+  assert.ok(!JSON.stringify(sent[0]).includes('Private caption'));
 });

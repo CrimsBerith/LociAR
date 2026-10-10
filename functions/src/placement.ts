@@ -1,4 +1,5 @@
 import { anyBlocked } from './moderation';
+import { GIF_ID } from './giphyId';
 
 /**
  * Ported 1:1 from supabase/functions/create_post/index.ts (placement scoring and world-lock
@@ -134,30 +135,10 @@ function hasStrictARKitWorldLockEvidence(body: CreatePostBody): boolean {
     && (anchor.worldMappingStatus === 'limited' || anchor.worldMappingStatus === 'extending' || anchor.worldMappingStatus === 'mapped');
 }
 
-/** Posts are text and/or a social media link only; device photos/videos are not accepted. */
-/** Hosts per platform. Must match ExternalMediaParser in the iOS client (Domain/Models.swift). */
-const SOCIAL_HOSTS: Record<string, string[]> = {
-  spotify: ['open.spotify.com', 'spotify.link'],
-  youtube: ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'],
-  facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.watch'],
-  instagram: ['instagram.com', 'www.instagram.com'],
-  x: ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com', 'mobile.twitter.com'],
-};
-SOCIAL_HOSTS.twitter = SOCIAL_HOSTS.x;
-
-export function isAllowedSocialLink(platform: string, url: unknown): boolean {
-  const hosts = SOCIAL_HOSTS[platform];
-  if (!hosts || typeof url !== 'string' || url.length > 2048) return false;
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-  return parsed.protocol === 'https:' && !parsed.username && !parsed.password && !parsed.port
-    && hosts.includes(parsed.hostname.toLowerCase());
-}
-
+/**
+ * Posts are text (and drawing layers) only. Social media links were removed on 9 Oct 2026 and
+ * device photos/videos on 29 Sep 2026: any URL in `contentSource` or a layer is refused.
+ */
 function layerTexts(body: CreatePostBody): string[] {
   const layers = (body.editData as { layers?: unknown[] })?.layers ?? [];
   return layers.flatMap((raw) => {
@@ -166,29 +147,66 @@ function layerTexts(body: CreatePostBody): string[] {
   });
 }
 
-const ALLOWED_LAYER_TYPES = new Set(['text', 'drawing']);
+/**
+ * New posts are a message: text and/or one GIPHY GIF (owner decision, 9 Oct 2026). Drawings, device
+ * media and links are refused; existing drawing posts keep rendering.
+ */
+const ALLOWED_LAYER_TYPES = new Set(['text', 'gif']);
+export const MAX_GIF_LAYERS = 1;
+
+export const MAX_EDIT_LAYERS = 20;
+export const MAX_POINTS_PER_DRAWING = 2000;
+export const MAX_TOTAL_DRAWING_POINTS = 4000;
+const MAX_LAYER_TEXT = 1000;
+const MAX_POINT_ABS = 100_000;
+const LAYER_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+/** Shape limits for edit layers: bounded count, text length, colours and drawing points. */
+function layerShapeError(layers: unknown[]): string | null {
+  if (layers.length > MAX_EDIT_LAYERS) return 'Too many edit layers';
+  let totalPoints = 0;
+  for (const raw of layers) {
+    const layer = (raw ?? {}) as Record<string, unknown>;
+    if (layer.color != null && (typeof layer.color !== 'string' || !LAYER_COLOR.test(layer.color))) return 'Invalid layer color';
+    if (typeof layer.text === 'string' && layer.text.length > MAX_LAYER_TEXT) return 'Layer text is too long';
+    if (String(layer.type ?? layer.kind) !== 'drawing' || layer.points == null) continue;
+    const points = layer.points;
+    if (!Array.isArray(points) || points.length > MAX_POINTS_PER_DRAWING) return 'Invalid drawing';
+    for (const point of points) {
+      const p = (point ?? {}) as { x?: unknown; y?: unknown };
+      if (typeof p.x !== 'number' || typeof p.y !== 'number' || !Number.isFinite(p.x) || !Number.isFinite(p.y)
+        || Math.abs(p.x) > MAX_POINT_ABS || Math.abs(p.y) > MAX_POINT_ABS) return 'Invalid drawing';
+    }
+    totalPoints += points.length;
+    if (totalPoints > MAX_TOTAL_DRAWING_POINTS) return 'Invalid drawing';
+  }
+  return null;
+}
 
 function contentPolicyError(body: CreatePostBody): string | null {
   if (anyBlocked([body.caption, ...layerTexts(body)])) return 'Content not allowed';
   const layers = (body.editData as { layers?: unknown[] }).layers ?? [];
+  const shapeError = layerShapeError(layers);
+  if (shapeError) return shapeError;
+  let gifs = 0;
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
-    if (!ALLOWED_LAYER_TYPES.has(String(layer.type ?? layer.kind))) return 'Only text posts and social media links are allowed';
-    if (layer.uri != null && layer.uri !== '') return 'Only text posts and social media links are allowed';
+    const type = String(layer.type ?? layer.kind);
+    if (!ALLOWED_LAYER_TYPES.has(type)) return 'Only text and GIF posts are allowed';
+    if (layer.uri != null && layer.uri !== '') return 'Only text and GIF posts are allowed';
+    if (type === 'gif') {
+      gifs += 1;
+      if (gifs > MAX_GIF_LAYERS) return 'Only one GIF is allowed';
+      if (typeof layer.gifId !== 'string' || !GIF_ID.test(layer.gifId)) return 'Invalid GIF';
+    }
   }
   const source = body.contentSource;
   if (source != null) {
     if (typeof source !== 'object') return 'Invalid content source';
-    const platform = String(source.platform ?? 'other').toLowerCase();
+    const platform = String(source.platform ?? '').toLowerCase();
     const mediaKind = String(source.mediaKind ?? '').toLowerCase();
-    const url = source.url;
-    if (['image', 'photo', 'video'].includes(mediaKind) || platform === 'own_video') {
-      return 'Only text posts and social media links are allowed';
-    }
-    if (url != null) {
-      if (!SOCIAL_HOSTS[platform]) return 'Only social media links are allowed';
-      if (!isAllowedSocialLink(platform, url)) return 'Invalid social media link';
-    }
+    if (['image', 'photo', 'video'].includes(mediaKind) || platform === 'own_video') return 'Only text and GIF posts are allowed';
+    if (source.url != null && source.url !== '') return 'Links are not allowed';
   }
   return null;
 }

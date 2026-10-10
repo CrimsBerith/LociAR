@@ -41,10 +41,7 @@ extension AuthGateUITests {
     @discardableResult
     func publishPhysicalPost(
         _ app: XCUIApplication,
-        caption: String,
-        platform: String?,
-        url: String?,
-        readyLabel: String?
+        caption: String
     ) -> Bool {
         recoverToMap(app)
         guard app.buttons["map-create"].waitForExistence(timeout: 8) else {
@@ -65,12 +62,6 @@ extension AuthGateUITests {
             return false
         }
         guard lockPhysicalPlacement(app, caption: caption) else { return false }
-
-        if let platform, let url, let readyLabel {
-            guard attachExternalMedia(app, platform: platform, url: url, readyLabel: readyLabel, caption: caption) else {
-                return false
-            }
-        }
 
         let captionField = app.textFields["create-caption"]
         guard captionField.waitForExistence(timeout: 5) else {
@@ -98,52 +89,6 @@ extension AuthGateUITests {
         alert.buttons["Tamam"].tap()
         guard app.buttons["map-create"].waitForExistence(timeout: 10) else {
             XCTFail("Haritaya dönülemedi: \(caption)")
-            return false
-        }
-        return true
-    }
-
-    @discardableResult
-    func attachExternalMedia(
-        _ app: XCUIApplication,
-        platform: String,
-        url: String,
-        readyLabel: String,
-        caption: String
-    ) -> Bool {
-        dismissKeyboard(app)
-        guard app.buttons["create-external-media-picker"].waitForExistence(timeout: 5) else {
-            XCTFail("Sosyal seçici yok: \(caption)")
-            return false
-        }
-        app.buttons["create-external-media-picker"].tap()
-        guard app.navigationBars["Platform seç"].waitForExistence(timeout: 6) else {
-            capture(app, name: "no-platform-picker-\(caption)")
-            XCTFail("Platform seçici açılmadı: \(caption)")
-            return false
-        }
-        let platformButton = app.buttons["external-platform-\(platform)"]
-        guard platformButton.waitForExistence(timeout: 5) else {
-            XCTFail("Platform düğmesi yok: \(caption)")
-            return false
-        }
-        platformButton.tap()
-        if app.buttons["Vazgeç"].waitForExistence(timeout: 4) {
-            app.buttons["Vazgeç"].tap()
-        }
-        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
-        let linkField = app.textFields["create-external-media"]
-        guard linkField.waitForExistence(timeout: 6) else {
-            capture(app, name: "no-link-field-\(caption)")
-            XCTFail("Bağlantı alanı yok: \(caption)")
-            return false
-        }
-        linkField.tap()
-        linkField.typeText(url)
-        dismissKeyboard(app)
-        guard app.staticTexts[readyLabel].waitForExistence(timeout: 6) else {
-            capture(app, name: "import-failed-\(caption)")
-            XCTFail("\(readyLabel) eklenmedi: \(caption)")
             return false
         }
         return true

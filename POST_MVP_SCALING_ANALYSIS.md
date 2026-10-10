@@ -1,4 +1,4 @@
-> **ARŞİV (28 Eylül 2026):** Bu belge Supabase dönemine aittir. Backend artık Firebase — güncel kaynaklar: `AGENTS.md`, `docs/FIREBASE_SETUP.md`, `ARCHITECTURE.md`.
+> **ARŞİV (28 Eylül 2026):** Bu belge Supabase dönemine aittir. Backend artık Firebase — güncel kaynaklar: `AGENTS.md`, `docs/FIREBASE_SETUP.md`, `ARCHITECTURE.md`. Sosyal medya bağlantıları (Spotify, YouTube, TikTok, Instagram, Facebook, X), fotoğraf/video ve çizim postları 9 Ekim 2026'da kaldırıldı; postlar metin ve/veya 1 GIPHY GIF'idir. Burada geçen platform adları yalnızca tarihî kayıttır.
 
 # LociAR - Milyonlarca Kullanıcıya Ölçeklendirme Analizi (MVP Sonrası İhtiyaçlar)
 
@@ -101,9 +101,8 @@ Milyonlarca kullanıcı için bu uygulama:
 - Gamification: En çok tag oluşturan, en çok ziyaret eden lider tabloları.
 
 ### 3.6 İçerik & Platform Entegrasyonları
-- Gerçek oEmbed + metadata cache (YouTube, Spotify iyi; IG/FB sınırlı).
 - Share sheet entegrasyonu (diğer uygulamalardan direkt tag'le).
-- Zengin önizleme (video thumbnail, müzik çalar embed - lisans dikkat).
+- (Sosyal medya embed'leri ürün kararıyla kapsam dışı; 9 Ekim 2026.)
 - İçerik raporlama + otomatik filtre.
 
 ### 3.7 Altyapı, DevOps & Maliyet

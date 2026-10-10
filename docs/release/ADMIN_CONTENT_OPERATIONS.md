@@ -10,9 +10,10 @@ kimliği oluşturulur fakat giriş kapalıdır. Hesaba admin rolü verilmez. Ger
 uygulamada oturum açması için mevcut normal kullanıcı davet akışı kullanılmalıdır.
 
 **Posts → Create post** ekranında mevcut kullanıcı handle/UUID ile seçilir. Koordinat seçici veya
-latitude/longitude alanlarıyla yer, metin/sosyal bağlantı, renk, ölçek, dönüş, opaklık, fiziksel
-boyut, yön, yükseklik, görünürlük ve yaş derecesi düzenlenir. Desteklenen bağlantılar Spotify,
-YouTube, Instagram, X ve Facebook'tur. Cihaz fotoğraf/video postları kapalıdır. Önizleme tek metin
+latitude/longitude alanlarıyla yer, metin, renk, ölçek, dönüş, opaklık, fiziksel
+boyut, yön, yükseklik, görünürlük ve yaş derecesi düzenlenir. Admin postları yalnızca metindir
+(kullanıcı postları metin ve/veya 1 GIPHY GIF'idir); sosyal medya bağlantıları, çizimler (9 Ekim 2026) ve cihaz fotoğraf/video postları kapalıdır. Bağlantılı eski bir post
+düzenlenip kaydedilirse bağlantı silinir. Önizleme tek metin
 katmanı içindir; mevcut çok katmanlı tasarımı bu düzenleyiciyle kaydetmek önizleme ile değiştirir.
 
 Panelden yerleştirme **yaklaşık AR konumu** üretir. Dünya haritası veya Cloud Anchor üretilmiş

@@ -103,7 +103,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         // Posts queued before photo/video removal (29 Sep 2026) would be refused by Storage and
         // createPost; fail them permanently instead of retrying uploads.
         if post.containsDeviceMedia {
-            throw PostPublishError.rejected(String(localized: "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin veya sosyal bağlantı ile yeniden oluştur."))
+            throw PostPublishError.rejected(String(localized: "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur."))
         }
         let worldMapReadyPost: LociPost
         do {
@@ -214,6 +214,8 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         case "protected_zone": return String(localized: "Bu korumalı bölgede post yayınlanamaz.")
         case "draft_expired": return String(localized: "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun.")
         case "rate_limited": return String(localized: "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin.")
+        case "invite_required": return String(localized: "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.")
+        case "gif_invalid": return String(localized: "Bu GIF artık kullanılamıyor. Başka bir GIF seç.")
         default: break
         }
         if raw.contains("verified Apple") || raw.contains("verified Apple, Google, or email identity") {
@@ -225,12 +227,13 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         }
         if raw.contains("protected zone") { return String(localized: "Bu korumalı bölgede post yayınlanamaz.") }
-        if raw.contains("Only text posts") { return String(localized: "Postlar yalnızca metin ve sosyal medya bağlantısı içerebilir; fotoğraf ve video desteklenmiyor.") }
-        if raw.contains("Only social media links") { return String(localized: "Yalnızca Spotify, YouTube, Instagram, X ve Facebook bağlantıları eklenebilir.") }
-        if raw.contains("Invalid social media link") { return String(localized: "Sosyal medya bağlantısı geçersiz. Paylaşım bağlantısını uygulamadan tekrar kopyala.") }
+        if raw.contains("Only text") || raw.contains("Links are not allowed") || raw.contains("social media link") {
+            return String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
+        }
+        if raw.contains("Only one GIF") || raw.contains("Invalid GIF") { return String(localized: "Bir posta en fazla bir GIF eklenebilir.") }
         if raw.contains("18+ content") { return String(localized: "18+ içerik bu sürümde kabul edilmez.") }
         if raw.contains("Invalid reference image") { return String(localized: "AR referans görüntüsü geçersiz. Yüzeyi yeniden tarayıp tekrar dene.") }
-        if raw.contains("At least one edit layer") { return String(localized: "Yayın için caption veya sosyal bağlantı ekleyin.") }
+        if raw.contains("At least one edit layer") { return String(localized: "Yayınlamak için bir mesaj yaz veya GIF ekle.") }
         if raw.contains("Physical AR world lock evidence is incomplete") {
             return String(localized: "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun.")
         }

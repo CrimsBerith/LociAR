@@ -7,6 +7,8 @@ final class AppContainer {
     let session: AppSession
     let posts: any PostRepository
     let social: any SocialRepository
+    let invites: any InviteRepository
+    let gifs: any GifRepository
     let worldMaps: (any WorldMapRepository)?
     let publisher: any PublishPostUseCase
     let arSession: ARPinningEngine
@@ -23,6 +25,8 @@ final class AppContainer {
         let auth: any AuthRepository
         let posts: any PostRepository
         let social: any SocialRepository
+        let invites: any InviteRepository
+        let gifs: any GifRepository
         let worldMaps: (any WorldMapRepository)?
         var arcoreCallables: CallableClient?
 
@@ -30,6 +34,8 @@ final class AppContainer {
             auth = UnavailableAuthRepository()
             posts = PreviewPostRepository()
             social = PreviewSocialRepository()
+            invites = PreviewInviteRepository()
+            gifs = PreviewGifRepository()
             worldMaps = LocalWorldMapStore()
         } else if firebaseReady, let firebase = configuration.firebase {
             let callables = CallableClient(region: firebase.functionsRegion)
@@ -38,16 +44,22 @@ final class AppContainer {
             auth = FirebaseAuthRepository(functionsRegion: firebase.functionsRegion)
             posts = FirestorePostRepository(callables: callables)
             social = FirestoreSocialRepository(callables: callables)
+            invites = FirestoreInviteRepository(callables: callables)
+            gifs = FirebaseGifRepository(callables: callables)
             worldMaps = WorldMapStore()
         } else {
             auth = UnavailableAuthRepository()
             posts = PreviewPostRepository()
             social = PreviewSocialRepository()
+            invites = PreviewInviteRepository()
+            gifs = PreviewGifRepository()
             worldMaps = LocalWorldMapStore()
         }
 
         self.posts = posts
         self.social = social
+        self.invites = invites
+        self.gifs = gifs
         self.worldMaps = worldMaps
         self.publisher = PublishPostCoordinator(postRepository: posts)
         self.arSession = ARPinningEngine()

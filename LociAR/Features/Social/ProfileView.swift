@@ -54,6 +54,12 @@ struct ProfileView: View {
                 profileSectionText("İçerik")
             }
             Section {
+                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket.fill", color: .green) }
+                    .accessibilityIdentifier("profile-invite")
+            } header: {
+                profileSectionText("Davet")
+            }
+            Section {
                 NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: .gray) }
                     .accessibilityIdentifier("profile-settings")
                 NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: .orange) }

@@ -31,6 +31,7 @@ def ready_report():
                 'scheduler': [{'name': f'projects/{PROJECT}/locations/{REGION}/jobs/firebase-schedule-{name}-{REGION}', 'state': 'ENABLED', **options} for name, options in sorted(EXPECTED['schedules'].items())],
                 'storage': {'name': BUCKET, 'lifecycle_config': {'rule': [{'action': {'type': 'Delete'}, 'condition': {'age': 30, 'matchesPrefix': sorted(LEGACY_PREFIXES)}}]}},
                 'apple_secret_versions': [{'name': f'projects/{PROJECT}/secrets/APPLE_PRIVATE_KEY/versions/1', 'state': 'ENABLED'}],
+                'giphy_secret_versions': [{'name': f'projects/{PROJECT}/secrets/GIPHY_API_KEY/versions/1', 'state': 'ENABLED'}],
             }}
 
 
@@ -49,7 +50,7 @@ class FirebaseReadinessTests(unittest.TestCase):
     def test_complete_metadata_passes_and_accepts_project_number_resource_names(self):
         self.assertTrue(validate_report(ready_report())['readiness']['ready'])
         report = ready_report()
-        for key in ('ttl', 'functions', 'scheduler', 'apple_secret_versions'):
+        for key in ('ttl', 'functions', 'scheduler', 'apple_secret_versions', 'giphy_secret_versions'):
             for item in report['resources'][key]:
                 item['name'] = item['name'].replace(f'projects/{PROJECT}/', 'projects/1234567890/')
         report['resources']['firestore']['name'] = 'projects/1234567890/databases/(default)'
@@ -111,6 +112,10 @@ class FirebaseReadinessTests(unittest.TestCase):
             self.assertIn('apple_secret_unavailable', self.codes(report))
         report = ready_report(); report['resources']['apple_secret_versions'][0]['name'] = 'projects/other/secrets/APPLE_PRIVATE_KEY/versions/1'
         self.assertIn('apple_secret_unavailable', self.codes(report))
+        report = ready_report(); report['resources']['giphy_secret_versions'] = []
+        self.assertIn('giphy_secret_unavailable', self.codes(report))
+        report = ready_report(); report['resources']['giphy_secret_versions'][0]['name'] = f'projects/{PROJECT}/secrets/APPLE_PRIVATE_KEY/versions/1'
+        self.assertIn('giphy_secret_unavailable', self.codes(report))
 
     def test_database_location_and_required_api_fail(self):
         report = ready_report(); report['resources']['firestore']['locationId'] = 'eur3'
