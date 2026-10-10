@@ -14,18 +14,18 @@ LociAR: AR-Notizen vor Ort
 Notizen an echte Orte heften
 ```
 
-## Promotional Text (139/170)
+## Promotional Text (159/170)
 
 ```text
-Hefte kurze Notizen an echte Flächen und entdecke, was andere in deiner Nähe hinterlassen haben – in AR, genau dort, wo es platziert wurde.
+Hinterlasse kurze Nachrichten und GIFs auf echten Flächen und entdecke in AR, was andere in deiner Nähe hinterlassen haben – genau dort, wo es platziert wurde.
 ```
 
-## Description (1127/4000)
+## Description (1195/4000)
 
 ```text
 Hinterlasse Notizen an echten Orten.
 
-Mit LociAR heftest du kurze Textnotizen an echte Flächen (Tisch, Boden, Wand), damit andere sie genau dort finden, wo du sie hinterlassen hast.
+Mit LociAR heftest du kurze Nachrichten und GIFs an echte Flächen (Tisch, Boden, Wand), damit andere sie als Nachrichtenblase genau dort finden, wo du sie hinterlassen hast. GIFs werden von GIPHY bereitgestellt.
 
 FUNKTIONEN
 • An echte Flächen heften: Das Fadenkreuz in der Mitte rastet auf von ARKit erkannte Flächen ein; Google ARCore Cloud Anchors und Geospatial zeigen deinen Beitrag wieder an derselben Stelle.
@@ -40,14 +40,14 @@ Kamera und Standort werden nur für das AR-Erlebnis verwendet. Für die AR-Posit
 Erfordert ein iPhone mit ARKit-Unterstützung.
 ```
 
-## Keywords (77/100)
+## Keywords (81/100)
 
 ```text
-augmented reality,karte,kamera,sozial,notiz,fläche,entdecken,standort,pin,ort
+augmented reality,karte,kamera,sozial,notiz,fläche,entdecken,standort,pin,ort,gif
 ```
 
-## What's New in This Version (176/4000)
+## What's New in This Version (191/4000)
 
 ```text
-Erste Version: Textnotizen an echte Flächen heften, Beiträge in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen, Follower und Mitteilungen. In 12 Sprachen.
+Erste Version: kurze Nachrichten und GIFs an echte Flächen heften, Beiträge in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen, Follower und Mitteilungen. In 12 Sprachen.
 ```

@@ -91,3 +91,7 @@ admin/artifacts/
 # Python metadata helpers
 __pycache__/
 *.py[cod]
+
+# Local AI tooling (rtk / Codex hooks), machine-specific
+.codex/
+RTK.md

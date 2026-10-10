@@ -14,18 +14,18 @@ LociAR: Notas AR em lugares
 Fixe notas em lugares reais
 ```
 
-## Promotional Text (125/170)
+## Promotional Text (137/170)
 
 ```text
-Fixe notas curtas em superfícies reais e descubra em AR o que outras pessoas deixaram por perto, exatamente onde foi deixado.
+Deixe mensagens curtas e GIFs em superfícies reais e descubra em AR o que outras pessoas deixaram por perto, exatamente onde foi deixado.
 ```
 
-## Description (1131/4000)
+## Description (1187/4000)
 
 ```text
 Deixe notas em lugares reais.
 
-O LociAR permite fixar notas de texto curtas em superfícies reais (uma mesa, o chão, uma parede) para que outras pessoas as encontrem exatamente onde você as deixou.
+O LociAR permite fixar mensagens curtas e GIFs em superfícies reais (uma mesa, o chão, uma parede) para que outras pessoas os encontrem como um balão de mensagem exatamente onde você os deixou. GIFs fornecidos pelo GIPHY.
 
 RECURSOS
 • Fixe em superfícies reais: a mira central se prende às superfícies detectadas pelo ARKit; o Google ARCore Cloud Anchors e o Geospatial mostram sua publicação de novo no mesmo ponto.
@@ -40,14 +40,14 @@ Câmera e localização são usadas apenas para a experiência AR. Para o posici
 Requer um iPhone compatível com ARKit.
 ```
 
-## Keywords (76/100)
+## Keywords (80/100)
 
 ```text
-realidade aumentada,mapa,câmera,social,nota,superfície,descobrir,local,lugar
+realidade aumentada,mapa,câmera,social,nota,superfície,descobrir,local,lugar,gif
 ```
 
-## What's New in This Version (180/4000)
+## What's New in This Version (189/4000)
 
 ```text
-Primeira versão: fixe notas de texto em superfícies reais, descubra publicações próximas no mapa, além de curtidas, comentários, coleções, seguidores e notificações. Em 12 idiomas.
+Primeira versão: fixe mensagens curtas e GIFs em superfícies reais, descubra publicações próximas no mapa, além de curtidas, comentários, coleções, seguidores e notificações. Em 12 idiomas.
 ```

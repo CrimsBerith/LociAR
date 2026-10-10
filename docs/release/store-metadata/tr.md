@@ -14,18 +14,18 @@ LociAR: Gerçek Mekânlarda AR
 Mekânsal Hikâyeler ve Paylaşım
 ```
 
-## Promotional Text (100/170)
+## Promotional Text (117/170)
 
 ```text
-Kısa notlarını gerçek yüzeylere sabitle; çevrende bırakılanları, bırakıldıkları yerde AR ile keşfet.
+Kısa mesajlar ve GIF'ler bırak, gerçek yüzeylere sabitle; çevrende bırakılanları, bırakıldıkları yerde AR ile keşfet.
 ```
 
-## Description (1050/4000)
+## Description (1122/4000)
 
 ```text
 Gerçek dünyayı dijital hikâyelerle zenginleştirin.
 
-LociAR, kısa metin notlarınızı gerçek yüzeylere (masa, zemin, duvar) sabitlemenizi sağlar; başkaları onları tam bıraktığınız yerde bulur.
+LociAR, kısa mesajlarınızı ve GIF'lerinizi gerçek yüzeylere (masa, zemin, duvar) sabitlemenizi sağlar; başkaları onları tam bıraktığınız yerde, bir mesaj balonu olarak bulur. GIF'ler GIPHY tarafından sağlanır.
 
 ÖZELLİKLER
 • Gerçek yüzeye sabitle: Merkez nişangâh ARKit ile algılanan yüzeye kilitlenir; Google ARCore Cloud Anchors ve Geospatial gönderinizi aynı noktada yeniden gösterir.
@@ -40,14 +40,14 @@ Kamera ve konum yalnızca AR deneyimi için kullanılır. AR konumlandırma içi
 ARKit destekli bir iPhone gerektirir.
 ```
 
-## Keywords (77/100)
+## Keywords (81/100)
 
 ```text
-artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,yüzey,keşfet,konum
+artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,yüzey,keşfet,konum,gif
 ```
 
-## What's New in This Version (150/4000)
+## What's New in This Version (161/4000)
 
 ```text
-İlk sürüm: metin notlarını gerçek yüzeylere sabitle, yakındaki gönderileri haritada keşfet; beğeni, yorum, koleksiyon, takip ve bildirimler. 12 dilde.
+İlk sürüm: kısa mesajları ve GIF'leri gerçek yüzeylere sabitle, yakındaki gönderileri haritada keşfet; beğeni, yorum, koleksiyon, takip ve bildirimler. 12 dilde.
 ```

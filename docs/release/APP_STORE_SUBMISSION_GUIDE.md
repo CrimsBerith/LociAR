@@ -60,7 +60,7 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 | **Email Address** | Evet | Hayır | App Functionality — giriş ve hesap doğrulama |
 | **Name** | Evet | Hayır | App Functionality — Apple ile girişte paylaşılan ad |
 | **Photos or Videos** | Evet | Hayır | App Functionality — yalnız isteğe bağlı profil fotoğrafı (post olarak fotoğraf/video yok) |
-| **Other User Content** | Evet | Hayır | App Functionality — metin, sosyal bağlantı, yorum, beğeni, AR kaydı |
+| **Other User Content** | Evet | Hayır | App Functionality — metin mesajı, GIPHY GIF kimliği, yorum, beğeni, AR kaydı |
 | **Product Interaction** | Evet | Hayır | App Functionality, Analytics — görüntülenme/beğeni sayaçları |
 | **Device ID** | Evet | Hayır | App Functionality — push bildirim belirteci (FCM/APNs) |
 | **Crash Data** | Hayır | Hayır | App Functionality — Firebase Crashlytics (kapatılabilir) |
@@ -156,7 +156,7 @@ App Store Connect yüklemesi için aşağıdaki iki ana boyutta ekran görüntü
 2. **6.7" Ekran (iPhone 15 Pro Max):** 1290 x 2796 piksel (Dikey)
 
 ### Önerilen 4 Temel Sahne:
-1. **Sahne 1 (AR Kamera):** Merkez nişangâh (reticle) ve gerçek duvar/masa üzerine yerleştirilmiş metin/sosyal bağlantı kartı.  
+1. **Sahne 1 (AR Kamera):** Merkez nişangâh (reticle) ve gerçek duvar/masa üzerine yerleştirilmiş mesaj balonu (metin ve/veya GIF).  
    *Pazarlama Başlığı:* "Anılarınızı Gerçek Dünyaya Sabitleyin"
 2. **Sahne 2 (Harita / Keşfet):** Yakındaki mekânsal pinlerin ve AR noktalarının haritada gösterimi.  
    *Pazarlama Başlığı:* "Çevrenizdeki Mekânsal Hikâyeleri Keşfedin"

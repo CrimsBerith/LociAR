@@ -11,8 +11,8 @@ uygulamada oturum açması için mevcut normal kullanıcı davet akışı kullan
 
 **Posts → Create post** ekranında mevcut kullanıcı handle/UUID ile seçilir. Koordinat seçici veya
 latitude/longitude alanlarıyla yer, metin, renk, ölçek, dönüş, opaklık, fiziksel
-boyut, yön, yükseklik, görünürlük ve yaş derecesi düzenlenir. Postlar yalnızca metindir;
-sosyal medya bağlantıları (9 Ekim 2026) ve cihaz fotoğraf/video postları kapalıdır. Bağlantılı eski bir post
+boyut, yön, yükseklik, görünürlük ve yaş derecesi düzenlenir. Admin postları yalnızca metindir
+(kullanıcı postları metin ve/veya 1 GIPHY GIF'idir); sosyal medya bağlantıları, çizimler (9 Ekim 2026) ve cihaz fotoğraf/video postları kapalıdır. Bağlantılı eski bir post
 düzenlenip kaydedilirse bağlantı silinir. Önizleme tek metin
 katmanı içindir; mevcut çok katmanlı tasarımı bu düzenleyiciyle kaydetmek önizleme ile değiştirir.
 
