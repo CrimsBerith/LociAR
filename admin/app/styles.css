@@ -235,3 +235,27 @@ label { font-size: 12px; color: var(--muted); font-weight: 700; }
 .contentPreview { overflow:hidden;min-height:180px;display:grid;place-content:center;text-align:center;padding:32px;border-radius:12px; }
 .coordinatePicker { width:100%;height:auto;cursor:crosshair;border-radius:10px; }
 .commentEditor { display:grid;gap:12px; }
+
+/* Keep keyboard focus visible, including controls that reset their default outline. */
+input:focus-visible, select:focus-visible, textarea:focus-visible,
+button:focus-visible, a:focus-visible {
+  outline: 2px solid #38E0B8;
+  outline-offset: 2px;
+}
+.skipLink {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  transform: translateY(calc(-100% - 24px));
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #38E0B8;
+  color: #060912;
+  font-weight: 800;
+}
+.skipLink:focus { transform: translateY(0); }
+.routeState { text-align: center; }
+.routeState .authCard { margin: auto; }
+.routeState p { margin-top: 16px; overflow-wrap: anywhere; }
+.routeState code { font: inherit; }

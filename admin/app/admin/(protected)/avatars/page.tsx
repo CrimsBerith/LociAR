@@ -25,7 +25,7 @@ export default async function AvatarsPage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Trust & safety</p><h1>Profile photos</h1></div>
         <p className="muted">Photos already passed automatic SafeSearch screening. Remove anything that breaks the community rules.</p>
@@ -51,6 +51,6 @@ export default async function AvatarsPage({ searchParams }: { searchParams: Prom
         ))}
         {!failed ? <PageNavigation path="/admin/avatars" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/avatars">Return to the first page.</a></p>}
       </section>
-    </main>
+    </section>
   );
 }

@@ -25,6 +25,9 @@ function webAppConfigEnv(): Record<string, string> {
 
 const nextConfig: NextConfig = {
   env: webAppConfigEnv(),
+  async redirects() {
+    return [{ source: '/en/privacy', destination: '/privacy/en', permanent: true }];
+  },
   turbopack: {
     root: process.cwd(),
   },

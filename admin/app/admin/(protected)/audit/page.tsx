@@ -19,7 +19,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
     failed = true;
   }
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Append-only history</p><h1>Audit logs</h1></div>
         <p className="muted">Clients cannot read or write audit rows (Security Rules). The panel only ever creates new entries.</p>
@@ -40,6 +40,6 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         )}
         {!failed ? <PageNavigation path="/admin/audit" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/audit">Return to the first page.</a></p>}
       </section>
-    </main>
+    </section>
   );
 }

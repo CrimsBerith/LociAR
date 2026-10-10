@@ -58,7 +58,7 @@ export default function UserInvitationPage() {
     } catch (error) { setMessage(mutationError(error)); } finally { setBusy(false); }
   }
 
-  return <main className="authPage"><section className="authCard">
+  return <main id="main" tabIndex={-1} className="authPage"><section className="authCard">
     <div className="brandMark">L</div><p className="eyebrow">LociAR invitation</p>
     <h1>{finished ? 'Your account is ready' : user ? 'Set a password for LociAR' : 'Accept your invitation'}</h1>
     {finished ? <><p>Open LociAR on your iPhone and sign in with your email and the password you just set. Choose your handle and complete onboarding in the app.</p><a className="buttonLink" href="lociar://open">Open LociAR</a></> : null}

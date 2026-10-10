@@ -32,7 +32,7 @@ export default async function AdminDashboard() {
     .filter(p => !p.deleted_at)
     .slice(0, 8);
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Operations overview</p><h1>Dashboard</h1></div>
         <p className="muted">Live production data. Missing telemetry is explicitly marked.</p>
@@ -83,6 +83,6 @@ export default async function AdminDashboard() {
           </div>
         </section>
       </div>
-    </main>
+    </section>
   );
 }

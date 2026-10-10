@@ -51,7 +51,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   };
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading"><div><p className="eyebrow">Inventory lookup</p><h1>Search</h1></div><p className="muted">Users (handle prefix), posts (caption or exact ID) and AR anchor diagnostics.</p></div>
       <p className="queryEcho">{term ? `Results for “${term}”` : 'Enter a search term in the top bar.'}</p>
       {invalid ? <p className="emptyState">Invalid page link. <a href={`/admin/search?${new URLSearchParams({ q: term })}`}>Restart this search.</a></p> : null}
@@ -63,6 +63,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         </div>
         <section className="panel"><div className="panelHeader"><h2>AR anchors</h2></div>{failed ? <p className="emptyState">Anchor search failed.</p> : anchors.length === 0 ? <p className="emptyState">No matching anchors in this batch.</p> : anchors.map(anchor => <div className="auditList" key={anchor.id}><article><span className="auditIcon">⌖</span><div><b>{String(anchor.caption || 'Untitled post')}</b><small>{String(anchor.native_provider)} · {String(anchor.placement_state)} · quality {anchor.placement_quality == null ? 'unmeasured' : Number(anchor.placement_quality).toFixed(2)}</small></div></article></div>)}</section>
       </section>
-    </main>
+    </section>
   );
 }

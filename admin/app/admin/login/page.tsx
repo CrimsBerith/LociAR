@@ -41,7 +41,7 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="authPage">
+    <main id="main" tabIndex={-1} className="authPage">
       <section className="authCard">
         <div className="brandMark">L</div>
         <p className="eyebrow">LociAR operations</p>

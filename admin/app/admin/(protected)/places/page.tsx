@@ -30,7 +30,7 @@ export default async function PlacesPage({ searchParams }: { searchParams: Promi
   };
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Location inventory</p><h1>Map & places</h1></div>
         <p className="muted">Read-only production view of post and campaign coordinates. No location mutation is available.</p>
@@ -62,6 +62,6 @@ export default async function PlacesPage({ searchParams }: { searchParams: Promi
         ))}
         {!locationError ? <PageNavigation path="/admin/places" parameters={parameters} prefix="locations" next={locationPage.next} previous={locationPage.previous} /> : <p className="emptyState"><a href="/admin/places">Return to the first page.</a></p>}
       </section>
-    </main>
+    </section>
   );
 }

@@ -39,7 +39,7 @@ export default async function SystemPage() {
   ]);
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading"><div><p className="eyebrow">Production diagnostics</p><h1>System health</h1></div><p className="muted">Reachability checks only. Credentials, tokens and secret values are never rendered.</p></div>
       <section className="panel">
         <h2>Emergency stop</h2>
@@ -62,6 +62,6 @@ export default async function SystemPage() {
           <article className="panel healthCard" key={item.name}><span className={`healthState ${item.ok ? '' : 'down'}`}>{item.ok ? 'Operational' : 'Failed'}</span><strong>{item.name}</strong><small className="muted">{item.detail}</small></article>
         ))}
       </section>
-    </main>
+    </section>
   );
 }

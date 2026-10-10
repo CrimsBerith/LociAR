@@ -21,7 +21,7 @@ export default async function AnchorsPage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Spatial operations</p><h1>AR anchors</h1></div>
         <p className="muted">Resolver and persistence diagnostics are read-only here. Approximate placement is never presented as a physical lock.</p>
@@ -44,6 +44,6 @@ export default async function AnchorsPage({ searchParams }: { searchParams: Prom
         })}
         {!failed ? <PageNavigation path="/admin/anchors" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/anchors">Return to the first page.</a></p>}
       </section>
-    </main>
+    </section>
   );
 }

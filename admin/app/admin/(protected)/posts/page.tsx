@@ -30,7 +30,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <main className="page">
+    <section className="page">
       <div className="pageHeading">
         <div><p className="eyebrow">Content operations</p><h1>Posts & media</h1>{admin.permissions.has('posts.create') ? <a className="button" href="/admin/posts/new">Create post</a> : null}</div>
         <p className="muted">All destructive actions require a reason and are written to the audit log.</p>
@@ -69,6 +69,6 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
         )}
         {!failed ? <PageNavigation path="/admin/posts" parameters={{ q, status }} next={page.next} previous={page.previous} scan={Boolean(term)} /> : null}
       </section>
-    </main>
+    </section>
   );
 }

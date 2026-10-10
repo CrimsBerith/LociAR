@@ -1,0 +1,5 @@
+# Sensitive backend and repository configuration changes require owner review.
+/firestore.rules     @CrimsBerith
+/storage.rules       @CrimsBerith
+/functions/          @CrimsBerith
+/.github/            @CrimsBerith
