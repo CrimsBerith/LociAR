@@ -36,3 +36,30 @@ test('push language selection handles device locales and falls back to English',
     for (const kind of ['like', 'comment', 'follow']) assert.ok(pushBody(kind, locale)?.length > 0);
   }
 });
+
+test('daily engagement cap counts activities, not devices, and is per UTC day', async () => {
+  const { pushQuotaDecision, pushQuotaId, utcDay, PUSH_DAILY_LIMIT } = await import('../lib/pushPolicy.js');
+  assert.equal(PUSH_DAILY_LIMIT, 3);
+  let stored;
+  for (const id of ['a1', 'a2', 'a3']) {
+    const decision = pushQuotaDecision(stored, id);
+    assert.equal(decision.allow, true);
+    stored = decision.next;
+  }
+  assert.deepEqual(stored, { count: 3, activity_ids: ['a1', 'a2', 'a3'] });
+  // A second device of an already counted activity is still delivered, without a new slot.
+  assert.deepEqual(pushQuotaDecision(stored, 'a2'), { allow: true });
+  assert.deepEqual(pushQuotaDecision(stored, 'a4'), { allow: false });
+  assert.deepEqual(pushQuotaDecision({ count: 'x', activity_ids: [1, 'b'] }, 'c').next, { count: 2, activity_ids: ['b', 'c'] });
+  assert.equal(utcDay(Date.UTC(2026, 9, 9, 23, 59)), '2026-10-09');
+  assert.notEqual(pushQuotaId('u', Date.UTC(2026, 9, 9, 23, 59)), pushQuotaId('u', Date.UTC(2026, 9, 10, 0, 1)));
+});
+
+test('post approval text exists for every app language and falls back to English', async () => {
+  const { postApprovedBody } = await import('../lib/pushPolicy.js');
+  assert.equal(postApprovedBody('tr-TR'), 'Postun onaylandı ve yayında.');
+  assert.equal(postApprovedBody('xx'), 'Your post was approved and is now live.');
+  for (const locale of ['tr', 'en', 'zh-Hans', 'hi', 'es', 'fr', 'ar', 'bn', 'pt', 'ru', 'de', 'ja']) {
+    assert.ok(postApprovedBody(locale).length > 0, locale);
+  }
+});

@@ -47,7 +47,7 @@ Mevcut Sekmeler: **AR (`viewfinder`) / Harita (`map.fill`) / Paylaş (`plus.circ
 |---|--------|-------|
 | D1 | Harita sekmesinde yakındaki postlar pin olarak yükleniyor / boş durum gösteriliyor | [x] Geçti |
 | D2 | Keşfet araması post listesini anlık güncelliyor | [ ] Tekrar test |
-| D3 | Paylaş sekmesi: Sosyal medya linki yapıştırılınca platform logosu, bağlantı ve "… paylaşımı hazır" görünüyor | [ ] Tekrar test |
+| D3 | Paylaş sekmesi: bağlantı ekleme seçeneği yok; yalnızca metin (ve çizim) paylaşılabiliyor (sosyal medya 9 Ekim 2026'da kaldırıldı) | [ ] Tekrar test |
 | D4 | AR yüzey tespiti 1-3 saniye içinde yüzey geometrisini kilitliyor | [x] Geçti |
 | D5 | Google ARCore veri bildirimi ilk seferde çıkıyor ve onay sonrası kapanıyor | [x] Geçti |
 | D6 | Paylaş sekmesinde "İçerik ekle": önce Cloud Anchor host edilir ("Yüzey Google AR'a kaydediliyor…"), olmazsa dünya haritası; post `createPost` ile `pending_review` olarak yazılır, çevrimdışıysa sıraya alınır | [ ] Tekrar test |

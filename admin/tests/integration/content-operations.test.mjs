@@ -23,9 +23,11 @@ test('selected-author post creation is atomic, idempotent and produces an explic
  assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('actor_id'),actor);
  await assert.rejects(saveAdminPost({...body,caption:'Changed request'},actor,reason,key),/idempotency_key_reused/);
 });
-test('18+, invalid links and non-finite placement are refused before a write',()=>{
+test('18+, any link and non-finite placement are refused before a write',()=>{
  for(const extra of [{ageRating:'18_plus'},{lat:NaN},{lng:200},{width:0},{platform:'youtube',url:'https://youtube.com.evil.test/v'},{platform:'instagram',url:'http://instagram.com/p/a'}])assert.throws(()=>input(randomUUID(),extra));
- assert.equal(input(randomUUID(),{platform:'spotify',url:'https://open.spotify.com/track/123'}).platform,'spotify');
+ // Posts are text only since 9 Oct 2026: even a well-formed social link is refused.
+ assert.throws(()=>input(randomUUID(),{platform:'spotify',url:'https://open.spotify.com/track/123'}),/links_not_allowed/);
+ assert.equal(input(randomUUID()).platform,'text');
 });
 test('protected zones require separately authorized, reasoned exceptions and 18+ remains blocked',async()=>{
  const{actor,author}=await fixture(),zone=db.collection('protected_zones').doc(randomUUID());await zone.set({name:'Protected test site',lat:-31,lng:111,radius_meters:100,policy:'hard_block',active:true});

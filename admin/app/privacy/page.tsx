@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated={E.updatedTr}>
       <p>
-        LociAR, gerçek yüzeylere bağlı kısa metin notları ve sosyal medya bağlantıları paylaşılan bir iOS uygulamasıdır.
+        LociAR, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.10 kapsamında aydınlatma metni olarak da
         hazırlanmıştır. <Link href="/privacy/en">English version</Link>
       </p>
@@ -26,8 +26,8 @@ export default function PrivacyPage() {
         <li><strong>Kimlik ve iletişim:</strong> Apple ile Giriş kimliği veya e-posta adresi, kullanıcı adı, görünen ad, profil fotoğrafı.</li>
         <li><strong>Konum:</strong> uygulama açıkken, yakındaki içerikleri göstermek ve paylaştığınız içeriğin konumunu kaydetmek için
           (hassas konum; AR konumlandırma gerektiğinde iOS geçici hassas konum izni ister).</li>
-        <li><strong>Kamera:</strong> yalnızca AR yerleşimi için kullanılır; kamera görüntüsü kaydedilmez. Gönderiler metin ve sosyal
-          medya bağlantısıdır; fotoğraf veya video gönderisi yoktur. Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası
+        <li><strong>Kamera:</strong> yalnızca AR yerleşimi için kullanılır; kamera görüntüsü kaydedilmez. Gönderiler yalnızca
+          metindir; fotoğraf, video veya bağlantı gönderisi yoktur. Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası
           (fotoğraf değil, nokta haritası) saklanabilir.</li>
         <li><strong>Profil fotoğrafı:</strong> kendi yüklediğiniz fotoğraf, yayınlanmadan önce otomatik güvenlik incelemesinden geçer
           (aşağıda &quot;Google Cloud Vision&quot;).</li>

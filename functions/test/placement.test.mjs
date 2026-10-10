@@ -48,30 +48,29 @@ test('high quality arkit lock with stored world map is auto-publish eligible', a
   assert.equal(result.autoPublishEligible, true);
 });
 
-test('only text and social media links are accepted', () => {
+test('only text posts are accepted: no device media and no links of any kind', () => {
   const imageLayer = { ...base(), editData: { layers: [{ id: 'i', type: 'image', uri: 'storage://post-layer-assets/a/b.jpg' }] } };
-  assert.match(validateCreatePostBody(imageLayer), /Only text posts/);
+  assert.equal(validateCreatePostBody(imageLayer), 'Only text posts are allowed');
   const ownVideo = { ...base(), contentSource: { platform: 'own_video', url: 'storage://post-video-assets/a/b.mp4', mediaKind: 'video' } };
-  assert.match(validateCreatePostBody(ownVideo), /Only text posts/);
+  assert.equal(validateCreatePostBody(ownVideo), 'Only text posts are allowed');
   const photoLink = { ...base(), contentSource: { platform: 'other', url: 'https://example.com/a.jpg', mediaKind: 'image' } };
-  assert.match(validateCreatePostBody(photoLink), /Only text posts/);
-  const genericLink = { ...base(), contentSource: { platform: 'other', url: 'https://example.com', mediaKind: 'link' } };
-  assert.equal(validateCreatePostBody(genericLink), 'Only social media links are allowed');
-  const spotify = { ...base(), contentSource: { platform: 'spotify', url: 'https://open.spotify.com/track/1', mediaKind: 'embed' } };
-  assert.equal(validateCreatePostBody(spotify), null);
+  assert.equal(validateCreatePostBody(photoLink), 'Only text posts are allowed');
+  // Social media links were removed on 9 Oct 2026: every platform, host and scheme is refused.
+  const link = (platform, url) => ({ ...base(), contentSource: { platform, url, mediaKind: 'embed' } });
+  for (const [platform, url] of [
+    ['spotify', 'https://open.spotify.com/track/1'],
+    ['youtube', 'https://youtu.be/abc'],
+    ['tiktok', 'https://www.tiktok.com/@user/video/7300000000000000000'],
+    ['instagram', 'https://www.instagram.com/reel/abc/'],
+    ['x', 'https://x.com/user/status/1'],
+    ['facebook', 'https://www.facebook.com/reel/1'],
+    ['other', 'https://example.com'],
+    ['text', 'javascript:alert(1)'],
+  ]) assert.equal(validateCreatePostBody(link(platform, url)), 'Links are not allowed', platform);
   const textOnly = { ...base(), contentSource: { platform: 'other', title: 'Merhaba' } };
   assert.equal(validateCreatePostBody(textOnly), null);
-});
-
-test('social links must use the platform host over https', () => {
-  const link = (platform, url) => ({ ...base(), contentSource: { platform, url, mediaKind: 'embed' } });
-  assert.equal(validateCreatePostBody(link('youtube', 'https://youtu.be/abc')), null);
-  assert.equal(validateCreatePostBody(link('x', 'https://x.com/user/status/1')), null);
-  assert.equal(validateCreatePostBody(link('twitter', 'https://twitter.com/user/status/1')), null);
-  assert.equal(validateCreatePostBody(link('spotify', 'https://evil.example/track/1')), 'Invalid social media link');
-  assert.equal(validateCreatePostBody(link('spotify', 'https://open.spotify.com.evil.example/track/1')), 'Invalid social media link');
-  assert.equal(validateCreatePostBody(link('instagram', 'http://instagram.com/p/1')), 'Invalid social media link');
-  assert.equal(validateCreatePostBody(link('facebook', 'https://user:pw@facebook.com/reel/1')), 'Invalid social media link');
+  assert.equal(validateCreatePostBody({ ...base(), contentSource: null }), null);
+  assert.equal(validateCreatePostBody({ ...base(), contentSource: { platform: 'text', url: '' } }), null);
 });
 
 test('reference image must be a storage path or the pending placeholder', () => {
@@ -151,4 +150,20 @@ test('admin_geo_estimate coordinate space is rejected from clients', () => {
   const body = base();
   body.pose.anchor = { coordinateSpace: 'admin_geo_estimate', x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, capturedAt: new Date().toISOString(), nativeAnchorId: 'a' };
   assert.equal(validateCreatePostBody(body), 'Invalid coordinate space');
+});
+
+test('drawing and layer shape limits', () => {
+  const withLayers = (layers) => ({ ...base(), editData: { version: 1, layers } });
+  const stroke = (n, extra = {}) => ({ id: 'd', type: 'drawing', color: '#FFFFFF', points: Array.from({ length: n }, (_, i) => ({ x: i / n, y: 0.5 })), ...extra });
+  assert.equal(validateCreatePostBody(withLayers([stroke(50)])), null);
+  assert.equal(validateCreatePostBody(withLayers([stroke(2000)])), null);
+  assert.equal(validateCreatePostBody(withLayers([stroke(2001)])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([stroke(2000), stroke(2000), stroke(1)])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: [{ x: 'a', y: 1 }] }])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: [{ x: 1e9, y: 1 }] }])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: [{ x: null, y: 1 }] }])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: 'x' }])), 'Invalid drawing');
+  assert.equal(validateCreatePostBody(withLayers([stroke(5, { color: 'red' })])), 'Invalid layer color');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'a'.repeat(1001) }])), 'Layer text is too long');
+  assert.equal(validateCreatePostBody(withLayers(Array.from({ length: 21 }, (_, i) => ({ id: `t${i}`, type: 'text', text: 'x' })))), 'Too many edit layers');
 });

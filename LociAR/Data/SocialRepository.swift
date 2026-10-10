@@ -481,3 +481,78 @@ actor PreviewSocialRepository: SocialRepository {
 extension SocialRepository {
     func activityPage(for userID: UUID, cursor: String?) async throws -> ActivityPage { ActivityPage(items: cursor == nil ? try await activity(for: userID) : [], next: nil) }
 }
+
+// MARK: - Invites
+
+struct InviteCode: Identifiable, Equatable, Sendable {
+    let code: String
+    let redeemed: Bool
+    var id: String { code }
+}
+
+enum InviteFlowError: LocalizedError, Equatable, Sendable {
+    case invalid
+    case rateLimited
+    case needsInviteFirst
+    case unavailable
+
+    var errorDescription: String? {
+        switch self {
+        case .invalid: String(localized: "Davet kodu geçersiz ya da daha önce kullanılmış.")
+        case .rateLimited: String(localized: "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.")
+        case .needsInviteFirst: String(localized: "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.")
+        case .unavailable: String(localized: "Davet işlemi şu anda yapılamıyor. Tekrar dene.")
+        }
+    }
+}
+
+/// Server contract: functions/src/invites.ts (`createInvites`, `redeemInvite`).
+protocol InviteRepository: Sendable {
+    /// Creates the caller's remaining codes (3 per user in total) and returns all of them.
+    func myInvites() async throws -> [InviteCode]
+    /// Redeems a code; succeeds silently when the account already redeemed one.
+    func redeem(code: String) async throws
+}
+
+final class FirestoreInviteRepository: InviteRepository, @unchecked Sendable {
+    private let callables: CallableClient
+
+    init(callables: CallableClient) { self.callables = callables }
+
+    private struct InvitesResponse: Decodable {
+        struct Item: Decodable { let code: String; let redeemed: Bool }
+        let invites: [Item]
+    }
+
+    func myInvites() async throws -> [InviteCode] {
+        do {
+            let data = try await callables.callRaw("createInvites", object: [String: String]())
+            let response = try JSONDecoder().decode(InvitesResponse.self, from: data)
+            return response.invites.map { InviteCode(code: $0.code, redeemed: $0.redeemed) }
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "invite_required" {
+            throw InviteFlowError.needsInviteFirst
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
+            throw InviteFlowError.rateLimited
+        } catch BackendCallError.rejected {
+            throw InviteFlowError.unavailable
+        }
+    }
+
+    func redeem(code: String) async throws {
+        do {
+            _ = try await callables.callRaw("redeemInvite", object: ["code": code])
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "invite_invalid" {
+            throw InviteFlowError.invalid
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
+            throw InviteFlowError.rateLimited
+        } catch BackendCallError.rejected {
+            throw InviteFlowError.unavailable
+        }
+    }
+}
+
+/// Preview/UI-test builds: no backend, so invites are inert.
+struct PreviewInviteRepository: InviteRepository {
+    func myInvites() async throws -> [InviteCode] { [] }
+    func redeem(code: String) async throws {}
+}

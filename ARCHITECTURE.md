@@ -78,7 +78,7 @@ sequenceDiagram
     UI->>Store: 3. Download ARKit world map and relocalize
     UI->>AR: 4. Aim-guided reveal by GPS bearing and distance
     Note over UI: Each stage checks cancellation; after 8 s "Yaklaşık göster" jumps to stage 4
-    UI->>AR: Render caption / social link card
+    UI->>AR: Render caption / text card
 ```
 
 World-map records persist only `storage://` paths. Download URLs are resolved from Firebase Storage at download time and are never written into the post contract. No camera frames or reference images are stored.
@@ -92,7 +92,7 @@ Posts, profiles, counters, activity, push devices and account deletion are writt
 - Like, comment, save and follow counters are maintained only by Cloud Functions Firestore triggers; clients cannot write them (rules deny).
 - The `recordPostView` callable requires an authenticated user, enforces visibility/block rules, and deduplicates by post, user, and UTC day.
 - The client replaces its view count with the callable result instead of inventing a local success count.
-- Spotify, YouTube, Instagram, X and Facebook URLs pass a strict HTTPS host/path allow-list. Their AR surface card always includes the post caption and platform identity.
+- Posts are text only. Social media links were removed on 9 Oct 2026; the server refuses any URL and clients ignore links stored on older posts.
 
 ## Lifecycle and recovery
 

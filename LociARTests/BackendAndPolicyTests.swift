@@ -252,36 +252,37 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(size.width / size.height, 2, accuracy: 0.05)
     }
 
-    func testSupportedExternalMediaURLsAreStrictlyClassified() throws {
-        XCTAssertEqual(ExternalMediaParser.parse("https://open.spotify.com/track/abc")?.externalMedia?.platform, .spotify)
-        XCTAssertEqual(ExternalMediaParser.parse("https://youtu.be/abc123")?.externalMedia?.platform, .youtube)
-        XCTAssertEqual(ExternalMediaParser.parse("https://www.facebook.com/loci/posts/123")?.externalMedia?.platform, .facebook)
-        XCTAssertEqual(ExternalMediaParser.parse("https://fb.watch/abc123/")?.externalMedia?.platform, .facebook)
-        XCTAssertEqual(ExternalMediaParser.parse("https://www.instagram.com/reel/ABC123/")?.externalMedia?.platform, .instagram)
-        XCTAssertEqual(ExternalMediaParser.parse("https://x.com/loci/status/123")?.externalMedia?.platform, .x)
-        XCTAssertNil(ExternalMediaParser.parse("http://x.com/loci/status/123"))
-        XCTAssertNil(ExternalMediaParser.parse("https://x.com.example.org/loci/status/123"))
-        XCTAssertNil(ExternalMediaParser.parse("https://youtube.com/channel/not-a-post"))
-        XCTAssertNil(ExternalMediaParser.parse("https://instagram.com/loci"))
-        XCTAssertNil(ExternalMediaParser.parse("https://facebook.com/loci"))
-        XCTAssertNil(ExternalMediaParser.parse("https://open.spotify.com/unsupported/abc"))
-        XCTAssertNil(ExternalMediaParser.parse("https://x.com/loci/status/not-a-number"))
-        XCTAssertEqual(
-            ExternalMediaParser.parseSharedText("Dinle: https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU")?.externalMedia?.platform,
-            .spotify
-        )
-        XCTAssertEqual(ExternalMediaPlatform.spotify.appLaunchURL.scheme, "spotify")
-        XCTAssertEqual(ExternalMediaPlatform.spotify.webLaunchURL.host, "open.spotify.com")
+    func testDiscoverMergeKeepsServerOrderAndReplacesDuplicates() {
+        // The server ranks the first discover page by engagement; the client must not re-sort it by date.
+        var older = UITestFixtures.post
+        older.id = UUID()
+        older.createdAt = Date(timeIntervalSince1970: 100)
+        var newer = UITestFixtures.post
+        newer.id = UUID()
+        newer.createdAt = Date(timeIntervalSince1970: 200)
+        var refreshed = older
+        refreshed.caption = "updated"
+        let merged = DiscoverView.orderPreservingMerge([older, newer, refreshed])
+        XCTAssertEqual(merged.map(\.id), [older.id, newer.id])
+        XCTAssertEqual(merged.first?.caption, "updated")
+    }
 
-        let source = try XCTUnwrap(ExternalMediaParser.parse("https://www.youtube.com/watch?v=abc123"))
-        let encoded = try JSONEncoder().encode(source)
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
-        XCTAssertEqual(json["platform"] as? String, "youtube")
-        XCTAssertEqual(json["mediaKind"] as? String, "embed")
-
-        let facebook = try XCTUnwrap(ExternalMediaParser.parse("https://facebook.com/loci/videos/123"))
-        let facebookJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(facebook)) as? [String: Any])
-        XCTAssertEqual(facebookJSON["platform"] as? String, "facebook")
+    func testLegacySocialLinksDecodeAsTextAndAreNeverReEncoded() throws {
+        // Social media links were removed on 9 Oct 2026. Older posts and queued drafts may still
+        // carry one: it must decode without throwing, and the link must not survive a round trip.
+        for platform in ["spotify", "youtube", "tiktok", "instagram", "x", "facebook", "other"] {
+            let legacy = try JSONSerialization.data(withJSONObject: [
+                "platform": platform, "url": "https://example.com/\(platform)/1", "mediaKind": "embed", "title": "Eski",
+            ])
+            let decoded = try JSONDecoder().decode(ContentSource.self, from: legacy)
+            XCTAssertEqual(decoded, .text("Eski"), platform)
+            let reencoded = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(decoded)) as? [String: Any])
+            XCTAssertNil(reencoded["url"], platform)
+        }
+        let malformed = try JSONSerialization.data(withJSONObject: ["platform": "youtube", "url": "not a url ::", "title": "T"])
+        XCTAssertEqual(try JSONDecoder().decode(ContentSource.self, from: malformed), .text("T"))
+        let video = try JSONSerialization.data(withJSONObject: ["platform": "own_video", "url": "file:///tmp/v.mov", "mediaKind": "video"])
+        XCTAssertEqual(try JSONDecoder().decode(ContentSource.self, from: video), .video(URL(string: "file:///tmp/v.mov")!))
     }
 
     func testLocalWorldMapStoreReadsOnlyItsProtectedDirectory() async throws {
@@ -331,85 +332,6 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(reboundReference, referenceData)
     }
 
-    func testExternalMediaSurfaceRendererIncludesCaptionCard() async {
-        let post = LociPost(
-            id: UUID(), creatorID: UUID(), createdAt: Date(), caption: "Bu şarkı bu duvara ait.", status: .active,
-            visibility: .public, ageRating: .all,
-            anchorBundle: AnchorBundle(anchor: SurfaceAnchor(
-                transform: Array(repeating: 0, count: 16), pinQuality: .planeGeometry,
-                hitSource: .planeGeometry, surfaceAlignment: .vertical,
-                trackingQuality: .normal, worldMappingStatus: .mapped
-            )),
-            editData: EditData(canvasWidth: 320, canvasHeight: 480),
-            contentSource: .spotify(URL(string: "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU")!),
-            counts: PostCounts()
-        )
-        let image = await SpatialContentRenderer().render(post)
-        XCTAssertEqual(image?.width, Int(SpatialContentRenderer.externalPreviewCardPixelSize.width))
-        XCTAssertEqual(image?.height, Int(SpatialContentRenderer.externalPreviewCardPixelSize.height))
-        XCTAssertLessThan(
-            SpatialContentRenderer.externalCaptionFontSize,
-            SpatialContentRenderer.externalPreviewTitleFontSize
-        )
-        if let image {
-            let attachment = XCTAttachment(image: UIImage(cgImage: image))
-            attachment.name = "social-ar-preview-card-small-caption"
-            attachment.lifetime = .keepAlways
-            add(attachment)
-        }
-        let size = SpatialContentRenderer.physicalSize(
-            for: post,
-            renderedPixelSize: image.map { CGSize(width: $0.width, height: $0.height) }
-        )
-        XCTAssertLessThanOrEqual(size.width, PhysicalRectMeters.default.width)
-        XCTAssertLessThanOrEqual(size.height, PhysicalRectMeters.externalMaximumHeight)
-    }
-
-    func testOfficialSocialBrandAssetsAreBundledAtHighResolution() throws {
-        let names = [
-            "BrandSpotify", "BrandSpotifyBlack", "BrandYouTube", "BrandYouTubeWhite",
-            "BrandFacebook", "BrandFacebookWhite", "BrandInstagram", "BrandInstagramWhite",
-            "BrandXBlack", "BrandXWhite"
-        ]
-        for name in names {
-            let image = try XCTUnwrap(UIImage(named: name), "Missing official brand asset: \(name)")
-            let pixels = try XCTUnwrap(image.cgImage)
-            XCTAssertGreaterThanOrEqual(max(pixels.width, pixels.height), 900, "\(name) must remain suitable for AR card rendering")
-        }
-    }
-
-    func testOfficialLogosRenderOnEverySocialARCard() async throws {
-        let links = [
-            ("spotify", "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU"),
-            ("youtube", "https://youtu.be/abc123"),
-            ("facebook", "https://www.facebook.com/loci/posts/123"),
-            ("instagram", "https://www.instagram.com/p/ABC123/"),
-            ("x", "https://x.com/loci/status/123")
-        ]
-
-        for (platform, link) in links {
-            let source = try XCTUnwrap(ExternalMediaParser.parse(link))
-            let post = LociPost(
-                id: UUID(), creatorID: UUID(), createdAt: Date(), caption: "Küçük caption", status: .active,
-                visibility: .public, ageRating: .all,
-                anchorBundle: AnchorBundle(anchor: SurfaceAnchor(
-                    transform: Array(repeating: 0, count: 16), pinQuality: .planeGeometry,
-                    hitSource: .planeGeometry, surfaceAlignment: .vertical,
-                    trackingQuality: .normal, worldMappingStatus: .mapped
-                )),
-                editData: EditData(canvasWidth: 320, canvasHeight: 480),
-                contentSource: source,
-                counts: PostCounts()
-            )
-            let rendered = await SpatialContentRenderer().render(post)
-            let image = try XCTUnwrap(rendered)
-            let attachment = XCTAttachment(image: UIImage(cgImage: image))
-            attachment.name = "official-\(platform)-ar-card"
-            attachment.lifetime = .keepAlways
-            add(attachment)
-        }
-    }
-
     func testStorageOwnerFolderMatchesFirebaseLUIDTextContract() {
         let id = UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!
         XCTAssertEqual(StorageObjectPath.ownerFolder(id), "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")
@@ -455,15 +377,23 @@ final class BackendAndPolicyTests: XCTestCase {
 
     func testServerRejectionsUseLocalizedMessages() {
         XCTAssertEqual(FirestorePostRepository.serverMessage("Creation is blocked in protected zone: Ayasofya"), String(localized: "Bu korumalı bölgede post yayınlanamaz."))
-        XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts and social media links are allowed"), String(localized: "Postlar yalnızca metin ve sosyal medya bağlantısı içerebilir; fotoğraf ve video desteklenmiyor."))
-        XCTAssertTrue(FirestorePostRepository.serverMessage("Only social media links are allowed").contains("Spotify"))
-        XCTAssertEqual(FirestorePostRepository.serverMessage("Invalid social media link"), String(localized: "Sosyal medya bağlantısı geçersiz. Paylaşım bağlantısını uygulamadan tekrar kopyala."))
-        XCTAssertFalse(FirestorePostRepository.serverMessage("At least one edit layer is required").contains("medya"))
+        let textOnly = String(localized: "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.")
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts are allowed"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Links are not allowed"), textOnly)
+        // Older servers still answer with the social-link wording.
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts and social media links are allowed"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Invalid social media link"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("At least one edit layer is required"), String(localized: "Yayınlamak için bir caption yaz."))
+        XCTAssertEqual(
+            FirestorePostRepository.serverMessage("An invite code is required to publish", reason: "invite_required"),
+            String(localized: "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.")
+        )
+        XCTAssertNotEqual(InviteFlowError.invalid.errorDescription, InviteFlowError.rateLimited.errorDescription)
     }
 
     func testQueuedDeviceMediaPostsAreDetected() {
         var post = UITestFixtures.post
-        post.contentSource = .spotify(URL(string: "https://open.spotify.com/track/1")!)
+        post.contentSource = .text("Merhaba")
         post.editData = EditData(layers: [])
         XCTAssertFalse(post.containsDeviceMedia)
         post.contentSource = .video(URL(fileURLWithPath: "/tmp/v.mov"))

@@ -284,116 +284,16 @@ final class AuthGateUITests: XCTestCase {
 
         app.terminate()
         app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY", "UITEST_DISABLE_EXTERNAL_APP_LAUNCH"]
-        app.launchEnvironment["UITEST_EXTERNAL_MEDIA_URL"] = "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU"
         app.launch()
         XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.textFields["create-caption"].exists)
-        XCTAssertTrue(app.buttons["create-external-media-picker"].exists)
-        app.buttons["create-external-media-picker"].tap()
-        XCTAssertTrue(app.navigationBars["Platform seç"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["external-platform-spotify"].exists)
-        XCTAssertTrue(app.buttons["external-platform-youtube"].exists)
-        XCTAssertTrue(app.buttons["external-platform-facebook"].exists)
-        XCTAssertTrue(app.buttons["external-platform-instagram"].exists)
-        XCTAssertTrue(app.buttons["external-platform-x"].exists)
-        capture(app, name: "official-social-platform-logos")
-        app.buttons["external-platform-spotify"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["external-import-instruction"].waitForExistence(timeout: 3))
-        app.buttons["external-import-complete"].tap()
-        XCTAssertTrue(app.textFields["create-external-media"].waitForExistence(timeout: 3))
-        XCTAssertEqual(app.textFields["create-external-media"].value as? String, "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU")
-        XCTAssertTrue(app.descendants(matching: .any)["external-media-selection-preview"].exists)
-        XCTAssertTrue(app.staticTexts["Spotify paylaşımı hazır"].exists)
+        // Social media links were removed on 9 Oct 2026: the editor offers text only.
+        XCTAssertFalse(app.buttons["create-external-media-picker"].exists)
+        XCTAssertFalse(app.textFields["create-external-media"].exists)
         XCTAssertFalse(app.staticTexts["Açıklama"].exists)
         XCTAssertFalse(app.staticTexts["Çizim ekle"].exists)
         XCTAssertFalse(app.staticTexts["Bağlantı ekle"].exists)
         capture(app, name: "08-create-editor")
     }
 
-    func testSpotifySelectionReturnsToEditor() {
-        let app = XCUIApplication()
-        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY", "UITEST_DISABLE_EXTERNAL_APP_LAUNCH"]
-        app.launchEnvironment["UITEST_EXTERNAL_MEDIA_URL"] = "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU"
-        app.launch()
-
-        XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 5))
-        app.buttons["create-external-media-picker"].tap()
-        XCTAssertTrue(app.navigationBars["Platform seç"].waitForExistence(timeout: 3))
-
-        app.buttons["external-platform-spotify"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["external-import-instruction"].waitForExistence(timeout: 3))
-        app.buttons["external-import-complete"].tap()
-
-        let linkField = app.textFields["create-external-media"]
-        XCTAssertTrue(linkField.waitForExistence(timeout: 3))
-        XCTAssertEqual(linkField.value as? String, "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU")
-        XCTAssertTrue(app.descendants(matching: .any)["external-media-selection-preview"].exists)
-        XCTAssertTrue(app.staticTexts["Spotify paylaşımı hazır"].exists)
-        capture(app, name: "spotify-selection-in-editor")
-    }
-
-    func testEverySupportedSocialPlatformReturnsValidatedLinkToEditor() {
-        let cases = [
-            ("spotify", "Spotify", "https://open.spotify.com/track/55fmthmn3rgnk9Wyx7G5dU"),
-            ("youtube", "YouTube", "https://youtu.be/abc123"),
-            ("facebook", "Facebook", "https://www.facebook.com/loci/posts/123"),
-            ("instagram", "Instagram", "https://www.instagram.com/p/ABC123/"),
-            ("x", "X", "https://x.com/loci/status/123"),
-        ]
-
-        for (identifier, displayName, url) in cases {
-            let app = XCUIApplication()
-            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY", "UITEST_DISABLE_EXTERNAL_APP_LAUNCH"]
-            app.launchEnvironment["UITEST_EXTERNAL_MEDIA_URL"] = url
-            app.launch()
-            XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 5))
-            app.buttons["create-external-media-picker"].tap()
-            XCTAssertTrue(app.navigationBars["Platform seç"].waitForExistence(timeout: 3))
-            app.buttons["external-platform-\(identifier)"].tap()
-            app.buttons["external-import-complete"].tap()
-
-            let linkField = app.textFields["create-external-media"]
-            XCTAssertTrue(linkField.waitForExistence(timeout: 3), "\(displayName) editöre dönmedi.")
-            XCTAssertEqual(linkField.value as? String, url)
-            XCTAssertTrue(app.staticTexts["\(displayName) paylaşımı hazır"].exists)
-            app.terminate()
-        }
-    }
-
-    func testInvalidSocialURLStaysInPickerWithExplicitError() {
-        let app = XCUIApplication()
-        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY", "UITEST_DISABLE_EXTERNAL_APP_LAUNCH"]
-        app.launchEnvironment["UITEST_EXTERNAL_MEDIA_URL"] = "https://x.com.example.org/loci/status/123"
-        app.launch()
-        XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 5))
-        app.buttons["create-external-media-picker"].tap()
-        app.buttons["external-platform-x"].tap()
-        app.buttons["external-import-complete"].tap()
-        XCTAssertTrue(app.navigationBars["Platform seç"].exists)
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "geçerli bir X paylaşım bağlantısı bulunamadı")).firstMatch.waitForExistence(timeout: 3))
-    }
-
-    func testSpotifyIconOpensExternalDestination() {
-        let app = XCUIApplication()
-        let spotify = XCUIApplication(bundleIdentifier: "com.spotify.client")
-        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
-        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY"]
-        app.launch()
-
-        XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 5))
-        app.buttons["create-external-media-picker"].tap()
-        XCTAssertTrue(app.navigationBars["Platform seç"].waitForExistence(timeout: 3))
-        app.buttons["external-platform-spotify"].tap()
-
-        let deadline = Date().addingTimeInterval(6)
-        while spotify.state != .runningForeground,
-              safari.state != .runningForeground,
-              Date() < deadline {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
-        }
-        XCTAssertTrue(
-            spotify.state == .runningForeground || safari.state == .runningForeground,
-            "Spotify veya güvenli web yedeği açılmadı."
-        )
-    }
 }

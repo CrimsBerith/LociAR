@@ -411,6 +411,12 @@
       "indexes": []
     },
     {
+      "collectionGroup": "push_quota",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "post_density_locks",
       "fieldPath": "expires_at",
       "ttl": true,

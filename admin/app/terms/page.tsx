@@ -30,7 +30,7 @@ export default function TermsPage() {
 
       <h2>İçerik kuralları</h2>
       <ul>
-        <li>Gönderiler kısa metin ve desteklenen sosyal medya bağlantılarıdır (Spotify, YouTube, Instagram, X, Facebook).</li>
+        <li>Gönderiler yalnızca kısa metindir; fotoğraf, video veya bağlantı paylaşılamaz.</li>
         <li>18+ / cinsel içerik yasaktır ve sunucu tarafından reddedilir.</li>
         <li>Okul, hastane, ibadet yeri, resmi kurum ve benzeri korumalı bölgelerde içerik oluşturmak yasaktır.</li>
         <li>Taciz, zorbalık, nefret söylemi, tehdit, şiddete teşvik, yasa dışı içerik, izinsiz telifli içerik, spam ve sahte kimlik yasaktır.</li>
@@ -59,8 +59,7 @@ export default function TermsPage() {
       <h2>AR ve üçüncü taraf hizmetler</h2>
       <p>
         AR konumlandırma Google ARCore ile çalışır; Google sensör verilerini kendi koşullarına göre işler (bkz.{' '}
-        <Link href="/privacy">gizlilik politikası</Link>). Spotify, YouTube, Instagram, Facebook ve X bağlantıları ilgili
-        platformların kurallarına tabidir; LociAR bu platformların içeriğini yeniden barındırmaz.
+        <Link href="/privacy">gizlilik politikası</Link>).
       </p>
 
       <h2>Sorumluluk</h2>

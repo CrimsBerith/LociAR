@@ -29,7 +29,7 @@
 ## Oluştur
 
 - Adımlar: Sabitle (merkez nişangâh, "Yüzeye sabitle" veya açıkça "Önüme yerleştir · 0,8 m") → İçerik ekle
-  (metin ve/veya Spotify, YouTube, Instagram, X, Facebook bağlantısı) → "Yüzeyde yayınla".
+  (yalnızca metin; bağlantı yok) → "Yüzeyde yayınla".
 - Sabitleme kaydı: Geospatial etiketi, Google Cloud Anchor, olmazsa ARKit dünya haritası (`PinCommitCoordinator`).
 - Katman, fotoğraf/video veya z-order yok (29 Eyl 2026'da kaldırıldı).
 - Yayınla CTA'sı içerik yokken veya kayıt sürerken disabled kalır; çift dokunma aynı post id'sini gönderir.

@@ -24,6 +24,8 @@ export const REASONS = [
   'deletion_pending',
   'service_paused',
   'busy_retry',
+  'invite_required',
+  'invite_invalid',
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

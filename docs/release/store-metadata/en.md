@@ -8,24 +8,24 @@
 LociAR: Spatial AR Notes
 ```
 
-## Subtitle (27/30)
+## Subtitle (24/30)
 
 ```text
-Pin notes & links to places
+Pin notes to real places
 ```
 
-## Promotional Text (152/170)
+## Promotional Text (104/170)
 
 ```text
-Pin notes and Spotify, YouTube, Instagram, X or Facebook links to real surfaces, and discover what others left nearby, in AR, right where it was placed.
+Pin short notes to real surfaces and discover what others left nearby, in AR, right where it was placed.
 ```
 
-## Description (1072/4000)
+## Description (982/4000)
 
 ```text
-Leave notes and your favorite social posts on real places.
+Leave notes on real places.
 
-LociAR lets you pin short text notes and links from Spotify, YouTube, Instagram, X and Facebook to real surfaces (a table, the floor, a wall) so others find them right where you left them.
+LociAR lets you pin short text notes to real surfaces (a table, the floor, a wall) so others find them right where you left them.
 
 FEATURES
 • Pin to real surfaces: the center reticle locks onto surfaces detected by ARKit; Google ARCore Cloud Anchors and Geospatial bring your post back in the same spot.
@@ -46,8 +46,8 @@ Requires an iPhone with ARKit support.
 augmented reality,spatial,map,camera,social,note,surface,discover,location,pin
 ```
 
-## What's New in This Version (177/4000)
+## What's New in This Version (160/4000)
 
 ```text
-First release: pin text notes and social links to real surfaces, discover nearby posts on the map, plus likes, comments, collections, follows and notifications. In 12 languages.
+First release: pin text notes to real surfaces, discover nearby posts on the map, plus likes, comments, collections, follows and notifications. In 12 languages.
 ```

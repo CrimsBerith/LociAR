@@ -39,16 +39,6 @@
     <key>GeospatialAccuracy</key>
     <string>LociAR, AR postlarını harita ve cadde üzerinde tam doğrulukla yerleştirebilmek için geçici hassas konum iznine ihtiyaç duyar.</string>
   </dict>
-  <key>LSApplicationQueriesSchemes</key>
-  <array>
-    <string>spotify</string>
-    <string>youtube</string>
-    <string>youtube-unbranded</string>
-    <string>fb</string>
-    <string>facebook</string>
-    <string>instagram</string>
-    <string>twitter</string>
-  </array>
   <key>UIRequiredDeviceCapabilities</key>
   <array>
     <string>arm64</string>

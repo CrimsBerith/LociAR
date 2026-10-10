@@ -14,18 +14,18 @@ LociAR: Gerçek Mekânlarda AR
 Mekânsal Hikâyeler ve Paylaşım
 ```
 
-## Promotional Text (150/170)
+## Promotional Text (100/170)
 
 ```text
-Notlarını ve Spotify, YouTube, Instagram, X, Facebook bağlantılarını gerçek yüzeylere sabitle; çevrende bırakılanları bırakıldığı yerde AR ile keşfet.
+Kısa notlarını gerçek yüzeylere sabitle; çevrende bırakılanları, bırakıldıkları yerde AR ile keşfet.
 ```
 
-## Description (1105/4000)
+## Description (1050/4000)
 
 ```text
 Gerçek dünyayı dijital hikâyelerle zenginleştirin.
 
-LociAR, kısa notlarınızı ve Spotify, YouTube, Instagram, X, Facebook bağlantılarınızı gerçek yüzeylere (masa, zemin, duvar) sabitlemenizi sağlar; başkaları onları tam bıraktığınız yerde bulur.
+LociAR, kısa metin notlarınızı gerçek yüzeylere (masa, zemin, duvar) sabitlemenizi sağlar; başkaları onları tam bıraktığınız yerde bulur.
 
 ÖZELLİKLER
 • Gerçek yüzeye sabitle: Merkez nişangâh ARKit ile algılanan yüzeye kilitlenir; Google ARCore Cloud Anchors ve Geospatial gönderinizi aynı noktada yeniden gösterir.
@@ -46,8 +46,8 @@ ARKit destekli bir iPhone gerektirir.
 artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,yüzey,keşfet,konum
 ```
 
-## What's New in This Version (173/4000)
+## What's New in This Version (150/4000)
 
 ```text
-İlk sürüm: metin notlarını ve sosyal bağlantıları gerçek yüzeylere sabitle, yakındaki gönderileri haritada keşfet; beğeni, yorum, koleksiyon, takip ve bildirimler. 12 dilde.
+İlk sürüm: metin notlarını gerçek yüzeylere sabitle, yakındaki gönderileri haritada keşfet; beğeni, yorum, koleksiyon, takip ve bildirimler. 12 dilde.
 ```

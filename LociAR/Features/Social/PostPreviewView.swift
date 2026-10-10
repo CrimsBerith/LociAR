@@ -65,13 +65,7 @@ struct PostPreviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PostCard(post: post, likeCount: likeCount, viewCount: viewCount, openMedia: post.contentSource?.externalMedia.map { external in
-                    {
-                        openURL(external.platform.appLaunchURL) { accepted in
-                            if !accepted { openURL(external.url) }
-                        }
-                    }
-                })
+                PostCard(post: post, likeCount: likeCount, viewCount: viewCount)
                 NavigationLink {
                     PublicProfileView(user: creatorUser)
                 } label: {

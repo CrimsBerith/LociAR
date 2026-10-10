@@ -4,6 +4,7 @@ import { isPublicActive } from './counters';
 import { distanceMeters } from './geo';
 import { requireActiveAccount } from './profileGuard';
 import { createHash } from 'node:crypto';
+import { rankForDiscover } from './discoverRanking';
 
 async function exclusions(luid:string){
   const [outgoing,incoming]=await Promise.all([db.collection('user_blocks').where('blocker_id','==',luid).get(),db.collection('user_blocks').where('blocked_id','==',luid).get()]);
@@ -75,5 +76,9 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
  let query=db.collection('posts').where('status','==','active').where('visibility','==','public');if(creator)query=query.where('creator_id','==',creator);
  let ordered=query.orderBy('created_at','desc').orderBy('__name__','desc');if(continuation)ordered=ordered.startAfter(continuation.date,continuation.id);
  const page=await ordered.limit(51).get(),documents=page.docs.slice(0,50),authors=await visibleAuthors(documents.map(d=>d.get('creator_id')),blocked);
- return{posts:documents.filter(d=>isPublicActive(d.data())&&authors.has(d.get('creator_id'))).map(row),next:page.size>50?cursor(documents.at(-1)!,scope):null};
+ // The cursor is taken from the chronological page; only the first discover page is re-ordered.
+ const next=page.size>50?cursor(documents.at(-1)!,scope):null;
+ const visible=documents.filter(d=>isPublicActive(d.data())&&authors.has(d.get('creator_id')));
+ const ordering=mode==='discover'&&!continuation?rankForDiscover(visible,d=>({engagement:d.get('engagement_score'),createdAtMs:d.get('created_at') instanceof Timestamp?d.get('created_at').toMillis():null}),Date.now()):visible;
+ return{posts:ordering.map(row),next};
 });

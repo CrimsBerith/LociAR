@@ -122,6 +122,7 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ['push_tokens', 'owner_luid'], ['push_devices', 'luid'], ['push_quota', 'owner_luid'], ['push_delivery_receipts', 'owner_luid'],
       ['handles', 'luid'], ['avatar_reviews', 'luid'], ['avatar_uploads', 'luid'], ['avatar_screenings', 'luid'], ['avatar_deletions', 'luid'], ['moderation_originals', 'user_id'],
       ['storage_reclamations', 'creator_id'], ['storage_reclamation_queue', 'creator_id'],
+      ['invites', 'creator_id'], ['invites', 'redeemed_by'], ['invite_attempts', 'owner_luid'],
     ];
     for (const [collection, field] of byField) await deleteQuery(db.collection(collection).where(field, '==', luid));
     await deleteQuery(db.collection('admin_role_assignments').where('user_id', '==', job.uid));
