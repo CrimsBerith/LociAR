@@ -9,8 +9,9 @@ from typing import Any
 PROJECT = 'lociar-2f38c'
 REGION = 'us-central1'
 BUCKET = f'{PROJECT}.firebasestorage.app'
-SCHEMA_VERSION = 1
-RESOURCE_KEYS = ('project', 'services', 'firestore', 'ttl', 'functions', 'scheduler', 'storage', 'apple_secret_versions', 'giphy_secret_versions')
+SCHEMA_VERSION = 2
+RESOURCE_KEYS = ('project', 'services', 'firestore', 'ttl', 'functions', 'scheduler', 'storage', 'apple_secret_versions', 'giphy_secret_versions', 'storage_notifications')
+STORAGE_FINALIZERS = {'onWorldMapFinalized', 'onDeletedAccountObjectFinalized'}
 # Secret Manager secrets the Functions need; only version names and states are read, never values.
 REQUIRED_SECRETS = {
     'apple_secret_versions': ('APPLE_PRIVATE_KEY', 'apple_secret_unavailable', 'At least one Apple private-key secret version must be ENABLED; no value is read.'),
@@ -40,7 +41,11 @@ def repository_expectations(root: Path | None = None) -> dict[str, Any]:
     if not enabled_block or not functions or not ttl or not schedules:
         raise ValueError('Repository infrastructure expectations could not be derived')
     services = set(re.findall(r'([a-z0-9]+\.googleapis\.com)', enabled_block.group(1))) | {'fcm.googleapis.com'}
-    return {'project': PROJECT, 'region': REGION, 'bucket': BUCKET, 'ttl': ttl, 'functions': functions, 'schedules': schedules,
+    topic_source = (root / 'functions/src/storageFinalizeEvents.ts').read_text()
+    topic = re.search(r"STORAGE_FINALIZE_TOPIC\s*=\s*['\"]([^'\"]+)['\"]", topic_source)
+    if not topic:
+        raise ValueError('Storage notification topic could not be derived')
+    return {'storage_topic': topic.group(1), 'project': PROJECT, 'region': REGION, 'bucket': BUCKET, 'ttl': ttl, 'functions': functions, 'schedules': schedules,
             'services': services, 'runtime': 'nodejs22'}
 
 
@@ -67,11 +72,24 @@ def sanitized_report(report: Any) -> dict:
         'firestore': _projected(resources.get('firestore'), ('name', 'locationId', 'type')),
         'ttl': [{**_projected(item, ('name',)), 'ttlConfig': _projected(_dict(item).get('ttlConfig'), ('state',))} for item in _list(resources.get('ttl'))],
         'functions': [{**_projected(item, ('name', 'state', 'environment')),
-                       'buildConfig': _projected(_dict(item).get('buildConfig'), ('runtime',))} for item in _list(resources.get('functions'))],
+                       'buildConfig': _projected(_dict(item).get('buildConfig'), ('runtime',)),
+                       'eventTrigger': _projected(_dict(item).get('eventTrigger'), ('eventType', 'pubsubTopic', 'retryPolicy', 'triggerRegion'))} for item in _list(resources.get('functions'))],
         'scheduler': [_projected(item, ('name', 'state', 'schedule', 'timeZone')) for item in _list(resources.get('scheduler'))],
         'storage': _projected(resources.get('storage'), ('name',)),
         **{key: [_projected(item, ('name', 'state')) for item in _list(resources.get(key))] for key in REQUIRED_SECRETS},
     }
+    clean['storage_notifications'] = []
+    for entry in _list(resources.get('storage_notifications')):
+        config = _dict(_dict(entry).get('Notification Configuration', entry))
+        topic = config.get('topic')
+        if isinstance(topic, str):
+            topic = topic.removeprefix('//pubsub.googleapis.com/')
+        clean['storage_notifications'].append({
+            'topic': topic if isinstance(topic, str) else None,
+            'payload_format': config.get('payload_format') if isinstance(config.get('payload_format'), str) else None,
+            'event_types': [event for event in _list(config.get('event_types')) if isinstance(event, str)],
+            **({'object_name_prefix': True} if config.get('object_name_prefix') else {}),
+        })
     # Only lifecycle rule metadata is retained. Unknown conditions are marked (not echoed),
     # so a rule restricted to different objects cannot accidentally satisfy the release gate.
     lifecycle = _dict(_dict(resources.get('storage')).get('lifecycle_config'))
@@ -118,7 +136,7 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
         findings.append({'code': code, 'resource': resource, 'message': message})
 
     if clean['schema_version'] != SCHEMA_VERSION:
-        fail('report_schema', 'report', 'Metadata report schema_version must be 1.')
+        fail('report_schema', 'report', f'Metadata report schema_version must be {SCHEMA_VERSION}.')
     if clean['project_id'] != PROJECT or resources['project'].get('projectId') != PROJECT:
         fail('wrong_project', 'project', f'Both report and observed project must be {PROJECT}.')
     if resources['project'].get('lifecycleState') != 'ACTIVE':
@@ -158,6 +176,16 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
             fail('function_missing', name, 'Expected exported Function is missing from us-central1.')
         elif function.get('state') != 'ACTIVE' or function.get('environment') != 'GEN_2' or function.get('buildConfig', {}).get('runtime') != expected['runtime']:
             fail('function_configuration', name, 'Function must be ACTIVE, GEN_2 and nodejs22.')
+        if function and name in STORAGE_FINALIZERS:
+            trigger = function.get('eventTrigger', {})
+            topics = {f'projects/{owner}/topics/{expected["storage_topic"]}' for owner in project_ids}
+            if trigger.get('eventType') != 'google.cloud.pubsub.topic.v1.messagePublished' or trigger.get('pubsubTopic') not in topics or trigger.get('retryPolicy') != 'RETRY_POLICY_RETRY' or trigger.get('triggerRegion') != REGION:
+                fail('storage_trigger_configuration', name, 'Finalizer must consume the Storage notification topic in us-central1 with retry enabled.')
+    topics = {f'projects/{owner}/topics/{expected["storage_topic"]}' for owner in project_ids}
+    if not any(config.get('topic') in topics and config.get('payload_format') == 'NONE'
+               and config.get('event_types') == ['OBJECT_FINALIZE'] and not config.get('object_name_prefix')
+               for config in resources['storage_notifications']):
+        fail('storage_notification_missing', BUCKET, 'Bucket must publish all OBJECT_FINALIZE identity notifications with payload NONE to the expected topic.')
     jobs = {_resource_parts(item.get('name'), project_ids, 'jobs'): item for item in resources['scheduler']}
     for name, options in sorted(expected['schedules'].items()):
         job = jobs.get(f'firebase-schedule-{name}-{REGION}')

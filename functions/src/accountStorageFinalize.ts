@@ -1,6 +1,7 @@
-import { onObjectFinalized } from 'firebase-functions/v2/storage';
+import { onMessagePublished } from 'firebase-functions/v2/pubsub';
 import { bucket, db, isUUID, REGION, STORAGE_FOLDERS } from './core';
 import { accountDeletionRef } from './profileGuard';
+import { STORAGE_FINALIZE_TOPIC, storageObjectFromNotification } from './storageFinalizeEvents';
 
 type FinalizedObject = { name?: unknown; bucket?: unknown; generation?: unknown };
 export type DeletedAccountStorageIO = {
@@ -48,6 +49,9 @@ export async function cleanupFinalizedAccountObject(object: FinalizedObject, dep
   }
 }
 
-export const onDeletedAccountObjectFinalized = onObjectFinalized({
-  region: REGION, retry: true, maxInstances: 1, timeoutSeconds: 120, memory: '256MiB',
-}, async event => cleanupFinalizedAccountObject(event.data));
+export const onDeletedAccountObjectFinalized = onMessagePublished({
+  topic: STORAGE_FINALIZE_TOPIC, region: REGION, retry: true, maxInstances: 1, timeoutSeconds: 120, memory: '256MiB',
+}, async event => {
+  const object = storageObjectFromNotification(event.data.message, bucket().name);
+  return object ? cleanupFinalizedAccountObject(object) : 'ignored';
+});

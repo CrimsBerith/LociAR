@@ -18,11 +18,12 @@ CHECKS = {
     'services': ['services', 'list', '--enabled', '--format=json(config.name)'],
     'firestore': ['firestore', 'databases', 'describe', '--database=(default)', '--format=json(name,locationId,type)'],
     'ttl': ['firestore', 'fields', 'ttls', 'list', '--database=(default)', '--format=json(name,ttlConfig.state)'],
-    'functions': ['functions', 'list', '--v2', f'--regions={REGION}', '--format=json(name,state,environment,buildConfig.runtime)'],
+    'functions': ['functions', 'list', '--v2', f'--regions={REGION}', '--format=json(name,state,environment,buildConfig.runtime,eventTrigger.eventType,eventTrigger.pubsubTopic,eventTrigger.retryPolicy,eventTrigger.triggerRegion)'],
     'scheduler': ['scheduler', 'jobs', 'list', f'--location={REGION}', '--format=json(name,state,schedule,timeZone)'],
     'storage': ['storage', 'buckets', 'describe', f'gs://{BUCKET}', '--format=json(name,lifecycle_config)'],
     'apple_secret_versions': ['secrets', 'versions', 'list', 'APPLE_PRIVATE_KEY', '--format=json(name,state)'],
     'giphy_secret_versions': ['secrets', 'versions', 'list', 'GIPHY_API_KEY', '--format=json(name,state)'],
+    'storage_notifications': ['storage', 'buckets', 'notifications', 'list', f'gs://{BUCKET}', '--format=json'],
 }
 EMULATOR_SELECTORS = ('FIREBASE_AUTH_EMULATOR_HOST', 'FIRESTORE_EMULATOR_HOST', 'FIREBASE_STORAGE_EMULATOR_HOST', 'STORAGE_EMULATOR_HOST', 'FUNCTIONS_EMULATOR')
 

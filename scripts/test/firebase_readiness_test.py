@@ -12,7 +12,7 @@ import unittest
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS))
-from firebase_readiness import PROJECT, REGION, BUCKET, RESOURCE_KEYS, LEGACY_PREFIXES, repository_expectations, validate_report
+from firebase_readiness import PROJECT, REGION, BUCKET, SCHEMA_VERSION, STORAGE_FINALIZERS, RESOURCE_KEYS, LEGACY_PREFIXES, repository_expectations, validate_report
 
 spec = importlib.util.spec_from_file_location('qa_live_firebase', SCRIPTS / 'qa-live-firebase.py')
 collector = importlib.util.module_from_spec(spec)
@@ -21,17 +21,19 @@ EXPECTED = repository_expectations()
 
 
 def ready_report():
-    return {'schema_version': 1, 'project_id': PROJECT, 'collected_at': '2026-10-04T12:00:00+00:00',
+    return {'schema_version': SCHEMA_VERSION, 'project_id': PROJECT, 'collected_at': '2026-10-04T12:00:00+00:00',
             'commands': {key: {'status': 'ok', 'return_code': 0} for key in RESOURCE_KEYS}, 'resources': {
                 'project': {'projectId': PROJECT, 'projectNumber': '1234567890', 'lifecycleState': 'ACTIVE'},
                 'services': [{'config': {'name': api}} for api in sorted(EXPECTED['services'])],
                 'firestore': {'name': f'projects/{PROJECT}/databases/(default)', 'locationId': 'nam5', 'type': 'FIRESTORE_NATIVE'},
                 'ttl': [{'name': f'projects/{PROJECT}/databases/(default)/collectionGroups/{collection}/fields/{field}', 'ttlConfig': {'state': 'ACTIVE'}} for collection, field in sorted(EXPECTED['ttl'])],
-                'functions': [{'name': f'projects/{PROJECT}/locations/{REGION}/functions/{name}', 'state': 'ACTIVE', 'environment': 'GEN_2', 'buildConfig': {'runtime': 'nodejs22'}} for name in sorted(EXPECTED['functions'])],
+                'functions': [{'name': f'projects/{PROJECT}/locations/{REGION}/functions/{name}', 'state': 'ACTIVE', 'environment': 'GEN_2', 'buildConfig': {'runtime': 'nodejs22'},
+                               **({'eventTrigger': {'eventType': 'google.cloud.pubsub.topic.v1.messagePublished', 'pubsubTopic': f'projects/{PROJECT}/topics/{EXPECTED["storage_topic"]}', 'retryPolicy': 'RETRY_POLICY_RETRY', 'triggerRegion': REGION}} if name in STORAGE_FINALIZERS else {})} for name in sorted(EXPECTED['functions'])],
                 'scheduler': [{'name': f'projects/{PROJECT}/locations/{REGION}/jobs/firebase-schedule-{name}-{REGION}', 'state': 'ENABLED', **options} for name, options in sorted(EXPECTED['schedules'].items())],
                 'storage': {'name': BUCKET, 'lifecycle_config': {'rule': [{'action': {'type': 'Delete'}, 'condition': {'age': 30, 'matchesPrefix': sorted(LEGACY_PREFIXES)}}]}},
                 'apple_secret_versions': [{'name': f'projects/{PROJECT}/secrets/APPLE_PRIVATE_KEY/versions/1', 'state': 'ENABLED'}],
                 'giphy_secret_versions': [{'name': f'projects/{PROJECT}/secrets/GIPHY_API_KEY/versions/1', 'state': 'ENABLED'}],
+                'storage_notifications': [{'topic': f'projects/{PROJECT}/topics/{EXPECTED["storage_topic"]}', 'event_types': ['OBJECT_FINALIZE'], 'payload_format': 'NONE'}],
             }}
 
 
@@ -140,7 +142,7 @@ class FirebaseReadinessTests(unittest.TestCase):
         self.assertTrue(validate_report(checked)['readiness']['ready'])
 
     def test_unsupported_report_schema_is_rejected(self):
-        report = ready_report(); report['schema_version'] = 2
+        report = ready_report(); report['schema_version'] = SCHEMA_VERSION + 1
         self.assertIn('report_schema', self.codes(report))
         self.assertIn('report_schema', self.codes([]))
 
@@ -189,8 +191,33 @@ class FirebaseReadinessTests(unittest.TestCase):
         self.assertNotIn('NEVER-ECHO-SECRET', json.dumps(checked))
         for args in called:
             self.assertIn('--project=' + PROJECT, args); self.assertIn('--configuration=explicit', args)
-            self.assertTrue(any(arg.startswith('--format=json(') for arg in args))
+            self.assertTrue(any(arg.startswith('--format=json') for arg in args))
             self.assertNotIn('access', args); self.assertNotIn('enable', args); self.assertNotIn('update', args)
+
+    def test_notification_must_cover_all_objects_with_no_metadata_payload(self):
+        report = ready_report(); report['resources']['storage_notifications'] = []
+        self.assertIn('storage_notification_missing', self.codes(report))
+        for patch in [{'payload_format': 'JSON_API_V1'}, {'topic': 'projects/foreign/topics/other'},
+                      {'event_types': ['OBJECT_DELETE']}, {'object_name_prefix': 'avatars/'}]:
+            report = ready_report(); report['resources']['storage_notifications'][0].update(patch)
+            self.assertIn('storage_notification_missing', self.codes(report))
+
+    def test_storage_consumers_require_the_correct_private_topic_and_retry(self):
+        for patch in [{'retryPolicy': 'RETRY_POLICY_DO_NOT_RETRY'}, {'pubsubTopic': 'projects/foreign/topics/other'},
+                      {'triggerRegion': 'us-east1'}, {'eventType': 'google.cloud.storage.object.v1.finalized'}]:
+            report = ready_report()
+            finalizer = next(item for item in report['resources']['functions'] if item['name'].rsplit('/', 1)[-1] in STORAGE_FINALIZERS)
+            finalizer['eventTrigger'].update(patch)
+            self.assertIn('storage_trigger_configuration', self.codes(report))
+
+    def test_gcloud_notification_wrapper_is_normalized_and_metadata_is_redacted(self):
+        report = ready_report(); config = report['resources']['storage_notifications'][0]
+        config['topic'] = '//pubsub.googleapis.com/' + config['topic']
+        config['custom_attributes'] = {'secret': 'NEVER-ECHO-SECRET'}
+        report['resources']['storage_notifications'] = [{'Bucket URL': f'gs://{BUCKET}', 'Notification Configuration': config}]
+        checked = validate_report(report)
+        self.assertTrue(checked['readiness']['ready'])
+        self.assertNotIn('NEVER-ECHO-SECRET', json.dumps(checked))
 
 
 if __name__ == '__main__':
