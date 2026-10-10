@@ -46,8 +46,8 @@ Illustrations were generated with the image tool from the same palette and calm,
 rounded geometry. They contain no text, service logos or simulated app interface.
 PNG exports only normalize canvas dimensions, density and color modes; original
 generation files remain in the working environment. Swift and admin metadata wiring
-is reserved for Claude. Spotify/YouTube/etc. brand assets already in the repository
-are outside this new asset set.
+is reserved for Claude. LociAR has no social media integrations (removed 9 Oct 2026);
+the admin site ships only the generic Open Graph image.
 
 All three onboarding assets use 400/800/1200 pixel transparent canvases. The eight
 empty/error assets use 240/480/720 pixel transparent canvases. The social image is

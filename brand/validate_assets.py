@@ -59,7 +59,7 @@ def main():
         assert ico.ico.sizes() == {(16,16),(32,32),(48,48)}
         for size in ico.ico.sizes():
             assert ico.ico.getimage(size).mode == 'RGBA', 'Next ICO decoder needs RGBA entries'
-    for name in ['opengraph-image', 'twitter-image']:
+    for name in ['opengraph-image']:
         check(ROOT / 'admin/app' / f'{name}.png', (1200,630), 'RGB')
         assert (ROOT / 'admin/app' / f'{name}.png').stat().st_size < 1_000_000
         assert (ROOT / 'admin/app' / f'{name}.alt.txt').read_text().strip() == 'LociAR – notes pinned to real places'
