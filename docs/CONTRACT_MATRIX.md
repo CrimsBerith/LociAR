@@ -1,4 +1,4 @@
-> **ARŞİV (5 Ekim 2026):** Bu belge Expo/Supabase dönemine aittir ve güncel değildir. Güncel kaynaklar: `AGENTS.md`, `ARCHITECTURE.md`, `docs/FIREBASE_SETUP.md`, `docs/AR_WORLD_LOCK.md`, `docs/release/APP_STORE_SUBMISSION_GUIDE.md`.
+> **ARŞİV (5 Ekim 2026):** Bu belge Expo/Supabase dönemine aittir ve güncel değildir. Güncel kaynaklar: `AGENTS.md`, `ARCHITECTURE.md`, `docs/FIREBASE_SETUP.md`, `docs/AR_WORLD_LOCK.md`, `docs/release/APP_STORE_SUBMISSION_GUIDE.md`. Sosyal medya bağlantıları (Spotify, YouTube, TikTok, Instagram, Facebook, X), fotoğraf/video ve çizim postları 9 Ekim 2026'da kaldırıldı; postlar metin ve/veya 1 GIPHY GIF'idir. Burada geçen platform adları yalnızca tarihî kayıttır.
 
 # LociAR Frontend ↔ Backend Contract Matrix
 

@@ -19,7 +19,7 @@ service firebase.storage {
     function under(mb) { return request.resource.size < mb * 1024 * 1024; }
     function isImage() { return request.resource.contentType.matches('image/(jpeg|png|heic|webp)'); }
 
-    // Photo/video posts were removed (text + social links only): no uploads to the old
+    // Photo/video posts were removed (posts are text and/or a GIPHY GIF id): no uploads to the old
     // post-layer-assets / post-video-assets folders. Owners may still delete leftovers.
     match /post-layer-assets/{luid}/{rest=**} {
       allow read, create, update: if false;
