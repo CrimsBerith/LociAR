@@ -19,9 +19,9 @@ extension XCUIApplication {
 
 @MainActor
 final class AuthGateUITests: XCTestCase {
-    override class func setUp() {
+    override func setUp() {
         super.setUp()
-        _ = XCUIApplication.swizzleLaunchOnce
+        MainActor.assumeIsolated { _ = XCUIApplication.swizzleLaunchOnce }
     }
 
     func testAuthGateEnglishLocalization() {
@@ -99,10 +99,15 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.secureTextFields["auth-password-field"].exists)
         XCTAssertTrue(app.buttons["auth-email-submit"].exists)
         XCTAssertTrue(app.buttons["auth-apple"].exists)
+        XCTAssertFalse(app.buttons["auth-apple"].isEnabled, "Apple sign-in requires consent")
         XCTAssertTrue(identifiedControl(app, "auth-privacy").waitForExistence(timeout: 3))
         XCTAssertTrue(identifiedControl(app, "auth-terms").exists)
         XCTAssertTrue(identifiedControl(app, "auth-terms-consent").exists)
         XCTAssertTrue(identifiedControl(app, "auth-support").exists)
+        identifiedControl(app, "auth-terms-consent").tap()
+        XCTAssertTrue(app.buttons["auth-apple"].isEnabled)
+        identifiedControl(app, "auth-terms-consent").tap()
+        XCTAssertFalse(app.buttons["auth-apple"].isEnabled)
         XCTAssertFalse(app.buttons["auth-google"].exists)
         XCTAssertFalse(app.buttons["auth-device-preview"].exists)
 
@@ -160,6 +165,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 8))
         tabs.buttons["Profil"].tap()
         XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 3))
+        scrollUntilHittable(identifiedControl(app, "profile-privacy"), in: app)
         XCTAssertTrue(identifiedControl(app, "profile-privacy").waitForExistence(timeout: 3))
         XCTAssertTrue(identifiedControl(app, "profile-terms").exists)
         XCTAssertTrue(identifiedControl(app, "profile-support").exists)
@@ -185,6 +191,7 @@ final class AuthGateUITests: XCTestCase {
 
         tabs.buttons["Profil"].tap()
         XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 3))
+        scrollUntilHittable(identifiedControl(app, "profile-privacy"), in: app)
         XCTAssertTrue(identifiedControl(app, "profile-privacy").waitForExistence(timeout: 3))
         XCTAssertTrue(identifiedControl(app, "profile-terms").exists)
         XCTAssertTrue(identifiedControl(app, "profile-support").exists)

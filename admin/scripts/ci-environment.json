@@ -1,0 +1,12 @@
+{
+  "NEXT_PUBLIC_FIREBASE_API_KEY": "ci-placeholder",
+  "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "demo-lociar.firebaseapp.com",
+  "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "demo-lociar",
+  "NEXT_PUBLIC_FIREBASE_APP_ID": "ci-placeholder",
+  "GCLOUD_PROJECT": "demo-lociar",
+  "GOOGLE_CLOUD_PROJECT": "demo-lociar",
+  "FIREBASE_CONFIG": "{\"projectId\":\"demo-lociar\",\"storageBucket\":\"demo-lociar.firebasestorage.app\"}",
+  "FIREBASE_STORAGE_BUCKET": "demo-lociar.firebasestorage.app",
+  "FIREBASE_SERVICE_ACCOUNT_JSON": "",
+  "GOOGLE_APPLICATION_CREDENTIALS": ""
+}

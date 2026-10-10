@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / 'LociAR/Resources/Assets.xcassets'
+ADMIN_APP = ROOT / 'admin/app'
 count = 0
 
 
@@ -26,7 +27,7 @@ def check(path, size, mode, transparent=False):
         count += 1
 
 
-def main():
+def validate_app_icons():
     icon = CATALOG / 'AppIcon.appiconset'
     contents = json.loads((icon / 'Contents.json').read_text())
     assert len(contents['images']) == 3
@@ -48,21 +49,30 @@ def main():
                     r, g, b, _ = image.split()
                     assert r.tobytes() == g.tobytes() == b.tobytes(), 'Tinted must be grayscale'
     assert appearances == {'default', 'dark', 'tinted'}
+
+
+def validate_brand_marks():
     for name in ['logomark', 'wordmark-light', 'wordmark-dark']:
         root = ET.parse(ROOT / 'brand' / f'{name}.svg').getroot()
         assert root.tag.endswith('svg')
         assert not any(e.tag.endswith('text') for e in root.iter()), 'Wordmark requires font-independent outlines'
         check(ROOT / 'brand' / f'{name}.png', (1024,1024) if name == 'logomark' else (860,256), 'RGBA', True)
-    check(ROOT / 'admin/app/icon.png', (512,512), 'RGB')
-    check(ROOT / 'admin/app/apple-icon.png', (180,180), 'RGB')
-    with Image.open(ROOT / 'admin/app/favicon.ico') as ico:
+
+
+def validate_admin_assets():
+    check(ADMIN_APP / 'icon.png', (512,512), 'RGB')
+    check(ADMIN_APP / 'apple-icon.png', (180,180), 'RGB')
+    with Image.open(ADMIN_APP / 'favicon.ico') as ico:
         assert ico.ico.sizes() == {(16,16),(32,32),(48,48)}
         for size in ico.ico.sizes():
             assert ico.ico.getimage(size).mode == 'RGBA', 'Next ICO decoder needs RGBA entries'
     for name in ['opengraph-image']:
-        check(ROOT / 'admin/app' / f'{name}.png', (1200,630), 'RGB')
-        assert (ROOT / 'admin/app' / f'{name}.png').stat().st_size < 1_000_000
-        assert (ROOT / 'admin/app' / f'{name}.alt.txt').read_text().strip() == 'LociAR – notes pinned to real places'
+        check(ADMIN_APP / f'{name}.png', (1200,630), 'RGB')
+        assert (ADMIN_APP / f'{name}.png').stat().st_size < 1_000_000
+        assert (ADMIN_APP / f'{name}.alt.txt').read_text().strip() == 'LociAR – notes pinned to real places'
+
+
+def validate_illustrations():
     onboarding = ['OnboardingPin', 'OnboardingDiscover', 'OnboardingPrivacy']
     empty = ['EmptyDiscover', 'EmptyActivity', 'EmptySaved', 'EmptyBlocked', 'EmptyMyPosts', 'EmptyPublicProfile', 'EmptyMapNearby', 'ErrorGeneric']
     for name in onboarding + empty:
@@ -74,6 +84,13 @@ def main():
             assert entry['idiom'] == 'universal'
             size = (400 if name in onboarding else 240) * int(entry['scale'][0])
             check(folder / entry['filename'], (size,size), 'RGBA', True)
+
+
+def main():
+    validate_app_icons()
+    validate_brand_marks()
+    validate_admin_assets()
+    validate_illustrations()
     for i in range(1,6):
         check(ROOT / 'docs/release/screenshots/backgrounds' / f'bg-{i:02d}.png', (1320,2868), 'RGB')
     print(f'PASS: {count} PNG exports; SVG outlines, ICO sizes, Xcode appearances/scales, grayscale/alpha and social-image limits.')

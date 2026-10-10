@@ -136,7 +136,7 @@ function hasStrictARKitWorldLockEvidence(body: CreatePostBody): boolean {
 }
 
 /**
- * Posts are text (and drawing layers) only. Social media links were removed on 9 Oct 2026 and
+ * Posts are text and/or one GIPHY GIF. Social media links were removed on 9 Oct 2026 and
  * device photos/videos on 29 Sep 2026: any URL in `contentSource` or a layer is refused.
  */
 function layerTexts(body: CreatePostBody): string[] {

@@ -9,6 +9,7 @@ import { initializeApp, deleteApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { chromium, expect } from '@playwright/test';
+import ciEnvironment from '../../scripts/ci-environment.json' with { type: 'json' };
 
 // No live credentials: all browser mutations use a demo project and local Auth/Firestore.
 assert.match(process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '', /^(127\.0\.0\.1|localhost):\d+$/);
@@ -24,7 +25,7 @@ before(async () => {
   const port = allocator.address().port; await new Promise(resolve => allocator.close(resolve));
   origin = `http://127.0.0.1:${port}`;
   server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], {
-    env: { ...process.env, NODE_ENV: 'production', GCLOUD_PROJECT: 'demo-lociar', GOOGLE_CLOUD_PROJECT: 'demo-lociar', ADMIN_ORIGIN: origin },
+    env: { ...process.env, ...ciEnvironment, NODE_ENV: 'production', ADMIN_ORIGIN: origin },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   for (const stream of [server.stdout, server.stderr]) stream.on('data', chunk => { output = (output + chunk.toString()).slice(-8000); });

@@ -135,7 +135,7 @@ If you have any questions or require additional details, please reach out to us 
 Aşağıdaki ortam değişkenleri varsayılan olarak **kapalıdır**; kapalıyken yukarıdaki inceleme metni doğrudur. Açmadan önce notları güncelle:
 
 * `LOCIAR_INVITE_REQUIRED=true` (davet kodu kapısı): inceleme hesabına `users_private/{luid}.invite_exempt = true` yaz, aksi halde reviewer post yayınlayamaz. Notlara ekle: "Browsing is open to everyone; publishing requires an invite code (Profile > Invite code). The demo account is exempt."
-* `LOCIAR_TRUSTED_AUTO_PUBLISH=true` (güvenilir yazar): 4. maddedeki "Newly created posts are held in 'pending_review'" cümlesi artık her yazar için doğru değildir. Şöyle değiştir: "New posts from new accounts are held in 'pending_review'. Established accounts with a clean history may publish immediately; posts containing drawings always require approval. All posts remain reportable and removable."
+* `LOCIAR_TRUSTED_AUTO_PUBLISH=true` (güvenilir yazar): 4. maddedeki "Newly created posts are held in 'pending_review'" cümlesi artık her yazar için doğru değildir. Şöyle değiştir: "New posts from new accounts are held in 'pending_review'. Established accounts with a clean history may publish immediately. All posts remain reportable and removable."
 
 ---
 

@@ -10,6 +10,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import { setCacheBustingSearchParam } from 'next/dist/client/components/router-reducer/set-cache-busting-search-param.js';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import ciEnvironment from '../../scripts/ci-environment.json' with { type: 'json' };
 
 // The Auth emulator accepts unsigned JWT fixtures. This tests claim enforcement,
 // not the live TOTP challenge or Google's production JWT signature verification.
@@ -29,7 +30,7 @@ before(async () => {
   await new Promise(resolve => allocator.close(resolve));
   origin = `http://127.0.0.1:${port}`;
   server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], {
-    env: { ...process.env, NODE_ENV: 'production', GCLOUD_PROJECT: 'demo-lociar', GOOGLE_CLOUD_PROJECT: 'demo-lociar', ADMIN_ORIGIN: origin },
+    env: { ...process.env, ...ciEnvironment, NODE_ENV: 'production', ADMIN_ORIGIN: origin },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   for (const stream of [server.stdout, server.stderr]) stream.on('data', chunk => { output = (output + chunk.toString()).slice(-8000); });

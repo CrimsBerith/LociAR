@@ -15,6 +15,7 @@ export function releaseSteps(root = REPOSITORY_ROOT) {
     node('Release localization', ['scripts/check-localization.mjs', '--release']),
     npm('Locked Functions installation', 'functions', ['ci', '--no-audit', '--no-fund']),
     npm('Locked admin installation', 'admin', ['ci', '--no-audit', '--no-fund']),
+    npm('Chromium test runtime', 'admin', ['exec', '--no', '--', 'playwright', 'install', 'chromium']),
     npm('Functions types', 'functions', ['run', 'typecheck']),
     { ...npm('Functions unit tests and build', 'functions', ['test']), testSummary: 'node' },
     npm('Admin types', 'admin', ['run', 'typecheck']),
