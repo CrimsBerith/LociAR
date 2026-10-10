@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️ مهلة VPS",
  "⚠️ İç hata": "⚠️ خطأ داخلي",
  "kullanıcı": "مستخدم",
- "Yayınlamak için bir caption yaz.": "اكتب وصفًا للنشر.",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "يمكن أن تحتوي المنشورات على نص فقط؛ الصور ومقاطع الفيديو والروابط غير مدعومة.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "لم تعد المنشورات التي تحتوي على صور ومقاطع فيديو مدعومة. أعد إنشاء المنشور كنص.",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "ثبّت أفكارك كملاحظات قصيرة على الجدران والمساحات الحقيقية باستخدام قفل السطح AR.",
  "Davet": "الدعوة",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "تحتاج إلى رمز دعوة للمشاركة. أدخل الرمز الذي حصلت عليه في الملف الشخصي > رمز الدعوة.",
  "Sana verilen kod": "الرمز الذي حصلت عليه",
  "Senin kodların": "رموزك",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "محاولات فاشلة كثيرة جدًا. حاول مرة أخرى لاحقًا."
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "محاولات فاشلة كثيرة جدًا. حاول مرة أخرى لاحقًا.",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "يتعذر تحميل صور GIF الآن. حاول مرة أخرى.",
+ "Bir posta en fazla bir GIF eklenebilir.": "يمكن أن يحتوي المنشور على صورة GIF واحدة كحد أقصى.",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "صورة GIF هذه لم تعد متاحة. اختر صورة GIF أخرى.",
+ "GIF ara": "ابحث عن GIF",
+ "GIF bulunamadı.": "لم يتم العثور على صور GIF.",
+ "GIF ekle": "إضافة GIF",
+ "GIF seç": "اختيار GIF",
+ "GIF": "GIF",
+ "Kaldır": "إزالة",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "يمكن أن تحتوي المنشورات على نص وصور GIF فقط؛ الصور ومقاطع الفيديو والرسومات والروابط غير مدعومة.",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "اكتب رسالة أو أضف صورة GIF للنشر.",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "عمليات بحث كثيرة جدًا عن GIF. حاول مرة أخرى بعد قليل."
 }

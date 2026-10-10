@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️VPS超时",
  "⚠️ İç hata": "⚠️ 内部错误",
  "kullanıcı": "用户",
- "Yayınlamak için bir caption yaz.": "请填写说明后再发布。",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "帖子只能包含文本；不支持照片、视频和链接。",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "不再支持包含照片和视频的帖子。请以文本形式重新创建帖子。",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "通过 AR 表面锁定，将您的想法以简短笔记的形式固定到真实的墙壁和空间。",
  "Davet": "邀请",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "分享需要邀请码。请在 个人资料 > 邀请码 中输入你收到的邀请码。",
  "Sana verilen kod": "你收到的邀请码",
  "Senin kodların": "你的邀请码",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "失败次数过多。请稍后再试。"
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "失败次数过多。请稍后再试。",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "暂时无法加载 GIF。请重试。",
+ "Bir posta en fazla bir GIF eklenebilir.": "每个帖子最多只能添加一个 GIF。",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "此 GIF 已不可用。请选择其他 GIF。",
+ "GIF ara": "搜索 GIF",
+ "GIF bulunamadı.": "未找到 GIF。",
+ "GIF ekle": "添加 GIF",
+ "GIF seç": "选择 GIF",
+ "GIF": "GIF",
+ "Kaldır": "移除",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "帖子只能包含文本和 GIF；不支持照片、视频、涂鸦和链接。",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "请写一条消息或添加 GIF 后再发布。",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "GIF 搜索次数过多。请稍后再试。"
 }

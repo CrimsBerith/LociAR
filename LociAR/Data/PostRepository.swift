@@ -215,6 +215,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         case "draft_expired": return String(localized: "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun.")
         case "rate_limited": return String(localized: "Bu bölge veya hesap için yayın sınırına ulaşıldı. Daha sonra tekrar deneyin.")
         case "invite_required": return String(localized: "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.")
+        case "gif_invalid": return String(localized: "Bu GIF artık kullanılamıyor. Başka bir GIF seç.")
         default: break
         }
         if raw.contains("verified Apple") || raw.contains("verified Apple, Google, or email identity") {
@@ -226,12 +227,13 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         }
         if raw.contains("protected zone") { return String(localized: "Bu korumalı bölgede post yayınlanamaz.") }
-        if raw.contains("Only text posts") || raw.contains("Links are not allowed") || raw.contains("social media link") {
-            return String(localized: "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.")
+        if raw.contains("Only text") || raw.contains("Links are not allowed") || raw.contains("social media link") {
+            return String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
         }
+        if raw.contains("Only one GIF") || raw.contains("Invalid GIF") { return String(localized: "Bir posta en fazla bir GIF eklenebilir.") }
         if raw.contains("18+ content") { return String(localized: "18+ içerik bu sürümde kabul edilmez.") }
         if raw.contains("Invalid reference image") { return String(localized: "AR referans görüntüsü geçersiz. Yüzeyi yeniden tarayıp tekrar dene.") }
-        if raw.contains("At least one edit layer") { return String(localized: "Yayınlamak için bir caption yaz.") }
+        if raw.contains("At least one edit layer") { return String(localized: "Yayınlamak için bir mesaj yaz veya GIF ekle.") }
         if raw.contains("Physical AR world lock evidence is incomplete") {
             return String(localized: "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun.")
         }

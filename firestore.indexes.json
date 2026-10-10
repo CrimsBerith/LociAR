@@ -326,6 +326,12 @@
       "indexes": []
     },
     {
+      "collectionGroup": "gif_search_quota",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "post_view_receipts",
       "fieldPath": "expires_at",
       "ttl": true,

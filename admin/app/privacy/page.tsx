@@ -26,8 +26,8 @@ export default function PrivacyPage() {
         <li><strong>Kimlik ve iletişim:</strong> Apple ile Giriş kimliği veya e-posta adresi, kullanıcı adı, görünen ad, profil fotoğrafı.</li>
         <li><strong>Konum:</strong> uygulama açıkken, yakındaki içerikleri göstermek ve paylaştığınız içeriğin konumunu kaydetmek için
           (hassas konum; AR konumlandırma gerektiğinde iOS geçici hassas konum izni ister).</li>
-        <li><strong>Kamera:</strong> yalnızca AR yerleşimi için kullanılır; kamera görüntüsü kaydedilmez. Gönderiler yalnızca
-          metindir; fotoğraf, video veya bağlantı gönderisi yoktur. Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası
+        <li><strong>Kamera:</strong> yalnızca AR yerleşimi için kullanılır; kamera görüntüsü kaydedilmez. Gönderiler metin
+          ve/veya GIPHY&apos;den seçilen bir GIF&apos;tir; fotoğraf, video veya bağlantı gönderisi yoktur. Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası
           (fotoğraf değil, nokta haritası) saklanabilir.</li>
         <li><strong>Profil fotoğrafı:</strong> kendi yüklediğiniz fotoğraf, yayınlanmadan önce otomatik güvenlik incelemesinden geçer
           (aşağıda &quot;Google Cloud Vision&quot;).</li>
@@ -63,6 +63,7 @@ export default function PrivacyPage() {
         <li><strong>Google Cloud Vision:</strong> profil fotoğraflarının çıplaklık, şiddet ve benzeri içerik açısından otomatik incelenmesi.
           Fotoğraf yalnızca bu inceleme için gönderilir; reddedilen fotoğraflar silinir.</li>
         <li><strong>Google ARCore:</strong> AR konumlandırma (aşağıda).</li>
+        <li><strong>GIPHY:</strong> GIF arama ve GIF gösterimi (aşağıda).</li>
       </ul>
       <p>
         Herkese açık gönderiler ve kullanıcı adları diğer kullanıcılara görünür. Yetkili kurumların hukuka uygun talepleri
@@ -78,6 +79,14 @@ export default function PrivacyPage() {
         silinir. Ayrıntılar:{' '}
         <a href="https://support.google.com/ar?p=how-google-play-services-for-ar-handles-your-data">Google AR ve verileriniz</a>,{' '}
         <a href="https://policies.google.com/privacy">Google Gizlilik Politikası</a>.
+      </p>
+
+      <h2>GIPHY (GIF&apos;ler)</h2>
+      <p>
+        GIF&apos;ler GIPHY, Inc. tarafından sağlanır. Bir GIF aradığınızda arama kelimeleri ve uygulama diliniz, hesap
+        bilgileriniz olmadan sunucularımız üzerinden GIPHY&apos;ye gönderilir. GIF görüntüleri ve videoları cihazınız tarafından
+        doğrudan GIPHY sunucularından yüklenir; bu nedenle GIPHY IP adresinizi ve standart cihaz bilgilerini alır. Bir post
+        yalnızca seçtiğiniz GIF&apos;in GIPHY kimliğini saklar. Ayrıntılar: <a href="https://giphy.com/privacy">GIPHY Gizlilik Politikası</a>.
       </p>
 
       <h2>Saklama süreleri</h2>

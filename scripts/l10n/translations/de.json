@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️ VPS-Timeout",
  "⚠️ İç hata": "⚠️ Interner Fehler",
  "kullanıcı": "Benutzer",
- "Yayınlamak için bir caption yaz.": "Schreiben Sie eine Beschreibung, um zu veröffentlichen.",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "Beiträge dürfen nur Text enthalten; Fotos, Videos und Links werden nicht unterstützt.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "Beiträge mit Fotos und Videos werden nicht mehr unterstützt. Erstellen Sie den Beitrag als Text neu.",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Pinnen Sie Ihre Gedanken als kurze Notizen mit der AR-Oberflächensperre an reale Wände und Räume.",
  "Davet": "Einladung",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "Zum Teilen ist ein Einladungscode erforderlich. Geben Sie den erhaltenen Code unter Profil > Einladungscode ein.",
  "Sana verilen kod": "Erhaltener Code",
  "Senin kodların": "Ihre Codes",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Zu viele fehlgeschlagene Versuche. Versuchen Sie es später erneut."
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Zu viele fehlgeschlagene Versuche. Versuchen Sie es später erneut.",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "GIFs können gerade nicht geladen werden. Versuchen Sie es erneut.",
+ "Bir posta en fazla bir GIF eklenebilir.": "Ein Beitrag kann höchstens ein GIF enthalten.",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "Dieses GIF ist nicht mehr verfügbar. Wählen Sie ein anderes GIF.",
+ "GIF ara": "GIFs suchen",
+ "GIF bulunamadı.": "Keine GIFs gefunden.",
+ "GIF ekle": "GIF hinzufügen",
+ "GIF seç": "GIF auswählen",
+ "GIF": "GIF",
+ "Kaldır": "Entfernen",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "Beiträge dürfen nur Text und GIFs enthalten; Fotos, Videos, Zeichnungen und Links werden nicht unterstützt.",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "Schreiben Sie eine Nachricht oder fügen Sie ein GIF hinzu, um zu veröffentlichen.",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "Zu viele GIF-Suchen. Versuchen Sie es gleich noch einmal."
 }

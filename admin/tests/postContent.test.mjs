@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { strokePolylines, summarizePostContent } from "../lib/postContent.ts";
+import { giphyPreviewUrl, strokePolylines, summarizePostContent } from "../lib/postContent.ts";
 
 const post = (layers, source) => ({
   edit_data_json: JSON.stringify({ layers }),
@@ -29,7 +29,7 @@ test("summary drops unsafe colours, non-https links and malformed points", () =>
 });
 
 test("summary tolerates missing or invalid JSON", () => {
-  assert.deepEqual(summarizePostContent({ edit_data_json: "{nope", content_source_json: 5 }), { texts: [], strokes: [], source: null });
+  assert.deepEqual(summarizePostContent({ edit_data_json: "{nope", content_source_json: 5 }), { texts: [], gifs: [], strokes: [], source: null });
 });
 
 test("polylines fit inside the box with padding", () => {
@@ -37,4 +37,13 @@ test("polylines fit inside the box with padding", () => {
   const pts = line.points.split(" ").map(p => p.split(",").map(Number));
   for (const [x, y] of pts) assert.ok(x >= 8 && x <= 152 && y >= 8 && y <= 152);
   assert.deepEqual(strokePolylines([]), []);
+});
+
+test("GIF layers surface a single validated GIPHY id for moderators", () => {
+  const s = summarizePostContent(post([{ type: "text", text: "Selam" }, { type: "gif", gifId: "l0MYt5jPR6QX5pnqM" }, { type: "gif", gifId: "second" }]));
+  assert.deepEqual(s.texts, ["Selam"]);
+  assert.deepEqual(s.gifs, ["l0MYt5jPR6QX5pnqM"]);
+  assert.deepEqual(summarizePostContent(post([{ type: "gif", gifId: "../x" }])).gifs, []);
+  assert.equal(giphyPreviewUrl("l0MYt5jPR6QX5pnqM"), "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/200w.gif");
+  assert.equal(giphyPreviewUrl("a/b"), null);
 });

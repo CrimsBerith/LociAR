@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️ वीपीएस टाइमआउट",
  "⚠️ İç hata": "⚠️आंतरिक त्रुटि",
  "kullanıcı": "उपयोगकर्ता",
- "Yayınlamak için bir caption yaz.": "प्रकाशित करने के लिए एक कैप्शन लिखें।",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "पोस्ट में केवल टेक्स्ट हो सकता है; फ़ोटो, वीडियो और लिंक समर्थित नहीं हैं।",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "फ़ोटो और वीडियो वाले पोस्ट अब समर्थित नहीं हैं। पोस्ट को टेक्स्ट के रूप में दोबारा बनाएं।",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "अपने विचारों को छोटे नोट्स के रूप में AR सरफेस लॉकिंग के साथ वास्तविक दीवारों और स्थानों पर पिन करें।",
  "Davet": "आमंत्रण",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "शेयर करने के लिए आमंत्रण कोड ज़रूरी है। प्रोफ़ाइल > आमंत्रण कोड में आपको दिया गया कोड डालें।",
  "Sana verilen kod": "आपको दिया गया कोड",
  "Senin kodların": "आपके कोड",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "बहुत ज़्यादा गलत प्रयास। कुछ देर बाद फिर से कोशिश करें।"
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "बहुत ज़्यादा गलत प्रयास। कुछ देर बाद फिर से कोशिश करें।",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "अभी GIF लोड नहीं हो पा रहे हैं। फिर से कोशिश करें।",
+ "Bir posta en fazla bir GIF eklenebilir.": "एक पोस्ट में ज़्यादा से ज़्यादा एक GIF हो सकता है।",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "यह GIF अब उपलब्ध नहीं है। कोई दूसरा GIF चुनें।",
+ "GIF ara": "GIF खोजें",
+ "GIF bulunamadı.": "कोई GIF नहीं मिला।",
+ "GIF ekle": "GIF जोड़ें",
+ "GIF seç": "GIF चुनें",
+ "GIF": "GIF",
+ "Kaldır": "हटाएं",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "पोस्ट में केवल टेक्स्ट और GIF हो सकते हैं; फ़ोटो, वीडियो, ड्रॉइंग और लिंक समर्थित नहीं हैं।",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "प्रकाशित करने के लिए संदेश लिखें या GIF जोड़ें।",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "बहुत ज़्यादा GIF खोजें हो गईं। थोड़ी देर बाद फिर से कोशिश करें।"
 }

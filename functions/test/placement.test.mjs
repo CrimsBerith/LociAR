@@ -48,13 +48,13 @@ test('high quality arkit lock with stored world map is auto-publish eligible', a
   assert.equal(result.autoPublishEligible, true);
 });
 
-test('only text posts are accepted: no device media and no links of any kind', () => {
+test('only text and GIF posts are accepted: no device media and no links of any kind', () => {
   const imageLayer = { ...base(), editData: { layers: [{ id: 'i', type: 'image', uri: 'storage://post-layer-assets/a/b.jpg' }] } };
-  assert.equal(validateCreatePostBody(imageLayer), 'Only text posts are allowed');
+  assert.equal(validateCreatePostBody(imageLayer), 'Only text and GIF posts are allowed');
   const ownVideo = { ...base(), contentSource: { platform: 'own_video', url: 'storage://post-video-assets/a/b.mp4', mediaKind: 'video' } };
-  assert.equal(validateCreatePostBody(ownVideo), 'Only text posts are allowed');
+  assert.equal(validateCreatePostBody(ownVideo), 'Only text and GIF posts are allowed');
   const photoLink = { ...base(), contentSource: { platform: 'other', url: 'https://example.com/a.jpg', mediaKind: 'image' } };
-  assert.equal(validateCreatePostBody(photoLink), 'Only text posts are allowed');
+  assert.equal(validateCreatePostBody(photoLink), 'Only text and GIF posts are allowed');
   // Social media links were removed on 9 Oct 2026: every platform, host and scheme is refused.
   const link = (platform, url) => ({ ...base(), contentSource: { platform, url, mediaKind: 'embed' } });
   for (const [platform, url] of [
@@ -152,11 +152,22 @@ test('admin_geo_estimate coordinate space is rejected from clients', () => {
   assert.equal(validateCreatePostBody(body), 'Invalid coordinate space');
 });
 
-test('drawing and layer shape limits', () => {
+test('one GIPHY GIF is accepted by id only; drawings are refused', () => {
+  const withLayers = (layers) => ({ ...base(), editData: { version: 1, layers } });
+  const gif = (gifId, extra = {}) => ({ id: 'g', type: 'gif', gifId, ...extra });
+  assert.equal(validateCreatePostBody(withLayers([gif('3o7aCSPqXE5C6T8tBC')])), null);
+  assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'Selam' }, gif('l0MYt5jPR6QX5pnqM')])), null);
+  assert.equal(validateCreatePostBody(withLayers([gif('a'), gif('b')])), 'Only one GIF is allowed');
+  for (const id of ['', 'https://media.giphy.com/media/x/giphy.gif', '../x', 'a b', 'a'.repeat(65), 42, null]) {
+    assert.equal(validateCreatePostBody(withLayers([gif(id)])), 'Invalid GIF', String(id));
+  }
+  assert.equal(validateCreatePostBody(withLayers([gif('abc', { uri: 'https://media.giphy.com/media/abc/giphy.mp4' })])), 'Only text and GIF posts are allowed');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', color: '#FFFFFF', points: [{ x: 0, y: 0 }] }])), 'Only text and GIF posts are allowed');
+});
+
+test('layer shape limits', () => {
   const withLayers = (layers) => ({ ...base(), editData: { version: 1, layers } });
   const stroke = (n, extra = {}) => ({ id: 'd', type: 'drawing', color: '#FFFFFF', points: Array.from({ length: n }, (_, i) => ({ x: i / n, y: 0.5 })), ...extra });
-  assert.equal(validateCreatePostBody(withLayers([stroke(50)])), null);
-  assert.equal(validateCreatePostBody(withLayers([stroke(2000)])), null);
   assert.equal(validateCreatePostBody(withLayers([stroke(2001)])), 'Invalid drawing');
   assert.equal(validateCreatePostBody(withLayers([stroke(2000), stroke(2000), stroke(1)])), 'Invalid drawing');
   assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', points: [{ x: 'a', y: 1 }] }])), 'Invalid drawing');

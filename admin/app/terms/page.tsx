@@ -30,7 +30,7 @@ export default function TermsPage() {
 
       <h2>İçerik kuralları</h2>
       <ul>
-        <li>Gönderiler yalnızca kısa metindir; fotoğraf, video veya bağlantı paylaşılamaz.</li>
+        <li>Gönderiler kısa bir metin mesajı ve/veya GIPHY&apos;den bir GIF&apos;tir; fotoğraf, video, çizim veya bağlantı paylaşılamaz. GIF&apos;ler GIPHY koşullarına tabidir.</li>
         <li>18+ / cinsel içerik yasaktır ve sunucu tarafından reddedilir.</li>
         <li>Okul, hastane, ibadet yeri, resmi kurum ve benzeri korumalı bölgelerde içerik oluşturmak yasaktır.</li>
         <li>Taciz, zorbalık, nefret söylemi, tehdit, şiddete teşvik, yasa dışı içerik, izinsiz telifli içerik, spam ve sahte kimlik yasaktır.</li>

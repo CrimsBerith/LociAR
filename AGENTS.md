@@ -27,7 +27,8 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - `firestore.rules` / `storage.rules` are default-deny; changes must keep `functions/test/rules/*` passing.
 - Blaze plan is required (Storage + Functions). Never weaken rules to work around Spark limits.
 - Service-account keys and Admin SDK credentials never ship in the iOS app or in `NEXT_PUBLIC_*`.
-- Posts are **text only** (text and drawing layers). Device photo/video uploads were removed on 29 Sep 2026 and social media links (Spotify, YouTube, TikTok, Instagram, X, Facebook) on 9 Oct 2026: `createPost` and the admin content editor reject image layers, own video and any URL (`functions/src/placement.ts`, `admin/lib/content-ops.ts`), and Storage denies uploads to `post-layer-assets` and `post-video-assets`. Old posts may still carry a link in `content_source_json`; clients must decode it without crashing and never show it. Do not re-add media or links without a product decision.
+- Posts are a **message: text and/or one GIPHY GIF** (owner decision, 9 Oct 2026), shown as a chat-style bubble in AR. Device photo/video uploads were removed on 29 Sep 2026; social media links (Spotify, YouTube, TikTok, Instagram, X, Facebook) and new drawings on 9 Oct 2026: `createPost` accepts only `text` and `gif` layers and rejects image layers, drawings, own video and any URL (`functions/src/placement.ts`); the admin content editor creates text posts only (`admin/lib/content-ops.ts`); Storage denies uploads to `post-layer-assets` and `post-video-assets`. Old posts may still carry a drawing (still rendered) or a link in `content_source_json`; clients must decode it without crashing and never show the link. Do not re-add media or links without a product decision.
+- **GIFs come from GIPHY** (Tenor's public API shut down on 30 Jun 2026). The key is the `GIPHY_API_KEY` secret, used only by the `searchGifs` callable and `createPost` (`functions/src/giphy.ts`); never ship it in the app. A GIF layer stores only the GIPHY id (`gifId`, letters and digits); `createPost` re-reads it from GIPHY (rating at most `pg-13`) and writes the size GIPHY reports. The app builds media URLs from the id on `media.giphy.com` only and shows "Powered by GIPHY" wherever search results appear.
 
 ## Product decisions
 
@@ -56,5 +57,5 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   `node scripts/check-localization.mjs --release` must pass too (no raw Turkish UI strings).
 - **Crash reporting:** Firebase Crashlytics enabled.
 - **Store availability:** Global (all territories).
-- **Media model:** Text only (no photos, videos or links). Social media links removed 9 Oct 2026.
+- **Media model:** Text and/or one GIPHY GIF (no photos, videos, drawings or links). Social media links and drawings removed 9 Oct 2026.
 

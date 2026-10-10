@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️ VPS timeout",
  "⚠️ İç hata": "⚠️ Internal error",
  "kullanıcı": "user",
- "Yayınlamak için bir caption yaz.": "Write a caption to publish.",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "Posts may contain only text; photos, videos and links are not supported.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "Posts containing photos and videos are no longer supported. Recreate the post as text.",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Pin your thoughts as short notes to real walls and spaces with AR surface locking.",
  "Davet": "Invite",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "You need an invite code to share. Enter the code you were given in Profile > Invite code.",
  "Sana verilen kod": "Code you were given",
  "Senin kodların": "Your codes",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Too many failed attempts. Try again later."
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Too many failed attempts. Try again later.",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "GIFs can't be loaded right now. Try again.",
+ "Bir posta en fazla bir GIF eklenebilir.": "A post can have at most one GIF.",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "This GIF is no longer available. Choose another GIF.",
+ "GIF ara": "Search GIFs",
+ "GIF bulunamadı.": "No GIFs found.",
+ "GIF ekle": "Add GIF",
+ "GIF seç": "Choose GIF",
+ "GIF": "GIF",
+ "Kaldır": "Remove",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "Posts may contain only text and GIFs; photos, videos, drawings and links are not supported.",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "Write a message or add a GIF to publish.",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "Too many GIF searches. Try again in a little while."
 }

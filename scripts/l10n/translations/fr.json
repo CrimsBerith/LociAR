@@ -557,8 +557,6 @@
  "⚠️ VPS zaman aşımı": "⚠️ Délai d'expiration du VPS",
  "⚠️ İç hata": "⚠️ Erreur interne",
  "kullanıcı": "utilisateur",
- "Yayınlamak için bir caption yaz.": "Rédigez une légende pour publier.",
- "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor.": "Les publications ne peuvent contenir que du texte ; les photos, vidéos et liens ne sont pas pris en charge.",
  "Fotoğraf ve video içeren postlar artık desteklenmiyor. Postu metin olarak yeniden oluştur.": "Les publications contenant des photos et des vidéos ne sont plus prises en charge. Recréez la publication sous forme de texte.",
  "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle.": "Épinglez vos pensées sous forme de notes courtes sur de vrais murs et espaces grâce au verrouillage de surface AR.",
  "Davet": "Invitation",
@@ -577,5 +575,17 @@
  "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.": "Un code d'invitation est nécessaire pour partager. Saisissez le code reçu dans Profil > Code d'invitation.",
  "Sana verilen kod": "Code reçu",
  "Senin kodların": "Vos codes",
- "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Trop de tentatives échouées. Réessayez plus tard."
+ "Çok fazla hatalı deneme. Bir süre sonra tekrar dene.": "Trop de tentatives échouées. Réessayez plus tard.",
+ "GIF'ler şu anda yüklenemiyor. Tekrar dene.": "Impossible de charger les GIF pour le moment. Réessayez.",
+ "Bir posta en fazla bir GIF eklenebilir.": "Une publication peut contenir au plus un GIF.",
+ "Bu GIF artık kullanılamıyor. Başka bir GIF seç.": "Ce GIF n'est plus disponible. Choisissez un autre GIF.",
+ "GIF ara": "Rechercher des GIF",
+ "GIF bulunamadı.": "Aucun GIF trouvé.",
+ "GIF ekle": "Ajouter un GIF",
+ "GIF seç": "Choisir un GIF",
+ "GIF": "GIF",
+ "Kaldır": "Retirer",
+ "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.": "Les publications ne peuvent contenir que du texte et des GIF ; les photos, vidéos, dessins et liens ne sont pas pris en charge.",
+ "Yayınlamak için bir mesaj yaz veya GIF ekle.": "Écrivez un message ou ajoutez un GIF pour publier.",
+ "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene.": "Trop de recherches de GIF. Réessayez dans un instant."
 }

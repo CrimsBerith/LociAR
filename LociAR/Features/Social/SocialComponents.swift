@@ -26,10 +26,32 @@ struct PostCard: View {
                     color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
                 )
             }
-            Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                .font(.body.weight(.semibold))
-                .lineLimit(4)
-                .foregroundStyle(.white.opacity(0.94))
+            if let gif = post.gif {
+                AnimatedGIFView(url: gif.previewURL)
+                    .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(alignment: .bottomTrailing) {
+                        Text(verbatim: "GIPHY")
+                            .font(.caption2.weight(.heavy))
+                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .background(.black.opacity(0.55), in: Capsule())
+                            .padding(6)
+                    }
+                    .accessibilityElement()
+                    .accessibilityLabel(Text("GIF"))
+                if let text = post.messageText {
+                    Text(text)
+                        .font(.body.weight(.semibold))
+                        .lineLimit(4)
+                        .foregroundStyle(.white.opacity(0.94))
+                }
+            } else {
+                Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
+                    .font(.body.weight(.semibold))
+                    .lineLimit(4)
+                    .foregroundStyle(.white.opacity(0.94))
+            }
 
             HStack(spacing: 18) {
                 LociMetricLabel(value: likeCount ?? post.counts.likes, title: String(localized: "beğeni"), symbol: "heart.fill", color: .pink)

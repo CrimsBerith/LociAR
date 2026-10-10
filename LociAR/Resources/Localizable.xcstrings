@@ -5246,6 +5246,83 @@
         }
       }
     },
+    "Bir posta en fazla bir GIF eklenebilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir posta en fazla bir GIF eklenebilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A post can have at most one GIF."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Beitrag kann höchstens ein GIF enthalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una publicación puede tener como máximo un GIF."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une publication peut contenir au plus un GIF."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma postagem pode ter no máximo um GIF."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В публикации может быть не больше одного GIF."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يمكن أن يحتوي المنشور على صورة GIF واحدة كحد أقصى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एक पोस्ट में ज़्यादा से ज़्यादा एक GIF हो सकता है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি পোস্টে সর্বোচ্চ একটি GIF থাকতে পারে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 つの投稿に追加できる GIF は 1 つまでです。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个帖子最多只能添加一个 GIF。"
+          }
+        }
+      }
+    },
     "Bir sorun oluştu" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5473,6 +5550,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "完成"
+          }
+        }
+      }
+    },
+    "Bu GIF artık kullanılamıyor. Başka bir GIF seç." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu GIF artık kullanılamıyor. Başka bir GIF seç."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This GIF is no longer available. Choose another GIF."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses GIF ist nicht mehr verfügbar. Wählen Sie ein anderes GIF."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este GIF ya no está disponible. Elige otro GIF."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce GIF n'est plus disponible. Choisissez un autre GIF."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este GIF não está mais disponível. Escolha outro GIF."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот GIF больше недоступен. Выберите другой GIF."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صورة GIF هذه لم تعد متاحة. اختر صورة GIF أخرى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह GIF अब उपलब्ध नहीं है। कोई दूसरा GIF चुनें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই GIF আর পাওয়া যাচ্ছে না। অন্য একটি GIF বেছে নিন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この GIF は利用できなくなりました。別の GIF を選んでください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 GIF 已不可用。请选择其他 GIF。"
           }
         }
       }
@@ -12253,6 +12407,468 @@
         }
       }
     },
+    "GIF" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF"
+          }
+        }
+      }
+    },
+    "GIF ara" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF ara"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search GIFs"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIFs suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar GIF"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des GIF"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar GIFs"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск GIF"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابحث عن GIF"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF खोजें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF খুঁজুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF を検索"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索 GIF"
+          }
+        }
+      }
+    },
+    "GIF bulunamadı." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF bulunamadı."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No GIFs found."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine GIFs gefunden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontraron GIF."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun GIF trouvé."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum GIF encontrado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF не найдены."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يتم العثور على صور GIF."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोई GIF नहीं मिला।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো GIF পাওয়া যায়নি।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF が見つかりません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到 GIF。"
+          }
+        }
+      }
+    },
+    "GIF ekle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF ekle"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add GIF"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir GIF"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un GIF"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar GIF"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить GIF"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إضافة GIF"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF जोड़ें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF যোগ করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF を追加"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加 GIF"
+          }
+        }
+      }
+    },
+    "GIF seç" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF seç"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose GIF"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF auswählen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir GIF"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir un GIF"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher GIF"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать GIF"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اختيار GIF"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF चुनें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF বেছে নিন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF を選択"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择 GIF"
+          }
+        }
+      }
+    },
+    "GIF'ler şu anda yüklenemiyor. Tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF'ler şu anda yüklenemiyor. Tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIFs can't be loaded right now. Try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIFs können gerade nicht geladen werden. Versuchen Sie es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pueden cargar los GIF ahora. Inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger les GIF pour le moment. Réessayez."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não é possível carregar GIFs agora. Tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сейчас не удаётся загрузить GIF. Попробуйте ещё раз."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يتعذر تحميل صور GIF الآن. حاول مرة أخرى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अभी GIF लोड नहीं हो पा रहे हैं। फिर से कोशिश करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখন GIF লোড করা যাচ্ছে না। আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在 GIF を読み込めません。もう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂时无法加载 GIF。请重试。"
+          }
+        }
+      }
+    },
     "GPS ve heading placement'a eklendi." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15791,6 +16407,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂时无法删除账号。请稍后重试。"
+          }
+        }
+      }
+    },
+    "Kaldır" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaldır"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirer"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إزالة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हटाएं"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সরান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除"
           }
         }
       }
@@ -26652,79 +27345,79 @@
         }
       }
     },
-    "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor." : {
+    "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Postlar yalnızca metin içerebilir; fotoğraf, video ve bağlantı desteklenmiyor."
+            "value" : "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Posts may contain only text; photos, videos and links are not supported."
+            "value" : "Posts may contain only text and GIFs; photos, videos, drawings and links are not supported."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beiträge dürfen nur Text enthalten; Fotos, Videos und Links werden nicht unterstützt."
+            "value" : "Beiträge dürfen nur Text und GIFs enthalten; Fotos, Videos, Zeichnungen und Links werden nicht unterstützt."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las publicaciones solo pueden contener texto; no se admiten fotos, vídeos ni enlaces."
+            "value" : "Las publicaciones solo pueden contener texto y GIF; no se admiten fotos, vídeos, dibujos ni enlaces."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les publications ne peuvent contenir que du texte ; les photos, vidéos et liens ne sont pas pris en charge."
+            "value" : "Les publications ne peuvent contenir que du texte et des GIF ; les photos, vidéos, dessins et liens ne sont pas pris en charge."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As postagens podem conter apenas texto; fotos, vídeos e links não são suportados."
+            "value" : "As postagens podem conter apenas texto e GIFs; fotos, vídeos, desenhos e links não são suportados."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Публикации могут содержать только текст; фото, видео и ссылки не поддерживаются."
+            "value" : "Публикации могут содержать только текст и GIF; фото, видео, рисунки и ссылки не поддерживаются."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يمكن أن تحتوي المنشورات على نص فقط؛ الصور ومقاطع الفيديو والروابط غير مدعومة."
+            "value" : "يمكن أن تحتوي المنشورات على نص وصور GIF فقط؛ الصور ومقاطع الفيديو والرسومات والروابط غير مدعومة."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "पोस्ट में केवल टेक्स्ट हो सकता है; फ़ोटो, वीडियो और लिंक समर्थित नहीं हैं।"
+            "value" : "पोस्ट में केवल टेक्स्ट और GIF हो सकते हैं; फ़ोटो, वीडियो, ड्रॉइंग और लिंक समर्थित नहीं हैं।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "পোস্টে শুধুমাত্র পাঠ্য থাকতে পারে; ফটো, ভিডিও এবং লিঙ্ক সমর্থিত নয়।"
+            "value" : "পোস্টে শুধু পাঠ্য ও GIF থাকতে পারে; ফটো, ভিডিও, আঁকা ছবি ও লিঙ্ক সমর্থিত নয়।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "投稿にはテキストのみを含めることができます。写真、ビデオ、リンクはサポートされていません。"
+            "value" : "投稿にはテキストと GIF のみを含めることができます。写真、ビデオ、手描き、リンクはサポートされていません。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "帖子只能包含文本；不支持照片、视频和链接。"
+            "value" : "帖子只能包含文本和 GIF；不支持照片、视频、涂鸦和链接。"
           }
         }
       }
@@ -34429,79 +35122,79 @@
         }
       }
     },
-    "Yayınlamak için bir caption yaz." : {
+    "Yayınlamak için bir mesaj yaz veya GIF ekle." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Yayınlamak için bir caption yaz."
+            "value" : "Yayınlamak için bir mesaj yaz veya GIF ekle."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Write a caption to publish."
+            "value" : "Write a message or add a GIF to publish."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schreiben Sie eine Beschreibung, um zu veröffentlichen."
+            "value" : "Schreiben Sie eine Nachricht oder fügen Sie ein GIF hinzu, um zu veröffentlichen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escribe una descripción para publicar."
+            "value" : "Escribe un mensaje o añade un GIF para publicar."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rédigez une légende pour publier."
+            "value" : "Écrivez un message ou ajoutez un GIF pour publier."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escreva uma legenda para publicar."
+            "value" : "Escreva uma mensagem ou adicione um GIF para publicar."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Напишите подпись, чтобы опубликовать."
+            "value" : "Напишите сообщение или добавьте GIF, чтобы опубликовать."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اكتب وصفًا للنشر."
+            "value" : "اكتب رسالة أو أضف صورة GIF للنشر."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "प्रकाशित करने के लिए एक कैप्शन लिखें।"
+            "value" : "प्रकाशित करने के लिए संदेश लिखें या GIF जोड़ें।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "প্রকাশ করতে একটি ক্যাপশন লিখুন।"
+            "value" : "প্রকাশ করতে একটি বার্তা লিখুন বা GIF যোগ করুন।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "公開するにはキャプションを入力してください。"
+            "value" : "公開するにはメッセージを入力するか GIF を追加してください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请填写说明后再发布。"
+            "value" : "请写一条消息或添加 GIF 后再发布。"
           }
         }
       }
@@ -41201,6 +41894,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "扫描环境"
+          }
+        }
+      }
+    },
+    "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çok fazla GIF araması yapıldı. Biraz sonra tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many GIF searches. Try again in a little while."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele GIF-Suchen. Versuchen Sie es gleich noch einmal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demasiadas búsquedas de GIF. Inténtalo dentro de un rato."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trop de recherches de GIF. Réessayez dans un instant."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muitas buscas de GIF. Tente novamente daqui a pouco."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слишком много поисков GIF. Попробуйте чуть позже."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عمليات بحث كثيرة جدًا عن GIF. حاول مرة أخرى بعد قليل."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बहुत ज़्यादा GIF खोजें हो गईं। थोड़ी देर बाद फिर से कोशिश करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনেক বেশি GIF খোঁজা হয়েছে। একটু পরে আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF の検索回数が多すぎます。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GIF 搜索次数过多。请稍后再试。"
           }
         }
       }

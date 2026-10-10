@@ -311,7 +311,7 @@ test('places are public read-only', async () => {
 });
 
 test('server-only collections stay closed for clients (reads and writes)', async () => {
-  for (const name of ['invites', 'invite_attempts', 'handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
+  for (const name of ['invites', 'invite_attempts', 'gif_search_quota', 'handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
     await assertFails(getDoc(doc(as(ALICE), name, 'x')));
     await assertFails(setDoc(doc(as(ALICE), name, 'x'), { owner_luid: ALICE }));
   }
