@@ -15,10 +15,16 @@ güncel kaynak, CI ve canlı metadata kanıtı ayrıca değerlendirilir.
   `.env.local` içindeki canlı bucket/credential ayarlarından bağımsız, açık demo ayarlarıyla çalışır.
 - Brand validator'unun karmaşıklık ve tekrarlanan path bulguları düzeltildi; 47 PNG kontrolü geçti.
 - Named gcloud backfill, Firestore'un desteklemediği custom Firebase Credential yerine OAuth
-  kullanır; iki credential seçim/cache/fail-closed regresyonu geçti. Canlıdaki iki profilin
+  kullanır; credential seçim/cache/fail-closed regresyonları geçti. Token bitişi Google
+  token-info yanıtından alınır; sabit bir kalan süre varsayılmaz, geçersiz/bitmiş süre reddedilir. Canlıdaki iki profilin
   `account_access` kaydı hazırlandı, tekrar koşusunda `changed=0`; world-map ön incelemesi 0 post / 0 token.
 - `GIPHY_API_KEY` Secret Manager'da ENABLED; tek GIF'li API kontrolü HTTP 200. Anahtar koda
   veya iOS bundle'a konmaz. Beta anahtarının toplam limiti 100 çağrı/saat; production yükseltmesi ayrı kapıdır.
+- Canlı Firestore/Storage rules repo ile aynı; 18 composite index READY ve 19 TTL ACTIVE.
+  Storage bucket US-EAST1 ile Functions us-central1 arasında private Pub/Sub identity/generation
+  bildirimi kullanılır; retry ve doğru topic/region metadata kapısında sınanır.
+- Metadata raporları yalnız private `build/firebase-readiness/` klasöründe düz JSON dosya adıyla
+  okunur/oluşturulur; traversal, symlink ve mevcut dosyanın üzerine yazma reddedilir.
 - GitHub `main` koruması CI ve SonarCloud sonuçlarını zorunlu kılar; force-push ve dal silme kapalıdır.
 
 Canlı Functions/rules/index/TTL/Scheduler kabulü, aday dağıtımından sonra
