@@ -162,7 +162,7 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(profile.contains("accessibilityIdentifier(\"post-report\")"))
         XCTAssertTrue(profile.contains("accessibilityIdentifier(\"profile-block-user\")"))
         XCTAssertTrue(auth.contains("accessibilityIdentifier(\"auth-apple\")"))
-        XCTAssertTrue(auth.contains("SignInWithAppleButton"))
+        XCTAssertTrue(auth.contains("ASAuthorizationAppleIDButton"))
         XCTAssertTrue(auth.contains("accessibilityIdentifier(\"auth-privacy\")"))
         XCTAssertTrue(auth.contains(".frame(minWidth: 44, minHeight: 44)"))
     }

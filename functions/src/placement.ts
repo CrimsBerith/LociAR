@@ -136,7 +136,7 @@ function hasStrictARKitWorldLockEvidence(body: CreatePostBody): boolean {
 }
 
 /**
- * Posts are text (and drawing layers) only. Social media links were removed on 9 Oct 2026 and
+ * Posts are text and/or one GIPHY GIF. Social media links were removed on 9 Oct 2026 and
  * device photos/videos on 29 Sep 2026: any URL in `contentSource` or a layer is refused.
  */
 function layerTexts(body: CreatePostBody): string[] {
@@ -161,22 +161,28 @@ const MAX_LAYER_TEXT = 1000;
 const MAX_POINT_ABS = 100_000;
 const LAYER_COLOR = /^#[0-9a-fA-F]{6}$/;
 
+function validDrawingPoint(point: unknown): boolean {
+  const p = (point ?? {}) as { x?: unknown; y?: unknown };
+  return typeof p.x === 'number' && typeof p.y === 'number' && Number.isFinite(p.x) && Number.isFinite(p.y)
+    && Math.abs(p.x) <= MAX_POINT_ABS && Math.abs(p.y) <= MAX_POINT_ABS;
+}
+
+function invalidLayerColor(color: unknown): boolean {
+  return color != null && (typeof color !== 'string' || !LAYER_COLOR.test(color));
+}
+
 /** Shape limits for edit layers: bounded count, text length, colours and drawing points. */
 function layerShapeError(layers: unknown[]): string | null {
   if (layers.length > MAX_EDIT_LAYERS) return 'Too many edit layers';
   let totalPoints = 0;
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
-    if (layer.color != null && (typeof layer.color !== 'string' || !LAYER_COLOR.test(layer.color))) return 'Invalid layer color';
+    if (invalidLayerColor(layer.color)) return 'Invalid layer color';
     if (typeof layer.text === 'string' && layer.text.length > MAX_LAYER_TEXT) return 'Layer text is too long';
     if (String(layer.type ?? layer.kind) !== 'drawing' || layer.points == null) continue;
     const points = layer.points;
     if (!Array.isArray(points) || points.length > MAX_POINTS_PER_DRAWING) return 'Invalid drawing';
-    for (const point of points) {
-      const p = (point ?? {}) as { x?: unknown; y?: unknown };
-      if (typeof p.x !== 'number' || typeof p.y !== 'number' || !Number.isFinite(p.x) || !Number.isFinite(p.y)
-        || Math.abs(p.x) > MAX_POINT_ABS || Math.abs(p.y) > MAX_POINT_ABS) return 'Invalid drawing';
-    }
+    if (!Array.from(points).every(validDrawingPoint)) return 'Invalid drawing';
     totalPoints += points.length;
     if (totalPoints > MAX_TOTAL_DRAWING_POINTS) return 'Invalid drawing';
   }

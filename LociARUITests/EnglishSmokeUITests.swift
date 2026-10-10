@@ -27,7 +27,7 @@ final class EnglishSmokeUITests: XCTestCase {
         let app = launchEnglish(["UITEST_AUTHENTICATED"])
         let tabs = app.tabBars.firstMatch
         XCTAssertTrue(tabs.waitForExistence(timeout: 5))
-        for title in ["AR", "Map", "Share", "Explore", "Profile"] {
+        for title in ["AR", "Map", "Share", "Discover", "Profile"] {
             XCTAssertTrue(tabs.buttons[title].exists, "missing English tab \(title)")
         }
         tabs.buttons["Profile"].tap()

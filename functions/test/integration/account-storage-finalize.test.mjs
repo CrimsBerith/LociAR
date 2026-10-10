@@ -11,7 +11,10 @@ function finalizedEvent(file) {
   assert.ok(metadata.generation, 'emulator save includes the exact finalized generation');
   // Storage SDK calls such as exists() may replace file.metadata after deletion. A redelivered
   // event retains its original generation independently of that mutable File instance.
-  return Object.freeze({ data: Object.freeze({ name: file.name, bucket: bucket().name, generation: metadata.generation }) });
+  return Object.freeze({ data: { message: { attributes: Object.freeze({
+    eventType: 'OBJECT_FINALIZE', payloadFormat: 'NONE', bucketId: bucket().name,
+    objectId: file.name, objectGeneration: String(metadata.generation),
+  }) } } });
 }
 
 test('an upload finalized after a completed account deletion is removed without an Auth/profile record', async () => {

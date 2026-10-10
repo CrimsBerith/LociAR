@@ -1,6 +1,7 @@
 import AuthenticationServices
 import CryptoKit
 import SwiftUI
+import UIKit
 
 struct AuthView: View {
     private enum Mode { case signIn, signUp }
@@ -277,7 +278,7 @@ struct AuthView: View {
     }
 
     private var appleButton: some View {
-        SignInWithAppleButton(mode == .signUp ? .signUp : .signIn) { request in
+        ConsentAppleSignInButton(type: mode == .signUp ? .signUp : .signIn, enabled: termsAccepted) { request in
             let nonce = Nonce.make()
             currentNonce = nonce
             request.requestedScopes = [.email, .fullName]
@@ -293,7 +294,7 @@ struct AuthView: View {
             let fullName = credential.fullName.map { PersonNameComponentsFormatter().string(from: $0) }
             Task { await authenticateApple(token: token, fullName: fullName) }
         }
-        .signInWithAppleButtonStyle(.white)
+        .id(mode == .signUp)
         .frame(height: 52)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         // Apple sign-in can create an account, so it also needs the consent checkbox.
@@ -414,6 +415,78 @@ struct AuthView: View {
             try await session.acceptAppleCredential(identityToken: token, nonce: currentNonce, fullName: fullName)
         } catch {
             message = String(localized: "Apple ile giriş şu anda tamamlanamadı. Tekrar dene.")
+        }
+    }
+}
+
+/// Keep Apple's native button and authorization flow; expose its disabled state to VoiceOver.
+private struct ConsentAppleSignInButton: UIViewRepresentable {
+    let type: ASAuthorizationAppleIDButton.ButtonType
+    let enabled: Bool
+    let onRequest: (ASAuthorizationAppleIDRequest) -> Void
+    let onCompletion: (Result<ASAuthorization, Error>) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> AccessibleAppleIDButton {
+        let button = AccessibleAppleIDButton(type: type, style: .white)
+        button.accessibilityIdentifier = "auth-apple"
+        button.addTarget(context.coordinator, action: #selector(Coordinator.signIn), for: .touchUpInside)
+        context.coordinator.button = button
+        return button
+    }
+
+    func updateUIView(_ button: AccessibleAppleIDButton, context: Context) {
+        context.coordinator.parent = self
+        button.isEnabled = enabled
+    }
+
+    final class AccessibleAppleIDButton: ASAuthorizationAppleIDButton {
+        override var accessibilityTraits: UIAccessibilityTraits {
+            get {
+                var traits = super.accessibilityTraits
+                if !isEnabled { traits.insert(.notEnabled) }
+                return traits
+            }
+            set { super.accessibilityTraits = newValue }
+        }
+    }
+
+    final class Coordinator: NSObject, ASAuthorizationControllerDelegate,
+        ASAuthorizationControllerPresentationContextProviding {
+        var parent: ConsentAppleSignInButton
+        weak var button: AccessibleAppleIDButton?
+        private var controller: ASAuthorizationController?
+        private var window: UIWindow?
+
+        init(_ parent: ConsentAppleSignInButton) { self.parent = parent }
+
+        @objc func signIn() {
+            guard parent.enabled, controller == nil, let window = button?.window else { return }
+            self.window = window
+            let request = ASAuthorizationAppleIDProvider().createRequest()
+            parent.onRequest(request)
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            self.controller = controller
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            controller.performRequests()
+        }
+
+        func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+            window ?? ASPresentationAnchor()
+        }
+
+        func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+            self.controller = nil
+            window = nil
+            parent.onCompletion(.success(authorization))
+        }
+
+        func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+            self.controller = nil
+            window = nil
+            parent.onCompletion(.failure(error))
         }
     }
 }

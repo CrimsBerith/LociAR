@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkPrerequisites, completedTests, preflight, releaseSteps, runSteps } from '../release-preflight.mjs';
-import { deploy, deploymentEnvironment } from '../firebase-deploy.mjs';
+import { deploy, deploymentEnvironment, functionDeploymentBatches } from '../firebase-deploy.mjs';
 
 const completeNode = 'TAP version 13\n1..2\n# tests 2\n# pass 2\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 2.5\n';
 
@@ -69,6 +69,29 @@ test('successful deployment explicitly targets the fixed project and does not fo
   assert.equal(args.includes('--force'), false);
   assert.equal(args.includes('--non-interactive'), true);
   assert.throws(() => deploymentEnvironment({ FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' }), /Emulator selectors/);
+});
+
+test('deployment visits every exported function exactly once in bounded sequential batches', () => {
+  const calls = [];
+  deploy({ env: {}, validate() {}, runner(command, args) { calls.push(args); return { status: 0 }; } });
+  const batches = functionDeploymentBatches();
+  const targeted = calls.slice(2).map(args => args[args.indexOf('--only') + 1].split(',').map(name => name.slice('functions:'.length)));
+  assert.deepEqual(targeted, batches);
+  assert.ok(batches.length > 1);
+  assert.ok(batches.every(batch => batch.length === 1));
+  const names = batches.flat();
+  assert.equal(new Set(names).size, names.length);
+  for (const name of ['createPost', 'searchGifs', 'onWorldMapFinalized', 'onDeletedAccountObjectFinalized']) assert.ok(names.includes(name));
+  for (const size of [0, 11, 1.5]) assert.throws(() => functionDeploymentBatches(undefined, size));
+});
+
+test('a failed function batch stops subsequent batches and retains the deployment error status', () => {
+  const calls = [];
+  assert.throws(() => deploy({ env: {}, validate() {}, runner(command, args) {
+    calls.push(args);
+    return { status: calls.length === 3 ? 29 : 0 };
+  } }), error => error.exitCode === 29);
+  assert.equal(calls.length, 3);
 });
 
 test('complete Node and Playwright summaries accept every passing test, with terminal colors', () => {

@@ -75,10 +75,20 @@ Bu adım eski kalıcı Storage token'larını kaldırır; **geri alınamaz**.
 
 ## 7. Deploy
 
+- [ ] Mevcut bucket `us-east1`, Functions `us-central1` ise
+      [Storage finalize delivery](../STORAGE_FINALIZE_DELIVERY.md) içindeki tek `OBJECT_FINALIZE`
+      / `NONE` Pub/Sub notification'ı doğrula/oluştur. Functions bölgesi değiştirilmez.
+
 ```sh
 bash scripts/firebase-deploy.command                     # Firestore rules + indexes + TTL, Storage rules, Functions
 ./functions/node_modules/.bin/firebase deploy --only apphosting --project lociar-2f38c   # admin + /privacy /terms /support
 ```
+
+İlk retry policy etkinleştirmesinde Firebase CLI `--force` onayı isteyebilir. Önce mevcut
+Functions envanterini kaynak export listesiyle karşılaştır: beklenmeyen silme varsa dur.
+Sıfır silme ve geçen idempotency testleri doğrulandıktan sonra yalnız bu ilk deploy için
+`firebase deploy --only firestore,storage,functions --project lociar-2f38c --non-interactive --force`
+ile retry politikası onaylanabilir. Normal deploy betiği otomatik `--force` eklemez.
 
 ## 8. Doğrulama
 

@@ -6,6 +6,16 @@ import { preflight, REPOSITORY_ROOT } from './release-preflight.mjs';
 
 export const PROJECT = 'lociar-2f38c';
 
+/** Bound startup/deploy pressure without changing CPU, regions or the security contract. */
+export function functionDeploymentBatches(root = REPOSITORY_ROOT, size = 1) {
+  if (!Number.isInteger(size) || size < 1 || size > 10) throw new Error('Function batches must contain 1 to 10 functions.');
+  const source = readFileSync(path.join(root, 'functions/src/index.ts'), 'utf8');
+  const names = [...new Set([...source.matchAll(/export\s*\{([^}]+)\}\s*from/g)]
+    .flatMap(match => match[1].split(',').map(name => name.trim().split(/\s+as\s+/).at(-1)).filter(Boolean)))];
+  if (!names.length || names.some(name => !/^[A-Za-z_$][\w$]*$/.test(name))) throw new Error('Function export inventory could not be derived.');
+  return Array.from({ length: Math.ceil(names.length / size) }, (_, i) => names.slice(i * size, (i + 1) * size));
+}
+
 export function deploymentEnvironment(env = process.env, alias) {
   if (['FIREBASE_AUTH_EMULATOR_HOST', 'FIRESTORE_EMULATOR_HOST', 'FIREBASE_STORAGE_EMULATOR_HOST', 'FUNCTIONS_EMULATOR'].some(name => env[name])) throw new Error('Emulator selectors must not be present during a production deployment.');
   const result = { ...env };
@@ -29,7 +39,8 @@ export function deploy({ dryRun = false, planOnly = false, alias, runner = spawn
   const command = path.join(root, 'functions/node_modules/.bin/firebase');
   for (const args of [
     ['apps:list', '--project', PROJECT, '--non-interactive'],
-    ['deploy', '--only', 'firestore,storage,functions', '--project', PROJECT, '--non-interactive'],
+    ['deploy', '--only', 'firestore,storage', '--project', PROJECT, '--non-interactive'],
+    ...functionDeploymentBatches(root).map(batch => ['deploy', '--only', batch.map(name => 'functions:' + name).join(','), '--project', PROJECT, '--non-interactive']),
   ]) {
     const result = runner(command, args, { cwd: root, env: selectedEnv, stdio: 'inherit' });
     if (result.error || result.status !== 0) {

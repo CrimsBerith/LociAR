@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import ciEnvironment from './scripts/ci-environment.json';
 
 const remoteBaseURL = process.env.ADMIN_E2E_BASE_URL;
 const storageState = process.env.ADMIN_E2E_STORAGE_STATE;
@@ -31,6 +32,7 @@ export default defineConfig({
     { name: 'mobile-chromium', use: { ...devices['iPhone 14'], browserName: 'chromium' } },
   ],
   webServer: remoteBaseURL ? undefined : {
+    env: { ...ciEnvironment, ADMIN_ORIGIN: localOrigin },
     command: `npm run ${process.env.CI ? 'start' : 'dev'} -- --hostname 127.0.0.1 --port ${Number(configuredPort)}`,
     url: `${localOrigin}/admin/login`,
     reuseExistingServer: !process.env.CI,

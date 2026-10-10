@@ -1,8 +1,35 @@
 # Native iOS / Firebase yayın hazırlığı
 
-Güncelleme: **5 Ekim 2026**. Bu belge güncel kapsamı ve açık yayın kapılarını tutar.
-Yayın adayı henüz onaylı değildir. Kod düzeltmeleri çalışma ağacında; bu oturumda commit, push,
-deploy, canlı parola değişikliği veya App Store gönderimi yapılmadı.
+Güncelleme: **10 Ekim 2026**. Bu belge kapsamı ve açık yayın kapılarını tutar.
+Yayın adayı henüz onaylı değildir. Aşağıdaki 5 Ekim test kayıtları tarihseldir;
+güncel kaynak, CI ve canlı metadata kanıtı ayrıca değerlendirilir.
+
+## 10 Ekim düzeltme paketi
+
+- Mac/Xcode 26.6: 127 native birim ve 19 simülatör UI testi geçti. Giriş ekranındaki disabled
+  Apple düğmesi artık erişilebilirlik trait'ini taşıyor; yasal profil linkleri kaydırılarak
+  sınanıyor; İngilizce sekme beklentisi `Discover` ile eşleşiyor. Consent açma/kapatma kontrolü de geçti.
+- `ci-ios.sh` iki lokalizasyon smoke testi yerine simülatöre uygun tüm navigasyon,
+  erişilebilirlik, oluşturma ve İngilizce/Arapça RTL testlerini seçer. Fiziksel/emülatör testleri ayrı kalır.
+- 19 kapılı yerel preflight geçti. Chromium kurulumu kapıya dahil; admin test sunucuları
+  `.env.local` içindeki canlı bucket/credential ayarlarından bağımsız, açık demo ayarlarıyla çalışır.
+- Brand validator'unun karmaşıklık ve tekrarlanan path bulguları düzeltildi; 47 PNG kontrolü geçti.
+- Named gcloud backfill, Firestore'un desteklemediği custom Firebase Credential yerine OAuth
+  kullanır; credential seçim/cache/fail-closed regresyonları geçti. Token bitişi Google
+  token-info yanıtından alınır; sabit bir kalan süre varsayılmaz, geçersiz/bitmiş süre reddedilir. Canlıdaki iki profilin
+  `account_access` kaydı hazırlandı, tekrar koşusunda `changed=0`; world-map ön incelemesi 0 post / 0 token.
+- `GIPHY_API_KEY` Secret Manager'da ENABLED; tek GIF'li API kontrolü HTTP 200. Anahtar koda
+  veya iOS bundle'a konmaz. Beta anahtarının toplam limiti 100 çağrı/saat; production yükseltmesi ayrı kapıdır.
+- Canlı Firestore/Storage rules repo ile aynı; 18 composite index READY ve 19 TTL ACTIVE.
+  Storage bucket US-EAST1 ile Functions us-central1 arasında private Pub/Sub identity/generation
+  bildirimi kullanılır; retry ve doğru topic/region metadata kapısında sınanır.
+- Metadata raporları yalnız private `build/firebase-readiness/` klasöründe düz JSON dosya adıyla
+  okunur/oluşturulur; traversal, symlink ve mevcut dosyanın üzerine yazma reddedilir.
+- GitHub `main` koruması CI ve SonarCloud sonuçlarını zorunlu kılar; force-push ve dal silme kapalıdır.
+
+Canlı Functions/rules/index/TTL/Scheduler kabulü, aday dağıtımından sonra
+`qa-live-firebase.py` ile yeniden doğrulanır. Fiziksel AR, gerçek Apple/APNs/TOTP,
+TestFlight ve App Store gönderimi bu otomatik sonuçlarla onaylanmaz.
 
 ## Kapsam
 
@@ -34,7 +61,7 @@ Expo, Android, Supabase, Docker ve Vercel dönemindeki arşivler bu sürümün k
 | F08 — Aktivite okundu yazımı | Sunucu callable, gerçek belge ID, ilk zamanın korunması, yabancı alıcı/oturum reddi, UI retry | Fiziksel UI ve push dokunma akışı |
 | F09 — Hesap silmede reauth | Parola ve Apple provider reauth, nonce/ID token yenileme, taze oturum; Apple revoke hatasında silme iptali | Gerçek Apple ve parola hesabıyla fiziksel silme kabulü |
 | F10 — Dil/izin metni eksikleri | 583 UI + 3 izin anahtarı, 12 dil, biçim argümanı ve kaynak taraması; yeni metinlere bağlam incelemesi | Derlenmiş bundle, dil değişimi, RTL, VoiceOver, Dynamic Type |
-| F11 — Native/cihaz CI kanıtı | macOS/Xcode CI, İngilizce/Arapça UI testleri, doğru hata kodu; 23 saha koşusu için kanıt doğrulayıcı | macOS CI gerçekten çalışmalı; iki fiziksel iPhone matrisi tamamlanmalı |
+| F11 — Native/cihaz CI kanıtı | macOS/Xcode CI ve Mac'te 127 native + 19 geniş UI testi; 23 saha koşusu için kanıt doğrulayıcı | Yeni adayın CI sonucu ve iki fiziksel iPhone matrisi |
 | F12 — Eski çalışma/yayın belgeleri | Güncel pano, bu plan, QA komutları, tarihsel saha/canlı iddialarının ayrılması | Her yayın adayının sonuçları bu plana bağlanmalı |
 | F13 — Kesintiye uğrayan hesap silme | Kalıcı, aşamalı ve lease ile korunan iş; beklenen batch sonuçları; beş dakikalık retry; yeni yazmalara engel; silmeden sonra tamamlanan yüklemeler için retry edilen generation koşullu finalize temizliği | [Geçiş sırası](../ACTIVITY_AND_ACCOUNT_DELETION.md#canlıya-geçiş-sırası), `account_access` backfill ve canlı Scheduler/Eventarc/IAM kabulü |
 | F14 — Ters sıralı sayaç olayları | Transaction içinde kaynak sayımı; tekrar/ters sıra testleri; tüm kayıtları sırayla dolaşan reconciler ve engagement onarımı; açık admin düzeltmeleri için offset | Aday tetikleyici ve scheduler dağıtımı |

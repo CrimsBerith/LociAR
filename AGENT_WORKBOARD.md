@@ -1,10 +1,18 @@
 # LociAR çalışma panosu
 
-Güncelleme: 5 Ekim 2026. Güncel kapsam native iOS + Firebase + Next.js App Hosting'dir.
+Güncelleme: 10 Ekim 2026. Güncel kapsam native iOS + Firebase + Next.js App Hosting'dir.
 Önceki çalışma panosu Git geçmişinde korunur; geçmiş test sonuçları bu adayın yayın onayı değildir.
 
 Tek güncel yayın planı: [docs/release/RELEASE_READINESS.md](docs/release/RELEASE_READINESS.md).
 Kod kuralları: [AGENTS.md](AGENTS.md). Test komutları: [docs/QA_MATRIX.md](docs/QA_MATRIX.md).
+
+10 Ekim: Mac'te 127 birim + 19 simülatör UI testi ve 19 kapılı backend/admin preflight geçti.
+Geniş UI kapsamı CI'ya alındı; test ortamı demo bucket/credential ayarlarıyla izole edildi.
+GIPHY beta anahtarı yalnız Secret Manager'da; 2 profilin `account_access` backfill'i sonrası
+`changed=0`. Canlı rules repo ile aynı; 18 indeks READY, 19 TTL ACTIVE. Functions
+dağıtımı sıralıdır; private Pub/Sub Storage bildirimleri region ve retry ile doğrulanır.
+Son canlı/saha kabulü ve aday CI sonucu ayrı kanıt gerektirir.
+Aşağıdaki 5 Ekim iş kayıtları fiziksel veya canlı yayın onayı sayılmaz.
 
 | İş | Durum | Kabul / sonraki adım |
 |---|---|---|
@@ -20,7 +28,7 @@ Kod kuralları: [AGENTS.md](AGENTS.md). Test komutları: [docs/QA_MATRIX.md](doc
 | Bağımlılık güvenliği | Admin ve Functions tam ağaç temiz; CLI chokidar 4 override'ı braces açığını kapattı (6 Ekim) | Upstream CLI chokidar 4'e geçince override kaldırılır |
 | Canlı credential yenileme | Güvenli yardımcı ve emülatör kanıtı hazır | Yetkili GCP kimliğiyle eski parolaları geçersiz kıl |
 | Fiziksel AR matrisi | Kanıt şablonu ve doğrulayıcı hazır | İki iPhone üzerinde 23 koşu + log/video |
-| Canlı altyapı ve yayın | Bu oturumda doğrulanmadı | Release planındaki canlı kapıları kapat |
+| Canlı altyapı ve yayın | Rules, indeks, TTL, secret ve backfill doğrulandı; Functions rollout sürüyor | Son metadata/Storage olay kabulü ve fiziksel yayın kapılarını kapat |
 
 Yayın sorumlusu, yayın planındaki açık kapılar kapanmadan bu panoyu tamamlanmış yayın olarak işaretlemez.
 

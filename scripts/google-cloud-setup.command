@@ -49,6 +49,7 @@ gcloud services enable \
   pubsub.googleapis.com \
   storage.googleapis.com \
   firestore.googleapis.com \
+  firebaserules.googleapis.com \
   firebaseappcheck.googleapis.com \
   fcm.googleapis.com \
   identitytoolkit.googleapis.com \

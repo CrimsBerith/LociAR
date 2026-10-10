@@ -223,6 +223,10 @@ Crashlytics çökme uyarıları ayrıca Firebase Console → Crashlytics → ⋮
 ## 6c. Büyüme özellikleri (varsayılan kapalı, owner)
 
 - **Postlar mesajdır: metin ve/veya 1 GIF (9 Ekim 2026).** Sosyal medya bağlantıları (Spotify, YouTube, TikTok, Instagram, X, Facebook) ve yeni çizimler kaldırıldı: `createPost` yalnızca `text` ve `gif` katmanlarını kabul eder, her bağlantıyı reddeder (`Links are not allowed`); admin içerik düzenleyicisi yalnızca metin post oluşturur (`links_not_allowed`). Eski postlardaki bağlantı verisi silinmez; uygulama onu metin olarak çözer ve göstermez, admin post sayfası "legacy link" olarak gösterir. Eski çizimli postlar görünmeye devam eder.
+- **Storage finalize teslimi.** Mevcut bucket `us-east1`, Functions `us-central1` olduğundan
+  [Storage → Pub/Sub kurulumu](STORAGE_FINALIZE_DELIVERY.md) gerekir. Tek `OBJECT_FINALIZE` / `NONE`
+  notification kullanılır; bucket ve Functions bölgeleri değiştirilmez. Metadata kapısı notification,
+  topic, retry ve consumer bölgesini de denetler.
 - **GIF'ler (GIPHY).** Tenor'un genel API'si 30 Haziran 2026'da kapandığı için GIPHY kullanılır. Kurulum:
   1. <https://developers.giphy.com/dashboard/> üzerinden bir **API** uygulaması oluştur (SDK değil). Beta anahtarı saatte 100 istekle sınırlıdır; yayından önce GIPHY'den production anahtarı iste (uygulamada "Powered by GIPHY" etiketi zaten var).
   2. `cd functions && npx firebase functions:secrets:set GIPHY_API_KEY --project lociar-2f38c` ve anahtarı yapıştır. Anahtar uygulamaya hiç gitmez.
