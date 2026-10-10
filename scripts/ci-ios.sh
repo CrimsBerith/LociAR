@@ -43,7 +43,7 @@ for name in ['AuthGateUITests.swift', 'AuthGateUserFlowUITests.swift', 'EnglishS
         print(f'{suite}/{test}')
 PY
 )
-if [ "${#ui_tests[@]}" -eq 0 ]; then
+if [[ "${#ui_tests[@]}" -eq 0 ]]; then
   echo 'No simulator UI tests selected.' >&2
   exit 2
 fi

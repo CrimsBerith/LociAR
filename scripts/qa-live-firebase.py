@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 
 from firebase_readiness import BUCKET, PROJECT, REGION, RESOURCE_KEYS, SCHEMA_VERSION, validate_report
 
@@ -32,27 +33,50 @@ class IdentitySelectionError(ValueError):
     pass
 
 
+def managed_identity(manifest_path: str, configuration: str) -> dict:
+    try:
+        manifest = json.loads(Path(manifest_path).read_text())
+    except (OSError, ValueError):
+        raise IdentitySelectionError('Managed identity manifest cannot be read; no fallback identity was selected.') from None
+    if not isinstance(manifest, dict) or not isinstance(manifest.get('connections'), list):
+        raise IdentitySelectionError('Managed identity manifest format is unsupported; no fallback identity was selected.')
+    matches = [entry for entry in manifest['connections'] if isinstance(entry, dict) and entry.get('provider_kind') == 'gcp' and entry.get('configuration_name') == configuration]
+    if manifest.get('version') != 1 or len(matches) != 1:
+        raise IdentitySelectionError('No matching managed GCP identity. Configure one in environment settings first.')
+    return matches[0]
+
+
 def selected_environment(configuration: str, env: dict[str, str] | None = None) -> dict[str, str]:
     env = dict(os.environ if env is None else env)
     if any(env.get(name) for name in EMULATOR_SELECTORS):
         raise IdentitySelectionError('Unset emulator selectors before collecting live metadata.')
-    manifest_path = env.get('OIC_MANIFEST_PATH')
-    if manifest_path:
-        try:
-            manifest = json.loads(Path(manifest_path).read_text())
-        except (OSError, ValueError):
-            raise IdentitySelectionError('Managed identity manifest cannot be read; no fallback identity was selected.') from None
-        if not isinstance(manifest, dict) or not isinstance(manifest.get('connections'), list):
-            raise IdentitySelectionError('Managed identity manifest format is unsupported; no fallback identity was selected.')
-        matches = [entry for entry in manifest.get('connections', []) if isinstance(entry, dict) and entry.get('provider_kind') == 'gcp' and entry.get('configuration_name') == configuration]
-        if manifest.get('version') != 1 or len(matches) != 1:
-            raise IdentitySelectionError('No matching managed GCP identity. Configure one in environment settings first.')
-        selected = matches[0]
+    if env.get('OIC_MANIFEST_PATH'):
+        selected = managed_identity(env['OIC_MANIFEST_PATH'], configuration)
         for variable, field in [('CLOUDSDK_CONFIG', 'config_dir'), ('CLOUDSDK_ACTIVE_CONFIG_NAME', 'configuration_name'), ('GOOGLE_APPLICATION_CREDENTIALS', 'credentials_file')]:
             if not isinstance(selected.get(field), str) or not selected[field]:
                 raise IdentitySelectionError('The managed GCP identity is missing selector metadata.')
             env[variable] = selected[field]  # Paths select a configured identity; credential contents are never read.
     return env
+
+
+def write_report(destination: Path, output: str) -> None:
+    """Create one new JSON in a private report directory; never follow/overwrite a target."""
+    if not destination.is_absolute() or '..' in destination.parts or destination.suffix != '.json':
+        raise ValueError('Report requires an absolute JSON path without parent traversal.')
+    parent = destination.parent.resolve(strict=True)
+    roots = (Path(__file__).resolve().parents[1] / 'build', Path(tempfile.gettempdir()).resolve(), Path('/tmp').resolve())
+    if not any(parent.is_relative_to(root) for root in roots):
+        raise ValueError('Report directory must be inside build or the system temporary directory.')
+    directory = os.open(parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        metadata = os.fstat(directory)
+        if metadata.st_uid != os.getuid() or metadata.st_mode & 0o077:
+            raise ValueError('Report directory must be owned by this user with mode 700.')
+        fd = os.open(destination.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=directory)
+        with os.fdopen(fd, 'w') as stream:
+            stream.write(output)
+    finally:
+        os.close(directory)
 
 
 def collect_metadata(configuration: str, env: dict[str, str], runner=subprocess.run) -> dict:
@@ -77,8 +101,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument('--gcloud-configuration', help='Explicit authenticated GCP configuration name; live metadata reads only')
-    source.add_argument('--from-report', type=Path, help='Validate this schema-v1 JSON report fully offline; no credentials or gcloud required')
-    parser.add_argument('--report', type=Path, help='Write sanitized JSON here instead of stdout')
+    source.add_argument('--from-report', type=Path, help='Validate this schema-v2 JSON report fully offline; no credentials or gcloud required')
+    parser.add_argument('--report', type=Path, help='Create a new JSON in a private build/temp directory (absolute path, directory mode 700)')
     args = parser.parse_args(argv)
     try:
         if args.from_report:
@@ -93,12 +117,7 @@ def main(argv: list[str] | None = None) -> int:
         checked['validated_at'] = datetime.now(timezone.utc).isoformat()
         output = json.dumps(checked, ensure_ascii=False, indent=2) + '\n'
         if args.report:
-            # Report contains selected metadata only; owner-only file permissions still avoid
-            # accidental disclosure of operational resource identifiers on shared machines.
-            fd = os.open(args.report, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-            with os.fdopen(fd, 'w') as stream:
-                os.fchmod(stream.fileno(), 0o600)
-                stream.write(output)
+            write_report(args.report, output)
         else:
             sys.stdout.write(output)
         print(f"Firebase metadata readiness: {'PASS' if checked['readiness']['ready'] else 'FAIL'} ({len(checked['readiness']['findings'])} findings)", file=sys.stderr)

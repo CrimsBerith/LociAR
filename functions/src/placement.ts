@@ -161,6 +161,12 @@ const MAX_LAYER_TEXT = 1000;
 const MAX_POINT_ABS = 100_000;
 const LAYER_COLOR = /^#[0-9a-fA-F]{6}$/;
 
+function validDrawingPoint(point: unknown): boolean {
+  const p = (point ?? {}) as { x?: unknown; y?: unknown };
+  return typeof p.x === 'number' && typeof p.y === 'number' && Number.isFinite(p.x) && Number.isFinite(p.y)
+    && Math.abs(p.x) <= MAX_POINT_ABS && Math.abs(p.y) <= MAX_POINT_ABS;
+}
+
 /** Shape limits for edit layers: bounded count, text length, colours and drawing points. */
 function layerShapeError(layers: unknown[]): string | null {
   if (layers.length > MAX_EDIT_LAYERS) return 'Too many edit layers';
@@ -172,11 +178,7 @@ function layerShapeError(layers: unknown[]): string | null {
     if (String(layer.type ?? layer.kind) !== 'drawing' || layer.points == null) continue;
     const points = layer.points;
     if (!Array.isArray(points) || points.length > MAX_POINTS_PER_DRAWING) return 'Invalid drawing';
-    for (const point of points) {
-      const p = (point ?? {}) as { x?: unknown; y?: unknown };
-      if (typeof p.x !== 'number' || typeof p.y !== 'number' || !Number.isFinite(p.x) || !Number.isFinite(p.y)
-        || Math.abs(p.x) > MAX_POINT_ABS || Math.abs(p.y) > MAX_POINT_ABS) return 'Invalid drawing';
-    }
+    if (!Array.from(points).every(validDrawingPoint)) return 'Invalid drawing';
     totalPoints += points.length;
     if (totalPoints > MAX_TOTAL_DRAWING_POINTS) return 'Invalid drawing';
   }

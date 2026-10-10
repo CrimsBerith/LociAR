@@ -4,12 +4,12 @@
 It never enables APIs, changes IAM, deploys Functions, modifies data, reads an Apple key value or starts an interactive login.
 Python 3 is required. This work does not require macOS/Xcode.
 
-After an authorized GCP identity has been connected, run:
+Create an owner-only report directory under the repository `build/` or the system temporary directory (`mkdir -m 700`). Use a new absolute `.json` filename for each report; existing files and symlinks are refused. After an authorized GCP identity has been connected, run:
 
 ```sh
 python3 -B scripts/qa-live-firebase.py \
   --gcloud-configuration <authorized-configuration> \
-  --report /absolute/private/firebase-metadata.json
+  --report /absolute/repository/build/private/firebase-metadata.json
 ```
 
 In a managed environment the configuration must match exactly one GCP connection in the version-1
@@ -22,8 +22,8 @@ Validate the saved report without GCP, credentials or `gcloud`:
 
 ```sh
 python3 -B scripts/qa-live-firebase.py \
-  --from-report /absolute/private/firebase-metadata.json \
-  --report /absolute/private/firebase-metadata-checked.json
+  --from-report /absolute/repository/build/private/firebase-metadata.json \
+  --report /absolute/repository/build/private/firebase-metadata-checked.json
 ```
 
 Exit `0` means every modeled criterion passed; exit `1` means a criterion failed, an observation is

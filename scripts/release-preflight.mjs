@@ -39,7 +39,7 @@ export function completedTests(output, format) {
   if (format === 'node') {
     const counts = {};
     for (const key of ['tests', 'pass', 'fail', 'cancelled', 'skipped', 'todo']) {
-      const matches = [...clean.matchAll(new RegExp(`^# ${key} (\\d+)\\r?$`, 'gm'))];
+      const matches = [...clean.matchAll(new RegExp(String.raw`^# ${key} (\d+)\r?$`, 'gm'))];
       if (matches.length !== 1) throw new Error('Missing or ambiguous Node test summary.');
       counts[key] = Number(matches[0][1]);
       if (!Number.isSafeInteger(counts[key])) throw new Error('Invalid Node test count.');
@@ -64,6 +64,21 @@ export function completedTests(output, format) {
   throw new Error('Unknown test summary format.');
 }
 
+function requireCompletedStep(step, result) {
+  if (result.error) throw new Error(step.label + ': could not start command', { cause: result.error });
+  if (result.status !== 0) {
+    const error = new Error(step.label + ' failed; later checks and deployment were not executed.');
+    error.exitCode = Number.isInteger(result.status) && result.status > 0 ? result.status : 1;
+    throw error;
+  }
+  if (!step.testSummary) return;
+  try {
+    completedTests(result.stdout, step.testSummary);
+  } catch (cause) {
+    throw new Error(step.label + ': incomplete test evidence; later checks and deployment were not executed.', { cause });
+  }
+}
+
 export function runSteps(steps, { runner = spawnSync, env = process.env, onStep = step => console.log('==> ' + step.label), onOutput = value => process.stdout.write(value) } = {}) {
   for (const step of steps) {
     onStep(step);
@@ -71,23 +86,8 @@ export function runSteps(steps, { runner = spawnSync, env = process.env, onStep 
       cwd: step.cwd, env: { ...env, ...step.env, CI: '1' },
       ...(step.testSummary ? { stdio: ['inherit', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 } : { stdio: 'inherit' }),
     });
-    if (step.testSummary) {
-      if (result.stdout) onOutput(result.stdout);
-      if (result.stderr) onOutput(result.stderr);
-    }
-    if (result.error) throw new Error(step.label + ': could not start command', { cause: result.error });
-    if (result.status !== 0) {
-      const error = new Error(step.label + ' failed; later checks and deployment were not executed.');
-      error.exitCode = Number.isInteger(result.status) && result.status > 0 ? result.status : 1;
-      throw error;
-    }
-    if (step.testSummary) {
-      try {
-        completedTests(result.stdout, step.testSummary);
-      } catch (cause) {
-        throw new Error(step.label + ': incomplete test evidence; later checks and deployment were not executed.', { cause });
-      }
-    }
+    if (step.testSummary) for (const output of [result.stdout, result.stderr]) if (output) onOutput(output);
+    requireCompletedStep(step, result);
   }
 }
 

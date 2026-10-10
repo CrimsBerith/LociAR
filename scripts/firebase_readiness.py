@@ -62,6 +62,31 @@ def _projected(value: Any, fields: tuple[str, ...]) -> dict:
     return {field: value[field] for field in fields if field in value and isinstance(value[field], (str, int, type(None)))}
 
 
+def _notification(entry: Any) -> dict:
+    config = _dict(_dict(entry).get('Notification Configuration', entry))
+    topic = config.get('topic')
+    return {
+        'topic': topic.removeprefix('//pubsub.googleapis.com/') if isinstance(topic, str) else None,
+        'payload_format': config.get('payload_format') if isinstance(config.get('payload_format'), str) else None,
+        'event_types': [event for event in _list(config.get('event_types')) if isinstance(event, str)],
+        **({'object_name_prefix': True} if config.get('object_name_prefix') else {}),
+    }
+
+
+def _lifecycle_rules(storage: Any) -> list:
+    # Mark unknown conditions rather than echoing their values.
+    lifecycle = _dict(_dict(storage).get('lifecycle_config'))
+    rules = []
+    for rule in _list(lifecycle.get('rule', lifecycle.get('rules'))):
+        rule = _dict(rule); condition = _dict(rule.get('condition'))
+        prefixes = condition.get('matchesPrefix', condition.get('matches_prefix'))
+        rules.append({'action': _projected(rule.get('action'), ('type',)),
+                      'condition': {'age': condition.get('age') if type(condition.get('age')) is int else None,
+                                    'matchesPrefix': [p for p in _list(prefixes) if isinstance(p, str)],
+                                    **({'extra_conditions': True} if set(condition) - {'age', 'matchesPrefix', 'matches_prefix'} else {})}})
+    return rules
+
+
 def sanitized_report(report: Any) -> dict:
     """Never retain environment variables, credential data, HTTP payloads or CLI diagnostics."""
     report = _dict(report)
@@ -78,29 +103,8 @@ def sanitized_report(report: Any) -> dict:
         'storage': _projected(resources.get('storage'), ('name',)),
         **{key: [_projected(item, ('name', 'state')) for item in _list(resources.get(key))] for key in REQUIRED_SECRETS},
     }
-    clean['storage_notifications'] = []
-    for entry in _list(resources.get('storage_notifications')):
-        config = _dict(_dict(entry).get('Notification Configuration', entry))
-        topic = config.get('topic')
-        if isinstance(topic, str):
-            topic = topic.removeprefix('//pubsub.googleapis.com/')
-        clean['storage_notifications'].append({
-            'topic': topic if isinstance(topic, str) else None,
-            'payload_format': config.get('payload_format') if isinstance(config.get('payload_format'), str) else None,
-            'event_types': [event for event in _list(config.get('event_types')) if isinstance(event, str)],
-            **({'object_name_prefix': True} if config.get('object_name_prefix') else {}),
-        })
-    # Only lifecycle rule metadata is retained. Unknown conditions are marked (not echoed),
-    # so a rule restricted to different objects cannot accidentally satisfy the release gate.
-    lifecycle = _dict(_dict(resources.get('storage')).get('lifecycle_config'))
-    rules = []
-    for rule in _list(lifecycle.get('rule', lifecycle.get('rules'))):
-        rule = _dict(rule); condition = _dict(rule.get('condition'))
-        prefixes = condition.get('matchesPrefix', condition.get('matches_prefix'))
-        rules.append({'action': _projected(rule.get('action'), ('type',)),
-                      'condition': {'age': condition.get('age') if type(condition.get('age')) is int else None, 'matchesPrefix': [p for p in _list(prefixes) if isinstance(p, str)],
-                                    **({'extra_conditions': True} if set(condition) - {'age', 'matchesPrefix', 'matches_prefix'} else {})}})
-    clean['storage']['lifecycle_config'] = {'rule': rules}
+    clean['storage_notifications'] = [_notification(entry) for entry in _list(resources.get('storage_notifications'))]
+    clean['storage']['lifecycle_config'] = {'rule': _lifecycle_rules(resources.get('storage'))}
     commands = {key: _projected(_dict(report.get('commands')).get(key), ('status', 'return_code')) for key in RESOURCE_KEYS}
     return {'schema_version': report.get('schema_version') if type(report.get('schema_version')) is int else None,
             'project_id': report.get('project_id') if isinstance(report.get('project_id'), str) else None,
