@@ -167,13 +167,17 @@ function validDrawingPoint(point: unknown): boolean {
     && Math.abs(p.x) <= MAX_POINT_ABS && Math.abs(p.y) <= MAX_POINT_ABS;
 }
 
+function invalidLayerColor(color: unknown): boolean {
+  return color != null && (typeof color !== 'string' || !LAYER_COLOR.test(color));
+}
+
 /** Shape limits for edit layers: bounded count, text length, colours and drawing points. */
 function layerShapeError(layers: unknown[]): string | null {
   if (layers.length > MAX_EDIT_LAYERS) return 'Too many edit layers';
   let totalPoints = 0;
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
-    if (layer.color != null && (typeof layer.color !== 'string' || !LAYER_COLOR.test(layer.color))) return 'Invalid layer color';
+    if (invalidLayerColor(layer.color)) return 'Invalid layer color';
     if (typeof layer.text === 'string' && layer.text.length > MAX_LAYER_TEXT) return 'Layer text is too long';
     if (String(layer.type ?? layer.kind) !== 'drawing' || layer.points == null) continue;
     const points = layer.points;

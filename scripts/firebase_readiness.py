@@ -131,24 +131,25 @@ def _schedule_equivalent(actual: Any, expected: str) -> bool:
     return bool(daily and actual == f'{int(daily.group(2))} {int(daily.group(1))} * * *')
 
 
-def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict:
-    expected = expected or repository_expectations()
-    clean = sanitized_report(report)
-    resources = clean['resources']; findings = []
+def _check_storage_triggers(functions: dict, expected: dict, project_ids: set[str], fail) -> None:
+    topics = {f'projects/{owner}/topics/{expected["storage_topic"]}' for owner in project_ids}
+    for name in STORAGE_FINALIZERS:
+        function = functions.get(name)
+        if not function:
+            continue
+        trigger = function.get('eventTrigger', {})
+        if trigger.get('eventType') != 'google.cloud.pubsub.topic.v1.messagePublished' or trigger.get('pubsubTopic') not in topics or trigger.get('retryPolicy') != 'RETRY_POLICY_RETRY' or trigger.get('triggerRegion') != REGION:
+            fail('storage_trigger_configuration', name, 'Finalizer must consume the Storage notification topic in us-central1 with retry enabled.')
 
-    def fail(code: str, resource: str, message: str) -> None:
-        findings.append({'code': code, 'resource': resource, 'message': message})
 
+def _check_project(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+    resources = clean['resources']
     if clean['schema_version'] != SCHEMA_VERSION:
         fail('report_schema', 'report', f'Metadata report schema_version must be {SCHEMA_VERSION}.')
     if clean['project_id'] != PROJECT or resources['project'].get('projectId') != PROJECT:
         fail('wrong_project', 'project', f'Both report and observed project must be {PROJECT}.')
     if resources['project'].get('lifecycleState') != 'ACTIVE':
         fail('project_inactive', 'project', 'Project must be ACTIVE.')
-    project_ids = {PROJECT}
-    number = resources['project'].get('projectNumber')
-    if isinstance(number, (str, int)) and str(number).isdigit():
-        project_ids.add(str(number))
     for key in RESOURCE_KEYS:
         if clean['commands'][key].get('status') != 'ok' or clean['commands'][key].get('return_code') != 0:
             fail('command_failed', key, 'Metadata collection did not complete successfully; state is unknown.')
@@ -161,6 +162,10 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
         fail('database_mismatch', 'firestore', 'Expected the default database in the selected project.')
     if firestore.get('locationId') != 'nam5' or firestore.get('type') != 'FIRESTORE_NATIVE':
         fail('database_configuration', 'firestore', 'Expected nam5 and FIRESTORE_NATIVE.')
+
+
+def _check_ttl(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+    resources = clean['resources']
     ttl_by_field = {}
     for item in resources['ttl']:
         name = item.get('name')
@@ -173,6 +178,10 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
         state = ttl_by_field.get((collection, field))
         if state != 'ACTIVE':
             fail('ttl_missing' if state is None else 'ttl_inactive', f'{collection}.{field}', 'TTL policy must be ACTIVE; deploying states do not pass.')
+
+
+def _check_functions(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+    resources = clean['resources']
     functions = {_resource_parts(item.get('name'), project_ids, 'functions'): item for item in resources['functions']}
     for name in sorted(expected['functions']):
         function = functions.get(name)
@@ -180,16 +189,20 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
             fail('function_missing', name, 'Expected exported Function is missing from us-central1.')
         elif function.get('state') != 'ACTIVE' or function.get('environment') != 'GEN_2' or function.get('buildConfig', {}).get('runtime') != expected['runtime']:
             fail('function_configuration', name, 'Function must be ACTIVE, GEN_2 and nodejs22.')
-        if function and name in STORAGE_FINALIZERS:
-            trigger = function.get('eventTrigger', {})
-            topics = {f'projects/{owner}/topics/{expected["storage_topic"]}' for owner in project_ids}
-            if trigger.get('eventType') != 'google.cloud.pubsub.topic.v1.messagePublished' or trigger.get('pubsubTopic') not in topics or trigger.get('retryPolicy') != 'RETRY_POLICY_RETRY' or trigger.get('triggerRegion') != REGION:
-                fail('storage_trigger_configuration', name, 'Finalizer must consume the Storage notification topic in us-central1 with retry enabled.')
+    _check_storage_triggers(functions, expected, project_ids, fail)
+
+
+def _check_notifications(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+    resources = clean['resources']
     topics = {f'projects/{owner}/topics/{expected["storage_topic"]}' for owner in project_ids}
     if not any(config.get('topic') in topics and config.get('payload_format') == 'NONE'
                and config.get('event_types') == ['OBJECT_FINALIZE'] and not config.get('object_name_prefix')
                for config in resources['storage_notifications']):
         fail('storage_notification_missing', BUCKET, 'Bucket must publish all OBJECT_FINALIZE identity notifications with payload NONE to the expected topic.')
+
+
+def _check_scheduler(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+    resources = clean['resources']
     jobs = {_resource_parts(item.get('name'), project_ids, 'jobs'): item for item in resources['scheduler']}
     for name, options in sorted(expected['schedules'].items()):
         job = jobs.get(f'firebase-schedule-{name}-{REGION}')
@@ -197,6 +210,10 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
             fail('scheduler_missing', name, 'Firebase Scheduler job is missing from us-central1.')
         elif job.get('state') != 'ENABLED' or not _schedule_equivalent(job.get('schedule'), options['schedule']) or ('timeZone' in options and job.get('timeZone') != options['timeZone']):
             fail('scheduler_configuration', name, 'Scheduler job must be ENABLED with the repository schedule and explicit timezone.')
+
+
+def _check_storage(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+    resources = clean['resources']
     bucket_name = resources['storage'].get('name')
     if not isinstance(bucket_name, str) or bucket_name.removeprefix('gs://').rstrip('/') != BUCKET:
         fail('bucket_mismatch', 'storage', 'Expected the configured Firebase Storage bucket.')
@@ -207,9 +224,28 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
             covered.update(condition.get('matchesPrefix', []))
     for prefix in sorted(LEGACY_PREFIXES - covered):
         fail('lifecycle_missing', prefix, 'Legacy prefix must have a Delete lifecycle rule at age 30 with no extra conditions.')
+
+
+def _check_secrets(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+    resources = clean['resources']
     for key, (secret, code, message) in REQUIRED_SECRETS.items():
         pattern = r'projects/(' + '|'.join(re.escape(p) for p in project_ids) + r')/secrets/' + secret + r'/versions/\d+'
         if not any(isinstance(v.get('name'), str) and re.fullmatch(pattern, v['name']) and v.get('state') == 'ENABLED' for v in resources[key]):
             fail(code, secret, message)
+
+def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict:
+    expected = expected or repository_expectations()
+    clean = sanitized_report(report)
+    findings = []
+
+    def fail(code: str, resource: str, message: str) -> None:
+        findings.append({'code': code, 'resource': resource, 'message': message})
+
+    project_ids = {PROJECT}
+    number = clean['resources']['project'].get('projectNumber')
+    if isinstance(number, (str, int)) and str(number).isdigit():
+        project_ids.add(str(number))
+    for check in (_check_project, _check_ttl, _check_functions, _check_notifications, _check_scheduler, _check_storage, _check_secrets):
+        check(clean, expected, project_ids, fail)
     clean['readiness'] = {'ready': not findings, 'findings': findings}
     return clean

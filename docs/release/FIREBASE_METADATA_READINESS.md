@@ -4,12 +4,12 @@
 It never enables APIs, changes IAM, deploys Functions, modifies data, reads an Apple key value or starts an interactive login.
 Python 3 is required. This work does not require macOS/Xcode.
 
-Create an owner-only report directory under the repository `build/` or the system temporary directory (`mkdir -m 700`). Use a new absolute `.json` filename for each report; existing files and symlinks are refused. After an authorized GCP identity has been connected, run:
+Reports are stored only in `build/firebase-readiness/`, created with owner-only directory permissions. Supply a plain `.json` filename; directory components, existing output files and symlinks are refused. Existing directories must have mode 700. After an authorized GCP identity has been connected, run:
 
 ```sh
 python3 -B scripts/qa-live-firebase.py \
   --gcloud-configuration <authorized-configuration> \
-  --report /absolute/repository/build/private/firebase-metadata.json
+  --report firebase-metadata.json
 ```
 
 In a managed environment the configuration must match exactly one GCP connection in the version-1
@@ -22,14 +22,14 @@ Validate the saved report without GCP, credentials or `gcloud`:
 
 ```sh
 python3 -B scripts/qa-live-firebase.py \
-  --from-report /absolute/repository/build/private/firebase-metadata.json \
-  --report /absolute/repository/build/private/firebase-metadata-checked.json
+  --from-report firebase-metadata.json \
+  --report firebase-metadata-checked.json
 ```
 
 Exit `0` means every modeled criterion passed; exit `1` means a criterion failed, an observation is
 unknown, a command failed or the input could not be checked. A failed collection still writes its
 sanitized report when possible. Raw CLI diagnostics, environment variables and secret payloads are
-excluded. `--report` writes an owner-only JSON file; omitting it writes JSON to stdout.
+excluded. `--report` creates an owner-only JSON file in the fixed report directory; omitting it writes JSON to stdout.
 
 The version-2 report contains `schema_version`, the fixed `project_id`, `collected_at`,
 `resources`, per-resource `commands` (`status`, `return_code`), and `readiness` (`ready`, `findings`).

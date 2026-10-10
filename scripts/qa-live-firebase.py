@@ -10,7 +10,8 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
-import tempfile
+import re
+import stat
 
 from firebase_readiness import BUCKET, PROJECT, REGION, RESOURCE_KEYS, SCHEMA_VERSION, validate_report
 
@@ -26,6 +27,7 @@ CHECKS = {
     'giphy_secret_versions': ['secrets', 'versions', 'list', 'GIPHY_API_KEY', '--format=json(name,state)'],
     'storage_notifications': ['storage', 'buckets', 'notifications', 'list', f'gs://{BUCKET}', '--format=json'],
 }
+REPORT_DIRECTORY = Path(__file__).resolve().parents[1] / 'build' / 'firebase-readiness'
 EMULATOR_SELECTORS = ('FIREBASE_AUTH_EMULATOR_HOST', 'FIRESTORE_EMULATOR_HOST', 'FIREBASE_STORAGE_EMULATOR_HOST', 'STORAGE_EMULATOR_HOST', 'FUNCTIONS_EMULATOR')
 
 
@@ -59,22 +61,44 @@ def selected_environment(configuration: str, env: dict[str, str] | None = None) 
     return env
 
 
-def write_report(destination: Path, output: str) -> None:
-    """Create one new JSON in a private report directory; never follow/overwrite a target."""
-    if not destination.is_absolute() or '..' in destination.parts or destination.suffix != '.json':
-        raise ValueError('Report requires an absolute JSON path without parent traversal.')
-    parent = destination.parent.resolve(strict=True)
-    roots = (Path(__file__).resolve().parents[1] / 'build', Path(tempfile.gettempdir()).resolve(), Path('/tmp').resolve())
-    if not any(parent.is_relative_to(root) for root in roots):
-        raise ValueError('Report directory must be inside build or the system temporary directory.')
-    directory = os.open(parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+def report_name(value: str) -> str:
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.json', value) or '..' in value:
+        raise ValueError('Reports require a plain JSON filename without directory components.')
+    return value
+
+
+def report_directory() -> int:
+    REPORT_DIRECTORY.mkdir(mode=0o700, parents=True, exist_ok=True)
+    directory = os.open(REPORT_DIRECTORY, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    metadata = os.fstat(directory)
+    if metadata.st_uid != os.getuid() or metadata.st_mode & 0o077:
+        os.close(directory)
+        raise ValueError('Report directory must be owned by this user with mode 700.')
+    return directory
+
+
+def write_report(filename: str, output: str) -> None:
+    """Create a new file only in the fixed private report directory."""
+    name = report_name(filename)
+    directory = report_directory()
     try:
-        metadata = os.fstat(directory)
-        if metadata.st_uid != os.getuid() or metadata.st_mode & 0o077:
-            raise ValueError('Report directory must be owned by this user with mode 700.')
-        fd = os.open(destination.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=directory)
+        fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=directory)
         with os.fdopen(fd, 'w') as stream:
             stream.write(output)
+    finally:
+        os.close(directory)
+
+
+def read_report(filename: str) -> dict:
+    name = report_name(filename)
+    directory = report_directory()
+    try:
+        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+        with os.fdopen(fd, 'r') as stream:
+            metadata = os.fstat(stream.fileno())
+            if not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.getuid() or metadata.st_size > 16 * 1024 * 1024:
+                raise ValueError('Input report must be a bounded regular file owned by this user.')
+            return json.load(stream)
     finally:
         os.close(directory)
 
@@ -101,12 +125,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument('--gcloud-configuration', help='Explicit authenticated GCP configuration name; live metadata reads only')
-    source.add_argument('--from-report', type=Path, help='Validate this schema-v2 JSON report fully offline; no credentials or gcloud required')
-    parser.add_argument('--report', type=Path, help='Create a new JSON in a private build/temp directory (absolute path, directory mode 700)')
+    source.add_argument('--from-report', help='Read this JSON filename from build/firebase-readiness fully offline')
+    parser.add_argument('--report', help='Create a new JSON filename in build/firebase-readiness (owner-only, no overwrite)')
     args = parser.parse_args(argv)
     try:
         if args.from_report:
-            report = json.loads(args.from_report.read_text())
+            report = read_report(args.from_report)
         else:
             env = selected_environment(args.gcloud_configuration)
             if not shutil.which('gcloud', path=env.get('PATH')):

@@ -9,6 +9,8 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
+from uuid import uuid4
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS))
@@ -164,40 +166,52 @@ class FirebaseReadinessTests(unittest.TestCase):
                 collector.selected_environment('explicit', {'FIRESTORE_EMULATOR_HOST': '127.0.0.1:8080'})
 
     def test_cli_offline_ignores_unavailable_identity_and_preserves_failure_exit(self):
-        with tempfile.TemporaryDirectory() as directory:
-            source = Path(directory) / 'report.json'; output = Path(directory) / 'checked.json'
+        collector.REPORT_DIRECTORY.mkdir(mode=0o700, parents=True, exist_ok=True)
+        source = collector.REPORT_DIRECTORY / f'fixture-{uuid4()}.json'
+        output = collector.REPORT_DIRECTORY / f'checked-{uuid4()}.json'
+        try:
             source.write_text(json.dumps(ready_report()))
-            env = {'PATH': '/usr/bin:/bin', 'TMPDIR': tempfile.gettempdir(), 'OIC_MANIFEST_PATH': '/must-not-read', 'GOOGLE_APPLICATION_CREDENTIALS': '/must-not-read'}
-            result = subprocess.run([sys.executable, str(SCRIPTS / 'qa-live-firebase.py'), '--from-report', str(source), '--report', str(output)], env=env, capture_output=True, text=True)
+            env = {'PATH': '/usr/bin:/bin', 'OIC_MANIFEST_PATH': '/must-not-read', 'GOOGLE_APPLICATION_CREDENTIALS': '/must-not-read'}
+            result = subprocess.run([sys.executable, str(SCRIPTS / 'qa-live-firebase.py'), '--from-report', source.name, '--report', output.name], env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(json.loads(output.read_text())['readiness']['ready'])
             self.assertEqual(output.stat().st_mode & 0o777, 0o600)
             report = ready_report(); report['resources']['scheduler'][0]['state'] = 'PAUSED'; source.write_text(json.dumps(report))
-            result = subprocess.run([sys.executable, str(SCRIPTS / 'qa-live-firebase.py'), '--from-report', str(source)], env=env, capture_output=True, text=True)
+            result = subprocess.run([sys.executable, str(SCRIPTS / 'qa-live-firebase.py'), '--from-report', source.name], env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 1)
             self.assertFalse(json.loads(result.stdout)['readiness']['ready'])
+        finally:
+            source.unlink(missing_ok=True)
+            output.unlink(missing_ok=True)
 
     def test_report_writer_refuses_overwrite_symlink_and_parent_traversal(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory() as directory, patch.object(collector, 'REPORT_DIRECTORY', Path(directory)):
             parent = Path(directory)
             target = parent / 'existing.json'; target.write_text('preserve')
             link = parent / 'link.json'; link.symlink_to(target)
-            for destination in (target, link, parent / '..' / 'escape.json', Path('relative.json')):
+            for filename in ('existing.json', 'link.json', '../escape.json', '/etc/outside.json'):
                 with self.assertRaises((OSError, ValueError)):
-                    collector.write_report(destination, 'replacement')
+                    collector.write_report(filename, 'replacement')
+            with self.assertRaises(OSError):
+                collector.read_report('link.json')
+            for filename in ('../escape.json', '/etc/outside.json'):
+                with self.assertRaises(ValueError):
+                    collector.read_report(filename)
             self.assertEqual(target.read_text(), 'preserve')
-            collector.write_report(parent / 'new.json', '{}')
+            collector.write_report('new.json', '{}')
             self.assertEqual((parent / 'new.json').stat().st_mode & 0o777, 0o600)
+            self.assertEqual(collector.read_report('new.json'), {})
 
-    def test_report_writer_refuses_shared_directory_and_outside_root(self):
-        with tempfile.TemporaryDirectory() as directory:
+    def test_report_writer_refuses_shared_directory_and_non_json_names(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(collector, 'REPORT_DIRECTORY', Path(directory)):
             parent = Path(directory)
             parent.chmod(0o755)
             with self.assertRaisesRegex(ValueError, 'mode 700'):
-                collector.write_report(parent / 'shared.json', '{}')
+                collector.write_report('shared.json', '{}')
             self.assertFalse((parent / 'shared.json').exists())
-        with self.assertRaisesRegex(ValueError, 'inside build'):
-            collector.write_report(Path('/etc/unexpected-lociar.json'), '{}')
+        for filename in ('secret.pem', 'nested/file.json', 'file..json', 'space name.json'):
+            with self.assertRaisesRegex(ValueError, 'plain JSON filename'):
+                collector.report_name(filename)
 
     def test_collection_projects_only_metadata_and_never_echoes_failed_command_output(self):
         ready = ready_report(); called = []

@@ -65,13 +65,18 @@ export async function backfillAccountAccess(db, { apply = false, pageSize = 300 
     if (page.empty) return totals;
     for (const profile of page.docs) {
       const result = await backfillProfile(db, profile, apply);
-      totals.scanned++;
-      if (result.skipped) totals.skipped++;
-      else { totals[result.state]++; if (result.changed) totals.changed++; }
+      countProfile(totals, result);
     }
     cursor = page.docs.at(-1);
     if (page.size < pageSize) return totals;
   }
+}
+
+function countProfile(totals, result) {
+  totals.scanned++;
+  if (result.skipped) { totals.skipped++; return; }
+  totals[result.state]++;
+  if (result.changed) totals.changed++;
 }
 
 async function main() {

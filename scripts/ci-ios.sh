@@ -19,6 +19,7 @@ sys.exit('No available iPhone simulator found')
 PY
 )"
 printf '%s\n' "$simulator_id" > "$output_dir/simulator-id.txt"
+xcrun simctl bootstatus "$simulator_id" -b > "$output_dir/simulator-boot.log" 2>&1
 xcodebuild -resolvePackageDependencies -project LociAR.xcodeproj -scheme LociAR \
   -clonedSourcePackagesDirPath "$output_dir/SourcePackages" \
   -onlyUsePackageVersionsFromResolvedFile 2>&1 | tee "$output_dir/packages.log"
@@ -30,6 +31,8 @@ xcodebuild -project LociAR.xcodeproj -scheme LociAR \
   -testLanguage tr -testRegion TR CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "$output_dir/native-tests.log"
 # Every string the Swift compiler extracted must be in the generated catalog (scripts/l10n).
 python3 scripts/l10n/check_stringsdata.py "$output_dir/DerivedData"
+# Release the unit-test host before Xcode attaches the UI runner to the same app.
+xcrun simctl terminate "$simulator_id" com.khankartal.lociar >/dev/null 2>&1 || true
 # Keep every simulator-safe UI test in CI. Physical/live/emulator suites are separate.
 ui_tests=()
 while IFS= read -r target; do
