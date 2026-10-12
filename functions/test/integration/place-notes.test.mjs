@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { adminDb, closeClients, newAnonymousUser, newUser, expectFailure } from './_harness.mjs';
 import { expireDueNotes } from '../../lib/noteDensity.js';
+import { encodeGeohash } from '../../lib/geo.js';
+import { geohashBounds } from '../../lib/placeNoteRules.js';
 after(closeClients);
 
 const METER = 1 / 111_320;
@@ -168,4 +170,48 @@ test('an administrator end date removes the note like a moderator soft delete; n
   assert.equal(ended.status, 'removed'); assert.equal(ended.deleted_by, 'system:scheduled_end'); assert.equal(ended.ends_at, undefined); assert.ok(ended.ended_at);
   assert.equal(open.status, 'active'); assert.ok(open.ends_at);
   assert.equal((await f.visit()).notify, false); assert.equal((await g.visit()).notify, true);
+});
+
+async function denseSpot(count = 30) {
+  const author = await newAnonymousUser(), visitor = await newAnonymousUser(), point = base();
+  await optIn(visitor);
+  const cell = encodeGeohash(point.lat, point.lng, 8), centre = geohashBounds(cell);
+  const n = await note(author, { lat: centre.lat, lng: centre.lng });
+  await n.ref.update({ status: 'active' });
+  // Seed the spot counter directly; creating 30 posts would hit the author's rate limit.
+  await eventually(async () => (await adminDb.collection('note_density').doc(`8_${cell}`).get()).get('count') === 1, 'note counted');
+  await adminDb.collection('note_density').doc(`8_${cell}`).set({ precision: 8, cell, lat: centre.lat, lng: centre.lng, count }, { merge: true });
+  return { visitor, author, cell, centre, n };
+}
+const single = (user, id) => user.call('readPublicContent', { mode: 'single', postId: id }).then(r => r.posts[0]);
+
+test('notes in a dense spot show only place and count until the visitor unlocks the spot on site', async () => {
+  const s = await denseSpot(30);
+  const locked = await single(s.visitor, s.n.created.post.id);
+  assert.equal(locked.locked, true); assert.equal(locked.caption, ''); assert.deepEqual(locked.edit_data.layers, []);
+  assert.equal(locked.dense_spot.count, 30); assert.equal(locked.dense_spot.cell, s.cell); assert.equal(locked.dense_spot.unlock_radius_m, 15);
+  assert.equal((await single(s.author, s.n.created.post.id)).caption, 'Entrance is around the back.', 'authors read their own notes');
+  const far = north(s.centre, 60);
+  assert.deepEqual((await s.visitor.call('unlockDenseSpot', { location: fix(far.lat, far.lng, 8) })).unlocked, []);
+  assert.equal((await s.visitor.call('unlockDenseSpot', { location: fix(s.centre.lat, s.centre.lng, 8, Date.now() - 20_000) })).reason, 'stale_fix');
+  const near = north(s.centre, 12);
+  assert.deepEqual((await s.visitor.call('unlockDenseSpot', { location: fix(near.lat, near.lng, 8) })).unlocked, [s.cell]);
+  const open = await single(s.visitor, s.n.created.post.id);
+  assert.equal(open.locked, undefined); assert.equal(open.caption, 'Entrance is around the back.');
+  await adminDb.collection('system').doc('place_notes').set({ dense_threshold: 31 }, { merge: true });
+  const other = await denseSpot(30);
+  assert.equal((await single(other.visitor, other.n.created.post.id)).locked, undefined, 'below the admin threshold');
+  await adminDb.collection('system').doc('place_notes').set({ dense_threshold: 30 }, { merge: true });
+});
+
+test('entering a dense spot sends one text-free alert, and the region list advertises unalerted spots', async () => {
+  const s = await denseSpot(42);
+  const regions = (await s.visitor.call('readPlaceNoteRegions', { location: fix(s.centre.lat, s.centre.lng, 30) })).regions;
+  const region = regions.find(r => r.spot === s.cell);
+  assert.ok(region); assert.equal(region.kind, 'place_note'); assert.equal(region.triggerRadius, 25);
+  const visit = () => s.visitor.call('recordPlaceNoteVisit', { location: fix(s.centre.lat, s.centre.lng, 8), confirmationStartedAt: Date.now() - 6000 });
+  const alert = await visit();
+  assert.equal(alert.notify, true); assert.equal(alert.kind, 'dense_spot'); assert.equal(alert.total, 42); assert.equal(alert.body, undefined);
+  assert.equal((await visit()).notify, false, 'once per 30 days');
+  assert.equal((await s.visitor.call('readPlaceNoteRegions', { location: fix(s.centre.lat, s.centre.lng, 30) })).regions.some(r => r.spot === s.cell), false);
 });

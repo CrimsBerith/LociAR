@@ -2,6 +2,7 @@
  * Pure location-note policy shared by the callables, the density trigger and unit tests.
  * The iOS client mirrors the entry rule and the radius tiers (LocationNotePolicy.swift).
  */
+import { createHash } from 'node:crypto';
 import { distanceMeters, encodeGeohash } from './geo';
 
 export type FixSource = 'geospatial' | 'gps' | 'manual';
@@ -28,7 +29,21 @@ export const CLUSTER_RADIUS_M = 25;
 export const WAKE_RADIUS_MIN_M = 150;
 export const WAKE_RADIUS_MAX_M = 400;
 export const REGION_SEARCH_RADIUS_M = 3_000;
-export const DENSITY_PRECISIONS = [4, 5, 6, 7] as const;
+/** 4-7 feed the map; 8 (~38 x 19 m) is the dense-spot cell. */
+export const DENSITY_PRECISIONS = [4, 5, 6, 7, 8] as const;
+export const SPOT_PRECISION = 8;
+/** A spot cell with at least this many public notes is a dense spot (admin setting). */
+export const DEFAULT_DENSE_THRESHOLD = 30;
+/** Dense-spot notes open only within this distance of the spot cell (admin setting, 2-50 m). */
+export const DEFAULT_UNLOCK_RADIUS_M = 15;
+export const MIN_UNLOCK_RADIUS_M = 2;
+export const MAX_UNLOCK_RADIUS_M = 50;
+/** GPS uncertainty may extend the unlock radius by at most this much; AR Geospatial reports 1-5 m. */
+export const UNLOCK_TOLERANCE_CAP_M = 5;
+export const UNLOCK_TTL_MS = 30 * 60_000;
+/** Text-free "many notes here" alerts fire within this radius of the spot centre. */
+export const SPOT_TRIGGER_RADIUS_M = 25;
+export const DEFAULT_CAMPAIGN_ENTRY_RADIUS_M = 30;
 
 export function validCoordinates(lat: unknown, lng: unknown): lat is number {
   return typeof lat === 'number' && Number.isFinite(lat) && Math.abs(lat) <= 90
@@ -96,6 +111,29 @@ export function clusterNotes(notes: RankedNote[]): NoteCluster[] {
       notes: group.map(n => ({ lat: n.lat, lng: n.lng, r: n.radius })),
     };
   });
+}
+
+/** Campaign arrivals use the same GPS-tolerant rule as notes, with a 15-100 m radius (default 30 m). */
+export function campaignEntryRadius(value: unknown): number {
+  return clampNotifyRadius(value, DEFAULT_CAMPAIGN_ENTRY_RADIUS_M);
+}
+
+/** Metres from a point to a geohash cell rectangle; 0 inside. */
+export function distanceToCell(lat: number, lng: number, cell: string): number {
+  const b = geohashBounds(cell);
+  return distanceMeters(lat, lng, Math.min(b.latMax, Math.max(b.latMin, lat)), Math.min(b.lngMax, Math.max(b.lngMin, lng)));
+}
+
+/** Unlock a dense spot: within the radius of its cell, GPS tolerance capped at 5 m. */
+export function fixUnlocksSpot(fix: Fix, cell: string, radius: number): boolean {
+  if (!(fix.accuracy >= 0) || fix.accuracy > MAX_ENTRY_ACCURACY_M) return false;
+  return distanceToCell(fix.lat, fix.lng, cell) <= radius + Math.min(fix.accuracy, UNLOCK_TOLERANCE_CAP_M);
+}
+
+/** Deterministic RFC 4122-shaped id for a non-post region such as a dense spot. */
+export function stableUuid(seed: string): string {
+  const h = createHash('sha256').update(seed).digest('hex');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
 export function densityCells(lat: number, lng: number): string[] {

@@ -1,6 +1,6 @@
 import { requireAdmin } from '../../../../lib/admin';
 import { isoOrNull } from '../../../../lib/firebase-admin';
-import { approvedNotes, likeThreshold, notificationCandidates, DEFAULT_NOTIFY_RADIUS_M } from '../../../../lib/place-notes';
+import { approvedNotes, notificationCandidates, placeNoteSettings, DEFAULT_NOTIFY_RADIUS_M } from '../../../../lib/place-notes';
 import AdminDecision from '../AdminDecision';
 import { LikeThresholdForm, PlaceNoteEditor } from './PlaceNoteEditor';
 export const dynamic = 'force-dynamic';
@@ -26,12 +26,12 @@ function Row({ note, moderate, places }: { note: Note; moderate: boolean; places
 export default async function PlaceNotesPage() {
   const admin = await requireAdmin({ permission: 'posts.read' });
   const moderate = admin.permissions.has('posts.moderate'), places = admin.permissions.has('places.write');
-  const threshold = await likeThreshold();
+  const settings = await placeNoteSettings(), threshold = settings.likeThreshold;
   const [candidates, approved] = await Promise.all([notificationCandidates(threshold), approvedNotes()]);
   return <section className="page">
     <div className="pageHeading"><h1>Location notes</h1>{admin.permissions.has('posts.create') ? <a href="/admin/posts/new">Add a note anywhere</a> : null}</div>
     <p className="muted">Users leave notes at their measured position. Likes order notes everywhere in the app. A note reaches visitors as a notification only after it collects enough likes and an administrator approves it; each person gets each note once, most-liked first. Notes never expire unless you set an end date.</p>
-    {moderate ? <section className="panel"><h2>Notification threshold</h2><LikeThresholdForm threshold={threshold}/></section> : null}
+    {moderate ? <section className="panel"><h2>Thresholds</h2><LikeThresholdForm threshold={threshold} denseThreshold={settings.denseThreshold} unlockRadius={settings.unlockRadius}/></section> : null}
     <h2>Candidates ({candidates.length}) · at least {threshold} likes</h2>
     {candidates.length ? candidates.map(n => <Row key={n.id} note={n} moderate={moderate} places={places}/>) : <p className="emptyState">No notes have reached the threshold yet.</p>}
     <h2>Approved for notifications ({approved.length})</h2>

@@ -38,11 +38,14 @@ export function PlaceNoteEditor({ id, radius, endsAt, canEditRadius, canEditEnd 
   </details>;
 }
 
-export function LikeThresholdForm({ threshold }: { threshold: number }) {
-  const { busy, message, send } = useSubmit('Threshold saved.');
+export function LikeThresholdForm({ threshold, denseThreshold, unlockRadius }: { threshold: number; denseThreshold: number; unlockRadius: number }) {
+  const { busy, message, send } = useSubmit('Settings saved.');
   return <form className="decisionForm" onSubmit={event => { event.preventDefault(); const f = new FormData(event.currentTarget);
-    void send({ action: 'settings', likeThreshold: Number(f.get('threshold')), reason: String(f.get('reason')) }); }}>
+    void send({ action: 'settings', likeThreshold: Number(f.get('threshold')), denseThreshold: Number(f.get('dense')), unlockRadius: Number(f.get('unlock')), reason: String(f.get('reason')) }); }}>
     <label>Likes needed to become a notification candidate<input name="threshold" type="number" min={1} max={1000} step={1} defaultValue={threshold} required/></label>
+    <label>Notes in one ~38 × 19 m spot that make it a dense spot<input name="dense" type="number" min={2} max={1000} step={1} defaultValue={denseThreshold} required/></label>
+    <label>Dense-spot notes open within (m)<input name="unlock" type="number" min={2} max={50} step={1} defaultValue={unlockRadius} required/></label>
+    <p className="muted">Dense-spot text is hidden until a visitor is this close (GPS error may add at most 5 m); the map still shows the count, and visitors get one text-free “many notes here” alert per 30 days. 2–5 m is reliable only with the AR camera outdoors (Google Geospatial); phone GPS alone needs about 15 m.</p>
     <label>Reason<input name="reason" required minLength={8} maxLength={1000}/></label><button disabled={busy}>Save threshold</button>
     {message ? <p role="status">{message}</p> : null}
   </form>;

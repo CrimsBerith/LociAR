@@ -25,7 +25,7 @@ function text(value: unknown, name: string, max: number) {
   return result;
 }
 export type CampaignInput = { brandId: string; name: string; message: string; terms: string; lat: number; lng: number;
-  radius: number; arrivalRadius: number; arrivalDiameter: number; minPosts: number; minLikes: number; startsAt: number; endsAt: number };
+  radius: number; arrivalRadius: number; entryRadius: number; audienceMaxAgeMinutes: number; minPosts: number; minLikes: number; startsAt: number; endsAt: number };
 export function campaignInput(body: Record<string, unknown>): CampaignInput {
   const start = typeof body.startsAt === 'string' ? Date.parse(body.startsAt) : body.startsAt;
   const end = typeof body.endsAt === 'string' ? Date.parse(body.endsAt) : body.endsAt;
@@ -36,7 +36,10 @@ export function campaignInput(body: Record<string, unknown>): CampaignInput {
   return { brandId: uuid(body.brandId, 'brandId').toLowerCase(), name: text(body.name, 'name', 80), message: text(body.message, 'message', 1000),
     terms: text(body.terms, 'offer terms', 800), lat: numeric(body.lat, 'latitude', -90, 90), lng: numeric(body.lng, 'longitude', -180, 180),
     radius: numeric(body.radius ?? 1000, 'radius', 100, 5000), arrivalRadius: numeric(body.arrivalRadius ?? 150, 'wake radius', 100, 500),
-    arrivalDiameter: numeric(body.arrivalDiameter ?? 5, 'arrival diameter', 2, 5), minPosts, minLikes, startsAt, endsAt };
+    // Same GPS-tolerant rule as location notes: passing within ~radius + GPS error counts.
+    entryRadius: Math.round(numeric(body.entryRadius ?? 30, 'entry radius', 15, 100)),
+    // A user's last voluntarily shared location may be up to this old (default 24 h, e.g. at home).
+    audienceMaxAgeMinutes: Math.round(numeric(body.audienceMaxAgeMinutes ?? 1440, 'location age', 2, 1440)), minPosts, minLikes, startsAt, endsAt };
 }
 
 export async function saveBrand(body: Record<string, unknown>, actor: string, reason: string, key: string) {
@@ -112,12 +115,16 @@ export async function campaignStatus(id: string, status: 'active' | 'paused', ac
 }
 
 /** Reads only bounded recent post statistics; display-counter offsets do not earn rewards. */
-async function eligibility(tx: Transaction, c: FirebaseFirestore.DocumentData, luid: string, now: number) {
+/** Push-now and departure need a current position (2 min); map and arrival may use the campaign's location age. */
+const locationAgeMs = (c: FirebaseFirestore.DocumentData, mode?: unknown) =>
+  mode === 'immediate' || mode === 'departure' ? 120_000 : Number(c.audienceMaxAgeMinutes ?? 2) * 60_000;
+
+async function eligibility(tx: Transaction, c: FirebaseFirestore.DocumentData, luid: string, now: number, maxAgeMs = locationAgeMs(c)) {
   if ((await tx.get(adminDb().collection('account_deletion_jobs').doc(luid))).exists) return null;
   const db = adminDb(), [profile, pref, location] = await tx.getAll(db.collection('profiles').doc(luid), db.collection('user_data_preferences').doc(luid), db.collection('user_locations').doc(luid));
   if (!profile.exists || profile.get('deleted_at') || profile.get('suspended') || profile.get('admin_managed') || pref.get('promotions') !== true || pref.get('location') !== true
     || !location.exists || location.get('consent_revision') !== pref.get('revision')
-    || !(location.get('measured_at') instanceof Timestamp) || now - location.get('measured_at').toMillis() > 120_000
+    || !(location.get('measured_at') instanceof Timestamp) || now - location.get('measured_at').toMillis() > maxAgeMs
     || location.get('measured_at').toMillis() > now + 10_000 || !(location.get('expires_at') instanceof Timestamp)
     || location.get('expires_at').toMillis() <= now || !Number.isFinite(location.get('accuracy')) || location.get('accuracy') < 0 || location.get('accuracy') > 200) return null;
   const distance = distanceMeters(c.lat, c.lng, location.get('lat'), location.get('lng'));
@@ -172,7 +179,7 @@ export async function queueNotification(body: Record<string, unknown>, actor: st
       if (!c || c.status !== 'active' || c.starts_at.toMillis() > Date.now() || c.ends_at.toMillis() <= Date.now()) throw new ConflictError('campaign_not_active');
       const brand = await tx.get(db.collection('brands').doc(c.brand_id));
       if (!brand.exists || brand.get('status') !== 'active') throw new ConflictError('brand_unavailable');
-      if (!await eligibility(tx, c, recipient, Date.now())) throw new ConflictError('recipient_no_longer_eligible');
+      if (!await eligibility(tx, c, recipient, Date.now(), locationAgeMs(c, mode))) throw new ConflictError('recipient_no_longer_eligible');
       if (mode === 'departure') {
         origin = await tx.get(db.collection('user_locations').doc(recipient));
         if (origin.get('accuracy') > departureRadius!) throw new ConflictError('departure_origin_too_uncertain');

@@ -8,7 +8,7 @@ export default function CampaignForms({ brands, canBrand }: { brands: Array<{ id
   const mutation = useRef(createMutationClient()), router = useRouter();
   async function submit(event: React.FormEvent<HTMLFormElement>, action: string) {
     event.preventDefault(); const form = event.currentTarget, data = new FormData(form), body: Record<string, unknown> = { action };
-    for (const [key, value] of data) body[key] = ['lat', 'lng', 'radius', 'arrivalRadius', 'arrivalDiameter', 'minPosts', 'minLikes'].includes(key) ? Number(value) : String(value);
+    for (const [key, value] of data) body[key] = ['lat', 'lng', 'radius', 'arrivalRadius', 'entryRadius', 'audienceMaxAgeMinutes', 'minPosts', 'minLikes'].includes(key) ? Number(value) : String(value);
     for (const date of ['startsAt', 'endsAt']) if (body[date]) body[date] = new Date(String(body[date])).toISOString();
     setBusy(true); setMessage('');
     try {
@@ -37,7 +37,10 @@ export default function CampaignForms({ brands, canBrand }: { brands: Array<{ id
       <label>Longitude<input name="lng" type="number" step="any" required min={-180} max={180} /></label>
       <label>Nearby audience radius (m)<input name="radius" type="number" required defaultValue={1000} min={100} max={5000} /></label>
       <label>OS wake-up radius (m)<input name="arrivalRadius" type="number" required defaultValue={150} min={100} max={500} /></label>
-      <label>Actual entry notification diameter (m)<input name="arrivalDiameter" type="number" required defaultValue={5} min={2} max={5} step={0.5}/></label>
+      <label>Entry radius for arrival reminders (m)<input name="entryRadius" type="number" required defaultValue={30} min={15} max={100} step={1}/></label>
+      <p className="muted">Phone GPS is usually 5–30 m off. Someone walking or driving past within about this radius (plus their GPS error, at most 20 m) gets the reminder once. 30 m suits a shop front; use more for large venues.</p>
+      <label>Use users&apos; last shared location up to (minutes old)<input name="audienceMaxAgeMinutes" type="number" required defaultValue={1440} min={2} max={1440} step={1}/></label>
+      <p className="muted">1440 = last 24 hours, so people whose last shared location (often near home or work) is in the audience radius can be assigned an arrival reminder for when they pass by later. Use 2 for people who are nearby right now.</p>
       <label>Minimum approved posts in latest 100<input name="minPosts" type="number" required defaultValue={1} min={0} max={100} /></label>
       <label>Minimum genuine likes on one of those posts<input name="minLikes" type="number" required defaultValue={10} min={0} max={1000000} /></label>
       <label>Start (your local time)<input name="startsAt" type="datetime-local" required /></label>

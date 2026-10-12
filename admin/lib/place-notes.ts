@@ -81,17 +81,38 @@ export async function operatePlaceNote(body: Record<string, unknown>, actor: str
   });
 }
 
+export const DEFAULT_DENSE_THRESHOLD = 30;
+export const DEFAULT_UNLOCK_RADIUS_M = 15;
+
+export async function placeNoteSettings() {
+  const doc = await adminDb().collection('system').doc('place_notes').get();
+  const like = doc.get('push_like_threshold'), dense = doc.get('dense_threshold'), unlock = doc.get('unlock_radius_m');
+  return {
+    likeThreshold: Number.isInteger(like) && like >= 1 ? like : DEFAULT_LIKE_THRESHOLD,
+    denseThreshold: Number.isInteger(dense) && dense >= 2 ? dense : DEFAULT_DENSE_THRESHOLD,
+    unlockRadius: typeof unlock === 'number' && unlock >= 2 && unlock <= 50 ? unlock : DEFAULT_UNLOCK_RADIUS_M,
+  };
+}
+
+function integer(value: unknown, name: string, min: number, max: number) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) throw new ValidationError(`${name} must be ${min}–${max}`);
+  return value;
+}
+
+/** Like threshold for the notification queue; dense-spot size and on-site unlock radius. */
 export async function setPlaceNoteSettings(body: Record<string, unknown>, actor: string, reason: string, key: string) {
-  const threshold = body.likeThreshold;
-  if (typeof threshold !== 'number' || !Number.isInteger(threshold) || threshold < 1 || threshold > 1000) throw new ValidationError('like threshold must be 1–1000');
-  const db = adminDb(), ref = db.collection('system').doc('place_notes'), hash = mutationHash(actor, 'place_note_settings', 'place_notes', { threshold, reason });
+  const threshold = integer(body.likeThreshold, 'like threshold', 1, 1000);
+  const dense = integer(body.denseThreshold ?? DEFAULT_DENSE_THRESHOLD, 'dense spot size', 2, 1000);
+  const unlock = integer(body.unlockRadius ?? DEFAULT_UNLOCK_RADIUS_M, 'unlock radius', 2, 50);
+  const db = adminDb(), ref = db.collection('system').doc('place_notes'), hash = mutationHash(actor, 'place_note_settings', 'place_notes', { threshold, dense, unlock, reason });
   return db.runTransaction(async tx => {
     await requirePermission(tx, actor, 'posts.moderate');
     const [receipt, current] = await tx.getAll(db.collection('admin_audit_log').doc(key), ref);
     if (checkReceipt(receipt, hash)) return { likeThreshold: threshold };
-    tx.set(ref, { push_like_threshold: threshold, updated_by_admin: actor, updated_at: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(ref, { push_like_threshold: threshold, dense_threshold: dense, unlock_radius_m: unlock, updated_by_admin: actor, updated_at: FieldValue.serverTimestamp() }, { merge: true });
     writeAudit(tx, key, { requestHash: hash, actorId: actor, action: 'place_note_settings', resourceType: 'system', resourceId: 'place_notes',
-      before: { push_like_threshold: current.get('push_like_threshold') ?? DEFAULT_LIKE_THRESHOLD }, after: { push_like_threshold: threshold },
+      before: { push_like_threshold: current.get('push_like_threshold') ?? DEFAULT_LIKE_THRESHOLD, dense_threshold: current.get('dense_threshold') ?? DEFAULT_DENSE_THRESHOLD,
+        unlock_radius_m: current.get('unlock_radius_m') ?? DEFAULT_UNLOCK_RADIUS_M }, after: { push_like_threshold: threshold, dense_threshold: dense, unlock_radius_m: unlock },
       reason, permissionKey: 'posts.moderate', riskLevel: 'sensitive' });
     return { likeThreshold: threshold };
   });

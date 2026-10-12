@@ -45,9 +45,12 @@ test('nearby selection excludes stale/revoked location and artificial likes; ass
   await db.collection('posts').doc(f.postId).update({ likes_count: 1000, metrics_counter_offsets: { likes_count: 995 } });
   assert.equal(await find(), undefined);
   await db.collection('posts').doc(f.postId).update({ metrics_counter_offsets: { likes_count: 0 } });
+  // A 3-minute-old location is in the default 24 h audience (later arrival), but too old to push now.
   await db.collection('user_locations').doc(f.recipient).update({ measured_at: Timestamp.fromMillis(Date.now() - 180_000) });
-  assert.equal(await find(), undefined);
+  assert.ok(await find());
   await assert.rejects(queueNotification({ recipientId: f.recipient, campaignId: f.campaign }, f.actor, reason, randomUUID()), /no_longer_eligible/);
+  await db.collection('user_locations').doc(f.recipient).update({ measured_at: Timestamp.fromMillis(Date.now() - 25 * 3_600_000) });
+  assert.equal(await find(), undefined);
   await db.collection('user_locations').doc(f.recipient).update({ measured_at: Timestamp.now() });
   const key = randomUUID(), body = { recipientId: f.recipient, campaignId: f.campaign };
   const [a, b] = await Promise.all([queueNotification(body, f.actor, reason, key), queueNotification(body, f.actor, reason, key)]);

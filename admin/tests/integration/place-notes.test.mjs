@@ -80,3 +80,23 @@ test('administrators can place a location note anywhere and approve it in the sa
   const draft = parseContentInput({ ...emptyContent, authorId: author, caption: 'Pending note', lat: -31.1, lng: 111, status: 'pending_review', locationNote: true, approveNotifications: true });
   await assert.rejects(saveAdminPost(draft, admin, reason, randomUUID()), /active public note/);
 });
+
+test('dense-spot size and on-site unlock radius are validated and audited with the like threshold', async () => {
+  const { placeNoteSettings } = await import('../../lib/place-notes.ts');
+  const admin = await actor(), key = randomUUID();
+  await setPlaceNoteSettings({ likeThreshold: 4, denseThreshold: 40, unlockRadius: 2 }, admin, reason, key);
+  assert.deepEqual(await placeNoteSettings(), { likeThreshold: 4, denseThreshold: 40, unlockRadius: 2 });
+  assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('after_state').unlock_radius_m, 2);
+  await assert.rejects(setPlaceNoteSettings({ likeThreshold: 4, denseThreshold: 1 }, admin, reason, randomUUID()), /dense spot size/);
+  await assert.rejects(setPlaceNoteSettings({ likeThreshold: 4, unlockRadius: 80 }, admin, reason, randomUUID()), /unlock radius/);
+  await setPlaceNoteSettings({ likeThreshold: 3, denseThreshold: 30, unlockRadius: 15 }, admin, reason, randomUUID());
+});
+
+test('campaign arrivals default to a 30 m GPS-tolerant entry radius and a 24 h audience location age', async () => {
+  const { campaignInput } = await import('../../lib/campaigns.ts');
+  const base = { brandId: randomUUID(), name: 'Burger', message: 'Lunch discount', terms: 'Valid today', lat: 41, lng: 29, startsAt: Date.now(), endsAt: Date.now() + 86_400_000 };
+  const input = campaignInput(base);
+  assert.equal(input.entryRadius, 30); assert.equal(input.audienceMaxAgeMinutes, 1440); assert.equal(input.arrivalDiameter, undefined);
+  assert.throws(() => campaignInput({ ...base, entryRadius: 5 }), /entry radius/);
+  assert.throws(() => campaignInput({ ...base, audienceMaxAgeMinutes: 5000 }), /location age/);
+});

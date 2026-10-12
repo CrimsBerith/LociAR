@@ -145,18 +145,19 @@ test('arrival also accepts approved custom campaign notification text', async ()
   assert.equal((await adminDb.collection('activity_events').doc(result.activityId).get()).get('body'), result.body);
 });
 
-test('unified campaign entry requires fresh distinct confirmation fixes inside the small diameter', async () => {
+test('campaign entry uses the GPS-tolerant 15-100 m rule and still requires fresh distinct confirmation fixes', async () => {
   const f = await arrivalFixture();
   await adminDb.collection('user_data_preferences').doc(f.recipient.luid).update({ notifications: true });
   const regions = (await f.recipient.call('readCampaignRegions')).regions;
-  assert.equal(regions[0].triggerRadius, 2.5);
+  assert.equal(regions[0].triggerRadius, 30, 'default entry radius');
   const arrive = (fix, confirmationStartedAt = Date.now() - 3000) => f.recipient.call('recordCampaignArrival', {
     ...f.body, location: { ...f.body.location, measuredAt: Date.now(), ...fix }, confirmationStartedAt,
   });
-  assert.equal((await arrive({ accuracy: 5 })).notify, false);
-  assert.equal((await arrive({ lat: 39.92005 })).notify, false);
+  assert.equal((await arrive({ accuracy: 40 })).notify, false, 'fixes worse than 35 m never count');
+  assert.equal((await arrive({ lat: 39.9206, accuracy: 8 })).notify, false, '~67 m away is outside 30 m + 8 m');
   assert.equal((await arrive({ measuredAt: Date.now() - 15000 }, Date.now() - 20000)).notify, false);
   assert.equal((await arrive({ measuredAt: Date.now() - 4000 })).notify, false);
   assert.equal((await f.recipient.call('recordCampaignArrival', f.body)).notify, false);
-  assert.equal((await arrive({})).notify, true);
+  // Passing ~35 m from the shop with a typical 8 m fix is inside 30 m + 8 m.
+  assert.equal((await arrive({ lat: 39.92032, accuracy: 8 })).notify, true);
 });

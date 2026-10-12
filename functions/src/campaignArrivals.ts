@@ -3,6 +3,7 @@ import { db, Timestamp, FieldValue, requireCaller, isUUID, HttpsError, ENFORCE_A
 import { requireActiveAccount, accountDeletionRef } from './profileGuard';
 import { campaignOffer, campaignPushBody } from './campaigns';
 import { distanceMeters } from './geo';
+import { campaignEntryRadius, fixInsideNote } from './placeNoteRules';
 import { pushQuotaId, pushQuotaDecision } from './pushPolicy';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
@@ -29,7 +30,7 @@ export const readCampaignRegions = onCall(options, async request => {
       const lat = departure ? origin!.get('lat') : c.get('lat'), lng = departure ? origin!.get('lng') : c.get('lng');
       const radius = departure ? origin!.get('radius') : c.get('arrivalRadius') ?? 150;
       if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180 || !Number.isFinite(radius) || radius < 100 || radius > 500) continue;
-      regions.push({ id: c.id, lat, lng, radius, ...(!departure ? { triggerRadius: (c.get('arrivalDiameter') ?? 5) / 2 } : {}), transition: departure ? 'exit' : 'entry',
+      regions.push({ id: c.id, lat, lng, radius, ...(!departure ? { triggerRadius: campaignEntryRadius(c.get('entryRadius')) } : {}), transition: departure ? 'exit' : 'entry',
         expiresAt: departure ? Math.min(origin!.get('expires_at').toMillis(), c.get('ends_at').toMillis()) : c.get('ends_at').toMillis() });
     }
     return { regions };
@@ -62,10 +63,11 @@ export const recordCampaignArrival = onCall(options, async request => {
     const origin = departure ? await tx.get(db.collection('campaign_departure_regions').doc(target.id)) : null;
     if (departure && (!origin?.exists || typeof pref.get('departures_revision') !== 'string' || origin.get('consent_revision') !== pref.get('departures_revision')
         || !(origin.get('expires_at') instanceof Timestamp) || origin.get('expires_at').toMillis() <= now)) return { notify: false };
-    const radius = departure ? origin!.get('radius') : (c.get('arrivalDiameter') ?? 5) / 2;
+    // Arrival: the same GPS-tolerant rule as location notes, so passing the shop on foot or by car counts.
+    const radius = departure ? origin!.get('radius') : campaignEntryRadius(c.get('entryRadius'));
     const distance = distanceMeters(fix.lat, fix.lng, departure ? origin!.get('lat') : c.get('lat'), departure ? origin!.get('lng') : c.get('lng'));
-    if (!Number.isFinite(radius) || (departure ? radius < 100 || radius > 500 : radius < 1 || radius > 2.5) || !Number.isFinite(distance)
-        || (departure ? distance - fix.accuracy <= radius : distance + fix.accuracy > radius)) return { notify: false };
+    if (!Number.isFinite(radius) || (departure && (radius < 100 || radius > 500)) || !Number.isFinite(distance)
+        || (departure ? distance - fix.accuracy <= radius : !fixInsideNote({ ...fix, measuredAt: fix.measuredAt }, c.get('lat'), c.get('lng'), radius))) return { notify: false };
     const actor = target.get('assigned_by');
     if (typeof actor !== 'string') return { notify: false };
     const [roles, deletion] = await Promise.all([

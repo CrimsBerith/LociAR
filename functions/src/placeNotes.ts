@@ -4,12 +4,13 @@ import { createPostHandler, type LocationNoteMetadata } from './posts';
 import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
 import { isBlocked } from './anonymousAccess';
 import { anyBlocked } from './moderation';
+import { denseSpotsNear, spotReceiptRef, spotSettings } from './denseSpots';
 import { isPublicActive } from './counters';
 import { distanceMeters, geohashCoverPrefixes } from './geo';
 import {
   clampNotifyRadius, clusterNotes, compareByLikes, confirmationValid, defaultNotifyRadius, fixInsideNote, fixIsFresh,
-  validCoordinates, ENTRY_TOLERANCE_CAP_M, MAX_CREATE_ACCURACY_M, MAX_ENTRY_ACCURACY_M, MAX_NOTIFY_RADIUS_M, MAX_PIN_DRAG_M,
-  REGION_SEARCH_RADIUS_M, type Fix, type FixSource, type RankedNote,
+  validCoordinates, WAKE_RADIUS_MIN_M, ENTRY_TOLERANCE_CAP_M, MAX_CREATE_ACCURACY_M, MAX_ENTRY_ACCURACY_M, MAX_NOTIFY_RADIUS_M, MAX_PIN_DRAG_M,
+  REGION_SEARCH_RADIUS_M, SPOT_TRIGGER_RADIUS_M, stableUuid, type Fix, type FixSource, type RankedNote,
 } from './placeNoteRules';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 60 };
@@ -116,7 +117,16 @@ export const readPlaceNoteRegions = onCall(options, async request => {
       if ((await tx.get(receiptRef(caller.luid, p.id))).exists) continue;
       unseen.push(ranked(p));
     }
-    const regions = clusterNotes(unseen)
+    // Dense spots (30+ notes) wake the phone for a text-free "many notes here" alert, once per 30 days.
+    const settings = await spotSettings(tx);
+    const spots = [];
+    for (const spot of (await denseSpotsNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M, settings.denseThreshold)).slice(0, 30)) {
+      const receipt = await tx.get(spotReceiptRef(caller.luid, spot.cell));
+      if (receipt.exists && receipt.get('expires_at') instanceof Timestamp && receipt.get('expires_at').toMillis() > now) continue;
+      spots.push({ id: stableUuid(`dense:${spot.cell}`), lat: spot.lat, lng: spot.lng, radius: WAKE_RADIUS_MIN_M,
+        triggerRadius: SPOT_TRIGGER_RADIUS_M, notes: [{ lat: spot.lat, lng: spot.lng, r: SPOT_TRIGGER_RADIUS_M }], spot: spot.cell });
+    }
+    const regions = [...clusterNotes(unseen), ...spots]
       .sort((a, b) => distanceMeters(f.lat, f.lng, a.lat, a.lng) - distanceMeters(f.lat, f.lng, b.lat, b.lng))
       .slice(0, MAX_REGIONS)
       .map(c => ({ ...c, expiresAt: now + DAY, transition: 'entry', kind: 'place_note' }));
@@ -146,7 +156,19 @@ export const recordPlaceNoteVisit = onCall(options, async request => {
       eligible.push(p);
     }
     const top = eligible[0];
-    if (!top) return { notify: false, reason: 'nothing_new' };
+    if (!top) {
+      // No approved note here: a dense spot still earns one text-free alert per 30 days.
+      const settings = await spotSettings(tx);
+      const spots = await denseSpotsNear(tx, f.lat, f.lng, SPOT_TRIGGER_RADIUS_M + Math.min(f.accuracy, ENTRY_TOLERANCE_CAP_M), settings.denseThreshold);
+      for (const spot of spots) {
+        const receipt = await tx.get(spotReceiptRef(caller.luid, spot.cell));
+        if (receipt.exists && receipt.get('expires_at') instanceof Timestamp && receipt.get('expires_at').toMillis() > now) continue;
+        tx.set(receipt.ref, { owner_luid: caller.luid, cell: spot.cell, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
+        return { notify: true, kind: 'dense_spot', total: spot.count, spotLat: spot.lat, spotLng: spot.lng, unlockRadius: settings.unlockRadius,
+          activityId: `dense_spot_${caller.luid}_${spot.cell}`, recipientId: caller.luid };
+      }
+      return { notify: false, reason: 'nothing_new' };
+    }
     const activityId = `place_note_${caller.luid}_${top.id}`;
     // No expiry: the same note is never sent to the same person again.
     tx.create(receiptRef(caller.luid, top.id), { owner_luid: caller.luid, post_id: top.id, created_at: FieldValue.serverTimestamp() });

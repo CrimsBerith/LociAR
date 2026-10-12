@@ -23,7 +23,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
     {campaigns.documents.map(c => <article className="panel" key={c.id}>
       <h2>{String(c.get('name'))}</h2><p>{c.id} · {String(c.get('status'))}</p><p>{String(c.get('message'))}</p><p>{String(c.get('terms'))}</p>
       <p>{c.get('lat')}, {c.get('lng')} · Radius {c.get('radius')} m · Minimum posts {c.get('minPosts')} · Minimum best likes {c.get('minLikes')}</p>
-      <p>Entry notification diameter: {c.get('arrivalDiameter') ?? 5} m. OS wake-up radius: {c.get('arrivalRadius') ?? 150} m. GPS uncertainty must fit entirely inside; indoor/doorway detection is not guaranteed.</p>
+      <p>Arrival entry radius: {c.get('entryRadius') ?? 30} m (+ GPS error, at most 20 m). OS wake-up radius: {c.get('arrivalRadius') ?? 150} m. Audience uses last shared locations up to {c.get('audienceMaxAgeMinutes') ?? 2} minutes old. Doorway entry is not guaranteed.</p>
       <p>{iso(c.get('starts_at'))} → {iso(c.get('ends_at'))} · Views: {Number(c.get('views_count') ?? 0)}</p>
       {admin.permissions.has('campaigns.write') ? <AdminDecision endpoint="/api/admin/v1/campaigns" actions={[
         { label: 'Approve / activate', body: { action: 'status', campaignId: c.id, status: 'active' } },
