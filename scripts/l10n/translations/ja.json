@@ -633,5 +633,13 @@
  "Notun yayınlandı. Haritada görünüyor.": "メモを投稿しました。地図に表示されています。",
  "Beğeni, yorum, takip, konum notu ve yönetici mesajı bildirimlerini açar. Mesaj kilit ekranında görünebilir. Her zaman konum izniyle uygulama kapalıyken de beğenilen bir notun bulunduğu yere gelince haber verir; yalnızca not alanları izlenir, alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır ve konum geçmişin saklanmaz. Ölçümler yönetici konumuna eklenmez. Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.": "いいね、コメント、フォロー、場所のメモ、管理者メッセージの通知をオンにします。通知はロック画面に表示されることがあります。位置情報を「常に許可」にすると、アプリを閉じていても、いいねの多いメモの場所に着いたときにお知らせします。見守るのはメモのエリアだけで、近くでは最大30分間だけ高精度GPSを使い、位置情報の履歴は保存しません。この測定値は管理者と共有する位置情報には追加されません。正確な位置情報とインターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。",
  "Kampanyalar ve teklifler": "キャンペーンとオファー",
- "İsteğe bağlı. Açarsan markaların kampanyaları, örneğin bir indirim kodu, kampanya alanına girince, orada kalınca veya sık kaldığın yerden çıkınca bildirim olarak gelebilir. Sık kaldığın yer iOS ziyaret kayıtlarından yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Markalar konumunu ve kim olduğunu görmez. İstediğin an kapatabilirsin.": "任意です。オンにすると、キャンペーンエリアに入ったりとどまったりしたとき、またはいつもいる場所を出たときに、割引コードなどのブランドのキャンペーンが通知されることがあります。その場所はiOSの訪問記録からスマートフォン上でのみ学習され、当社に送られることはなく、自宅として記録されることもありません。ブランドがあなたの位置情報や身元を見ることはありません。いつでもオフにできます。"
+ "İsteğe bağlı. Açarsan markaların kampanyaları, örneğin bir indirim kodu, kampanya alanına girince, orada kalınca veya sık kaldığın yerden çıkınca bildirim olarak gelebilir. Sık kaldığın yer iOS ziyaret kayıtlarından yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Markalar konumunu ve kim olduğunu görmez. İstediğin an kapatabilirsin.": "任意です。オンにすると、キャンペーンエリアに入ったりとどまったりしたとき、またはいつもいる場所を出たときに、割引コードなどのブランドのキャンペーンが通知されることがあります。その場所はiOSの訪問記録からスマートフォン上でのみ学習され、当社に送られることはなく、自宅として記録されることもありません。ブランドがあなたの位置情報や身元を見ることはありません。いつでもオフにできます。",
+ "Kamerayla hassaslaştır": "カメラで精度を上げる",
+ "Kamera konumu · ±%lld m": "カメラ位置 · ±%lld m",
+ "Bu cihazda kamerayla konum hassaslaştırma kullanılamıyor.": "このデバイスではカメラによる位置の補正を利用できません。",
+ "Telefonu yavaşça çevirmeye devam et; ±5 m’ye inince konum otomatik kullanılır.": "スマートフォンをゆっくり回し続けてください。±5 m になると位置が自動で使われます。",
+ "Çevre taranıyor…": "周囲をスキャン中…",
+ "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.": "スマートフォンを目の高さに持ち、近くの建物や看板に向けてゆっくり回してください。屋外で最も効果的で、屋内では使えない場合があります。",
+ "Bu konumu kullan": "この位置を使う",
+ "Kamerayla aç": "カメラで開く"
 }

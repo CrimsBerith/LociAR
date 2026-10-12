@@ -6076,6 +6076,83 @@
         }
       }
     },
+    "Bu cihazda kamerayla konum hassaslaştırma kullanılamıyor." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu cihazda kamerayla konum hassaslaştırma kullanılamıyor."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refining your position with the camera is not available on this device."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Positionsverfeinerung mit der Kamera ist auf diesem Gerät nicht verfügbar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afinar tu posición con la cámara no está disponible en este dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’affinage de la position avec la caméra n’est pas disponible sur cet appareil."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refinar sua posição com a câmera não está disponível neste dispositivo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уточнение местоположения камерой недоступно на этом устройстве."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحسين موقعك بالكاميرا غير متاح على هذا الجهاز."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस डिवाइस पर कैमरे से लोकेशन सटीक करना उपलब्ध नहीं है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই ডিভাইসে ক্যামেরা দিয়ে অবস্থান নির্ভুল করা যায় না।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスではカメラによる位置の補正を利用できません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备不支持用相机校准位置。"
+          }
+        }
+      }
+    },
     "Bu giriş yöntemi artık desteklenmiyor. E-posta ve şifre ya da Apple ile giriş yap." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6842,6 +6919,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此位置的帖子"
+          }
+        }
+      }
+    },
+    "Bu konumu kullan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu konumu kullan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this position"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Position verwenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar esta posición"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser cette position"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar esta posição"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать эту позицию"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدم هذا الموقع"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह लोकेशन इस्तेमाल करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই অবস্থান ব্যবহার করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この位置を使う"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用此位置"
           }
         }
       }
@@ -18764,6 +18918,83 @@
         }
       }
     },
+    "Kamera konumu · ±%lld m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera konumu · ±%lld m"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera position · ±%lld m"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameraposition · ±%lld m"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posición de la cámara · ±%lld m"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position caméra · ±%lld m"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posição da câmera · ±%lld m"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позиция камеры · ±%lld м"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "موقع الكاميرا · ±%lld م"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरा स्थिति · ±%lld मी"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যামেরার অবস্থান · ±%lld মি"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラ位置 · ±%lld m"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机位置 · ±%lld 米"
+          }
+        }
+      }
+    },
     "Kamera pozu alınamadı. Tekrar deneyin." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19068,6 +19299,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "相机用于检测 AR 表面，位置信息用于显示附近的帖子。Google AR 功能需要您单独同意。"
+          }
+        }
+      }
+    },
+    "Kamerayla aç" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamerayla aç"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open with camera"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Kamera öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir con la cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir avec la caméra"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir com a câmera"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть камерой"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افتح بالكاميرا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरे से खोलें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যামেরা দিয়ে খুলুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラで開く"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用相机打开"
+          }
+        }
+      }
+    },
+    "Kamerayla hassaslaştır" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamerayla hassaslaştır"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refine with camera"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Kamera verfeinern"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afinar con la cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiner avec la caméra"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refinar com a câmera"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уточнить камерой"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحسين الموقع بالكاميرا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरे से सटीक करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যামেরা দিয়ে নির্ভুল করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラで精度を上げる"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用相机校准位置"
           }
         }
       }
@@ -35088,6 +35473,83 @@
         }
       }
     },
+    "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold the phone at eye level and turn it slowly towards nearby buildings and signs. Works best outdoors; may not work indoors."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte das Telefon auf Augenhöhe und drehe es langsam zu Gebäuden und Schildern in der Nähe. Funktioniert am besten im Freien; in Innenräumen eventuell nicht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostén el teléfono a la altura de los ojos y gíralo despacio hacia los edificios y letreros cercanos. Funciona mejor al aire libre; puede no funcionar en interiores."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tenez le téléphone à hauteur des yeux et tournez-le lentement vers les bâtiments et panneaux proches. Fonctionne mieux en extérieur ; peut ne pas fonctionner à l’intérieur."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segure o telefone na altura dos olhos e gire devagar em direção a prédios e placas próximos. Funciona melhor ao ar livre; pode não funcionar em ambientes fechados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Держите телефон на уровне глаз и медленно поворачивайте его к ближайшим зданиям и вывескам. Лучше всего работает на улице; в помещении может не работать."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ارفع الهاتف إلى مستوى العين وأدره ببطء نحو المباني واللافتات القريبة. يعمل بأفضل شكل في الهواء الطلق، وقد لا يعمل في الأماكن المغلقة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़ोन को आँखों की ऊँचाई पर रखें और पास की इमारतों और बोर्डों की ओर धीरे-धीरे घुमाएँ। बाहर सबसे अच्छा काम करता है; अंदर शायद काम न करे।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফোনটি চোখের উচ্চতায় ধরে কাছের ভবন ও সাইনবোর্ডের দিকে ধীরে ধীরে ঘোরান। বাইরে সবচেয়ে ভালো কাজ করে; ভেতরে কাজ নাও করতে পারে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スマートフォンを目の高さに持ち、近くの建物や看板に向けてゆっくり回してください。屋外で最も効果的で、屋内では使えない場合があります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将手机举到与眼睛齐平，缓慢转向附近的建筑和招牌。在户外效果最好；在室内可能无法使用。"
+          }
+        }
+      }
+    },
     "Telefonu postun yönüne çevirin." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35315,6 +35777,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "缓慢移动手机扫描周围环境。"
+          }
+        }
+      }
+    },
+    "Telefonu yavaşça çevirmeye devam et; ±5 m’ye inince konum otomatik kullanılır." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telefonu yavaşça çevirmeye devam et; ±5 m’ye inince konum otomatik kullanılır."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep turning the phone slowly; the position is used automatically once it reaches ±5 m."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drehe das Telefon weiter langsam; bei ±5 m wird die Position automatisch übernommen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sigue girando el teléfono despacio; la posición se usará automáticamente al llegar a ±5 m."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuez à tourner lentement le téléphone ; la position est utilisée automatiquement dès qu’elle atteint ±5 m."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue girando o telefone devagar; a posição é usada automaticamente ao chegar a ±5 m."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжайте медленно поворачивать телефон; при точности ±5 м позиция будет использована автоматически."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "واصل تدوير الهاتف ببطء؛ سيُستخدم الموقع تلقائيًا عندما تصل الدقة إلى ±5 م."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़ोन को धीरे-धीरे घुमाते रहें; ±5 मी तक पहुँचते ही लोकेशन अपने-आप इस्तेमाल होगी।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফোনটি ধীরে ধীরে ঘোরাতে থাকুন; ±5 মি-তে পৌঁছালে অবস্থানটি স্বয়ংক্রিয়ভাবে ব্যবহার হবে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スマートフォンをゆっくり回し続けてください。±5 m になると位置が自動で使われます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续缓慢转动手机；精度达到 ±5 米时将自动使用该位置。"
           }
         }
       }
@@ -45325,6 +45864,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "环境图有限"
+          }
+        }
+      }
+    },
+    "Çevre taranıyor…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çevre taranıyor…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning surroundings…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umgebung wird erfasst…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escaneando el entorno…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyse des alentours…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analisando os arredores…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сканирование окружения…"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ مسح المحيط…"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आसपास स्कैन हो रहा है…"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আশপাশ স্ক্যান করা হচ্ছে…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "周囲をスキャン中…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在扫描周围环境…"
           }
         }
       }

@@ -28,6 +28,7 @@ struct MapFeatureView: View {
     @State private var clusterFocus: Set<UUID>?
     @State private var unlocking = false
     @State private var unlockMessage: String?
+    @State private var showCameraUnlock = false
 
     var body: some View {
         Map(position: $camera, selection: $selection) {
@@ -72,6 +73,9 @@ struct MapFeatureView: View {
             refreshLayer(for: context.region)
         }
         .sheet(isPresented: $showPlaceNote) { PlaceNoteComposer(seed: location.recentLocations) }
+        .fullScreenCover(isPresented: $showCameraUnlock) {
+            CameraLocationRefineView { fix in Task { await unlockHere(cameraFix: fix) } }
+        }
         .safeAreaInset(edge: .bottom, spacing: 8) { mapPanel.padding(.horizontal, 14) }
         .navigationTitle("Harita")
         .navigationBarTitleDisplayMode(.inline)
@@ -276,24 +280,33 @@ struct MapFeatureView: View {
             Label(String(localized: "Yoğun nokta: \(noteCount) not. Açmak için \(meters) m yaklaş."), systemImage: "lock.fill")
                 .font(.caption.weight(.semibold))
             if let unlockMessage { Text(unlockMessage).font(.caption).foregroundStyle(.secondary) }
-            Button { Task { await unlockHere() } } label: {
-                Label(unlocking ? String(localized: "Konum doğrulanıyor…") : String(localized: "Burada aç"), systemImage: "lock.open")
+            HStack {
+                Button { Task { await unlockHere() } } label: {
+                    Label(unlocking ? String(localized: "Konum doğrulanıyor…") : String(localized: "Burada aç"), systemImage: "lock.open")
+                }
+                .buttonStyle(.bordered).controlSize(.small).disabled(unlocking)
+                .accessibilityIdentifier("map-unlock-dense-spot")
+                if container.arcore.isEnabled, CameraLocationRefineView.isSupported {
+                    Button { showCameraUnlock = true } label: { Label("Kamerayla aç", systemImage: "camera.viewfinder") }
+                        .buttonStyle(.bordered).controlSize(.small).disabled(unlocking)
+                        .accessibilityIdentifier("map-unlock-dense-spot-camera")
+                }
             }
-            .buttonStyle(.bordered).controlSize(.small).disabled(unlocking)
-            .accessibilityIdentifier("map-unlock-dense-spot")
         }
     }
 
-    private func unlockHere() async {
+    private func unlockHere(cameraFix: LocationSample? = nil) async {
         unlocking = true; unlockMessage = nil
         defer { unlocking = false }
         location.start()
         location.requestPreciseAccuracyIfNeeded()
-        var fix: LocationSample?
-        for _ in 0..<20 {
-            fix = DenseSpotClient.bestFix(gps: location.location, camera: container.arcore.cameraFix)
-            if let fix, fix.accuracy <= LocationNotePolicy.maxEntryAccuracy { break }
-            try? await Task.sleep(for: .milliseconds(500))
+        var fix = cameraFix
+        if cameraFix == nil {
+            for _ in 0..<20 {
+                fix = DenseSpotClient.bestFix(gps: location.location, camera: container.arcore.cameraFix)
+                if let fix, fix.accuracy <= LocationNotePolicy.maxEntryAccuracy { break }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
         }
         guard let fix else { unlockMessage = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin."); return }
         do {

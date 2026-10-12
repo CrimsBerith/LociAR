@@ -633,5 +633,13 @@
  "Notun yayınlandı. Haritada görünüyor.": "你的笔记已发布，已显示在地图上。",
  "Beğeni, yorum, takip, konum notu ve yönetici mesajı bildirimlerini açar. Mesaj kilit ekranında görünebilir. Her zaman konum izniyle uygulama kapalıyken de beğenilen bir notun bulunduğu yere gelince haber verir; yalnızca not alanları izlenir, alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır ve konum geçmişin saklanmaz. Ölçümler yönetici konumuna eklenmez. Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.": "开启点赞、评论、关注、位置笔记和管理员消息通知。通知可能显示在锁屏上。授予“始终”位置权限后，即使应用已关闭，到达热门笔记所在地点时也会提醒你；只监测笔记区域，靠近时最多使用 30 分钟精确 GPS，不保存你的位置记录。这些测量不会加入与管理员共享的位置。需要精确位置和网络。手机 GPS 通常有 5–30 米误差。",
  "Kampanyalar ve teklifler": "活动和优惠",
- "İsteğe bağlı. Açarsan markaların kampanyaları, örneğin bir indirim kodu, kampanya alanına girince, orada kalınca veya sık kaldığın yerden çıkınca bildirim olarak gelebilir. Sık kaldığın yer iOS ziyaret kayıtlarından yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Markalar konumunu ve kim olduğunu görmez. İstediğin an kapatabilirsin.": "可选。开启后，当你进入或停留在活动区域，或离开你常待的地方时，品牌活动（例如折扣码）可能以通知形式发送给你。这个地方只根据 iOS 访问记录在你的手机上学习，绝不会发送给我们，也不会被标记为家。品牌永远看不到你的位置或身份。你可以随时关闭。"
+ "İsteğe bağlı. Açarsan markaların kampanyaları, örneğin bir indirim kodu, kampanya alanına girince, orada kalınca veya sık kaldığın yerden çıkınca bildirim olarak gelebilir. Sık kaldığın yer iOS ziyaret kayıtlarından yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Markalar konumunu ve kim olduğunu görmez. İstediğin an kapatabilirsin.": "可选。开启后，当你进入或停留在活动区域，或离开你常待的地方时，品牌活动（例如折扣码）可能以通知形式发送给你。这个地方只根据 iOS 访问记录在你的手机上学习，绝不会发送给我们，也不会被标记为家。品牌永远看不到你的位置或身份。你可以随时关闭。",
+ "Kamerayla hassaslaştır": "用相机校准位置",
+ "Kamera konumu · ±%lld m": "相机位置 · ±%lld 米",
+ "Bu cihazda kamerayla konum hassaslaştırma kullanılamıyor.": "此设备不支持用相机校准位置。",
+ "Telefonu yavaşça çevirmeye devam et; ±5 m’ye inince konum otomatik kullanılır.": "继续缓慢转动手机；精度达到 ±5 米时将自动使用该位置。",
+ "Çevre taranıyor…": "正在扫描周围环境…",
+ "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.": "将手机举到与眼睛齐平，缓慢转向附近的建筑和招牌。在户外效果最好；在室内可能无法使用。",
+ "Bu konumu kullan": "使用此位置",
+ "Kamerayla aç": "用相机打开"
 }

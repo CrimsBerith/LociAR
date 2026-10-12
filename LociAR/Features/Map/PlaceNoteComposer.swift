@@ -10,7 +10,7 @@ final class PlaceNoteClient {
     private var callables: CallableClient?
     func configure(callables: CallableClient) { self.callables = callables }
 
-    enum Source: String, Encodable { case gps, manual }
+    enum Source: String, Encodable { case gps, manual, geospatial }
     private struct Payload: Encodable {
         let userId: String; let clientMutationId: String; let lat: Double; let lng: Double
         let source: Source; let accuracy: Double; let measuredLat: Double?; let measuredLng: Double?; let text: String
@@ -117,7 +117,11 @@ struct PlaceNoteComposer: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(AppSession.self) private var session
+    @Environment(AppContainer.self) private var container
     @State private var measurement = LocationNoteMeasurement()
+    /// ARCore Geospatial fix from "Refine with camera"; wins over GPS while set.
+    @State private var cameraFix: LocationSample?
+    @State private var showCameraRefine = false
     @State private var camera: MapCameraPosition = .automatic
     /// Map centre while the author places the pin by hand; nil while following GPS.
     @State private var manualPin: CLLocationCoordinate2D?
@@ -143,6 +147,10 @@ struct PlaceNoteComposer: View {
                     if manualPin == nil {
                         Button("Pini elle ayarla", systemImage: "hand.point.up.left") { enterManual(at: measurement.estimate) }
                             .disabled(measurement.estimate == nil)
+                        if container.arcore.isEnabled, CameraLocationRefineView.isSupported {
+                            Button("Kamerayla hassaslaştır", systemImage: "camera.viewfinder") { showCameraRefine = true }
+                                .accessibilityIdentifier("place-note-camera-refine")
+                        }
                     } else {
                         Button("Konumuma dön", systemImage: "location.fill") { manualPin = nil; follow(measurement.estimate) }
                     }
@@ -167,14 +175,25 @@ struct PlaceNoteComposer: View {
             .navigationTitle("Konum notu bırak")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } } }
         }
+        .fullScreenCover(isPresented: $showCameraRefine) {
+            CameraLocationRefineView { fix in
+                cameraFix = fix
+                follow(LocationEstimate(latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy))
+            }
+        }
         .task { measurement.start(seed: seed) }
         .onDisappear { measurement.stop() }
-        .onChange(of: measurement.estimate) { _, estimate in if manualPin == nil { follow(estimate) } }
+        .onChange(of: measurement.estimate) { _, estimate in if manualPin == nil, cameraFix == nil { follow(estimate) } }
     }
 
     private var map: some View {
         Map(position: $camera) {
-            if let estimate = measurement.estimate {
+            if let fix = cameraFix, manualPin == nil {
+                MapCircle(center: fix.location.coordinate, radius: fix.accuracy)
+                    .foregroundStyle(LociTheme.accent.opacity(0.15))
+                    .stroke(LociTheme.accent.opacity(0.6), lineWidth: 1)
+                Marker("Not konumu", systemImage: "camera.viewfinder", coordinate: fix.location.coordinate).tint(LociTheme.accent)
+            } else if let estimate = measurement.estimate {
                 MapCircle(center: estimate.coordinate, radius: estimate.accuracy)
                     .foregroundStyle(LociTheme.accent.opacity(0.15))
                     .stroke(LociTheme.accent.opacity(0.6), lineWidth: 1)
@@ -210,6 +229,10 @@ struct PlaceNoteComposer: View {
             let meters = Int(distance.rounded())
             Text("Haritayı kaydırarak pini tam bulunduğun yere getir. Pin konumundan \(meters) m uzakta.")
                 .font(.caption).foregroundStyle(distance > LocationNotePolicy.maxPinDrag ? .red : .secondary)
+        } else if let fix = cameraFix {
+            let meters = Int(fix.accuracy.rounded())
+            Label(String(localized: "Kamera konumu · ±\(meters) m"), systemImage: "checkmark.circle.fill")
+                .font(.caption).foregroundStyle(LociTheme.accent)
         } else if let estimate = measurement.estimate {
             let meters = Int(estimate.accuracy.rounded())
             Label(measurement.ready ? String(localized: "Konum hazır · ±\(meters) m")
@@ -232,6 +255,7 @@ struct PlaceNoteComposer: View {
 
     private func enterManual(at estimate: LocationEstimate?) {
         guard let estimate else { return }
+        cameraFix = nil
         manualPin = estimate.coordinate
         camera = .camera(MapCamera(centerCoordinate: estimate.coordinate, distance: 250))
     }
@@ -251,6 +275,11 @@ struct PlaceNoteComposer: View {
                 message = Self.tooUncertain(measured.accuracy); return
             }
             await submit(pin: pin, source: .manual, measured: measured, user: user.id)
+            return
+        }
+        if let fix = cameraFix {
+            let measured = LocationEstimate(latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy)
+            await submit(pin: measured.coordinate, source: .geospatial, measured: measured, user: user.id)
             return
         }
         waiting = true
