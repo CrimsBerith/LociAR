@@ -6,6 +6,7 @@ const navigation = [
   { href: '/admin/dashboard', label: 'Dashboard', enabled: true },
   { href: '/admin/users', label: 'Users', enabled: true },
   { href: '/admin/posts', label: 'Posts & media', enabled: true },
+  { href: '/admin/place-notes', label: 'Location notes', enabled: true },
   { href: '/admin/campaigns', label: 'Brand campaigns', enabled: true },
   { href: '/admin/approvals', label: 'Approvals', enabled: true },
   { href: '/admin/moderation', label: 'Moderation', enabled: true },

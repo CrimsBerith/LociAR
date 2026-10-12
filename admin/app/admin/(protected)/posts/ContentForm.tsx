@@ -31,6 +31,11 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  {postId?<label><input type="checkbox" checked={value.replacePlacement} onChange={e=>set('replacePlacement',e.target.checked)}/> If moving a physical post, replace its old AR lock with an approximate placement.</label>:null}
  {canOverride?<label>Protected-zone exception reason (only if needed)<textarea value={value.zoneExceptionReason} onChange={e=>set('zoneExceptionReason',e.target.value)} maxLength={1000}/></label>:null}
  </fieldset>
+ <fieldset><legend>Location note</legend><label><input type="checkbox" checked={value.locationNote} onChange={e=>set('locationNote',e.target.checked)}/> Location note (shown on the map at this coordinate; can notify visitors)</label>
+ {value.locationNote?<><label>Notification radius (m)<input type="number" min={15} max={100} step={1} value={value.notifyRadius} onChange={e=>set('notifyRadius',Number(e.target.value))} required/></label>
+ <p className="muted">Phone GPS is usually 5–30 m off: 15–25 m outdoors, 30–60 m indoors, up to 100 m for large venues.</p>
+ {canPublish?<label><input type="checkbox" checked={value.approveNotifications} onChange={e=>set('approveNotifications',e.target.checked)}/> Approve for notifications now (requires Publish active and Public)</label>:null}</>:null}
+ </fieldset>
  <fieldset><legend>Publication</legend><label>Visibility<select value={value.visibility} onChange={e=>set('visibility',e.target.value as ContentInput['visibility'])}><option value="public">Public</option><option value="private">Private</option><option value="friends">Friends (currently owner-only)</option></select></label>
  <label>Age rating<select value={value.ageRating} onChange={e=>set('ageRating',e.target.value as ContentInput['ageRating'])}><option value="all">All ages</option><option value="13_plus">13+</option><option value="16_plus">16+</option></select></label>
  <label>Status<select value={value.status} onChange={e=>set('status',e.target.value as ContentInput['status'])}><option value="pending_review">Pending review</option>{canPublish?<option value="active">Publish active</option>:null}</select></label>

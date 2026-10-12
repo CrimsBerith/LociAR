@@ -36,6 +36,8 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
     opacity: number(body.opacity ?? 1,'opacity',0.05,1), scale: number(body.scale ?? 1,'scale',0.1,5), rotation: number(body.rotation ?? 0,'rotation',-360,360),
     color, background, visibility: (body.visibility ?? 'public') as ContentInput['visibility'], ageRating: (body.ageRating ?? 'all') as ContentInput['ageRating'],
     status: (body.status ?? 'pending_review') as ContentInput['status'], zoneExceptionReason, replacePlacement: body.replacePlacement === true,
+    locationNote: body.locationNote === true, notifyRadius: Math.round(number(body.notifyRadius ?? 20,'notification radius',15,100)),
+    approveNotifications: body.locationNote === true && body.approveNotifications === true,
   };
 }
 async function requirePermission(tx: Transaction, actorId: string, permission: string) {
@@ -75,6 +77,11 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
     const [audit, before] = await tx.getAll(db.collection('admin_audit_log').doc(key),db.collection('posts').doc(id));
     if (checkReceipt(audit,hash)) return { id };
     if (editingId && !before.exists) throw new ValidationError('post_not_found');
+    // Approval is a moderation decision; keeping an existing approval while editing is not.
+    if (input.approveNotifications && before.get('push_state') !== 'approved') {
+      await requirePermission(tx,actorId,'posts.moderate');
+      if (input.status !== 'active' || input.visibility !== 'public') throw new ValidationError('notifications need an active public note');
+    }
     if (before.get('deleted_at')) throw new ConflictError('restore_post_before_editing');
     const author = await activeAuthor(tx,input.authorId);
     if (before.exists && before.get('creator_id') !== input.authorId) throw new ConflictError('post_author_cannot_be_changed');
@@ -99,6 +106,10 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
       caption:input.caption,edit_data_json:JSON.stringify(editData),content_source_json:JSON.stringify(contentSource),
       lat:input.lat,lng:input.lng,geohash:encodeGeohash(input.lat,input.lng,10),visibility:input.visibility,age_rating:input.ageRating,status:input.status,
       ...(!before.exists || moved ? placement(input,id) : {}),
+      ...(input.locationNote ? { note_kind:'location', notify_radius_m:input.notifyRadius,
+        ...(before.get('note_kind') === 'location' ? {} : { location_note:{ source:'admin', accuracy_m:null, pin_drag_m:0 } }),
+        push_state: input.approveNotifications ? 'approved' : before.get('push_state') === 'approved' ? 'approved' : (before.get('push_state') ?? 'none'),
+        ...(input.approveNotifications && before.get('push_state') !== 'approved' ? { push_approved_by:actorId, push_approved_at:FieldValue.serverTimestamp() } : {}) } : {}),
       protected_zone_name:blockedZones.length ? blockedZones.map(z => String(z.get('name'))).join(', ') : null,
       admin_zone_exception:blockedZones.length ? {reason:input.zoneExceptionReason,actor_id:actorId,zone_ids:blockedZones.map(z=>z.id)} : null,
       updated_at:FieldValue.serverTimestamp(),updated_by_admin:actorId,
