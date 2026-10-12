@@ -142,6 +142,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private var boundUserID: UUID?
     private var transition: Task<Void, Never>?
     private var acceptsTokens = false
+    private var deliveryEnabled = false
     private var tokenRevision = 0
     private var pendingTap: PushNotificationTarget?
     private var social: (any SocialRepository)?
@@ -212,6 +213,13 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         scheduleTransition(to: userID)
     }
 
+    func setDeliveryEnabled(_ enabled: Bool) {
+        guard enabled != deliveryEnabled else { return }
+        deliveryEnabled = enabled
+        if !enabled { acceptsTokens = false; coordinator?.updateUser(nil) }
+        scheduleTransition(to: desiredUserID)
+    }
+
     func refreshForCurrentUser() async {
         guard coordinator != nil else { return }
         scheduleTransition(to: desiredUserID)
@@ -232,7 +240,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             guard let userID else { return }
             await self.checkAuthorizationStatus()
             guard self.desiredUserID == userID else { return }
-            if !self.isAuthorized {
+            if !self.isAuthorized || !self.deliveryEnabled {
                 await self.disconnect(userID: userID)
                 return
             }

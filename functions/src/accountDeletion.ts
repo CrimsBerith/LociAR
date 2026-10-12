@@ -98,7 +98,7 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       for (const post of posts.docs) {
         checkBudget();
         await deleteAnchorOfPost(post.get('cloud_anchor_id'), post.id);
-        for (const collection of ['likes', 'comments', 'post_saves', 'collection_items', 'filtered_comments']) {
+        for (const collection of ['likes', 'comments', 'post_saves', 'collection_items', 'filtered_comments', 'activity_events', 'place_note_notification_receipts']) {
           await deleteQuery(db.collection(collection).where('post_id', '==', post.id));
         }
         await db.collection('media_purge_queue').doc(post.id).delete();
@@ -115,9 +115,15 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ['likes', 'user_id'], ['comments', 'user_id'], ['post_saves', 'user_id'], ['filtered_comments', 'user_id'],
       ['follows', 'follower_id'], ['follows', 'following_id'],
       ['user_blocks', 'blocker_id'], ['user_blocks', 'blocked_id'],
+      ['anonymous_blocks', 'blocker_id'], ['anonymous_blocks', 'blocked_id'],
       ['collection_items', 'owner_id'], ['collections', 'owner_id'],
       ['activity_events', 'recipient_id'], ['activity_events', 'actor_id'],
       ['post_view_receipts', 'user_id'], ['analytics_events', 'user_id'],
+      ['user_data_preferences', 'owner_luid'], ['user_device_context', 'owner_luid'], ['user_locations', 'owner_luid'],
+      ['campaign_targets', 'owner_luid'], ['campaign_departure_regions', 'owner_luid'], ['campaign_view_receipts', 'owner_luid'], ['brand_memberships', 'owner_luid'], ['brand_submission_quota', 'owner_luid'],
+      ['place_note_notification_receipts', 'owner_luid'], ['place_note_push_quota', 'owner_luid'],
+      ['admin_notification_jobs', 'owner_luid'], ['admin_notification_receipts', 'owner_luid'], ['promotion_push_quota', 'owner_luid'],
+      ['brands', 'author_luid'], ['campaigns', 'author_luid'], ['campaigns', 'submitted_by'], ['campaign_locations', 'author_luid'],
       ['post_quota', 'owner_luid'], ['anchor_quota', 'owner_luid'], ['arcore_token_quota', 'owner_luid'], ['gif_search_quota', 'owner_luid'],
       ['push_tokens', 'owner_luid'], ['push_devices', 'luid'], ['push_quota', 'owner_luid'], ['push_delivery_receipts', 'owner_luid'],
       ['handles', 'luid'], ['avatar_reviews', 'luid'], ['avatar_uploads', 'luid'], ['avatar_screenings', 'luid'], ['avatar_deletions', 'luid'], ['moderation_originals', 'user_id'],

@@ -10,6 +10,7 @@ import CommentForm from '../CommentForm';
 import PostActions from '../PostActions';
 import PageNavigation from '../../PageNavigation';
 import PostContentPreview from '../PostContentPreview';
+import UserContextPanel from '../../UserContextPanel';
 export const dynamic='force-dynamic';
 export default async function PostDetail({params,searchParams}:{params:Promise<{postId:string}>;searchParams:Promise<SearchParameters>}){
  const admin=await requireAdmin({permission:'posts.read'});const {postId}=await params;
@@ -25,6 +26,8 @@ export default async function PostDetail({params,searchParams}:{params:Promise<{
  return <section className="page"><div className="pageHeading"><div><a href="/admin/posts">← Posts</a><h1>{String(post.caption)}</h1><p>@{String(post.creator_handle)} · {postId} · {String(post.status)}</p></div>
  <PostActions postId={postId} status={post.status} deleted={Boolean(post.deleted_at)} views={Number(post.views_count??0)} likes={Number(post.likes_count??0)} comments={Number(post.comments_count??0)}/></div>
  <section className="panel"><h2>Stored content</h2><PostContentPreview post={post}/></section>
+ {post.note_kind==='business'?<section className="panel"><h2>Map-selected business note</h2><p>{String(post.business_note?.name??'')} · {String(post.business_note?.id??'')}</p><p className="muted">Anonymous user note at an approximate map location. The business identity and a physical visit are not verified. Approval can make this text appear in opted-in visitor notifications.</p></section>:null}
+ {(admin.permissions.has('users.location.read')||admin.permissions.has('users.telemetry.read')||admin.permissions.has('notifications.send'))?<UserContextPanel luid={String(post.creator_id)} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')}/>:null}
  {admin.permissions.has('posts.edit')&&!post.deleted_at?<section className="panel"><h2>Edit content and placement</h2><p className="muted">Saving this editor replaces the text design with the preview shown below. The author stays the same.</p><ContentForm postId={postId} initial={initial} canPublish={admin.permissions.has('posts.moderate')} canOverride={admin.permissions.has('zones.override')}/></section>:null}
  <section className="panel"><h2>Comments</h2>{admin.permissions.has('comments.write')&&post.status==='active'&&!post.deleted_at?<details><summary>Create comment as selected user</summary><CommentForm postId={postId}/></details>:null}
  {page.documents.map(doc=><article className="panel" key={doc.id}><p>@{String(doc.get('username')??doc.get('user_id'))} · {iso(doc.get('created_at'))}</p>

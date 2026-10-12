@@ -31,10 +31,12 @@
 		55CE471EA1E42323D0BAC5D8 /* AuthGateUserFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D91864B39E041B2748830A /* AuthGateUserFlowUITests.swift */; };
 		5821095FE42FF0FEC7D5998A /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */; };
 		59F6095DAD6C3F9659393C55 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B8CE05A07DBFC412918542 /* MainTabView.swift */; };
+		5A69D23CDAC608069B88A73B /* UserContextService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7796ACFDBCBD0E65741ABF9 /* UserContextService.swift */; };
 		5CD424BE6F1C83D9B7FCACD0 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = D79507527DE249B572FDC585 /* FirebaseAuth */; };
 		5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */; };
 		5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8263073D47812D536F4369 /* GeoPoseCaptureService.swift */; };
 		60C720C4226E7EADD4D73BD5 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C46B83A003BDC6A241B3BDD /* NotificationService.swift */; };
+		6929300EA559F389AD94C0F9 /* CampaignArrivalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CF3A4B1065A252673D427A /* CampaignArrivalService.swift */; };
 		6C577AC0F64E4A21D26BE1BA /* AnimatedGIFView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219981EF4B8583A7F231C146 /* AnimatedGIFView.swift */; };
 		6E537DA4B254594AFBFAF0D8 /* ARPostViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */; };
 		6EE96CC69E25FE252051A562 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5172273B7111934A8D310E05 /* Models.swift */; };
@@ -48,6 +50,7 @@
 		7C93C386BBED1A627FFB4055 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = D6EB25DF5EB613E7D5A08EAC /* FirebaseCore */; };
 		7E19FD03007EFC653D77E9B8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F3FB818959D6EA5ADDE7F1E /* RootView.swift */; };
 		802D0F1A682E49E233E5475B /* PostRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C09DE1100E41CE6D5859D9 /* PostRepository.swift */; };
+		8704808FB9B3B986FAA798B7 /* PlaceNoteComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178E7F50CCFFE7E58ECE0B84 /* PlaceNoteComposer.swift */; };
 		881A6413A9230C295BDBD795 /* LegacyAsyncStorageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */; };
 		89009A411211647CBFFD0CC1 /* ARExperienceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */; };
 		92CB2579F9A4D9FA6136AF3D /* BackendAndPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A27A11D2DC46B7BCDA5DC4 /* BackendAndPolicyTests.swift */; };
@@ -128,6 +131,8 @@
 		0A13E7C0C1A465129B5A5346 /* GifPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifPickerView.swift; sourceTree = "<group>"; };
 		0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinStateMachineTests.swift; sourceTree = "<group>"; };
 		15467FD09987F01C8665AFE9 /* HiddenPostStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenPostStore.swift; sourceTree = "<group>"; };
+		178E7F50CCFFE7E58ECE0B84 /* PlaceNoteComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceNoteComposer.swift; sourceTree = "<group>"; };
+		19CF3A4B1065A252673D427A /* CampaignArrivalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampaignArrivalService.swift; sourceTree = "<group>"; };
 		219981EF4B8583A7F231C146 /* AnimatedGIFView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedGIFView.swift; sourceTree = "<group>"; };
 		24971089F9EF41DDADCD30AC /* GifPostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifPostTests.swift; sourceTree = "<group>"; };
 		26517046B2409888717CB325 /* PersistenceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceModels.swift; sourceTree = "<group>"; };
@@ -205,6 +210,7 @@
 		EED520F06CC3613D39D23784 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		F2C002889FAF74276EADB893 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreCoverageDebugView.swift; sourceTree = "<group>"; };
+		F7796ACFDBCBD0E65741ABF9 /* UserContextService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserContextService.swift; sourceTree = "<group>"; };
 		F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinPlacementPolicy.swift; sourceTree = "<group>"; };
 		FC7210EE62943F978879FE37 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestFixtures.swift; sourceTree = "<group>"; };
 		FCDF1EBD87F62594CC8B8C8F /* UITestHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestHelpers.swift; sourceTree = "<group>"; };
@@ -291,11 +297,13 @@
 				6B129A3E99190C979B9AC105 /* AppContainer.swift */,
 				39E26683A2CA08CEF5A8E794 /* AppRouter.swift */,
 				B673A12AAA93EA6AEF0A6476 /* AppSession.swift */,
+				19CF3A4B1065A252673D427A /* CampaignArrivalService.swift */,
 				32443B79810E5CE2F38FB099 /* ConnectivityMonitor.swift */,
 				9309C5EFBE40B5DE193B3ECF /* LocationController.swift */,
 				DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */,
 				6C46B83A003BDC6A241B3BDD /* NotificationService.swift */,
 				5F3FB818959D6EA5ADDE7F1E /* RootView.swift */,
+				F7796ACFDBCBD0E65741ABF9 /* UserContextService.swift */,
 			);
 			path = AppCore;
 			sourceTree = "<group>";
@@ -485,6 +493,7 @@
 			isa = PBXGroup;
 			children = (
 				37856005A051A853781DFDA3 /* MapFeatureView.swift */,
+				178E7F50CCFFE7E58ECE0B84 /* PlaceNoteComposer.swift */,
 			);
 			path = Map;
 			sourceTree = "<group>";
@@ -729,6 +738,7 @@
 				A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */,
 				DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */,
 				71D8EF88107A94968844A33E /* BackendPostContract.swift in Sources */,
+				6929300EA559F389AD94C0F9 /* CampaignArrivalService.swift in Sources */,
 				7478793DCB1CF6E75F8A2455 /* ConnectivityMonitor.swift in Sources */,
 				B93C26B18250AC79DE3E8C22 /* CreatePostView.swift in Sources */,
 				A46198DE013220502EEEAF5F /* DiscoverView.swift in Sources */,
@@ -752,6 +762,7 @@
 				4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */,
 				AC781F66C329CD3224975507 /* PinCommitCoordinator.swift in Sources */,
 				C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */,
+				8704808FB9B3B986FAA798B7 /* PlaceNoteComposer.swift in Sources */,
 				E9F6E8DF5FE25C9C2ABF8D70 /* PostPreviewView.swift in Sources */,
 				802D0F1A682E49E233E5475B /* PostRepository.swift in Sources */,
 				93FD42006BCC639A5349A74B /* ProfileEditView.swift in Sources */,
@@ -767,6 +778,7 @@
 				D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */,
 				15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */,
 				3B5BFD9AA99D8A7E9B4C81A7 /* UITestFixtures.swift in Sources */,
+				5A69D23CDAC608069B88A73B /* UserContextService.swift in Sources */,
 				A94F8A4350B3331FF77EAB40 /* WorldMapCodec.swift in Sources */,
 				D79733A2FF29F7EC54C148D0 /* WorldMapStore.swift in Sources */,
 			);

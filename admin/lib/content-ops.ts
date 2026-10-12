@@ -49,7 +49,7 @@ async function activeAuthor(tx: Transaction, id: string) {
   if (!snap.exists || snap.get('deleted_at') || snap.get('suspended')) throw new ConflictError('author_unavailable');
   return snap;
 }
-function placement(input: ContentInput, postId: string) {
+export function placement(input: ContentInput, postId: string) {
   const capturedAt = new Date().toISOString(); const yaw = input.heading * Math.PI / 180;
   const transform = [Math.cos(yaw),0,-Math.sin(yaw),0, 0,1,0,0, Math.sin(yaw),0,Math.cos(yaw),0, 0,0,-1.5,1];
   const geoPose = { latitude: input.lat, longitude: input.lng, altitude: input.altitude, heading: input.heading, accuracy: null };
@@ -99,6 +99,8 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
       caption:input.caption,edit_data_json:JSON.stringify(editData),content_source_json:JSON.stringify(contentSource),
       lat:input.lat,lng:input.lng,geohash:encodeGeohash(input.lat,input.lng,10),visibility:input.visibility,age_rating:input.ageRating,status:input.status,
       ...(!before.exists || moved ? placement(input,id) : {}),
+      ...(before.exists && before.get('note_kind') === 'business' && (before.get('lat') !== input.lat || before.get('lng') !== input.lng)
+        ? { note_kind: FieldValue.delete(), business_id: FieldValue.delete(), business_note: FieldValue.delete() } : {}),
       protected_zone_name:blockedZones.length ? blockedZones.map(z => String(z.get('name'))).join(', ') : null,
       admin_zone_exception:blockedZones.length ? {reason:input.zoneExceptionReason,actor_id:actorId,zone_ids:blockedZones.map(z=>z.id)} : null,
       updated_at:FieldValue.serverTimestamp(),updated_by_admin:actorId,
@@ -110,7 +112,7 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
     if (before.exists) tx.update(before.ref,changed);
     else tx.create(before.ref,{...changed,id,creator_id:input.authorId,creator_handle:String(author.get('handle')),ref_image_url:'native-ar-reference://none',
       views_count:0,likes_count:0,comments_count:0,saves_count:0,engagement_score:0,client_mutation_id:id,deleted_at:null,created_at:FieldValue.serverTimestamp(),created_by_admin:actorId});
-    tx.set(db.collection('storage_reclamations').doc(id),{state:'committed',creator_id:input.authorId,post_id:id,world_map_path:before.exists&&!moved?before.get('world_map_path')??null:null,public_readable:input.status==='active'&&input.visibility==='public'});
+    tx.set(db.collection('storage_reclamations').doc(id),{state:'committed',creator_id:input.authorId,post_id:id,is_anonymous:before.exists&&before.get('is_anonymous')===true,world_map_path:before.exists&&!moved?before.get('world_map_path')??null:null,public_readable:input.status==='active'&&input.visibility==='public'});
     writeAudit(tx,key,{requestHash:hash,actorId,action,resourceType:'post',resourceId:id,before:before.data(),after:{...changed,creator_id:input.authorId},reason,
       permissionKey:editingId ? 'posts.edit':'posts.create',riskLevel:'sensitive'});
     return { id };

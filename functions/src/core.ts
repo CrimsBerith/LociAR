@@ -59,6 +59,7 @@ export type Caller = {
   emailVerified: boolean;
   provider: string;
   isAppleUser: boolean;
+  isAnonymous: boolean;
   adminRole: string | null;
 };
 
@@ -77,6 +78,7 @@ export function requireCaller(request: CallableRequest<unknown>): Caller {
     email: typeof token.email === 'string' ? token.email : null,
     emailVerified: token.email_verified === true,
     provider,
+    isAnonymous: provider === 'anonymous' && Object.keys(identities).length === 0,
     isAppleUser: provider === 'apple.com' || Object.prototype.hasOwnProperty.call(identities, 'apple.com'),
     adminRole: typeof token.admin_role === 'string' ? token.admin_role : null,
   };

@@ -70,7 +70,7 @@ EXCLUDE = {
     'apns_registration_failed: %@', 'ensure_profile_failed: %@', 'push_authorization_failed: %@', 'push_register_failed: %@',
     'push_unregister_failed: %@', 'registerCloudAnchor rejected: %@', 'world_map_save_failed: %@',
     ' : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._', 'AIza', 'YOUR-', 'begin ', 'LZM1',
-    'GeospatialAccuracy', 'LociARStagedMedia', 'LociARWorldMaps', 'RCTAsyncLocalStorage', 'RCTAsyncLocalStorage_V1',
+    'GeospatialAccuracy', 'CFBundleShortVersionString', 'CFBundleVersion', 'LociARStagedMedia', 'LociARWorldMaps', 'RCTAsyncLocalStorage', 'RCTAsyncLocalStorage_V1',
     'RNCAsyncLocalStorage_V1', 'Legacy dead-letter', '^[a-z0-9_.]{3,30}$', 'cannot publish', 'protected zone', 'verified Apple',
     'verified Apple, Google, or email identity', '18+ content', 'E', 'LociAR Pin',
     '⚠️ Yetki yok (token / ARCore API)', '✅ VPS mevcut', '❌ VPS yok', '❓ Bilinmiyor',

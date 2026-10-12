@@ -4,7 +4,7 @@ import { defineSecret } from 'firebase-functions/params';
 import { appleConfigFromEnv, revokeAppleAuthorization } from './apple';
 import { reasonError, withContentionGuard } from './errors';
 import { isRecentAuth } from './limits';
-import { CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, HttpsError, logger, requireCaller, safeErrorCode } from './core';
+import { auth, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, HttpsError, logger, requireCaller, safeErrorCode } from './core';
 import { accountDeletionRef } from './profileGuard';
 import { acceptAccountDeletion, retryPendingAccountDeletions, runAccountDeletion } from './accountDeletion';
 
@@ -17,7 +17,10 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
   if (expectedUser !== undefined && expectedUser !== caller.luid) {
     throw reasonError('permission-denied', 'Account deletion session changed', 'session_changed');
   }
-  if (!isRecentAuth(request.auth?.token?.auth_time, Date.now())) {
+  // Anonymous identities have no password/Apple credential to reauthenticate with.
+  // Confirm there is no linked provider before accepting their existing session as proof.
+  const anonymous = caller.isAnonymous && (await auth.getUser(caller.uid)).providerData.length === 0;
+  if (!anonymous && !isRecentAuth(request.auth?.token?.auth_time, Date.now())) {
     throw reasonError('failed-precondition', 'Recent sign-in required', 'reauth_required');
   }
   // Retries resume an already accepted revocation; Apple's one-use code is not reused.

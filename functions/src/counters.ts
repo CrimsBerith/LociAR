@@ -39,8 +39,8 @@ export async function readCounterUpdate(
     if (field === 'public_post_count') {
       // Legacy rows can omit deleted_at / age_rating, so those predicates run on selected fields.
       const posts = await tx.get(db.collection('posts').where('creator_id', '==', target.id)
-        .where('status', '==', 'active').where('visibility', '==', 'public').select('status', 'visibility', 'age_rating', 'deleted_at'));
-      count = posts.docs.filter((post) => isPublicActive(post.data())).length;
+        .where('status', '==', 'active').where('visibility', '==', 'public').select('status', 'visibility', 'age_rating', 'deleted_at', 'is_anonymous'));
+      count = posts.docs.filter((post) => isPublicActive(post.data()) && post.get('is_anonymous') !== true).length;
     } else {
       const collection = field === 'likes_count' ? 'likes' : field === 'comments_count' ? 'comments' : field === 'saves_count' ? 'post_saves' : 'follows';
       const sourceField = field === 'following_count' ? 'follower_id' : field === 'follower_count' ? 'following_id' : 'post_id';

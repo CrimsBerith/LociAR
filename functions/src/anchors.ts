@@ -1,8 +1,9 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { assertServiceEnabled, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, requireCaller, Timestamp } from './core';
+import { assertServiceEnabled, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
 import { reasonError, withContentionGuard } from './errors';
 import { deleteAnchorOrQueue, anchorDeletionRef } from './anchorQueue';
 import { requireActiveAccount } from './profileGuard';
+import { mayPublishAnonymously } from './anonymous';
 
 /** Same alphabet as placement.ts CLOUD_ANCHOR_ID. */
 export const CLOUD_ANCHOR_ID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
@@ -21,7 +22,7 @@ const DAY_MS = 86_400_000;
 export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   await assertServiceEnabled('register_anchor');
-  if (!identityVerified(caller)) {
+  if (!mayPublishAnonymously(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
   }
   const id = (request.data as { cloudAnchorId?: unknown })?.cloudAnchorId;

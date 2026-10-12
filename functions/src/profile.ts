@@ -42,6 +42,9 @@ function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean
 export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown; termsVersion?: unknown };
+  if (caller.provider === 'anonymous' && data.termsVersion !== '2026-10-04') {
+    throw new HttpsError('failed-precondition', 'Accept the current terms before anonymous use');
+  }
 
   // Reject an already accepted deletion before touching custom Auth claims too.
   await db.runTransaction(tx => assertAccountNotDeleting(tx, caller.luid));

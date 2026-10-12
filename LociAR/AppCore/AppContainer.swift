@@ -70,6 +70,8 @@ final class AppContainer {
         self.router = AppRouter()
         self.session = AppSession(authRepository: auth, backendConfigured: configuration.isBackendConfigured)
         if firebaseReady, !UITestFixtures.authenticatedSessionEnabled, let firebase = configuration.firebase {
+            UserContextService.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
+            PlaceNoteClient.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
             NotificationService.shared.configure(callables: CallableClient(region: firebase.functionsRegion), social: social)
         }
         // After every stored property is set (Swift requires it before using self).

@@ -1,4 +1,10 @@
 export { ensureProfile, updateHandle } from './profile';
+export { readDataPreferences, setDataPreferences, recordUserContext } from './userContext';
+export { onAdminNotificationQueued, submitBrandCampaign } from './campaigns';
+export { readCampaignRegions, recordCampaignArrival } from './campaignArrivals';
+export { createPlaceNote, readBusinessNoteRegions, recordBusinessNoteVisit } from './businessNotes';
+export { onBusinessChanged } from './businessRegistry';
+export { readActivity, readLikeCount, blockPostAuthor, readAnonymousWorldMap } from './anonymousAccess';
 export { beginWorldMapUpload, createPost, deleteOwnPost, recordPostView } from './posts';
 export { deleteAccount, retryAccountDeletions } from './account';
 export { onDeletedAccountObjectFinalized } from './accountStorageFinalize';

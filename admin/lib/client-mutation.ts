@@ -4,7 +4,10 @@ type Result = { error?: string; code?: string; [key: string]: unknown };
 export function createMutationClient() {
   const keys = new Map<string, string>();
   return {
-    clear() { keys.clear(); },
+    clear(path?: string, payload?: unknown) {
+      if (path) keys.delete(path + '\n' + JSON.stringify(payload));
+      else keys.clear();
+    },
     async post(path: string, payload: unknown): Promise<{ response: Response; result: Result }> {
       const body = JSON.stringify(payload);
       const operation = path + '\n' + body;

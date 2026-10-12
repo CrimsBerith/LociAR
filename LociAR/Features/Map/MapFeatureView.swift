@@ -18,6 +18,8 @@ struct MapFeatureView: View {
     /// Set when a reload is requested while one is running (e.g. right after a post is created);
     /// the running load then runs once more so the new post is not missed.
     @State private var reloadRequested = false
+    @State private var showPlaceNote = false
+    @State private var visibleRegion: MKCoordinateRegion?
 
     var body: some View {
         Map(position: $camera, selection: $selection) {
@@ -54,6 +56,8 @@ struct MapFeatureView: View {
         }
         .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .including([.cafe, .museum, .park])))
         .mapControls { MapCompass(); MapUserLocationButton() }
+        .onMapCameraChange(frequency: .onEnd) { visibleRegion = $0.region }
+        .sheet(isPresented: $showPlaceNote) { PlaceNoteComposer(region: visibleRegion) }
         .safeAreaInset(edge: .bottom, spacing: 8) { mapPanel.padding(.horizontal, 14) }
         .navigationTitle("Harita")
         .navigationBarTitleDisplayMode(.inline)
@@ -63,6 +67,10 @@ struct MapFeatureView: View {
                     Label("Yenile", systemImage: "arrow.clockwise")
                 }
                 .accessibilityIdentifier("map-refresh")
+            }
+            ToolbarItem(placement: .topBarLeading) {
+                Button { showPlaceNote = true } label: { Label("İşletmeye not bırak", systemImage: "square.and.pencil") }
+                    .accessibilityIdentifier("map-business-note")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showCreate = true } label: { Label("Yeni yüzey", systemImage: "plus") }

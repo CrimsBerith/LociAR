@@ -7,36 +7,72 @@ struct AppSettingsView: View {
     @Environment(\.openURL) private var openURL
     @State private var crashReports = CrashReportingPreference.isEnabled
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
+    @State private var sharing = UserContextService.shared
+    @State private var arrivals = CampaignArrivalService.shared
 
     var body: some View {
         List {
             Section {
-                HStack {
-                    Label("Bildirimler", systemImage: "bell.badge")
-                    Spacer()
-                    Text(notificationStatusText)
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityElement(children: .combine)
-                if notificationStatus == .notDetermined {
-                    Button("Bildirimlere izin ver") {
-                        Task {
+                Toggle(String(localized: "Bildirimler"), isOn: Binding(
+                    get: { sharing.notificationsEnabled },
+                    set: { enabled in Task {
+                        await sharing.setSharing(telemetry: sharing.telemetryEnabled, location: sharing.locationEnabled, notifications: enabled)
+                        if enabled, sharing.errorMessage == nil {
                             await NotificationService.shared.requestAuthorizationInContext()
-                            await refresh()
+                            arrivals.requestPermissions()
+                            await arrivals.synchronize()
                         }
+                        await refresh()
+                    } }
+                ))
+                .accessibilityIdentifier("settings-notifications")
+                Text("Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, işletme notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Yakında en fazla iki dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni ve internet gerekir. GPS birkaç metrelik giriş tespitini garanti etmez.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if arrivals.needsAlwaysPermission {
+                    Text("Arka planda varış bildirimi için konum iznini Her zaman olarak ayarla.").font(.caption)
+                    Button("iOS Ayarları'nda değiştir") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                     }
-                    .accessibilityIdentifier("settings-allow-notifications")
-                } else {
+                }
+                if sharing.notificationsEnabled && notificationStatus == .denied {
                     Button("iOS Ayarları'nda değiştir") {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
                     }
-                    .accessibilityIdentifier("settings-open-notification-settings")
+                }
+            }
+            .disabled(sharing.isBusy)
+
+            Section {
+                Toggle(String(localized: "Teknik ve kullanım verilerini paylaş"), isOn: Binding(
+                    get: { sharing.telemetryEnabled },
+                    set: { enabled in Task { await sharing.setSharing(telemetry: enabled, location: sharing.locationEnabled) } }
+                ))
+                .accessibilityIdentifier("settings-share-telemetry")
+                Text("Paylaşılanlar: cihaz türü, iOS ve uygulama sürümü, dil, saat dilimi, rastgele kurulum kimliği, bağlantı IP adresi ve kullanım zamanları. Yetkili yöneticiler görebilir.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Toggle(String(localized: "Konumumu yöneticilerle paylaş"), isOn: Binding(
+                    get: { sharing.locationEnabled },
+                    set: { enabled in Task { await sharing.setSharing(telemetry: sharing.telemetryEnabled, location: enabled) } }
+                ))
+                .accessibilityIdentifier("settings-share-admin-location")
+                Text("Uygulama açıkken son konumun, doğruluğu ve zamanı yöneticilere gönderilir; anonim postların hesabınla ilişkilendirilebilir. Arka planda paylaşılmaz. Kapatınca son konum silinir. Post konumu ve iOS izni ayrı kalır.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if sharing.locationPermissionDenied {
+                    Text("Konum izni kapalı. Ayarlar’dan LociAR için konumu açın.").font(.caption)
+                    Button("iOS Ayarları'nda değiştir") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                    }
+                }
+                if let message = sharing.errorMessage {
+                    Text(message).font(.caption).foregroundStyle(.orange)
+                    Button("Tekrar dene") {
+                        Task { await sharing.setSharing(telemetry: sharing.telemetryEnabled, location: sharing.locationEnabled) }
+                    }
                 }
             } header: {
-                Text("Bildirimler")
-            } footer: {
-                Text("Postların beğenildiğinde, yorum aldığında ve biri seni takip ettiğinde bildirim gönderilir.")
+                Text("Veri paylaşımı")
             }
+            .disabled(sharing.isBusy)
 
             Section {
                 Toggle(String(localized: "Çökme raporları"), isOn: $crashReports)

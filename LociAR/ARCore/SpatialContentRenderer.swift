@@ -161,7 +161,7 @@ actor SpatialContentRenderer {
     ) -> RenderedPost? {
         if let gif = post.gif {
             return drawMessageBubble(
-                text: post.messageText, handle: post.creatorHandle, gif: gif,
+                text: post.messageText, handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle, gif: gif,
                 gifStill: sourceImageData.flatMap(decodedImage)
             )
         }
@@ -179,7 +179,9 @@ actor SpatialContentRenderer {
 
         let cleanCaption = post.caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if let text = post.messageText ?? (cleanCaption.isEmpty ? nil : cleanCaption) {
-            return drawMessageBubble(text: text, handle: post.creatorHandle, gif: nil, gifStill: nil)
+            let handle = post.sponsorship.map { $0.brandName + " · " + String(localized: "Sponsorlu") }
+                ?? (post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle)
+            return drawMessageBubble(text: text, handle: handle, gif: nil, gifStill: nil)
         }
         return trimmedToVisibleContent(draw(post.editData, assets: assets)).map { RenderedPost(image: $0, gifRect: nil) }
     }

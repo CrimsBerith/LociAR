@@ -9,10 +9,13 @@ struct PostCard: View {
     var viewCount: Int? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if post.sponsorship != nil {
+                Label("Sponsorlu", systemImage: "tag.fill").font(.caption.bold()).foregroundStyle(.orange)
+            }
             HStack(spacing: 10) {
-                LociAvatar(handle: post.creatorHandle ?? "Loci", size: 36)
+                LociAvatar(handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle ?? "Loci", size: 36)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(post.creatorHandle.map { "@\($0)" } ?? "Loci")
+                    Text(post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle.map { "@\($0)" } ?? "Loci")
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
                         .truncationMode(.tail)

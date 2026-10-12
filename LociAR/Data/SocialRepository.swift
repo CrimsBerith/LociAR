@@ -96,6 +96,7 @@ protocol SocialRepository: Sendable {
     func likedPostIDs(for userID: UUID) async throws -> [UUID]
     func likeCount(for postID: UUID) async throws -> Int
     func setLiked(_ liked: Bool, postID: UUID, userID: UUID) async throws
+    func blockAnonymousAuthor(postID: UUID, userID: UUID) async throws
     func recordView(postID: UUID, userID: UUID) async throws -> Int
     func setSaved(_ saved: Bool, postID: UUID, userID: UUID) async throws
     func setFollowing(_ following: Bool, targetID: UUID, userID: UUID) async throws
@@ -116,6 +117,10 @@ protocol SocialRepository: Sendable {
     func deleteComment(id: UUID) async throws
 }
 
+extension SocialRepository {
+    func blockAnonymousAuthor(postID: UUID, userID: UUID) async throws { throw AuthFlowError.unsupported }
+}
+
 /// Social rows live in top-level Firestore collections whose document IDs encode the pair
 /// (e.g. likes/<post>_<user>) so writes are idempotent. Counters and activity events are
 /// maintained by Cloud Function triggers.
@@ -133,36 +138,13 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
     }
 
     func activity(for userID: UUID) async throws -> [SocialActivity] { try await activityPage(for: userID, cursor: nil).items }
-    private struct ActivityCursor: Codable { let owner: UUID; let id: String; let seconds: Int64; let nanoseconds: Int32 }
     func activityPage(for userID: UUID, cursor: String?) async throws -> ActivityPage {
         guard FirebaseIdentity.currentLUID() == userID else { throw AuthFlowError.notSignedIn }
-        var query = db.collection("activity_events").whereField("recipient_id", isEqualTo: key(userID))
-            .order(by: "created_at", descending: true).order(by: FieldPath.documentID(), descending: true)
-        if let cursor, let data = Data(base64Encoded: cursor), let position = try? JSONDecoder().decode(ActivityCursor.self, from: data), position.owner == userID {
-            query = query.start(after: [Timestamp(seconds: position.seconds, nanoseconds: position.nanoseconds), position.id])
-        } else if cursor != nil { throw BackendCallError.invalidResponse }
-        let snapshot = try await query.limit(to: 51).getDocuments()
-        let documents = Array(snapshot.documents.prefix(50))
-        let rows = documents.map { ($0.documentID, $0.data()) }
-        let items: [SocialActivity] = rows.compactMap { id, data in
-            guard let recipient = uuid(data["recipient_id"]) else { return nil }
-            return SocialActivity(
-                id: id,
-                kind: data["kind"] as? String ?? "activity",
-                actorID: uuid(data["actor_id"]),
-                recipientID: recipient,
-                postID: uuid(data["post_id"]),
-                body: data["body"] as? String ?? "",
-                createdAt: FirestoreJSON.date(data["created_at"]) ?? Date(),
-                readAt: FirestoreJSON.date(data["read_at"])
-            )
-        }
-        let next: String?
-        if snapshot.documents.count > 50, let last = documents.last, let timestamp = last.data()["created_at"] as? Timestamp {
-            next = try JSONEncoder().encode(ActivityCursor(owner: userID, id: last.documentID, seconds: timestamp.seconds, nanoseconds: timestamp.nanoseconds)).base64EncodedString()
-        } else { next = nil }
+        struct Payload: Encodable { let userId: String; let cursor: String? }
+        struct Response: Decodable { let items: [SocialActivity]; let next: String? }
+        let response: Response = try await callables.call("readActivity", payload: Payload(userId: key(userID), cursor: cursor))
         guard !Task.isCancelled, FirebaseIdentity.currentLUID() == userID else { throw AuthFlowError.notSignedIn }
-        return ActivityPage(items: items, next: next)
+        return ActivityPage(items: response.items, next: response.next)
     }
 
     func markActivityRead(ids: [String], for userID: UUID) async throws -> [String: Date] {
@@ -191,11 +173,17 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
     }
 
     func likeCount(for postID: UUID) async throws -> Int {
-        let snapshot = try await db.collection("likes")
-            .whereField("post_id", isEqualTo: key(postID))
-            .count
-            .getAggregation(source: .server)
-        return snapshot.count.intValue
+        struct Payload: Encodable { let postId: String }
+        struct Response: Decodable { let count: Int }
+        let response: Response = try await callables.call("readLikeCount", payload: Payload(postId: key(postID)))
+        return response.count
+    }
+
+    func blockAnonymousAuthor(postID: UUID, userID: UUID) async throws {
+        struct Payload: Encodable { let postId: String; let userId: String }
+        struct Response: Decodable { let ok: Bool }
+        let response: Response = try await callables.call("blockPostAuthor", payload: Payload(postId: key(postID), userId: key(userID)))
+        guard response.ok else { throw BackendCallError.invalidResponse }
     }
 
     /// Idempotent edge write. Document IDs encode the pair (`<a>_<b>`), so creating an edge that

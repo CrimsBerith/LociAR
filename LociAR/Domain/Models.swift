@@ -306,6 +306,7 @@ struct LociUser: Codable, Hashable, Sendable, Identifiable {
     var avatarURL: URL?
     var email: String?
     var role: String = "user"
+    var isAnonymousAccount: Bool { role == "anonymous" }
 }
 
 /// What a post carries besides its edit layers. Posts are text only: social media links were removed
@@ -505,6 +506,26 @@ extension EditData: Codable {
     }
 }
 
+struct Sponsorship: Codable, Hashable, Sendable {
+    let brandName: String
+    let terms: String
+    let expiresAt: Date
+    enum CodingKeys: String, CodingKey {
+        case terms
+        case brandName = "brand_name"
+        case expiresAt = "expires_at"
+    }
+}
+
+struct BusinessNoteInfo: Codable, Hashable, Sendable {
+    let id: UUID
+    let name: String
+    let lat: Double
+    let lng: Double
+    let radius: Double
+    var revision: Int? = nil
+}
+
 struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var id: UUID
     var creatorID: UUID
@@ -518,6 +539,10 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var editData: EditData
     var contentSource: ContentSource?
     var counts: PostCounts
+    var anonymous: Bool? = nil
+    var sponsorship: Sponsorship? = nil
+    var businessNote: BusinessNoteInfo? = nil
+    var isAnonymous: Bool { anonymous == true }
 }
 
 extension LociPost {

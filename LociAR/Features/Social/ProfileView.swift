@@ -9,13 +9,11 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     let user: LociUser
     @State private var confirmDeletion = false
+    @State private var showAccountCreation = false
     @State private var showDeletionReauthentication = false
     @State private var showEditProfile = false
     @State private var isDeletingAccount = false
     @State private var isSigningOut = false
-    @State private var notificationsAuthorized = false
-    @State private var notificationsDenied = false
-    @State private var isRequestingNotifications = false
 
     var body: some View {
         List {
@@ -42,6 +40,14 @@ struct ProfileView: View {
                     .accessibilityIdentifier("profile-edit-button")
                 }.padding(.vertical, 8)
             }
+            if user.isAnonymousAccount {
+                Section {
+                    Button("Hesap oluştur") { showAccountCreation = true }
+                        .accessibilityIdentifier("profile-create-account")
+                    Text("Hesap bağlayarak anonim notlarını koru. Paylaşımlarında kimliğin görünmez.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
             Section {
                 NavigationLink { MyPostsView() } label: { ProfileLinkRow(title: String(localized: "Postlarım"), symbol: "rectangle.stack.fill", color: LociTheme.accent) }
                 NavigationLink { ActivityView() } label: {
@@ -63,27 +69,8 @@ struct ProfileView: View {
                 NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: .gray) }
                     .accessibilityIdentifier("profile-settings")
                 NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: .orange) }
-                Button {
-                    guard !isRequestingNotifications else { return }
-                    if notificationsAuthorized || notificationsDenied {
-                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                    } else {
-                        isRequestingNotifications = true
-                        Task {
-                            notificationsAuthorized = await NotificationService.shared.requestAuthorization()
-                            notificationsDenied = NotificationService.shared.authorizationDenied
-                            isRequestingNotifications = false
-                        }
-                    }
-                } label: {
-                    if notificationsAuthorized || notificationsDenied {
-                        Label("Bildirim ayarları", systemImage: "bell.badge")
-                    } else {
-                        Label("Bildirimleri etkinleştir", systemImage: "bell.badge")
-                    }
-                }
-                .disabled(isRequestingNotifications || session.isLocalPreview || !container.isBackendConfigured)
-                .accessibilityIdentifier("profile-push-permission")
+                NavigationLink { AppSettingsView() } label: { Label("Bildirim ayarları", systemImage: "bell.badge") }
+                    .accessibilityIdentifier("profile-push-permission")
             } header: {
                 profileSectionText("Gizlilik ve güvenlik")
             }
@@ -138,6 +125,10 @@ struct ProfileView: View {
             Button("Devam et", role: .destructive) { showDeletionReauthentication = true }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: { Text("Postlarınız ve sosyal verileriniz sunucudan silinir. Bu işlem geri alınamaz.") }
+        .onChange(of: user.isAnonymousAccount) { _, anonymous in
+            if !anonymous { showAccountCreation = false }
+        }
+        .sheet(isPresented: $showAccountCreation) { AuthView() }
         .sheet(isPresented: $showEditProfile) {
             ProfileEditView(user: user)
         }
@@ -148,8 +139,6 @@ struct ProfileView: View {
         .task {
             guard !session.isLocalPreview, container.isBackendConfigured else { return }
             await NotificationService.shared.checkAuthorizationStatus()
-            notificationsAuthorized = NotificationService.shared.isAuthorized
-            notificationsDenied = NotificationService.shared.authorizationDenied
         }
     }
 
@@ -207,6 +196,10 @@ private struct AccountDeletionView: View {
                     } else if method == .password {
                         Button("Doğrula ve sil", role: .destructive) { Task { await submit() } }
                             .disabled(isWorking || deletionAccepted || password.isEmpty)
+                            .accessibilityIdentifier("account-delete-confirm")
+                    } else if method == .anonymous {
+                        Button("Hesabı kalıcı olarak sil", role: .destructive) { Task { await submit() } }
+                            .disabled(isWorking || deletionAccepted)
                             .accessibilityIdentifier("account-delete-confirm")
                     } else if message != nil {
                         Button("Tekrar dene") { Task { await loadMethod() } }

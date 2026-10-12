@@ -31,6 +31,7 @@ async function emitActivity(kind: 'like' | 'comment' | 'follow', actorId: string
       id,
       kind,
       actor_id: actorId,
+      anonymous: kind === 'like',
       recipient_id: recipientId,
       post_id: postId,
       body,
@@ -51,7 +52,8 @@ export const onLikeCreated = onDocumentCreated({ document: 'likes/{id}', retry: 
   const like = event.data?.data();
   if (!like) return;
   await applyCountersOnce(event.id, [{ path: `posts/${like.post_id}`, fields: ['likes_count'] }]);
-  await emitActivity('like', like.user_id, await postCreator(like.post_id), like.post_id, 'Postunu beğendi.', `like_${like.post_id}_${like.user_id}`);
+  const activityId = createHash('sha256').update(`like_${like.post_id}_${like.user_id}`).digest('hex');
+  await emitActivity('like', like.user_id, await postCreator(like.post_id), like.post_id, 'Postunu beğendi.', activityId);
 });
 
 export const onLikeDeleted = onDocumentDeleted({ document: 'likes/{id}', retry: true }, async (event) => {
@@ -163,7 +165,7 @@ export const onPostWritten = onDocumentWritten({ document: 'posts/{postId}', ret
       const data = current.data();
       if (!data || typeof data.creator_id !== 'string' || await isAccountDeleting(tx, data.creator_id)) return;
       tx.set(db.collection('storage_reclamations').doc(current.id), { post_id: current.id, creator_id: data.creator_id, state: data.deleted_at ? 'removed' : 'committed',
-        world_map_path: data.world_map_path ?? null, public_readable: isPublicActive(data) }, { merge: true });
+        world_map_path: data.world_map_path ?? null, is_anonymous: data.is_anonymous === true, public_readable: isPublicActive(data) }, { merge: true });
     });
   }
   if (before?.status !== after?.status) await schedulePurgeOnStatusChange(event.params.postId, before, after);

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import {
-  analyticsEventDoc, bucket, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID,
+  analyticsEventDoc, bucket, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID,
   requireCaller, Timestamp, assertServiceEnabled,
 } from './core';
 import { encodeGeohash } from './geo';
@@ -15,6 +15,10 @@ import { INVITE_REQUIRED, inviteGate } from './invites';
 import { TRUSTED_AUTO_PUBLISH, authorIsTrusted, hasDrawingLayer } from './trust';
 import { placeAt } from './places';
 import { GIPHY_API_KEY, resolveGifLayers } from './giphy';
+import { mayPublishAnonymously } from './anonymous';
+import { isBlocked } from './anonymousAccess';
+import { campaignOffer } from './campaigns';
+import { businessNoteCurrent } from './businessRegistry';
 
 /**
  * High-quality world locks used to go live without review in the Supabase build. App Review
@@ -32,14 +36,16 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
   return { id, placement_state: data.placement_state ?? null, status: data.status };
 }
 
-export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [GIPHY_API_KEY] }, async (request) => {
+export type BusinessNoteMetadata = { id: string; name: string; lat: number; lng: number; radius: number; revision: number };
+
+export async function createPostHandler(request: CallableRequest<CreatePostBody>, businessNote?: BusinessNoteMetadata) {
   const caller = requireCaller(request);
   await assertServiceEnabled('create_post');
   const body = request.data as CreatePostBody;
   if (body?.userId !== caller.luid) throw reasonError('permission-denied', 'Publishing session changed', 'session_changed');
   const validationError = validateCreatePostBody(body, caller.luid);
   if (validationError) throw new HttpsError('invalid-argument', validationError);
-  if (!identityVerified(caller)) {
+  if (!mayPublishAnonymously(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
   }
   // Closed-beta gate (growth plan 2.1): browsing stays open, publishing needs a redeemed invite.
@@ -60,6 +66,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
       if (!existing.exists) return null;
       const data = existing.data()!;
       if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
+      if (businessNote && (data.business_note?.id !== businessNote.id || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
       return { post: serializePost(postId, data), publishStatus: data.status, idempotentReplay: true };
     });
     if (replay) return replay;
@@ -86,10 +93,12 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     id: postId,
     creator_id: caller.luid,
     creator_handle: '',
+    is_anonymous: true,
     lat,
     lng,
     geohash: encodeGeohash(lat, lng, 10),
     place_id: place?.id ?? null,
+    ...(businessNote ? { note_kind: 'business', business_id: businessNote.id, business_note: businessNote } : {}),
     pose_json: JSON.stringify(body.pose),
     ref_image_url: body.refImageUri,
     edit_data_json: JSON.stringify(body.editData),
@@ -126,8 +135,11 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     if (existing.exists) {
       const data = existing.data()!;
       if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
+      if (businessNote && (data.business_note?.id !== businessNote.id || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
       return { kind: 'replay' as const, post: serializePost(postId, data), publishStatus: data.status };
     }
+    const venue = businessNote ? await tx.get(db.collection('business_places').doc(businessNote.id)) : null;
+    if (venue?.exists && (venue.get('status') !== 'active' || venue.get('revision') !== businessNote!.revision)) throw new HttpsError('failed-precondition', 'Business changed; refresh and retry');
     if (reclamation.exists && reclamation.get('state') !== 'draft') throw reasonError('failed-precondition', 'World map draft expired; create a new draft', 'draft_expired');
 
     // The zone scan is deliberately fresh on every transaction attempt. It is not a cached
@@ -157,8 +169,10 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
       return { kind: 'limited' as const };
     }
     updateDensityLock(tx, densityLock, Date.now());
+    if (businessNote && venue && !venue.exists) tx.create(venue.ref, { ...businessNote, status: 'active', notify_diameter_m: 5,
+      created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp(), identity_verified: false });
     if (anchorRef) tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp(), expires_at: FieldValue.delete() });
-    tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
+    tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', is_anonymous: true, world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
     tx.create(postRef, { ...document, creator_handle: String(profile.handle ?? '') });
     tx.create(db.collection('analytics_events').doc(randomUUID()), analyticsEventDoc({
       userId: caller.luid, postId,
@@ -179,7 +193,9 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   if (outcome.kind === 'limited') throw reasonError('resource-exhausted', 'Creation limit reached for this area or account', 'rate_limited');
 
   return { post: serializePost(postId, document), publishStatus, idempotentReplay: false };
-});
+}
+
+export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [GIPHY_API_KEY] }, request => createPostHandler(request));
 
 export const deleteOwnPost = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
@@ -218,17 +234,24 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
   return db.runTransaction(async (tx) => {
     await assertAccountNotDeleting(tx, caller.luid);
     const snap = await tx.get(postRef);
-    if (!snap.exists) throw new HttpsError('permission-denied', 'post_not_viewable');
+    if (!snap.exists) {
+      const offer = await campaignOffer(tx, caller.luid, id);
+      if (!offer) throw new HttpsError('permission-denied', 'post_not_viewable');
+      const campaign = await tx.get(db.collection('campaigns').doc(id));
+      const campaignReceipt = await tx.get(db.collection('campaign_view_receipts').doc(`${id}_${caller.luid}_${day}`));
+      const views = Number(campaign.get('views_count') ?? 0);
+      if (campaignReceipt.exists) return { views };
+      tx.create(campaignReceipt.ref, { owner_luid: caller.luid, campaign_id: id, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(Date.now() + 30 * 86_400_000) });
+      tx.update(campaign.ref, { views_count: FieldValue.increment(1) });
+      return { views: views + 1 };
+    }
     const post = snap.data()!;
     await assertAccountNotDeleting(tx, String(post.creator_id));
     const viewable = post.creator_id === caller.luid
       || (post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
     if (!viewable) throw new HttpsError('permission-denied', 'post_not_viewable');
-    const [blockA, blockB] = await Promise.all([
-      tx.get(db.collection('user_blocks').doc(`${caller.luid}_${post.creator_id}`)),
-      tx.get(db.collection('user_blocks').doc(`${post.creator_id}_${caller.luid}`)),
-    ]);
-    if (blockA.exists || blockB.exists) throw new HttpsError('permission-denied', 'post_not_viewable');
+    if (post.creator_id !== caller.luid && !await businessNoteCurrent(tx, post)) throw new HttpsError('permission-denied', 'post_not_viewable');
+    if (await isBlocked(caller.luid, String(post.creator_id), tx)) throw new HttpsError('permission-denied', 'post_not_viewable');
     const receipt = await tx.get(receiptRef);
     const current = Number(post.views_count ?? 0);
     if (receipt.exists) return { views: current };

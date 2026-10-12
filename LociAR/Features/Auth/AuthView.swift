@@ -44,6 +44,22 @@ struct AuthView: View {
                         )
                     }
                     legalNotice
+                    Button {
+                        Task {
+                            isWorking = true
+                            defer { isWorking = false }
+                            do { try await session.continueAnonymously() }
+                            catch { message = error.localizedDescription }
+                        }
+                    } label: {
+                        Label("Anonim devam et", systemImage: "person.crop.circle.badge.questionmark")
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!termsAccepted || isWorking)
+                    .accessibilityIdentifier("auth-anonymous")
+                    Text("Hesap açmadan anonim not bırakabilir ve beğenebilirsin. Notlarda adın ve profilin görünmez.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(24)
             }

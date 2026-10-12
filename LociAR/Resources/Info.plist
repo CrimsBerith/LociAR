@@ -33,12 +33,16 @@
   <key>NSCameraUsageDescription</key>
 	<string>LociAR, gerçek yüzeyleri algılamak ve postları sabitlemek için kamerayı kullanır. Görsel özellik verileri Google ARCore ile güvenli biçimde işlenir.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
-	<string>LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır.</string>
+	<string>LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır. Ayrı onayınla uygulama açıkken konumun yetkili yöneticilerle de paylaşılır.</string>
   <key>NSLocationTemporaryUsageDescriptionDictionary</key>
   <dict>
     <key>GeospatialAccuracy</key>
     <string>LociAR, AR postlarını harita ve cadde üzerinde tam doğrulukla yerleştirebilmek için geçici hassas konum iznine ihtiyaç duyar.</string>
   </dict>
+  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+  <string>LociAR, ayrı onayınla kampanya alanına gelince veya son paylaştığın konum alanından çıkınca uygulama kapalıyken de teklif hatırlatmak için alanları izler. Tek konum ölçümü teklifi doğrular; yönetici konumuna eklenmez. Yakındaki işletme notları için de alanlar izlenir. Yakın alanlarda hassas GPS en fazla iki dakika çalışır.</string>
+  <key>UIBackgroundModes</key>
+  <array><string>location</string></array>
   <key>UIRequiredDeviceCapabilities</key>
   <array>
     <string>arm64</string>

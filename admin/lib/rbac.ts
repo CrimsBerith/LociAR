@@ -1,6 +1,8 @@
 /** Static role → permission catalogue (ported from the Supabase admin_roles seed). */
 export const PERMISSIONS = [
   'dashboard.read', 'users.read', 'users.invite', 'users.suspend', 'users.terminate',
+  'users.location.read', 'users.telemetry.read',
+  'brands.write', 'campaigns.read', 'campaigns.write', 'campaigns.audience', 'notifications.send',
   'posts.read', 'posts.create', 'posts.edit', 'comments.write', 'users.create', 'zones.override', 'posts.moderate', 'posts.purge', 'posts.metrics.write',
   'anchors.read', 'anchors.disable', 'anchors.retire', 'places.write', 'zones.write',
   'flags.production.write', 'system.kill_switch', 'ads.approve', 'finance.refund',
@@ -18,7 +20,7 @@ export const ROLE_PERMISSIONS: Record<string, readonly Permission[]> = {
   analyst: ['dashboard.read', 'anchors.read', 'audit.read'],
   support_agent: ['dashboard.read', 'users.read'],
   legal_privacy_admin: ['dashboard.read', 'users.read', 'audit.read', 'audit.export'],
-  ad_operations_admin: ['dashboard.read'],
+  ad_operations_admin: ['dashboard.read', 'campaigns.read'],
   finance_admin: ['dashboard.read'],
 };
 

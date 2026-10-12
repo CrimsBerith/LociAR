@@ -3,6 +3,51 @@ import UIKit
 import XCTest
 @testable import LociAR
 
+final class CampaignRegionPolicyTests: XCTestCase {
+    func testSmallEntryUsesDiameterAndRejectsUncertainOrStaleGPS() {
+        let now = Date()
+        var region = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 150, expiresAt: now.timeIntervalSince1970 * 1000 + 60000)
+        region.triggerRadius = 2.5
+        func fix(_ accuracy: Double, _ age: Double = 0, _ offset: Double = 0) -> CLLocation {
+            CLLocation(coordinate: CLLocationCoordinate2D(latitude: 39.92 + offset, longitude: 32.85), altitude: 0,
+                horizontalAccuracy: accuracy, verticalAccuracy: -1, timestamp: now.addingTimeInterval(-age))
+        }
+        XCTAssertTrue(region.permitsPreciseEntry(fix(0.5), at: now))
+        XCTAssertFalse(region.permitsPreciseEntry(fix(5), at: now))
+        XCTAssertFalse(region.permitsPreciseEntry(fix(0.5, 20), at: now))
+        XCTAssertFalse(region.permitsPreciseEntry(fix(0.5, 0, 0.00003), at: now))
+        region.triggerRadius = 1
+        XCTAssertFalse(region.permitsPreciseEntry(fix(1.5), at: now))
+    }
+    func testDepartureRegionsDecodeTheirDirectionAndUnknownDirectionsAreRejected() throws {
+        let data = Data("[{\"id\":\"123e4567-e89b-12d3-a456-426614174000\",\"lat\":39.92,\"lng\":32.85,\"radius\":150,\"expiresAt\":2000000,\"transition\":\"exit\"}]".utf8)
+        let decoded = try JSONDecoder().decode([CampaignRegion].self, from: data)
+        XCTAssertTrue(decoded[0].isExit)
+        XCTAssertTrue(decoded[0].isUsable(at: Date(timeIntervalSince1970: 1000)))
+        var invalid = decoded[0]; invalid.transition = "unknown"
+        XCTAssertFalse(invalid.isUsable(at: Date(timeIntervalSince1970: 1000)))
+    }
+    func testOnlyNearestTwentyValidUnexpiredRegionsAreMonitored() {
+        let now = Date(timeIntervalSince1970: 1000)
+        let valid = (0..<25).map { i in
+            CampaignRegion(id: UUID(), lat: 39.92 + Double(i) / 1000, lng: 32.85, radius: 150, expiresAt: 2_000_000)
+        }
+        let expired = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 150, expiresAt: 1_000_000)
+        let invalid = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 5, expiresAt: 2_000_000)
+        let selected = CampaignRegion.nearest(Array(valid.reversed()) + [expired, invalid], to: CLLocationCoordinate2D(latitude: 39.92, longitude: 32.85), at: now)
+        XCTAssertEqual(selected.count, 20)
+        XCTAssertEqual(selected.map(\.id), Array(valid.prefix(20)).map(\.id))
+    }
+
+    func testCachedRegionsDecodeAndCannotUseInvalidCoordinatesOrExpiry() throws {
+        let data = Data("[{\"id\":\"123e4567-e89b-12d3-a456-426614174000\",\"lat\":39.92,\"lng\":32.85,\"radius\":150,\"expiresAt\":2000000}]".utf8)
+        let decoded = try JSONDecoder().decode([CampaignRegion].self, from: data)
+        XCTAssertTrue(decoded[0].isUsable(at: Date(timeIntervalSince1970: 1000)))
+        XCTAssertFalse(decoded[0].isUsable(at: Date(timeIntervalSince1970: 2000)))
+        XCTAssertFalse(CampaignRegion(id: UUID(), lat: .nan, lng: 32.85, radius: 150, expiresAt: 2_000_000).isUsable(at: Date(timeIntervalSince1970: 1000)))
+    }
+}
+
 final class BackendAndPolicyTests: XCTestCase {
     func testV2AnchorEncoderPreservesLegacyTopLevelShape() throws {
         let anchor = SurfaceAnchor(
@@ -860,6 +905,16 @@ final class AcceptedDeletionErrorPolicyTests: XCTestCase {
 }
 
 final class AdminContentDecodingTests: XCTestCase {
+    func testAnonymousPostFlagSurvivesLocalStorageAndLegacyDraftsRemainReadable() throws {
+        var post = UITestFixtures.post
+        post.anonymous = true
+        let data = try JSONEncoder().encode(post)
+        XCTAssertTrue(try JSONDecoder().decode(LociPost.self, from: data).isAnonymous)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        legacy.removeValue(forKey: "anonymous")
+        XCTAssertFalse(try JSONDecoder().decode(LociPost.self, from: JSONSerialization.data(withJSONObject: legacy)).isAnonymous)
+    }
+
     func testPanelPostRemainsApproximateWhenDecodedByTheNativeReader() throws {
         let postID = UUID(), authorID = UUID(), anchorID = UUID(), layerID = UUID()
         let geo: [String: Any] = ["latitude": 41.0, "longitude": 29.0, "altitude": 0, "heading": 0]
@@ -886,6 +941,22 @@ final class AdminContentDecodingTests: XCTestCase {
         XCTAssertNil(post.anchorBundle.anchor.persistence)
         XCTAssertEqual(post.editData.layers.first?.colorHex, "#00FF00")
         XCTAssertEqual(post.contentSource, ContentSource.text("AR text"))
+        var noteRow = row
+        noteRow["business_note"] = ["id": UUID().uuidString, "name": "Cafe", "lat": 41.0, "lng": 29.0, "radius": 150]
+        noteRow["is_anonymous"] = true
+        let note = try FirestoreJSON.decoder().decode(BackendPostRow.self, from: JSONSerialization.data(withJSONObject: noteRow)).domainPost()
+        XCTAssertEqual(note.businessNote?.name, "Cafe")
+        XCTAssertTrue(note.isAnonymous)
+        XCTAssertEqual(try JSONDecoder().decode(LociPost.self, from: JSONEncoder().encode(note)).businessNote, note.businessNote)
+        var targetedRow = row
+        targetedRow["visibility"] = "private"
+        targetedRow["sponsorship"] = ["brand_name": "Coffee Brand", "terms": "Use LOCI20 before expiry.", "expires_at": "2026-11-01T00:00:00Z"]
+        let offer = try FirestoreJSON.decoder().decode(BackendPostRow.self, from: JSONSerialization.data(withJSONObject: targetedRow)).domainPost()
+        XCTAssertEqual(offer.sponsorship?.brandName, "Coffee Brand")
+        XCTAssertEqual(offer.sponsorship?.terms, "Use LOCI20 before expiry.")
+        XCTAssertFalse(PublicSafetyPolicy.isListedInPublicDiscover(offer), "A private offer must not enter public discovery")
+        let stored = try JSONEncoder().encode(offer)
+        XCTAssertEqual(try JSONDecoder().decode(LociPost.self, from: stored).sponsorship, offer.sponsorship)
         let pageJSON: [String: Any] = ["posts": [["invalid_legacy_row": true], row], "next": "raw-page-cursor"]
         let page = try FirestoreJSON.decoder().decode(BackendPostPageResponse.self, from: JSONSerialization.data(withJSONObject: pageJSON))
         XCTAssertEqual(page.posts.map(\.id), [postID])

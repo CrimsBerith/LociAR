@@ -13,6 +13,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
   const requestedStatus = textParameter(params.status, 30);
   const status = ['pending_review', 'active', 'flagged', 'trash'].includes(requestedStatus) ? requestedStatus : 'all';
   const term = q.toLowerCase();
+  const business = textParameter(params.business, 36);
   let page: DocumentPage = { documents: [], next: null, previous: null };
   let posts: Array<Record<string, unknown> & { id: string }> = [];
   let failed = false;
@@ -20,8 +21,9 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
   try {
     const collection = adminDb().collection('posts');
     const statusFilter = status === 'trash' ? 'removed' : status;
-    const query = status === 'all' ? collection : collection.where('status', '==', statusFilter);
-    const loaded = await readCaptionPage(query, { scope: JSON.stringify(['posts', status, term]), cursors: pageCursors(params), needle: term });
+    let query: FirebaseFirestore.Query = status === 'all' ? collection : collection.where('status', '==', statusFilter);
+    if (business) { if (!/^[0-9a-f-]{36}$/.test(business)) throw new InvalidCursorError(); query = query.where('business_id', '==', business); }
+    const loaded = await readCaptionPage(query, { scope: JSON.stringify(['posts', status, term, business]), cursors: pageCursors(params), needle: term });
     page = loaded;
     posts = loaded.matches.map(d => ({ ...d.data(), id: d.id }));
   } catch (error) {
@@ -38,6 +40,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
       <section className="panel">
         <div className="panelHeader">
           <form method="get" className="filterBar">
+            {business ? <input type="hidden" name="business" value={business}/> : null}
             <input name="q" defaultValue={q} placeholder="Search captions" aria-label="Search post captions" />
             <select name="status" defaultValue={status} aria-label="Filter by post status">
               <option value="all">All</option>
@@ -50,7 +53,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
           </form>
         </div>
         {term && !failed ? <p className="readOnlyNotice">Caption matches in this batch of {page.documents.length} records. Continue searching older records to scan the remaining posts.</p> : null}
-        {failed ? <p className="emptyState">{invalid ? <>Invalid page link. <a href={`/admin/posts?${new URLSearchParams({ q, status })}`}>Return to the first page.</a></> : 'Post data could not be loaded.'}</p> : (
+        {failed ? <p className="emptyState">{invalid ? <>Invalid page link. <a href={`/admin/posts?${new URLSearchParams({ q, status, ...(business ? { business } : {}) })}`}>Return to the first page.</a></> : 'Post data could not be loaded.'}</p> : (
           <div className="dataTable">
             <div className="dataRow post header"><span>Post</span><span>Status</span><span>Visibility</span><span>Views / likes / comments</span><span>Actions</span></div>
             {posts.length === 0 ? <p className="emptyState">No matching posts.</p> : posts.map(post => {
@@ -67,7 +70,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
             })}
           </div>
         )}
-        {!failed ? <PageNavigation path="/admin/posts" parameters={{ q, status }} next={page.next} previous={page.previous} scan={Boolean(term)} /> : null}
+        {!failed ? <PageNavigation path="/admin/posts" parameters={{ q, status, ...(business ? { business } : {}) }} next={page.next} previous={page.previous} scan={Boolean(term)} /> : null}
       </section>
     </section>
   );

@@ -2859,6 +2859,160 @@
         }
       }
     },
+    "Anonim" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonim"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonymous"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonym"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anónimo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonyme"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anônimo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Анонимно"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مجهول"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनाम"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বেনামী"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匿名"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匿名"
+          }
+        }
+      }
+    },
+    "Anonim devam et" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonim devam et"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue anonymously"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonym fortfahren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar de forma anónima"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer anonymement"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar anonimamente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить анонимно"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المتابعة بشكل مجهول"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनाम रूप से जारी रखें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বেনামীভাবে চালিয়ে যান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匿名で続ける"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匿名继续"
+          }
+        }
+      }
+    },
     "Apple ile doğrula ve sil" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3163,6 +3317,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法撤销 Apple 授权，账号未被删除。请稍后重试。"
+          }
+        }
+      }
+    },
+    "Ara" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ara"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بحث"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खोजें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খুঁজুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索"
+          }
+        }
+      }
+    },
+    "Arka planda varış bildirimi için konum iznini Her zaman olarak ayarla." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arka planda varış bildirimi için konum iznini Her zaman olarak ayarla."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set location permission to Always for arrival notifications in the background."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stelle die Standortberechtigung auf Immer, um Ankunftsmitteilungen im Hintergrund zu erhalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura el permiso de ubicación en Siempre para avisos de llegada en segundo plano."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglez l’autorisation de localisation sur Toujours pour les notifications d’arrivée en arrière-plan."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defina a permissão de localização como Sempre para avisos de chegada em segundo plano."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите доступ к геопозиции Всегда для уведомлений о прибытии в фоновом режиме."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضبط إذن الموقع على دائمًا لإشعارات الوصول في الخلفية."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पृष्ठभूमि में आगमन सूचनाओं के लिए स्थान की अनुमति हमेशा पर सेट करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যাকগ্রাউন্ডে পৌঁছানোর বিজ্ঞপ্তির জন্য অবস্থানের অনুমতি সর্বদা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックグラウンドの到着通知には位置情報を常に許可に設定してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要在后台接收到达通知，请将定位权限设为始终。"
           }
         }
       }
@@ -5011,160 +5319,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "举报将在 24 小时内审核。如果不想看到此用户的内容，可以屏蔽该用户。"
-          }
-        }
-      }
-    },
-    "Bildirimlere izin ver" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bildirimlere izin ver"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow notifications"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mitteilungen erlauben"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir notificaciones"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser les notifications"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir notificações"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить уведомления"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السماح بالإشعارات"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "सूचनाओं की अनुमति दें"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "বিজ্ঞপ্তির অনুমতি দিন"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通知を許可"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许通知"
-          }
-        }
-      }
-    },
-    "Bildirimleri etkinleştir" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bildirimleri etkinleştir"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enable notifications"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mitteilungen aktivieren"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Activar notificaciones"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Activer les notifications"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ativar notificações"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Включить уведомления"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تفعيل الإشعارات"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "सूचनाएँ चालू करें"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "বিজ্ঞপ্তি চালু করুন"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通知を有効にする"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "启用通知"
           }
         }
       }
@@ -10636,6 +10790,83 @@
         }
       }
     },
+    "En fazla 220 karakter." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En fazla 220 karakter."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up to 220 characters."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bis zu 220 Zeichen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasta 220 caracteres."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "220 caractères maximum."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Até 220 caracteres."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "До 220 символов."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حتى 220 حرفًا."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अधिकतम 220 अक्षर।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সর্বোচ্চ 220 অক্ষর।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "220文字まで。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最多220个字符。"
+          }
+        }
+      }
+    },
     "Engel kaldırılamadı. Tekrar dene." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16022,6 +16253,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "账户正常"
+          }
+        }
+      }
+    },
+    "Hesap açmadan anonim not bırakabilir ve beğenebilirsin. Notlarda adın ve profilin görünmez." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hesap açmadan anonim not bırakabilir ve beğenebilirsin. Notlarda adın ve profilin görünmez."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave anonymous notes and likes without creating an account. Your name and profile are hidden on notes."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinterlasse anonyme Notizen und Likes ohne Konto. Dein Name und Profil werden in Notizen nicht angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deja notas y me gusta anónimos sin crear una cuenta. Tu nombre y perfil no aparecen en las notas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laissez des notes et des mentions J’aime anonymes sans créer de compte. Votre nom et votre profil sont masqués sur les notes."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixe notas e curtidas anônimas sem criar uma conta. Seu nome e perfil ficam ocultos nas notas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставляйте анонимные заметки и отметки «Нравится» без регистрации. Имя и профиль не показываются в заметках."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اترك ملاحظات وإعجابات مجهولة دون إنشاء حساب. لا يظهر اسمك أو ملفك الشخصي في الملاحظات."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खाता बनाए बिना अनाम नोट लिखें और पसंद करें। नोट पर आपका नाम और प्रोफ़ाइल छिपे रहते हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্ট তৈরি না করেই বেনামী নোট লিখুন এবং পছন্দ করুন। নোটে আপনার নাম ও প্রোফাইল লুকানো থাকে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを作成せずに匿名でメモを投稿し、いいねできます。メモに名前やプロフィールは表示されません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无需创建账户即可发布匿名留言和点赞。留言不会显示你的姓名和个人资料。"
+          }
+        }
+      }
+    },
+    "Hesap bağlayarak anonim notlarını koru. Paylaşımlarında kimliğin görünmez." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hesap bağlayarak anonim notlarını koru. Paylaşımlarında kimliğin görünmez."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link an account to keep your anonymous notes. Your identity stays hidden on posts."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verknüpfe ein Konto, um deine anonymen Notizen zu behalten. Deine Identität bleibt in Beiträgen verborgen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vincula una cuenta para conservar tus notas anónimas. Tu identidad permanece oculta en las publicaciones."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Associez un compte pour conserver vos notes anonymes. Votre identité reste masquée dans les publications."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vincule uma conta para manter suas notas anônimas. Sua identidade continua oculta nas publicações."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Привяжите аккаунт, чтобы сохранить анонимные заметки. Ваша личность останется скрытой в публикациях."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اربط حسابًا للاحتفاظ بملاحظاتك المجهولة. تبقى هويتك مخفية في المنشورات."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपने अनाम नोट सुरक्षित रखने के लिए खाता जोड़ें। पोस्ट में आपकी पहचान छिपी रहती है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বেনামী নোট সংরক্ষণ করতে একটি অ্যাকাউন্ট যুক্ত করুন। পোস্টে আপনার পরিচয় লুকানো থাকে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを連携して匿名のメモを保存しましょう。投稿では引き続きあなたの身元が非表示になります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绑定账户以保留匿名留言。发布内容时仍隐藏你的身份。"
           }
         }
       }
@@ -22571,6 +22956,160 @@
         }
       }
     },
+    "Konumu gör" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konumu gör"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View location"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver ubicación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir la position"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver localização"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Посмотреть местоположение"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عرض الموقع"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्थान देखें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান দেখুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所を見る"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看位置"
+          }
+        }
+      }
+    },
+    "Konumumu yöneticilerle paylaş" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konumumu yöneticilerle paylaş"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share my location with administrators"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meinen Standort mit Administratoren teilen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir mi ubicación con administradores"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager ma position avec les administrateurs"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartilhar minha localização com administradores"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Делиться местоположением с администраторами"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مشاركة موقعي مع المسؤولين"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "व्यवस्थापकों के साथ मेरा स्थान साझा करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রশাসকদের সঙ্গে আমার অবস্থান শেয়ার করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理者と位置情報を共有"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与管理员共享我的位置"
+          }
+        }
+      }
+    },
     "Korunan fiziksel yüzey doğrulanıyor…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24804,6 +25343,237 @@
         }
       }
     },
+    "Not anonim yayınlanır ve incelemeye gider. Haritadan seçilen konum yaklaşık kabul edilir. Bildirimleri açan ziyaretçiler yaklaşınca notunu görebilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not anonim yayınlanır ve incelemeye gider. Haritadan seçilen konum yaklaşık kabul edilir. Bildirimleri açan ziyaretçiler yaklaşınca notunu görebilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The note is anonymous and goes to review. The map location is approximate. Visitors who enable notifications can see it when nearby."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Notiz ist anonym und wird geprüft. Der Kartenstandort ist ungefähr. Besucher mit aktivierten Benachrichtigungen können sie in der Nähe sehen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La nota es anónima y se revisa. La ubicación del mapa es aproximada. Los visitantes que activen las notificaciones pueden verla al acercarse."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La note est anonyme et vérifiée. La position sur la carte est approximative. Les visiteurs ayant activé les notifications peuvent la voir à proximité."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A nota é anônima e passa por análise. A localização no mapa é aproximada. Visitantes que ativarem os avisos podem vê-la ao se aproximar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметка анонимная и проходит проверку. Положение на карте приблизительное. Посетители с включёнными уведомлениями могут увидеть её поблизости."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الملاحظة مجهولة وتخضع للمراجعة. موقع الخريطة تقريبي. يمكن للزوار الذين فعّلوا الإشعارات رؤيتها عند الاقتراب."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट गुमनाम है और समीक्षा में जाता है। मैप का स्थान अनुमानित है। सूचनाएँ चालू करने वाले आगंतुक पास आने पर इसे देख सकते हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট বেনামী এবং পর্যালোচনা করা হয়। মানচিত্রের অবস্থান আনুমানিক। বিজ্ঞপ্তি চালু করা দর্শনার্থীরা কাছে এলে দেখতে পারেন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモは匿名で審査されます。地図の位置は概算です。通知を有効にした訪問者は近づくと確認できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "留言匿名发布并接受审核。地图位置为近似位置。启用通知的访客靠近时可查看。"
+          }
+        }
+      }
+    },
+    "Notu incelemeye gönder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notu incelemeye gönder"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Submit note for review"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notiz zur Prüfung senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar nota a revisión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soumettre la note"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar nota para análise"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправить заметку на проверку"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إرسال الملاحظة للمراجعة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट समीक्षा के लिए भेजें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট পর্যালোচনায় পাঠান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを審査に送信"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提交留言审核"
+          }
+        }
+      }
+    },
+    "Notun incelemeye gönderildi. Onaylanınca haritada ve uygun ziyaretçi bildirimlerinde görünür." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notun incelemeye gönderildi. Onaylanınca haritada ve uygun ziyaretçi bildirimlerinde görünür."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your note was submitted for review. Once approved, it can appear on the map and in eligible visitor notifications."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Notiz wurde zur Prüfung eingereicht. Nach Freigabe kann sie auf der Karte und in Besuchermitteilungen erscheinen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu nota se envió a revisión. Tras aprobarse, podrá aparecer en el mapa y en avisos a visitantes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre note est en cours de vérification. Une fois approuvée, elle pourra apparaître sur la carte et dans les notifications aux visiteurs."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua nota foi enviada para análise. Após aprovação, pode aparecer no mapa e nos avisos a visitantes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметка отправлена на проверку. После одобрения она может появиться на карте и в уведомлениях посетителям."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أُرسلت ملاحظتك للمراجعة. بعد الموافقة قد تظهر على الخريطة وفي إشعارات الزوار."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट समीक्षा के लिए भेजा गया। स्वीकृति के बाद मैप और योग्य आगंतुकों की सूचनाओं में दिख सकता है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট পর্যালোচনায় পাঠানো হয়েছে। অনুমোদনের পর মানচিত্রে ও উপযুক্ত দর্শনার্থীর বিজ্ঞপ্তিতে দেখা যেতে পারে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを審査に送信しました。承認後、地図や対象の訪問者への通知に表示されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "留言已提交审核。批准后可显示在地图和符合条件的访客通知中。"
+          }
+        }
+      }
+    },
     "Okundu bilgisi kaydedilemedi. Bağlantını kontrol edip tekrar dene." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25262,6 +26032,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "分享需要邀请码。请在 个人资料 > 邀请码 中输入你收到的邀请码。"
+          }
+        }
+      }
+    },
+    "Paylaşılanlar: cihaz türü, iOS ve uygulama sürümü, dil, saat dilimi, rastgele kurulum kimliği, bağlantı IP adresi ve kullanım zamanları. Yetkili yöneticiler görebilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paylaşılanlar: cihaz türü, iOS ve uygulama sürümü, dil, saat dilimi, rastgele kurulum kimliği, bağlantı IP adresi ve kullanım zamanları. Yetkili yöneticiler görebilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared data: device type, iOS and app version, language, time zone, random installation ID, connection IP address and usage times. Authorized administrators can view it."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geteilte Daten: Gerätetyp, iOS- und App-Version, Sprache, Zeitzone, zufällige Installations-ID, Verbindungs-IP und Nutzungszeiten. Berechtigte Administratoren können sie einsehen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datos compartidos: tipo de dispositivo, versiones de iOS y de la app, idioma, zona horaria, ID de instalación aleatorio, IP de conexión y horarios de uso. Los administradores autorizados pueden verlos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Données partagées : type d’appareil, versions d’iOS et de l’app, langue, fuseau horaire, identifiant d’installation aléatoire, adresse IP de connexion et heures d’utilisation. Les administrateurs autorisés peuvent les consulter."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dados compartilhados: tipo de dispositivo, versões do iOS e do app, idioma, fuso horário, ID de instalação aleatório, IP da conexão e horários de uso. Administradores autorizados podem vê-los."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Передаются: тип устройства, версии iOS и приложения, язык, часовой пояс, случайный ID установки, IP-адрес подключения и время использования. Уполномоченные администраторы могут их просматривать."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "البيانات المشتركة: نوع الجهاز وإصدارات iOS والتطبيق واللغة والمنطقة الزمنية ومعرّف تثبيت عشوائي وعنوان IP للاتصال وأوقات الاستخدام. يمكن للمسؤولين المخوّلين الاطلاع عليها."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "साझा डेटा: डिवाइस का प्रकार, iOS और ऐप संस्करण, भाषा, समय क्षेत्र, रैंडम इंस्टॉलेशन ID, कनेक्शन का IP पता और उपयोग का समय। अधिकृत व्यवस्थापक इसे देख सकते हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শেয়ার করা ডেটা: ডিভাইসের ধরন, iOS ও অ্যাপ সংস্করণ, ভাষা, সময় অঞ্চল, এলোমেলো ইনস্টলেশন ID, সংযোগের IP ঠিকানা ও ব্যবহারের সময়। অনুমোদিত প্রশাসকেরা দেখতে পারেন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共有されるデータ：端末の種類、iOSとアプリのバージョン、言語、タイムゾーン、ランダムなインストールID、接続IPアドレス、利用時間。権限のある管理者が閲覧できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共享的数据：设备类型、iOS 和应用版本、语言、时区、随机安装 ID、连接 IP 地址及使用时间。获授权的管理员可以查看。"
           }
         }
       }
@@ -27730,83 +28577,6 @@
         }
       }
     },
-    "Postların beğenildiğinde, yorum aldığında ve biri seni takip ettiğinde bildirim gönderilir." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Postların beğenildiğinde, yorum aldığında ve biri seni takip ettiğinde bildirim gönderilir."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You receive notifications when someone likes or comments on your posts or follows you."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Du erhältst Mitteilungen, wenn jemand deine Beiträge mit „Gefällt mir“ markiert, kommentiert oder dir folgt."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recibes notificaciones cuando alguien da me gusta o comenta tus publicaciones, o te sigue."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vous recevez une notification lorsqu’une personne aime ou commente vos publications, ou vous suit."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você recebe notificações quando alguém curte ou comenta suas publicações ou segue você."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вы получаете уведомления, когда кто-то ставит отметку «Нравится», комментирует ваши публикации или подписывается на вас."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تصلك إشعارات عندما يعجب شخص بمنشوراتك أو يعلق عليها أو يتابعك."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "जब कोई आपकी पोस्ट पसंद करता है, टिप्पणी करता है या आपको फ़ॉलो करता है, तो आपको सूचना मिलती है।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "কেউ আপনার পোস্টে লাইক বা মন্তব্য করলে অথবা আপনাকে অনুসরণ করলে বিজ্ঞপ্তি পাবেন।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "投稿にいいねやコメントが付いたとき、またはフォローされたときに通知を受け取ります。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "有人赞你的帖子、发表评论或关注你时，你会收到通知。"
-          }
-        }
-      }
-    },
     "Postların için sunucu bağlantısı gerekiyor." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29655,6 +30425,83 @@
         }
       }
     },
+    "Sana özel bir kampanya var." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sana özel bir kampanya var."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new offer is available for you."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein neues Angebot wartet auf dich."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hay una nueva oferta para ti."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une nouvelle offre vous attend."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Há uma nova oferta para você."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для вас есть новое предложение."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هناك عرض جديد لك."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपके लिए एक नया ऑफ़र है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার জন্য একটি নতুন অফার আছে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなた向けの新しいオファーがあります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你有一个专属优惠。"
+          }
+        }
+      }
+    },
     "Sağa dön" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30498,6 +31345,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "垃圾信息或误导内容"
+          }
+        }
+      }
+    },
+    "Sponsorlu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sponsorlu"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sponsored"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesponsert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patrocinado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sponsorisé"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patrocinado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реклама"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إعلان ممول"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रायोजित"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "স্পনসরকৃত"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スポンサー提供"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "赞助内容"
           }
         }
       }
@@ -31657,6 +32581,160 @@
         }
       }
     },
+    "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, işletme notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Yakında en fazla iki dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni ve internet gerekir. GPS birkaç metrelik giriş tespitini garanti etmez." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, işletme notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Yakında en fazla iki dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni ve internet gerekir. GPS birkaç metrelik giriş tespitini garanti etmez."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One setting enables all notifications: likes, comments, follows, business notes, brand discounts and administrator messages. Messages may appear on the lock screen. Your shared last location and post likes may help select offers; brands cannot see your personal location. Precise GPS runs nearby for up to two minutes; fixes are not added to the administrator location snapshot. Background alerts require Always location permission and internet. GPS cannot guarantee entry detection within a few meters."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Einstellung aktiviert alle Mitteilungen: Likes, Kommentare, Follows, Geschäftsnotizen, Markenrabatte und Administratornachrichten. Nachrichten können auf dem Sperrbildschirm erscheinen. Dein geteilter Standort und Post-Likes können Angebote auswählen helfen; Marken sehen deinen persönlichen Standort nicht. In der Nähe läuft präzises GPS höchstens zwei Minuten, ohne den Administratorstandort zu aktualisieren. Im Hintergrund sind Immer und Internet erforderlich. GPS garantiert keine Erkennung auf wenige Meter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un ajuste activa todos los avisos: me gusta, comentarios, seguidores, notas de negocios, descuentos y mensajes del administrador. Los mensajes pueden aparecer en la pantalla bloqueada. La última ubicación compartida y los me gusta pueden ayudar a elegir ofertas; las marcas no ven tu ubicación personal. Cerca se usa GPS preciso hasta dos minutos sin actualizar la ubicación del administrador. En segundo plano se requiere ubicación Siempre e internet. El GPS no garantiza detectar entradas a pocos metros."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un réglage active toutes les notifications : mentions J’aime, commentaires, abonnements, notes de commerces, réductions et messages des administrateurs. Les messages peuvent apparaître sur l’écran verrouillé. Votre dernière position partagée et les mentions J’aime peuvent aider à choisir des offres ; les marques ne voient pas votre position personnelle. À proximité, le GPS précis fonctionne au plus deux minutes sans actualiser la position des administrateurs. En arrière-plan, localisation Toujours et internet sont requis. Le GPS ne garantit pas une détection à quelques mètres."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma opção ativa todos os avisos: curtidas, comentários, seguidores, notas de estabelecimentos, descontos e mensagens do administrador. As mensagens podem aparecer na tela bloqueada. A última localização compartilhada e as curtidas podem ajudar a escolher ofertas; marcas não veem sua localização pessoal. Perto do local, GPS preciso funciona por até dois minutos sem atualizar a localização do administrador. Em segundo plano são necessários localização Sempre e internet. O GPS não garante detectar entradas a poucos metros."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Один переключатель включает все уведомления: лайки, комментарии, подписки, заметки о заведениях, скидки и сообщения администратора. Сообщения могут появиться на экране блокировки. Последняя переданная геопозиция и лайки могут помочь выбрать предложения; бренды не видят вашу личную геопозицию. Поблизости точный GPS работает до двух минут без обновления записи для администратора. В фоне нужны доступ Всегда и интернет. GPS не гарантирует определение входа с точностью до нескольких метров."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إعداد واحد يفعّل كل الإشعارات: الإعجابات والتعليقات والمتابعات وملاحظات المنشآت والخصومات ورسائل المسؤول. قد تظهر الرسائل على شاشة القفل. قد يُستخدم آخر موقع شاركته وإعجابات منشوراتك لاختيار العروض؛ العلامات لا ترى موقعك الشخصي. قرب الموقع يعمل GPS دقيق حتى دقيقتين دون تحديث موقع المسؤول. يلزم إذن الموقع دائمًا والإنترنت في الخلفية. لا يضمن GPS اكتشاف الدخول ضمن بضعة أمتار."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एक सेटिंग सभी सूचनाएँ चालू करती है: लाइक, टिप्पणियाँ, फ़ॉलो, व्यवसाय के नोट, ब्रांड छूट और व्यवस्थापक संदेश। संदेश लॉक स्क्रीन पर दिख सकते हैं। साझा किया अंतिम स्थान और पोस्ट के लाइक ऑफ़र चुनने में काम आ सकते हैं; ब्रांड आपका निजी स्थान नहीं देखते। पास आने पर सटीक GPS अधिकतम दो मिनट चलता है; व्यवस्थापक स्थान रिकॉर्ड नहीं बदलता। पृष्ठभूमि में हमेशा स्थान अनुमति और इंटरनेट चाहिए। GPS कुछ मीटर के भीतर प्रवेश पहचानने की गारंटी नहीं देता।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি সেটিং সব বিজ্ঞপ্তি চালু করে: লাইক, মন্তব্য, ফলো, ব্যবসার নোট, ব্র্যান্ডের ছাড় ও প্রশাসকের বার্তা। বার্তা লক স্ক্রিনে দেখা যেতে পারে। শেয়ার করা শেষ অবস্থান ও পোস্টের লাইক অফার বাছতে ব্যবহৃত হতে পারে; ব্র্যান্ড আপনার ব্যক্তিগত অবস্থান দেখে না। কাছে এলে নির্ভুল GPS সর্বোচ্চ দুই মিনিট চলে; প্রশাসকের অবস্থান রেকর্ড বদলায় না। ব্যাকগ্রাউন্ডে সর্বদা অবস্থান অনুমতি ও ইন্টারনেট দরকার। GPS কয়েক মিটারের মধ্যে প্রবেশ শনাক্তের নিশ্চয়তা দেয় না।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1つの設定ですべての通知を有効にします：いいね、コメント、フォロー、店舗のメモ、ブランドの割引、管理者からのメッセージ。本文はロック画面に表示される場合があります。共有した最終位置といいねをオファー選択に使う場合がありますが、ブランドは個人の位置を閲覧できません。近くでは精密GPSを最長2分間使用し、管理者向け位置記録には追加しません。バックグラウンドでは位置情報の常に許可とインターネットが必要です。GPSは数メートル以内での入店検知を保証しません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一个设置开启所有通知：点赞、评论、关注、商家留言、品牌优惠和管理员消息。内容可能出现在锁屏上。共享的最后位置和帖子点赞可用于选择优惠；品牌看不到你的个人位置。靠近时最多使用两分钟精确GPS，不更新管理员的位置记录。后台需要始终允许定位和联网。GPS无法保证在几米内识别进入。"
+          }
+        }
+      }
+    },
+    "Teknik ve kullanım verilerini paylaş" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teknik ve kullanım verilerini paylaş"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share technical and usage data"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Technische und Nutzungsdaten teilen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir datos técnicos y de uso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager les données techniques et d’utilisation"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartilhar dados técnicos e de uso"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Делиться техническими данными и данными использования"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مشاركة البيانات التقنية وبيانات الاستخدام"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तकनीकी और उपयोग डेटा साझा करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রযুক্তিগত ও ব্যবহারের ডেটা শেয়ার করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技術情報と利用データを共有"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共享技术和使用数据"
+          }
+        }
+      }
+    },
     "Tekrar Gönder" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32581,6 +33659,83 @@
         }
       }
     },
+    "Uygulama açıkken son konumun, doğruluğu ve zamanı yöneticilere gönderilir; anonim postların hesabınla ilişkilendirilebilir. Arka planda paylaşılmaz. Kapatınca son konum silinir. Post konumu ve iOS izni ayrı kalır." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uygulama açıkken son konumun, doğruluğu ve zamanı yöneticilere gönderilir; anonim postların hesabınla ilişkilendirilebilir. Arka planda paylaşılmaz. Kapatınca son konum silinir. Post konumu ve iOS izni ayrı kalır."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While the app is open, your last location, accuracy and time are sent to administrators; anonymous posts can be linked to your account. No background sharing. Turning this off deletes the last location. Post location and iOS permission remain separate."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei geöffneter App werden dein letzter Standort, die Genauigkeit und Zeit an Administratoren gesendet; anonyme Posts können deinem Konto zugeordnet werden. Keine Freigabe im Hintergrund. Ausschalten löscht den letzten Standort. Post-Standort und iOS-Berechtigung bleiben getrennt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con la app abierta, tu última ubicación, precisión y hora se envían a los administradores; las publicaciones anónimas pueden vincularse a tu cuenta. No se comparte en segundo plano. Al desactivar, se elimina la última ubicación. La ubicación de publicaciones y el permiso de iOS son independientes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsque l’app est ouverte, votre dernière position, sa précision et l’heure sont envoyées aux administrateurs ; vos publications anonymes peuvent être liées à votre compte. Aucun partage en arrière-plan. La désactivation supprime la dernière position. La position des publications et l’autorisation iOS restent distinctes."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com o app aberto, sua última localização, precisão e horário são enviados aos administradores; posts anônimos podem ser vinculados à sua conta. Não há compartilhamento em segundo plano. Desativar apaga a última localização. A localização dos posts e a permissão do iOS são separadas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока приложение открыто, администраторам передаются последнее местоположение, точность и время; анонимные посты могут быть связаны с вашим аккаунтом. В фоне данные не передаются. При отключении последнее местоположение удаляется. Местоположение постов и разрешение iOS независимы."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عندما يكون التطبيق مفتوحًا، يُرسل آخر موقع ودقته ووقته إلى المسؤولين؛ ويمكن ربط المنشورات المجهولة بحسابك. لا مشاركة في الخلفية. يؤدي الإيقاف إلى حذف آخر موقع. يبقى موقع المنشورات وإذن iOS منفصلين."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ऐप खुला होने पर आपका अंतिम स्थान, सटीकता और समय व्यवस्थापकों को भेजे जाते हैं; गुमनाम पोस्ट आपके खाते से जोड़े जा सकते हैं। बैकग्राउंड में साझा नहीं होता। बंद करने पर अंतिम स्थान मिट जाता है। पोस्ट का स्थान और iOS अनुमति अलग हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাপ খোলা থাকলে আপনার শেষ অবস্থান, নির্ভুলতা ও সময় প্রশাসকদের পাঠানো হয়; বেনামি পোস্ট আপনার অ্যাকাউন্টের সঙ্গে যুক্ত করা যেতে পারে। ব্যাকগ্রাউন্ডে শেয়ার হয় না। বন্ধ করলে শেষ অবস্থান মুছে যায়। পোস্টের অবস্থান ও iOS অনুমতি আলাদা থাকে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを開いている間、最新の位置、精度、時刻が管理者に送信されます。匿名の投稿もアカウントに関連付けられます。バックグラウンドでは共有しません。オフにすると最後の位置情報を削除します。投稿の位置とiOSの許可は別です。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用打开时，会将你最近的位置、精度和时间发送给管理员；匿名帖子也可关联到你的账户。后台不共享。关闭后会删除最近的位置。帖子位置和 iOS 权限是独立的。"
+          }
+        }
+      }
+    },
     "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32731,6 +33886,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
+          }
+        }
+      }
+    },
+    "Veri paylaşımı" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veri paylaşımı"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data sharing"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datenfreigabe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir datos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partage de données"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartilhamento de dados"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Передача данных"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مشاركة البيانات"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "डेटा साझाकरण"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ডেটা শেয়ারিং"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データ共有"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数据共享"
+          }
+        }
+      }
+    },
+    "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data sharing could not be updated. Check your connection and try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Datenfreigabe konnte nicht aktualisiert werden. Prüfe deine Verbindung und versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el uso compartido de datos. Comprueba tu conexión e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le partage de données n’a pas pu être mis à jour. Vérifiez votre connexion et réessayez."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível atualizar o compartilhamento de dados. Verifique sua conexão e tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить передачу данных. Проверьте соединение и повторите попытку."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر تحديث مشاركة البيانات. تحقّق من اتصالك وحاول مجددًا."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "डेटा साझाकरण अपडेट नहीं हो सका। अपना कनेक्शन जाँचें और फिर कोशिश करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ডেটা শেয়ারিং আপডেট করা যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データ共有を更新できませんでした。接続を確認して再試行してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法更新数据共享设置。请检查连接后重试。"
           }
         }
       }
@@ -44050,6 +45359,468 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "操作无法完成"
+          }
+        }
+      }
+    },
+    "İşletme adı" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İşletme adı"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Business name"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name des Geschäfts"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre del negocio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom du commerce"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome do estabelecimento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Название заведения"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اسم المنشأة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "व्यवसाय का नाम"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবসার নাম"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "店舗名"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商家名称"
+          }
+        }
+      }
+    },
+    "İşletme bulunamadı. Adını veya bulunduğu semti yazarak tekrar ara." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İşletme bulunamadı. Adını veya bulunduğu semti yazarak tekrar ara."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No business found. Try its name or neighborhood."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Geschäft gefunden. Versuche den Namen oder Stadtteil."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró el negocio. Prueba su nombre o barrio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun commerce trouvé. Essayez son nom ou son quartier."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum estabelecimento encontrado. Tente o nome ou bairro."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заведение не найдено. Попробуйте название или район."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم تُعثر على المنشأة. جرّب اسمها أو الحي."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "व्यवसाय नहीं मिला। उसका नाम या इलाका लिखें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবসা পাওয়া যায়নি। নাম বা এলাকার নাম লিখুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "店舗が見つかりません。名前や地域名で再検索してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到商家。请输入名称或所在街区重试。"
+          }
+        }
+      }
+    },
+    "İşletme notu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İşletme notu"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Business note"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschäftsnotiz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota del negocio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note sur le commerce"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota do estabelecimento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметка о заведении"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ملاحظة عن المنشأة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "व्यवसाय का नोट"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবসার নোট"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "店舗へのメモ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商家留言"
+          }
+        }
+      }
+    },
+    "İşletme notun" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İşletme notun"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your business note"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Geschäftsnotiz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu nota del negocio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre note sur le commerce"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua nota do estabelecimento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваша заметка о заведении"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ملاحظتك عن المنشأة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "व्यवसाय पर आपका नोट"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবসা সম্পর্কে আপনার নোট"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "店舗へのメモ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的商家留言"
+          }
+        }
+      }
+    },
+    "İşletmeler aranamadı. Bağlantını kontrol edip tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İşletmeler aranamadı. Bağlantını kontrol edip tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not search businesses. Check your connection and try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschäfte konnten nicht gesucht werden. Prüfe die Verbindung und versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron buscar negocios. Comprueba la conexión e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche impossible. Vérifiez la connexion et réessayez."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível buscar estabelecimentos. Verifique a conexão e tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось найти заведения. Проверьте соединение и повторите."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر البحث. تحقق من الاتصال وحاول مجددًا."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "व्यवसाय नहीं खोज सके। कनेक्शन जाँचें और फिर कोशिश करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবসা খোঁজা যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "店舗を検索できません。接続を確認して再試行してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法搜索商家。请检查网络后重试。"
+          }
+        }
+      }
+    },
+    "İşletmeye not bırak" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İşletmeye not bırak"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave a business note"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschäftsnotiz hinterlassen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dejar nota en un negocio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laisser une note sur un commerce"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixar nota em um estabelecimento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставить заметку о заведении"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اترك ملاحظة عن منشأة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "व्यवसाय पर नोट छोड़ें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবসায় নোট রাখুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "店舗にメモを残す"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "给商家留言"
           }
         }
       }

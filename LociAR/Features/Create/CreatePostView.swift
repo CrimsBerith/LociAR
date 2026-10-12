@@ -516,7 +516,7 @@ struct CreatePostView: View {
             id: postID, creatorID: user.id, creatorHandle: user.handle, createdAt: Date(), caption: finalCaption,
             status: .pendingReview, visibility: .public, ageRating: .all,
             anchorBundle: AnchorBundle(anchor: anchor), editData: EditData(layers: layers), contentSource: nil,
-            counts: PostCounts()
+            counts: PostCounts(), anonymous: true
         )
         do {
             let outcome = try await container.publisher.submit(

@@ -4,6 +4,7 @@ import { adminDb, iso } from '../../../../lib/firebase-admin';
 import InviteUserForm from './InviteUserForm';
 import CreateUserForm from './CreateUserForm';
 import AdminDecision from '../AdminDecision';
+import UserContextPanel from '../UserContextPanel';
 import PageNavigation from '../PageNavigation';
 import { InvalidCursorError, pageCursors, readDocumentPage, textParameter, type DocumentPage, type SearchParameters } from '../../../../lib/pagination';
 
@@ -62,7 +63,9 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
             <div className="dataRow user header"><span>User</span><span>Identity</span><span>Provider</span><span>Created</span><span>Enforcement</span></div>
             {users.length === 0 ? <p className="emptyState">No matching users.</p> : users.map(user => (
               <div className="dataRow user" key={user.id}>
-                <span><b>@{String(user.handle)}</b><small>{user.id}</small></span>
+                <span><b>@{String(user.handle)}</b><small>{user.id}</small>
+                  {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') ? <details><summary>Private data</summary><UserContextPanel luid={user.id} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
+                </span>
                 <span>{user.suspended ? 'Suspended' : user.identity_verified ? 'Verified' : 'Unverified'}</span>
                 <span>{String(user.auth_provider ?? 'unknown')}</span>
                 <span>{new Date(iso(user.created_at)).toLocaleDateString('en-US')}</span>

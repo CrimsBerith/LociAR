@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated={E.updatedTr}>
+    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="11 Ekim 2026">
       <p>
         LociAR, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.10 kapsamında aydınlatma metni olarak da
@@ -39,16 +39,27 @@ export default function PrivacyPage() {
           hizmet sağlayıcının işlediği IP adresi ve kötüye kullanım kayıtları.</li>
       </ul>
 
+      <h2>İsteğe bağlı yönetici veri paylaşımı</h2>
+      <p>Profil → Ayarlar bölümündeki iki ayrı seçenek varsayılan olarak kapalıdır. Teknik paylaşımı açarsanız
+        cihaz türü, iOS ve uygulama sürümü, dil, saat dilimi, rastgele kurulum kimliği, bağlantı IP adresi ve kullanım zamanları
+        yetkili yöneticilere iletilir. Ayrı konum paylaşımını açarsanız uygulama ön plandayken son koordinatınız,
+        doğruluk değeri ve ölçüm zamanı iletilir. Anonim postlar sunucuda hesabınızla ilişkilendirilebilir.
+        Yöneticiye gösterilen bu konum kaydı arka planda güncellenmez; iOS konum izni ve post konumu bu seçenekten ayrıdır.</p>
+      <p>Yöneticinin konum veya teknik veri erişimi özel yetki, MFA ve gerekçe gerektirir; erişimler denetim kaydına yazılır.
+        Konum raporu 24 saat, son teknik rapor 30 gün sonra panelde erişilemez olur ve otomatik silme sırasına alınır.
+        Kullanım olayları en fazla {E.analyticsRetentionDays} gün tutulur. İlgili seçeneği kapatmak son konum/teknik raporunu siler;
+        çevrimdışıysanız silme bağlantı geri geldiğinde tamamlanır. Hesap silme bu kayıtları ve kullanım olaylarını da siler.</p>
+
       <h2>Amaçlar ve hukuki sebepler</h2>
       <ul>
         <li>Hesap açma, giriş, içerik yayınlama ve gösterme — sözleşmenin kurulması ve ifası (KVKK m.5/2-c).</li>
-        <li>Beğeni, yorum ve takip bildirimleri — izin verdiğiniz sürece sözleşmenin ifası; izni iOS Ayarlar&apos;dan geri alabilirsiniz.</li>
+        <li>Sosyal bildirimler, işletme notları, marka indirimleri ve yönetici mesajları — Profil → Ayarlar → Bildirimler üzerinden birlikte onayınıza bağlıdır; ayrıca iOS bildirim izni gerekir.</li>
         <li>Moderasyon, korumalı bölge ve 18+ içerik engelleri, profil fotoğrafı incelemesi, spam ve kötüye kullanımın önlenmesi,
           güvenlik — meşru menfaat (m.5/2-f) ve hukuki yükümlülük (m.5/2-ç).</li>
         <li>Çökme raporlarıyla uygulamanın kararlılığını sağlamak — meşru menfaat (m.5/2-f); Profil → Ayarlar&apos;dan kapatılabilir.</li>
         <li>Yasal talepler ve uyuşmazlıklar — bir hakkın tesisi, kullanılması veya korunması (m.5/2-e).</li>
       </ul>
-      <p>Veriler satılmaz, reklam amaçlı kullanılmaz ve uygulamalar arası izleme (tracking) yapılmaz.</p>
+      <p>Veriler satılmaz ve başka şirketlerin uygulama veya siteleri arasında izleme yapılmaz. Bildirimler açıkken, gönüllü paylaştığınız son konum ve onaylı post performansı size uygun marka indirimlerini seçmek için kullanılabilir. Markalar kişisel konumunuza veya alıcı listesine erişemez.</p>
 
       <h2>Hizmet sağlayıcılar ve yurt dışına aktarım</h2>
       <p>
@@ -66,7 +77,7 @@ export default function PrivacyPage() {
         <li><strong>GIPHY:</strong> GIF arama ve GIF gösterimi (aşağıda).</li>
       </ul>
       <p>
-        Herkese açık gönderiler ve kullanıcı adları diğer kullanıcılara görünür. Yetkili kurumların hukuka uygun talepleri
+        Herkese açık gönderiler diğer kullanıcılara görünür; anonim gönderilerde yazarın adı ve profili gizlenir. Yetkili kurumların hukuka uygun talepleri
         halinde veriler paylaşılabilir.
       </p>
 
@@ -89,7 +100,39 @@ export default function PrivacyPage() {
         yalnızca seçtiğiniz GIF&apos;in GIPHY kimliğini saklar. Ayrıntılar: <a href="https://giphy.com/privacy">GIPHY Gizlilik Politikası</a>.
       </p>
 
+      <h2>Bildirimler ve konum hatırlatmaları</h2>
+      <p>Profil → Ayarlar&apos;daki varsayılanı kapalı tek Bildirimler seçeneği beğeni, yorum, takip, işletme notları,
+        marka indirimleri ve yönetici mesajlarını kapsar. Açmadan önce bu kapsam açıklanır. Yönetici konum paylaşımı
+        ve teknik paylaşım ayrı kalır. Ayrıca iOS bildirim izni gerekir; onaylanan metin kilit ekranında görünebilir.
+        Bildirimleri kapatınca bu cihazda alan izleme, belirteç kaydı ve yeni bildirim kabulü durur.
+        Önceki uygulama içi aktiviteler kalabilir.</p>
+      <p>Teklifler metin, indirim koşulları ve geçerlilik süresi içerir ve sponsorlu olarak işaretlenir.
+        Hedefli teklifleri yalnız seçilen alıcılar görebilir. Gönüllü paylaştığınız son konum ve onaylı post performansı
+        teklif seçiminde kullanılabilir; markalar kişisel konumunuzu veya alıcı listelerini göremez.
+        Gönderim FCM kabulü olarak kaydedilir; cihazda teslim veya okunma garantisi değildir.
+        Özel yönetici mesajları otomatik çevrilmez.</p>
+      <p>Yakındaki hatırlatmalar için uygulama açıkken eşitlenen en fazla 20 işletme/teklif alanını iOS izler.
+        Büyük GPS alanı, en fazla iki dakika süren hassas konum kontrolünü başlatır. Gerçek giriş kontrolü seçilen
+        2–5 metre çapta, ölçüm belirsizliği tamamen alanın içindeyken ve en az iki saniye arayla iki iyi ölçümle yapılır.
+        Arka planda Her zaman konum izni gerekir ve iOS konum göstergesini gösterir. İnternet ve güncel sunucu onayı gerekir.
+        GPS bu ölçekte mağaza içini veya kapıdan girişi garanti edemez; belirsiz ölçümler bildirimi bastırır ve ziyaret kaçabilir.
+        Özellikle uygulama zorla kapatıldığında iOS uyandırmayı geciktirebilir veya engelleyebilir.</p>
+      <p>Ön plandaki yakın not sorgusu ve giriş/çıkış ölçümleri geçicidir; yönetici konum kaydını güncellemez.
+        Alandan çıkış kampanyası, gönüllü paylaştığınız başlangıç koordinatlarını en fazla 24 saat veya kampanya bitimine
+        kadar özel olarak tutabilir. Alanın eviniz olduğu çıkarılmaz veya etiketlenmez. Onayı iptal etmek alanları hemen
+        geçersiz kılar; hesap silme bunları kaldırır. Çıkış hatırlatması için telefon önce alanı alıp içinde olduğunu görmelidir.</p>
+      <p>Apple Haritalar&apos;dan seçilen yaklaşık işletme noktasına anonim not bırakılabilir; yayınlanmadan önce incelenir.
+        Harita seçimi işletme kimliğini veya ziyareti doğrulamaz. Yetkili yöneticiler işletme, not ve yazar bağlantısını
+        özel panelde görür; işletmeyi düzeltebilir, kapatabilir, duraklatabilir veya taşındı işaretleyebilir.
+        İşletme bilgisi değişince eski notlar geçersiz olur; geri almak yeniden inceleme gerektirir.
+        Yeni işletme/not telefonla eşitlenmeden bildirim oluşturamaz. İşletme notları işletme başına günde bir ve toplamda
+        günde üç bildirimle sınırlıdır. Kampanyaların ayrı, ortak günlük üç bildirim sınırı ve kullanıcı/kampanya başına tek hatırlatma sınırı vardır.</p>
+
       <h2>Saklama süreleri</h2>
+      <p>Hedefli teklifler kampanya sonunda erişilemez olur ve otomatik silmeye alınır. Bildirim denemeleri ve kampanya
+        görüntüleme kayıtları 30 gün tutulur. İşletme notu tekrar önleme kayıtları amacına göre 2 veya 31 gün;
+        günlük sınır kayıtları 2 gün tutulur. Hesap silme bu kişisel kayıtları kaldırır. Not sahibinin hesabını silmek,
+        diğer alıcıların aktivitesindeki saklanan not metnini de kaldırır.</p>
       <ul>
         <li>Hesap verileri ve içerikler: hesap silinene kadar.</li>
         <li>Hesap silindiğinde: profil, gönderiler, yorumlar, beğeniler, takipler, koleksiyonlar, bildirim belirteçleri, AR dosyaları,

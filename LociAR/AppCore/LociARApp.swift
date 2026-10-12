@@ -3,6 +3,7 @@ import SwiftUI
 
 @main
 struct LociARApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @UIApplicationDelegateAdaptor(LociAppDelegate.self) private var appDelegate
     @State private var container = AppContainer()
 
@@ -28,6 +29,9 @@ struct LociARApp: App {
                     } else {
                         container.router.handleDeepLink(url)
                     }
+                }
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    UserContextService.shared.setForeground(phase == .active)
                 }
         }
         .modelContainer(for: [DraftRecord.self, SyncQueueRecord.self, PreferenceRecord.self])

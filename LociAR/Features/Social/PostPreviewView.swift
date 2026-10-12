@@ -1,4 +1,5 @@
 import AVFoundation
+import MapKit
 import SwiftUI
 import SwiftData
 import UIKit
@@ -66,6 +67,25 @@ struct PostPreviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 PostCard(post: post, likeCount: likeCount, viewCount: viewCount)
+                if let business = post.businessNote {
+                    Label("İşletme notu", systemImage: "storefront")
+                    Text(business.name).font(.headline)
+                    Button {
+                        MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: business.lat, longitude: business.lng)))
+                            .openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
+                    } label: { Label("Konumu gör", systemImage: "map") }
+                }
+                if let sponsorship = post.sponsorship {
+                    Text(sponsorship.terms).font(.body)
+                    Text(sponsorship.expiresAt, style: .date).font(.caption).foregroundStyle(.secondary)
+                    Button {
+                        if let pose = post.anchorBundle.anchor.geoPose,
+                           let url = URL(string: "https://maps.apple.com/?daddr=\(pose.latitude),\(pose.longitude)&dirflg=w") { openURL(url) }
+                    } label: {
+                        Label("Konumu gör", systemImage: "map")
+                    }
+                }
+                if !post.isAnonymous {
                 NavigationLink {
                     PublicProfileView(user: creatorUser)
                 } label: {
@@ -82,6 +102,7 @@ struct PostPreviewView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("post-open-profile")
+                }
                 LociInlineNotice(
                     title: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "Konuma bağlı AR") : String(localized: "Yaklaşık yerleştirme"),
                     message: post.anchorBundle.anchor.pinQuality.isPhysicalSurface
@@ -90,6 +111,7 @@ struct PostPreviewView: View {
                     symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "location.fill.viewfinder" : "exclamationmark.triangle.fill",
                     color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
                 )
+                if post.sponsorship == nil {
                 HStack(spacing: 10) {
                     Button { Task { await toggleLike() } } label: {
                         PostActionLabel(title: liked ? String(localized: "Beğenildi") : String(localized: "Beğen"), symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white, effectValue: liked)
@@ -212,6 +234,7 @@ struct PostPreviewView: View {
                             .foregroundStyle(commentText.count > 500 ? .red : .secondary)
                     }
                 }
+                }
                 if let message { Text(message.localizedUI).font(.caption).foregroundStyle(.secondary) }
             }.padding()
         }
@@ -288,6 +311,7 @@ struct PostPreviewView: View {
         isLoading = true
         defer { if commentsLoadID == requestID { isLoading = false } }
         await recordViewIfNeeded()
+        if post.sponsorship != nil { return }
         guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
         if UITestFixtures.sampleContentEnabled {
             comments = UITestFixtures.comments
@@ -434,7 +458,11 @@ struct PostPreviewView: View {
         isReporting = true
         defer { isReporting = false }
         do {
-            try await container.social.setBlocked(true, targetID: post.creatorID, userID: user.id)
+            if post.isAnonymous {
+                try await container.social.blockAnonymousAuthor(postID: post.id, userID: user.id)
+            } else {
+                try await container.social.setBlocked(true, targetID: post.creatorID, userID: user.id)
+            }
             // The creator's content must disappear right away, including this screen.
             dismiss()
         } catch {
@@ -448,6 +476,6 @@ struct PostPreviewView: View {
     }
 
     private var creatorUser: LociUser {
-        LociUser(id: post.creatorID, handle: post.creatorHandle ?? "loci")
+        LociUser(id: post.creatorID, handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle ?? "loci")
     }
 }

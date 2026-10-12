@@ -36,6 +36,19 @@ final class AuthGateUITests: XCTestCase {
         capture(app, name: "auth-english-localization")
     }
 
+    func testAnonymousEntryRequiresConsent() {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_SIGNED_OUT")
+        app.launch()
+        let entry = app.buttons["auth-anonymous"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 8))
+        XCTAssertFalse(entry.isEnabled)
+        identifiedControl(app, "auth-terms-consent").tap()
+        XCTAssertTrue(entry.isEnabled)
+        identifiedControl(app, "auth-terms-consent").tap()
+        XCTAssertFalse(entry.isEnabled)
+    }
+
     func testAuthGateArabicLocalizationAndRTL() {
         let app = XCUIApplication()
         app.launchArguments = ["UITEST_SIGNED_OUT", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_SA"]
