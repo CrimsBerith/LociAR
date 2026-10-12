@@ -48,6 +48,16 @@ TestFlight ve App Store gönderimi bu otomatik sonuçlarla onaylanmaz.
   girişte 30 günde bir metinsiz "burada çok not var" bildirimi. Kampanya varışı da 15–100 m GPS toleranslı kurala geçti;
   harita/varış kitlesi son 24 saatteki paylaşılan konumu kullanabilir.
 
+## 12 Ekim akşam paketi: kampanya senaryoları ve otomatik notlar
+
+- Kullanıcı konum notları hemen yayınlanır; bir günlük hesaplardan 3 beğeni otomatik bildirime alır, 3 farklı şikayet gizler.
+  App Review notlarındaki "her post önce incelenir" ifadesi konum notları için güncellenmeli.
+- Yoğun nokta artık sunucu kümesi (25 m, en fazla 40 m); kilitli noktadaki not bildirimi metinsiz; bildirim haritayı noktada açar.
+- Kampanya senaryoları: sık kalınan yerden çıkış (yalnız cihazda öğrenilir) / giriş / kalma / çıkış adımları, sokak koridoru, takvim,
+  kanal, kod, sıklık, bütçe; admin kurucu, huni, kod kullanımı. Sessiz bölge bildirimi + sınır bölgesi + arka plan görevi.
+- Açık: `remote-notification`/`fetch` arka plan modları ve "Her zaman" konum için App Review gerekçesi; FCM topic ve APNs
+  arka plan push kabulü; fiziksel iPhone'da ev çıkışı gecikmesi, sokak koridoru, kalma süresi ve pil ölçümü.
+
 ## Kapsam
 
 - iOS 17+, Swift 6, SwiftUI, ARKit/RealityKit, ARCore Cloud Anchors/Geospatial, MapKit ve SwiftData.

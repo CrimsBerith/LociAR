@@ -21,6 +21,9 @@ struct LociARApp: App {
                     NotificationService.shared.onActivityNotificationTapped = {
                         container.router.selectActivity()
                     }
+                    NotificationService.shared.onMapFocusNotificationTapped = { focus in
+                        container.router.focusMap(focus)
+                    }
                     await container.session.bootstrap()
                 }
                 .onOpenURL { url in

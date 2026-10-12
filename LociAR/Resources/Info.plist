@@ -41,8 +41,10 @@
   </dict>
   <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
   <string>LociAR, ayrı onayınla kampanya alanına gelince veya son paylaştığın konum alanından çıkınca uygulama kapalıyken de teklif hatırlatmak için alanları izler. Tek konum ölçümü teklifi doğrular; yönetici konumuna eklenmez. Yakındaki işletme notları için de alanlar izlenir. Yakın alanlarda hassas GPS en fazla iki dakika çalışır.</string>
+  <key>BGTaskSchedulerPermittedIdentifiers</key>
+  <array><string>com.khankartal.lociar.regions</string></array>
   <key>UIBackgroundModes</key>
-  <array><string>location</string></array>
+  <array><string>location</string><string>remote-notification</string><string>fetch</string></array>
   <key>UIRequiredDeviceCapabilities</key>
   <array>
     <string>arm64</string>

@@ -8,6 +8,7 @@ struct MapFeatureView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppRouter.self) private var router
     @Binding var showCreate: Bool
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var selection: UUID?
@@ -70,7 +71,7 @@ struct MapFeatureView: View {
             visibleRegion = context.region
             refreshLayer(for: context.region)
         }
-        .sheet(isPresented: $showPlaceNote) { PlaceNoteComposer() }
+        .sheet(isPresented: $showPlaceNote) { PlaceNoteComposer(seed: location.recentLocations) }
         .safeAreaInset(edge: .bottom, spacing: 8) { mapPanel.padding(.horizontal, 14) }
         .navigationTitle("Harita")
         .navigationBarTitleDisplayMode(.inline)
@@ -99,6 +100,11 @@ struct MapFeatureView: View {
             }
         }
         .onDisappear { location.stop() }
+        .onChange(of: router.pendingMapFocus, initial: true) { _, focus in
+            guard let focus else { return }
+            router.pendingMapFocus = nil
+            zoom(into: CLLocationCoordinate2D(latitude: focus.latitude, longitude: focus.longitude))
+        }
         .accessibilityIdentifier("screen-map")
     }
 

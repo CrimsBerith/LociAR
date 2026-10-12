@@ -617,13 +617,10 @@
  "Konum ±%lld m. Pini tam bulunduğun yere getirip tekrar Burada yayınla’ya bas.": "位置の誤差 ±%lld m。ピンを今いる場所に合わせてから、もう一度「ここに投稿」をタップしてください。",
  "Konum çok belirsiz (±%lld m). Açık bir alana çıkıp tekrar dene.": "位置が不正確すぎます（±%lld m）。屋外の開けた場所で再度お試しください。",
  "Konumuma dön": "現在地に戻る",
- "Not anonim yayınlanır ve incelemeye gider. Bulunduğun nokta kaydedilir. Beğenilen ve onaylanan notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gidebilir.": "メモは匿名で投稿され、先に審査されます。今いる地点が保存されます。いいねされ承認されたメモは、その地点を訪れた人に一度だけ通知されることがあります。",
  "Not konumu": "メモの場所",
  "Not konumu haritası": "メモの場所の地図",
- "Notun incelemeye gönderildi. Onaylanınca haritada görünür.": "メモを審査に送りました。承認されると地図に表示されます。",
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "ピンは現在地から最大50 mまでしか動かせません。",
  "Pini elle ayarla": "ピンを手動で調整",
- "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "1つのスイッチですべての通知をオンにします：いいね、コメント、フォロー、場所のメモ、ブランドの割引、管理者からのメッセージ。メッセージはロック画面に表示されることがあります。最後に共有した位置情報と投稿へのいいねはオファーの選定に使われることがありますが、ブランドがあなたの位置を見ることはありません。承認済みメモの近くでは最大10分間、高精度GPSを使います。この測定値は管理者と共有する位置情報には追加されません。バックグラウンドでは位置情報の「常に許可」、正確な位置情報、インターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。メモの範囲に入ると通知が届きます。",
  "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "おおよその位置情報がオンです。メモを正しい場所に残すには、設定で「正確な位置情報」をオンにしてください。",
  "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "このメモは%lld件のメモが集まる場所にあります。読むには%lld m以内に近づき、地図で「ここで開く」をタップしてください。",
  "Burada %lld not var": "ここに%lld件のメモがあります",
@@ -631,5 +628,8 @@
  "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "まだ十分に近くありません。その場所から%lld m以内に近づいてください。屋外ではARカメラの方が正確です。",
  "Kilitli not": "ロック中のメモ",
  "Notları görmek için yaklaş ve haritada aç.": "メモを読むには近づいて地図で開いてください。",
- "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "メモが集まる場所：%lld件。開くには%lld m以内に近づいてください。"
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "メモが集まる場所：%lld件。開くには%lld m以内に近づいてください。",
+ "Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir.": "メモはすぐに匿名で投稿されます。今いる地点が保存されます。十分ないいねが付いたメモは、その場所を訪れた人に一度だけ通知されます。通報されたメモは非表示になります。",
+ "Notun yayınlandı. Haritada görünüyor.": "メモを投稿しました。地図に表示されています。",
+ "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.": "1つのスイッチですべての通知をオンにします：いいね、コメント、フォロー、場所のメモ、ブランドのキャンペーン、管理者からのメッセージ。メッセージはロック画面に表示されることがあります。アプリを閉じていても、近くのメモやキャンペーンエリアに入った・とどまった・出たこと、そしていつもいる場所（多くは自宅）を出たことを検知します。この場所はスマートフォン上でのみ学習され、当社に送られることはなく、自宅として記録されることもありません。エリアの近くでは最大30分間、高精度GPSを使います。この測定値は管理者と共有する位置情報には追加されません。位置情報の「常に許可」、正確な位置情報、インターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。"
 }

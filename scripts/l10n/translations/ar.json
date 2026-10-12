@@ -617,13 +617,10 @@
  "Konum ±%lld m. Pini tam bulunduğun yere getirip tekrar Burada yayınla’ya bas.": "الموقع ±%lld م. ضع الدبوس في مكانك تمامًا ثم اضغط انشر هنا مرة أخرى.",
  "Konum çok belirsiz (±%lld m). Açık bir alana çıkıp tekrar dene.": "الموقع غير دقيق جدًا (±%lld م). اخرج إلى مكان مفتوح وحاول مرة أخرى.",
  "Konumuma dön": "العودة إلى موقعي",
- "Not anonim yayınlanır ve incelemeye gider. Bulunduğun nokta kaydedilir. Beğenilen ve onaylanan notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gidebilir.": "تُنشر ملاحظتك دون اسم وتُراجع أولًا. يُحفظ المكان الذي تقف فيه. قد تُرسل الملاحظات المعجَب بها والمعتمدة مرة واحدة كإشعار للزوار الذين يصلون إلى هذا المكان.",
  "Not konumu": "موقع الملاحظة",
  "Not konumu haritası": "خريطة موقع الملاحظة",
- "Notun incelemeye gönderildi. Onaylanınca haritada görünür.": "أُرسلت ملاحظتك للمراجعة. ستظهر على الخريطة بعد الموافقة.",
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "يمكن أن يبعد الدبوس 50 م كحد أقصى عن موقعك.",
  "Pini elle ayarla": "اضبط الدبوس يدويًا",
- "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "مفتاح واحد يفعّل كل الإشعارات: الإعجابات والتعليقات والمتابعات وملاحظات المواقع وخصومات العلامات التجارية ورسائل المشرفين. قد تظهر الرسائل على شاشة القفل. قد يُستخدم آخر موقع شاركته وإعجاباتك لاختيار العروض؛ لا ترى العلامات التجارية موقعك الشخصي أبدًا. بالقرب من ملاحظة معتمدة يُستخدم GPS الدقيق لمدة 10 دقائق كحد أقصى؛ ولا تُضاف هذه القراءات إلى الموقع المُشارك مع المشرفين. في الخلفية يلزم إذن الموقع «دائمًا» والموقع الدقيق والإنترنت. عادةً ما ينحرف GPS الهاتف بين 5 و30 م؛ يصل الإشعار عندما تكون داخل نطاق الملاحظة.",
  "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "الموقع التقريبي مفعّل. لترك الملاحظة في المكان الصحيح، فعّل الموقع الدقيق من الإعدادات.",
  "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "هذه الملاحظة في مكان مزدحم يضم %lld ملاحظة. لقراءتها اقترب حتى %lld م واضغط افتح هنا على الخريطة.",
  "Burada %lld not var": "%lld ملاحظة هنا",
@@ -631,5 +628,8 @@
  "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "لست قريبًا بما يكفي بعد. اقترب حتى %lld م من المكان؛ في الخارج تكون كاميرا الواقع المعزز أدق.",
  "Kilitli not": "ملاحظة مقفلة",
  "Notları görmek için yaklaş ve haritada aç.": "اقترب وافتحها على الخريطة لقراءة الملاحظات.",
- "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "مكان مزدحم: %lld ملاحظة. اقترب حتى %lld م لفتحها."
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "مكان مزدحم: %lld ملاحظة. اقترب حتى %lld م لفتحها.",
+ "Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir.": "تُنشر ملاحظتك فورًا دون اسم. يُحفظ المكان الذي تقف فيه. تُرسل الملاحظات التي تحصل على إعجابات كافية مرة واحدة كإشعار للزوار هناك؛ وتُخفى الملاحظات المُبلّغ عنها.",
+ "Notun yayınlandı. Haritada görünüyor.": "نُشرت ملاحظتك. إنها على الخريطة.",
+ "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.": "مفتاح واحد يفعّل كل الإشعارات: الإعجابات والتعليقات والمتابعات وملاحظات المواقع وحملات العلامات التجارية ورسائل المشرفين. قد تظهر الرسائل على شاشة القفل. حتى عندما يكون التطبيق مغلقًا، يلاحظ دخولك إلى الملاحظات ومناطق الحملات القريبة أو بقاءك فيها أو خروجك منها، وخروجك من المكان الذي تقيم فيه عادةً (غالبًا المنزل). يُتعلَّم هذا المكان على هاتفك فقط، ولا يُرسل إلينا أبدًا ولا يُصنَّف كمنزل. بالقرب من منطقة يُستخدم GPS الدقيق لمدة 30 دقيقة كحد أقصى؛ ولا تُضاف هذه القراءات إلى الموقع المُشارك مع المشرفين. يلزم إذن الموقع «دائمًا» والموقع الدقيق والإنترنت. عادةً ما ينحرف GPS الهاتف بين 5 و30 م."
 }

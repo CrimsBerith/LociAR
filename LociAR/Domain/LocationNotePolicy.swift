@@ -89,6 +89,14 @@ struct LocationFixEstimator: Sendable {
         return true
     }
 
+    /// Fixes the map already collected (at most 10 s old) count toward the first estimate.
+    mutating func seed(_ samples: [LocationSample], now: Date) {
+        for sample in samples where sample.accuracy >= 0 && !sample.simulated && now.timeIntervalSince(sample.timestamp) <= LocationNotePolicy.sampleWindow
+            && ProximityPolicy.isValidCoordinate(latitude: sample.latitude, longitude: sample.longitude) {
+            self.samples.append(sample)
+        }
+    }
+
     var bestAccuracy: CLLocationAccuracy? { samples.map(\.accuracy).min() }
 
     /// Inverse-variance weighted mean of the fixes close to the best one.

@@ -119,11 +119,17 @@ export default function PrivacyPageEn() {
         A leaving-area campaign can retain your voluntarily shared starting coordinates privately for no more than 24 hours
         or campaign expiry. We do not infer or label this area home. Revocation immediately invalidates these areas;
         account deletion removes them. The phone must synchronize and observe itself inside before an exit reminder is armed.</p>
-      <p>You can leave an anonymous location note where you are; it is reviewed before publication. The note is saved at the
+      <p>Brand campaigns can run in steps: for example an invitation when you leave the place where you usually stay, then a discount
+        code when you enter or stay in the campaign area. Your phone learns where you usually spend the night from iOS visit records,
+        on the device only; that place is never sent to us and never labelled home. When you leave it, the phone itself checks whether
+        the campaign area covers it; only your current position is sent once to verify the step and is not stored. Campaign progress and
+        codes issued to you are deleted 30 days after the campaign ends. When a campaign or note goes live in your area, a silent
+        notification on an area channel of about 39 × 20 km tells the phone to refresh its list.</p>
+      <p>You can leave an anonymous location note where you are; it passes an automatic content filter and is published at once. The note is saved at the
         position your phone measured, or at a pin you place by hand within 50 m of it; the measured accuracy and the pin
         distance are stored too. Attendance is not verified. Authorized administrators see the note and author association
-        privately. Notes are ordered by likes. A note can be sent as a reminder only after it collects enough likes and an
-        administrator approves it; each note reaches each person at most once. Notes do not expire on their own; administrators
+        privately. Notes are ordered by likes. A note liked by enough accounts older than a day is sent as a reminder to people
+        who come there; each note reaches each person at most once. Notes reported by enough different people are hidden automatically. Notes do not expire on their own; administrators
         can set an end date or remove a note. Where more than 30 notes share a spot of about 38 × 19 m (administrator setting),
         their text opens only when you are nearby; the map shows just the count, and entering the spot sends at most one
         text-free “many notes here” reminder per 30 days. Opening checks your phone or AR-camera position once on the server and stays open for 30 minutes.

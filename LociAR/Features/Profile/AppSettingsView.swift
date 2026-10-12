@@ -26,7 +26,7 @@ struct AppSettingsView: View {
                     } }
                 ))
                 .accessibilityIdentifier("settings-notifications")
-                Text("Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.")
+                Text("Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.")
                     .font(.caption).foregroundStyle(.secondary)
                 if arrivals.needsPreciseLocation {
                     Text("Konum notu bildirimleri için Ayarlar’da LociAR konumunda Kesin Konum’u aç.").font(.caption)

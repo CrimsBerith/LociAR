@@ -510,23 +510,25 @@ struct Sponsorship: Codable, Hashable, Sendable {
     let brandName: String
     let terms: String
     let expiresAt: Date
+    /// Codes a zone campaign issued to this person (shown on the offer card).
+    var codes: [String]? = nil
     enum CodingKeys: String, CodingKey {
-        case terms
+        case terms, codes
         case brandName = "brand_name"
         case expiresAt = "expires_at"
     }
 }
 
-/// A crowded ~38 x 19 m spot. Its notes stay closed until the viewer unlocks the spot on site.
+/// A crowded spot (notes within ~25 m, at most 40 m wide). Its notes stay closed until the viewer unlocks it on site.
 struct DenseSpotInfo: Codable, Hashable, Sendable {
-    let cell: String
+    let id: String
     let count: Int
     let lat: Double
     let lng: Double
     let unlockRadius: Double
 
     enum CodingKeys: String, CodingKey {
-        case cell, count, lat, lng
+        case id, count, lat, lng
         case unlockRadius = "unlock_radius_m"
     }
 }

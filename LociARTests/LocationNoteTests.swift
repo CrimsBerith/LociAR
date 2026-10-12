@@ -114,16 +114,16 @@ final class LocationNoteRegionTests: XCTestCase {
         XCTAssertFalse(campaign.isUsable(at: now))
     }
 
-    func testNotesKeepUpToFifteenOfTheTwentyMonitoredRegions() {
+    func testNotesKeepUpToThirteenMonitoredRegions() {
         let campaigns = (0..<18).map { i in CampaignRegion(id: UUID(), lat: 41 + Double(i) / 1000, lng: 29, radius: 150, expiresAt: now.timeIntervalSince1970 * 1000 + 60_000) }
         let notes = (0..<18).map { i in
             CampaignRegion(id: UUID(), lat: 41 + Double(i) / 1000, lng: 29.001, radius: 150, expiresAt: now.timeIntervalSince1970 * 1000 + 60_000,
                            transition: "entry", kind: "place_note", triggerRadius: 20, notes: [NoteTarget(lat: 41 + Double(i) / 1000, lng: 29.001, r: 20)])
         }
         let selected = CampaignRegion.nearest(campaigns + notes, to: CLLocationCoordinate2D(latitude: 41, longitude: 29), at: now)
-        XCTAssertEqual(selected.count, 20)
-        XCTAssertEqual(selected.filter(\.isPlaceNote).count, 15)
-        XCTAssertEqual(CampaignRegion.nearest(campaigns, to: nil, at: now).count, 18, "campaigns use every slot when there are no notes")
+        XCTAssertEqual(selected.count, 18)
+        XCTAssertEqual(selected.filter(\.isPlaceNote).count, 13)
+        XCTAssertEqual(CampaignRegion.nearest(campaigns, to: nil, at: now).count, 18, "campaigns use every monitored slot when there are no notes")
     }
 }
 
@@ -148,7 +148,7 @@ final class NoteMapLayerTests: XCTestCase {
 
 final class DenseSpotTests: XCTestCase {
     func testLockedRowsDecodeTheirSpotAndBestFixPrefersFreshARCamera() throws {
-        let json = #"{"cell":"sxk973m4","count":34,"lat":41.0,"lng":29.0,"unlock_radius_m":15}"#
+        let json = #"{"id":"spot-1","count":34,"lat":41.0,"lng":29.0,"unlock_radius_m":15}"#
         let spot = try JSONDecoder().decode(DenseSpotInfo.self, from: Data(json.utf8))
         XCTAssertEqual(spot.count, 34); XCTAssertEqual(spot.unlockRadius, 15)
         let now = Date()
@@ -158,5 +158,57 @@ final class DenseSpotTests: XCTestCase {
         let staleAR = LocationSample(latitude: 41, longitude: 29, accuracy: 2, timestamp: now.addingTimeInterval(-5))
         XCTAssertEqual(DenseSpotClient.bestFix(gps: gps, camera: staleAR, now: now)?.accuracy, 12)
         XCTAssertNil(DenseSpotClient.bestFix(gps: nil, camera: nil, now: now))
+    }
+}
+
+final class CampaignJourneyTests: XCTestCase {
+    private let metre = 1 / 111_320.0
+    private func fix(north: Double, east: Double = 0, accuracy: Double = 8) -> CLLocation {
+        CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41 + north * metre, longitude: 29 + east * metre / cos(41 * .pi / 180)),
+                   altitude: 0, horizontalAccuracy: accuracy, verticalAccuracy: -1, timestamp: Date())
+    }
+
+    func testStreetAndCircleZonesMatchTheServerRule() throws {
+        let street = CampaignZone.street(points: [.init(lat: 41, lng: 29), .init(lat: 41, lng: 29 + 200 * metre / cos(41 * .pi / 180))], width: 20)
+        XCTAssertTrue(street.isValid)
+        XCTAssertTrue(street.contains(fix(north: 5, east: 100)))
+        XCTAssertTrue(street.contains(fix(north: 15, east: 100)), "5 m past the edge with 8 m GPS")
+        XCTAssertFalse(street.contains(fix(north: 40, east: 100)), "parallel street")
+        XCTAssertTrue(street.clearlyExcludes(fix(north: 40, east: 100)))
+        let circle = CampaignZone.circle(lat: 41, lng: 29, radius: 30)
+        XCTAssertTrue(circle.contains(fix(north: 35)))
+        XCTAssertFalse(circle.clearlyExcludes(fix(north: 35)), "uncertain is not clearly outside")
+        let json = #"{"kind":"street","points":[{"lat":41,"lng":29},{"lat":41.001,"lng":29.001}],"width":20}"#
+        XCTAssertEqual(try JSONDecoder().decode(CampaignZone.self, from: Data(json.utf8)), .street(points: [.init(lat: 41, lng: 29), .init(lat: 41.001, lng: 29.001)], width: 20))
+    }
+
+    func testStepRegionsDecodeAndLeaveStepsAreNotMonitored() throws {
+        let future = Date().timeIntervalSince1970 * 1000 + 60_000
+        let json = """
+        [{"id":"123e4567-e89b-12d3-a456-426614174001","campaignId":"123e4567-e89b-12d3-a456-426614174000","stepId":"s1","trigger":"leave_usual_place","kind":"campaign_step","transition":"entry","lat":41,"lng":29,"radius":150,"area":{"lat":41,"lng":29,"radius":5000},"expiresAt":\(future)},
+         {"id":"123e4567-e89b-12d3-a456-426614174002","campaignId":"123e4567-e89b-12d3-a456-426614174000","stepId":"s2","trigger":"dwell","kind":"campaign_step","transition":"entry","lat":41,"lng":29,"radius":200,"zone":{"kind":"circle","lat":41,"lng":29,"radius":30},"dwellSeconds":120,"expiresAt":\(future)}]
+        """
+        let regions = try JSONDecoder().decode([CampaignRegion].self, from: Data(json.utf8))
+        XCTAssertTrue(regions.allSatisfy { $0.isUsable(at: Date()) })
+        XCTAssertTrue(regions[0].isLeaveStep); XCTAssertEqual(regions[1].dwellSeconds, 120)
+        let selected = CampaignRegion.nearest(regions, to: nil, at: Date())
+        XCTAssertEqual(selected.count, 2); XCTAssertEqual(selected.last?.isLeaveStep, true, "kept but outside the monitored budget")
+    }
+
+    func testUsualPlaceNeedsThreeNightsAndStaysOnTheNightCluster() {
+        var calendar = Calendar(identifier: .gregorian); calendar.timeZone = TimeZone(identifier: "Europe/Istanbul")!
+        let day0 = calendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!
+        var learner = UsualPlaceLearner()
+        func visit(_ lat: Double, from: Double, to: Double, day: Int) -> UsualPlaceLearner.Visit {
+            let base = day0.addingTimeInterval(Double(day) * 86_400)
+            return .init(lat: lat, lng: 29, arrival: base.addingTimeInterval(from * 3_600), departure: base.addingTimeInterval(to * 3_600))
+        }
+        let now = day0.addingTimeInterval(5 * 86_400)
+        // Office by day (09-18), home overnight (22:00 → 07:00 next day).
+        for day in 0..<2 { learner.record(visit(41.01, from: 9, to: 18, day: day), now: now); learner.record(visit(41.0, from: 22, to: 31, day: day), now: now) }
+        XCTAssertNil(learner.usualPlace(calendar: calendar), "two nights are not enough")
+        learner.record(visit(41.0001, from: 23, to: 31, day: 2), now: now)
+        let place = learner.usualPlace(calendar: calendar)
+        XCTAssertEqual(place?.latitude ?? 0, 41.0, accuracy: 0.0002)
     }
 }

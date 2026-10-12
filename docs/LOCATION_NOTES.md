@@ -1,10 +1,10 @@
 # Location notes
 
-A location note is a short anonymous text written at the author's own position. Users can also pin posts to AR surfaces; both kinds appear on the map and can notify nearby visitors once an administrator approves them.
+A location note is a short anonymous text written at the author's own position. It publishes at once after the automatic text filter (protected zones and rate limits still apply; up to 200 may share a 25 m area). Users can also pin posts to AR surfaces; both kinds appear on the map.
 
 ## Writing a note (iOS)
 
-**Map → Leave a location note** opens a map centred on the user's measured position. There is no business or POI search.
+**Map → Leave a location note** opens a map centred on the user's measured position. There is no business or POI search. The map's last 10 s of fixes seed the estimate, so it is often ready the moment the composer opens.
 
 GPS measurement starts when the composer opens, so the fix usually settles while the author types (`LocationFixEstimator`, `LocationNotePolicy.swift`):
 
@@ -28,7 +28,7 @@ Likes decide usefulness. Everywhere notes are listed at a place (map panel, tapp
 
 ## Notifications
 
-A note can notify only after an administrator approves it (`push_state: 'approved'`). Notes with at least the configured number of likes (default 3, `system/place_notes.push_like_threshold`) appear in the admin candidate queue. AR posts can be approved the same way.
+A note notifies once `push_state` is `approved`. For user location notes this happens automatically (`autoApproveNote`) when at least `push_like_threshold` (default 3) accounts older than a day like it. Open reports from `report_hide_threshold` (default 3) distinct users hide the note and revoke notifications (`onReportCreated`). Administrators can approve any post (including AR posts), stop notifications or remove a note at any time.
 
 Each person receives each note at most once (`place_note_notification_receipts/post_{luid}_{postId}`, no expiry). There are no daily quotas.
 
@@ -47,11 +47,11 @@ Phone GPS is usually 5–30 m off, and worse indoors. Use 15–25 m radii outdoo
 
 ## Dense spots
 
-A spot is a geohash precision-8 cell (~38 × 19 m). When it holds at least `dense_threshold` public notes (default 30, `system/place_notes`), it is a dense spot:
+A spot is a server-side cluster (`note_spots`): a public note joins the nearest spot whose centre is within 25 m; five unclustered notes within 25 m start a new spot. The centre is the running mean of its notes and the circle grows to cover them, at most 40 m (`syncSpotMembership`, also run by the hourly reconciler). When a spot holds at least `dense_threshold` notes (default 30, 5–1000), it is a dense spot:
 
 - **Locked text.** `readPublicContent` returns only the place, likes and `dense_spot {cell, count, unlock_radius_m}` for other people's notes there; caption, text and GIF are withheld. Authors always read their own notes.
-- **Open on site.** The map banner's **Open here** sends the best fresh fix to `unlockDenseSpot`: the AR camera's Geospatial position when it is localized and better (1–5 m outdoors), otherwise GPS. The spot opens for 30 minutes when `distance to the cell ≤ unlock_radius_m + min(accuracy, 5 m)` (default 15 m, admin range 2–50 m). A 2–5 m setting is reliable only with the AR camera outdoors; phone GPS alone needs about 15 m.
-- **"Many notes here" alert.** Dense spots also appear in the wake-region list. Entering 25 m (+ GPS tolerance) of an unalerted spot sends one text-free alert per 30 days (`dense_spot_receipts`), when no approved note is due there.
+- **Open on site.** The map banner's **Open here** sends the best fresh fix to `unlockDenseSpot`: the AR camera's Geospatial position when it is localized and better (1–5 m outdoors), otherwise GPS. The spot opens for 30 minutes when the distance to its circle is at most `unlock_radius_m + min(accuracy, 5 m)` (default 15 m, admin range 2–50 m). A 2–5 m setting is reliable only with the AR camera outdoors; phone GPS alone needs about 15 m.
+- **"Many notes here" alert.** Dense spots also appear in the wake-region list. Entering within 10 m of the spot circle (+ GPS tolerance) sends one text-free alert per 30 days (`dense_spot_receipts`); tapping it opens the map at the spot. An approved note inside a locked spot is also announced without its text, and its activity entry stays closed.
 
 ## Map
 

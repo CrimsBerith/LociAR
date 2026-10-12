@@ -27080,79 +27080,79 @@
         }
       }
     },
-    "Not anonim yayınlanır ve incelemeye gider. Bulunduğun nokta kaydedilir. Beğenilen ve onaylanan notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gidebilir." : {
+    "Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not anonim yayınlanır ve incelemeye gider. Bulunduğun nokta kaydedilir. Beğenilen ve onaylanan notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gidebilir."
+            "value" : "Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your note is posted anonymously and reviewed first. The spot where you are is saved. Liked and approved notes may be sent once as a notification to visitors who come to that spot."
+            "value" : "Your note is posted anonymously right away. The spot where you are is saved. Notes with enough likes are sent once as a notification to visitors who come there; reported notes are hidden."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Notiz wird anonym veröffentlicht und vorher geprüft. Der Ort, an dem du bist, wird gespeichert. Beliebte und freigegebene Notizen können Besuchern an diesem Ort einmal als Benachrichtigung gesendet werden."
+            "value" : "Deine Notiz wird sofort anonym veröffentlicht. Der Ort, an dem du bist, wird gespeichert. Notizen mit genug Likes werden Besuchern dort einmal als Benachrichtigung gesendet; gemeldete Notizen werden ausgeblendet."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu nota se publica de forma anónima y se revisa antes. Se guarda el punto donde estás. Las notas con me gusta y aprobadas pueden enviarse una vez como notificación a quienes lleguen a ese punto."
+            "value" : "Tu nota se publica al instante de forma anónima. Se guarda el punto donde estás. Las notas con suficientes me gusta se envían una vez como notificación a quienes lleguen; las notas denunciadas se ocultan."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ta note est publiée anonymement et vérifiée d’abord. L’endroit où tu te trouves est enregistré. Les notes aimées et approuvées peuvent être envoyées une fois en notification aux visiteurs qui arrivent à cet endroit."
+            "value" : "Ta note est publiée tout de suite, anonymement. L’endroit où tu te trouves est enregistré. Les notes assez aimées sont envoyées une fois en notification aux visiteurs qui viennent ; les notes signalées sont masquées."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sua nota é publicada anonimamente e revisada antes. O ponto onde você está é salvo. Notas curtidas e aprovadas podem ser enviadas uma vez como notificação para quem chegar a esse ponto."
+            "value" : "Sua nota é publicada na hora, de forma anônima. O ponto onde você está é salvo. Notas com curtidas suficientes são enviadas uma vez como notificação para quem chegar lá; notas denunciadas são ocultadas."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Заметка публикуется анонимно и сначала проходит проверку. Сохраняется точка, где вы находитесь. Популярные и одобренные заметки могут один раз прийти уведомлением тем, кто окажется в этом месте."
+            "value" : "Заметка сразу публикуется анонимно. Сохраняется точка, где вы находитесь. Заметки с достаточным числом лайков один раз приходят уведомлением тем, кто окажется там; заметки с жалобами скрываются."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تُنشر ملاحظتك دون اسم وتُراجع أولًا. يُحفظ المكان الذي تقف فيه. قد تُرسل الملاحظات المعجَب بها والمعتمدة مرة واحدة كإشعار للزوار الذين يصلون إلى هذا المكان."
+            "value" : "تُنشر ملاحظتك فورًا دون اسم. يُحفظ المكان الذي تقف فيه. تُرسل الملاحظات التي تحصل على إعجابات كافية مرة واحدة كإشعار للزوار هناك؛ وتُخفى الملاحظات المُبلّغ عنها."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आपका नोट गुमनाम रूप से पोस्ट होता है और पहले समीक्षा होती है। आप जहाँ हैं वह जगह सहेजी जाती है। पसंद किए गए और स्वीकृत नोट उस जगह आने वालों को एक बार सूचना के रूप में भेजे जा सकते हैं।"
+            "value" : "आपका नोट तुरंत गुमनाम रूप से पोस्ट होता है। आप जहाँ हैं वह जगह सहेजी जाती है। पर्याप्त लाइक वाले नोट वहाँ आने वालों को एक बार सूचना के रूप में भेजे जाते हैं; रिपोर्ट किए गए नोट छिपा दिए जाते हैं।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আপনার নোট বেনামে পোস্ট হয় এবং আগে পর্যালোচনা হয়। আপনি যেখানে আছেন সেই জায়গা সংরক্ষিত হয়। পছন্দের ও অনুমোদিত নোট সেই জায়গায় আসা দর্শকদের একবার বিজ্ঞপ্তি হিসেবে পাঠানো হতে পারে।"
+            "value" : "আপনার নোট সঙ্গে সঙ্গে বেনামে পোস্ট হয়। আপনি যেখানে আছেন সেই জায়গা সংরক্ষিত হয়। যথেষ্ট লাইক পাওয়া নোট সেখানে আসা দর্শকদের একবার বিজ্ঞপ্তি হিসেবে যায়; রিপোর্ট করা নোট লুকানো হয়।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メモは匿名で投稿され、先に審査されます。今いる地点が保存されます。いいねされ承認されたメモは、その地点を訪れた人に一度だけ通知されることがあります。"
+            "value" : "メモはすぐに匿名で投稿されます。今いる地点が保存されます。十分ないいねが付いたメモは、その場所を訪れた人に一度だけ通知されます。通報されたメモは非表示になります。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的笔记会匿名发布并先经过审核。会保存你所在的位置。获赞并通过审核的笔记，可能会以通知形式发送一次给来到该地点的访客。"
+            "value" : "你的笔记会立即匿名发布。会保存你所在的位置。获得足够点赞的笔记会以通知形式发送一次给来到这里的访客；被举报的笔记会被隐藏。"
           }
         }
       }
@@ -27388,79 +27388,79 @@
         }
       }
     },
-    "Notun incelemeye gönderildi. Onaylanınca haritada görünür." : {
+    "Notun yayınlandı. Haritada görünüyor." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Notun incelemeye gönderildi. Onaylanınca haritada görünür."
+            "value" : "Notun yayınlandı. Haritada görünüyor."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your note was sent for review. It appears on the map once approved."
+            "value" : "Your note is posted. It is on the map."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Notiz wurde zur Prüfung gesendet. Nach der Freigabe erscheint sie auf der Karte."
+            "value" : "Deine Notiz ist veröffentlicht. Sie ist auf der Karte."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu nota se envió a revisión. Aparecerá en el mapa cuando se apruebe."
+            "value" : "Tu nota está publicada. Ya aparece en el mapa."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ta note a été envoyée pour vérification. Elle apparaîtra sur la carte une fois approuvée."
+            "value" : "Ta note est publiée. Elle est sur la carte."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sua nota foi enviada para revisão. Ela aparece no mapa depois de aprovada."
+            "value" : "Sua nota foi publicada. Já aparece no mapa."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Заметка отправлена на проверку. После одобрения она появится на карте."
+            "value" : "Заметка опубликована. Она уже на карте."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أُرسلت ملاحظتك للمراجعة. ستظهر على الخريطة بعد الموافقة."
+            "value" : "نُشرت ملاحظتك. إنها على الخريطة."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आपका नोट समीक्षा के लिए भेजा गया। स्वीकृत होने पर यह मानचित्र पर दिखेगा।"
+            "value" : "आपका नोट पोस्ट हो गया। यह मानचित्र पर है।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আপনার নোট পর্যালোচনার জন্য পাঠানো হয়েছে। অনুমোদনের পর মানচিত্রে দেখা যাবে।"
+            "value" : "আপনার নোট পোস্ট হয়েছে। এটি মানচিত্রে আছে।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メモを審査に送りました。承認されると地図に表示されます。"
+            "value" : "メモを投稿しました。地図に表示されています。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的笔记已提交审核。通过后会显示在地图上。"
+            "value" : "你的笔记已发布，已显示在地图上。"
           }
         }
       }
@@ -34626,79 +34626,79 @@
         }
       }
     },
-    "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir." : {
+    "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir."
+            "value" : "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One switch turns on all notifications: likes, comments, follows, location notes, brand discounts and administrator messages. Messages may appear on the lock screen. Your last shared location and post likes may be used to choose offers; brands never see your personal location. Near an approved note, precise GPS is used for at most 10 minutes; these readings are not added to your location shared with administrators. In the background this needs Always location access, Precise Location and internet. Phone GPS is usually 5–30 m off; the notification arrives once you are within the note's area."
+            "value" : "One switch turns on all notifications: likes, comments, follows, location notes, brand campaigns and administrator messages. Messages may appear on the lock screen. Even when the app is closed, it notices when you enter, stay in or leave nearby notes and campaign areas, and when you leave the place where you usually stay (often home). That place is learned only on your phone, never sent to us and never labelled home. Near an area, precise GPS is used for at most 30 minutes; these readings are not added to your location shared with administrators. Always location access, Precise Location and internet are required. Phone GPS is usually 5–30 m off."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Schalter aktiviert alle Benachrichtigungen: Likes, Kommentare, Follows, Ortsnotizen, Markenrabatte und Nachrichten von Administratoren. Nachrichten können auf dem Sperrbildschirm erscheinen. Dein zuletzt geteilter Standort und Post-Likes können zur Auswahl von Angeboten genutzt werden; Marken sehen deinen persönlichen Standort nie. In der Nähe einer freigegebenen Notiz wird höchstens 10 Minuten lang genaues GPS genutzt; diese Messungen fließen nicht in den mit Administratoren geteilten Standort ein. Im Hintergrund sind Standortzugriff „Immer“, „Genauer Standort“ und Internet nötig. Handy-GPS weicht meist 5–30 m ab; die Benachrichtigung kommt, sobald du im Bereich der Notiz bist."
+            "value" : "Ein Schalter aktiviert alle Benachrichtigungen: Likes, Kommentare, Follows, Ortsnotizen, Markenkampagnen und Nachrichten von Administratoren. Nachrichten können auf dem Sperrbildschirm erscheinen. Auch bei geschlossener App erkennt sie, wenn du nahe Notizen und Kampagnenbereiche betrittst, dort bleibst oder sie verlässt, und wenn du den Ort verlässt, an dem du dich meist aufhältst (oft zu Hause). Dieser Ort wird nur auf deinem Handy gelernt, nie an uns gesendet und nie als Zuhause bezeichnet. In der Nähe eines Bereichs wird höchstens 30 Minuten lang genaues GPS genutzt; diese Messungen fließen nicht in den mit Administratoren geteilten Standort ein. Standortzugriff „Immer“, „Genauer Standort“ und Internet sind nötig. Handy-GPS weicht meist 5–30 m ab."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un solo ajuste activa todas las notificaciones: me gusta, comentarios, seguidores, notas de ubicación, descuentos de marcas y mensajes de administradores. Los mensajes pueden verse en la pantalla bloqueada. Tu última ubicación compartida y los me gusta pueden usarse para elegir ofertas; las marcas nunca ven tu ubicación personal. Cerca de una nota aprobada se usa GPS preciso durante 10 minutos como máximo; esas mediciones no se añaden a la ubicación compartida con administradores. En segundo plano se necesita acceso a la ubicación Siempre, Ubicación exacta e internet. El GPS del teléfono suele desviarse 5–30 m; el aviso llega cuando estás dentro del área de la nota."
+            "value" : "Un solo ajuste activa todas las notificaciones: me gusta, comentarios, seguidores, notas de ubicación, campañas de marcas y mensajes de administradores. Los mensajes pueden verse en la pantalla bloqueada. Incluso con la app cerrada, detecta cuándo entras, permaneces o sales de notas y áreas de campaña cercanas, y cuándo sales del lugar donde sueles estar (a menudo tu casa). Ese lugar se aprende solo en tu teléfono, nunca se nos envía y nunca se etiqueta como casa. Cerca de un área se usa GPS preciso durante 30 minutos como máximo; esas mediciones no se añaden a la ubicación compartida con administradores. Se necesita acceso a la ubicación Siempre, Ubicación exacta e internet. El GPS del teléfono suele desviarse 5–30 m."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un seul réglage active toutes les notifications : j’aime, commentaires, abonnements, notes de lieu, réductions de marques et messages des administrateurs. Les messages peuvent apparaître sur l’écran verrouillé. Ta dernière position partagée et tes j’aime peuvent servir à choisir des offres ; les marques ne voient jamais ta position personnelle. Près d’une note approuvée, le GPS précis est utilisé 10 minutes au maximum ; ces mesures ne sont pas ajoutées à la position partagée avec les administrateurs. En arrière-plan, il faut l’accès à la position Toujours, la Position exacte et Internet. Le GPS d’un téléphone dévie généralement de 5 à 30 m ; la notification arrive une fois dans la zone de la note."
+            "value" : "Un seul réglage active toutes les notifications : j’aime, commentaires, abonnements, notes de lieu, campagnes de marques et messages des administrateurs. Les messages peuvent apparaître sur l’écran verrouillé. Même app fermée, elle détecte quand tu entres, restes ou sors de notes et zones de campagne proches, et quand tu quittes l’endroit où tu restes habituellement (souvent chez toi). Ce lieu est appris uniquement sur ton téléphone, jamais envoyé chez nous et jamais étiqueté comme domicile. Près d’une zone, le GPS précis est utilisé 30 minutes au maximum ; ces mesures ne sont pas ajoutées à la position partagée avec les administrateurs. L’accès à la position Toujours, la Position exacte et Internet sont nécessaires. Le GPS d’un téléphone dévie généralement de 5 à 30 m."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um único ajuste ativa todas as notificações: curtidas, comentários, seguidores, notas de local, descontos de marcas e mensagens de administradores. As mensagens podem aparecer na tela bloqueada. Sua última localização compartilhada e curtidas podem ser usadas para escolher ofertas; as marcas nunca veem sua localização pessoal. Perto de uma nota aprovada, o GPS preciso é usado por no máximo 10 minutos; essas medições não entram na localização compartilhada com administradores. Em segundo plano é preciso acesso à localização Sempre, Localização Precisa e internet. O GPS do celular costuma errar 5–30 m; a notificação chega quando você entra na área da nota."
+            "value" : "Um único ajuste ativa todas as notificações: curtidas, comentários, seguidores, notas de local, campanhas de marcas e mensagens de administradores. As mensagens podem aparecer na tela bloqueada. Mesmo com o app fechado, ele percebe quando você entra, fica ou sai de notas e áreas de campanha próximas, e quando sai do lugar onde costuma ficar (muitas vezes sua casa). Esse lugar é aprendido só no seu celular, nunca enviado para nós e nunca rotulado como casa. Perto de uma área, o GPS preciso é usado por no máximo 30 minutos; essas medições não entram na localização compartilhada com administradores. São necessários acesso à localização Sempre, Localização Precisa e internet. O GPS do celular costuma errar 5–30 m."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Один переключатель включает все уведомления: лайки, комментарии, подписки, заметки о местах, скидки брендов и сообщения администраторов. Сообщения могут отображаться на экране блокировки. Последнее переданное местоположение и лайки могут использоваться для подбора предложений; бренды не видят ваше местоположение. Рядом с одобренной заметкой точный GPS используется не дольше 10 минут; эти данные не добавляются к местоположению для администраторов. В фоне нужны доступ к геопозиции «Всегда», «Точная геопозиция» и интернет. GPS телефона обычно ошибается на 5–30 м; уведомление приходит, когда вы в зоне заметки."
+            "value" : "Один переключатель включает все уведомления: лайки, комментарии, подписки, заметки о местах, кампании брендов и сообщения администраторов. Сообщения могут отображаться на экране блокировки. Даже когда приложение закрыто, оно замечает, когда вы входите в зону ближайших заметок и кампаний, остаётесь там или выходите, а также когда вы покидаете место, где обычно находитесь (часто дом). Это место определяется только на телефоне, никогда не отправляется нам и не помечается как дом. Рядом с зоной точный GPS используется не дольше 30 минут; эти данные не добавляются к местоположению для администраторов. Нужны доступ к геопозиции «Всегда», «Точная геопозиция» и интернет. GPS телефона обычно ошибается на 5–30 м."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مفتاح واحد يفعّل كل الإشعارات: الإعجابات والتعليقات والمتابعات وملاحظات المواقع وخصومات العلامات التجارية ورسائل المشرفين. قد تظهر الرسائل على شاشة القفل. قد يُستخدم آخر موقع شاركته وإعجاباتك لاختيار العروض؛ لا ترى العلامات التجارية موقعك الشخصي أبدًا. بالقرب من ملاحظة معتمدة يُستخدم GPS الدقيق لمدة 10 دقائق كحد أقصى؛ ولا تُضاف هذه القراءات إلى الموقع المُشارك مع المشرفين. في الخلفية يلزم إذن الموقع «دائمًا» والموقع الدقيق والإنترنت. عادةً ما ينحرف GPS الهاتف بين 5 و30 م؛ يصل الإشعار عندما تكون داخل نطاق الملاحظة."
+            "value" : "مفتاح واحد يفعّل كل الإشعارات: الإعجابات والتعليقات والمتابعات وملاحظات المواقع وحملات العلامات التجارية ورسائل المشرفين. قد تظهر الرسائل على شاشة القفل. حتى عندما يكون التطبيق مغلقًا، يلاحظ دخولك إلى الملاحظات ومناطق الحملات القريبة أو بقاءك فيها أو خروجك منها، وخروجك من المكان الذي تقيم فيه عادةً (غالبًا المنزل). يُتعلَّم هذا المكان على هاتفك فقط، ولا يُرسل إلينا أبدًا ولا يُصنَّف كمنزل. بالقرب من منطقة يُستخدم GPS الدقيق لمدة 30 دقيقة كحد أقصى؛ ولا تُضاف هذه القراءات إلى الموقع المُشارك مع المشرفين. يلزم إذن الموقع «دائمًا» والموقع الدقيق والإنترنت. عادةً ما ينحرف GPS الهاتف بين 5 و30 م."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "एक ही सेटिंग सभी सूचनाएँ चालू करती है: लाइक, कमेंट, फ़ॉलो, लोकेशन नोट, ब्रांड छूट और व्यवस्थापक संदेश। संदेश लॉक स्क्रीन पर दिख सकते हैं। आपकी आख़िरी साझा लोकेशन और पोस्ट लाइक ऑफ़र चुनने में इस्तेमाल हो सकते हैं; ब्रांड आपकी निजी लोकेशन कभी नहीं देखते। किसी स्वीकृत नोट के पास अधिकतम 10 मिनट सटीक GPS इस्तेमाल होता है; ये माप व्यवस्थापकों के साथ साझा लोकेशन में नहीं जुड़ते। बैकग्राउंड में हमेशा लोकेशन अनुमति, सटीक लोकेशन और इंटरनेट चाहिए। फ़ोन का GPS आमतौर पर 5–30 मी इधर-उधर होता है; नोट के दायरे में आते ही सूचना आती है।"
+            "value" : "एक ही सेटिंग सभी सूचनाएँ चालू करती है: लाइक, कमेंट, फ़ॉलो, लोकेशन नोट, ब्रांड अभियान और व्यवस्थापक संदेश। संदेश लॉक स्क्रीन पर दिख सकते हैं। ऐप बंद होने पर भी यह पहचानता है कि आप आस-पास के नोट और अभियान क्षेत्रों में कब आते हैं, रुकते हैं या निकलते हैं, और कब उस जगह से निकलते हैं जहाँ आप आमतौर पर रहते हैं (अक्सर घर)। यह जगह केवल आपके फ़ोन पर सीखी जाती है, हमें कभी नहीं भेजी जाती और घर के रूप में चिह्नित नहीं होती। किसी क्षेत्र के पास अधिकतम 30 मिनट सटीक GPS इस्तेमाल होता है; ये माप व्यवस्थापकों के साथ साझा लोकेशन में नहीं जुड़ते। हमेशा लोकेशन अनुमति, सटीक लोकेशन और इंटरनेट चाहिए। फ़ोन का GPS आमतौर पर 5–30 मी इधर-उधर होता है।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "একটি সুইচ সব বিজ্ঞপ্তি চালু করে: লাইক, মন্তব্য, ফলো, অবস্থান নোট, ব্র্যান্ড ছাড় ও প্রশাসকের বার্তা। বার্তা লক স্ক্রিনে দেখা যেতে পারে। আপনার শেষ শেয়ার করা অবস্থান ও পোস্টের লাইক অফার বাছাইয়ে ব্যবহার হতে পারে; ব্র্যান্ড কখনো আপনার ব্যক্তিগত অবস্থান দেখে না। অনুমোদিত নোটের কাছে সর্বোচ্চ ১০ মিনিট নির্ভুল GPS ব্যবহার হয়; এই পরিমাপ প্রশাসকের সাথে শেয়ার করা অবস্থানে যোগ হয় না। ব্যাকগ্রাউন্ডে সবসময় অবস্থান অনুমতি, সঠিক অবস্থান ও ইন্টারনেট লাগে। ফোনের GPS সাধারণত ৫–৩০ মি সরে যায়; নোটের এলাকায় ঢুকলে বিজ্ঞপ্তি আসে।"
+            "value" : "একটি সুইচ সব বিজ্ঞপ্তি চালু করে: লাইক, মন্তব্য, ফলো, অবস্থান নোট, ব্র্যান্ড ক্যাম্পেইন ও প্রশাসকের বার্তা। বার্তা লক স্ক্রিনে দেখা যেতে পারে। অ্যাপ বন্ধ থাকলেও এটি বুঝতে পারে কখন আপনি কাছের নোট ও ক্যাম্পেইন এলাকায় ঢোকেন, থাকেন বা বের হন, এবং কখন আপনি সাধারণত যেখানে থাকেন (প্রায়ই বাড়ি) সেখান থেকে বের হন। এই জায়গা শুধু আপনার ফোনে শেখা হয়, কখনো আমাদের কাছে পাঠানো হয় না এবং বাড়ি হিসেবে চিহ্নিত হয় না। কোনো এলাকার কাছে সর্বোচ্চ ৩০ মিনিট নির্ভুল GPS ব্যবহার হয়; এই পরিমাপ প্রশাসকের সাথে শেয়ার করা অবস্থানে যোগ হয় না। সবসময় অবস্থান অনুমতি, সঠিক অবস্থান ও ইন্টারনেট লাগে। ফোনের GPS সাধারণত ৫–৩০ মি সরে যায়।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1つのスイッチですべての通知をオンにします：いいね、コメント、フォロー、場所のメモ、ブランドの割引、管理者からのメッセージ。メッセージはロック画面に表示されることがあります。最後に共有した位置情報と投稿へのいいねはオファーの選定に使われることがありますが、ブランドがあなたの位置を見ることはありません。承認済みメモの近くでは最大10分間、高精度GPSを使います。この測定値は管理者と共有する位置情報には追加されません。バックグラウンドでは位置情報の「常に許可」、正確な位置情報、インターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。メモの範囲に入ると通知が届きます。"
+            "value" : "1つのスイッチですべての通知をオンにします：いいね、コメント、フォロー、場所のメモ、ブランドのキャンペーン、管理者からのメッセージ。メッセージはロック画面に表示されることがあります。アプリを閉じていても、近くのメモやキャンペーンエリアに入った・とどまった・出たこと、そしていつもいる場所（多くは自宅）を出たことを検知します。この場所はスマートフォン上でのみ学習され、当社に送られることはなく、自宅として記録されることもありません。エリアの近くでは最大30分間、高精度GPSを使います。この測定値は管理者と共有する位置情報には追加されません。位置情報の「常に許可」、正確な位置情報、インターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一个开关即可开启所有通知：点赞、评论、关注、位置笔记、品牌折扣和管理员消息。消息可能显示在锁屏上。你最后共享的位置和帖子点赞可能用于挑选优惠；品牌永远看不到你的个人位置。靠近已批准的笔记时，最多使用 10 分钟精确 GPS；这些测量不会加入与管理员共享的位置。后台运行需要“始终”位置权限、精确位置和网络。手机 GPS 通常有 5–30 米误差；进入笔记范围后会收到通知。"
+            "value" : "一个开关即可开启所有通知：点赞、评论、关注、位置笔记、品牌活动和管理员消息。消息可能显示在锁屏上。即使应用已关闭，它也能察觉你何时进入、停留或离开附近的笔记和活动区域，以及何时离开你常待的地方（通常是家）。这个地方只在你的手机上学习，绝不会发送给我们，也不会被标记为家。靠近某个区域时，最多使用 30 分钟精确 GPS；这些测量不会加入与管理员共享的位置。需要“始终”位置权限、精确位置和网络。手机 GPS 通常有 5–30 米误差。"
           }
         }
       }

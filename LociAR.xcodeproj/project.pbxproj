@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0684C5B54CBF82C365DD6006 /* CampaignZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3FB9C9D3DD465022F5FCB /* CampaignZone.swift */; };
 		07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B673A12AAA93EA6AEF0A6476 /* AppSession.swift */; };
 		15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */; };
 		17F3C538925E63AA7FE82E27 /* ARCoreGeospatial in Frameworks */ = {isa = PBXBuildFile; productRef = E659B09B1577861722AADEC8 /* ARCoreGeospatial */; };
@@ -184,6 +185,7 @@
 		76F73B5A562ADDC78C00D204 /* LociARUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LociARUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A8A0BF94835F851681A368D /* MediaAssetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAssetStore.swift; sourceTree = "<group>"; };
 		7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		7CC3FB9C9D3DD465022F5FCB /* CampaignZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampaignZone.swift; sourceTree = "<group>"; };
 		891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyAsyncStorageImporter.swift; sourceTree = "<group>"; };
 		8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -414,6 +416,7 @@
 		72635B762C879640906F431E /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				7CC3FB9C9D3DD465022F5FCB /* CampaignZone.swift */,
 				CFB8A5BAB83F4214657CF863 /* LocationNotePolicy.swift */,
 				5172273B7111934A8D310E05 /* Models.swift */,
 				F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */,
@@ -749,6 +752,7 @@
 				DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */,
 				71D8EF88107A94968844A33E /* BackendPostContract.swift in Sources */,
 				6929300EA559F389AD94C0F9 /* CampaignArrivalService.swift in Sources */,
+				0684C5B54CBF82C365DD6006 /* CampaignZone.swift in Sources */,
 				7478793DCB1CF6E75F8A2455 /* ConnectivityMonitor.swift in Sources */,
 				B93C26B18250AC79DE3E8C22 /* CreatePostView.swift in Sources */,
 				A46198DE013220502EEEAF5F /* DiscoverView.swift in Sources */,

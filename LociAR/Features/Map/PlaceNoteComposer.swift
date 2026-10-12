@@ -52,9 +52,12 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
         manager.activityType = .other
     }
 
-    func start() {
-        estimator = LocationFixEstimator(startedAt: Date())
-        estimate = nil; ready = false; readyLogged = false
+    func start(seed: [CLLocation] = []) {
+        // Seeded fixes count as warm-up time already spent on the map.
+        let now = Date(), oldest = seed.map(\.timestamp).min()
+        estimator = LocationFixEstimator(startedAt: oldest.map { min(now, $0) } ?? now)
+        estimator.seed(seed.map(LocationSample.init), now: now)
+        estimate = estimator.estimate; ready = estimator.isReady(now: now); readyLogged = false
         switch manager.authorizationStatus {
         case .notDetermined: manager.requestWhenInUseAuthorization()
         case .denied, .restricted: denied = true
@@ -109,6 +112,8 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
 }
 
 struct PlaceNoteComposer: View {
+    /// Recent fixes from the map, so the estimate is often ready as soon as the composer opens.
+    var seed: [CLLocation] = []
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(AppSession.self) private var session
@@ -146,7 +151,7 @@ struct PlaceNoteComposer: View {
                     TextField("Bu konum için notun", text: $text, axis: .vertical).lineLimit(3...6)
                         .onChange(of: text) { _, _ in mutation = UUID() }
                     Text("En fazla 220 karakter.").font(.caption).foregroundStyle(.secondary)
-                    Text("Not anonim yayınlanır ve incelemeye gider. Bulunduğun nokta kaydedilir. Beğenilen ve onaylanan notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gidebilir.")
+                    Text("Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir.")
                         .font(.caption).foregroundStyle(.secondary)
                     Button { Task { await publish() } } label: {
                         if waiting { Label("Konum netleşiyor…", systemImage: "location.circle") }
@@ -162,7 +167,7 @@ struct PlaceNoteComposer: View {
             .navigationTitle("Konum notu bırak")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } } }
         }
-        .task { measurement.start() }
+        .task { measurement.start(seed: seed) }
         .onDisappear { measurement.stop() }
         .onChange(of: measurement.estimate) { _, estimate in if manualPin == nil { follow(estimate) } }
     }
@@ -275,7 +280,7 @@ struct PlaceNoteComposer: View {
             _ = try await PlaceNoteClient.shared.create(at: pin, source: source, measured: measured, text: trimmed, mutation: mutation, user: user)
             submitted = true
             measurement.stop()
-            message = String(localized: "Notun incelemeye gönderildi. Onaylanınca haritada görünür.")
+            message = String(localized: "Notun yayınlandı. Haritada görünüyor.")
         } catch { message = error.localizedDescription }
     }
 }

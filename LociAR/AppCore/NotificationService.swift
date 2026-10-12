@@ -1,3 +1,4 @@
+import BackgroundTasks
 import Foundation
 import UIKit
 import UserNotifications
@@ -116,14 +117,19 @@ struct PushNotificationTarget: Equatable, Sendable {
     let recipientID: UUID
     let postID: UUID?
     let activityID: String?
+    /// Dense-spot alerts open the map here instead of a post.
+    var mapFocus: MapFocus? = nil
 
-    init?(recipient: String?, post: String?, activity: String? = nil) {
+    init?(recipient: String?, post: String?, activity: String? = nil, focusLat: Double? = nil, focusLng: Double? = nil) {
         guard let recipient, let id = UUID(uuidString: recipient) else { return nil }
         if let post, !post.isEmpty, UUID(uuidString: post) == nil { return nil }
         if let activity, activity.range(of: "^[A-Za-z0-9_-]{1,200}$", options: .regularExpression) != (activity.startIndex..<activity.endIndex) { return nil }
         recipientID = id
         postID = post.flatMap(UUID.init(uuidString:))
         activityID = activity
+        if let focusLat, let focusLng, ProximityPolicy.isValidCoordinate(latitude: focusLat, longitude: focusLng) {
+            mapFocus = MapFocus(latitude: focusLat, longitude: focusLng)
+        }
     }
 }
 
@@ -137,6 +143,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private(set) var fcmToken: String?
     var onPostNotificationTapped: ((UUID) -> Void)? { didSet { consumePendingTap() } }
     var onActivityNotificationTapped: (() -> Void)? { didSet { consumePendingTap() } }
+    var onMapFocusNotificationTapped: ((MapFocus) -> Void)? { didSet { consumePendingTap() } }
     private var coordinator: PushTokenCoordinator?
     private var desiredUserID: UUID?
     private var boundUserID: UUID?
@@ -298,7 +305,11 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private func consumePendingTap() {
         guard let target = pendingTap, let userID = desiredUserID, userID == boundUserID else { return }
         guard target.recipientID == userID else { pendingTap = nil; return }
-        if let postID = target.postID {
+        if let focus = target.mapFocus {
+            guard let onMapFocusNotificationTapped else { return }
+            pendingTap = nil
+            onMapFocusNotificationTapped(focus)
+        } else if let postID = target.postID {
             guard let onPostNotificationTapped else { return }
             pendingTap = nil
             onPostNotificationTapped(postID)
@@ -327,7 +338,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let info = response.notification.request.content.userInfo
-        let target = PushNotificationTarget(recipient: info["recipient_id"] as? String, post: info["post_id"] as? String, activity: info["activity_id"] as? String)
+        let target = PushNotificationTarget(recipient: info["recipient_id"] as? String, post: info["post_id"] as? String, activity: info["activity_id"] as? String,
+                                            focusLat: info["focus_lat"] as? Double, focusLng: info["focus_lng"] as? Double)
         guard let target else { return }
         await MainActor.run { self.pendingTap = target; self.consumePendingTap() }
     }
@@ -345,6 +357,24 @@ extension NotificationService: MessagingDelegate {
 }
 
 final class LociAppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // Periodic refresh of monitored note and campaign regions (safety net for missed pushes).
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: CampaignArrivalService.refreshTaskID, using: nil) { task in
+            CampaignArrivalService.scheduleBackgroundRefresh()
+            let work = Task { @MainActor in
+                await CampaignArrivalService.shared.handleSilentRefresh()
+                task.setTaskCompleted(success: true)
+            }
+            task.expirationHandler = { work.cancel() }
+        }
+        return true
+    }
+    /// Silent "region_refresh" pushes arrive when a campaign or notifying note goes live in this area.
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
+        guard userInfo["type"] as? String == "region_refresh" else { return .noData }
+        await CampaignArrivalService.shared.handleSilentRefresh()
+        return .newData
+    }
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         NotificationService.shared.didRegisterForRemoteNotifications(deviceToken: deviceToken)
     }

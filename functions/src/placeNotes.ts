@@ -183,7 +183,7 @@ export const recordPlaceNoteVisit = onCall(options, async request => {
     tx.create(receiptRef(caller.luid, top.id), { owner_luid: caller.luid, post_id: top.id, created_at: FieldValue.serverTimestamp() });
     tx.set(db.collection('activity_events').doc(activityId), { kind: 'place_note', anonymous: true, actor_id: null, recipient_id: caller.luid,
       post_id: top.id, body: top.get('caption'), read_at: null, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
-    if (locked) return { notify: true, kind: 'dense_spot', total: Number(spot!.get('count')), postId: top.id, activityId, recipientId: caller.luid };
+    if (locked) return { notify: true, kind: 'dense_spot', total: Number(spot!.get('count')), spotLat: spot!.get('lat'), spotLng: spot!.get('lng'), activityId, recipientId: caller.luid };
     return { notify: true, body: top.get('caption'), postId: top.id, activityId, recipientId: caller.luid,
       likes: Number(top.get('likes_count') ?? 0), total: eligible.length };
   });

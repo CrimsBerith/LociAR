@@ -81,6 +81,9 @@ struct PostPreviewView: View {
                 }
                 if let sponsorship = post.sponsorship {
                     Text(sponsorship.terms).font(.body)
+                    ForEach(sponsorship.codes ?? [], id: \.self) { code in
+                        Label(code, systemImage: "ticket.fill").font(.title3.monospaced().bold()).textSelection(.enabled)
+                    }
                     Text(sponsorship.expiresAt, style: .date).font(.caption).foregroundStyle(.secondary)
                     Button {
                         if let pose = post.anchorBundle.anchor.geoPose,

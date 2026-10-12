@@ -29,7 +29,7 @@ final class CampaignRegionPolicyTests: XCTestCase {
         var invalid = decoded[0]; invalid.transition = "unknown"
         XCTAssertFalse(invalid.isUsable(at: Date(timeIntervalSince1970: 1000)))
     }
-    func testOnlyNearestTwentyValidUnexpiredRegionsAreMonitored() {
+    func testOnlyNearestEighteenValidUnexpiredRegionsAreMonitored() {
         let now = Date(timeIntervalSince1970: 1000)
         let valid = (0..<25).map { i in
             CampaignRegion(id: UUID(), lat: 39.92 + Double(i) / 1000, lng: 32.85, radius: 150, expiresAt: 2_000_000)
@@ -37,8 +37,8 @@ final class CampaignRegionPolicyTests: XCTestCase {
         let expired = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 150, expiresAt: 1_000_000)
         let invalid = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 5, expiresAt: 2_000_000)
         let selected = CampaignRegion.nearest(Array(valid.reversed()) + [expired, invalid], to: CLLocationCoordinate2D(latitude: 39.92, longitude: 32.85), at: now)
-        XCTAssertEqual(selected.count, 20)
-        XCTAssertEqual(selected.map(\.id), Array(valid.prefix(20)).map(\.id))
+        XCTAssertEqual(selected.count, 18, "two slots stay free for the usual place and the refresh boundary")
+        XCTAssertEqual(selected.map(\.id), Array(valid.prefix(18)).map(\.id))
     }
 
     func testCachedRegionsDecodeAndCannotUseInvalidCoordinatesOrExpiry() throws {

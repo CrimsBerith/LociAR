@@ -126,11 +126,17 @@ export default function PrivacyPage() {
         Alandan çıkış kampanyası, gönüllü paylaştığınız başlangıç koordinatlarını en fazla 24 saat veya kampanya bitimine
         kadar özel olarak tutabilir. Alanın eviniz olduğu çıkarılmaz veya etiketlenmez. Onayı iptal etmek alanları hemen
         geçersiz kılar; hesap silme bunları kaldırır. Çıkış hatırlatması için telefon önce alanı alıp içinde olduğunu görmelidir.</p>
-      <p>Bulunduğunuz noktaya anonim konum notu bırakabilirsiniz; yayınlanmadan önce incelenir. Not, telefonunuzun ölçtüğü
+      <p>Marka kampanyaları adım adım çalışabilir: örneğin her zaman kaldığınız yerden çıkınca bir davet, sonra kampanya alanına
+        girince veya orada bir süre kalınca bir indirim kodu. Telefonunuz, geceleri genellikle kaldığınız yeri iOS ziyaret kayıtlarından
+        yalnızca cihazda öğrenir; bu yer sunucuya gönderilmez ve ev olarak etiketlenmez. Bu yerden çıktığınızda telefon, kampanya alanının
+        o yeri kapsayıp kapsamadığını kendisi kontrol eder; sunucuya yalnız o anki konumunuz bir kez, adımı doğrulamak için gider ve
+        saklanmaz. Kampanya ilerlemeniz ve size verilen kodlar kampanya bitiminden 30 gün sonra silinir. Yeni kampanya veya not
+        bölgenizde yayına girdiğinde telefon, yaklaşık 39 × 20 km&apos;lik bölge kanalı üzerinden sessiz bir bildirimle listesini yeniler.</p>
+      <p>Bulunduğunuz noktaya anonim konum notu bırakabilirsiniz; otomatik içerik filtresinden geçip hemen yayınlanır. Not, telefonunuzun ölçtüğü
         konuma veya bu konumun en fazla 50 m yakınına elle koyduğunuz pine kaydedilir; ölçüm doğruluğu ve pinin kaydırıldığı
         mesafe de saklanır. Ziyaret doğrulanmaz. Yetkili yöneticiler not ve yazar bağlantısını özel panelde görür.
-        Notlar beğeniye göre sıralanır. Bir not, yeterli beğeni alıp yönetici onayladıktan sonra bildirim olarak gidebilir;
-        her kişiye her not en fazla bir kez gönderilir. Notlar kendiliğinden eskimez; yönetici bitiş tarihi koyabilir veya
+        Notlar beğeniye göre sıralanır. Bir gününü doldurmuş hesaplardan yeterli beğeni alan not, oraya gelen kişilere bildirim
+        olarak gider; her kişiye her not en fazla bir kez gönderilir. Farklı kişilerden yeterli şikayet alan not otomatik gizlenir. Notlar kendiliğinden eskimez; yönetici bitiş tarihi koyabilir veya
         notu kaldırabilir. Yaklaşık 38 × 19 m&apos;lik bir noktada 30&apos;dan fazla not varsa (yönetici ayarı) bu notların metni yalnız
         oraya yaklaştığınızda açılır; haritada sadece sayı görünür ve bu noktaya girince 30 günde en fazla bir kez metinsiz bir
         “burada çok not var” bildirimi gelir. Açma için telefonun konumu veya AR kamerası konumu bir kez sunucuda kontrol edilir; kilit 30 dakika açık kalır.

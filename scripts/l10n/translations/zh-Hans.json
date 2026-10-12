@@ -617,13 +617,10 @@
  "Konum ±%lld m. Pini tam bulunduğun yere getirip tekrar Burada yayınla’ya bas.": "定位 ±%lld 米。请把图钉放到你所在的确切位置，然后再次点击“在这里发布”。",
  "Konum çok belirsiz (±%lld m). Açık bir alana çıkıp tekrar dene.": "定位太不准确（±%lld 米）。请到开阔的户外再试一次。",
  "Konumuma dön": "回到我的位置",
- "Not anonim yayınlanır ve incelemeye gider. Bulunduğun nokta kaydedilir. Beğenilen ve onaylanan notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gidebilir.": "你的笔记会匿名发布并先经过审核。会保存你所在的位置。获赞并通过审核的笔记，可能会以通知形式发送一次给来到该地点的访客。",
  "Not konumu": "笔记位置",
  "Not konumu haritası": "笔记位置地图",
- "Notun incelemeye gönderildi. Onaylanınca haritada görünür.": "你的笔记已提交审核。通过后会显示在地图上。",
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "图钉距你的位置最多 50 米。",
  "Pini elle ayarla": "手动调整图钉",
- "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "一个开关即可开启所有通知：点赞、评论、关注、位置笔记、品牌折扣和管理员消息。消息可能显示在锁屏上。你最后共享的位置和帖子点赞可能用于挑选优惠；品牌永远看不到你的个人位置。靠近已批准的笔记时，最多使用 10 分钟精确 GPS；这些测量不会加入与管理员共享的位置。后台运行需要“始终”位置权限、精确位置和网络。手机 GPS 通常有 5–30 米误差；进入笔记范围后会收到通知。",
  "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "当前为大致位置。要把笔记放在正确的位置，请在“设置”中打开“精确位置”。",
  "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "这条笔记位于有 %lld 条笔记的热门地点。要阅读，请走到 %lld 米以内，然后在地图上点击“在这里打开”。",
  "Burada %lld not var": "这里有 %lld 条笔记",
@@ -631,5 +628,8 @@
  "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "你还不够近。请走到距该地点 %lld 米以内；在户外 AR 相机更精确。",
  "Kilitli not": "已锁定的笔记",
  "Notları görmek için yaklaş ve haritada aç.": "走近并在地图上打开即可阅读这些笔记。",
- "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "热门地点：%lld 条笔记。走到 %lld 米以内即可打开。"
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "热门地点：%lld 条笔记。走到 %lld 米以内即可打开。",
+ "Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir.": "你的笔记会立即匿名发布。会保存你所在的位置。获得足够点赞的笔记会以通知形式发送一次给来到这里的访客；被举报的笔记会被隐藏。",
+ "Notun yayınlandı. Haritada görünüyor.": "你的笔记已发布，已显示在地图上。",
+ "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.": "一个开关即可开启所有通知：点赞、评论、关注、位置笔记、品牌活动和管理员消息。消息可能显示在锁屏上。即使应用已关闭，它也能察觉你何时进入、停留或离开附近的笔记和活动区域，以及何时离开你常待的地方（通常是家）。这个地方只在你的手机上学习，绝不会发送给我们，也不会被标记为家。靠近某个区域时，最多使用 30 分钟精确 GPS；这些测量不会加入与管理员共享的位置。需要“始终”位置权限、精确位置和网络。手机 GPS 通常有 5–30 米误差。"
 }

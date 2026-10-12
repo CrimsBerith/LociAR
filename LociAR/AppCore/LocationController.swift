@@ -6,6 +6,8 @@ import Observation
 @Observable
 final class LocationController: NSObject, @preconcurrency CLLocationManagerDelegate {
     private(set) var location: CLLocation?
+    /// Last 10 s of fixes; seeds the note composer so its estimate is ready sooner.
+    private(set) var recentLocations: [CLLocation] = []
     private(set) var heading: CLHeading?
     private(set) var authorizationStatus: CLAuthorizationStatus
     private(set) var errorMessage: String?
@@ -84,6 +86,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let latest = locations.last, latest.horizontalAccuracy >= 0 else { return }
         location = latest
+        recentLocations = (recentLocations + locations.filter { $0.horizontalAccuracy >= 0 }).filter { Date().timeIntervalSince($0.timestamp) <= 10 }.suffix(20)
         errorMessage = nil
     }
 
