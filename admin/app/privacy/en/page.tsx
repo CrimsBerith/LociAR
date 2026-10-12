@@ -51,7 +51,7 @@ export default function PrivacyPageEn() {
       <h2>Purposes and legal bases</h2>
       <ul>
         <li>Account creation, sign-in, publishing and displaying content — performance of our contract with you.</li>
-        <li>Social notifications, location-note reminders, brand discounts and administrator messages — enabled together with your consent in Profile → Settings → Notifications; iOS notification permission is also required.</li>
+        <li>Social notifications, location-note reminders and administrator messages — enabled with your consent in Profile → Settings → Notifications; brand campaigns and offers need a separate, off-by-default “Campaigns and offers” consent. iOS notification permission is also required.</li>
         <li>Moderation, protected-zone and 18+ blocks, profile photo screening, spam and abuse prevention, security — legitimate
           interests and legal obligations.</li>
         <li>Crash reports to keep the app stable — legitimate interests; you can turn them off in Profile → Settings.</li>
@@ -95,8 +95,9 @@ export default function PrivacyPageEn() {
       </p>
 
       <h2>Notifications and location reminders</h2>
-      <p>One off-by-default Notifications switch in Profile → Settings covers likes, comments, follows, location notes,
-        brand discounts and administrator messages. Its notice explains the combined scope before enabling it.
+      <p>The off-by-default Notifications switch in Profile → Settings covers likes, comments, follows, location notes and
+        administrator messages. Brand campaigns and offers need a separate, also off-by-default “Campaigns and offers” switch,
+        which you can turn off at any time. Each notice explains its scope before you enable it.
         Administrator location and technical sharing remain separate. You also need iOS notification permission;
         approved text may appear on your lock screen. Disabling Notifications stops monitoring on this device,
         token registration and new notification admission. Existing in-app activities can remain.</p>

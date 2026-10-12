@@ -120,6 +120,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     @ObservationIgnored private var userID: UUID?
     @ObservationIgnored private var enabled = false
     @ObservationIgnored private var placeNotesEnabled = false
+    /// Brand campaigns opt-in; the usual place is learned only while it is on.
+    @ObservationIgnored private var promotionsEnabled = false
     @ObservationIgnored private var foreground = false
     @ObservationIgnored private var lastFixRequest = Date.distantPast
     @ObservationIgnored private var lastRegionRefresh = Date.distantPast
@@ -213,6 +215,15 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         updatePermissionState()
     }
 
+    func setPromotionsEnabled(_ value: Bool) {
+        promotionsEnabled = value
+        if !value, let userID {
+            // Turning campaigns off forgets the learned usual place.
+            usualLearner = UsualPlaceLearner(); UserDefaults.standard.removeObject(forKey: usualKey(userID))
+        }
+        updatePermissionState()
+    }
+
     func setPlaceNotesEnabled(_ value: Bool) {
         placeNotesEnabled = value
         if let userID { UserDefaults.standard.set(value, forKey: notesKey(userID)) }
@@ -257,9 +268,10 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             if wantsSignificant { manager.startMonitoringSignificantLocationChanges() } else { manager.stopMonitoringSignificantLocationChanges() }
         }
         // iOS visits teach the phone its usual place (device only) for "leaves usual place" steps.
-        if always != monitoringVisits {
-            monitoringVisits = always
-            if always { manager.startMonitoringVisits() } else { manager.stopMonitoringVisits() }
+        let wantsVisits = always && promotionsEnabled
+        if wantsVisits != monitoringVisits {
+            monitoringVisits = wantsVisits
+            if wantsVisits { manager.startMonitoringVisits() } else { manager.stopMonitoringVisits() }
         }
     }
 

@@ -50,9 +50,12 @@ export const setDataPreferences = onCall(options, async request => {
     const data = { owner_luid: caller.luid, telemetry: body.telemetry, location: body.location,
       notifications,
       notifications_notice_version: body.notifications !== undefined ? '2026-10-11-notifications' : current.get('notifications_notice_version') ?? null,
-      promotions: notifications ?? body.promotions ?? current.get('promotions') === true,
-      arrivals: notifications ?? ((body.promotions ?? current.get('promotions') === true) && (body.arrivals ?? current.get('arrivals') === true)),
-      departures: notifications ?? ((body.promotions ?? current.get('promotions') === true) && (body.departures ?? current.get('departures') === true)),
+      // Marketing needs its own explicit opt-in (App Review 4.5.4) on top of Notifications; campaign
+      // arrivals and departures follow it. Turning Notifications off turns marketing off too.
+      ...(() => {
+        const marketing = notifications === true && (body.promotions ?? current.get('promotions') === true);
+        return { promotions: marketing, arrivals: marketing, departures: marketing };
+      })(),
       place_notes: notifications ?? body.placeNotes ?? current.get('place_notes') === true,
       place_notes_notice_version: body.placeNotes !== undefined ? '2026-10-11-place-notes' : current.get('place_notes_notice_version') ?? null,
       departures_revision: current.get('departures') === true && typeof current.get('departures_revision') === 'string' ? current.get('departures_revision') : randomUUID(),

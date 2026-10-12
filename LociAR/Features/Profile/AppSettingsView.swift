@@ -26,7 +26,20 @@ struct AppSettingsView: View {
                     } }
                 ))
                 .accessibilityIdentifier("settings-notifications")
-                Text("Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.")
+                Text("Beğeni, yorum, takip, konum notu ve yönetici mesajı bildirimlerini açar. Mesaj kilit ekranında görünebilir. Her zaman konum izniyle uygulama kapalıyken de beğenilen bir notun bulunduğu yere gelince haber verir; yalnızca not alanları izlenir, alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır ve konum geçmişin saklanmaz. Ölçümler yönetici konumuna eklenmez. Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.")
+                    .font(.caption).foregroundStyle(.secondary)
+                // Marketing has its own opt-in (App Review 4.5.4), only available with Notifications on.
+                Toggle(String(localized: "Kampanyalar ve teklifler"), isOn: Binding(
+                    get: { sharing.notificationsEnabled && sharing.promotionsEnabled },
+                    set: { enabled in Task {
+                        await sharing.setSharing(telemetry: sharing.telemetryEnabled, location: sharing.locationEnabled, promotions: enabled, notifications: true)
+                        if enabled, sharing.errorMessage == nil { arrivals.requestPermissions(); await arrivals.synchronize() }
+                        await refresh()
+                    } }
+                ))
+                .disabled(!sharing.notificationsEnabled)
+                .accessibilityIdentifier("settings-promotions")
+                Text("İsteğe bağlı. Açarsan markaların kampanyaları, örneğin bir indirim kodu, kampanya alanına girince, orada kalınca veya sık kaldığın yerden çıkınca bildirim olarak gelebilir. Sık kaldığın yer iOS ziyaret kayıtlarından yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Markalar konumunu ve kim olduğunu görmez. İstediğin an kapatabilirsin.")
                     .font(.caption).foregroundStyle(.secondary)
                 if arrivals.needsPreciseLocation {
                     Text("Konum notu bildirimleri için Ayarlar’da LociAR konumunda Kesin Konum’u aç.").font(.caption)

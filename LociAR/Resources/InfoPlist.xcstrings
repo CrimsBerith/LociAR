@@ -7,73 +7,73 @@
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR, AR postlarını harita ve cadde üzerinde tam doğrulukla yerleştirebilmek için geçici hassas konum iznine ihtiyaç duyar."
+            "value" : "Notunu tam durduğun noktaya bırakmak ve AR içeriğini doğru yerde göstermek için LociAR bu seferlik kesin konuma ihtiyaç duyar."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR needs temporary precise location to place AR posts accurately on the map and the street."
+            "value" : "LociAR needs your precise location this time to place your note exactly where you stand and show AR content in the right spot."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR benötigt vorübergehend den genauen Standort, um AR-Posts präzise auf der Karte und auf der Straße zu platzieren."
+            "value" : "LociAR braucht diesmal deinen genauen Standort, um deine Notiz genau dort zu hinterlassen, wo du stehst, und AR-Inhalte an der richtigen Stelle zu zeigen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR necesita temporalmente tu ubicación precisa para colocar las publicaciones AR con exactitud en el mapa y en la calle."
+            "value" : "LociAR necesita tu ubicación exacta esta vez para dejar tu nota justo donde estás y mostrar el contenido AR en el lugar correcto."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR a besoin de votre position précise de façon temporaire pour placer les publications RA avec exactitude sur la carte et dans la rue."
+            "value" : "LociAR a besoin de ta position exacte cette fois pour déposer ta note exactement où tu te trouves et afficher le contenu AR au bon endroit."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O LociAR precisa da localização precisa temporariamente para posicionar as publicações de RA com exatidão no mapa e na rua."
+            "value" : "O LociAR precisa da sua localização precisa desta vez para deixar sua nota exatamente onde você está e mostrar o conteúdo AR no lugar certo."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR нужен временный доступ к точному местоположению, чтобы точно размещать AR-посты на карте и на улице."
+            "value" : "LociAR нужна точная геопозиция на этот раз, чтобы оставить заметку точно там, где вы стоите, и показать AR-контент в нужном месте."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يحتاج LociAR إلى إذن مؤقت بالموقع الدقيق لوضع منشورات الواقع المعزز بدقة على الخريطة وفي الشارع."
+            "value" : "يحتاج LociAR إلى موقعك الدقيق هذه المرة لترك ملاحظتك في المكان الذي تقف فيه تمامًا وعرض محتوى الواقع المعزز في المكان الصحيح."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AR पोस्ट को मैप और सड़क पर सटीक रूप से रखने के लिए LociAR को अस्थायी रूप से सटीक स्थान की अनुमति चाहिए।"
+            "value" : "आपका नोट ठीक उसी जगह छोड़ने जहाँ आप खड़े हैं और AR सामग्री सही जगह दिखाने के लिए LociAR को इस बार आपकी सटीक लोकेशन चाहिए।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "মানচিত্রে ও রাস্তায় AR পোস্ট নির্ভুলভাবে স্থাপন করতে LociAR-এর সাময়িকভাবে নির্ভুল অবস্থানের অনুমতি প্রয়োজন।"
+            "value" : "আপনি যেখানে দাঁড়িয়ে আছেন ঠিক সেখানে নোট রাখতে এবং AR কনটেন্ট সঠিক জায়গায় দেখাতে LociAR-এর এবার আপনার সঠিক অবস্থান দরকার।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociARは、AR投稿をマップや通りの上に正確に配置するために、一時的に正確な位置情報を必要とします。"
+            "value" : "立っている場所にぴったりメモを残し、ARコンテンツを正しい位置に表示するため、LociARは今回だけ正確な位置情報を必要とします。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR 需要临时使用精确位置，以便将 AR 帖子准确放置在地图和街道上。"
+            "value" : "为了把笔记准确留在你所站的位置并在正确位置显示 AR 内容，LociAR 这次需要你的精确位置。"
           }
         }
       }
@@ -161,73 +161,73 @@
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR, ayrı onayınla kampanya alanına gelince veya son paylaştığın konum alanından çıkınca uygulama kapalıyken de teklif hatırlatmak için alanları izler. Tek konum ölçümü teklifi doğrular; yönetici konumuna eklenmez. Yakındaki işletme notları için de alanlar izlenir. Yakın alanlarda hassas GPS en fazla iki dakika çalışır."
+            "value" : "“Her Zaman” izni verirsen LociAR, uygulama kapalıyken de beğenilen bir notun bulunduğu yere geldiğinde haber verir; örneğin kafeye girince “Wi-Fi şifresi kasada” notu bildirim olarak gelir. Kampanyaları ayrıca açtıysan kampanya alanına girince teklif de gelebilir. Yalnızca not ve kampanya alanları izlenir, alana yaklaşınca kısa süre hassas konum kullanılır ve konum geçmişin saklanmaz. Bildirimleri Ayarlar’dan istediğin an kapatabilirsin."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "With your separate consent, LociAR monitors areas to remind you of offers on arrival or when leaving your last shared location area, even with the app closed. A single fix verifies the offer; it is not added to the administrator location snapshot. Areas are also monitored for nearby business notes. Precise GPS runs near a location for at most two minutes."
+            "value" : "With “Always”, LociAR tells you about a liked note when you arrive at its place, even when the app is closed; for example, entering the café brings the “Wi-Fi password is at the till” note as a notification. If you also turned on campaigns, you may get an offer when you enter a campaign area. Only note and campaign areas are monitored, precise location is used briefly near an area, and your location history is not stored. You can turn notifications off in Settings at any time."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit deiner gesonderten Zustimmung überwacht LociAR Gebiete, um bei Ankunft oder beim Verlassen deines zuletzt geteilten Standorts auch bei geschlossener App an Angebote zu erinnern. Ein einzelner Standort prüft das Angebot und wird nicht zum Administratorstandort hinzugefügt. Gebiete werden auch für Geschäftsnotizen in der Nähe überwacht. Präzises GPS läuft in der Nähe eines Orts höchstens zwei Minuten."
+            "value" : "Mit „Immer“ meldet LociAR dir eine beliebte Notiz, wenn du an ihren Ort kommst – auch bei geschlossener App. Betrittst du zum Beispiel das Café, kommt die Notiz „WLAN-Passwort liegt an der Kasse“ als Mitteilung. Hast du zusätzlich Kampagnen aktiviert, kann beim Betreten eines Kampagnenbereichs ein Angebot kommen. Nur Notiz- und Kampagnenbereiche werden überwacht, in ihrer Nähe wird kurz der genaue Standort genutzt, und dein Standortverlauf wird nicht gespeichert. Mitteilungen kannst du jederzeit in den Einstellungen ausschalten."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con tu consentimiento separado, LociAR vigila zonas para recordar ofertas al llegar o salir de tu última ubicación compartida, incluso con la app cerrada. Una medición verifica la oferta y no se añade a la ubicación del administrador. También se vigilan zonas para las notas de negocios cercanos. El GPS preciso funciona cerca del lugar hasta dos minutos."
+            "value" : "Con «Siempre», LociAR te avisa de una nota con muchos me gusta cuando llegas a su lugar, aunque la app esté cerrada; por ejemplo, al entrar en la cafetería recibes la nota «La contraseña del wifi está en la caja». Si también activaste las campañas, puedes recibir una oferta al entrar en una zona de campaña. Solo se vigilan las zonas de notas y campañas, se usa la ubicación precisa poco tiempo cerca de ellas y no se guarda tu historial de ubicaciones. Puedes desactivar las notificaciones en Ajustes cuando quieras."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec votre consentement distinct, LociAR surveille des zones pour rappeler des offres à l’arrivée ou en quittant votre dernière position partagée, même lorsque l’app est fermée. Une mesure vérifie l’offre sans être ajoutée à la position des administrateurs. Des zones sont aussi surveillées pour les notes des commerces proches. Le GPS précis fonctionne à proximité pendant deux minutes maximum."
+            "value" : "Avec « Toujours », LociAR te signale une note appréciée quand tu arrives à son emplacement, même app fermée ; par exemple, en entrant dans le café, tu reçois la note « Le mot de passe Wi-Fi est à la caisse ». Si tu as aussi activé les campagnes, tu peux recevoir une offre en entrant dans une zone de campagne. Seules les zones de notes et de campagnes sont surveillées, la position précise n’est utilisée que brièvement à proximité et ton historique de positions n’est pas conservé. Tu peux désactiver les notifications dans Réglages à tout moment."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Com seu consentimento separado, o LociAR monitora áreas para lembrar ofertas ao chegar ou sair da última localização compartilhada, mesmo com o app fechado. Uma medição verifica a oferta e não é adicionada à localização do administrador. Áreas também são monitoradas para notas de estabelecimentos próximos. GPS preciso funciona perto do local por até dois minutos."
+            "value" : "Com “Sempre”, o LociAR avisa sobre uma nota curtida quando você chega ao local dela, mesmo com o app fechado; por exemplo, ao entrar no café chega a nota “A senha do Wi-Fi está no caixa”. Se você também ativou as campanhas, pode receber uma oferta ao entrar numa área de campanha. Só as áreas de notas e campanhas são monitoradas, a localização precisa é usada por pouco tempo perto delas e seu histórico de localização não é guardado. Você pode desativar as notificações nos Ajustes a qualquer momento."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "С вашего отдельного согласия LociAR отслеживает зоны и напоминает о предложениях при прибытии или выходе из последней переданной зоны даже при закрытом приложении. Одно измерение проверяет предложение и не добавляется к геопозиции для администратора. Зоны также отслеживаются для заметок о заведениях поблизости. Точный GPS работает поблизости не более двух минут."
+            "value" : "С разрешением «Всегда» LociAR сообщит о популярной заметке, когда вы придёте на её место, даже если приложение закрыто; например, войдя в кафе, вы получите заметку «Пароль от Wi-Fi у кассы». Если вы также включили кампании, при входе в зону кампании может прийти предложение. Отслеживаются только зоны заметок и кампаний, точная геопозиция используется недолго рядом с ними, история перемещений не хранится. Уведомления можно отключить в Настройках в любой момент."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "بموافقتك المنفصلة، يراقب LociAR مناطق لتذكيرك بالعروض عند الوصول أو مغادرة آخر موقع شاركته، حتى مع إغلاق التطبيق. تتحقق قراءة واحدة من العرض ولا تُضاف إلى موقع المسؤول. تُراقب المناطق أيضًا لملاحظات المنشآت القريبة. يعمل GPS الدقيق قرب الموقع حتى دقيقتين."
+            "value" : "مع إذن «دائمًا»، يخبرك LociAR بملاحظة معجَب بها عند وصولك إلى مكانها حتى عندما يكون التطبيق مغلقًا؛ مثلًا، عند دخولك المقهى تصلك ملاحظة «كلمة مرور الواي فاي عند الكاشير». وإذا فعّلت الحملات أيضًا، فقد يصلك عرض عند دخول منطقة حملة. تُراقَب مناطق الملاحظات والحملات فقط، ويُستخدم الموقع الدقيق لفترة قصيرة بالقرب منها، ولا يُحفظ سجل مواقعك. يمكنك إيقاف الإشعارات من الإعدادات في أي وقت."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आपकी अलग सहमति से, LociAR ऐप बंद होने पर भी पहुँचने या अंतिम साझा स्थान का क्षेत्र छोड़ने पर ऑफ़र याद दिलाने के लिए क्षेत्रों पर नज़र रखता है। एक स्थान माप ऑफ़र की जाँच करता है; व्यवस्थापक के स्थान रिकॉर्ड में नहीं जुड़ता। पास के व्यवसायों के नोट के लिए भी क्षेत्र देखे जाते हैं। स्थान के पास सटीक GPS अधिकतम दो मिनट चलता है।"
+            "value" : "“हमेशा” अनुमति देने पर LociAR ऐप बंद होने पर भी किसी पसंद किए गए नोट की जगह पर पहुँचने पर आपको बताता है; उदाहरण के लिए, कैफ़े में जाते ही “वाई-फ़ाई पासवर्ड काउंटर पर है” नोट सूचना के रूप में आता है। अगर आपने अभियान भी चालू किए हैं, तो अभियान क्षेत्र में जाने पर ऑफ़र आ सकता है। केवल नोट और अभियान क्षेत्रों पर नज़र रखी जाती है, उनके पास थोड़ी देर सटीक लोकेशन इस्तेमाल होती है और आपका लोकेशन इतिहास सहेजा नहीं जाता। आप सेटिंग्स में कभी भी सूचनाएँ बंद कर सकते हैं।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আপনার আলাদা সম্মতিতে, অ্যাপ বন্ধ থাকলেও পৌঁছালে বা শেষ শেয়ার করা অবস্থানের এলাকা ছাড়লে অফার মনে করাতে LociAR এলাকা পর্যবেক্ষণ করে। একটি অবস্থান মাপ দিয়ে অফার যাচাই হয়; প্রশাসকের অবস্থান রেকর্ডে যোগ হয় না। কাছের ব্যবসার নোটের জন্যও এলাকা পর্যবেক্ষণ হয়। স্থানের কাছে নির্ভুল GPS সর্বোচ্চ দুই মিনিট চলে।"
+            "value" : "“সবসময়” অনুমতি দিলে অ্যাপ বন্ধ থাকলেও কোনো পছন্দের নোটের জায়গায় পৌঁছালে LociAR আপনাকে জানায়; যেমন, ক্যাফেতে ঢুকলেই “ওয়াই-ফাই পাসওয়ার্ড ক্যাশে আছে” নোটটি বিজ্ঞপ্তি হিসেবে আসে। আপনি ক্যাম্পেইনও চালু করলে ক্যাম্পেইন এলাকায় ঢুকলে অফার আসতে পারে। শুধু নোট ও ক্যাম্পেইন এলাকা নজরে রাখা হয়, কাছাকাছি গেলে অল্প সময় নির্ভুল অবস্থান ব্যবহার হয় এবং আপনার অবস্থানের ইতিহাস সংরক্ষণ করা হয় না। সেটিংসে যেকোনো সময় বিজ্ঞপ্তি বন্ধ করতে পারেন।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "別途同意すると、LociARはアプリを閉じていても到着時や最後に共有した位置の周辺を離れた際にオファーを通知するためエリアを監視します。1回の位置測定でオファーを確認し、管理者向けの位置記録には追加しません。 近くの店舗のメモのためにもエリアを監視します。 場所の近くでは精密GPSを最長2分間使用します。"
+            "value" : "「常に許可」にすると、アプリを閉じていても、いいねの多いメモの場所に着いたときにLociARがお知らせします。たとえばカフェに入ると「Wi-Fiのパスワードはレジにあります」というメモが通知されます。キャンペーンもオンにしている場合は、キャンペーンエリアに入るとオファーが届くことがあります。見守るのはメモとキャンペーンのエリアだけで、近くでは短時間だけ正確な位置情報を使い、位置情報の履歴は保存しません。通知は「設定」でいつでもオフにできます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "经你另行同意，LociAR 会监测区域，即使应用关闭，也会在到达或离开最后共享位置的周边时提醒优惠。仅用一次位置测量验证优惠，不会添加到管理员的位置记录。 也会监测区域以提醒附近商家的留言。 靠近位置时，精确GPS最多运行两分钟。"
+            "value" : "选择“始终”后，即使应用已关闭，LociAR 也会在你到达热门笔记所在地点时提醒你；例如走进咖啡馆时，会收到“Wi-Fi 密码在收银台”这条笔记的通知。如果你还开启了活动，进入活动区域时可能会收到优惠。我们只监测笔记和活动区域，靠近时短暂使用精确位置，不会保存你的位置记录。你可以随时在“设置”中关闭通知。"
           }
         }
       }
@@ -238,73 +238,73 @@
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır. Ayrı onayınla uygulama açıkken konumun yetkili yöneticilerle de paylaşılır."
+            "value" : "LociAR, bulunduğun yerdeki notları ve AR içeriklerini göstermek, notunu tam durduğun noktaya bırakmak ve içeriği kamerada doğru yerde açmak için konumunu kullanır. Örneğin bir kafede bırakılan “Wi-Fi şifresi kasada” notunu o kafedeyken görürsün. AR konumlandırması için konum Google ARCore ile işlenir."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR uses your location to list nearby AR content and show it in the right place with Google ARCore Geospatial. With your separate consent, your location is also shared with authorized administrators while the app is open."
+            "value" : "LociAR uses your location to show notes and AR content where you are, to place your note exactly where you stand, and to open content in the right spot through the camera. For example, you see a “Wi-Fi password is at the till” note while you are in that café. For AR placement, location is processed with Google ARCore."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR nutzt deinen Standort, um AR-Inhalte in der Nähe aufzulisten und sie mit Google ARCore Geospatial am richtigen Ort anzuzeigen. Mit deiner gesonderten Zustimmung wird dein Standort bei geöffneter App auch mit berechtigten Administratoren geteilt."
+            "value" : "LociAR nutzt deinen Standort, um Notizen und AR-Inhalte an deinem Ort zu zeigen, deine Notiz genau dort zu hinterlassen, wo du stehst, und Inhalte in der Kamera an der richtigen Stelle zu öffnen. Zum Beispiel siehst du in einem Café die Notiz „WLAN-Passwort liegt an der Kasse“. Für die AR-Platzierung wird der Standort mit Google ARCore verarbeitet."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR usa tu ubicación para mostrar el contenido AR cercano y situarlo en el lugar correcto con Google ARCore Geospatial. Con tu consentimiento separado, tu ubicación también se comparte con administradores autorizados mientras la app está abierta."
+            "value" : "LociAR usa tu ubicación para mostrar notas y contenido AR donde estás, dejar tu nota justo donde te encuentras y abrir el contenido en el lugar correcto con la cámara. Por ejemplo, ves la nota «La contraseña del wifi está en la caja» mientras estás en esa cafetería. Para colocar contenido AR, la ubicación se procesa con Google ARCore."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR utilise votre position pour lister les contenus RA à proximité et les afficher au bon endroit avec Google ARCore Geospatial. Avec votre consentement distinct, votre position est aussi partagée avec les administrateurs autorisés lorsque l’app est ouverte."
+            "value" : "LociAR utilise ta position pour afficher les notes et contenus AR là où tu es, déposer ta note exactement où tu te trouves et ouvrir le contenu au bon endroit dans la caméra. Par exemple, tu vois la note « Le mot de passe Wi-Fi est à la caisse » quand tu es dans ce café. Pour le placement AR, la position est traitée avec Google ARCore."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O LociAR usa sua localização para listar conteúdos de RA próximos e exibi-los no lugar certo com o Google ARCore Geospatial. Com seu consentimento separado, sua localização também é compartilhada com administradores autorizados enquanto o app está aberto."
+            "value" : "O LociAR usa sua localização para mostrar notas e conteúdo AR onde você está, deixar sua nota exatamente onde você está e abrir o conteúdo no lugar certo pela câmera. Por exemplo, você vê a nota “A senha do Wi-Fi está no caixa” quando está naquele café. Para posicionar conteúdo AR, a localização é processada com o Google ARCore."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR использует ваше местоположение, чтобы показывать AR-контент поблизости и размещать его в нужном месте с помощью Google ARCore Geospatial. С вашего отдельного согласия местоположение также передаётся уполномоченным администраторам, пока приложение открыто."
+            "value" : "LociAR использует ваше местоположение, чтобы показывать заметки и AR-контент рядом с вами, оставлять заметку точно там, где вы стоите, и открывать контент в нужном месте через камеру. Например, в кафе вы увидите заметку «Пароль от Wi-Fi у кассы». Для размещения AR геопозиция обрабатывается с помощью Google ARCore."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يستخدم LociAR موقعك لعرض محتوى الواقع المعزز القريب وإظهاره في المكان الصحيح باستخدام Google ARCore Geospatial. بموافقتك المنفصلة، يُشارك موقعك أيضًا مع المسؤولين المخوّلين عندما يكون التطبيق مفتوحًا."
+            "value" : "يستخدم LociAR موقعك لعرض الملاحظات ومحتوى الواقع المعزز حيث تكون، ولترك ملاحظتك في المكان الذي تقف فيه تمامًا، ولفتح المحتوى في المكان الصحيح عبر الكاميرا. مثلًا، ترى ملاحظة «كلمة مرور الواي فاي عند الكاشير» عندما تكون في ذلك المقهى. لتحديد موضع الواقع المعزز، يُعالَج الموقع باستخدام Google ARCore."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR आस-पास की AR सामग्री दिखाने और Google ARCore Geospatial से उसे सही जगह पर दिखाने के लिए आपके स्थान का इस्तेमाल करता है। आपकी अलग सहमति से, ऐप खुला होने पर आपका स्थान अधिकृत व्यवस्थापकों के साथ भी साझा होता है।"
+            "value" : "LociAR आपकी लोकेशन का उपयोग आपके आस-पास के नोट और AR सामग्री दिखाने, आपका नोट ठीक उसी जगह छोड़ने जहाँ आप खड़े हैं, और कैमरे में सामग्री सही जगह खोलने के लिए करता है। उदाहरण के लिए, उस कैफ़े में होने पर आपको “वाई-फ़ाई पासवर्ड काउंटर पर है” नोट दिखता है। AR प्लेसमेंट के लिए लोकेशन Google ARCore के साथ प्रोसेस होती है।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR কাছাকাছি AR কনটেন্ট দেখাতে এবং Google ARCore Geospatial দিয়ে সঠিক জায়গায় প্রদর্শন করতে আপনার অবস্থান ব্যবহার করে। আপনার আলাদা সম্মতিতে, অ্যাপ খোলা থাকলে অবস্থান অনুমোদিত প্রশাসকদের সঙ্গেও শেয়ার করা হয়।"
+            "value" : "LociAR আপনার অবস্থান ব্যবহার করে আপনার আশপাশের নোট ও AR কনটেন্ট দেখাতে, আপনি যেখানে দাঁড়িয়ে আছেন ঠিক সেখানে নোট রাখতে এবং ক্যামেরায় কনটেন্ট সঠিক জায়গায় খুলতে। যেমন, সেই ক্যাফেতে থাকলে আপনি “ওয়াই-ফাই পাসওয়ার্ড ক্যাশে আছে” নোটটি দেখেন। AR স্থাপনের জন্য অবস্থান Google ARCore দিয়ে প্রক্রিয়া করা হয়।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociARは、近くのARコンテンツを一覧表示し、Google ARCore Geospatialで正しい場所に表示するために位置情報を使用します。 別途同意すると、アプリを開いている間、位置情報が権限のある管理者にも共有されます。"
+            "value" : "LociARは位置情報を使って、今いる場所のメモやARコンテンツを表示し、立っている場所にぴったりメモを残し、カメラで正しい位置にコンテンツを開きます。たとえば、そのカフェにいるときに「Wi-Fiのパスワードはレジにあります」というメモが見られます。AR配置のため、位置情報はGoogle ARCoreで処理されます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LociAR 使用你的位置列出附近的 AR 内容，并通过 Google ARCore Geospatial 将其显示在正确的位置。 另行同意后，应用打开时也会与获授权的管理员共享你的位置。"
+            "value" : "LociAR 使用你的位置来显示你所在地点的笔记和 AR 内容，把笔记准确留在你站的位置，并通过相机在正确位置打开内容。例如，你在那家咖啡馆时会看到“Wi-Fi 密码在收银台”这条笔记。为进行 AR 放置，位置会通过 Google ARCore 处理。"
           }
         }
       }

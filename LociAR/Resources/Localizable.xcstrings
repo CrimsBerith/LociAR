@@ -4844,6 +4844,83 @@
         }
       }
     },
+    "Beğeni, yorum, takip, konum notu ve yönetici mesajı bildirimlerini açar. Mesaj kilit ekranında görünebilir. Her zaman konum izniyle uygulama kapalıyken de beğenilen bir notun bulunduğu yere gelince haber verir; yalnızca not alanları izlenir, alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır ve konum geçmişin saklanmaz. Ölçümler yönetici konumuna eklenmez. Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beğeni, yorum, takip, konum notu ve yönetici mesajı bildirimlerini açar. Mesaj kilit ekranında görünebilir. Her zaman konum izniyle uygulama kapalıyken de beğenilen bir notun bulunduğu yere gelince haber verir; yalnızca not alanları izlenir, alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır ve konum geçmişin saklanmaz. Ölçümler yönetici konumuna eklenmez. Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns on like, comment, follow, location-note and administrator message notifications. Messages may appear on the lock screen. With Always location access it also tells you about a liked note when you arrive at its place, even with the app closed; only note areas are monitored, precise GPS is used for at most 30 minutes near an area, and your location history is not stored. These readings are not added to your location shared with administrators. Precise Location and internet are required. Phone GPS is usually 5–30 m off."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiviert Mitteilungen zu Likes, Kommentaren, Follows, Ortsnotizen und Nachrichten von Administratoren. Mitteilungen können auf dem Sperrbildschirm erscheinen. Mit Standortzugriff „Immer“ meldet sie dir auch bei geschlossener App eine beliebte Notiz, wenn du an ihren Ort kommst; nur Notizbereiche werden überwacht, in ihrer Nähe wird höchstens 30 Minuten lang genaues GPS genutzt, und dein Standortverlauf wird nicht gespeichert. Diese Messungen fließen nicht in den mit Administratoren geteilten Standort ein. „Genauer Standort“ und Internet sind nötig. Handy-GPS weicht meist 5–30 m ab."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa las notificaciones de me gusta, comentarios, seguidores, notas de ubicación y mensajes de administradores. Pueden verse en la pantalla bloqueada. Con acceso a la ubicación Siempre, también te avisa de una nota con muchos me gusta al llegar a su lugar, aunque la app esté cerrada; solo se vigilan las zonas de notas, se usa GPS preciso como máximo 30 minutos cerca de ellas y no se guarda tu historial de ubicaciones. Esas mediciones no se añaden a la ubicación compartida con administradores. Se necesitan Ubicación exacta e internet. El GPS del teléfono suele desviarse 5–30 m."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active les notifications de j’aime, commentaires, abonnements, notes de lieu et messages des administrateurs. Elles peuvent apparaître sur l’écran verrouillé. Avec l’accès à la position Toujours, l’app te signale aussi une note appréciée quand tu arrives à son emplacement, même fermée ; seules les zones de notes sont surveillées, le GPS précis est utilisé 30 minutes au maximum à proximité et ton historique de positions n’est pas conservé. Ces mesures ne sont pas ajoutées à la position partagée avec les administrateurs. La Position exacte et Internet sont nécessaires. Le GPS d’un téléphone dévie généralement de 5 à 30 m."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ativa notificações de curtidas, comentários, seguidores, notas de local e mensagens de administradores. Elas podem aparecer na tela bloqueada. Com acesso à localização Sempre, também avisa sobre uma nota curtida quando você chega ao local dela, mesmo com o app fechado; só as áreas de notas são monitoradas, o GPS preciso é usado por no máximo 30 minutos perto delas e seu histórico de localização não é guardado. Essas medições não entram na localização compartilhada com administradores. São necessários Localização Precisa e internet. O GPS do celular costuma errar 5–30 m."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включает уведомления о лайках, комментариях, подписках, заметках о местах и сообщениях администраторов. Они могут отображаться на экране блокировки. С доступом к геопозиции «Всегда» приложение сообщит о популярной заметке, когда вы придёте на её место, даже если оно закрыто; отслеживаются только зоны заметок, точный GPS рядом с ними работает не дольше 30 минут, история перемещений не хранится. Эти данные не добавляются к местоположению для администраторов. Нужны «Точная геопозиция» и интернет. GPS телефона обычно ошибается на 5–30 м."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يفعّل إشعارات الإعجابات والتعليقات والمتابعات وملاحظات المواقع ورسائل المشرفين. قد تظهر على شاشة القفل. مع إذن الموقع «دائمًا» يخبرك أيضًا بملاحظة معجَب بها عند وصولك إلى مكانها حتى عندما يكون التطبيق مغلقًا؛ تُراقَب مناطق الملاحظات فقط، ويُستخدم GPS الدقيق 30 دقيقة كحد أقصى بالقرب منها، ولا يُحفظ سجل مواقعك. لا تُضاف هذه القراءات إلى الموقع المُشارك مع المشرفين. يلزم الموقع الدقيق والإنترنت. عادةً ما ينحرف GPS الهاتف بين 5 و30 م."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लाइक, कमेंट, फ़ॉलो, लोकेशन नोट और व्यवस्थापक संदेश की सूचनाएँ चालू करता है। ये लॉक स्क्रीन पर दिख सकती हैं। हमेशा लोकेशन अनुमति के साथ ऐप बंद होने पर भी किसी पसंद किए गए नोट की जगह पहुँचने पर बताता है; केवल नोट क्षेत्रों पर नज़र रखी जाती है, उनके पास अधिकतम 30 मिनट सटीक GPS इस्तेमाल होता है और आपका लोकेशन इतिहास सहेजा नहीं जाता। ये माप व्यवस्थापकों के साथ साझा लोकेशन में नहीं जुड़ते। सटीक लोकेशन और इंटरनेट चाहिए। फ़ोन का GPS आमतौर पर 5–30 मी इधर-उधर होता है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লাইক, মন্তব্য, ফলো, অবস্থান নোট ও প্রশাসকের বার্তার বিজ্ঞপ্তি চালু করে। এগুলো লক স্ক্রিনে দেখা যেতে পারে। সবসময় অবস্থান অনুমতি থাকলে অ্যাপ বন্ধ থাকলেও কোনো পছন্দের নোটের জায়গায় পৌঁছালে জানায়; শুধু নোট এলাকা নজরে রাখা হয়, কাছাকাছি সর্বোচ্চ ৩০ মিনিট নির্ভুল GPS ব্যবহার হয় এবং অবস্থানের ইতিহাস সংরক্ষণ করা হয় না। এই পরিমাপ প্রশাসকের সাথে শেয়ার করা অবস্থানে যোগ হয় না। সঠিক অবস্থান ও ইন্টারনেট লাগে। ফোনের GPS সাধারণত ৫–৩০ মি সরে যায়।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいね、コメント、フォロー、場所のメモ、管理者メッセージの通知をオンにします。通知はロック画面に表示されることがあります。位置情報を「常に許可」にすると、アプリを閉じていても、いいねの多いメモの場所に着いたときにお知らせします。見守るのはメモのエリアだけで、近くでは最大30分間だけ高精度GPSを使い、位置情報の履歴は保存しません。この測定値は管理者と共有する位置情報には追加されません。正確な位置情報とインターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启点赞、评论、关注、位置笔记和管理员消息通知。通知可能显示在锁屏上。授予“始终”位置权限后，即使应用已关闭，到达热门笔记所在地点时也会提醒你；只监测笔记区域，靠近时最多使用 30 分钟精确 GPS，不保存你的位置记录。这些测量不会加入与管理员共享的位置。需要精确位置和网络。手机 GPS 通常有 5–30 米误差。"
+          }
+        }
+      }
+    },
     "Beğenildi" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19145,6 +19222,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "举起相机"
+          }
+        }
+      }
+    },
+    "Kampanyalar ve teklifler" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kampanyalar ve teklifler"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Campaigns and offers"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kampagnen und Angebote"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Campañas y ofertas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Campagnes et offres"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Campanhas e ofertas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кампании и предложения"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الحملات والعروض"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अभियान और ऑफ़र"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যাম্পেইন ও অফার"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンペーンとオファー"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "活动和优惠"
           }
         }
       }
@@ -34626,83 +34780,6 @@
         }
       }
     },
-    "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka kampanyaları ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Uygulama kapalıyken de yakındaki notlara ve kampanya alanlarına girdiğini, orada kaldığını ya da çıktığını algılar; sık kaldığın yerden (genellikle ev) çıktığını da anlayabilir. Bu yer yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Bir alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One switch turns on all notifications: likes, comments, follows, location notes, brand campaigns and administrator messages. Messages may appear on the lock screen. Even when the app is closed, it notices when you enter, stay in or leave nearby notes and campaign areas, and when you leave the place where you usually stay (often home). That place is learned only on your phone, never sent to us and never labelled home. Near an area, precise GPS is used for at most 30 minutes; these readings are not added to your location shared with administrators. Always location access, Precise Location and internet are required. Phone GPS is usually 5–30 m off."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ein Schalter aktiviert alle Benachrichtigungen: Likes, Kommentare, Follows, Ortsnotizen, Markenkampagnen und Nachrichten von Administratoren. Nachrichten können auf dem Sperrbildschirm erscheinen. Auch bei geschlossener App erkennt sie, wenn du nahe Notizen und Kampagnenbereiche betrittst, dort bleibst oder sie verlässt, und wenn du den Ort verlässt, an dem du dich meist aufhältst (oft zu Hause). Dieser Ort wird nur auf deinem Handy gelernt, nie an uns gesendet und nie als Zuhause bezeichnet. In der Nähe eines Bereichs wird höchstens 30 Minuten lang genaues GPS genutzt; diese Messungen fließen nicht in den mit Administratoren geteilten Standort ein. Standortzugriff „Immer“, „Genauer Standort“ und Internet sind nötig. Handy-GPS weicht meist 5–30 m ab."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un solo ajuste activa todas las notificaciones: me gusta, comentarios, seguidores, notas de ubicación, campañas de marcas y mensajes de administradores. Los mensajes pueden verse en la pantalla bloqueada. Incluso con la app cerrada, detecta cuándo entras, permaneces o sales de notas y áreas de campaña cercanas, y cuándo sales del lugar donde sueles estar (a menudo tu casa). Ese lugar se aprende solo en tu teléfono, nunca se nos envía y nunca se etiqueta como casa. Cerca de un área se usa GPS preciso durante 30 minutos como máximo; esas mediciones no se añaden a la ubicación compartida con administradores. Se necesita acceso a la ubicación Siempre, Ubicación exacta e internet. El GPS del teléfono suele desviarse 5–30 m."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un seul réglage active toutes les notifications : j’aime, commentaires, abonnements, notes de lieu, campagnes de marques et messages des administrateurs. Les messages peuvent apparaître sur l’écran verrouillé. Même app fermée, elle détecte quand tu entres, restes ou sors de notes et zones de campagne proches, et quand tu quittes l’endroit où tu restes habituellement (souvent chez toi). Ce lieu est appris uniquement sur ton téléphone, jamais envoyé chez nous et jamais étiqueté comme domicile. Près d’une zone, le GPS précis est utilisé 30 minutes au maximum ; ces mesures ne sont pas ajoutées à la position partagée avec les administrateurs. L’accès à la position Toujours, la Position exacte et Internet sont nécessaires. Le GPS d’un téléphone dévie généralement de 5 à 30 m."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Um único ajuste ativa todas as notificações: curtidas, comentários, seguidores, notas de local, campanhas de marcas e mensagens de administradores. As mensagens podem aparecer na tela bloqueada. Mesmo com o app fechado, ele percebe quando você entra, fica ou sai de notas e áreas de campanha próximas, e quando sai do lugar onde costuma ficar (muitas vezes sua casa). Esse lugar é aprendido só no seu celular, nunca enviado para nós e nunca rotulado como casa. Perto de uma área, o GPS preciso é usado por no máximo 30 minutos; essas medições não entram na localização compartilhada com administradores. São necessários acesso à localização Sempre, Localização Precisa e internet. O GPS do celular costuma errar 5–30 m."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Один переключатель включает все уведомления: лайки, комментарии, подписки, заметки о местах, кампании брендов и сообщения администраторов. Сообщения могут отображаться на экране блокировки. Даже когда приложение закрыто, оно замечает, когда вы входите в зону ближайших заметок и кампаний, остаётесь там или выходите, а также когда вы покидаете место, где обычно находитесь (часто дом). Это место определяется только на телефоне, никогда не отправляется нам и не помечается как дом. Рядом с зоной точный GPS используется не дольше 30 минут; эти данные не добавляются к местоположению для администраторов. Нужны доступ к геопозиции «Всегда», «Точная геопозиция» и интернет. GPS телефона обычно ошибается на 5–30 м."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "مفتاح واحد يفعّل كل الإشعارات: الإعجابات والتعليقات والمتابعات وملاحظات المواقع وحملات العلامات التجارية ورسائل المشرفين. قد تظهر الرسائل على شاشة القفل. حتى عندما يكون التطبيق مغلقًا، يلاحظ دخولك إلى الملاحظات ومناطق الحملات القريبة أو بقاءك فيها أو خروجك منها، وخروجك من المكان الذي تقيم فيه عادةً (غالبًا المنزل). يُتعلَّم هذا المكان على هاتفك فقط، ولا يُرسل إلينا أبدًا ولا يُصنَّف كمنزل. بالقرب من منطقة يُستخدم GPS الدقيق لمدة 30 دقيقة كحد أقصى؛ ولا تُضاف هذه القراءات إلى الموقع المُشارك مع المشرفين. يلزم إذن الموقع «دائمًا» والموقع الدقيق والإنترنت. عادةً ما ينحرف GPS الهاتف بين 5 و30 م."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "एक ही सेटिंग सभी सूचनाएँ चालू करती है: लाइक, कमेंट, फ़ॉलो, लोकेशन नोट, ब्रांड अभियान और व्यवस्थापक संदेश। संदेश लॉक स्क्रीन पर दिख सकते हैं। ऐप बंद होने पर भी यह पहचानता है कि आप आस-पास के नोट और अभियान क्षेत्रों में कब आते हैं, रुकते हैं या निकलते हैं, और कब उस जगह से निकलते हैं जहाँ आप आमतौर पर रहते हैं (अक्सर घर)। यह जगह केवल आपके फ़ोन पर सीखी जाती है, हमें कभी नहीं भेजी जाती और घर के रूप में चिह्नित नहीं होती। किसी क्षेत्र के पास अधिकतम 30 मिनट सटीक GPS इस्तेमाल होता है; ये माप व्यवस्थापकों के साथ साझा लोकेशन में नहीं जुड़ते। हमेशा लोकेशन अनुमति, सटीक लोकेशन और इंटरनेट चाहिए। फ़ोन का GPS आमतौर पर 5–30 मी इधर-उधर होता है।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "একটি সুইচ সব বিজ্ঞপ্তি চালু করে: লাইক, মন্তব্য, ফলো, অবস্থান নোট, ব্র্যান্ড ক্যাম্পেইন ও প্রশাসকের বার্তা। বার্তা লক স্ক্রিনে দেখা যেতে পারে। অ্যাপ বন্ধ থাকলেও এটি বুঝতে পারে কখন আপনি কাছের নোট ও ক্যাম্পেইন এলাকায় ঢোকেন, থাকেন বা বের হন, এবং কখন আপনি সাধারণত যেখানে থাকেন (প্রায়ই বাড়ি) সেখান থেকে বের হন। এই জায়গা শুধু আপনার ফোনে শেখা হয়, কখনো আমাদের কাছে পাঠানো হয় না এবং বাড়ি হিসেবে চিহ্নিত হয় না। কোনো এলাকার কাছে সর্বোচ্চ ৩০ মিনিট নির্ভুল GPS ব্যবহার হয়; এই পরিমাপ প্রশাসকের সাথে শেয়ার করা অবস্থানে যোগ হয় না। সবসময় অবস্থান অনুমতি, সঠিক অবস্থান ও ইন্টারনেট লাগে। ফোনের GPS সাধারণত ৫–৩০ মি সরে যায়।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1つのスイッチですべての通知をオンにします：いいね、コメント、フォロー、場所のメモ、ブランドのキャンペーン、管理者からのメッセージ。メッセージはロック画面に表示されることがあります。アプリを閉じていても、近くのメモやキャンペーンエリアに入った・とどまった・出たこと、そしていつもいる場所（多くは自宅）を出たことを検知します。この場所はスマートフォン上でのみ学習され、当社に送られることはなく、自宅として記録されることもありません。エリアの近くでは最大30分間、高精度GPSを使います。この測定値は管理者と共有する位置情報には追加されません。位置情報の「常に許可」、正確な位置情報、インターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "一个开关即可开启所有通知：点赞、评论、关注、位置笔记、品牌活动和管理员消息。消息可能显示在锁屏上。即使应用已关闭，它也能察觉你何时进入、停留或离开附近的笔记和活动区域，以及何时离开你常待的地方（通常是家）。这个地方只在你的手机上学习，绝不会发送给我们，也不会被标记为家。靠近某个区域时，最多使用 30 分钟精确 GPS；这些测量不会加入与管理员共享的位置。需要“始终”位置权限、精确位置和网络。手机 GPS 通常有 5–30 米误差。"
-          }
-        }
-      }
-    },
     "Teknik ve kullanım verilerini paylaş" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -46711,6 +46788,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
+          }
+        }
+      }
+    },
+    "İsteğe bağlı. Açarsan markaların kampanyaları, örneğin bir indirim kodu, kampanya alanına girince, orada kalınca veya sık kaldığın yerden çıkınca bildirim olarak gelebilir. Sık kaldığın yer iOS ziyaret kayıtlarından yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Markalar konumunu ve kim olduğunu görmez. İstediğin an kapatabilirsin." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İsteğe bağlı. Açarsan markaların kampanyaları, örneğin bir indirim kodu, kampanya alanına girince, orada kalınca veya sık kaldığın yerden çıkınca bildirim olarak gelebilir. Sık kaldığın yer iOS ziyaret kayıtlarından yalnızca telefonunda öğrenilir, bize gönderilmez ve ev olarak etiketlenmez. Markalar konumunu ve kim olduğunu görmez. İstediğin an kapatabilirsin."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional. If you turn this on, brand campaigns such as a discount code may arrive as notifications when you enter or stay in a campaign area, or when you leave the place where you usually stay. That place is learned from iOS visit records on your phone only, never sent to us and never labelled home. Brands never see your location or who you are. You can turn this off at any time."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional. Wenn du das aktivierst, können Markenkampagnen wie ein Rabattcode als Mitteilung kommen, wenn du einen Kampagnenbereich betrittst oder dort bleibst oder den Ort verlässt, an dem du dich meist aufhältst. Dieser Ort wird aus iOS-Besuchsdaten nur auf deinem Handy gelernt, nie an uns gesendet und nie als Zuhause bezeichnet. Marken sehen nie deinen Standort oder wer du bist. Du kannst das jederzeit ausschalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcional. Si lo activas, las campañas de marcas, como un código de descuento, pueden llegar como notificación al entrar o permanecer en una zona de campaña o al salir del lugar donde sueles estar. Ese lugar se aprende de los registros de visitas de iOS solo en tu teléfono, nunca se nos envía y nunca se etiqueta como casa. Las marcas nunca ven tu ubicación ni quién eres. Puedes desactivarlo cuando quieras."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facultatif. Si tu l’actives, des campagnes de marques comme un code de réduction peuvent arriver en notification quand tu entres ou restes dans une zone de campagne, ou quand tu quittes l’endroit où tu restes habituellement. Ce lieu est appris à partir des visites iOS uniquement sur ton téléphone, jamais envoyé chez nous et jamais étiqueté comme domicile. Les marques ne voient jamais ta position ni qui tu es. Tu peux le désactiver à tout moment."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcional. Se ativar, campanhas de marcas, como um código de desconto, podem chegar como notificação quando você entra ou fica numa área de campanha, ou quando sai do lugar onde costuma ficar. Esse lugar é aprendido dos registros de visitas do iOS só no seu celular, nunca enviado para nós e nunca rotulado como casa. As marcas nunca veem sua localização nem quem você é. Você pode desativar quando quiser."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Необязательно. Если включить, кампании брендов, например код скидки, могут приходить уведомлением, когда вы входите в зону кампании или остаётесь в ней, либо когда покидаете место, где обычно находитесь. Это место определяется по визитам iOS только на телефоне, никогда не отправляется нам и не помечается как дом. Бренды не видят ни ваше местоположение, ни кто вы. Отключить можно в любой момент."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اختياري. إذا فعّلته، فقد تصلك حملات العلامات التجارية مثل رمز خصم كإشعار عند دخولك منطقة حملة أو بقائك فيها أو عند خروجك من المكان الذي تقيم فيه عادةً. يُتعلَّم هذا المكان من سجلات زيارات iOS على هاتفك فقط، ولا يُرسل إلينا أبدًا ولا يُصنَّف كمنزل. لا ترى العلامات التجارية موقعك أو هويتك أبدًا. يمكنك إيقافه في أي وقت."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "वैकल्पिक। इसे चालू करने पर ब्रांड अभियान, जैसे छूट कोड, किसी अभियान क्षेत्र में आने या रुकने पर, या उस जगह से निकलने पर जहाँ आप आमतौर पर रहते हैं, सूचना के रूप में आ सकते हैं। यह जगह iOS विज़िट रिकॉर्ड से केवल आपके फ़ोन पर सीखी जाती है, हमें कभी नहीं भेजी जाती और घर के रूप में चिह्नित नहीं होती। ब्रांड कभी आपकी लोकेशन या पहचान नहीं देखते। आप इसे कभी भी बंद कर सकते हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ঐচ্ছিক। চালু করলে ব্র্যান্ডের ক্যাম্পেইন, যেমন ছাড়ের কোড, কোনো ক্যাম্পেইন এলাকায় ঢুকলে বা থাকলে, অথবা আপনি সাধারণত যেখানে থাকেন সেখান থেকে বের হলে বিজ্ঞপ্তি হিসেবে আসতে পারে। এই জায়গা iOS ভিজিট রেকর্ড থেকে শুধু আপনার ফোনে শেখা হয়, কখনো আমাদের কাছে পাঠানো হয় না এবং বাড়ি হিসেবে চিহ্নিত হয় না। ব্র্যান্ড কখনো আপনার অবস্থান বা পরিচয় দেখে না। যেকোনো সময় বন্ধ করতে পারেন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任意です。オンにすると、キャンペーンエリアに入ったりとどまったりしたとき、またはいつもいる場所を出たときに、割引コードなどのブランドのキャンペーンが通知されることがあります。その場所はiOSの訪問記録からスマートフォン上でのみ学習され、当社に送られることはなく、自宅として記録されることもありません。ブランドがあなたの位置情報や身元を見ることはありません。いつでもオフにできます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可选。开启后，当你进入或停留在活动区域，或离开你常待的地方时，品牌活动（例如折扣码）可能以通知形式发送给你。这个地方只根据 iOS 访问记录在你的手机上学习，绝不会发送给我们，也不会被标记为家。品牌永远看不到你的位置或身份。你可以随时关闭。"
           }
         }
       }

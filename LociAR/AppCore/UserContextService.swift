@@ -156,6 +156,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
             UserDefaults.standard.set(notificationsEnabled, forKey: "lociar.notifications.enabled.\(id.uuidString)")
             NotificationService.shared.setDeliveryEnabled(notificationsEnabled)
             CampaignArrivalService.shared.setPlaceNotesEnabled(placeNotesEnabled)
+            CampaignArrivalService.shared.setPromotionsEnabled(promotionsEnabled && notificationsEnabled)
             CampaignArrivalService.shared.setEnabled(notificationsEnabled)
             preferencesRevision = response.revision
             updateLocationService()
@@ -217,6 +218,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
             UserDefaults.standard.set(notificationsEnabled, forKey: "lociar.notifications.enabled.\(id.uuidString)")
             NotificationService.shared.setDeliveryEnabled(notificationsEnabled)
             CampaignArrivalService.shared.setPlaceNotesEnabled(placeNotesEnabled)
+            CampaignArrivalService.shared.setPromotionsEnabled(promotionsEnabled && notificationsEnabled)
             CampaignArrivalService.shared.setEnabled(notificationsEnabled)
             if location, manager.authorizationStatus == .notDetermined { manager.requestWhenInUseAuthorization() }
             updateLocationService()

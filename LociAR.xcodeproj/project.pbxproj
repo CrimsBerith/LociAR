@@ -204,6 +204,7 @@
 		B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRepository.swift; sourceTree = "<group>"; };
 		BA24E9E41EA62BF05C10DAA6 /* AuthGateUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateUITests.swift; sourceTree = "<group>"; };
 		BA62B95714894BC9F4BABA0F /* LocationNoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNoteTests.swift; sourceTree = "<group>"; };
+		BC4C259A333DB3649222F01A /* LociAR.Release.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LociAR.Release.entitlements; sourceTree = "<group>"; };
 		BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifRepository.swift; sourceTree = "<group>"; };
 		CFB8A5BAB83F4214657CF863 /* LocationNotePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNotePolicy.swift; sourceTree = "<group>"; };
 		D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARExperienceView.swift; sourceTree = "<group>"; };
@@ -451,6 +452,7 @@
 				04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */,
 				6B4C729B0D12809A5D15180A /* Localizable.xcstrings */,
 				4D9F628611DF77BEA62DDC3E /* LociAR.entitlements */,
+				BC4C259A333DB3649222F01A /* LociAR.Release.entitlements */,
 				E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
@@ -1033,7 +1035,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = LociAR/Resources/LociAR.entitlements;
+				CODE_SIGN_ENTITLEMENTS = LociAR/Resources/LociAR.Release.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

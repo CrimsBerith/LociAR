@@ -58,10 +58,11 @@ test('account hard deletion removes optional data, preferences and usage events'
   assert.equal((await adminDb.collection('analytics_events').where('user_id', '==', user.luid).get()).empty, true);
 });
 
-test('arrival consent is separate, requires its notice and is cleared when promotions are disabled', async () => {
+test('arrival consent requires its notice, needs notifications on and is cleared when promotions are disabled', async () => {
   const user = await newAnonymousUser();
   assert.equal((await user.call('readDataPreferences')).arrivals, false);
-  const base = { telemetry: false, location: false, promotions: true, promotionsNoticeVersion: '2026-10-11-promotions', revision: '', noticeVersion: '2026-10-11' };
+  const base = { telemetry: false, location: false, promotions: true, promotionsNoticeVersion: '2026-10-11-promotions', revision: '', noticeVersion: '2026-10-11',
+    notifications: true, notificationsNoticeVersion: '2026-10-11-notifications' };
   assert.equal((await expectFailure(user.call('setDataPreferences', { ...base, arrivals: true }))).code, 'functions/invalid-argument');
   const allowed = await user.call('setDataPreferences', { ...base, arrivals: true, arrivalsNoticeVersion: '2026-10-11-arrivals' });
   assert.equal(allowed.arrivals, true); assert.equal(allowed.location, false);
@@ -69,28 +70,33 @@ test('arrival consent is separate, requires its notice and is cleared when promo
   assert.equal(revoked.arrivals, false);
 });
 
-test('departure consent is separate from arrivals, revokes its private origins and rotates its consent epoch', async () => {
+test('campaign consent drives arrivals and departures, revokes private origins and rotates the consent epoch', async () => {
   const user = await newAnonymousUser();
-  const base = { telemetry: false, location: false, promotions: true, promotionsNoticeVersion: '2026-10-11-promotions', revision: '', noticeVersion: '2026-10-11' };
+  const base = { telemetry: false, location: false, notifications: true, notificationsNoticeVersion: '2026-10-11-notifications', revision: '', noticeVersion: '2026-10-11' };
   assert.equal((await user.call('readDataPreferences')).departures, false);
-  assert.equal((await expectFailure(user.call('setDataPreferences', { ...base, departures: true }))).code, 'functions/invalid-argument');
-  const allowed = await user.call('setDataPreferences', { ...base, departures: true, departuresNoticeVersion: '2026-10-11-departures' });
-  assert.equal(allowed.departures, true); assert.equal(allowed.arrivals, false);
+  assert.equal((await expectFailure(user.call('setDataPreferences', { ...base, promotions: true }))).code, 'functions/invalid-argument');
+  const allowed = await user.call('setDataPreferences', { ...base, promotions: true, promotionsNoticeVersion: '2026-10-11-promotions' });
+  assert.equal(allowed.departures, true); assert.equal(allowed.arrivals, true);
   const pref = adminDb.collection('user_data_preferences').doc(user.luid), firstEpoch = (await pref.get()).get('departures_revision');
   const origin = adminDb.collection('campaign_departure_regions').doc(randomUUID()); await origin.set({ owner_luid: user.luid, consent_revision: firstEpoch });
-  const disabled = await user.call('setDataPreferences', { ...base, revision: allowed.revision, departures: false, departuresNoticeVersion: '2026-10-11-departures' });
+  const disabled = await user.call('setDataPreferences', { ...base, revision: allowed.revision, promotions: false, promotionsNoticeVersion: '2026-10-11-promotions' });
+  assert.equal(disabled.departures, false); assert.equal(disabled.arrivals, false);
   assert.equal((await origin.get()).exists, false); assert.notEqual((await pref.get()).get('departures_revision'), firstEpoch);
-  const again = await user.call('setDataPreferences', { ...base, revision: disabled.revision, departures: true, departuresNoticeVersion: '2026-10-11-departures' });
+  const again = await user.call('setDataPreferences', { ...base, revision: disabled.revision, promotions: true, promotionsNoticeVersion: '2026-10-11-promotions' });
   assert.equal(again.departures, true); assert.notEqual((await pref.get()).get('departures_revision'), firstEpoch);
 });
 
-test('one notification consent enables every category, remains on during technical changes and disables every category together', async () => {
+test('notifications cover social and note alerts; brand campaigns need their own opt-in and stop with notifications', async () => {
   const u = await newAnonymousUser(), base = { telemetry: false, location: false, revision: '', noticeVersion: '2026-10-11', notifications: true };
   assert.equal((await expectFailure(u.call('setDataPreferences', base))).code, 'functions/invalid-argument');
   const on = await u.call('setDataPreferences', { ...base, notificationsNoticeVersion: '2026-10-11-notifications' });
-  for (const key of ['notifications', 'promotions', 'arrivals', 'departures', 'placeNotes']) assert.equal(on[key], true);
+  assert.equal(on.notifications, true); assert.equal(on.placeNotes, true);
+  for (const key of ['promotions', 'arrivals', 'departures']) assert.equal(on[key], false, 'marketing is not implied by notifications');
+  const marketing = await u.call('setDataPreferences', { ...base, revision: on.revision, notificationsNoticeVersion: '2026-10-11-notifications',
+    promotions: true, promotionsNoticeVersion: '2026-10-11-promotions' });
+  for (const key of ['notifications', 'promotions', 'arrivals', 'departures', 'placeNotes']) assert.equal(marketing[key], true);
   const changed = await u.call('setDataPreferences', { telemetry: true, location: false, noticeVersion: base.noticeVersion,
-    revision: on.revision, placeNotes: false, placeNotesNoticeVersion: '2026-10-11-place-notes' });
+    revision: marketing.revision, placeNotes: false, placeNotesNoticeVersion: '2026-10-11-place-notes' });
   for (const key of ['notifications', 'promotions', 'arrivals', 'departures', 'placeNotes']) assert.equal(changed[key], true);
   const off = await u.call('setDataPreferences', { ...base, notifications: false, revision: changed.revision, notificationsNoticeVersion: '2026-10-11-notifications' });
   for (const key of ['notifications', 'promotions', 'arrivals', 'departures', 'placeNotes']) assert.equal(off[key], false);

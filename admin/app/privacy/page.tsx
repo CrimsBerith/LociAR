@@ -53,7 +53,7 @@ export default function PrivacyPage() {
       <h2>Amaçlar ve hukuki sebepler</h2>
       <ul>
         <li>Hesap açma, giriş, içerik yayınlama ve gösterme — sözleşmenin kurulması ve ifası (KVKK m.5/2-c).</li>
-        <li>Sosyal bildirimler, konum notları, marka indirimleri ve yönetici mesajları — Profil → Ayarlar → Bildirimler üzerinden birlikte onayınıza bağlıdır; ayrıca iOS bildirim izni gerekir.</li>
+        <li>Sosyal bildirimler, konum notları ve yönetici mesajları — Profil → Ayarlar → Bildirimler onayınıza bağlıdır; marka kampanyaları ve teklifler ayrıca, varsayılanı kapalı “Kampanyalar ve teklifler” onayını ister. iOS bildirim izni de gerekir.</li>
         <li>Moderasyon, korumalı bölge ve 18+ içerik engelleri, profil fotoğrafı incelemesi, spam ve kötüye kullanımın önlenmesi,
           güvenlik — meşru menfaat (m.5/2-f) ve hukuki yükümlülük (m.5/2-ç).</li>
         <li>Çökme raporlarıyla uygulamanın kararlılığını sağlamak — meşru menfaat (m.5/2-f); Profil → Ayarlar&apos;dan kapatılabilir.</li>
@@ -101,8 +101,9 @@ export default function PrivacyPage() {
       </p>
 
       <h2>Bildirimler ve konum hatırlatmaları</h2>
-      <p>Profil → Ayarlar&apos;daki varsayılanı kapalı tek Bildirimler seçeneği beğeni, yorum, takip, konum notları,
-        marka indirimleri ve yönetici mesajlarını kapsar. Açmadan önce bu kapsam açıklanır. Yönetici konum paylaşımı
+      <p>Profil → Ayarlar&apos;daki varsayılanı kapalı Bildirimler seçeneği beğeni, yorum, takip, konum notları ve yönetici
+        mesajlarını kapsar. Marka kampanyaları ve teklifler, yine varsayılanı kapalı ayrı “Kampanyalar ve teklifler” seçeneğini ister
+        ve istediğiniz an kapatılabilir. Açmadan önce her birinin kapsamı açıklanır. Yönetici konum paylaşımı
         ve teknik paylaşım ayrı kalır. Ayrıca iOS bildirim izni gerekir; onaylanan metin kilit ekranında görünebilir.
         Bildirimleri kapatınca bu cihazda alan izleme, belirteç kaydı ve yeni bildirim kabulü durur.
         Önceki uygulama içi aktiviteler kalabilir.</p>

@@ -65,6 +65,10 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
         OTHER_LDFLAGS: $(inherited) -ObjC
+      configs:
+        # App Store / TestFlight builds use the production APNs environment.
+        Release:
+          CODE_SIGN_ENTITLEMENTS: LociAR/Resources/LociAR.Release.entitlements
     dependencies:
       - package: Firebase
         product: FirebaseCore
