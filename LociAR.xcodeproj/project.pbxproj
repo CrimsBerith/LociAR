@@ -31,6 +31,7 @@
 		4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E26683A2CA08CEF5A8E794 /* AppRouter.swift */; };
 		4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26517046B2409888717CB325 /* PersistenceModels.swift */; };
 		546E8916FDEB717C7FFA07A0 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 3CF89F180C12C721B4EDB4B7 /* FirebaseAppCheck */; };
+		54C2F25C06FC6FFE4CD4183E /* CameraLocationRefineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E6CBE9F116D30F21D9E4A6 /* CameraLocationRefineView.swift */; };
 		55CE471EA1E42323D0BAC5D8 /* AuthGateUserFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D91864B39E041B2748830A /* AuthGateUserFlowUITests.swift */; };
 		56AD74CF3A2F1886FC0866CD /* LocationNotePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8A5BAB83F4214657CF863 /* LocationNotePolicy.swift */; };
 		5821095FE42FF0FEC7D5998A /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */; };
@@ -186,6 +187,7 @@
 		7A8A0BF94835F851681A368D /* MediaAssetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAssetStore.swift; sourceTree = "<group>"; };
 		7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		7CC3FB9C9D3DD465022F5FCB /* CampaignZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampaignZone.swift; sourceTree = "<group>"; };
+		88E6CBE9F116D30F21D9E4A6 /* CameraLocationRefineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraLocationRefineView.swift; sourceTree = "<group>"; };
 		891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyAsyncStorageImporter.swift; sourceTree = "<group>"; };
 		8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -505,6 +507,7 @@
 		E41B794880A7FE771C655E98 /* Map */ = {
 			isa = PBXGroup;
 			children = (
+				88E6CBE9F116D30F21D9E4A6 /* CameraLocationRefineView.swift */,
 				37856005A051A853781DFDA3 /* MapFeatureView.swift */,
 				AFE20E5A8C1512F958D0BF84 /* NoteDensity.swift */,
 				178E7F50CCFFE7E58ECE0B84 /* PlaceNoteComposer.swift */,
@@ -753,6 +756,7 @@
 				A7A908851941CBB7A3735EDD /* AuthView.swift in Sources */,
 				DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */,
 				71D8EF88107A94968844A33E /* BackendPostContract.swift in Sources */,
+				54C2F25C06FC6FFE4CD4183E /* CameraLocationRefineView.swift in Sources */,
 				6929300EA559F389AD94C0F9 /* CampaignArrivalService.swift in Sources */,
 				0684C5B54CBF82C365DD6006 /* CampaignZone.swift in Sources */,
 				7478793DCB1CF6E75F8A2455 /* ConnectivityMonitor.swift in Sources */,
