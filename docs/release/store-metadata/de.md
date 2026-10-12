@@ -20,7 +20,7 @@ Notizen an echte Orte heften
 Hinterlasse kurze Nachrichten und GIFs auf echten Flächen und entdecke in AR, was andere in deiner Nähe hinterlassen haben – genau dort, wo es platziert wurde.
 ```
 
-## Description (1195/4000)
+## Description (1692/4000)
 
 ```text
 Hinterlasse Notizen an echten Orten.
@@ -30,12 +30,13 @@ Mit LociAR heftest du kurze Nachrichten und GIFs an echte Flächen (Tisch, Boden
 FUNKTIONEN
 • An echte Flächen heften: Das Fadenkreuz in der Mitte rastet auf von ARKit erkannte Flächen ein; Google ARCore Cloud Anchors und Geospatial zeigen deinen Beitrag wieder an derselben Stelle.
 • In der Nähe entdecken: Sieh Beiträge um dich herum auf der Karte und öffne sie in AR.
+• Ortsnotizen: Hinterlasse einen Tipp genau dort, wo du stehst („WLAN-Passwort liegt an der Kasse“); die beliebtesten Notizen stehen oben, und mit Standortzugriff „Immer“ kann dich eine beliebte Notiz bei deiner Ankunft benachrichtigen.
 • Sozial: Liken, kommentieren, in Sammlungen speichern, Creatorn folgen und über Likes, Kommentare und neue Follower benachrichtigt werden.
-• Sichere Community: Neue Beiträge werden vor der Veröffentlichung geprüft, geschützte Orte und 18+-Inhalte sind gesperrt, und du kannst jeden melden oder blockieren.
+• Sichere Community: AR-Beiträge werden vor der Veröffentlichung geprüft, Ortsnotizen werden automatisch gefiltert und nach Meldungen ausgeblendet, geschützte Orte und 18+-Inhalte sind gesperrt, und du kannst jeden melden oder blockieren.
 • Deine Daten, deine Wahl: Lösche dein Konto und alle zugehörigen Daten jederzeit dauerhaft im Profil.
 
 DATENSCHUTZ
-Kamera und Standort werden nur für das AR-Erlebnis verwendet. Für die AR-Positionierung verarbeitet Google ARCore Sensordaten (z. B. Kamera und Standort). Kein Tracking, keine Werbung.
+Der Standort wird genutzt, um Notizen anzuzeigen und zu platzieren und – nur wenn du es erlaubst – dich bei deiner Ankunft an einer beliebten Notiz zu benachrichtigen; dein Standortverlauf wird nicht gespeichert. Markenangebote sind optional und standardmäßig aus. Für die AR-Positionierung verarbeitet Google ARCore Sensordaten (z. B. Kamera und Standort). Kein Tracking.
 
 Erfordert ein iPhone mit ARKit-Unterstützung.
 ```
@@ -46,8 +47,8 @@ Erfordert ein iPhone mit ARKit-Unterstützung.
 augmented reality,karte,kamera,sozial,notiz,fläche,entdecken,standort,pin,ort,gif
 ```
 
-## What's New in This Version (191/4000)
+## What's New in This Version (235/4000)
 
 ```text
-Erste Version: kurze Nachrichten und GIFs an echte Flächen heften, Beiträge in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen, Follower und Mitteilungen. In 12 Sprachen.
+Erste Version: kurze Nachrichten und GIFs an echte Flächen heften, Ortsnotizen dort hinterlassen, wo du stehst, Notizen in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen, Follower und Mitteilungen. In 12 Sprachen.
 ```

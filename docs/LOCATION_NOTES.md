@@ -20,7 +20,9 @@ GPS measurement starts when the composer opens, so the fix usually settles while
 | 15–50 m | The author places the pin by hand (map centre), within 50 m of the measurement | `manual` | 30 m |
 | > 50 m | Refused: move outside or retry | — | — |
 
-Approximate-location permission triggers a temporary full-accuracy request. `createPlaceNote` re-checks the source, accuracy and pin distance, then applies the normal post admission (anonymous author, review, protected zones, rate/density limits). The post stores `note_kind: 'location'`, `location_note {source, accuracy_m, pin_drag_m}`, `notify_radius_m` and `push_state: 'none'`. The server also accepts `geospatial` (≤ 5 m → 15 m radius) for a future AR-screen entry point.
+**Refine with camera** (physical iPhones with ARCore): opens the shared AR camera with the Google AR notice; ARCore Geospatial (VPS) localizes against Street View imagery, typically 1–5 m outdoors. A camera fix ≤ 5 m is used automatically, ≤ 15 m on tap, and the note is sent with `source: 'geospatial'` (≤ 5 m gets a 15 m radius, otherwise as GPS). Indoors VPS usually does not localize; GPS and the manual pin remain.
+
+Approximate-location permission triggers a temporary full-accuracy request. `createPlaceNote` re-checks the source, accuracy and pin distance, then applies the normal post admission (anonymous author, text filter, protected zones, rate/density limits) and publishes the note at once. The post stores `note_kind: 'location'`, `location_note {source, accuracy_m, pin_drag_m}`, `notify_radius_m` and `push_state: 'none'`.
 
 ## Ranking
 
@@ -50,7 +52,7 @@ Phone GPS is usually 5–30 m off, and worse indoors. Use 15–25 m radii outdoo
 A spot is a server-side cluster (`note_spots`): a public note joins the nearest spot whose centre is within 25 m; five unclustered notes within 25 m start a new spot. The centre is the running mean of its notes and the circle grows to cover them, at most 40 m (`syncSpotMembership`, also run by the hourly reconciler). When a spot holds at least `dense_threshold` notes (default 30, 5–1000), it is a dense spot:
 
 - **Locked text.** `readPublicContent` returns only the place, likes and `dense_spot {cell, count, unlock_radius_m}` for other people's notes there; caption, text and GIF are withheld. Authors always read their own notes.
-- **Open on site.** The map banner's **Open here** sends the best fresh fix to `unlockDenseSpot`: the AR camera's Geospatial position when it is localized and better (1–5 m outdoors), otherwise GPS. The spot opens for 30 minutes when the distance to its circle is at most `unlock_radius_m + min(accuracy, 5 m)` (default 15 m, admin range 2–50 m). A 2–5 m setting is reliable only with the AR camera outdoors; phone GPS alone needs about 15 m.
+- **Open on site.** The map banner's **Open here** sends the best fresh fix to `unlockDenseSpot`: the AR camera's Geospatial position when it is localized and better (1–5 m outdoors), otherwise GPS. **Open with camera** starts the AR camera from the banner for this. The spot opens for 30 minutes when the distance to its circle is at most `unlock_radius_m + min(accuracy, 5 m)` (default 15 m, admin range 2–50 m). A 2–5 m setting is reliable only with the AR camera outdoors; phone GPS alone needs about 15 m.
 - **"Many notes here" alert.** Dense spots also appear in the wake-region list. Entering within 10 m of the spot circle (+ GPS tolerance) sends one text-free alert per 30 days (`dense_spot_receipts`); tapping it opens the map at the spot. An approved note inside a locked spot is also announced without its text, and its activity entry stays closed.
 
 ## Map
@@ -67,7 +69,7 @@ A spot is a server-side cluster (`note_spots`): a public note joins the nearest 
 
 ## Administration
 
-**Location notes** (`/admin/place-notes`) lists candidates and approved notes by likes. Moderators approve or stop notifications, remove notes (soft delete), set the like threshold, dense-spot size and unlock radius, and an optional end date (`ends_at`; `expireScheduledNotes` removes the note every 15 minutes once due). Place operators (`places.write`) set the 15–100 m radius. **Posts → Create** can place a location note at any coordinate and approve it in the same audited step. Every change requires MFA, a reason and an audit receipt.
+**Location notes** (`/admin/place-notes`) lists candidates and approved notes by likes. Moderators approve or stop notifications, remove notes (soft delete), set the like threshold, dense-spot size and unlock radius, and an optional end date (`ends_at`; `expireScheduledNotes` removes the note every 15 minutes once due). Place operators (`places.write`) set the 15–100 m radius. **Posts → Create** can place a location note at any coordinate (click the OpenStreetMap picker or type coordinates) and approve it in the same audited step. Every change requires MFA, a reason and an audit receipt.
 
 ## Release
 

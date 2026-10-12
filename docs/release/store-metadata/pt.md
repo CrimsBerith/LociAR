@@ -20,7 +20,7 @@ Fixe notas em lugares reais
 Deixe mensagens curtas e GIFs em superfícies reais e descubra em AR o que outras pessoas deixaram por perto, exatamente onde foi deixado.
 ```
 
-## Description (1187/4000)
+## Description (1643/4000)
 
 ```text
 Deixe notas em lugares reais.
@@ -30,12 +30,13 @@ O LociAR permite fixar mensagens curtas e GIFs em superfícies reais (uma mesa, 
 RECURSOS
 • Fixe em superfícies reais: a mira central se prende às superfícies detectadas pelo ARKit; o Google ARCore Cloud Anchors e o Geospatial mostram sua publicação de novo no mesmo ponto.
 • Descubra por perto: veja publicações ao seu redor no mapa e abra-as em AR.
+• Notas de lugar: deixe uma dica exatamente onde você está ("A senha do Wi-Fi está no caixa"); as notas mais curtidas aparecem primeiro e, com acesso à localização "Sempre", uma nota curtida pode avisar você ao chegar.
 • Social: curta, comente, salve em coleções, siga criadores e receba avisos de curtidas, comentários e novos seguidores.
-• Comunidade segura: novas publicações são revisadas antes de ficarem públicas, locais protegidos e conteúdo 18+ são bloqueados, e você pode denunciar ou bloquear qualquer pessoa.
+• Comunidade segura: publicações AR são revisadas antes de ficarem públicas, notas de lugar são filtradas automaticamente e ocultadas quando denunciadas, locais protegidos e conteúdo 18+ são bloqueados, e você pode denunciar ou bloquear qualquer pessoa.
 • Seus dados, sua escolha: exclua sua conta e todos os seus dados permanentemente pelo perfil a qualquer momento.
 
 PRIVACIDADE
-Câmera e localização são usadas apenas para a experiência AR. Para o posicionamento AR, o Google ARCore processa dados de sensores (por ex., câmera e localização). Sem rastreamento, sem anúncios.
+A localização é usada para mostrar e posicionar notas e, só se você permitir, para avisar sobre uma nota curtida quando você chega ao local; seu histórico de localização não é armazenado. Ofertas de marcas são opcionais e vêm desativadas. Para o posicionamento AR, o Google ARCore processa dados de sensores (por ex., câmera e localização). Sem rastreamento.
 
 Requer um iPhone compatível com ARKit.
 ```
@@ -46,8 +47,8 @@ Requer um iPhone compatível com ARKit.
 realidade aumentada,mapa,câmera,social,nota,superfície,descobrir,local,lugar,gif
 ```
 
-## What's New in This Version (189/4000)
+## What's New in This Version (220/4000)
 
 ```text
-Primeira versão: fixe mensagens curtas e GIFs em superfícies reais, descubra publicações próximas no mapa, além de curtidas, comentários, coleções, seguidores e notificações. Em 12 idiomas.
+Primeira versão: fixe mensagens curtas e GIFs em superfícies reais, deixe notas de lugar onde você está, descubra notas próximas no mapa, além de curtidas, comentários, coleções, seguidores e notificações. Em 12 idiomas.
 ```

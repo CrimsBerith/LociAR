@@ -4,34 +4,37 @@ Owner: release manager. Update this file whenever permissions, background modes 
 
 ## 1. Paste into App Store Connect → App Review Information → Notes
 
-> Keep under 4,000 characters. Replace `<…>` placeholders before submitting.
+This is the **only** notes text for the submission (it replaces the older text in `APP_STORE_SUBMISSION_GUIDE.md` §6; both together exceed Apple's 4,000-character limit). About 3,300 characters with the video link.
+
+Before pasting: replace `<VIDEO_LINK>` with the screen recording from section 6 (an unlisted link, or attach the file under App Review Information → Attachment and write "see attachment"). The demo account (`apple-review@lociar.app`) and its password go only into the **Sign-In Information** fields, never into these notes. Run `node functions/scripts/seed-review-content.mjs apple-review@lociar.app` once against production so the sample posts and location notes exist.
 
 ```
-LociAR lets people leave short anonymous text notes (and AR notes) at the exact place they stand, so the next visitor gets useful local tips: "Wi-Fi password is at the till", "Entrance is around the back", "Ask for the window table".
-
-LOCATION – TWO SEPARATE LEVELS, BOTH OPTIONAL
-1) While Using the App (asked when the user first opens the map or leaves a note). Used to show notes around the user, to save a new note at the user's exact position, and to open AR content in the right spot. The app is fully usable with this level.
-2) Always (asked only after the user turns on Profile → Settings → Notifications, never at launch). Used for one feature: telling the user about a well-liked note when they arrive at the note's place while the app is closed, e.g. walking into a café brings the "Wi-Fi password is at the till" note. We do this with region monitoring around note areas (and campaign areas, only if the user separately opted in), significant-change updates to keep those regions current, and iOS visit monitoring. Precise GPS runs only for a short window (max 30 minutes, usually under a minute) after the user enters an area, with the blue location indicator visible. We do not store location history. If the user declines Always, nothing breaks: notes still appear in the app; only the closed-app reminders are off.
-
-BACKGROUND MODES
-- location: the short precise window above, started only by a region-entry event, to confirm the user is really at the note (phone GPS is 5–30 m off). It stops after the notification, when the user leaves the area, or after 30 minutes.
-- remote-notification: silent pushes tell phones in an area to refresh their monitored note areas when a new note or campaign goes live there. No user-visible content.
-- fetch: BGAppRefreshTask refreshes the same list a few times a day as a fallback.
-
-NOTIFICATIONS AND MARKETING (Guideline 4.5.4)
-- "Notifications" covers likes, comments, follows, location notes and administrator messages.
-- Brand campaigns and offers are a separate, off-by-default switch ("Campaigns and offers") with its own consent text. It can be turned off at any time in Profile → Settings. Brands never receive users' locations or identities.
-- For campaigns that fire when someone leaves the place where they usually stay, the phone learns that place from iOS visit records on the device only. It is never uploaded and never labelled "home".
-
-USER-GENERATED CONTENT (Guideline 1.2)
-Automatic text filter (no links, no blocked terms), report and block on every note and profile, notes reported by several different people are hidden automatically, a 24/7 moderation panel can remove any note, and authors are anonymous to other users. Terms: <https://…/terms>. Support: <https://…/support>.
+LociAR lets people leave short anonymous notes, in AR on real surfaces or at the exact spot where they stand, so the next visitor gets useful local tips ("Wi-Fi password is at the counter"). Notes are text and/or one GIPHY GIF (PG-13 at most): no photos, videos or links.
 
 HOW TO REVIEW
-Demo account: <email> / <password> (Settings → Notifications already on).
-1. Map tab → "Leave a location note": the position settles within a few seconds; write text and tap "Post here".
-2. Map tab: zoom out to see the heat map, zoom in for counts and notes, tap a group to see notes ordered by likes.
-3. Profile → Settings: "Notifications" and the separate "Campaigns and offers" switch, each with its explanation.
-Arriving at a note with the app closed cannot be reproduced remotely, so we attached a screen recording: <link to video>. It shows the permission prompts, enabling Notifications, upgrading to Always from Settings, walking into a café with the app closed, the notification, and the blue background-location indicator.
+Sign in with the demo account in the sign-in fields (or Sign in with Apple) and tick the terms checkbox. Sample AR posts and location notes are at Apple Park Visitor Center, Cupertino (37.3327, -122.0053) and in Istanbul.
+1. Map: zoom out for the heat map, zoom in for counts; tap a group to see its notes ordered by likes.
+2. Map > "Leave a location note": the position settles within seconds (outdoors, "Refine with camera" gives 1-5 m); write text and tap "Post here".
+3. Share tab (physical ARKit iPhone): acknowledge the Google AR notice, aim at a surface, tap "Anchor to surface", add text, then "Publish on the surface".
+4. Profile > Settings: "Notifications" and the separate "Campaigns and offers" switch, each with its explanation.
+Arriving at a note with the app closed cannot be reproduced remotely; see the video: <VIDEO_LINK>
+
+LOCATION: TWO SEPARATE LEVELS, BOTH OPTIONAL
+While Using (asked on the map or note composer): shows notes around the user, saves a note at their position, opens AR content in place. The whole app works at this level.
+Always (asked only after the user turns on Settings > Notifications, never at launch): tells the user about a liked note when they arrive at its place while the app is closed, e.g. entering a café brings its "Wi-Fi password" note. Region monitoring around note areas (and campaign areas only after a separate opt-in), significant-change updates and visit monitoring keep those areas current at low power. Precise GPS runs only in a short window after an area entry (usually under a minute, at most 30 minutes) with the blue indicator, and stops on notification or exit. No location history is stored. Declining Always only turns off the closed-app reminders.
+
+BACKGROUND MODES
+location: only the short window above, started by a region entry, to confirm the user is really at the note (phone GPS is 5-30 m off).
+remote-notification: silent pushes that refresh the monitored areas when a note or campaign goes live nearby; no visible content.
+fetch: BGAppRefreshTask doing the same refresh a few times a day as a fallback.
+
+MARKETING (4.5.4)
+Brand offers have their own off-by-default "Campaigns and offers" switch and consent text, separate from Notifications, and can be turned off at any time. Brands never receive users' locations or identities. For offers that fire when someone leaves the place where they usually stay, that place is learned from iOS visits on the device only; it is never uploaded or labelled home.
+
+SAFETY (1.2)
+Automatic text filter (no links, blocked terms). AR posts are reviewed by a moderator before they go public. Location notes go live after the filter and are hidden automatically when several users report them. Report and block on every post, comment and profile, handled within 24 hours. Protected zones and 18+ content are blocked on the server. Account deletion: Profile > Permanently delete account.
+
+Support: support@lociar.app, https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support
 ```
 
 ## 2. Why "Always" is justified (for any follow-up from App Review)
@@ -79,7 +82,7 @@ Region monitoring, visit monitoring and significant-change updates do not requir
 ## 6. Screen recording for reviewers (2–3 minutes)
 
 1. Fresh install → sign in with the demo account → open the Map: When In Use prompt appears in context.
-2. Leave a location note in a café; show "Location ready ±6 m" and the published note.
+2. Leave a location note in a café; show "Location ready ±6 m" (or "Refine with camera" outdoors) and the published note.
 3. Profile → Settings → turn on Notifications → system prompt → choose "Change to Always Allow" when iOS offers it (or show iOS Settings → LociAR → Location → Always).
 4. Show the separate "Campaigns and offers" switch and its text; leave it on for the demo.
 5. Close the app (swipe to home, do not force-quit). Walk out and back into the café with a second account's liked note: show the lock-screen notification and the blue background-location indicator.
@@ -88,7 +91,8 @@ Region monitoring, visit monitoring and significant-change updates do not requir
 ## 7. Pre-submission checklist
 
 - [ ] Release build uses `LociAR.Release.entitlements` (`aps-environment = production`).
-- [ ] App Review notes, demo account and video link filled in.
+- [ ] Seed script run against production; the Apple Park sample notes appear on the map.
+- [ ] Video link replaced in the notes; demo account password entered in Sign-In Information only.
 - [ ] App Privacy answers match section 5.
 - [ ] Privacy policy (`/privacy`, `/privacy/en`) live and matches the app.
 - [ ] Physical-iPhone check: background arrival, silent push refresh, BG refresh, Always downgrade to When In Use.
