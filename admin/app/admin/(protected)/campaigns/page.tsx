@@ -5,6 +5,8 @@ import PageNavigation from '../PageNavigation';
 import AdminDecision from '../AdminDecision';
 import CampaignForms from './CampaignForms';
 import CampaignAudience from './CampaignAudience';
+import JourneyEditor, { CodeRedeemForm } from './JourneyEditor';
+import { journeyFunnel } from '../../../../lib/campaign-journeys';
 export const dynamic = 'force-dynamic';
 
 export default async function CampaignsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
@@ -16,9 +18,12 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
     admin.permissions.has('campaigns.audience') && admin.permissions.has('users.location.read') && admin.permissions.has('notifications.send')
       ? db.collection('campaign_targets').orderBy('created_at', 'desc').limit(25).get() : null,
   ]);
+  const funnels = new Map(await Promise.all(campaigns.documents.filter(c => c.get('audience') === 'zone')
+    .map(async c => [c.id, await journeyFunnel(c.id, c.get('steps') ?? [])] as const)));
   return <section className="page"><div className="pageHeading"><div><p className="eyebrow">Brand offers</p><h1>Campaigns</h1></div></div>
-    <p className="muted">Offers require approval. Targeting uses separately consented location and campaign preferences. Users see sponsored text offers; brands cannot read personal locations or target lists.</p>
+    <p className="muted">Offers require approval. A zone campaign (steps below) reaches everyone with Notifications on who leaves their usual place inside the campaign area or enters, stays in or leaves your zones; without steps, you assign people one by one. Users see sponsored text offers; brands cannot read personal locations or target lists.</p>
     {admin.permissions.has('campaigns.write') ? <CampaignForms canBrand={admin.permissions.has('brands.write')} brands={brands.docs.filter(b => b.get('status') === 'active').map(b => ({ id: b.id, name: String(b.get('name')) }))} /> : null}
+    {admin.permissions.has('campaigns.write') ? <CodeRedeemForm/> : null}
     <section className="panel"><h2>Brands</h2>{brands.docs.map(b => <p key={b.id}>{String(b.get('name'))} · {b.id} · {String(b.get('status'))}</p>)}</section>
     {campaigns.documents.map(c => <article className="panel" key={c.id}>
       <h2>{String(c.get('name'))}</h2><p>{c.id} · {String(c.get('status'))}</p><p>{String(c.get('message'))}</p><p>{String(c.get('terms'))}</p>
@@ -29,7 +34,9 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         { label: 'Approve / activate', body: { action: 'status', campaignId: c.id, status: 'active' } },
         { label: 'Pause', body: { action: 'status', campaignId: c.id, status: 'paused' }, className: 'secondaryButton' },
       ]} /> : null}
-      {admin.permissions.has('campaigns.audience') && admin.permissions.has('users.location.read') && admin.permissions.has('notifications.send') ? <CampaignAudience campaignId={c.id} /> : null}
+      {c.get('audience') === 'zone' ? <section><h3>Zone campaign funnel</h3>{(funnels.get(c.id) ?? []).map(f => <p key={f.id}>{f.id} · {f.trigger} · {f.title} · Sent {f.sent} · Codes used {f.redeemed}{f.lastAt ? ` · Last ${f.lastAt}` : ''}</p>)}</section> : null}
+      {admin.permissions.has('campaigns.write') ? <JourneyEditor campaignId={c.id} lat={Number(c.get('lat'))} lng={Number(c.get('lng'))} saved={c.get('steps') ?? []} timezone={String(c.get('timezone') ?? 'Europe/Istanbul')}/> : null}
+      {c.get('audience') !== 'zone' && admin.permissions.has('campaigns.audience') && admin.permissions.has('users.location.read') && admin.permissions.has('notifications.send') ? <CampaignAudience campaignId={c.id} /> : null}
     </article>)}
     <PageNavigation path="/admin/campaigns" next={campaigns.next} previous={campaigns.previous} />
     {assignments ? <section className="panel"><h2>Latest assigned offers</h2>
