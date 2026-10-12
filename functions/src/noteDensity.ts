@@ -5,6 +5,7 @@ import { db, FieldValue, Timestamp, requireCaller, HttpsError, ENFORCE_APP_CHECK
 import { isPublicActive } from './counters';
 import { autoApproveNote } from './noteAutomation';
 import { syncSpotMembership } from './denseSpots';
+import { refreshArea } from './campaignJourneys';
 import { requireActiveAccount } from './profileGuard';
 import { densityCells, densityQueryPrefixes, geohashBounds, validBox, validCoordinates, DENSITY_PRECISIONS } from './placeNoteRules';
 
@@ -43,6 +44,8 @@ export const onPostDensityWritten = onDocumentWritten({ document: 'posts/{postId
     await syncNoteDensity(event.params.postId);
     await syncSpotMembership(event.params.postId);
   }
+  // Phones nearby refresh their regions when a note starts notifying.
+  if (after?.push_state === 'approved' && before?.push_state !== 'approved' && typeof after.lat === 'number') await refreshArea(after.lat, after.lng, 3_000);
   // Likes make a user location note notification-worthy without manual approval.
   if (after?.note_kind === 'location' && (after.push_state ?? 'none') === 'none' && Number(after.likes_count ?? 0) > Number(before?.likes_count ?? 0)) {
     await autoApproveNote(event.params.postId);

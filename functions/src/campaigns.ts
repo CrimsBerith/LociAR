@@ -26,7 +26,9 @@ export async function campaignOffer(tx: FirebaseFirestore.Transaction, luid: str
   const [author, deletion] = await tx.getAll(db.collection('profiles').doc(brand.get('author_luid')), accountDeletionRef(brand.get('author_luid')));
   if (profileBlock(author.data()) || deletion.exists) return null;
   if (await isBlocked(luid, brand.get('author_luid'), tx)) return null;
-  return { id: c.id, ...c.get('post_projection'), sponsorship: c.get('post_projection.sponsorship'), views_count: c.get('views_count') ?? 0,
+  // Zone-campaign codes issued to this person travel on their private offer card.
+  const codes = Object.values(target.get('codes') ?? {}).filter(v => typeof v === 'string');
+  return { id: c.id, ...c.get('post_projection'), sponsorship: { ...c.get('post_projection.sponsorship'), ...(codes.length ? { codes } : {}) }, views_count: c.get('views_count') ?? 0,
     likes_count: 0, comments_count: 0, campaign_id: c.id };
 }
 
