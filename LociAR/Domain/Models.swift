@@ -517,15 +517,6 @@ struct Sponsorship: Codable, Hashable, Sendable {
     }
 }
 
-struct BusinessNoteInfo: Codable, Hashable, Sendable {
-    let id: UUID
-    let name: String
-    let lat: Double
-    let lng: Double
-    let radius: Double
-    var revision: Int? = nil
-}
-
 struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var id: UUID
     var creatorID: UUID
@@ -541,8 +532,10 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var counts: PostCounts
     var anonymous: Bool? = nil
     var sponsorship: Sponsorship? = nil
-    var businessNote: BusinessNoteInfo? = nil
+    /// "location" for a note written at the author's position from the map; nil for AR posts.
+    var noteKind: String? = nil
     var isAnonymous: Bool { anonymous == true }
+    var isLocationNote: Bool { noteKind == "location" }
 }
 
 extension LociPost {

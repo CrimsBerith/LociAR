@@ -57,7 +57,7 @@ struct MapFeatureView: View {
         .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .including([.cafe, .museum, .park])))
         .mapControls { MapCompass(); MapUserLocationButton() }
         .onMapCameraChange(frequency: .onEnd) { visibleRegion = $0.region }
-        .sheet(isPresented: $showPlaceNote) { PlaceNoteComposer(region: visibleRegion) }
+        .sheet(isPresented: $showPlaceNote) { PlaceNoteComposer() }
         .safeAreaInset(edge: .bottom, spacing: 8) { mapPanel.padding(.horizontal, 14) }
         .navigationTitle("Harita")
         .navigationBarTitleDisplayMode(.inline)
@@ -69,8 +69,8 @@ struct MapFeatureView: View {
                 .accessibilityIdentifier("map-refresh")
             }
             ToolbarItem(placement: .topBarLeading) {
-                Button { showPlaceNote = true } label: { Label("İşletmeye not bırak", systemImage: "square.and.pencil") }
-                    .accessibilityIdentifier("map-business-note")
+                Button { showPlaceNote = true } label: { Label("Konum notu bırak", systemImage: "square.and.pencil") }
+                    .accessibilityIdentifier("map-location-note")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showCreate = true } label: { Label("Yeni yüzey", systemImage: "plus") }

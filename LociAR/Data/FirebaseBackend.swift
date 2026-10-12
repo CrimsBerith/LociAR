@@ -304,7 +304,7 @@ enum FirestorePostMapper {
             "creator_handle": data["creator_handle"] ?? NSNull(),
             "is_anonymous": data["is_anonymous"] ?? false,
             "sponsorship": data["sponsorship"] ?? NSNull(),
-            "business_note": data["business_note"] ?? NSNull(),
+            "note_kind": data["note_kind"] ?? NSNull(),
             "created_at": FirestoreJSON.isoString(createdAt),
             "pose": FirestoreJSON.parseEmbedded(data["pose_json"]),
             "edit_data": FirestoreJSON.parseEmbedded(data["edit_data_json"]),

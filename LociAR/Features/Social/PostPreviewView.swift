@@ -67,11 +67,10 @@ struct PostPreviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 PostCard(post: post, likeCount: likeCount, viewCount: viewCount)
-                if let business = post.businessNote {
-                    Label("İşletme notu", systemImage: "storefront")
-                    Text(business.name).font(.headline)
+                if post.isLocationNote, let pose = post.anchorBundle.anchor.geoPose {
+                    Label("Konum notu", systemImage: "mappin.and.ellipse")
                     Button {
-                        MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: business.lat, longitude: business.lng)))
+                        MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: pose.latitude, longitude: pose.longitude)))
                             .openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
                     } label: { Label("Konumu gör", systemImage: "map") }
                 }

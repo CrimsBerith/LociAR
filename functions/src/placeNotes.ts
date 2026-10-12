@@ -102,7 +102,8 @@ async function notificationsAllowed(tx: FirebaseFirestore.Transaction, luid: str
  */
 export const readPlaceNoteRegions = onCall(options, async request => {
   const caller = requireCaller(request), now = Date.now(), f = parseFix(request.data?.location);
-  if (f.accuracy > 200 || f.measuredAt < now - 5 * 60_000 || f.measuredAt > now + 10_000) throw new HttpsError('invalid-argument', 'A recent location is required');
+  // A coarse significant-change fix (cell/Wi-Fi) is enough for a 3 km region search.
+  if (f.accuracy > 1_000 || f.measuredAt < now - 5 * 60_000 || f.measuredAt > now + 10_000) throw new HttpsError('invalid-argument', 'A recent location is required');
   return db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     if (!await notificationsAllowed(tx, caller.luid)) return { regions: [] };

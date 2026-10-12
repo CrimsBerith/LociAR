@@ -24,11 +24,13 @@
 		3F9EB5F8CEB1C81DFB76B87F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6B4C729B0D12809A5D15180A /* Localizable.xcstrings */; };
 		43B96545756282CA639C2CC8 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E4C13C9339C31F48DD7E6E /* MapKit.framework */; };
 		4516F427622ADCD714BC3434 /* GifRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */; };
+		490A1398F7E0D759B58042D1 /* LocationNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA62B95714894BC9F4BABA0F /* LocationNoteTests.swift */; };
 		49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */; };
 		4A945B6BCFEA027B416BE2F3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E26683A2CA08CEF5A8E794 /* AppRouter.swift */; };
 		4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26517046B2409888717CB325 /* PersistenceModels.swift */; };
 		546E8916FDEB717C7FFA07A0 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 3CF89F180C12C721B4EDB4B7 /* FirebaseAppCheck */; };
 		55CE471EA1E42323D0BAC5D8 /* AuthGateUserFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D91864B39E041B2748830A /* AuthGateUserFlowUITests.swift */; };
+		56AD74CF3A2F1886FC0866CD /* LocationNotePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8A5BAB83F4214657CF863 /* LocationNotePolicy.swift */; };
 		5821095FE42FF0FEC7D5998A /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */; };
 		59F6095DAD6C3F9659393C55 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B8CE05A07DBFC412918542 /* MainTabView.swift */; };
 		5A69D23CDAC608069B88A73B /* UserContextService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7796ACFDBCBD0E65741ABF9 /* UserContextService.swift */; };
@@ -197,7 +199,9 @@
 		B673A12AAA93EA6AEF0A6476 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		B7A134C72CB826A4BB6E5BB4 /* AuthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRepository.swift; sourceTree = "<group>"; };
 		BA24E9E41EA62BF05C10DAA6 /* AuthGateUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateUITests.swift; sourceTree = "<group>"; };
+		BA62B95714894BC9F4BABA0F /* LocationNoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNoteTests.swift; sourceTree = "<group>"; };
 		BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifRepository.swift; sourceTree = "<group>"; };
+		CFB8A5BAB83F4214657CF863 /* LocationNotePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNotePolicy.swift; sourceTree = "<group>"; };
 		D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARExperienceView.swift; sourceTree = "<group>"; };
 		D5D91864B39E041B2748830A /* AuthGateUserFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateUserFlowUITests.swift; sourceTree = "<group>"; };
 		DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LociARApp.swift; sourceTree = "<group>"; };
@@ -337,6 +341,7 @@
 				5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */,
 				24971089F9EF41DDADCD30AC /* GifPostTests.swift */,
 				597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */,
+				BA62B95714894BC9F4BABA0F /* LocationNoteTests.swift */,
 				0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */,
 				745BCE5D71F4B98D69FDDE61 /* ReliabilityTests.swift */,
 				29542377FC89A2155057D35C /* StoreReadinessTests.swift */,
@@ -407,6 +412,7 @@
 		72635B762C879640906F431E /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				CFB8A5BAB83F4214657CF863 /* LocationNotePolicy.swift */,
 				5172273B7111934A8D310E05 /* Models.swift */,
 				F862CEE1570E0B719C620389 /* PinPlacementPolicy.swift */,
 				041909C4E5F7479357846A3E /* ProximityPolicy.swift */,
@@ -709,6 +715,7 @@
 				788505617997733A088C4578 /* DomainContractTests.swift in Sources */,
 				D5D44603AAEDBFBE61BC3067 /* GifPostTests.swift in Sources */,
 				49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */,
+				490A1398F7E0D759B58042D1 /* LocationNoteTests.swift in Sources */,
 				5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */,
 				99FBBC4D6F718E4D5DA21753 /* ReliabilityTests.swift in Sources */,
 				9884BD8EC7A396BCCEBBD93A /* StoreReadinessTests.swift in Sources */,
@@ -751,6 +758,7 @@
 				98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */,
 				1E54355164B211BE39F93078 /* Localization.swift in Sources */,
 				B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */,
+				56AD74CF3A2F1886FC0866CD /* LocationNotePolicy.swift in Sources */,
 				B4E3F30C661575D41B716ED9 /* LociARApp.swift in Sources */,
 				223F8D8EBAF58FE925638A36 /* LociTheme.swift in Sources */,
 				59F6095DAD6C3F9659393C55 /* MainTabView.swift in Sources */,

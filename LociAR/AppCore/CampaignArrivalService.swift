@@ -4,6 +4,13 @@ import Observation
 import UIKit
 import UserNotifications
 
+/// One approved note inside a location-note wake region; `r` is its notification radius.
+struct NoteTarget: Codable, Equatable {
+    let lat: Double
+    let lng: Double
+    let r: Double
+}
+
 struct CampaignRegion: Codable, Equatable {
     let id: UUID
     let lat: Double
@@ -13,27 +20,53 @@ struct CampaignRegion: Codable, Equatable {
     var transition: String? = nil
     var kind: String? = nil
     var triggerRadius: Double? = nil
+    /// Location notes only: every note in this 25 m cluster (no text, no author).
+    var notes: [NoteTarget]? = nil
 
     var isExit: Bool { transition == "exit" }
     var isPlaceNote: Bool { kind == "place_note" }
+    private static let noteRadii: ClosedRange<Double> = 15...100
+    private static let campaignRadii: ClosedRange<Double> = 1...2.5
+
+    var targets: [NoteTarget] { notes ?? [NoteTarget(lat: lat, lng: lng, r: triggerRadius ?? 0)] }
+
+    /// Metres from the fix to the nearest note circle; negative inside.
+    func distanceToNearestTarget(_ location: CLLocation) -> CLLocationDistance {
+        targets.map { location.distance(from: CLLocation(latitude: $0.lat, longitude: $0.lng)) - $0.r }.min() ?? .infinity
+    }
 
     func permitsPreciseEntry(_ location: CLLocation, at now: Date) -> Bool {
-        guard let triggerRadius, (1...2.5).contains(triggerRadius), location.horizontalAccuracy.isFinite,
-              location.horizontalAccuracy >= 0, now.timeIntervalSince(location.timestamp) <= 10,
+        guard let triggerRadius, location.horizontalAccuracy.isFinite,
+              location.horizontalAccuracy >= 0, now.timeIntervalSince(location.timestamp) <= LocationNotePolicy.maxFixAge,
               now.timeIntervalSince(location.timestamp) >= -5 else { return false }
+        if isPlaceNote {
+            // GPS is 5-50 m off: the uncertainty circle may touch the note circle (same rule as the server).
+            if LocationSample(location).simulated { return false }
+            if location.speed >= 0, location.speedAccuracy >= 0, location.speed > LocationNotePolicy.maxWalkingSpeed { return false }
+            return targets.contains {
+                LocationNotePolicy.fixInsideNote(distance: location.distance(from: CLLocation(latitude: $0.lat, longitude: $0.lng)),
+                                                 accuracy: location.horizontalAccuracy, radius: $0.r)
+            }
+        }
+        guard Self.campaignRadii.contains(triggerRadius) else { return false }
         return location.distance(from: CLLocation(latitude: lat, longitude: lng)) + location.horizontalAccuracy <= triggerRadius
     }
 
     func isUsable(at now: Date) -> Bool {
-        lat.isFinite && abs(lat) <= 90 && lng.isFinite && abs(lng) <= 180
+        let radii = isPlaceNote ? Self.noteRadii : Self.campaignRadii
+        return lat.isFinite && abs(lat) <= 90 && lng.isFinite && abs(lng) <= 180
             && radius.isFinite && (100...500).contains(radius) && expiresAt.isFinite
             && expiresAt > now.timeIntervalSince1970 * 1000 && (transition == nil || transition == "entry" || transition == "exit")
             && (kind == nil || kind == "place_note")
-            && (triggerRadius == nil || (triggerRadius!.isFinite && (1...2.5).contains(triggerRadius!)))
+            && (triggerRadius == nil || (triggerRadius!.isFinite && radii.contains(triggerRadius!)))
+            && (notes == nil || (isPlaceNote && notes!.count <= 50 && notes!.allSatisfy {
+                $0.lat.isFinite && abs($0.lat) <= 90 && $0.lng.isFinite && abs($0.lng) <= 180 && Self.noteRadii.contains($0.r)
+            }))
     }
 
+    /// iOS monitors at most 20 regions. Location notes keep up to 15; campaigns use the rest.
     static func nearest(_ regions: [Self], to coordinate: CLLocationCoordinate2D?, at now: Date) -> [Self] {
-        regions.filter { $0.isUsable(at: now) }.sorted {
+        let sorted = regions.filter { $0.isUsable(at: now) }.sorted {
             if let coordinate {
                 let origin = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
                 let a = origin.distance(from: CLLocation(latitude: $0.lat, longitude: $0.lng))
@@ -41,7 +74,10 @@ struct CampaignRegion: Codable, Equatable {
                 if a != b { return a < b }
             }
             return $0.id.uuidString < $1.id.uuidString
-        }.prefix(20).map { $0 }
+        }
+        let notes = sorted.filter(\.isPlaceNote), campaigns = sorted.filter { !$0.isPlaceNote }
+        let keptCampaigns = Array(campaigns.prefix(20 - min(notes.count, 15)))
+        return keptCampaigns + notes.prefix(20 - keptCampaigns.count)
     }
 }
 
@@ -51,6 +87,8 @@ struct CampaignRegion: Codable, Equatable {
 final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerDelegate {
     static let shared = CampaignArrivalService()
     private(set) var needsAlwaysPermission = false
+    /// Approximate location cannot drive region monitoring or 15-100 m note circles.
+    private(set) var needsPreciseLocation = false
     private(set) var isSupported = true
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var callables: CallableClient?
@@ -62,7 +100,11 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     @ObservationIgnored private var lastRegionRefresh = Date.distantPast
     @ObservationIgnored private var precisionTargets = Set<UUID>()
     @ObservationIgnored private var firstGood: [UUID: Date] = [:]
-    @ObservationIgnored private var lastAttempt: [UUID: Date] = [:]
+    @ObservationIgnored private var nextAttempt: [UUID: Date] = [:]
+    @ObservationIgnored private var failures: [UUID: Int] = [:]
+    @ObservationIgnored private var lowPower = false
+    @ObservationIgnored private var monitoringSignificantChanges = false
+    @ObservationIgnored private var backgroundSession: CLBackgroundActivitySession?
     @ObservationIgnored private var preciseWindow: Task<Void, Never>?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var regions: [UUID: CampaignRegion] = [:]
@@ -132,6 +174,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     func setPlaceNotesEnabled(_ value: Bool) {
         placeNotesEnabled = value
         if let userID { UserDefaults.standard.set(value, forKey: notesKey(userID)) }
+        updatePermissionState()
     }
 
     func setForeground(_ value: Bool) {
@@ -162,6 +205,15 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
 
     private func updatePermissionState() {
         needsAlwaysPermission = enabled && manager.authorizationStatus != .authorizedAlways
+        needsPreciseLocation = enabled && placeNotesEnabled && manager.authorizationStatus != .denied
+            && manager.authorizationStatus != .notDetermined && manager.accuracyAuthorization == .reducedAccuracy
+        // ~500 m moves wake the app so the 20 monitored regions follow the user in the background.
+        let wantsSignificant = enabled && placeNotesEnabled && manager.authorizationStatus == .authorizedAlways
+            && CLLocationManager.significantLocationChangeMonitoringAvailable()
+        if wantsSignificant != monitoringSignificantChanges {
+            monitoringSignificantChanges = wantsSignificant
+            if wantsSignificant { manager.startMonitoringSignificantLocationChanges() } else { manager.stopMonitoringSignificantLocationChanges() }
+        }
     }
 
     private func stopRegions() {
@@ -177,6 +229,24 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     private struct EmptyPayload: Encodable { let userId: String }
     private struct NoteRegionPayload: Encodable { let userId: String; let location: Fix }
 
+    /// A fix good enough for the server's coarse 3 km region search, foreground or not.
+    private var regionSearchFix: CLLocation? {
+        guard let fix = manager.location, fix.horizontalAccuracy >= 0, fix.horizontalAccuracy <= 1_000 else { return nil }
+        let age = Date().timeIntervalSince(fix.timestamp)
+        return age < 240 && age >= -10 ? fix : nil
+    }
+
+    private func synchronizeInBackground() {
+        var task = UIBackgroundTaskIdentifier.invalid
+        task = UIApplication.shared.beginBackgroundTask(withName: "lociar.place-notes.sync") {
+            UIApplication.shared.endBackgroundTask(task); task = .invalid
+        }
+        Task {
+            await synchronize()
+            if task != .invalid { UIApplication.shared.endBackgroundTask(task); task = .invalid }
+        }
+    }
+
     func synchronize() async {
         guard enabled, isSupported, !syncing, let id = userID, let callables,
               FirebaseIdentity.currentLUID() == id,
@@ -189,9 +259,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             guard enabled, epoch == generation, userID == id else { return }
             var all = response.regions
             if placeNotesEnabled {
-                if foreground, let fix = manager.location, fix.horizontalAccuracy >= 0, fix.horizontalAccuracy <= 200,
-                   Date().timeIntervalSince(fix.timestamp) < 60, Date().timeIntervalSince(fix.timestamp) >= -10 {
-                    let notes: RegionResponse = try await callables.call("readBusinessNoteRegions", payload: NoteRegionPayload(userId: FirebaseIdentity.key(id), location: Self.payloadFix(fix)))
+                if let fix = regionSearchFix {
+                    let notes: RegionResponse = try await callables.call("readPlaceNoteRegions", payload: NoteRegionPayload(userId: FirebaseIdentity.key(id), location: Self.payloadFix(fix)))
                     guard enabled, epoch == generation, userID == id else { return }
                     all += notes.regions
                 } else {
@@ -201,8 +270,10 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             }
             let selected = CampaignRegion.nearest(all, to: manager.location?.coordinate, at: Date())
             for item in selected {
-                if let previous = regions[item.id], previous.lat != item.lat || previous.lng != item.lng || previous.triggerRadius != item.triggerRadius {
-                    firstGood.removeValue(forKey: item.id); lastAttempt.removeValue(forKey: item.id); precisionTargets.remove(item.id)
+                if let previous = regions[item.id], previous.lat != item.lat || previous.lng != item.lng
+                    || previous.triggerRadius != item.triggerRadius || previous.notes != item.notes {
+                    firstGood.removeValue(forKey: item.id); nextAttempt.removeValue(forKey: item.id); failures.removeValue(forKey: item.id)
+                    precisionTargets.remove(item.id)
                 }
             }
             lastRegionRefresh = Date()
@@ -218,14 +289,15 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                 let identifier = prefix(id) + item.id.uuidString.lowercased()
                 if let old = manager.monitoredRegions.first(where: { $0.identifier == identifier }) as? CLCircularRegion {
                     if old.center.latitude == item.lat && old.center.longitude == item.lng && old.radius == item.radius
-                        && old.notifyOnExit == item.isExit && old.notifyOnEntry == !item.isExit {
+                        && old.notifyOnExit == (item.isExit || item.isPlaceNote) && old.notifyOnEntry == !item.isExit {
                         manager.requestState(for: old); continue
                     }
                     manager.stopMonitoring(for: old)
                     armedExits.remove(item.id); persistArmedExits()
                 }
                 let region = CLCircularRegion(center: CLLocationCoordinate2D(latitude: item.lat, longitude: item.lng), radius: item.radius, identifier: identifier)
-                region.notifyOnEntry = !item.isExit; region.notifyOnExit = item.isExit
+                // Location-note regions also report exit, which ends that region's precise window.
+                region.notifyOnEntry = !item.isExit; region.notifyOnExit = item.isExit || item.isPlaceNote
                 manager.startMonitoring(for: region)
             }
         } catch {
@@ -247,6 +319,10 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
               let campaign = UUID(uuidString: String(region.identifier.dropFirst(prefix(id).count))),
               regions[campaign]?.isUsable(at: Date()) == true else {
             manager.stopMonitoring(for: region); return
+        }
+        if regions[campaign]?.isPlaceNote == true, exit {
+            leavePlaceNoteRegion(campaign)
+            return
         }
         guard regions[campaign]?.isExit == exit, !exit || armedExits.contains(campaign) else { return }
         if !exit, regions[campaign]?.triggerRadius != nil {
@@ -272,55 +348,94 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         }
     }
 
+    /// Runs until every target is notified or left, or for at most 10 minutes, so a slow walker
+    /// who woke the app 150 m away still reaches the note inside the window.
     private func startPreciseWindow() {
         guard enabled, preciseWindow == nil else { return }
-        manager.distanceFilter = kCLDistanceFilterNone
+        setLowPower(false)
         manager.allowsBackgroundLocationUpdates = manager.authorizationStatus == .authorizedAlways
+        if !foreground, manager.authorizationStatus == .authorizedAlways, backgroundSession == nil {
+            backgroundSession = CLBackgroundActivitySession()
+        }
         manager.startUpdatingLocation()
         preciseWindow = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(120)) } catch { return }
+            do { try await Task.sleep(for: .seconds(LocationNotePolicy.maxPreciseWindow)) } catch { return }
             self?.stopPreciseWindow()
         }
     }
 
     private func stopPreciseWindow() {
         preciseWindow?.cancel(); preciseWindow = nil
-        precisionTargets.removeAll(); firstGood.removeAll(); lastAttempt.removeAll()
+        precisionTargets.removeAll(); firstGood.removeAll(); nextAttempt.removeAll(); failures.removeAll()
+        backgroundSession?.invalidate(); backgroundSession = nil
         manager.allowsBackgroundLocationUpdates = false
+        setLowPower(false)
         manager.distanceFilter = 1
         if !foreground { manager.stopUpdatingLocation() }
     }
 
+    /// Far from every note: 10 m accuracy and a 10 m filter. Near one: best accuracy, every fix.
+    private func setLowPower(_ value: Bool) {
+        guard value != lowPower || !value else { return }
+        lowPower = value
+        manager.desiredAccuracy = value ? kCLLocationAccuracyNearestTenMeters : kCLLocationAccuracyBest
+        manager.distanceFilter = value ? 10 : kCLDistanceFilterNone
+    }
+
+    private func leavePlaceNoteRegion(_ id: UUID) {
+        precisionTargets.remove(id); firstGood.removeValue(forKey: id); failures.removeValue(forKey: id)
+        if precisionTargets.isEmpty, preciseWindow != nil { stopPreciseWindow() }
+    }
+
     private func checkPreciseEntries(_ location: CLLocation) {
-        guard enabled, location.horizontalAccuracy >= 0, Date().timeIntervalSince(location.timestamp) <= 10 else { return }
+        guard enabled, location.horizontalAccuracy >= 0, Date().timeIntervalSince(location.timestamp) <= LocationNotePolicy.maxFixAge else { return }
+        var nearestNoteEdge = CLLocationDistance.infinity
         for item in regions.values where !item.isExit && item.triggerRadius != nil {
             let distance = location.distance(from: CLLocation(latitude: item.lat, longitude: item.lng))
             if foreground, distance <= item.radius { precisionTargets.insert(item.id); startPreciseWindow() }
             guard precisionTargets.contains(item.id) else { continue }
+            if item.isPlaceNote {
+                nearestNoteEdge = min(nearestNoteEdge, item.distanceToNearestTarget(location))
+                // Background fixes outside the wake circle mean the visitor walked away.
+                if !foreground, distance > item.radius + 50 { leavePlaceNoteRegion(item.id); continue }
+            }
             if !item.permitsPreciseEntry(location, at: Date()) { firstGood.removeValue(forKey: item.id); continue }
             let now = Date()
-            if firstGood[item.id] == nil || now.timeIntervalSince(firstGood[item.id]!) > 30 {
+            // Two agreeing fixes: 5 s apart for notes (2 s for campaigns), the first no older than 2 min (30 s).
+            let confirmation: TimeInterval = item.isPlaceNote ? LocationNotePolicy.minConfirmation : 2
+            let freshness: TimeInterval = item.isPlaceNote ? 120 : 30
+            if firstGood[item.id] == nil || now.timeIntervalSince(firstGood[item.id]!) > freshness {
                 firstGood[item.id] = location.timestamp
                 Task { [weak self] in
-                    do { try await Task.sleep(for: .seconds(2.2)) } catch { return }
+                    do { try await Task.sleep(for: .seconds(confirmation + 0.2)) } catch { return }
                     if self?.enabled == true { self?.manager.requestLocation() }
                 }
                 continue
             }
-            if location.timestamp.timeIntervalSince(firstGood[item.id]!) >= 2, now.timeIntervalSince(lastAttempt[item.id] ?? .distantPast) >= 60 {
-                pending.insert(item.id); lastAttempt[item.id] = now; beginProcessing()
+            if location.timestamp.timeIntervalSince(firstGood[item.id]!) >= confirmation, now >= nextAttempt[item.id] ?? .distantPast {
+                pending.insert(item.id); nextAttempt[item.id] = now.addingTimeInterval(60); beginProcessing()
             }
         }
+        if preciseWindow != nil, nearestNoteEdge.isFinite { setLowPower(nearestNoteEdge > 40) }
     }
 
     private struct Fix: Encodable { let lat: Double; let lng: Double; let accuracy: Double; let measuredAt: Double }
     private struct ArrivalPayload: Encodable { let userId: String; let campaignId: String; let locale: String; let location: Fix; let transition: String; let confirmationStartedAt: Double? }
-    private struct NoteVisitPayload: Encodable { let userId: String; let businessId: String; let location: Fix; let confirmationStartedAt: Double? }
+    private struct NoteVisitPayload: Encodable { let userId: String; let location: Fix; let confirmationStartedAt: Double? }
     private static func payloadFix(_ location: CLLocation) -> Fix {
         Fix(lat: location.coordinate.latitude, lng: location.coordinate.longitude, accuracy: location.horizontalAccuracy, measuredAt: location.timestamp.timeIntervalSince1970 * 1000)
     }
     private struct ArrivalResponse: Decodable {
         let notify: Bool; let title: String?; let body: String?; let postId: String?; let activityId: String?; let recipientId: String?
+        var likes: Int? = nil; var total: Int? = nil; var reason: String? = nil
+    }
+
+    /// Location notes carry no venue name: the title counts new notes and the body leads with likes.
+    private static func placeNoteText(_ result: ArrivalResponse) -> (title: String, body: String)? {
+        guard let caption = result.body else { return nil }
+        let total = result.total ?? 1, likes = result.likes ?? 0
+        let title = total > 1 ? String(localized: "Bu konumda \(total) yeni not var") : String(localized: "Bu konumda bir not var")
+        return (title, likes > 0 ? String(localized: "En faydalı (\(likes) beğeni): \(caption)") : caption)
     }
 
     private func process(_ location: CLLocation) async {
@@ -338,17 +453,22 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                 let placeNote = regions[campaign]?.isPlaceNote == true
                 let result: ArrivalResponse
                 if placeNote {
-                    result = try await callables.call("recordBusinessNoteVisit", payload: NoteVisitPayload(userId: FirebaseIdentity.key(id), businessId: campaign.uuidString.lowercased(), location: Self.payloadFix(location), confirmationStartedAt: firstGood[campaign].map { $0.timeIntervalSince1970 * 1000 }))
+                    result = try await callables.call("recordPlaceNoteVisit", payload: NoteVisitPayload(userId: FirebaseIdentity.key(id), location: Self.payloadFix(location), confirmationStartedAt: firstGood[campaign].map { $0.timeIntervalSince1970 * 1000 }))
+                    failures.removeValue(forKey: campaign)
+                    // Everything here was already delivered: stop measuring for this cluster.
+                    if !result.notify, result.reason == "nothing_new" { leavePlaceNoteRegion(campaign) }
                 } else {
                     result = try await callables.call("recordCampaignArrival", payload: ArrivalPayload(
                         userId: FirebaseIdentity.key(id), campaignId: campaign.uuidString.lowercased(), locale: Locale.current.identifier,
                         location: Self.payloadFix(location), transition: regions[campaign]?.isExit == true ? "exit" : "entry", confirmationStartedAt: firstGood[campaign].map { $0.timeIntervalSince1970 * 1000 }))
                 }
+                let text = placeNote ? Self.placeNoteText(result) : result.title.flatMap { title in result.body.map { (title, $0) } }
                 guard handling, enabled, epoch == generation, userID == id, result.notify, result.recipientId == FirebaseIdentity.key(id),
-                      let title = result.title, let body = result.body, let post = result.postId, let activity = result.activityId else { continue }
+                      let (title, body) = text, let post = result.postId, let activity = result.activityId else { continue }
                 let content = UNMutableNotificationContent()
                 content.title = title; content.body = body; content.sound = .default
-                precisionTargets.remove(campaign); firstGood.removeValue(forKey: campaign)
+                if placeNote { content.threadIdentifier = "place_note_\(campaign.uuidString.lowercased())" }
+                if placeNote { leavePlaceNoteRegion(campaign) } else { precisionTargets.remove(campaign); firstGood.removeValue(forKey: campaign) }
                 content.userInfo = ["recipient_id": FirebaseIdentity.key(id), "post_id": post, "activity_id": activity]
                 try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: activity, content: content, trigger: nil))
                 if !enabled || generation != epoch || userID != id {
@@ -361,7 +481,21 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                     regions.removeValue(forKey: campaign)
                     armedExits.remove(campaign); persistArmedExits()
                 }
-            } catch { /* Retry on a later verified region state; no offline notification. */ }
+            } catch {
+                // No offline notification. A visitor still inside retries after 2, 5 and 10 s.
+                if regions[campaign]?.isPlaceNote == true, precisionTargets.contains(campaign) {
+                    let attempt = (failures[campaign] ?? 0) + 1
+                    failures[campaign] = attempt
+                    if attempt <= 3 {
+                        let delay: TimeInterval = [2, 5, 10][attempt - 1]
+                        nextAttempt[campaign] = Date().addingTimeInterval(delay)
+                        Task { [weak self] in
+                            do { try await Task.sleep(for: .seconds(delay + 0.2)) } catch { return }
+                            if self?.enabled == true { self?.manager.requestLocation() }
+                        }
+                    }
+                }
+            }
         }
         guard generation == epoch, userID == id else { return }
         if handling, !pending.isEmpty { manager.requestLocation() }
@@ -385,6 +519,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             if state == .inside { armedExits.insert(id); persistArmedExits() }
             else if state == .outside { enqueue(region, exit: true) }
         } else if state == .inside { enqueue(region) }
+        else if state == .outside, let id = campaignID(for: region), regions[id]?.isPlaceNote == true { leavePlaceNoteRegion(id) }
     }
     func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion) { manager.requestState(for: region) }
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -392,6 +527,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             checkPreciseEntries(location)
             if handling { Task { await process(location) } }
             else if foreground, placeNotesEnabled, Date().timeIntervalSince(lastRegionRefresh) >= 60 { Task { await synchronize() } }
+            // Significant-change wake in the background: move the monitored regions with the user.
+            else if !foreground, preciseWindow == nil, placeNotesEnabled, Date().timeIntervalSince(lastRegionRefresh) >= 120 { synchronizeInBackground() }
         }
     }
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) { endBackgroundTask() }

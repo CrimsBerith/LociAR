@@ -942,12 +942,12 @@ final class AdminContentDecodingTests: XCTestCase {
         XCTAssertEqual(post.editData.layers.first?.colorHex, "#00FF00")
         XCTAssertEqual(post.contentSource, ContentSource.text("AR text"))
         var noteRow = row
-        noteRow["business_note"] = ["id": UUID().uuidString, "name": "Cafe", "lat": 41.0, "lng": 29.0, "radius": 150]
+        noteRow["note_kind"] = "location"
         noteRow["is_anonymous"] = true
         let note = try FirestoreJSON.decoder().decode(BackendPostRow.self, from: JSONSerialization.data(withJSONObject: noteRow)).domainPost()
-        XCTAssertEqual(note.businessNote?.name, "Cafe")
+        XCTAssertTrue(note.isLocationNote)
         XCTAssertTrue(note.isAnonymous)
-        XCTAssertEqual(try JSONDecoder().decode(LociPost.self, from: JSONEncoder().encode(note)).businessNote, note.businessNote)
+        XCTAssertEqual(try JSONDecoder().decode(LociPost.self, from: JSONEncoder().encode(note)).noteKind, "location")
         var targetedRow = row
         targetedRow["visibility"] = "private"
         targetedRow["sponsorship"] = ["brand_name": "Coffee Brand", "terms": "Use LOCI20 before expiry.", "expires_at": "2026-11-01T00:00:00Z"]

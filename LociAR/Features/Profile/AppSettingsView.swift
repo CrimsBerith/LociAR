@@ -26,8 +26,16 @@ struct AppSettingsView: View {
                     } }
                 ))
                 .accessibilityIdentifier("settings-notifications")
-                Text("Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, işletme notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Yakında en fazla iki dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni ve internet gerekir. GPS birkaç metrelik giriş tespitini garanti etmez.")
+                Text("Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.")
                     .font(.caption).foregroundStyle(.secondary)
+                if arrivals.needsPreciseLocation {
+                    Text("Konum notu bildirimleri için Ayarlar’da LociAR konumunda Kesin Konum’u aç.").font(.caption)
+                    if !arrivals.needsAlwaysPermission {
+                        Button("iOS Ayarları'nda değiştir") {
+                            if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                        }
+                    }
+                }
                 if arrivals.needsAlwaysPermission {
                     Text("Arka planda varış bildirimi için konum iznini Her zaman olarak ayarla.").font(.caption)
                     Button("iOS Ayarları'nda değiştir") {
