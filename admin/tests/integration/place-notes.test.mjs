@@ -84,12 +84,12 @@ test('administrators can place a location note anywhere and approve it in the sa
 test('dense-spot size and on-site unlock radius are validated and audited with the like threshold', async () => {
   const { placeNoteSettings } = await import('../../lib/place-notes.ts');
   const admin = await actor(), key = randomUUID();
-  await setPlaceNoteSettings({ likeThreshold: 4, denseThreshold: 40, unlockRadius: 2 }, admin, reason, key);
-  assert.deepEqual(await placeNoteSettings(), { likeThreshold: 4, denseThreshold: 40, unlockRadius: 2 });
+  await setPlaceNoteSettings({ likeThreshold: 4, denseThreshold: 40, unlockRadius: 2, reportThreshold: 5 }, admin, reason, key);
+  assert.deepEqual(await placeNoteSettings(), { likeThreshold: 4, denseThreshold: 40, unlockRadius: 2, reportThreshold: 5 });
   assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('after_state').unlock_radius_m, 2);
-  await assert.rejects(setPlaceNoteSettings({ likeThreshold: 4, denseThreshold: 1 }, admin, reason, randomUUID()), /dense spot size/);
+  await assert.rejects(setPlaceNoteSettings({ likeThreshold: 4, denseThreshold: 4 }, admin, reason, randomUUID()), /dense spot size/);
   await assert.rejects(setPlaceNoteSettings({ likeThreshold: 4, unlockRadius: 80 }, admin, reason, randomUUID()), /unlock radius/);
-  await setPlaceNoteSettings({ likeThreshold: 3, denseThreshold: 30, unlockRadius: 15 }, admin, reason, randomUUID());
+  await setPlaceNoteSettings({ likeThreshold: 3, denseThreshold: 30, unlockRadius: 15, reportThreshold: 3 }, admin, reason, randomUUID());
 });
 
 test('campaign arrivals default to a 30 m GPS-tolerant entry radius and a 24 h audience location age', async () => {

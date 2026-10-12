@@ -4,8 +4,6 @@ import { randomUUID } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { adminDb, closeClients, newAnonymousUser, newUser, expectFailure } from './_harness.mjs';
 import { expireDueNotes } from '../../lib/noteDensity.js';
-import { encodeGeohash } from '../../lib/geo.js';
-import { geohashBounds } from '../../lib/placeNoteRules.js';
 after(closeClients);
 
 const METER = 1 / 111_320;
@@ -34,9 +32,9 @@ async function fixture() {
   return { author, visitor, point, n, visit };
 }
 
-test('location notes are anonymous pending text posts at the measured position with a tiered radius', async () => {
+test('location notes publish at once, anonymously, at the measured position with a tiered radius', async () => {
   const f = await fixture(), stored = (await f.n.ref.get()).data();
-  assert.equal(f.n.created.publishStatus, 'pending_review');
+  assert.equal(f.n.created.publishStatus, 'active'); assert.equal(stored.status, 'active');
   assert.equal(stored.is_anonymous, true); assert.equal(stored.note_kind, 'location'); assert.equal(stored.push_state, 'none');
   assert.equal(stored.notify_radius_m, 20); assert.deepEqual(stored.location_note, { source: 'gps', accuracy_m: 6, pin_drag_m: 0 });
   assert.equal(stored.lat, f.point.lat); assert.equal(stored.business_id, undefined);
@@ -150,10 +148,8 @@ async function eventually(check, message) {
   assert.fail(message);
 }
 
-test('map density counts only public active notes and follows removal', async () => {
+test('map density counts public active notes and follows removal', async () => {
   const f = await fixture();
-  assert.equal(await densityCount(f.visitor, f.point, 7), 0, 'pending notes are not counted');
-  await f.n.ref.update({ status: 'active' });
   await eventually(async () => await densityCount(f.visitor, f.point, 7) === 1, 'active note counted');
   assert.equal(await densityCount(f.visitor, f.point, 4) >= 1, true);
   await f.n.ref.update({ status: 'removed' });
@@ -172,16 +168,19 @@ test('an administrator end date removes the note like a moderator soft delete; n
   assert.equal((await f.visit()).notify, false); assert.equal((await g.visit()).notify, true);
 });
 
+/** Five notes within ~6 m form a spot; its count is then raised to simulate a crowded place. */
 async function denseSpot(count = 30) {
   const author = await newAnonymousUser(), visitor = await newAnonymousUser(), point = base();
   await optIn(visitor);
-  const cell = encodeGeohash(point.lat, point.lng, 8), centre = geohashBounds(cell);
-  const n = await note(author, { lat: centre.lat, lng: centre.lng });
-  await n.ref.update({ status: 'active' });
-  // Seed the spot counter directly; creating 30 posts would hit the author's rate limit.
-  await eventually(async () => (await adminDb.collection('note_density').doc(`8_${cell}`).get()).get('count') === 1, 'note counted');
-  await adminDb.collection('note_density').doc(`8_${cell}`).set({ precision: 8, cell, lat: centre.lat, lng: centre.lng, count }, { merge: true });
-  return { visitor, author, cell, centre, n };
+  const notes = [];
+  for (const [n, e] of [[0, 0], [3, 0], [-3, 0], [0, 3], [0, -3]]) {
+    notes.push(await note(author, { lat: point.lat + n * METER, lng: point.lng + e * METER }, { text: `Note ${n}/${e}` }));
+  }
+  let spotId;
+  await eventually(async () => { spotId = (await notes[0].ref.get()).get('spot_id'); return typeof spotId === 'string' && (await adminDb.collection('note_spots').doc(spotId).get()).get('count') === 5; }, 'spot formed');
+  await adminDb.collection('note_spots').doc(spotId).update({ count });
+  const spot = (await adminDb.collection('note_spots').doc(spotId).get()).data();
+  return { visitor, author, spotId, centre: { lat: spot.lat, lng: spot.lng }, n: notes[0] };
 }
 const single = (user, id) => user.call('readPublicContent', { mode: 'single', postId: id }).then(r => r.posts[0]);
 
@@ -189,15 +188,15 @@ test('notes in a dense spot show only place and count until the visitor unlocks 
   const s = await denseSpot(30);
   const locked = await single(s.visitor, s.n.created.post.id);
   assert.equal(locked.locked, true); assert.equal(locked.caption, ''); assert.deepEqual(locked.edit_data.layers, []);
-  assert.equal(locked.dense_spot.count, 30); assert.equal(locked.dense_spot.cell, s.cell); assert.equal(locked.dense_spot.unlock_radius_m, 15);
-  assert.equal((await single(s.author, s.n.created.post.id)).caption, 'Entrance is around the back.', 'authors read their own notes');
+  assert.equal(locked.dense_spot.count, 30); assert.equal(locked.dense_spot.id, s.spotId); assert.equal(locked.dense_spot.unlock_radius_m, 15);
+  assert.equal((await single(s.author, s.n.created.post.id)).caption, 'Note 0/0', 'authors read their own notes');
   const far = north(s.centre, 60);
   assert.deepEqual((await s.visitor.call('unlockDenseSpot', { location: fix(far.lat, far.lng, 8) })).unlocked, []);
   assert.equal((await s.visitor.call('unlockDenseSpot', { location: fix(s.centre.lat, s.centre.lng, 8, Date.now() - 20_000) })).reason, 'stale_fix');
   const near = north(s.centre, 12);
-  assert.deepEqual((await s.visitor.call('unlockDenseSpot', { location: fix(near.lat, near.lng, 8) })).unlocked, [s.cell]);
+  assert.deepEqual((await s.visitor.call('unlockDenseSpot', { location: fix(near.lat, near.lng, 8) })).unlocked, [s.spotId]);
   const open = await single(s.visitor, s.n.created.post.id);
-  assert.equal(open.locked, undefined); assert.equal(open.caption, 'Entrance is around the back.');
+  assert.equal(open.locked, undefined); assert.equal(open.caption, 'Note 0/0');
   await adminDb.collection('system').doc('place_notes').set({ dense_threshold: 31 }, { merge: true });
   const other = await denseSpot(30);
   assert.equal((await single(other.visitor, other.n.created.post.id)).locked, undefined, 'below the admin threshold');
@@ -207,11 +206,39 @@ test('notes in a dense spot show only place and count until the visitor unlocks 
 test('entering a dense spot sends one text-free alert, and the region list advertises unalerted spots', async () => {
   const s = await denseSpot(42);
   const regions = (await s.visitor.call('readPlaceNoteRegions', { location: fix(s.centre.lat, s.centre.lng, 30) })).regions;
-  const region = regions.find(r => r.spot === s.cell);
-  assert.ok(region); assert.equal(region.kind, 'place_note'); assert.equal(region.triggerRadius, 25);
+  const region = regions.find(r => r.spot === s.spotId);
+  assert.ok(region); assert.equal(region.kind, 'place_note'); assert.ok(region.triggerRadius >= 25);
   const visit = () => s.visitor.call('recordPlaceNoteVisit', { location: fix(s.centre.lat, s.centre.lng, 8), confirmationStartedAt: Date.now() - 6000 });
   const alert = await visit();
   assert.equal(alert.notify, true); assert.equal(alert.kind, 'dense_spot'); assert.equal(alert.total, 42); assert.equal(alert.body, undefined);
   assert.equal((await visit()).notify, false, 'once per 30 days');
-  assert.equal((await s.visitor.call('readPlaceNoteRegions', { location: fix(s.centre.lat, s.centre.lng, 30) })).regions.some(r => r.spot === s.cell), false);
+  assert.equal((await s.visitor.call('readPlaceNoteRegions', { location: fix(s.centre.lat, s.centre.lng, 30) })).regions.some(r => r.spot === s.spotId), false);
+});
+
+test('an approved note inside a locked dense spot is announced without its text, and stays closed in activity', async () => {
+  const s = await denseSpot(30);
+  await s.n.ref.update({ push_state: 'approved' });
+  const r = await s.visitor.call('recordPlaceNoteVisit', { location: fix(s.centre.lat, s.centre.lng, 8), confirmationStartedAt: Date.now() - 6000 });
+  assert.equal(r.notify, true); assert.equal(r.kind, 'dense_spot'); assert.equal(r.body, undefined); assert.equal(r.total, 30);
+  const item = (await s.visitor.call('readActivity')).items.find(i => i.id === r.activityId);
+  assert.equal(item.body, '', 'activity keeps the note closed');
+});
+
+test('likes from established accounts approve a note for notifications; reports from distinct users hide it', async () => {
+  const f = await fixture();
+  const likers = await Promise.all([newUser(), newUser(), newUser()]);
+  const old = Timestamp.fromMillis(Date.now() - 3 * 86_400_000);
+  for (const u of likers.slice(0, 2)) await adminDb.collection('profiles').doc(u.luid).update({ created_at: old });
+  for (const u of likers) await adminDb.collection('likes').doc(`${f.n.created.post.id}_${u.luid}`).set({ post_id: f.n.created.post.id, user_id: u.luid, created_at: Timestamp.now() });
+  await eventually(async () => (await f.n.ref.get()).get('likes_count') === 3, 'likes counted');
+  await new Promise(r => setTimeout(r, 1500));
+  assert.equal((await f.n.ref.get()).get('push_state'), 'none', 'a one-day-old account does not count yet');
+  await adminDb.collection('profiles').doc(likers[2].luid).update({ created_at: old });
+  const extra = await newUser(); await adminDb.collection('profiles').doc(extra.luid).update({ created_at: old });
+  await adminDb.collection('likes').doc(`${f.n.created.post.id}_${extra.luid}`).set({ post_id: f.n.created.post.id, user_id: extra.luid, created_at: Timestamp.now() });
+  await eventually(async () => (await f.n.ref.get()).get('push_state') === 'approved', 'auto approved');
+  assert.equal((await f.n.ref.get()).get('push_approved_by'), 'system:likes');
+  for (const u of likers) await adminDb.collection('moderation_flags').doc(randomUUID()).set({ post_id: f.n.created.post.id, user_id: u.luid, reason: 'spam', status: 'open' });
+  await eventually(async () => (await f.n.ref.get()).get('status') === 'flagged', 'auto hidden');
+  assert.equal((await f.n.ref.get()).get('push_state'), 'revoked');
 });

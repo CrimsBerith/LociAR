@@ -29,10 +29,12 @@ export const CLUSTER_RADIUS_M = 25;
 export const WAKE_RADIUS_MIN_M = 150;
 export const WAKE_RADIUS_MAX_M = 400;
 export const REGION_SEARCH_RADIUS_M = 3_000;
-/** 4-7 feed the map; 8 (~38 x 19 m) is the dense-spot cell. */
-export const DENSITY_PRECISIONS = [4, 5, 6, 7, 8] as const;
-export const SPOT_PRECISION = 8;
-/** A spot cell with at least this many public notes is a dense spot (admin setting). */
+export const DENSITY_PRECISIONS = [4, 5, 6, 7] as const;
+/** Notes within this distance of a spot's centre join it; a spot forms from this many neighbours. */
+export const SPOT_JOIN_RADIUS_M = 25;
+export const MIN_SPOT_SIZE = 5;
+export const MAX_SPOT_RADIUS_M = 40;
+/** A spot with at least this many public notes is a dense spot (admin setting, 5-1000). */
 export const DEFAULT_DENSE_THRESHOLD = 30;
 /** Dense-spot notes open only within this distance of the spot cell (admin setting, 2-50 m). */
 export const DEFAULT_UNLOCK_RADIUS_M = 15;
@@ -118,16 +120,31 @@ export function campaignEntryRadius(value: unknown): number {
   return clampNotifyRadius(value, DEFAULT_CAMPAIGN_ENTRY_RADIUS_M);
 }
 
-/** Metres from a point to a geohash cell rectangle; 0 inside. */
-export function distanceToCell(lat: number, lng: number, cell: string): number {
-  const b = geohashBounds(cell);
-  return distanceMeters(lat, lng, Math.min(b.latMax, Math.max(b.latMin, lat)), Math.min(b.lngMax, Math.max(b.lngMin, lng)));
+export type Spot = { lat: number; lng: number; radius: number };
+
+/** Metres from a point to the edge of a spot circle; 0 inside. */
+export function distanceToSpot(lat: number, lng: number, spot: Spot): number {
+  return Math.max(0, distanceMeters(lat, lng, spot.lat, spot.lng) - spot.radius);
 }
 
-/** Unlock a dense spot: within the radius of its cell, GPS tolerance capped at 5 m. */
-export function fixUnlocksSpot(fix: Fix, cell: string, radius: number): boolean {
+/** Unlock a dense spot: within the unlock radius of its circle, GPS tolerance capped at 5 m. */
+export function fixUnlocksSpot(fix: Fix, spot: Spot, unlockRadius: number): boolean {
   if (!(fix.accuracy >= 0) || fix.accuracy > MAX_ENTRY_ACCURACY_M) return false;
-  return distanceToCell(fix.lat, fix.lng, cell) <= radius + Math.min(fix.accuracy, UNLOCK_TOLERANCE_CAP_M);
+  return distanceToSpot(fix.lat, fix.lng, spot) <= unlockRadius + Math.min(fix.accuracy, UNLOCK_TOLERANCE_CAP_M);
+}
+
+/** Adds a point to a spot: running centroid, radius grows to cover the point (capped). */
+export function joinSpot(spot: Spot & { count: number }, lat: number, lng: number): Spot & { count: number } {
+  const count = spot.count + 1;
+  const c = { lat: spot.lat + (lat - spot.lat) / count, lng: spot.lng + (lng - spot.lng) / count };
+  const radius = Math.min(MAX_SPOT_RADIUS_M, Math.max(spot.radius + distanceMeters(spot.lat, spot.lng, c.lat, c.lng), distanceMeters(c.lat, c.lng, lat, lng)));
+  return { ...c, radius, count };
+}
+
+/** Smallest centred circle over a group of points (centroid + farthest member, capped). */
+export function spotOf(points: Array<{ lat: number; lng: number }>): Spot & { count: number } {
+  const lat = points.reduce((s, p) => s + p.lat, 0) / points.length, lng = points.reduce((s, p) => s + p.lng, 0) / points.length;
+  return { lat, lng, count: points.length, radius: Math.min(MAX_SPOT_RADIUS_M, Math.max(...points.map(p => distanceMeters(lat, lng, p.lat, p.lng)))) };
 }
 
 /** Deterministic RFC 4122-shaped id for a non-post region such as a dense spot. */

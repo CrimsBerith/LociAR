@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { encodeGeohash } from '../lib/geo.js';
 import {
   clampNotifyRadius, clusterNotes, compareByLikes, confirmationValid, defaultNotifyRadius, densityCells, densityQueryPrefixes,
-  fixInsideNote, fixIsFresh, geohashBounds, geohashesInBox, validBox, campaignEntryRadius, distanceToCell, fixUnlocksSpot, stableUuid,
+  fixInsideNote, fixIsFresh, geohashBounds, geohashesInBox, validBox, campaignEntryRadius, distanceToSpot, fixUnlocksSpot, joinSpot, spotOf, stableUuid,
 } from '../lib/placeNoteRules.js';
 
 const METER = 1 / 111_320; // degrees of latitude per metre
@@ -55,9 +55,9 @@ test('most liked notes rank first and seed their cluster', () => {
   assert.equal(clusters[1].id, 'c');
 });
 
-test('density cells cover precisions 4 to 8 and box enumeration finds every intersecting cell', () => {
+test('density cells cover precisions 4 to 7 and box enumeration finds every intersecting cell', () => {
   const cells = densityCells(41.0082, 28.9784);
-  assert.deepEqual(cells, ['4_sxk9', '5_sxk97', '6_sxk973', '7_sxk973m', '8_' + encodeGeohash(41.0082, 28.9784, 8)]);
+  assert.deepEqual(cells, ['4_sxk9', '5_sxk97', '6_sxk973', '7_sxk973m']);
   const bounds = geohashBounds('sxk973m');
   assert.ok(bounds.latMin <= 41.0082 && bounds.latMax >= 41.0082 && bounds.lngMin <= 28.9784 && bounds.lngMax >= 28.9784);
   const box = { minLat: 41.0, maxLat: 41.02, minLng: 28.96, maxLng: 28.99 };
@@ -71,17 +71,22 @@ test('density cells cover precisions 4 to 8 and box enumeration finds every inte
   assert.equal(validBox({ ...box, minLat: 42 }), false);
 });
 
-test('dense spots open within the unlock radius of their cell, GPS tolerance capped at 5 m', () => {
-  const cell = encodeGeohash(41.0082, 28.9784, 8), b = geohashBounds(cell);
-  const inside = { lat: b.lat, lng: b.lng, accuracy: 30, measuredAt: Date.now() };
-  assert.equal(distanceToCell(b.lat, b.lng, cell), 0);
-  assert.equal(fixUnlocksSpot(inside, cell, 2), true);
-  const north = (m, accuracy) => ({ lat: b.latMax + m / 111_320, lng: b.lng, accuracy, measuredAt: Date.now() });
-  assert.equal(fixUnlocksSpot(north(6, 3), cell, 2), false, '2 m radius + 3 m AR accuracy');
-  assert.equal(fixUnlocksSpot(north(4, 3), cell, 2), true);
-  assert.equal(fixUnlocksSpot(north(19, 30), cell, 15), true, 'GPS tolerance stops at 5 m');
-  assert.equal(fixUnlocksSpot(north(21, 30), cell, 15), false);
-  assert.equal(fixUnlocksSpot({ ...inside, accuracy: 40 }, cell, 15), false);
-  assert.match(stableUuid('dense:' + cell), /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-a[0-9a-f]{3}-[0-9a-f]{12}$/);
+test('spots follow the notes: running centre, covering radius, unlock within radius + 5 m GPS tolerance', () => {
+  const p = (north, east = 0) => ({ lat: 41 + north * METER, lng: 29 + east * METER / Math.cos(41 * Math.PI / 180) });
+  const seed = spotOf([p(0), p(4), p(-4), p(0, 4), p(0, -4)]);
+  assert.equal(seed.count, 5); assert.ok(Math.abs(seed.lat - 41) < 1e-7); assert.ok(seed.radius > 3.9 && seed.radius < 4.1);
+  const grown = joinSpot(seed, p(20).lat, p(20).lng);
+  assert.equal(grown.count, 6); assert.ok(grown.lat > seed.lat); assert.ok(grown.radius >= 16 && grown.radius <= 40);
+  const far = joinSpot({ ...seed, radius: 39 }, p(80).lat, p(80).lng);
+  assert.equal(far.radius, 40, 'capped at 40 m');
+  const spot = { lat: 41, lng: 29, radius: 10 };
+  assert.equal(distanceToSpot(41, 29, spot), 0);
+  const fix = (north, accuracy) => ({ ...p(north), accuracy, measuredAt: Date.now() });
+  assert.equal(fixUnlocksSpot(fix(14, 3), spot, 2), true, '10 m spot + 2 m + 3 m AR accuracy');
+  assert.equal(fixUnlocksSpot(fix(16, 3), spot, 2), false);
+  assert.equal(fixUnlocksSpot(fix(29, 30), spot, 15), true, 'GPS tolerance stops at 5 m');
+  assert.equal(fixUnlocksSpot(fix(31, 30), spot, 15), false);
+  assert.equal(fixUnlocksSpot(fix(0, 40), spot, 15), false);
+  assert.match(stableUuid('dense:abc'), /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-a[0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.equal(campaignEntryRadius(undefined), 30); assert.equal(campaignEntryRadius(2.5), 15);
 });

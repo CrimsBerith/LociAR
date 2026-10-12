@@ -46,7 +46,7 @@ export function updateDensityLock(tx: FirebaseFirestore.Transaction, ref: Fireba
 }
 
 /** Exact distance filtering, complete pages, and early termination only once rejection is certain. */
-export async function activeDensity(lat: number, lng: number, tx: FirebaseFirestore.Transaction): Promise<number> {
+export async function activeDensity(lat: number, lng: number, tx: FirebaseFirestore.Transaction, max = MAX_POSTS_NEARBY): Promise<number> {
   const prefixes = geohashCoverPrefixes(lat, lng, POST_DENSITY_RADIUS_METERS);
   let count = 0;
   for (const prefix of prefixes.length ? prefixes : [null]) {
@@ -57,7 +57,7 @@ export async function activeDensity(lat: number, lng: number, tx: FirebaseFirest
       const page: FirebaseFirestore.QuerySnapshot = await tx.get((cursor ? query.startAfter(cursor) : query).limit(PAGE_SIZE));
       for (const doc of page.docs) {
         const post = doc.data();
-        if (distanceMeters(lat, lng, post.lat, post.lng) <= POST_DENSITY_RADIUS_METERS && ++count >= MAX_POSTS_NEARBY) return count;
+        if (distanceMeters(lat, lng, post.lat, post.lng) <= POST_DENSITY_RADIUS_METERS && ++count >= max) return count;
       }
       if (page.size < PAGE_SIZE) break;
       cursor = page.docs[page.docs.length - 1];

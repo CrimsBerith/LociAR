@@ -5,6 +5,7 @@ export { readCampaignRegions, recordCampaignArrival } from './campaignArrivals';
 export { createPlaceNote, readPlaceNoteRegions, recordPlaceNoteVisit } from './placeNotes';
 export { onPostDensityWritten, reconcileNoteDensity, readNoteDensity, expireScheduledNotes } from './noteDensity';
 export { unlockDenseSpot } from './denseSpots';
+export { onReportCreated } from './noteAutomation';
 export { readActivity, readLikeCount, blockPostAuthor, readAnonymousWorldMap } from './anonymousAccess';
 export { beginWorldMapUpload, createPost, deleteOwnPost, recordPostView } from './posts';
 export { deleteAccount, retryAccountDeletions } from './account';

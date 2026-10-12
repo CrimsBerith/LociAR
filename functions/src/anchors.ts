@@ -92,6 +92,8 @@ export function quotaDecision(hourly: number, daily: number): 'ok' | 'limited' {
 }
 
 export const MAX_POSTS_NEARBY = 5;
+/** Location notes may crowd a spot (dense spots open on site); this is only an abuse ceiling. */
+export const MAX_NOTES_NEARBY = 200;
 
 export type PostAdmission = { ok: boolean; reason: 'rate' | 'density' | null; flag: boolean; hourly: number; daily: number; density: number };
 
@@ -111,6 +113,7 @@ export async function admitPost(
   luid: string,
   nowMs: number,
   countNearby: () => Promise<number>,
+  maxNearby = MAX_POSTS_NEARBY,
 ): Promise<PostAdmission> {
   const { hourRef, dayRef } = postQuotaRefs(luid, nowMs);
   const [h, d] = await Promise.all([tx.get(hourRef), tx.get(dayRef)]);
@@ -123,7 +126,7 @@ export async function admitPost(
     return { ok: false, reason: 'rate', flag, hourly, daily, density: 0 };
   }
   const density = await countNearby();
-  if (density >= MAX_POSTS_NEARBY) {
+  if (density >= maxNearby) {
     const flag = h.data()?.density_flagged !== true;
     if (flag) tx.set(hourRef, { owner_luid: luid, count: hourly, density_flagged: true, expires_at: hourExpiry }, { merge: true });
     return { ok: false, reason: 'density', flag, hourly, daily, density };

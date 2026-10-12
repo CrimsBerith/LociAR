@@ -3,6 +3,7 @@ import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, Http
 import { requireCaller } from './core';
 import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
 import { isPublicActive } from './counters';
+import { denseLocks } from './denseSpots';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
 export async function isBlocked(a: string, b: string, tx?: FirebaseFirestore.Transaction): Promise<boolean> {
@@ -109,6 +110,8 @@ export const readActivity = onCall(options, async request => {
         return reports.empty ? post.get('caption') : null;
       });
       if (body == null) return null;
+      // A note in a dense spot stays closed in the activity list too until the viewer unlocks it on site.
+      if ((await denseLocks([await db.collection('posts').doc(data.post_id).get()], caller.luid)).size) body = '';
     }
     return { id: doc.id, kind: data.kind, actor_id: data.anonymous === true ? null : data.actor_id ?? null,
       recipient_id: caller.luid, post_id: data.post_id ?? null, body,

@@ -3,6 +3,8 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { db, FieldValue, Timestamp, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, logger } from './core';
 import { isPublicActive } from './counters';
+import { autoApproveNote } from './noteAutomation';
+import { syncSpotMembership } from './denseSpots';
 import { requireActiveAccount } from './profileGuard';
 import { densityCells, densityQueryPrefixes, geohashBounds, validBox, validCoordinates, DENSITY_PRECISIONS } from './placeNoteRules';
 
@@ -37,8 +39,14 @@ export async function syncNoteDensity(postId: string) {
 export const onPostDensityWritten = onDocumentWritten({ document: 'posts/{postId}', retry: true, maxInstances: 10 }, async event => {
   const before = event.data?.before.data(), after = event.data?.after.data();
   const counted = (d: FirebaseFirestore.DocumentData | undefined) => d && isPublicActive(d) ? `${d.lat},${d.lng}` : null;
-  if (counted(before) === counted(after)) return;
-  await syncNoteDensity(event.params.postId);
+  if (counted(before) !== counted(after)) {
+    await syncNoteDensity(event.params.postId);
+    await syncSpotMembership(event.params.postId);
+  }
+  // Likes make a user location note notification-worthy without manual approval.
+  if (after?.note_kind === 'location' && (after.push_state ?? 'none') === 'none' && Number(after.likes_count ?? 0) > Number(before?.likes_count ?? 0)) {
+    await autoApproveNote(event.params.postId);
+  }
 });
 
 /** Self-healing pass over every post; also seeds counters for posts older than this feature. */
@@ -48,7 +56,7 @@ export const reconcileNoteDensity = onSchedule({ schedule: 'every 60 minutes', t
   let query = db.collection('posts').orderBy('__name__').limit(500);
   if (typeof cursor === 'string' && cursor) query = query.startAfter(cursor);
   const page = await query.get();
-  for (const post of page.docs) await syncNoteDensity(post.id);
+  for (const post of page.docs) { await syncNoteDensity(post.id); await syncSpotMembership(post.id); }
   await state.set({ cursor: page.size === 500 ? page.docs.at(-1)!.id : null, updated_at: FieldValue.serverTimestamp() });
   logger.info('note density reconcile', { checked: page.size });
 });
@@ -64,7 +72,7 @@ export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxI
   await db.runTransaction(tx => requireActiveAccount(tx, caller.luid));
   const prefixes = densityQueryPrefixes(box, precision);
   const pages = await Promise.all(prefixes.map(prefix => db.collection('note_density').where('precision', '==', precision)
-    .orderBy('cell').startAt(prefix).endAt(prefix + '').limit(500).get()));
+    .orderBy('cell').startAt(prefix).endAt(prefix + '\uf8ff').limit(500).get()));
   const cells = pages.flatMap(page => page.docs).map(d => d.data())
     .filter(c => {
       if (!(Number(c.count) > 0) || typeof c.cell !== 'string') return false;

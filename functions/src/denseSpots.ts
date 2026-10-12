@@ -1,16 +1,19 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { db, Timestamp, FieldValue, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES } from './core';
 import { requireActiveAccount } from './profileGuard';
-import { encodeGeohash, geohashCoverPrefixes } from './geo';
+import { isPublicActive } from './counters';
+import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
 import {
-  distanceToCell, fixIsFresh, fixUnlocksSpot, geohashBounds, geohashesInBox, validCoordinates, DEFAULT_DENSE_THRESHOLD,
-  DEFAULT_UNLOCK_RADIUS_M, MAX_ENTRY_ACCURACY_M, MAX_UNLOCK_RADIUS_M, MIN_UNLOCK_RADIUS_M, SPOT_PRECISION, UNLOCK_TOLERANCE_CAP_M,
-  UNLOCK_TTL_MS, type Fix,
+  distanceToSpot, fixIsFresh, fixUnlocksSpot, joinSpot, spotOf, validCoordinates, DEFAULT_DENSE_THRESHOLD, DEFAULT_UNLOCK_RADIUS_M,
+  MAX_ENTRY_ACCURACY_M, MAX_SPOT_RADIUS_M, MAX_UNLOCK_RADIUS_M, MIN_SPOT_SIZE, MIN_UNLOCK_RADIUS_M, SPOT_JOIN_RADIUS_M,
+  UNLOCK_TOLERANCE_CAP_M, UNLOCK_TTL_MS, type Fix, type Spot,
 } from './placeNoteRules';
 
 /**
- * Dense spots: a ~38 x 19 m geohash cell holding at least `dense_threshold` public notes. Their
- * text opens only on site; the map shows the count everywhere. Counts come from note_density.
+ * Spots are server-only clusters of public posts (notes within 25 m of a running centroid,
+ * at most 40 m wide). A spot holding at least `dense_threshold` posts is dense: its text opens
+ * only on site. Membership lives on the post (`spot_id`), so the count follows the real notes
+ * instead of a fixed grid cell.
  */
 export type SpotSettings = { denseThreshold: number; unlockRadius: number };
 
@@ -19,51 +22,85 @@ export async function spotSettings(tx?: FirebaseFirestore.Transaction): Promise<
   const doc = tx ? await tx.get(ref) : await ref.get();
   const threshold = doc.get('dense_threshold'), radius = doc.get('unlock_radius_m');
   return {
-    denseThreshold: Number.isInteger(threshold) && threshold >= 2 ? threshold : DEFAULT_DENSE_THRESHOLD,
+    denseThreshold: Number.isInteger(threshold) && threshold >= MIN_SPOT_SIZE ? threshold : DEFAULT_DENSE_THRESHOLD,
     unlockRadius: typeof radius === 'number' && radius >= MIN_UNLOCK_RADIUS_M && radius <= MAX_UNLOCK_RADIUS_M ? radius : DEFAULT_UNLOCK_RADIUS_M,
   };
 }
 
-export const spotCellOf = (lat: number, lng: number) => encodeGeohash(lat, lng, SPOT_PRECISION);
-const densityRef = (cell: string) => db.collection('note_density').doc(`${SPOT_PRECISION}_${cell}`);
-const unlockRef = (luid: string, cell: string) => db.collection('dense_spot_unlocks').doc(`${luid}_${cell}`);
-export const spotReceiptRef = (luid: string, cell: string) => db.collection('dense_spot_receipts').doc(`${luid}_${cell}`);
+const spots = () => db.collection('note_spots');
+const unlockRef = (luid: string, spot: string) => db.collection('dense_spot_unlocks').doc(`${luid}_${spot}`);
+export const spotReceiptRef = (luid: string, spot: string) => db.collection('dense_spot_receipts').doc(`${luid}_${spot}`);
+type SpotDoc = Spot & { id: string; count: number };
+const spotData = (d: FirebaseFirestore.DocumentSnapshot): SpotDoc => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), radius: d.get('radius'), count: Number(d.get('count') ?? 0) });
 
-export type SpotLock = { cell: string; count: number; lat: number; lng: number; unlockRadius: number };
+async function spotsNear(tx: FirebaseFirestore.Transaction, lat: number, lng: number, radius: number): Promise<SpotDoc[]> {
+  const prefixes = geohashCoverPrefixes(lat, lng, radius + MAX_SPOT_RADIUS_M);
+  const pages = await Promise.all(prefixes.map(p => tx.get(spots().orderBy('geohash').startAt(p).endAt(p + '\uf8ff').limit(300))));
+  return pages.flatMap(p => p.docs).map(spotData).filter(s => validCoordinates(s.lat, s.lng) && distanceToSpot(lat, lng, s) <= radius);
+}
 
-/** Posts the viewer may not read yet: inside a dense spot, not their own, no live unlock. */
+/**
+ * Keeps a post's spot membership in step with its live state: leaves its spot when it stops
+ * being public or moves away, joins the nearest spot within 25 m, or seeds a new spot when at
+ * least five unclustered public posts lie within 25 m.
+ */
+export async function syncSpotMembership(postId: string) {
+  await db.runTransaction(async tx => {
+    const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
+    const counted = !!data && isPublicActive(data) && validCoordinates(data.lat, data.lng);
+    const currentId = typeof data?.spot_id === 'string' ? data.spot_id : null;
+    const current = currentId ? await tx.get(spots().doc(currentId)) : null;
+    const stillInside = counted && current?.exists && distanceMeters(data!.lat, data!.lng, current.get('lat'), current.get('lng')) <= MAX_SPOT_RADIUS_M;
+    if (stillInside) return;
+    const nearby = counted ? await spotsNear(tx, data!.lat, data!.lng, SPOT_JOIN_RADIUS_M) : [];
+    const pages = counted && !nearby.length ? await Promise.all(geohashCoverPrefixes(data!.lat, data!.lng, SPOT_JOIN_RADIUS_M)
+      .map(p => tx.get(db.collection('posts').orderBy('geohash').startAt(p).endAt(p + '\uf8ff').limit(300)))) : [];
+    // Reads are done; writes follow. The old spot loses the post unless it rejoins that same spot.
+    const best = nearby.sort((a, b) => distanceMeters(data!.lat, data!.lng, a.lat, a.lng) - distanceMeters(data!.lat, data!.lng, b.lat, b.lng))[0];
+    if (current?.exists && best?.id !== currentId) tx.update(current.ref, { count: FieldValue.increment(-1), updated_at: FieldValue.serverTimestamp() });
+    if (!counted) { if (currentId) tx.update(ref, { spot_id: FieldValue.delete() }); return; }
+    if (best && best.id === currentId) return;
+    if (best) {
+      const next = joinSpot(best, data!.lat, data!.lng);
+      tx.update(spots().doc(best.id), { ...next, geohash: encodeGeohash(next.lat, next.lng, 9), updated_at: FieldValue.serverTimestamp() });
+      tx.update(ref, { spot_id: best.id });
+      return;
+    }
+    const members = [...new Map(pages.flatMap(p => p.docs).map(d => [d.id, d])).values()].filter(d => (d.id === postId || !d.get('spot_id')) && isPublicActive(d.data())
+      && validCoordinates(d.get('lat'), d.get('lng')) && distanceMeters(data!.lat, data!.lng, d.get('lat'), d.get('lng')) <= SPOT_JOIN_RADIUS_M);
+    if (!members.some(d => d.id === postId)) members.push(post as FirebaseFirestore.QueryDocumentSnapshot);
+    if (members.length < MIN_SPOT_SIZE) { if (currentId) tx.update(ref, { spot_id: FieldValue.delete() }); return; }
+    const spot = spotOf(members.map(d => ({ lat: d.get('lat'), lng: d.get('lng') }))), spotRef = spots().doc(postId);
+    tx.set(spotRef, { ...spot, geohash: encodeGeohash(spot.lat, spot.lng, 9), created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
+    for (const m of members.slice(0, 200)) tx.update(m.ref, { spot_id: spotRef.id });
+  });
+}
+
+export type SpotLock = { spot: string; count: number; lat: number; lng: number; unlockRadius: number };
+
+/** Posts the viewer may not read yet: in a dense spot, not their own, no live unlock. */
 export async function denseLocks(docs: FirebaseFirestore.DocumentSnapshot[], viewer: string): Promise<Map<string, SpotLock>> {
   const locks = new Map<string, SpotLock>();
-  const candidates = docs.filter(d => d.get('creator_id') !== viewer && validCoordinates(d.get('lat'), d.get('lng')));
+  const candidates = docs.filter(d => d.get('creator_id') !== viewer && typeof d.get('spot_id') === 'string');
   if (!candidates.length) return locks;
-  const cells = [...new Set(candidates.map(d => spotCellOf(d.get('lat'), d.get('lng'))))];
+  const ids = [...new Set(candidates.map(d => String(d.get('spot_id'))))];
   const settings = await spotSettings();
-  const counts = await db.getAll(...cells.map(densityRef));
-  const dense = cells.filter((_, i) => Number(counts[i].get('count') ?? 0) >= settings.denseThreshold);
+  const found = await db.getAll(...ids.map(id => spots().doc(id)));
+  const dense = found.filter(s => s.exists && Number(s.get('count') ?? 0) >= settings.denseThreshold).map(spotData);
   if (!dense.length) return locks;
-  const unlocks = await db.getAll(...dense.map(c => unlockRef(viewer, c)));
-  const now = Date.now();
-  const open = new Set(dense.filter((_, i) => unlocks[i].exists && unlocks[i].get('expires_at') instanceof Timestamp && unlocks[i].get('expires_at').toMillis() > now));
-  const countOf = new Map(cells.map((c, i) => [c, Number(counts[i].get('count') ?? 0)]));
+  const unlocks = await db.getAll(...dense.map(s => unlockRef(viewer, s.id))), now = Date.now();
+  const open = new Set(dense.filter((_, i) => unlocks[i].exists && unlocks[i].get('expires_at') instanceof Timestamp && unlocks[i].get('expires_at').toMillis() > now).map(s => s.id));
+  const byId = new Map(dense.map(s => [s.id, s]));
   for (const d of candidates) {
-    const cell = spotCellOf(d.get('lat'), d.get('lng'));
-    if (!dense.includes(cell) || open.has(cell)) continue;
-    const centre = geohashBounds(cell);
-    locks.set(d.id, { cell, count: countOf.get(cell) ?? 0, lat: centre.lat, lng: centre.lng, unlockRadius: settings.unlockRadius });
+    const s = byId.get(String(d.get('spot_id')));
+    if (s && !open.has(s.id)) locks.set(d.id, { spot: s.id, count: s.count, lat: s.lat, lng: s.lng, unlockRadius: settings.unlockRadius });
   }
   return locks;
 }
 
-/** Dense spot cells with a centre within `radius` of the point, most crowded first. */
+/** Dense spots whose circle lies within `radius` of the point, most crowded first. */
 export async function denseSpotsNear(tx: FirebaseFirestore.Transaction, lat: number, lng: number, radius: number, threshold: number) {
-  const prefixes = geohashCoverPrefixes(lat, lng, radius);
-  if (!prefixes.length) return [];
-  const pages = await Promise.all(prefixes.map(prefix => tx.get(db.collection('note_density').where('precision', '==', SPOT_PRECISION)
-    .orderBy('cell').startAt(prefix).endAt(prefix + '').limit(500))));
-  return pages.flatMap(p => p.docs)
-    .filter(d => Number(d.get('count') ?? 0) >= threshold && typeof d.get('cell') === 'string' && distanceToCell(lat, lng, d.get('cell')) <= radius)
-    .map(d => ({ cell: String(d.get('cell')), count: Number(d.get('count')), lat: Number(d.get('lat')), lng: Number(d.get('lng')) }))
-    .sort((a, b) => b.count - a.count);
+  return (await spotsNear(tx, lat, lng, radius)).filter(s => s.count >= threshold).sort((a, b) => b.count - a.count);
 }
 
 /**
@@ -78,13 +115,9 @@ export const unlockDenseSpot = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxI
   return db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const settings = await spotSettings(tx);
-    const reach = settings.unlockRadius + UNLOCK_TOLERANCE_CAP_M;
-    const metre = 1 / 111_320, dLng = reach * metre / Math.max(0.01, Math.cos(f.lat * Math.PI / 180));
-    const cells = geohashesInBox({ minLat: f.lat - reach * metre, maxLat: f.lat + reach * metre, minLng: f.lng - dLng, maxLng: f.lng + dLng }, SPOT_PRECISION, 60) ?? [];
-    if (!cells.length) return { unlocked: [], reason: 'no_dense_spot' };
-    const counts = await tx.getAll(...cells.map(densityRef));
-    const dense = cells.filter((c, i) => Number(counts[i].get('count') ?? 0) >= settings.denseThreshold && fixUnlocksSpot(f, c, settings.unlockRadius));
-    for (const cell of dense) tx.set(unlockRef(caller.luid, cell), { owner_luid: caller.luid, cell, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + UNLOCK_TTL_MS) });
-    return { unlocked: dense, reason: dense.length ? null : 'too_far', unlockRadius: settings.unlockRadius };
+    const near = await denseSpotsNear(tx, f.lat, f.lng, settings.unlockRadius + UNLOCK_TOLERANCE_CAP_M, settings.denseThreshold);
+    const opened = near.filter(s => fixUnlocksSpot(f, s, settings.unlockRadius)).map(s => s.id);
+    for (const id of opened) tx.set(unlockRef(caller.luid, id), { owner_luid: caller.luid, spot: id, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + UNLOCK_TTL_MS) });
+    return { unlocked: opened, reason: opened.length ? null : 'too_far', unlockRadius: settings.unlockRadius };
   });
 });

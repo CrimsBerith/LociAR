@@ -26,7 +26,7 @@ function embedded(value:unknown){try{return typeof value==='string'?JSON.parse(v
 /** A dense-spot note shows only its place and the spot count until the viewer unlocks it on site. */
 function row(doc:FirebaseFirestore.DocumentSnapshot, viewerId:string, lock?:SpotLock){
  const p=doc.data()!, anonymous=p.is_anonymous===true;
- if(lock)return json({...lockedRow(doc,viewerId,p,anonymous),locked:true,dense_spot:{cell:lock.cell,count:lock.count,lat:lock.lat,lng:lock.lng,unlock_radius_m:lock.unlockRadius}});
+ if(lock)return json({...lockedRow(doc,viewerId,p,anonymous),locked:true,dense_spot:{id:lock.spot,count:lock.count,lat:lock.lat,lng:lock.lng,unlock_radius_m:lock.unlockRadius}});
  const geometry=(value:unknown)=>anonymous?anonymousGeometry(embedded(value),doc.id):embedded(value);
  return json({id:doc.id,...anonymousIdentity(doc.id,p.creator_id,viewerId,anonymous),
  creator_handle:anonymous?null:p.creator_handle??null,created_at:p.created_at,

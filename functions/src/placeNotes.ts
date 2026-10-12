@@ -66,7 +66,7 @@ async function approvedNear(tx: FirebaseFirestore.Transaction, lat: number, lng:
     const prefixes = geohashCoverPrefixes(lat, lng, r);
     if (!prefixes.length) return [];
     const pages = await Promise.all(prefixes.map(prefix => tx.get(db.collection('posts').where('push_state', '==', 'approved')
-      .orderBy('geohash').startAt(prefix).endAt(prefix + '').limit(PAGE))));
+      .orderBy('geohash').startAt(prefix).endAt(prefix + '\uf8ff').limit(PAGE))));
     if (pages.some(page => page.size === PAGE) && r > 400) continue;
     const unique = new Map(pages.flatMap(page => page.docs).map(d => [d.id, d]));
     return [...unique.values()].filter(d => validCoordinates(d.get('lat'), d.get('lng')) && distanceMeters(lat, lng, d.get('lat'), d.get('lng')) <= r);
@@ -121,10 +121,11 @@ export const readPlaceNoteRegions = onCall(options, async request => {
     const settings = await spotSettings(tx);
     const spots = [];
     for (const spot of (await denseSpotsNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M, settings.denseThreshold)).slice(0, 30)) {
-      const receipt = await tx.get(spotReceiptRef(caller.luid, spot.cell));
+      const receipt = await tx.get(spotReceiptRef(caller.luid, spot.id));
       if (receipt.exists && receipt.get('expires_at') instanceof Timestamp && receipt.get('expires_at').toMillis() > now) continue;
-      spots.push({ id: stableUuid(`dense:${spot.cell}`), lat: spot.lat, lng: spot.lng, radius: WAKE_RADIUS_MIN_M,
-        triggerRadius: SPOT_TRIGGER_RADIUS_M, notes: [{ lat: spot.lat, lng: spot.lng, r: SPOT_TRIGGER_RADIUS_M }], spot: spot.cell });
+      const r = Math.min(MAX_NOTIFY_RADIUS_M, Math.max(SPOT_TRIGGER_RADIUS_M, Math.ceil(spot.radius + 10)));
+      spots.push({ id: stableUuid(`dense:${spot.id}`), lat: spot.lat, lng: spot.lng, radius: WAKE_RADIUS_MIN_M,
+        triggerRadius: r, notes: [{ lat: spot.lat, lng: spot.lng, r }], spot: spot.id });
     }
     const regions = [...clusterNotes(unseen), ...spots]
       .sort((a, b) => distanceMeters(f.lat, f.lng, a.lat, a.lng) - distanceMeters(f.lat, f.lng, b.lat, b.lng))
@@ -159,21 +160,30 @@ export const recordPlaceNoteVisit = onCall(options, async request => {
     if (!top) {
       // No approved note here: a dense spot still earns one text-free alert per 30 days.
       const settings = await spotSettings(tx);
-      const spots = await denseSpotsNear(tx, f.lat, f.lng, SPOT_TRIGGER_RADIUS_M + Math.min(f.accuracy, ENTRY_TOLERANCE_CAP_M), settings.denseThreshold);
+      // Within 10 m of the spot circle, plus GPS tolerance.
+      const spots = await denseSpotsNear(tx, f.lat, f.lng, 10 + Math.min(f.accuracy, ENTRY_TOLERANCE_CAP_M), settings.denseThreshold);
       for (const spot of spots) {
-        const receipt = await tx.get(spotReceiptRef(caller.luid, spot.cell));
+        const receipt = await tx.get(spotReceiptRef(caller.luid, spot.id));
         if (receipt.exists && receipt.get('expires_at') instanceof Timestamp && receipt.get('expires_at').toMillis() > now) continue;
-        tx.set(receipt.ref, { owner_luid: caller.luid, cell: spot.cell, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
+        tx.set(receipt.ref, { owner_luid: caller.luid, spot: spot.id, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
         return { notify: true, kind: 'dense_spot', total: spot.count, spotLat: spot.lat, spotLng: spot.lng, unlockRadius: settings.unlockRadius,
-          activityId: `dense_spot_${caller.luid}_${spot.cell}`, recipientId: caller.luid };
+          activityId: `dense_spot_${caller.luid}_${spot.id}`, recipientId: caller.luid };
       }
       return { notify: false, reason: 'nothing_new' };
     }
     const activityId = `place_note_${caller.luid}_${top.id}`;
+    // A note inside a dense spot never travels as text: the alert only counts the notes there.
+    const spotId = top.get('spot_id');
+    const spot = typeof spotId === 'string' ? await tx.get(db.collection('note_spots').doc(spotId)) : null;
+    const settings = spot?.exists ? await spotSettings(tx) : null;
+    const unlock = spot?.exists ? await tx.get(db.collection('dense_spot_unlocks').doc(`${caller.luid}_${spot.id}`)) : null;
+    const locked = !!spot?.exists && Number(spot.get('count') ?? 0) >= settings!.denseThreshold
+      && !(unlock?.exists && unlock.get('expires_at') instanceof Timestamp && unlock.get('expires_at').toMillis() > now);
     // No expiry: the same note is never sent to the same person again.
     tx.create(receiptRef(caller.luid, top.id), { owner_luid: caller.luid, post_id: top.id, created_at: FieldValue.serverTimestamp() });
     tx.set(db.collection('activity_events').doc(activityId), { kind: 'place_note', anonymous: true, actor_id: null, recipient_id: caller.luid,
       post_id: top.id, body: top.get('caption'), read_at: null, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
+    if (locked) return { notify: true, kind: 'dense_spot', total: Number(spot!.get('count')), postId: top.id, activityId, recipientId: caller.luid };
     return { notify: true, body: top.get('caption'), postId: top.id, activityId, recipientId: caller.luid,
       likes: Number(top.get('likes_count') ?? 0), total: eligible.length };
   });

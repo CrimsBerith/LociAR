@@ -7,7 +7,7 @@ import {
 import { encodeGeohash } from './geo';
 import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
 import { reasonError, withContentionGuard } from './errors';
-import { admitPost, anchorBindError, deleteAnchorOfPost } from './anchors';
+import { admitPost, anchorBindError, deleteAnchorOfPost, MAX_NOTES_NEARBY, MAX_POSTS_NEARBY } from './anchors';
 import { activeDensity, readDensityLocks, updateDensityLock } from './postAdmission';
 import { protectedZoneAt } from './protectedZones';
 import { assertAccountNotDeleting, requireActiveAccount } from './profileGuard';
@@ -83,7 +83,8 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
   };
   const autoPublish = placement.autoPublishEligible && !hasDrawingLayer(body.editData)
     && (AUTO_PUBLISH_HIGH_QUALITY || (TRUSTED_AUTO_PUBLISH && await trusted().catch(() => false)));
-  const publishStatus = autoPublish ? 'active' : 'pending_review';
+  // Location notes publish at once (owner decision, 12 Oct 2026): text filter, zones and limits still apply; reports hide them.
+  const publishStatus = autoPublish || locationNote ? 'active' : 'pending_review';
   // Landmark layer (growth plan 2.5): computed here, never trusted from the client; null on failure.
   const place = await placeAt(lat, lng);
   const mapURI = body.pose.anchor?.persistence?.kind === 'arkit_world_map' ? body.pose.anchor.persistence.assetURI ?? body.pose.anchor.persistence.assetUri ?? body.pose.anchor.persistence.storagePath : null;
@@ -158,7 +159,8 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
       if (bindError) throw new HttpsError('invalid-argument', bindError);
     }
     const densityLock = await readDensityLocks(tx, lat, lng);
-    const admission = await admitPost(tx, caller.luid, Date.now(), () => activeDensity(lat, lng, tx));
+    const nearbyLimit = locationNote ? MAX_NOTES_NEARBY : MAX_POSTS_NEARBY;
+    const admission = await admitPost(tx, caller.luid, Date.now(), () => activeDensity(lat, lng, tx, nearbyLimit), nearbyLimit);
     if (!admission.ok) {
       if (admission.flag) tx.create(db.collection('moderation_flags').doc(randomUUID()), {
         post_id: null, user_id: caller.luid, reason: 'rate_or_density_limit', status: 'open',

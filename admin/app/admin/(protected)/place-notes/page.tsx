@@ -30,8 +30,8 @@ export default async function PlaceNotesPage() {
   const [candidates, approved] = await Promise.all([notificationCandidates(threshold), approvedNotes()]);
   return <section className="page">
     <div className="pageHeading"><h1>Location notes</h1>{admin.permissions.has('posts.create') ? <a href="/admin/posts/new">Add a note anywhere</a> : null}</div>
-    <p className="muted">Users leave notes at their measured position. Likes order notes everywhere in the app. A note reaches visitors as a notification only after it collects enough likes and an administrator approves it; each person gets each note once, most-liked first. Notes never expire unless you set an end date.</p>
-    {moderate ? <section className="panel"><h2>Thresholds</h2><LikeThresholdForm threshold={threshold} denseThreshold={settings.denseThreshold} unlockRadius={settings.unlockRadius}/></section> : null}
+    <p className="muted">User notes publish at once after the automatic text filter. When enough established accounts like a note it is sent automatically to visitors who come there, once per person, most-liked first; enough reports hide it. You can stop notifications or remove a note at any time, and approve any post manually. Notes never expire unless you set an end date.</p>
+    {moderate ? <section className="panel"><h2>Thresholds</h2><LikeThresholdForm threshold={threshold} denseThreshold={settings.denseThreshold} unlockRadius={settings.unlockRadius} reportThreshold={settings.reportThreshold}/></section> : null}
     <h2>Candidates ({candidates.length}) · at least {threshold} likes</h2>
     {candidates.length ? candidates.map(n => <Row key={n.id} note={n} moderate={moderate} places={places}/>) : <p className="emptyState">No notes have reached the threshold yet.</p>}
     <h2>Approved for notifications ({approved.length})</h2>
