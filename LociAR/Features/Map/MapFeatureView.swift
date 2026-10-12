@@ -20,10 +20,27 @@ struct MapFeatureView: View {
     @State private var reloadRequested = false
     @State private var showPlaceNote = false
     @State private var visibleRegion: MKCoordinateRegion?
+    @State private var layer: NoteMapLayer = .notes
+    @State private var densityCells: [NoteDensityCell] = []
+    @State private var densityTask: Task<Void, Never>?
+    /// Notes of a tapped 25 m group, listed by likes in the panel.
+    @State private var clusterFocus: Set<UUID>?
 
     var body: some View {
         Map(position: $camera, selection: $selection) {
             UserAnnotation()
+            if case .heat(let precision) = layer {
+                NoteHeatContent(cells: densityCells, precision: precision)
+            }
+            if layer == .counts {
+                ForEach(densityCells) { cell in
+                    Annotation("\(cell.count) not", coordinate: cell.coordinate) {
+                        Button { zoom(into: cell.coordinate) } label: { countBubble(cell.count) }
+                            .buttonStyle(.plain)
+                    }
+                }
+            }
+            if layer == .notes {
             ForEach(clusters) { cluster in
                 if cluster.posts.count == 1, let post = cluster.posts.first {
                     Marker(
@@ -36,27 +53,21 @@ struct MapFeatureView: View {
                 } else {
                     Annotation("\(cluster.posts.count) post", coordinate: cluster.coordinate) {
                         Button {
-                            selection = cluster.posts.first?.id
-                        } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(LociTheme.surface)
-                                    .frame(width: 44, height: 44)
-                                    .overlay(Circle().stroke(LociTheme.accent, lineWidth: 2.5))
-                                    .shadow(color: .black.opacity(0.35), radius: 4)
-                                Text("\(cluster.posts.count)")
-                                    .font(.subheadline.bold())
-                                    .foregroundStyle(LociTheme.accent)
-                            }
-                        }
+                            selection = nil
+                            clusterFocus = Set(cluster.posts.map(\.id))
+                        } label: { countBubble(cluster.posts.count) }
                         .buttonStyle(.plain)
                     }
                 }
             }
+            }
         }
         .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .including([.cafe, .museum, .park])))
         .mapControls { MapCompass(); MapUserLocationButton() }
-        .onMapCameraChange(frequency: .onEnd) { visibleRegion = $0.region }
+        .onMapCameraChange(frequency: .onEnd) { context in
+            visibleRegion = context.region
+            refreshLayer(for: context.region)
+        }
         .sheet(isPresented: $showPlaceNote) { PlaceNoteComposer() }
         .safeAreaInset(edge: .bottom, spacing: 8) { mapPanel.padding(.horizontal, 14) }
         .navigationTitle("Harita")
@@ -97,7 +108,8 @@ struct MapFeatureView: View {
 
     private var clusters: [PostCluster] {
         var result: [PostCluster] = []
-        let thresholdMeters: Double = 35.0
+        // Same 25 m grouping as the server's notification clusters.
+        let thresholdMeters: Double = 25.0
 
         for post in posts {
             guard let geo = post.anchorBundle.anchor.geoPose else { continue }
@@ -193,9 +205,18 @@ struct MapFeatureView: View {
                         Button("İlk yüzeyi sen oluştur", systemImage: "plus.viewfinder") { showCreate = true }
                             .buttonStyle(LociPrimaryButtonStyle())
                     } else if !isLoading {
+                        if clusterFocus != nil {
+                            HStack {
+                                Text("Bu noktadaki notlar · en çok beğenilen önce").font(.caption.weight(.semibold))
+                                Spacer()
+                                Button { clusterFocus = nil } label: { Image(systemName: "xmark.circle.fill") }
+                                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                                    .accessibilityLabel("Seçimi kapat")
+                            }
+                        }
                         ScrollView {
                             VStack(spacing: 10) {
-                                ForEach(posts) { post in
+                                ForEach(listedPosts) { post in
                                     NavigationLink(value: post) {
                                         HStack(spacing: 10) {
                                             Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
@@ -205,6 +226,10 @@ struct MapFeatureView: View {
                                                 .foregroundStyle(.white)
                                                 .lineLimit(1)
                                             Spacer()
+                                            if post.counts.likes > 0 {
+                                                Label { Text(post.counts.likes, format: .number) } icon: { Image(systemName: "heart.fill") }
+                                                    .font(.caption).foregroundStyle(.secondary)
+                                            }
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
@@ -226,6 +251,45 @@ struct MapFeatureView: View {
     }
 
     private var statusSymbol: String { posts.isEmpty ? "location.magnifyingglass" : "mappin.and.ellipse" }
+
+    /// Panel order follows likes so the most useful note at a place comes first.
+    private var listedPosts: [LociPost] {
+        guard let clusterFocus else { return posts }
+        return posts.filter { clusterFocus.contains($0.id) }
+    }
+
+    private func countBubble(_ count: Int) -> some View {
+        ZStack {
+            Circle()
+                .fill(LociTheme.surface)
+                .frame(width: 44, height: 44)
+                .overlay(Circle().stroke(LociTheme.accent, lineWidth: 2.5))
+                .shadow(color: .black.opacity(0.35), radius: 4)
+            Text(count, format: .number)
+                .font(.subheadline.bold())
+                .foregroundStyle(LociTheme.accent)
+        }
+    }
+
+    private func zoom(into coordinate: CLLocationCoordinate2D) {
+        withAnimation { camera = .camera(MapCamera(centerCoordinate: coordinate, distance: 400)) }
+    }
+
+    /// Picks heat, count bubbles or notes from the visible width and loads density after a short pause.
+    private func refreshLayer(for region: MKCoordinateRegion) {
+        let width = region.span.longitudeDelta * 111_320 * cos(region.center.latitude * .pi / 180)
+        let next = NoteMapLayer.forWidth(width)
+        if next != layer { layer = next; densityCells = [] }
+        densityTask?.cancel()
+        guard let precision = next.precision, container.isBackendConfigured, !session.isLocalPreview else { return }
+        densityTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            let cells = try? await NoteDensityClient.shared.cells(in: region, precision: precision)
+            guard !Task.isCancelled, layer == next else { return }
+            densityCells = cells ?? []
+        }
+    }
 
     private func startAndLoad() async {
         guard !isLoading else { reloadRequested = true; return }
@@ -287,7 +351,9 @@ struct MapFeatureView: View {
     private func mergedPosts(_ remote: [LociPost]) -> [LociPost] {
         var unique: [UUID: LociPost] = [:]
         for post in localDraftsForCurrentUser() + remote { unique[post.id] = post }
-        return Array(unique.values).sorted { $0.createdAt > $1.createdAt }
+        return Array(unique.values).sorted {
+            $0.counts.likes != $1.counts.likes ? $0.counts.likes > $1.counts.likes : $0.createdAt > $1.createdAt
+        }
     }
 
     private func localDraftsForCurrentUser() -> [LociPost] {

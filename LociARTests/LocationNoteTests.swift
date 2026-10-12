@@ -124,3 +124,22 @@ final class LocationNoteRegionTests: XCTestCase {
         XCTAssertEqual(CampaignRegion.nearest(campaigns, to: nil, at: now).count, 18, "campaigns use every slot when there are no notes")
     }
 }
+
+final class NoteMapLayerTests: XCTestCase {
+    func testZoomPicksHeatCountsOrNotes() {
+        XCTAssertEqual(NoteMapLayer.forWidth(120_000), .heat(precision: 4))
+        XCTAssertEqual(NoteMapLayer.forWidth(20_000), .heat(precision: 5))
+        XCTAssertEqual(NoteMapLayer.forWidth(2_000), .heat(precision: 6))
+        XCTAssertEqual(NoteMapLayer.forWidth(600), .counts)
+        XCTAssertEqual(NoteMapLayer.forWidth(200), .notes)
+        XCTAssertNil(NoteMapLayer.notes.precision)
+        XCTAssertEqual(NoteMapLayer.counts.precision, 7)
+    }
+
+    func testHeatIntensityIsLogScaledAndBounded() {
+        XCTAssertEqual(NoteDensityCell.intensity(0, max: 10), 0)
+        XCTAssertEqual(NoteDensityCell.intensity(10, max: 10), 1, accuracy: 1e-9)
+        XCTAssertGreaterThan(NoteDensityCell.intensity(1, max: 100), 0.1, "a single note still shows")
+        XCTAssertLessThan(NoteDensityCell.intensity(1, max: 100), NoteDensityCell.intensity(10, max: 100))
+    }
+}
