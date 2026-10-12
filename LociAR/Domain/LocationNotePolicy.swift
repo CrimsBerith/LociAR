@@ -15,12 +15,12 @@ enum LocationNotePolicy {
     /// Samples spread used to call an estimate stable.
     static let stableSpread: CLLocationDistance = 5
     static let minimumWarmup: TimeInterval = 2
-    static let sampleWindow: TimeInterval = 10
     static let maxSampleAge: TimeInterval = 3
 
     static let maxEntryAccuracy: CLLocationAccuracy = 35
     static let entryToleranceCap: CLLocationDistance = 20
-    static let minConfirmation: TimeInterval = 5
+    static let minConfirmation: TimeInterval = 10
+    static let maxConfirmationSampleGap: TimeInterval = 5
     static let maxWalkingSpeed: CLLocationSpeed = 2.5
     static let maxFixAge: TimeInterval = 10
     /// Precise GPS after a wake ends on notification, exit, or after this long.
@@ -33,6 +33,24 @@ enum LocationNotePolicy {
     }
 }
 
+/// Device-only timing: leaving the note circle or losing fixes restarts the entry confirmation.
+struct LocationNoteEntryConfirmation {
+    private(set) var startedAt: Date?
+    private var lastGoodAt: Date?
+
+    mutating func observe(sampleAt: Date) -> Bool {
+        guard sampleAt.timeIntervalSince1970.isFinite else { self = Self(); return false }
+        if let lastGoodAt {
+            guard sampleAt > lastGoodAt else { return false }
+            if sampleAt.timeIntervalSince(lastGoodAt) > LocationNotePolicy.maxConfirmationSampleGap {
+                startedAt = sampleAt
+            }
+        } else { startedAt = sampleAt }
+        lastGoodAt = sampleAt
+        return sampleAt.timeIntervalSince(startedAt!) >= LocationNotePolicy.minConfirmation
+    }
+}
+
 struct LocationSample: Equatable, Sendable {
     let latitude: Double
     let longitude: Double
@@ -41,6 +59,12 @@ struct LocationSample: Equatable, Sendable {
     var simulated = false
 
     var location: CLLocation { CLLocation(latitude: latitude, longitude: longitude) }
+
+    func isUsable(at now: Date, maxAge: TimeInterval = LocationNotePolicy.maxSampleAge) -> Bool {
+        let age = now.timeIntervalSince(timestamp)
+        return accuracy.isFinite && accuracy >= 0 && !simulated && age >= -5 && age <= maxAge
+            && ProximityPolicy.isValidCoordinate(latitude: latitude, longitude: longitude)
+    }
 }
 
 extension LocationSample {
@@ -57,8 +81,9 @@ extension LocationSample {
 struct LocationEstimate: Equatable, Sendable {
     let latitude: Double
     let longitude: Double
-    /// The best single accuracy in the window; averaging is not claimed as extra precision.
+    /// At least the best single accuracy; disagreement between fixes raises the uncertainty.
     let accuracy: CLLocationAccuracy
+    let timestamp: Date
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
     var location: CLLocation { CLLocation(latitude: latitude, longitude: longitude) }
 }
@@ -81,20 +106,24 @@ struct LocationFixEstimator: Sendable {
     /// Drops cached fixes from before the measurement, stale or simulated fixes and invalid accuracy.
     @discardableResult
     mutating func add(_ sample: LocationSample, now: Date) -> Bool {
-        guard sample.accuracy >= 0, !sample.simulated, sample.timestamp >= startedAt,
-              now.timeIntervalSince(sample.timestamp) <= LocationNotePolicy.maxSampleAge,
-              ProximityPolicy.isValidCoordinate(latitude: sample.latitude, longitude: sample.longitude) else { return false }
+        prune(at: now)
+        guard sample.isUsable(at: now), sample.timestamp >= startedAt else { return false }
+        // Core Location may redeliver a cached fix; it must not count as another stable sample.
+        guard !samples.contains(where: { $0.timestamp == sample.timestamp }) else { return false }
         samples.append(sample)
-        samples.removeAll { now.timeIntervalSince($0.timestamp) > LocationNotePolicy.sampleWindow }
+        samples.sort { $0.timestamp < $1.timestamp }
+        samples = Array(samples.suffix(20))
         return true
     }
 
-    /// Fixes the map already collected (at most 10 s old) count toward the first estimate.
+    /// Fresh fixes already collected on the map count toward the first estimate.
     mutating func seed(_ samples: [LocationSample], now: Date) {
-        for sample in samples where sample.accuracy >= 0 && !sample.simulated && now.timeIntervalSince(sample.timestamp) <= LocationNotePolicy.sampleWindow
-            && ProximityPolicy.isValidCoordinate(latitude: sample.latitude, longitude: sample.longitude) {
-            self.samples.append(sample)
-        }
+        for sample in samples { add(sample, now: now) }
+    }
+
+    /// A good fix must not survive a stopped stream or a walk to another location.
+    mutating func prune(at now: Date) {
+        samples.removeAll { !$0.isUsable(at: now) }
     }
 
     var bestAccuracy: CLLocationAccuracy? { samples.map(\.accuracy).min() }
@@ -108,13 +137,17 @@ struct LocationFixEstimator: Sendable {
             let w = 1 / max(sample.accuracy * sample.accuracy, 1)
             weight += w; lat += sample.latitude * w; lng += sample.longitude * w
         }
-        return LocationEstimate(latitude: lat / weight, longitude: lng / weight, accuracy: best)
+        let mean = CLLocation(latitude: lat / weight, longitude: lng / weight)
+        let spread = good.map { $0.location.distance(from: mean) }.max() ?? 0
+        return LocationEstimate(latitude: mean.coordinate.latitude, longitude: mean.coordinate.longitude, accuracy: max(best, spread),
+                                timestamp: good.map(\.timestamp).max()!)
     }
 
     /// Accurate to 10 m, the last three fixes within 5 m of the estimate, after a 2 s warm-up.
     func isReady(now: Date) -> Bool {
         guard now.timeIntervalSince(startedAt) >= LocationNotePolicy.minimumWarmup,
-              let estimate, estimate.accuracy <= LocationNotePolicy.readyAccuracy, samples.count >= 3 else { return false }
+              let estimate, estimate.accuracy <= LocationNotePolicy.readyAccuracy, samples.count >= 3,
+              samples.suffix(3).allSatisfy({ $0.isUsable(at: now) }) else { return false }
         return samples.suffix(3).allSatisfy { $0.location.distance(from: estimate.location) <= LocationNotePolicy.stableSpread }
     }
 

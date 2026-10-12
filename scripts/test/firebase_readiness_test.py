@@ -49,6 +49,8 @@ class FirebaseReadinessTests(unittest.TestCase):
         self.assertIn('retryAccountDeletions', EXPECTED['functions'])
         self.assertEqual(EXPECTED['schedules']['retryAccountDeletions']['schedule'], 'every 5 minutes')
         self.assertIn(('push_tokens', 'expires_at'), EXPECTED['ttl'])
+        self.assertNotIn(('place_note_notification_receipts', 'expires_at'), EXPECTED['ttl'],
+                         'A location note is delivered once per person for its lifetime; its receipt must not expire.')
         self.assertIn('fcm.googleapis.com', EXPECTED['services'])
 
     def test_complete_metadata_passes_and_accepts_project_number_resource_names(self):

@@ -641,5 +641,6 @@
  "Çevre taranıyor…": "Scanning surroundings…",
  "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.": "Hold the phone at eye level and turn it slowly towards nearby buildings and signs. Works best outdoors; may not work indoors.",
  "Bu konumu kullan": "Use this position",
- "Kamerayla aç": "Open with camera"
+ "Kamerayla aç": "Open with camera",
+ "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Turn on Background App Refresh in iOS Settings for location notifications."
 }

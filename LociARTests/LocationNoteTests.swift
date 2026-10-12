@@ -3,6 +3,39 @@ import XCTest
 @testable import LociAR
 
 final class LocationNoteTests: XCTestCase {
+    func testNoteEntryWaitsTenSecondsOfContinuousFixes() {
+        var confirmation = LocationNoteEntryConfirmation()
+        let start = Date(timeIntervalSince1970: 1_000)
+        for second in [0, 2, 4, 6, 8] {
+            XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(Double(second))))
+        }
+        XCTAssertTrue(confirmation.observe(sampleAt: start.addingTimeInterval(10)))
+    }
+
+    func testNoteEntryRestartsAfterLosingTheFixStream() {
+        var confirmation = LocationNoteEntryConfirmation()
+        let start = Date(timeIntervalSince1970: 1_000)
+        XCTAssertFalse(confirmation.observe(sampleAt: start))
+        XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(4)))
+        XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(11)))
+        XCTAssertEqual(confirmation.startedAt, start.addingTimeInterval(11))
+        for second in [13, 15, 17, 19] {
+            XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(Double(second))))
+        }
+        XCTAssertTrue(confirmation.observe(sampleAt: start.addingTimeInterval(21)))
+    }
+
+    func testRepeatedOrOlderFixesCannotConfirmNoteEntry() {
+        var confirmation = LocationNoteEntryConfirmation()
+        let start = Date(timeIntervalSince1970: 1_000)
+        XCTAssertFalse(confirmation.observe(sampleAt: start))
+        XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(4)))
+        XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(4)))
+        XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(2)))
+        XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(10)))
+        XCTAssertEqual(confirmation.startedAt, start.addingTimeInterval(10))
+    }
+
     private let start = Date(timeIntervalSince1970: 1_800_000_000)
     private let metre = 1 / 111_320.0
 
@@ -60,12 +93,76 @@ final class LocationNoteTests: XCTestCase {
         XCTAssertEqual(outcome(51), .tooUncertain(51))
     }
 
+    func testStoppedStreamLosesReadinessAndCannotPublishAnOldFix() {
+        var estimator = LocationFixEstimator(startedAt: start)
+        for t in [1.0, 2, 3] { estimator.add(sample(north: 0, accuracy: 5, at: t), now: start.addingTimeInterval(t)) }
+        XCTAssertTrue(estimator.isReady(now: start.addingTimeInterval(3)))
+        XCTAssertFalse(estimator.isReady(now: start.addingTimeInterval(10)))
+        estimator.prune(at: start.addingTimeInterval(10))
+        XCTAssertEqual(estimator.outcome, .noFix)
+    }
+
+    func testSeedsRejectOldFutureNonfiniteAndDuplicateFixes() {
+        var estimator = LocationFixEstimator(startedAt: start)
+        let now = start.addingTimeInterval(10)
+        let valid = sample(north: 0, accuracy: 5, at: 9)
+        estimator.seed([sample(north: 50, accuracy: 2, at: 1), sample(north: 0, accuracy: .infinity, at: 9),
+                        sample(north: 0, accuracy: 5, at: 20), valid, valid], now: now)
+        XCTAssertEqual(estimator.samples, [valid])
+        XCTAssertFalse(estimator.isReady(now: now), "redelivered fixes cannot supply stability")
+        XCTAssertEqual(estimator.estimate?.timestamp, valid.timestamp)
+    }
+
+    func testWalkingDiscardsAnOlderMoreAccuratePosition() {
+        var estimator = LocationFixEstimator(startedAt: start)
+        estimator.add(sample(north: 0, accuracy: 2, at: 1), now: start.addingTimeInterval(1))
+        estimator.add(sample(north: 50, accuracy: 8, at: 6), now: start.addingTimeInterval(6))
+        XCTAssertEqual(estimator.estimate?.accuracy, 8)
+        XCTAssertLessThan(estimator.estimate!.location.distance(from: sample(north: 50, accuracy: 8, at: 6).location), 0.1)
+    }
+
+    func testDisagreeingAccurateFixesDoNotClaimPointPrecision() {
+        var estimator = LocationFixEstimator(startedAt: start)
+        estimator.add(sample(north: 0, accuracy: 5, at: 1), now: start.addingTimeInterval(1))
+        estimator.add(sample(north: 120, accuracy: 5, at: 2), now: start.addingTimeInterval(2))
+        XCTAssertGreaterThan(estimator.estimate!.accuracy, LocationNotePolicy.maxCreateAccuracy)
+        guard case .tooUncertain = estimator.outcome else { return XCTFail("GPS disagreement must not publish a precise midpoint") }
+    }
+
+    func testARPublishRejectsStaleFutureAndInaccurateFixes() {
+        func fix(age: Double, accuracy: Double) -> CLLocation {
+            CLLocation(coordinate: .init(latitude: 41, longitude: 29), altitude: 0,
+                       horizontalAccuracy: accuracy, verticalAccuracy: -1, timestamp: start.addingTimeInterval(-age))
+        }
+        XCTAssertTrue(GeoPoseCaptureService.isPublishable(fix(age: 1, accuracy: 8), at: start))
+        XCTAssertFalse(GeoPoseCaptureService.isPublishable(fix(age: 60, accuracy: 2), at: start))
+        XCTAssertFalse(GeoPoseCaptureService.isPublishable(fix(age: -20, accuracy: 2), at: start))
+        XCTAssertFalse(GeoPoseCaptureService.isPublishable(fix(age: 1, accuracy: 101), at: start))
+    }
+
     func testEntryRuleMatchesServerRule() {
         XCTAssertTrue(LocationNotePolicy.fixInsideNote(distance: 25, accuracy: 8, radius: 20))
         XCTAssertFalse(LocationNotePolicy.fixInsideNote(distance: 30, accuracy: 5, radius: 20))
         XCTAssertTrue(LocationNotePolicy.fixInsideNote(distance: 39, accuracy: 30, radius: 20), "tolerance capped at 20 m")
         XCTAssertFalse(LocationNotePolicy.fixInsideNote(distance: 41, accuracy: 30, radius: 20))
         XCTAssertFalse(LocationNotePolicy.fixInsideNote(distance: 0, accuracy: 36, radius: 20), "fixes worse than 35 m never count")
+    }
+}
+
+final class ArrivalMonitoringPreferenceTests: XCTestCase {
+    func testColdLaunchRestoresOnlyAcknowledgedChoicesForTheCurrentAccount() {
+        let suite = "lociar.tests.arrival.\(UUID().uuidString)", user = UUID(), other = UUID()
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: "lociar.notifications.regions-enabled.v2.\(user.uuidString)")
+        defaults.set(true, forKey: "lociar.place-notes.enabled.\(user.uuidString)")
+        defaults.set(true, forKey: "lociar.promotions.enabled.\(user.uuidString)")
+        let restored = ArrivalMonitoringPreferences(userID: user, defaults: defaults)
+        XCTAssertTrue(restored.enabled); XCTAssertTrue(restored.placeNotes); XCTAssertTrue(restored.promotions)
+        XCTAssertFalse(ArrivalMonitoringPreferences(userID: other, defaults: defaults).enabled)
+        defaults.set(["notifications": false], forKey: "lociar.data-preferences.pending.\(user.uuidString)")
+        let revoked = ArrivalMonitoringPreferences(userID: user, defaults: defaults)
+        XCTAssertFalse(revoked.enabled); XCTAssertFalse(revoked.placeNotes); XCTAssertFalse(revoked.promotions)
     }
 }
 

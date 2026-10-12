@@ -4,12 +4,12 @@ A location note is a short anonymous text written at the author's own position. 
 
 ## Writing a note (iOS)
 
-**Map → Leave a location note** opens a map centred on the user's measured position. There is no business or POI search. The map's last 10 s of fixes seed the estimate, so it is often ready the moment the composer opens.
+**Map → Leave a location note** opens a map centred on the user's measured position. There is no business or POI search. Fresh map fixes (at most 3 s old) seed the estimate.
 
 GPS measurement starts when the composer opens, so the fix usually settles while the author types (`LocationFixEstimator`, `LocationNotePolicy.swift`):
 
 - Fixes from before the screen opened, older than 3 s, simulated by software, or with invalid accuracy are discarded.
-- The position is the inverse-variance weighted mean (`1/accuracy²`) of the last 10 s of fixes close to the best one. The reported accuracy is the best single fix; averaging does not claim extra precision.
+- The position is the inverse-variance weighted mean (`1/accuracy²`) of fixes at most 3 s old and close in accuracy to the best one. Stale samples are pruned during the publish wait and before manual publication; repeated timestamps do not count as new fixes. The reported uncertainty is the larger of the best single accuracy and the largest sample distance from the mean, so conflicting fixes do not claim a precise midpoint. A camera fix also expires after 3 s and falls back to a new GPS measurement.
 - **Ready**: best accuracy ≤ 10 m, the last three fixes within 5 m of the estimate, at least 2 s after opening. Outdoors this is typically 3–8 s. Time-to-ready is logged (OSLog category `location-note`) for field calibration.
 - **Post here**: published at once when ready; otherwise the app waits at most 10 s. GPS rarely improves after ~10 s, and indoors it does not converge.
 
@@ -38,14 +38,20 @@ Each person receives each note at most once (`place_note_notification_receipts/p
 
 1. `readPlaceNoteRegions` returns up to 15 wake regions: approved notes within 3 km that this user has not received, grouped within 25 m around the most-liked note. Seen clusters do not use one of iOS's 20 monitored regions. A coarse fix (≤ 1 km, ≤ 4 min old) is enough, so the list also refreshes in the background.
 2. Significant-location-change monitoring (~500 m) wakes the app to refresh regions while it is in the background.
-3. iOS wakes the app when it enters a cluster's 150–400 m circle (entry and exit are both monitored; the state is requested on registration, so a user already inside is detected).
+3. iOS wakes the app when it enters a cluster's 300–400 m circle, ahead of the note so GPS can settle (entry and exit are both monitored; the state is requested on registration, so a user already inside is detected). This wake circle does not expand the note's 15–100 m notification radius.
 4. A precise window runs until a notification is sent, the user leaves the wake circle, or 10 minutes pass. Far from every note it uses 10 m accuracy and a 10 m filter; within 40 m of a note circle it switches to best accuracy. In the background it keeps a `CLBackgroundActivitySession`.
 5. **Entry rule** (client and server): `distance ≤ radius + min(accuracy, 20 m)` and `accuracy ≤ 35 m`. The visitor's uncertainty circle may touch the note circle. Fixes that are older than 10 s, simulated, or moving faster than 2.5 m/s are ignored.
-6. Two agreeing fixes at least 5 s apart (the first at most 2 min old) confirm the entry.
-7. `recordPlaceNoteVisit` re-checks the fix, the confirmation window (5 s–10 min), consent, kill switch, approval, moderation, blocks, reports and the author's account, then picks the most-liked unseen approved note the visitor is inside. It writes the receipt and an anonymous activity in one transaction. Network failures retry after 2, 5 and 10 s while the user is still inside.
+6. The native client requires 10 s of agreeing fixes inside the note circle. Leaving it, receiving an invalid fix or a gap longer than 5 s restarts confirmation. Repeated/older fixes never advance the timer. Only timing is retained on the device; no location history is uploaded.
+7. `recordPlaceNoteVisit` re-checks the fix, the confirmation window (10 s–10 min), consent, kill switch, approval, moderation, blocks, reports and the author's account, then picks the most-liked unseen approved note the visitor is inside. It writes the receipt and an anonymous activity in one transaction. Network failures retry after 2, 5 and 10 s while the user is still inside; a stale or unconfirmed server fix requests a fresh measurement and allows another attempt after 2 s.
 8. The local notification title counts new notes at the spot; the body leads with the most-liked note and its likes. Notifications for one cluster share a thread.
 
 Phone GPS is usually 5–30 m off, and worse indoors. Use 15–25 m radii outdoors, 30–60 m indoors and up to 100 m for large venues. The rule cannot prove that someone entered a door. iOS may delay or suppress wake-ups, especially after force-quit.
+
+**Shop example (13 October 2026):** someone leaves an anonymous product-quality note at their measured position in a shop. Another opted-in visitor stays inside that note's GPS circle for 10 s, then receives the most-liked approved unseen note. A 10–15 s delivery target starts at the first accepted fix in the circle, not at the physical doorway, and depends on fresh GPS, iOS execution time and the network. A passer-by can also be inside the circle. Door-level indoor presence requires a separately validated proximity signal; GPS geofencing alone cannot guarantee it. Apple documents that [region events can be delayed](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/LocationAwarenessPG/RegionMonitoring/RegionMonitoring.html).
+
+Background delivery requires Notifications, Always location, Precise Location, Background App Refresh and internet. Settings show missing permission/refresh requirements. On a location-triggered cold launch the app delegate restores Firebase and the account's acknowledged preferences before SwiftUI bootstrap. Cached regions request their state immediately; campaign consent and device-only usual-place learning are restored separately from location-note consent. Pending preference changes fail closed. Significant changes refresh both notes and campaigns, even if only campaigns are enabled. Turning off a category removes its monitored regions immediately.
+
+Physical-device acceptance must separately cover Home/locked screen, an iOS-terminated process, user force-quit, reboot, permission downgrade, disabled Background App Refresh, approximate location and offline arrival. Simulator tests do not prove wake timing or APNs delivery.
 
 ## Dense spots
 
@@ -73,4 +79,4 @@ A spot is a server-side cluster (`note_spots`): a public note joins the nearest 
 
 ## Release
 
-Deploy Functions (`createPlaceNote`, `readPlaceNoteRegions`, `recordPlaceNoteVisit`, `readNoteDensity`, `unlockDenseSpot`, `onPostDensityWritten`, `reconcileNoteDensity`, `expireScheduledNotes`), the new indexes (`push_state + geohash`, `status + likes_count`, `note_density precision + cell`), App Hosting and the iOS build. Field checks on physical iPhones: time-to-ready outdoors and indoors, background wake from 150 m, entry at 15/25/50 m radii, drive-by suppression, exit ending the window, battery over a 10-minute window, approximate-location prompt, and opt-out.
+Deploy Functions (`createPlaceNote`, `readPlaceNoteRegions`, `recordPlaceNoteVisit`, `readNoteDensity`, `unlockDenseSpot`, `onPostDensityWritten`, `reconcileNoteDensity`, `expireScheduledNotes`), the new indexes (`push_state + geohash`, `status + likes_count`, `note_density precision + cell`), App Hosting and the iOS build. Field checks on physical iPhones: time-to-ready outdoors and indoors, background wake from 300 m, entry at 15/25/50 m radii, continuous 10 s confirmation, gaps/outside restarting confirmation, drive-by suppression, exit ending the window, battery over a 10-minute window, approximate-location prompt, and opt-out.

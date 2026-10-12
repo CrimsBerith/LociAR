@@ -136,7 +136,7 @@ export const readPlaceNoteRegions = onCall(options, async request => {
 });
 
 /**
- * Called after two agreeing fixes at least 5 s apart. Picks the most-liked approved note the
+ * Called after a 10 s native entry confirmation. Picks the most-liked approved note the
  * visitor is inside and has never been notified about; each note reaches a person once.
  */
 export const recordPlaceNoteVisit = onCall(options, async request => {

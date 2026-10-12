@@ -688,7 +688,9 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/scripts/upload-crashlytics-symbols.sh",
 				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}",
 				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
 				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
 			);
@@ -699,7 +701,8 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" != \"Release\" ]; then exit 0; fi\nif [ -z \"${LOCIAR_FIREBASE_GOOGLE_APP_ID}\" ]; then\n  echo \"warning: LOCIAR_FIREBASE_GOOGLE_APP_ID is empty (Config/Local.xcconfig); dSYMs not uploaded to Crashlytics.\"\n  exit 0\nfi\nUPLOAD=\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\"\nif [ ! -x \"${UPLOAD}\" ]; then\n  echo \"warning: Crashlytics upload-symbols not found at ${UPLOAD}; dSYMs not uploaded.\"\n  exit 0\nfi\n\"${UPLOAD}\" -ai \"${LOCIAR_FIREBASE_GOOGLE_APP_ID}\" -p ios \"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}\" \\\n  || echo \"warning: Crashlytics dSYM upload failed; upload them later from the archive (Xcode Organizer).\"\n";
+			shellScript = "/bin/sh \"${SRCROOT}/scripts/upload-crashlytics-symbols.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 

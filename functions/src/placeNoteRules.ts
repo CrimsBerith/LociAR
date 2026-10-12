@@ -22,11 +22,12 @@ export const MAX_ENTRY_ACCURACY_M = 35;
 export const ENTRY_TOLERANCE_CAP_M = 20;
 export const MAX_FIX_AGE_MS = 10_000;
 /** Two agreeing fixes must be at least this far apart in time. */
-export const MIN_CONFIRMATION_MS = 5_000;
+export const MIN_CONFIRMATION_MS = 10_000;
 /** The native precise window lasts at most 10 minutes. */
 export const MAX_CONFIRMATION_MS = 600_000;
 export const CLUSTER_RADIUS_M = 25;
-export const WAKE_RADIUS_MIN_M = 150;
+/** Wake ahead of the note so GPS can settle before a visitor reaches a shop-sized circle. */
+export const WAKE_RADIUS_MIN_M = 300;
 export const WAKE_RADIUS_MAX_M = 400;
 export const REGION_SEARCH_RADIUS_M = 3_000;
 export const DENSITY_PRECISIONS = [4, 5, 6, 7] as const;
@@ -76,7 +77,7 @@ export function fixIsFresh(fix: Fix, now: number): boolean {
     && Number.isFinite(fix.measuredAt) && fix.measuredAt >= now - MAX_FIX_AGE_MS && fix.measuredAt <= now + 5_000;
 }
 
-/** The first agreeing fix must precede the submitted one by 5 s to 10 min. */
+/** The first agreeing fix must precede the submitted one by 10 s to 10 min. */
 export function confirmationValid(confirmationStartedAt: unknown, fix: Fix): boolean {
   return typeof confirmationStartedAt === 'number' && Number.isFinite(confirmationStartedAt)
     && confirmationStartedAt <= fix.measuredAt - MIN_CONFIRMATION_MS

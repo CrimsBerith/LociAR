@@ -23,14 +23,29 @@ async function note(author, point, overrides = {}) {
   return { body, created, ref: adminDb.collection('posts').doc(created.post.id) };
 }
 const approve = (n, extra = {}) => n.ref.update({ status: 'active', push_state: 'approved', ...extra });
-async function fixture() {
+async function fixture(text = 'Entrance is around the back.') {
   const author = await newAnonymousUser(), visitor = await newAnonymousUser(), point = base();
   await optIn(visitor);
-  const n = await note(author, point);
-  const visit = (location = fix(point.lat, point.lng), confirmationStartedAt = Date.now() - 6000) =>
+  const n = await note(author, point, { text });
+  const visit = (location = fix(point.lat, point.lng), confirmationStartedAt = Date.now() - 11_000) =>
     visitor.call('recordPlaceNoteVisit', { location, confirmationStartedAt });
   return { author, visitor, point, n, visit };
 }
+
+test('a shop note waits ten seconds and an early visit does not consume its one-time delivery', async () => {
+  const warning = 'Bu ürünü alma, kalitesi düşük.';
+  const f = await fixture(warning);
+  await approve(f.n);
+  const location = fix(f.point.lat, f.point.lng), measured = location.measuredAt;
+  for (const elapsed of [5000, 9999]) {
+    const early = await f.visit(location, measured - elapsed);
+    assert.equal(early.notify, false); assert.equal(early.reason, 'unconfirmed');
+  }
+  const delivered = await f.visit(location, measured - 10_000);
+  assert.equal(delivered.notify, true); assert.equal(delivered.body, warning);
+  assert.equal(delivered.creator_id, undefined); assert.equal(delivered.actor_id, undefined);
+  assert.equal((await f.visit(location, measured - 10_000)).notify, false, 'one note reaches each visitor once');
+});
 
 test('location notes publish at once, anonymously, at the measured position with a tiered radius', async () => {
   const f = await fixture(), stored = (await f.n.ref.get()).data();
@@ -144,7 +159,9 @@ async function densityCount(user, point, precision) {
   return cells.reduce((s, c) => s + c.count, 0);
 }
 async function eventually(check, message) {
-  for (let i = 0; i < 40; i++) { if (await check()) return; await new Promise(r => setTimeout(r, 250)); }
+  // The full suite queues Firestore triggers behind bulk cleanup/counter events.
+  // Keep the assertion strict while allowing those asynchronous writes to settle.
+  for (let i = 0; i < 120; i++) { if (await check()) return; await new Promise(r => setTimeout(r, 250)); }
   assert.fail(message);
 }
 
@@ -208,7 +225,7 @@ test('entering a dense spot sends one text-free alert, and the region list adver
   const regions = (await s.visitor.call('readPlaceNoteRegions', { location: fix(s.centre.lat, s.centre.lng, 30) })).regions;
   const region = regions.find(r => r.spot === s.spotId);
   assert.ok(region); assert.equal(region.kind, 'place_note'); assert.ok(region.triggerRadius >= 25);
-  const visit = () => s.visitor.call('recordPlaceNoteVisit', { location: fix(s.centre.lat, s.centre.lng, 8), confirmationStartedAt: Date.now() - 6000 });
+  const visit = () => s.visitor.call('recordPlaceNoteVisit', { location: fix(s.centre.lat, s.centre.lng, 8), confirmationStartedAt: Date.now() - 11_000 });
   const alert = await visit();
   assert.equal(alert.notify, true); assert.equal(alert.kind, 'dense_spot'); assert.equal(alert.total, 42); assert.equal(alert.body, undefined);
   assert.equal((await visit()).notify, false, 'once per 30 days');
@@ -218,7 +235,7 @@ test('entering a dense spot sends one text-free alert, and the region list adver
 test('an approved note inside a locked dense spot is announced without its text, and stays closed in activity', async () => {
   const s = await denseSpot(30);
   await s.n.ref.update({ push_state: 'approved' });
-  const r = await s.visitor.call('recordPlaceNoteVisit', { location: fix(s.centre.lat, s.centre.lng, 8), confirmationStartedAt: Date.now() - 6000 });
+  const r = await s.visitor.call('recordPlaceNoteVisit', { location: fix(s.centre.lat, s.centre.lng, 8), confirmationStartedAt: Date.now() - 11_000 });
   assert.equal(r.notify, true); assert.equal(r.kind, 'dense_spot'); assert.equal(r.body, undefined); assert.equal(r.total, 30);
   const item = (await s.visitor.call('readActivity')).items.find(i => i.id === r.activityId);
   assert.equal(item.body, '', 'activity keeps the note closed');

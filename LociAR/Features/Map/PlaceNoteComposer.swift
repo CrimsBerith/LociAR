@@ -43,6 +43,8 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private let logger = Logger(subsystem: "com.khankartal.lociar", category: "location-note")
     @ObservationIgnored private var readyLogged = false
+    @ObservationIgnored private var running = false
+    @ObservationIgnored private var requestedPreciseAccuracy = false
 
     override init() {
         super.init()
@@ -53,6 +55,7 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
     }
 
     func start(seed: [CLLocation] = []) {
+        running = true; requestedPreciseAccuracy = false
         // Seeded fixes count as warm-up time already spent on the map.
         let now = Date(), oldest = seed.map(\.timestamp).min()
         estimator = LocationFixEstimator(startedAt: oldest.map { min(now, $0) } ?? now)
@@ -65,12 +68,20 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
         }
     }
 
-    func stop() { manager.stopUpdatingLocation() }
+    func stop() { running = false; manager.stopUpdatingLocation() }
+
+    func refreshEstimate() {
+        let now = Date()
+        estimator.prune(at: now)
+        estimate = estimator.estimate; ready = estimator.isReady(now: now)
+    }
 
     private func begin() {
+        guard running else { return }
         denied = false
         reducedAccuracy = manager.accuracyAuthorization == .reducedAccuracy
-        if reducedAccuracy {
+        if reducedAccuracy, !requestedPreciseAccuracy {
+            requestedPreciseAccuracy = true
             manager.requestTemporaryFullAccuracyAuthorization(withPurposeKey: LocationController.geospatialAccuracyPurposeKey)
         }
         manager.startUpdatingLocation()
@@ -79,13 +90,17 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
     /// Waits until the estimate is ready or `maxWait` passes, then classifies the best estimate.
     func settle(maxWait: TimeInterval = LocationNotePolicy.maxPublishWait) async -> LocationFixEstimator.Outcome {
         let deadline = Date().addingTimeInterval(maxWait)
-        while !estimator.isReady(now: Date()), Date() < deadline, !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(250))
+        refreshEstimate()
+        while !ready, Date() < deadline, !Task.isCancelled, !denied {
+            do { try await Task.sleep(for: .milliseconds(250)) } catch { return .noFix }
+            refreshEstimate()
         }
-        return estimator.outcome
+        refreshEstimate()
+        return Task.isCancelled || denied ? .noFix : estimator.outcome
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        guard running else { return }
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways: begin()
         case .denied, .restricted: denied = true; manager.stopUpdatingLocation()
@@ -95,6 +110,7 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard running else { return }
         let now = Date()
         for location in locations { estimator.add(LocationSample(location), now: now) }
         estimate = estimator.estimate
@@ -178,7 +194,7 @@ struct PlaceNoteComposer: View {
         .fullScreenCover(isPresented: $showCameraRefine) {
             CameraLocationRefineView { fix in
                 cameraFix = fix
-                follow(LocationEstimate(latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy))
+                follow(LocationEstimate(latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy, timestamp: fix.timestamp))
             }
         }
         .task { measurement.start(seed: seed) }
@@ -264,6 +280,7 @@ struct PlaceNoteComposer: View {
         guard case let .signedIn(user) = session.phase, !session.isLocalPreview else { return }
         busy = true; message = nil
         defer { busy = false; waiting = false }
+        measurement.refreshEstimate()
         if let pin = manualPin {
             guard let measured = measurement.estimate else {
                 message = String(localized: "Konum aranıyor. Açık bir alanda kısa süre bekleyin."); return
@@ -277,11 +294,12 @@ struct PlaceNoteComposer: View {
             await submit(pin: pin, source: .manual, measured: measured, user: user.id)
             return
         }
-        if let fix = cameraFix {
-            let measured = LocationEstimate(latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy)
+        if let fix = cameraFix, fix.isUsable(at: Date()) {
+            let measured = LocationEstimate(latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy, timestamp: fix.timestamp)
             await submit(pin: measured.coordinate, source: .geospatial, measured: measured, user: user.id)
             return
         }
+        cameraFix = nil
         waiting = true
         let outcome = await measurement.settle()
         waiting = false

@@ -25155,6 +25155,83 @@
         }
       }
     },
+    "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on Background App Refresh in iOS Settings for location notifications."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiviere die Hintergrundaktualisierung in den iOS-Einstellungen für Standortmitteilungen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa la actualización en segundo plano en los ajustes de iOS para recibir notificaciones de ubicación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active l’actualisation en arrière-plan dans les réglages iOS pour les notifications de localisation."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ative a atualização em segundo plano nos ajustes do iOS para receber notificações de localização."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включи обновление контента в настройках iOS для уведомлений по местоположению."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فعّل تحديث التطبيقات في الخلفية في إعدادات iOS لتلقي إشعارات الموقع."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्थान की सूचनाओं के लिए iOS सेटिंग में बैकग्राउंड ऐप रिफ्रेश चालू करो।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থানভিত্তিক বিজ্ঞপ্তির জন্য iOS সেটিংসে ব্যাকগ্রাউন্ড অ্যাপ রিফ্রেশ চালু করো।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置情報の通知を受け取るには、iOSの設定でAppのバックグラウンド更新をオンにしてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在 iOS 设置中开启后台 App 刷新，以接收位置通知。"
+          }
+        }
+      }
+    },
     "Konumu gör" : {
       "extractionState" : "manual",
       "localizations" : {

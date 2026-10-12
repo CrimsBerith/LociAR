@@ -33,12 +33,13 @@ test('entry rule lets the uncertainty circle touch the note, with a capped toler
   assert.equal(fixInsideNote(at(12, 8), 41, 29, 20), true);
 });
 
-test('fixes must be fresh and confirmed by an earlier fix 5 s to 10 min before', () => {
+test('fixes must be fresh and confirmed by an earlier fix 10 s to 10 min before', () => {
   const now = Date.now(), fix = at(0, 5, now - 1000);
   assert.equal(fixIsFresh(fix, now), true);
   assert.equal(fixIsFresh(at(0, 5, now - 11_000), now), false);
-  assert.equal(confirmationValid(now - 7000, fix), true);
-  assert.equal(confirmationValid(now - 4000, fix), false);
+  assert.equal(confirmationValid(now - 11_000, fix), true);
+  assert.equal(confirmationValid(now - 10_999, fix), false);
+  assert.equal(confirmationValid(now - 7000, fix), false);
   assert.equal(confirmationValid(now - 700_000, fix), false);
   assert.equal(confirmationValid(undefined, fix), false);
 });
@@ -51,7 +52,7 @@ test('most liked notes rank first and seed their cluster', () => {
   assert.equal(clusters.length, 2);
   assert.equal(clusters[0].id, 'd');
   assert.equal(clusters[0].notes.length, 3);
-  assert.ok(clusters[0].radius >= 150 && clusters[0].radius <= 400);
+  assert.ok(clusters[0].radius >= 300 && clusters[0].radius <= 400);
   assert.equal(clusters[1].id, 'c');
 });
 

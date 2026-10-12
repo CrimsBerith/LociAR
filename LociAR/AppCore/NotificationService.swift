@@ -358,6 +358,16 @@ extension NotificationService: MessagingDelegate {
 
 final class LociAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        if launchOptions?[.location] != nil, !UITestFixtures.authenticatedSessionEnabled {
+            // A region wake must restore its manager and account before SwiftUI runs .task.
+            let configuration = AppConfiguration.load()
+            if configuration.configureFirebaseIfNeeded(), let firebase = configuration.firebase {
+                UserContextService.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
+                let id = FirebaseIdentity.currentLUID()
+                NotificationService.shared.setUser(id)
+                UserContextService.shared.setUser(id)
+            }
+        }
         // Periodic refresh of monitored note and campaign regions (safety net for missed pushes).
         BGTaskScheduler.shared.register(forTaskWithIdentifier: CampaignArrivalService.refreshTaskID, using: nil) { task in
             CampaignArrivalService.scheduleBackgroundRefresh()

@@ -641,5 +641,6 @@
  "Çevre taranıyor…": "Umgebung wird erfasst…",
  "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.": "Halte das Telefon auf Augenhöhe und drehe es langsam zu Gebäuden und Schildern in der Nähe. Funktioniert am besten im Freien; in Innenräumen eventuell nicht.",
  "Bu konumu kullan": "Diese Position verwenden",
- "Kamerayla aç": "Mit Kamera öffnen"
+ "Kamerayla aç": "Mit Kamera öffnen",
+ "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Aktiviere die Hintergrundaktualisierung in den iOS-Einstellungen für Standortmitteilungen."
 }
