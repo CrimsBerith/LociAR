@@ -28,7 +28,8 @@ const CONNECT = "connect-src 'self' https://identitytoolkit.googleapis.com https
 const COMMON = "font-src 'self'; object-src 'none'; frame-src https://*.firebaseapp.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 const IMG = "img-src 'self' data: blob:";
 // Moderators review GIF posts: admin pages may show GIPHY media (images only, no scripts or frames).
-const ADMIN_IMG = `${IMG} https://media.giphy.com`;
+// Map pickers for zones and notes load OpenStreetMap raster tiles (images only).
+const ADMIN_IMG = `${IMG} https://media.giphy.com https://tile.openstreetmap.org`;
 
 /** Admin and sign-in pages are rendered per request, so they get a per-request script nonce. */
 function isDynamicAdminPath(pathname: string): boolean {

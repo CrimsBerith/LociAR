@@ -45,7 +45,7 @@ export default function TermsPage() {
       <ul>
         <li>Postları, yorumları ve kullanıcıları uygulama içinden bildirebilir, kullanıcıları engelleyebilirsiniz. Engellediğiniz
           kullanıcının içeriği size gösterilmez.</li>
-        <li>Yorumlar ve metinler otomatik filtreden geçer; yeni postlar yayından önce incelenir.</li>
+        <li>Yorumlar ve metinler otomatik filtreden geçer; yeni AR postları yayından önce incelenir. Konum notları filtreden geçince hemen yayınlanır ve farklı kullanıcılardan yeterli şikâyet gelince otomatik gizlenir.</li>
         <li>Bildirilen içerikler en geç 24 saat içinde incelenir; kurallara aykırı içerik kaldırılır ve içeriği gönderen hesap
           askıya alınır veya kalıcı olarak kapatılır.</li>
       </ul>

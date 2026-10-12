@@ -35,7 +35,8 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         { label: 'Pause', body: { action: 'status', campaignId: c.id, status: 'paused' }, className: 'secondaryButton' },
       ]} /> : null}
       {c.get('audience') === 'zone' ? <section><h3>Zone campaign funnel</h3>{(funnels.get(c.id) ?? []).map(f => <p key={f.id}>{f.id} · {f.trigger} · {f.title} · Sent {f.sent} · Codes used {f.redeemed}{f.lastAt ? ` · Last ${f.lastAt}` : ''}</p>)}</section> : null}
-      {admin.permissions.has('campaigns.write') ? <JourneyEditor campaignId={c.id} lat={Number(c.get('lat'))} lng={Number(c.get('lng'))} saved={c.get('steps') ?? []} timezone={String(c.get('timezone') ?? 'Europe/Istanbul')}/> : null}
+      {admin.permissions.has('campaigns.write') ? <JourneyEditor campaignId={c.id} lat={Number(c.get('lat'))} lng={Number(c.get('lng'))} areaRadius={Number(c.get('radius') ?? 1000)}
+        saved={c.get('steps') ?? []} timezone={String(c.get('timezone') ?? 'Europe/Istanbul')} canNotify={admin.permissions.has('notifications.send')}/> : null}
       {c.get('audience') !== 'zone' && admin.permissions.has('campaigns.audience') && admin.permissions.has('users.location.read') && admin.permissions.has('notifications.send') ? <CampaignAudience campaignId={c.id} /> : null}
     </article>)}
     <PageNavigation path="/admin/campaigns" next={campaigns.next} previous={campaigns.previous} />

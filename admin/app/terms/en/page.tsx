@@ -43,7 +43,7 @@ export default function TermsPageEn() {
       <p>LociAR has <strong>zero tolerance</strong> for objectionable content and for users who harass or abuse others.</p>
       <ul>
         <li>You can report posts, comments and users and block users from inside the app. Content from users you block is hidden from you.</li>
-        <li>Comments and text are filtered automatically; new posts are reviewed before they go live.</li>
+        <li>Comments and text are filtered automatically; new AR posts are reviewed before they go live. Location notes go live once they pass the filter and are hidden automatically after enough reports from different users.</li>
         <li>Reported content is reviewed within 24 hours; content that breaks these rules is removed and the account that posted
           it is suspended or permanently closed.</li>
       </ul>

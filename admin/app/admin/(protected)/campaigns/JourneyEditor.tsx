@@ -1,7 +1,8 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
+import MapPicker, { type MapShape } from '../MapPicker';
 
 type Step = {
   id: string; trigger: 'leave_usual_place' | 'enter' | 'dwell' | 'exit';
@@ -39,9 +40,19 @@ function fromSaved(s: Saved, lat: number, lng: number): Step {
     frequency: s.frequency?.kind ?? 'once', hours: s.frequency?.hours ?? 24, budget: s.budget != null ? String(s.budget) : '' };
 }
 
+const streetPoints = (s: Step) => s.streetPoints.split('\n').map(line => line.split(',').map(v => Number(v.trim())))
+  .filter(p => p.length === 2 && p.every(Number.isFinite)).map(([lat, lng]) => ({ lat, lng }));
+
+/** What the phone shows for this step; unique codes get a sample in place of a real code. */
+function testMessage(s: Step) {
+  const code = s.codeKind === 'shared' ? s.codeValue : s.codeKind === 'unique' ? `${s.codePrefix || 'LOCI'}-TEST` : '';
+  return (code ? `${s.message}\n${code}` : s.message).slice(0, 240);
+}
+
+const RECIPIENT_KEY = 'lociar.admin.testRecipient';
+
 function toPayload(s: Step) {
-  const points = s.streetPoints.split('\n').map(line => line.split(',').map(v => Number(v.trim()))).filter(p => p.length === 2 && p.every(Number.isFinite))
-    .map(([lat, lng]) => ({ lat, lng }));
+  const points = streetPoints(s);
   return { id: s.id, trigger: s.trigger,
     ...(s.trigger !== 'leave_usual_place' ? { zone: s.zoneKind === 'circle' ? { kind: 'circle', lat: s.lat, lng: s.lng, radius: s.radius } : { kind: 'street', points, width: s.width } } : {}),
     ...(s.trigger === 'dwell' ? { dwellSeconds: s.dwellSeconds } : {}),
@@ -56,11 +67,40 @@ function toPayload(s: Step) {
  * Zone-campaign steps: who gets what, where and when. Example: step 1 "leaves usual place" →
  * "Party in Moda tonight"; step 2 "enters the party street", requires step 1 → unique beer code.
  */
-export default function JourneyEditor({ campaignId, lat, lng, saved, timezone }: { campaignId: string; lat: number; lng: number; saved: Saved[]; timezone: string }) {
+export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved, timezone, canNotify }: {
+  campaignId: string; lat: number; lng: number; areaRadius: number; saved: Saved[]; timezone: string; canNotify: boolean;
+}) {
   const [steps, setSteps] = useState<Step[]>(saved.length ? saved.map(s => fromSaved(s, lat, lng)) : [blank(0, lat, lng)]);
   const [tz, setTz] = useState(timezone), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
-  const mutation = useRef(createMutationClient()), router = useRouter();
+  const [recipient, setRecipient] = useState(''), [testStatus, setTestStatus] = useState<Record<number, string>>({});
+  const mutation = useRef(createMutationClient()), testMutation = useRef(createMutationClient()), router = useRouter();
   const update = (i: number, patch: Partial<Step>) => setSteps(old => old.map((s, j) => j === i ? { ...s, ...patch } : s));
+  useEffect(() => { try { setRecipient(localStorage.getItem(RECIPIENT_KEY) ?? ''); } catch { /* storage blocked */ } }, []);
+  function rememberRecipient(value: string) {
+    setRecipient(value);
+    try { localStorage.setItem(RECIPIENT_KEY, value); } catch { /* storage blocked */ }
+  }
+  async function sendTest(i: number) {
+    const s = steps[i];
+    setTestStatus(old => ({ ...old, [i]: 'Sending…' }));
+    const body = { action: 'notify', recipientId: recipient.trim(), title: `[Test] ${s.title}`.slice(0, 80), message: testMessage(s),
+      reason: `Test of zone campaign step ${s.id} on campaign ${campaignId}` };
+    try {
+      const { response, result } = await testMutation.current.post('/api/admin/v1/campaigns', body);
+      if (!response.ok) throw new Error(result.error ?? 'Test could not be queued');
+      testMutation.current.clear('/api/admin/v1/campaigns', body);
+      setTestStatus(old => ({ ...old, [i]: 'Queued. It should arrive within a minute. Tests count toward that account’s 3 offers a day.' }));
+    } catch (error) { setTestStatus(old => ({ ...old, [i]: mutationError(error) })); }
+  }
+  const area: MapShape = { kind: 'circle', lat, lng, radius: areaRadius, color: '#64748b', dashed: true };
+  function zoneShapes(s: Step): MapShape[] {
+    return [area, s.zoneKind === 'circle' ? { kind: 'circle', lat: s.lat, lng: s.lng, radius: s.radius } : { kind: 'line', points: streetPoints(s), width: s.width }];
+  }
+  function pick(i: number, point: { lat: number; lng: number }) {
+    const s = steps[i];
+    if (s.zoneKind === 'circle') update(i, { lat: point.lat, lng: point.lng });
+    else if (streetPoints(s).length < 20) update(i, { streetPoints: [s.streetPoints.trim(), `${point.lat}, ${point.lng}`].filter(Boolean).join('\n') });
+  }
   async function save() {
     setBusy(true); setMessage('');
     const body = { action: 'steps', campaignId, timezone: tz, steps: steps.map(toPayload), reason };
@@ -73,6 +113,8 @@ export default function JourneyEditor({ campaignId, lat, lng, saved, timezone }:
   return <details className="panel"><summary>Zone campaign steps ({steps.length})</summary><div className="decisionForm">
     <p className="muted">Everyone who turned on Notifications and is near the campaign can trigger these steps; you do not pick recipients. Phones learn their usual place (where they spend nights) on the device only; the campaign area below decides who gets a “leaves usual place” step. GPS is usually 5–30 m off, so zones smaller than 15–20 m are unreliable.</p>
     <label>Time zone for schedules<input value={tz} onChange={e => setTz(e.target.value)} maxLength={64}/></label>
+    {canNotify ? <label>Test phone: LociAR user ID that receives “Send test” (your own account; it must have Campaigns and offers on)
+      <input value={recipient} onChange={e => rememberRecipient(e.target.value)} placeholder="00000000-0000-0000-0000-000000000000" maxLength={36}/></label> : null}
     {steps.map((s, i) => <fieldset key={i}><legend>Step {i + 1} · {s.id}</legend>
       <label>When<select value={s.trigger} onChange={e => update(i, { trigger: e.target.value as Step['trigger'] })}>
         {Object.entries(TRIGGER_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -85,8 +127,14 @@ export default function JourneyEditor({ campaignId, lat, lng, saved, timezone }:
         </div> : <>
           <label>Street points, one “latitude, longitude” per line (2–20)<textarea value={s.streetPoints} onChange={e => update(i, { streetPoints: e.target.value })} rows={4}/></label>
           <label>Street width (m)<input type="number" min={10} max={200} value={s.width} onChange={e => update(i, { width: Number(e.target.value) })}/></label>
+          <div className="metricForm">
+            <button type="button" className="secondaryButton" onClick={() => update(i, { streetPoints: s.streetPoints.trim().split('\n').slice(0, -1).join('\n') })}>Undo last point</button>
+            <button type="button" className="secondaryButton" onClick={() => update(i, { streetPoints: '' })}>Clear points</button>
+          </div>
         </>}
-        <a href={`https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lng}#map=18/${s.lat}/${s.lng}`} target="_blank" rel="noreferrer">Check on the map ↗</a>
+        <MapPicker label={`Step ${i + 1} zone map`} center={s.zoneKind === 'circle' || !streetPoints(s).length ? { lat: s.lat, lng: s.lng } : streetPoints(s)[0]}
+          shapes={zoneShapes(s)} onPick={point => pick(i, point)}
+          hint={s.zoneKind === 'circle' ? 'Click the map to move the circle centre. Dashed: the campaign area.' : 'Click along the street to add points in order (up to 20). Dashed: the campaign area.'}/>
       </> : <p className="muted">Fires when someone whose usual place lies inside the campaign area leaves it, within about 150 m and usually 1–3 minutes.</p>}
       {s.trigger === 'dwell' ? <label>Stay at least (seconds)<input type="number" min={10} max={1800} value={s.dwellSeconds} onChange={e => update(i, { dwellSeconds: Number(e.target.value) })}/></label> : null}
       <label>Only after step<select value={s.requires} onChange={e => update(i, { requires: e.target.value })}><option value="">— no earlier step needed —</option>
@@ -111,6 +159,11 @@ export default function JourneyEditor({ campaignId, lat, lng, saved, timezone }:
       <label>How often per person<select value={s.frequency} onChange={e => update(i, { frequency: e.target.value as Step['frequency'] })}><option value="once">Once</option><option value="daily">Once a day</option><option value="hours">Every N hours</option></select></label>
       {s.frequency === 'hours' ? <label>Hours<input type="number" min={1} max={720} value={s.hours} onChange={e => update(i, { hours: Number(e.target.value) })}/></label> : null}
       <label>Total limit (optional, e.g. first 300 people)<input type="number" min={1} value={s.budget} onChange={e => update(i, { budget: e.target.value })}/></label>
+      {canNotify ? <div className="metricForm">
+        <button type="button" className="secondaryButton" disabled={!/^[0-9a-f-]{36}$/i.test(recipient.trim()) || !s.title.trim() || !s.message.trim() || testStatus[i] === 'Sending…'}
+          onClick={() => void sendTest(i)}>Send test to my phone</button>
+        {testStatus[i] ? <span role="status">{testStatus[i]}</span> : <span className="muted">Sends this title and message now, without the zone check, codes or step counters.</span>}
+      </div> : null}
       {steps.length > 1 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => old.filter((_, j) => j !== i))}>Remove step</button> : null}
     </fieldset>)}
     {steps.length < 5 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => [...old, blank(old.length, lat, lng)])}>Add step</button> : null}

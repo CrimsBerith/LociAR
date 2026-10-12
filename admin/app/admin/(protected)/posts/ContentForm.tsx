@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { createMutationClient,mutationError } from '../../../../lib/client-mutation';
 import { emptyContent, type ContentInput } from '../../../../lib/content-models';
 import AuthorPicker from '../users/AuthorPicker';
+import MapPicker from '../MapPicker';
 
 export default function ContentForm({postId,initial=emptyContent,canPublish=false,canOverride=false}:{postId?:string;initial?:ContentInput;canPublish?:boolean;canOverride?:boolean}){
  const router=useRouter(),mutation=useRef(createMutationClient());const[value,setValue]=useState(initial),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
@@ -22,10 +23,9 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  <div className="contentPreview" style={{color:value.color,background:value.background,opacity:value.opacity}} aria-label="Content preview"><p style={{transform:`rotate(${value.rotation}deg) scale(${value.scale})`}}>{value.text||value.caption}</p></div>
  </fieldset>
  <fieldset><legend>Location and approximate AR placement</legend><p className="muted">Choose any coordinate. This is an approximate placement; a physical world lock requires scanning at the location.</p>
- <svg viewBox="0 0 720 360" role="img" aria-label="World coordinate picker" className="coordinatePicker" onClick={event=>{const box=event.currentTarget.getBoundingClientRect();setValue(old=>({...old,lng:Math.round(((event.clientX-box.left)/box.width*360-180)*1e5)/1e5,lat:Math.round((90-(event.clientY-box.top)/box.height*180)*1e5)/1e5}));}}>
- <rect width="720" height="360" fill="#102337"/>{Array.from({length:13},(_,i)=><line key={'lng'+i} x1={i*60} x2={i*60} y1="0" y2="360" stroke="#304c65"/>)}{Array.from({length:7},(_,i)=><line key={'lat'+i} y1={i*60} y2={i*60} x1="0" x2="720" stroke="#304c65"/>)}
- <text x="4" y="16" fill="white">90° N</text><text x="4" y="350" fill="white">90° S</text><text x="310" y="178" fill="white">Equator · 0°, 0°</text>
- <circle cx={(value.lng+180)*2} cy={(90-value.lat)*2} r="6" fill="#67e8f9" stroke="white"/></svg>
+ <MapPicker label="Post location map" center={{lat:value.lat,lng:value.lng}} zoom={16} onPick={p=>setValue(old=>({...old,lat:p.lat,lng:p.lng}))}
+  shapes={[value.locationNote?{kind:'circle',lat:value.lat,lng:value.lng,radius:value.notifyRadius}:{kind:'point',lat:value.lat,lng:value.lng}]}
+  hint="Click the map to place the post exactly; drag to pan and zoom out to reach any city."/>
  <div className="metricForm">{numericFields.map(([key,label,min,max])=><label key={key}>{label}<input type="number" value={value[key]} onChange={e=>set(key,Number(e.target.value))} min={min} max={max} step="any" required/></label>)}</div>
  <a href={`https://www.openstreetmap.org/?mlat=${value.lat}&mlon=${value.lng}#map=18/${value.lat}/${value.lng}`} target="_blank" rel="noreferrer">Check location in OpenStreetMap ↗</a>
  {postId?<label><input type="checkbox" checked={value.replacePlacement} onChange={e=>set('replacePlacement',e.target.checked)}/> If moving a physical post, replace its old AR lock with an approximate placement.</label>:null}
