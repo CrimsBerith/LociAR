@@ -117,7 +117,8 @@ export default function PrivacyPage() {
         10 dakika; teklif varışlarında en fazla iki dakika. Not uzaktayken daha düşük hassasiyet kullanılır.
         Konum notu girişi 15–100 m yarıçaplı alanda, ölçüm belirsizliği alana değdiğinde (en fazla 20 m tolerans,
         35 m'den kötü ölçümler sayılmaz), yürüme hızında ve en az beş saniye arayla iki uyumlu ölçümle kabul edilir.
-        Teklif varışları 2–5 metre çapta, belirsizlik tamamen alanın içindeyken kontrol edilir.
+        Teklif varışları da aynı kuralla, 15–100 m yarıçapta kontrol edilir; mağazanın önünden yürüyerek veya araçla geçmek yeterlidir.
+        Teklif seçiminde, gönüllü paylaştığınız son konum kampanyanın belirlediği süre kadar (en fazla 24 saat) eski olabilir; hiçbir yer ev olarak etiketlenmez.
         Arka planda Her zaman konum izni ve Kesin Konum gerekir; iOS konum göstergesini gösterir. İnternet ve güncel sunucu onayı gerekir.
         Telefon GPS&apos;i genellikle 5–30 m sapar; kapıdan girişi garanti edemez ve ziyaret kaçabilir.
         Özellikle uygulama zorla kapatıldığında iOS uyandırmayı geciktirebilir veya engelleyebilir.</p>
@@ -130,7 +131,10 @@ export default function PrivacyPage() {
         mesafe de saklanır. Ziyaret doğrulanmaz. Yetkili yöneticiler not ve yazar bağlantısını özel panelde görür.
         Notlar beğeniye göre sıralanır. Bir not, yeterli beğeni alıp yönetici onayladıktan sonra bildirim olarak gidebilir;
         her kişiye her not en fazla bir kez gönderilir. Notlar kendiliğinden eskimez; yönetici bitiş tarihi koyabilir veya
-        notu kaldırabilir. Kampanyaların ayrı, ortak günlük üç bildirim sınırı ve kullanıcı/kampanya başına tek hatırlatma sınırı vardır.</p>
+        notu kaldırabilir. Yaklaşık 38 × 19 m&apos;lik bir noktada 30&apos;dan fazla not varsa (yönetici ayarı) bu notların metni yalnız
+        oraya yaklaştığınızda açılır; haritada sadece sayı görünür ve bu noktaya girince 30 günde en fazla bir kez metinsiz bir
+        “burada çok not var” bildirimi gelir. Açma için telefonun konumu veya AR kamerası konumu bir kez sunucuda kontrol edilir; kilit 30 dakika açık kalır.
+        Kampanyaların ayrı, ortak günlük üç bildirim sınırı ve kullanıcı/kampanya başına tek hatırlatma sınırı vardır.</p>
 
       <h2>Saklama süreleri</h2>
       <p>Hedefli teklifler kampanya sonunda erişilemez olur ve otomatik silmeye alınır. Bildirim denemeleri ve kampanya

@@ -43,7 +43,10 @@ TestFlight ve App Store gönderimi bu otomatik sonuçlarla onaylanmaz.
 - Doğrulama (yerel): Functions 118 birim + 82 rules + 9 konum notu entegrasyonu, admin 32 birim + 16 entegrasyon,
   native birim testleri, 626 anahtar × 12 dil. Tam preflight ve CI aday commit'te ayrıca koşulmalı.
 - Açık: canlı Functions/indeks dağıtımı, fiziksel iPhone saha ölçümü (hazır olma süresi, arka plan uyanma, 15/25/50 m giriş,
-  araçla geçiş, pil), App Store konum gerekçesi ve gizlilik etiketleri. Kampanya varışları hâlâ 2–5 m kuralını kullanır.
+  araçla geçiş, pil), App Store konum gerekçesi ve gizlilik etiketleri.
+- Yoğun nokta (≈38 × 19 m'de 30+ not): metin yalnız yerinde açılır (`unlockDenseSpot`, varsayılan 15 m, AR kamerada 2–5 m),
+  girişte 30 günde bir metinsiz "burada çok not var" bildirimi. Kampanya varışı da 15–100 m GPS toleranslı kurala geçti;
+  harita/varış kitlesi son 24 saatteki paylaşılan konumu kullanabilir.
 
 ## Kapsam
 

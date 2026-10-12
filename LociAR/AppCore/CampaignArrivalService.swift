@@ -25,8 +25,9 @@ struct CampaignRegion: Codable, Equatable {
 
     var isExit: Bool { transition == "exit" }
     var isPlaceNote: Bool { kind == "place_note" }
+    /// Notes, dense spots and campaign arrivals share the GPS-tolerant 15-100 m rule (the server's too).
     private static let noteRadii: ClosedRange<Double> = 15...100
-    private static let campaignRadii: ClosedRange<Double> = 1...2.5
+    private static let campaignRadii: ClosedRange<Double> = 15...100
 
     var targets: [NoteTarget] { notes ?? [NoteTarget(lat: lat, lng: lng, r: triggerRadius ?? 0)] }
 
@@ -48,8 +49,10 @@ struct CampaignRegion: Codable, Equatable {
                                                  accuracy: location.horizontalAccuracy, radius: $0.r)
             }
         }
-        guard Self.campaignRadii.contains(triggerRadius) else { return false }
-        return location.distance(from: CLLocation(latitude: lat, longitude: lng)) + location.horizontalAccuracy <= triggerRadius
+        // Campaign arrival: passing the shop counts at any speed, walking or driving.
+        guard Self.campaignRadii.contains(triggerRadius), !LocationSample(location).simulated else { return false }
+        return LocationNotePolicy.fixInsideNote(distance: location.distance(from: CLLocation(latitude: lat, longitude: lng)),
+                                                accuracy: location.horizontalAccuracy, radius: triggerRadius)
     }
 
     func isUsable(at now: Date) -> Bool {
@@ -190,7 +193,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             let requests = await center.pendingNotificationRequests()
             let delivered = await center.deliveredNotifications()
             let matches: (UNNotificationRequest) -> Bool = {
-                ($0.identifier.hasPrefix("arrival_") || $0.identifier.hasPrefix("place_note_")) && ($0.content.userInfo["recipient_id"] as? String) == FirebaseIdentity.key(id)
+                ($0.identifier.hasPrefix("arrival_") || $0.identifier.hasPrefix("place_note_") || $0.identifier.hasPrefix("dense_spot_")) && ($0.content.userInfo["recipient_id"] as? String) == FirebaseIdentity.key(id)
             }
             center.removePendingNotificationRequests(withIdentifiers: requests.filter(matches).map(\.identifier))
             center.removeDeliveredNotifications(withIdentifiers: delivered.map(\.request).filter(matches).map(\.identifier))
@@ -434,11 +437,16 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     }
     private struct ArrivalResponse: Decodable {
         let notify: Bool; let title: String?; let body: String?; let postId: String?; let activityId: String?; let recipientId: String?
-        var likes: Int? = nil; var total: Int? = nil; var reason: String? = nil
+        var likes: Int? = nil; var total: Int? = nil; var reason: String? = nil; var kind: String? = nil
     }
 
     /// Location notes carry no venue name: the title counts new notes and the body leads with likes.
     private static func placeNoteText(_ result: ArrivalResponse) -> (title: String, body: String)? {
+        if result.kind == "dense_spot" {
+            // Text-free: dense-spot notes open only on site.
+            let noteCount = result.total ?? 0
+            return (String(localized: "Burada \(noteCount) not var"), String(localized: "Notları görmek için yaklaş ve haritada aç."))
+        }
         guard let caption = result.body else { return nil }
         let newCount = result.total ?? 1, likeCount = result.likes ?? 0
         let title = newCount > 1 ? String(localized: "Bu konumda \(newCount) yeni not var") : String(localized: "Bu konumda bir not var")
@@ -470,13 +478,16 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                         location: Self.payloadFix(location), transition: regions[campaign]?.isExit == true ? "exit" : "entry", confirmationStartedAt: firstGood[campaign].map { $0.timeIntervalSince1970 * 1000 }))
                 }
                 let text = placeNote ? Self.placeNoteText(result) : result.title.flatMap { title in result.body.map { (title, $0) } }
+                let denseSpot = placeNote && result.kind == "dense_spot"
                 guard handling, enabled, epoch == generation, userID == id, result.notify, result.recipientId == FirebaseIdentity.key(id),
-                      let (title, body) = text, let post = result.postId, let activity = result.activityId else { continue }
+                      let (title, body) = text, let activity = result.activityId, let post = result.postId ?? (denseSpot ? "" : nil) else { continue }
                 let content = UNMutableNotificationContent()
                 content.title = title; content.body = body; content.sound = .default
                 if placeNote { content.threadIdentifier = "place_note_\(campaign.uuidString.lowercased())" }
                 if placeNote { leavePlaceNoteRegion(campaign) } else { precisionTargets.remove(campaign); firstGood.removeValue(forKey: campaign) }
-                content.userInfo = ["recipient_id": FirebaseIdentity.key(id), "post_id": post, "activity_id": activity]
+                // A dense-spot alert has no post or server activity; tapping just opens the app.
+                content.userInfo = denseSpot ? ["recipient_id": FirebaseIdentity.key(id)]
+                    : ["recipient_id": FirebaseIdentity.key(id), "post_id": post, "activity_id": activity]
                 try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: activity, content: content, trigger: nil))
                 if !enabled || generation != epoch || userID != id {
                     UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [activity])

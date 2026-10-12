@@ -7308,6 +7308,83 @@
         }
       }
     },
+    "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This note is in a busy spot with %lld notes. To read it, get within %lld m and tap Open here on the map."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Notiz liegt an einem vollen Ort mit %lld Notizen. Um sie zu lesen, komm auf %lld m heran und tippe auf der Karte auf „Hier öffnen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta nota está en un punto concurrido con %lld notas. Para leerla, acércate a %lld m y toca Abrir aquí en el mapa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette note se trouve dans un lieu dense de %lld notes. Pour la lire, approche-toi à %lld m et touche Ouvrir ici sur la carte."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta nota está num ponto movimentado com %lld notas. Para ler, chegue a %lld m e toque em Abrir aqui no mapa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта заметка в месте, где %lld заметок. Чтобы прочитать, подойдите на %lld м и нажмите «Открыть здесь» на карте."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هذه الملاحظة في مكان مزدحم يضم %lld ملاحظة. لقراءتها اقترب حتى %lld م واضغط افتح هنا على الخريطة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह नोट %lld नोट वाली भीड़ भरी जगह पर है। पढ़ने के लिए %lld मी तक पास आएँ और मानचित्र पर यहाँ खोलें दबाएँ।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই নোটটি %lldটি নোটের একটি ভিড়ের জায়গায়। পড়তে %lld মি-এর মধ্যে আসুন এবং মানচিত্রে এখানে খুলুন চাপুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このメモは%lld件のメモが集まる場所にあります。読むには%lld m以内に近づき、地図で「ここで開く」をタップしてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这条笔记位于有 %lld 条笔记的热门地点。要阅读，请走到 %lld 米以内，然后在地图上点击“在这里打开”。"
+          }
+        }
+      }
+    },
     "Bu oturumu çalıştırmak için Google, sensör verilerini (ör. kamera ve konum) işler." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7766,6 +7843,220 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这个表面上有什么？"
+          }
+        }
+      }
+    },
+    "Burada %lld not var" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Burada %lld not var"
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld note here"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notes here"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Notiz hier"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Notizen hier"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nota aquí"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notas aquí"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld note ici"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notes ici"
+                }
+              }
+            }
+          }
+        },
+        "pt" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nota aqui"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notas aqui"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь заметок: %lld"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ملاحظة هنا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यहाँ %lld नोट हैं"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখানে %lldটি নোট আছে"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここに%lld件のメモがあります"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这里有 %lld 条笔记"
+          }
+        }
+      }
+    },
+    "Burada aç" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Burada aç"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open here"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir aquí"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir ici"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir aqui"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть здесь"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افتح هنا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यहाँ खोलें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখানে খুলুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここで開く"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在这里打开"
           }
         }
       }
@@ -16009,6 +16300,83 @@
         }
       }
     },
+    "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are not close enough yet. Get within %lld m of the spot; outdoors the AR camera is more precise."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du bist noch nicht nah genug. Komm bis auf %lld m an den Ort heran; draußen ist die AR-Kamera genauer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no estás lo bastante cerca. Acércate a %lld m del punto; al aire libre la cámara AR es más precisa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu n’es pas encore assez près. Approche-toi à %lld m de l’endroit ; dehors, la caméra AR est plus précise."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você ainda não está perto o suficiente. Chegue a %lld m do ponto; ao ar livre a câmera AR é mais precisa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы ещё недостаточно близко. Подойдите к месту на %lld м; на улице AR-камера точнее."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لست قريبًا بما يكفي بعد. اقترب حتى %lld م من المكان؛ في الخارج تكون كاميرا الواقع المعزز أدق."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप अभी पर्याप्त पास नहीं हैं। जगह से %lld मी तक पास आएँ; बाहर AR कैमरा अधिक सटीक है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি এখনো যথেষ্ট কাছে নেই। জায়গার %lld মি-এর মধ্যে আসুন; বাইরে AR ক্যামেরা বেশি নির্ভুল।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ十分に近くありません。その場所から%lld m以内に近づいてください。屋外ではARカメラの方が正確です。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你还不够近。请走到距该地点 %lld 米以内；在户外 AR 相机更精确。"
+          }
+        }
+      }
+    },
     "Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20779,6 +21147,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在加载探索..."
+          }
+        }
+      }
+    },
+    "Kilitli not" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kilitli not"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked note"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesperrte Notiz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota bloqueada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note verrouillée"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota bloqueada"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрытая заметка"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ملاحظة مقفلة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लॉक नोट"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক করা নোট"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック中のメモ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已锁定的笔记"
           }
         }
       }
@@ -26862,6 +27307,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "笔记位置地图"
+          }
+        }
+      }
+    },
+    "Notları görmek için yaklaş ve haritada aç." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notları görmek için yaklaş ve haritada aç."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get closer and open them on the map to read the notes."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komm näher und öffne sie auf der Karte, um die Notizen zu lesen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acércate y ábrelas en el mapa para leer las notas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approche-toi et ouvre-les sur la carte pour lire les notes."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chegue mais perto e abra no mapa para ler as notas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подойдите ближе и откройте их на карте, чтобы прочитать."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اقترب وافتحها على الخريطة لقراءة الملاحظات."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट पढ़ने के लिए पास आएँ और मानचित्र पर खोलें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট পড়তে কাছে আসুন এবং মানচিত্রে খুলুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを読むには近づいて地図で開いてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "走近并在地图上打开即可阅读这些笔记。"
           }
         }
       }
@@ -40568,6 +41090,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除评论"
+          }
+        }
+      }
+    },
+    "Yoğun nokta: %lld not. Açmak için %lld m yaklaş." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yoğun nokta: %lld not. Açmak için %lld m yaklaş."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busy spot: %lld notes. Get within %lld m to open them."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voller Ort: %lld Notizen. Komm auf %lld m heran, um sie zu öffnen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Punto concurrido: %lld notas. Acércate a %lld m para abrirlas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lieu dense : %lld notes. Approche-toi à %lld m pour les ouvrir."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ponto movimentado: %lld notas. Chegue a %lld m para abri-las."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Популярное место: %lld заметок. Подойдите на %lld м, чтобы открыть."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مكان مزدحم: %lld ملاحظة. اقترب حتى %lld م لفتحها."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भीड़ भरी जगह: %lld नोट। खोलने के लिए %lld मी तक पास आएँ।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ভিড়ের জায়গা: %lldটি নোট। খুলতে %lld মি-এর মধ্যে আসুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモが集まる場所：%lld件。開くには%lld m以内に近づいてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "热门地点：%lld 条笔记。走到 %lld 米以内即可打开。"
           }
         }
       }

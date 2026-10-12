@@ -25,6 +25,8 @@ struct MapFeatureView: View {
     @State private var densityTask: Task<Void, Never>?
     /// Notes of a tapped 25 m group, listed by likes in the panel.
     @State private var clusterFocus: Set<UUID>?
+    @State private var unlocking = false
+    @State private var unlockMessage: String?
 
     var body: some View {
         Map(position: $camera, selection: $selection) {
@@ -214,6 +216,9 @@ struct MapFeatureView: View {
                                     .accessibilityLabel("Seçimi kapat")
                             }
                         }
+                        if let spot = listedPosts.lazy.compactMap(\.denseSpot).first {
+                            denseSpotBanner(spot)
+                        }
                         ScrollView {
                             VStack(spacing: 10) {
                                 ForEach(listedPosts) { post in
@@ -221,7 +226,7 @@ struct MapFeatureView: View {
                                         HStack(spacing: 10) {
                                             Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                                 .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
-                                            Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
+                                            Text(post.isLocked ? String(localized: "Kilitli not") : post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
                                                 .font(.subheadline.weight(.semibold))
                                                 .foregroundStyle(.white)
                                                 .lineLimit(1)
@@ -256,6 +261,44 @@ struct MapFeatureView: View {
     private var listedPosts: [LociPost] {
         guard let clusterFocus else { return posts }
         return posts.filter { clusterFocus.contains($0.id) }
+    }
+
+    /// Dense spot: the count is public, the text opens only on site (GPS ~15 m, AR camera 2-5 m).
+    private func denseSpotBanner(_ spot: DenseSpotInfo) -> some View {
+        let meters = Int(spot.unlockRadius.rounded()), noteCount = spot.count
+        return VStack(alignment: .leading, spacing: 6) {
+            Label(String(localized: "Yoğun nokta: \(noteCount) not. Açmak için \(meters) m yaklaş."), systemImage: "lock.fill")
+                .font(.caption.weight(.semibold))
+            if let unlockMessage { Text(unlockMessage).font(.caption).foregroundStyle(.secondary) }
+            Button { Task { await unlockHere() } } label: {
+                Label(unlocking ? String(localized: "Konum doğrulanıyor…") : String(localized: "Burada aç"), systemImage: "lock.open")
+            }
+            .buttonStyle(.bordered).controlSize(.small).disabled(unlocking)
+            .accessibilityIdentifier("map-unlock-dense-spot")
+        }
+    }
+
+    private func unlockHere() async {
+        unlocking = true; unlockMessage = nil
+        defer { unlocking = false }
+        location.start()
+        location.requestPreciseAccuracyIfNeeded()
+        var fix: LocationSample?
+        for _ in 0..<20 {
+            fix = DenseSpotClient.bestFix(gps: location.location, camera: container.arcore.cameraFix)
+            if let fix, fix.accuracy <= LocationNotePolicy.maxEntryAccuracy { break }
+            try? await Task.sleep(for: .milliseconds(500))
+        }
+        guard let fix else { unlockMessage = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin."); return }
+        do {
+            let result = try await DenseSpotClient.shared.unlock(at: fix)
+            if result.unlocked.isEmpty {
+                let meters = Int((result.unlockRadius ?? 15).rounded())
+                unlockMessage = String(localized: "Henüz yeterince yakın değilsin. Noktaya \(meters) m kadar yaklaş; dışarıda AR kamerası daha hassastır.")
+            } else {
+                await startAndLoad()
+            }
+        } catch { unlockMessage = String(localized: "Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.") }
     }
 
     private func countBubble(_ count: Int) -> some View {

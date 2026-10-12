@@ -45,6 +45,14 @@ Each person receives each note at most once (`place_note_notification_receipts/p
 
 Phone GPS is usually 5–30 m off, and worse indoors. Use 15–25 m radii outdoors, 30–60 m indoors and up to 100 m for large venues. The rule cannot prove that someone entered a door. iOS may delay or suppress wake-ups, especially after force-quit.
 
+## Dense spots
+
+A spot is a geohash precision-8 cell (~38 × 19 m). When it holds at least `dense_threshold` public notes (default 30, `system/place_notes`), it is a dense spot:
+
+- **Locked text.** `readPublicContent` returns only the place, likes and `dense_spot {cell, count, unlock_radius_m}` for other people's notes there; caption, text and GIF are withheld. Authors always read their own notes.
+- **Open on site.** The map banner's **Open here** sends the best fresh fix to `unlockDenseSpot`: the AR camera's Geospatial position when it is localized and better (1–5 m outdoors), otherwise GPS. The spot opens for 30 minutes when `distance to the cell ≤ unlock_radius_m + min(accuracy, 5 m)` (default 15 m, admin range 2–50 m). A 2–5 m setting is reliable only with the AR camera outdoors; phone GPS alone needs about 15 m.
+- **"Many notes here" alert.** Dense spots also appear in the wake-region list. Entering 25 m (+ GPS tolerance) of an unalerted spot sends one text-free alert per 30 days (`dense_spot_receipts`), when no approved note is due there.
+
 ## Map
 
 | Visible width | Layer | Data |
@@ -59,8 +67,8 @@ Phone GPS is usually 5–30 m off, and worse indoors. Use 15–25 m radii outdoo
 
 ## Administration
 
-**Location notes** (`/admin/place-notes`) lists candidates and approved notes by likes. Moderators approve or stop notifications, remove notes (soft delete), set the like threshold and an optional end date (`ends_at`; `expireScheduledNotes` removes the note every 15 minutes once due). Place operators (`places.write`) set the 15–100 m radius. **Posts → Create** can place a location note at any coordinate and approve it in the same audited step. Every change requires MFA, a reason and an audit receipt.
+**Location notes** (`/admin/place-notes`) lists candidates and approved notes by likes. Moderators approve or stop notifications, remove notes (soft delete), set the like threshold, dense-spot size and unlock radius, and an optional end date (`ends_at`; `expireScheduledNotes` removes the note every 15 minutes once due). Place operators (`places.write`) set the 15–100 m radius. **Posts → Create** can place a location note at any coordinate and approve it in the same audited step. Every change requires MFA, a reason and an audit receipt.
 
 ## Release
 
-Deploy Functions (`createPlaceNote`, `readPlaceNoteRegions`, `recordPlaceNoteVisit`, `readNoteDensity`, `onPostDensityWritten`, `reconcileNoteDensity`, `expireScheduledNotes`), the new indexes (`push_state + geohash`, `status + likes_count`, `note_density precision + cell`), App Hosting and the iOS build. Field checks on physical iPhones: time-to-ready outdoors and indoors, background wake from 150 m, entry at 15/25/50 m radii, drive-by suppression, exit ending the window, battery over a 10-minute window, approximate-location prompt, and opt-out.
+Deploy Functions (`createPlaceNote`, `readPlaceNoteRegions`, `recordPlaceNoteVisit`, `readNoteDensity`, `unlockDenseSpot`, `onPostDensityWritten`, `reconcileNoteDensity`, `expireScheduledNotes`), the new indexes (`push_state + geohash`, `status + likes_count`, `note_density precision + cell`), App Hosting and the iOS build. Field checks on physical iPhones: time-to-ready outdoors and indoors, background wake from 150 m, entry at 15/25/50 m radii, drive-by suppression, exit ending the window, battery over a 10-minute window, approximate-location prompt, and opt-out.

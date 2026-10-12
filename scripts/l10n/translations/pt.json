@@ -624,5 +624,12 @@
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "O pino pode ficar no máximo a 50 m da sua localização.",
  "Pini elle ayarla": "Ajustar o pino manualmente",
  "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "Um único ajuste ativa todas as notificações: curtidas, comentários, seguidores, notas de local, descontos de marcas e mensagens de administradores. As mensagens podem aparecer na tela bloqueada. Sua última localização compartilhada e curtidas podem ser usadas para escolher ofertas; as marcas nunca veem sua localização pessoal. Perto de uma nota aprovada, o GPS preciso é usado por no máximo 10 minutos; essas medições não entram na localização compartilhada com administradores. Em segundo plano é preciso acesso à localização Sempre, Localização Precisa e internet. O GPS do celular costuma errar 5–30 m; a notificação chega quando você entra na área da nota.",
- "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "A localização aproximada está ativada. Para deixar a nota no lugar certo, ative Localização Precisa em Ajustes."
+ "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "A localização aproximada está ativada. Para deixar a nota no lugar certo, ative Localização Precisa em Ajustes.",
+ "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "Esta nota está num ponto movimentado com %lld notas. Para ler, chegue a %lld m e toque em Abrir aqui no mapa.",
+ "Burada %lld not var": "%lld notas aqui",
+ "Burada aç": "Abrir aqui",
+ "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "Você ainda não está perto o suficiente. Chegue a %lld m do ponto; ao ar livre a câmera AR é mais precisa.",
+ "Kilitli not": "Nota bloqueada",
+ "Notları görmek için yaklaş ve haritada aç.": "Chegue mais perto e abra no mapa para ler as notas.",
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "Ponto movimentado: %lld notas. Chegue a %lld m para abri-las."
 }

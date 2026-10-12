@@ -624,5 +624,12 @@
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "图钉距你的位置最多 50 米。",
  "Pini elle ayarla": "手动调整图钉",
  "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "一个开关即可开启所有通知：点赞、评论、关注、位置笔记、品牌折扣和管理员消息。消息可能显示在锁屏上。你最后共享的位置和帖子点赞可能用于挑选优惠；品牌永远看不到你的个人位置。靠近已批准的笔记时，最多使用 10 分钟精确 GPS；这些测量不会加入与管理员共享的位置。后台运行需要“始终”位置权限、精确位置和网络。手机 GPS 通常有 5–30 米误差；进入笔记范围后会收到通知。",
- "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "当前为大致位置。要把笔记放在正确的位置，请在“设置”中打开“精确位置”。"
+ "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "当前为大致位置。要把笔记放在正确的位置，请在“设置”中打开“精确位置”。",
+ "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "这条笔记位于有 %lld 条笔记的热门地点。要阅读，请走到 %lld 米以内，然后在地图上点击“在这里打开”。",
+ "Burada %lld not var": "这里有 %lld 条笔记",
+ "Burada aç": "在这里打开",
+ "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "你还不够近。请走到距该地点 %lld 米以内；在户外 AR 相机更精确。",
+ "Kilitli not": "已锁定的笔记",
+ "Notları görmek için yaklaş ve haritada aç.": "走近并在地图上打开即可阅读这些笔记。",
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "热门地点：%lld 条笔记。走到 %lld 米以内即可打开。"
 }

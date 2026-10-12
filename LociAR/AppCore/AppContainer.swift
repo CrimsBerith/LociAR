@@ -73,6 +73,7 @@ final class AppContainer {
             UserContextService.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
             PlaceNoteClient.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
             NoteDensityClient.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
+            DenseSpotClient.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
             NotificationService.shared.configure(callables: CallableClient(region: firebase.functionsRegion), social: social)
         }
         // After every stored property is set (Swift requires it before using self).

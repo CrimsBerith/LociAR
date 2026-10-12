@@ -624,5 +624,12 @@
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "পিন আপনার অবস্থান থেকে সর্বোচ্চ ৫০ মি দূরে থাকতে পারে।",
  "Pini elle ayarla": "হাতে পিন ঠিক করুন",
  "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "একটি সুইচ সব বিজ্ঞপ্তি চালু করে: লাইক, মন্তব্য, ফলো, অবস্থান নোট, ব্র্যান্ড ছাড় ও প্রশাসকের বার্তা। বার্তা লক স্ক্রিনে দেখা যেতে পারে। আপনার শেষ শেয়ার করা অবস্থান ও পোস্টের লাইক অফার বাছাইয়ে ব্যবহার হতে পারে; ব্র্যান্ড কখনো আপনার ব্যক্তিগত অবস্থান দেখে না। অনুমোদিত নোটের কাছে সর্বোচ্চ ১০ মিনিট নির্ভুল GPS ব্যবহার হয়; এই পরিমাপ প্রশাসকের সাথে শেয়ার করা অবস্থানে যোগ হয় না। ব্যাকগ্রাউন্ডে সবসময় অবস্থান অনুমতি, সঠিক অবস্থান ও ইন্টারনেট লাগে। ফোনের GPS সাধারণত ৫–৩০ মি সরে যায়; নোটের এলাকায় ঢুকলে বিজ্ঞপ্তি আসে।",
- "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "আনুমানিক অবস্থান চালু আছে। নোট সঠিক জায়গায় রাখতে সেটিংসে সঠিক অবস্থান চালু করুন।"
+ "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "আনুমানিক অবস্থান চালু আছে। নোট সঠিক জায়গায় রাখতে সেটিংসে সঠিক অবস্থান চালু করুন।",
+ "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "এই নোটটি %lldটি নোটের একটি ভিড়ের জায়গায়। পড়তে %lld মি-এর মধ্যে আসুন এবং মানচিত্রে এখানে খুলুন চাপুন।",
+ "Burada %lld not var": "এখানে %lldটি নোট আছে",
+ "Burada aç": "এখানে খুলুন",
+ "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "আপনি এখনো যথেষ্ট কাছে নেই। জায়গার %lld মি-এর মধ্যে আসুন; বাইরে AR ক্যামেরা বেশি নির্ভুল।",
+ "Kilitli not": "লক করা নোট",
+ "Notları görmek için yaklaş ve haritada aç.": "নোট পড়তে কাছে আসুন এবং মানচিত্রে খুলুন।",
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "ভিড়ের জায়গা: %lldটি নোট। খুলতে %lld মি-এর মধ্যে আসুন।"
 }

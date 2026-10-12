@@ -624,5 +624,12 @@
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "The pin can be at most 50 m from your location.",
  "Pini elle ayarla": "Adjust pin by hand",
  "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "One switch turns on all notifications: likes, comments, follows, location notes, brand discounts and administrator messages. Messages may appear on the lock screen. Your last shared location and post likes may be used to choose offers; brands never see your personal location. Near an approved note, precise GPS is used for at most 10 minutes; these readings are not added to your location shared with administrators. In the background this needs Always location access, Precise Location and internet. Phone GPS is usually 5–30 m off; the notification arrives once you are within the note's area.",
- "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "Approximate location is on. To leave the note in the right spot, turn on Precise Location in Settings."
+ "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "Approximate location is on. To leave the note in the right spot, turn on Precise Location in Settings.",
+ "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "This note is in a busy spot with %lld notes. To read it, get within %lld m and tap Open here on the map.",
+ "Burada %lld not var": "%lld notes here",
+ "Burada aç": "Open here",
+ "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "You are not close enough yet. Get within %lld m of the spot; outdoors the AR camera is more precise.",
+ "Kilitli not": "Locked note",
+ "Notları görmek için yaklaş ve haritada aç.": "Get closer and open them on the map to read the notes.",
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "Busy spot: %lld notes. Get within %lld m to open them."
 }

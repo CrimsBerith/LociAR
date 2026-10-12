@@ -110,7 +110,8 @@ export default function PrivacyPageEn() {
         leave the area, or at most 10 minutes; for offer arrivals at most two minutes. Lower accuracy is used while notes
         are still far away. Location-note entry uses a 15–100 m radius: your reported uncertainty may touch the area (at most
         20 m tolerance; fixes worse than 35 m are ignored), at walking speed, with two agreeing fixes at least five seconds apart.
-        Offer arrivals use a 2–5 metre diameter with the uncertainty fully inside. Background use requires Always location
+        Offer arrivals use the same rule with a 15–100 m radius; walking or driving past the shop counts. Offer selection may use
+        your last voluntarily shared location up to the campaign&apos;s age limit (at most 24 hours); no place is labelled home. Background use requires Always location
         permission and Precise Location and displays the iOS location indicator. Internet and current server approval are
         required. Phone GPS is usually 5–30 m off; it cannot guarantee doorway entry and visits may be missed. Wake-ups can
         be delayed or suppressed, especially after force-quitting.</p>
@@ -123,7 +124,10 @@ export default function PrivacyPageEn() {
         distance are stored too. Attendance is not verified. Authorized administrators see the note and author association
         privately. Notes are ordered by likes. A note can be sent as a reminder only after it collects enough likes and an
         administrator approves it; each note reaches each person at most once. Notes do not expire on their own; administrators
-        can set an end date or remove a note. Campaigns share a separate three-per-day promotional limit and at most one
+        can set an end date or remove a note. Where more than 30 notes share a spot of about 38 × 19 m (administrator setting),
+        their text opens only when you are nearby; the map shows just the count, and entering the spot sends at most one
+        text-free “many notes here” reminder per 30 days. Opening checks your phone or AR-camera position once on the server and stays open for 30 minutes.
+        Campaigns share a separate three-per-day promotional limit and at most one
         reminder per assigned campaign.</p>
 
       <h2>Retention</h2>

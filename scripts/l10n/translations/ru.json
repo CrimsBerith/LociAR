@@ -624,5 +624,12 @@
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "Метка может быть не дальше 50 м от вашего местоположения.",
  "Pini elle ayarla": "Поставить метку вручную",
  "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "Один переключатель включает все уведомления: лайки, комментарии, подписки, заметки о местах, скидки брендов и сообщения администраторов. Сообщения могут отображаться на экране блокировки. Последнее переданное местоположение и лайки могут использоваться для подбора предложений; бренды не видят ваше местоположение. Рядом с одобренной заметкой точный GPS используется не дольше 10 минут; эти данные не добавляются к местоположению для администраторов. В фоне нужны доступ к геопозиции «Всегда», «Точная геопозиция» и интернет. GPS телефона обычно ошибается на 5–30 м; уведомление приходит, когда вы в зоне заметки.",
- "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "Включена приблизительная геопозиция. Чтобы оставить заметку в нужном месте, включите «Точная геопозиция» в Настройках."
+ "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "Включена приблизительная геопозиция. Чтобы оставить заметку в нужном месте, включите «Точная геопозиция» в Настройках.",
+ "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "Эта заметка в месте, где %lld заметок. Чтобы прочитать, подойдите на %lld м и нажмите «Открыть здесь» на карте.",
+ "Burada %lld not var": "Здесь заметок: %lld",
+ "Burada aç": "Открыть здесь",
+ "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "Вы ещё недостаточно близко. Подойдите к месту на %lld м; на улице AR-камера точнее.",
+ "Kilitli not": "Закрытая заметка",
+ "Notları görmek için yaklaş ve haritada aç.": "Подойдите ближе и откройте их на карте, чтобы прочитать.",
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "Популярное место: %lld заметок. Подойдите на %lld м, чтобы открыть."
 }

@@ -101,3 +101,32 @@ struct NoteHeatContent: MapContent {
         }
     }
 }
+
+@MainActor
+final class DenseSpotClient {
+    static let shared = DenseSpotClient()
+    private var callables: CallableClient?
+    func configure(callables: CallableClient) { self.callables = callables }
+
+    private struct Fix: Encodable { let lat: Double; let lng: Double; let accuracy: Double; let measuredAt: Double }
+    private struct Payload: Encodable { let location: Fix }
+    struct Response: Decodable { let unlocked: [String]; let reason: String?; var unlockRadius: Double? = nil }
+
+    /// Prefers the AR camera's Geospatial position (1-5 m) over GPS when it is fresh and better.
+    nonisolated static func bestFix(gps: CLLocation?, camera: LocationSample?, now: Date = Date()) -> LocationSample? {
+        let phone = gps.map(LocationSample.init).flatMap { now.timeIntervalSince($0.timestamp) <= 10 && $0.accuracy >= 0 && !$0.simulated ? $0 : nil }
+        let ar = camera.flatMap { now.timeIntervalSince($0.timestamp) <= 3 && $0.accuracy >= 0 ? $0 : nil }
+        switch (phone, ar) {
+        case let (p?, a?): return a.accuracy <= p.accuracy ? a : p
+        case let (p?, nil): return p
+        case let (nil, a?): return a
+        default: return nil
+        }
+    }
+
+    func unlock(at fix: LocationSample) async throws -> Response {
+        guard let callables else { return Response(unlocked: [], reason: "unavailable") }
+        return try await callables.call("unlockDenseSpot", payload: Payload(location: Fix(
+            lat: fix.latitude, lng: fix.longitude, accuracy: fix.accuracy, measuredAt: fix.timestamp.timeIntervalSince1970 * 1000)), timeout: 20)
+    }
+}

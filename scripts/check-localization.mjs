@@ -68,7 +68,7 @@ export function swiftStrings(source) {
 
 export function localizationKey(value) {
   return value.replace(/\\\(Int\(accuracy\)\)/g, '%lld').replace(/\\\(([^()]+)\)/g, (_, expression) =>
-    ['degrees', 'nearbyPosts.count', 'posts.count', 'failedCount', 'value', 'meters', 'newCount', 'likeCount'].includes(expression) ? '%lld' : '%@'
+    ['degrees', 'nearbyPosts.count', 'posts.count', 'failedCount', 'value', 'meters', 'newCount', 'likeCount', 'noteCount'].includes(expression) ? '%lld' : '%@'
   ).replace(/\\n/g, '\n');
 }
 function sourceFiles(root) {

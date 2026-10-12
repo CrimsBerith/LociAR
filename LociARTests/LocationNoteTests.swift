@@ -101,15 +101,17 @@ final class LocationNoteRegionTests: XCTestCase {
         XCTAssertEqual(cluster.distanceToNearestTarget(fix(north: 100, accuracy: 5)), 50, accuracy: 0.5)
     }
 
-    func testRadiusRangesDifferForNotesAndCampaigns() {
+    func testNotesAndCampaignsShareTheGPSTolerantRadiusRange() {
         var note = region(notes: [NoteTarget(lat: 41, lng: 29, r: 20)])
         note.triggerRadius = 2.5
         XCTAssertFalse(note.isUsable(at: now), "notes use 15-100 m")
         let badTarget = region(notes: [NoteTarget(lat: 41, lng: 29, r: 500)])
         XCTAssertFalse(badTarget.isUsable(at: now))
         var campaign = CampaignRegion(id: UUID(), lat: 41, lng: 29, radius: 150, expiresAt: now.timeIntervalSince1970 * 1000 + 60_000)
-        campaign.triggerRadius = 20
-        XCTAssertFalse(campaign.isUsable(at: now), "campaign arrivals keep their 1-2.5 m radius")
+        campaign.triggerRadius = 30
+        XCTAssertTrue(campaign.isUsable(at: now), "campaign arrivals use the same 15-100 m range")
+        campaign.triggerRadius = 2.5
+        XCTAssertFalse(campaign.isUsable(at: now))
     }
 
     func testNotesKeepUpToFifteenOfTheTwentyMonitoredRegions() {
@@ -141,5 +143,20 @@ final class NoteMapLayerTests: XCTestCase {
         XCTAssertEqual(NoteDensityCell.intensity(10, max: 10), 1, accuracy: 1e-9)
         XCTAssertGreaterThan(NoteDensityCell.intensity(1, max: 100), 0.1, "a single note still shows")
         XCTAssertLessThan(NoteDensityCell.intensity(1, max: 100), NoteDensityCell.intensity(10, max: 100))
+    }
+}
+
+final class DenseSpotTests: XCTestCase {
+    func testLockedRowsDecodeTheirSpotAndBestFixPrefersFreshARCamera() throws {
+        let json = #"{"cell":"sxk973m4","count":34,"lat":41.0,"lng":29.0,"unlock_radius_m":15}"#
+        let spot = try JSONDecoder().decode(DenseSpotInfo.self, from: Data(json.utf8))
+        XCTAssertEqual(spot.count, 34); XCTAssertEqual(spot.unlockRadius, 15)
+        let now = Date()
+        let gps = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29), altitude: 0, horizontalAccuracy: 12, verticalAccuracy: -1, timestamp: now)
+        let ar = LocationSample(latitude: 41, longitude: 29, accuracy: 2, timestamp: now)
+        XCTAssertEqual(DenseSpotClient.bestFix(gps: gps, camera: ar, now: now)?.accuracy, 2)
+        let staleAR = LocationSample(latitude: 41, longitude: 29, accuracy: 2, timestamp: now.addingTimeInterval(-5))
+        XCTAssertEqual(DenseSpotClient.bestFix(gps: gps, camera: staleAR, now: now)?.accuracy, 12)
+        XCTAssertNil(DenseSpotClient.bestFix(gps: nil, camera: nil, now: now))
     }
 }

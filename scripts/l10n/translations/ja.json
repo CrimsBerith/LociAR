@@ -624,5 +624,12 @@
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "ピンは現在地から最大50 mまでしか動かせません。",
  "Pini elle ayarla": "ピンを手動で調整",
  "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "1つのスイッチですべての通知をオンにします：いいね、コメント、フォロー、場所のメモ、ブランドの割引、管理者からのメッセージ。メッセージはロック画面に表示されることがあります。最後に共有した位置情報と投稿へのいいねはオファーの選定に使われることがありますが、ブランドがあなたの位置を見ることはありません。承認済みメモの近くでは最大10分間、高精度GPSを使います。この測定値は管理者と共有する位置情報には追加されません。バックグラウンドでは位置情報の「常に許可」、正確な位置情報、インターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。メモの範囲に入ると通知が届きます。",
- "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "おおよその位置情報がオンです。メモを正しい場所に残すには、設定で「正確な位置情報」をオンにしてください。"
+ "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "おおよその位置情報がオンです。メモを正しい場所に残すには、設定で「正確な位置情報」をオンにしてください。",
+ "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "このメモは%lld件のメモが集まる場所にあります。読むには%lld m以内に近づき、地図で「ここで開く」をタップしてください。",
+ "Burada %lld not var": "ここに%lld件のメモがあります",
+ "Burada aç": "ここで開く",
+ "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "まだ十分に近くありません。その場所から%lld m以内に近づいてください。屋外ではARカメラの方が正確です。",
+ "Kilitli not": "ロック中のメモ",
+ "Notları görmek için yaklaş ve haritada aç.": "メモを読むには近づいて地図で開いてください。",
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "メモが集まる場所：%lld件。開くには%lld m以内に近づいてください。"
 }

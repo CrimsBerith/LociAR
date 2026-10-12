@@ -108,5 +108,27 @@
    "one": "%lld nota",
    "other": "%lld notas"
   }
+ },
+ "Burada %lld not var": {
+  "en": {
+   "one": "%lld note here",
+   "other": "%lld notes here"
+  },
+  "de": {
+   "one": "%lld Notiz hier",
+   "other": "%lld Notizen hier"
+  },
+  "es": {
+   "one": "%lld nota aquí",
+   "other": "%lld notas aquí"
+  },
+  "fr": {
+   "one": "%lld note ici",
+   "other": "%lld notes ici"
+  },
+  "pt": {
+   "one": "%lld nota aqui",
+   "other": "%lld notas aqui"
+  }
  }
 }

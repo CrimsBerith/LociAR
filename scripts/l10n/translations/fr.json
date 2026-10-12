@@ -624,5 +624,12 @@
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "L’épingle peut être au plus à 50 m de ta position.",
  "Pini elle ayarla": "Ajuster l’épingle à la main",
  "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "Un seul réglage active toutes les notifications : j’aime, commentaires, abonnements, notes de lieu, réductions de marques et messages des administrateurs. Les messages peuvent apparaître sur l’écran verrouillé. Ta dernière position partagée et tes j’aime peuvent servir à choisir des offres ; les marques ne voient jamais ta position personnelle. Près d’une note approuvée, le GPS précis est utilisé 10 minutes au maximum ; ces mesures ne sont pas ajoutées à la position partagée avec les administrateurs. En arrière-plan, il faut l’accès à la position Toujours, la Position exacte et Internet. Le GPS d’un téléphone dévie généralement de 5 à 30 m ; la notification arrive une fois dans la zone de la note.",
- "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "La position approximative est activée. Pour placer la note au bon endroit, active Position exacte dans Réglages."
+ "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "La position approximative est activée. Pour placer la note au bon endroit, active Position exacte dans Réglages.",
+ "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "Cette note se trouve dans un lieu dense de %lld notes. Pour la lire, approche-toi à %lld m et touche Ouvrir ici sur la carte.",
+ "Burada %lld not var": "%lld notes ici",
+ "Burada aç": "Ouvrir ici",
+ "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "Tu n’es pas encore assez près. Approche-toi à %lld m de l’endroit ; dehors, la caméra AR est plus précise.",
+ "Kilitli not": "Note verrouillée",
+ "Notları görmek için yaklaş ve haritada aç.": "Approche-toi et ouvre-les sur la carte pour lire les notes.",
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "Lieu dense : %lld notes. Approche-toi à %lld m pour les ouvrir."
 }

@@ -517,6 +517,20 @@ struct Sponsorship: Codable, Hashable, Sendable {
     }
 }
 
+/// A crowded ~38 x 19 m spot. Its notes stay closed until the viewer unlocks the spot on site.
+struct DenseSpotInfo: Codable, Hashable, Sendable {
+    let cell: String
+    let count: Int
+    let lat: Double
+    let lng: Double
+    let unlockRadius: Double
+
+    enum CodingKeys: String, CodingKey {
+        case cell, count, lat, lng
+        case unlockRadius = "unlock_radius_m"
+    }
+}
+
 struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var id: UUID
     var creatorID: UUID
@@ -534,8 +548,11 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var sponsorship: Sponsorship? = nil
     /// "location" for a note written at the author's position from the map; nil for AR posts.
     var noteKind: String? = nil
+    /// Set while the note is locked in a dense spot; text and media are withheld by the server.
+    var denseSpot: DenseSpotInfo? = nil
     var isAnonymous: Bool { anonymous == true }
     var isLocationNote: Bool { noteKind == "location" }
+    var isLocked: Bool { denseSpot != nil }
 }
 
 extension LociPost {

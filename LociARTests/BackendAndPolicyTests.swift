@@ -4,20 +4,22 @@ import XCTest
 @testable import LociAR
 
 final class CampaignRegionPolicyTests: XCTestCase {
-    func testSmallEntryUsesDiameterAndRejectsUncertainOrStaleGPS() {
+    func testCampaignEntryUsesGPSTolerantRadiusAndRejectsUncertainOrStaleGPS() {
         let now = Date()
         var region = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 150, expiresAt: now.timeIntervalSince1970 * 1000 + 60000)
-        region.triggerRadius = 2.5
-        func fix(_ accuracy: Double, _ age: Double = 0, _ offset: Double = 0) -> CLLocation {
+        region.triggerRadius = 30
+        func fix(_ accuracy: Double, _ age: Double = 0, _ offset: Double = 0, speed: Double = -1) -> CLLocation {
             CLLocation(coordinate: CLLocationCoordinate2D(latitude: 39.92 + offset, longitude: 32.85), altitude: 0,
-                horizontalAccuracy: accuracy, verticalAccuracy: -1, timestamp: now.addingTimeInterval(-age))
+                horizontalAccuracy: accuracy, verticalAccuracy: -1, course: -1, courseAccuracy: -1,
+                speed: speed, speedAccuracy: speed >= 0 ? 0.5 : -1, timestamp: now.addingTimeInterval(-age))
         }
-        XCTAssertTrue(region.permitsPreciseEntry(fix(0.5), at: now))
-        XCTAssertFalse(region.permitsPreciseEntry(fix(5), at: now))
-        XCTAssertFalse(region.permitsPreciseEntry(fix(0.5, 20), at: now))
-        XCTAssertFalse(region.permitsPreciseEntry(fix(0.5, 0, 0.00003), at: now))
-        region.triggerRadius = 1
-        XCTAssertFalse(region.permitsPreciseEntry(fix(1.5), at: now))
+        XCTAssertTrue(region.permitsPreciseEntry(fix(8, 0, 0.00032), at: now), "~35 m away with 8 m GPS")
+        XCTAssertTrue(region.permitsPreciseEntry(fix(8, 0, 0.00032, speed: 12), at: now), "driving past still counts for campaigns")
+        XCTAssertFalse(region.permitsPreciseEntry(fix(40), at: now), "worse than 35 m")
+        XCTAssertFalse(region.permitsPreciseEntry(fix(5, 20), at: now), "stale")
+        XCTAssertFalse(region.permitsPreciseEntry(fix(8, 0, 0.0006), at: now), "~67 m away")
+        region.triggerRadius = 2.5
+        XCTAssertFalse(region.isUsable(at: now), "the old 2-5 m diameter is no longer accepted")
     }
     func testDepartureRegionsDecodeTheirDirectionAndUnknownDirectionsAreRejected() throws {
         let data = Data("[{\"id\":\"123e4567-e89b-12d3-a456-426614174000\",\"lat\":39.92,\"lng\":32.85,\"radius\":150,\"expiresAt\":2000000,\"transition\":\"exit\"}]".utf8)

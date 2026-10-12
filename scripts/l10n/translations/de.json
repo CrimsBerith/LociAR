@@ -624,5 +624,12 @@
  "Pin, konumundan en fazla 50 m uzağa taşınabilir.": "Die Nadel darf höchstens 50 m von deinem Standort entfernt sein.",
  "Pini elle ayarla": "Nadel von Hand setzen",
  "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir.": "Ein Schalter aktiviert alle Benachrichtigungen: Likes, Kommentare, Follows, Ortsnotizen, Markenrabatte und Nachrichten von Administratoren. Nachrichten können auf dem Sperrbildschirm erscheinen. Dein zuletzt geteilter Standort und Post-Likes können zur Auswahl von Angeboten genutzt werden; Marken sehen deinen persönlichen Standort nie. In der Nähe einer freigegebenen Notiz wird höchstens 10 Minuten lang genaues GPS genutzt; diese Messungen fließen nicht in den mit Administratoren geteilten Standort ein. Im Hintergrund sind Standortzugriff „Immer“, „Genauer Standort“ und Internet nötig. Handy-GPS weicht meist 5–30 m ab; die Benachrichtigung kommt, sobald du im Bereich der Notiz bist.",
- "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "Ungefährer Standort ist aktiv. Damit die Notiz am richtigen Ort landet, aktiviere in den Einstellungen „Genauer Standort“."
+ "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.": "Ungefährer Standort ist aktiv. Damit die Notiz am richtigen Ort landet, aktiviere in den Einstellungen „Genauer Standort“.",
+ "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas.": "Diese Notiz liegt an einem vollen Ort mit %lld Notizen. Um sie zu lesen, komm auf %lld m heran und tippe auf der Karte auf „Hier öffnen“.",
+ "Burada %lld not var": "%lld Notizen hier",
+ "Burada aç": "Hier öffnen",
+ "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır.": "Du bist noch nicht nah genug. Komm bis auf %lld m an den Ort heran; draußen ist die AR-Kamera genauer.",
+ "Kilitli not": "Gesperrte Notiz",
+ "Notları görmek için yaklaş ve haritada aç.": "Komm näher und öffne sie auf der Karte, um die Notizen zu lesen.",
+ "Yoğun nokta: %lld not. Açmak için %lld m yaklaş.": "Voller Ort: %lld Notizen. Komm auf %lld m heran, um sie zu öffnen."
 }
