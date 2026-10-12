@@ -39,7 +39,7 @@ export const setDataPreferences = onCall(options, async request => {
   if (body.departures !== undefined && (typeof body.departures !== 'boolean'
       || body.departuresNoticeVersion !== '2026-10-11-departures')) throw new HttpsError('invalid-argument', 'Accept the departure notification notice');
   if (body.placeNotes !== undefined && (typeof body.placeNotes !== 'boolean'
-      || body.placeNotesNoticeVersion !== '2026-10-11-place-notes')) throw new HttpsError('invalid-argument', 'Accept the business-note notification notice');
+      || body.placeNotesNoticeVersion !== '2026-10-11-place-notes')) throw new HttpsError('invalid-argument', 'Accept the location-note notification notice');
   if (body.notifications !== undefined && (typeof body.notifications !== 'boolean'
       || body.notificationsNoticeVersion !== '2026-10-11-notifications')) throw new HttpsError('invalid-argument', 'Accept the unified notification notice');
   return db.runTransaction(async tx => {

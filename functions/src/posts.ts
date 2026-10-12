@@ -18,7 +18,6 @@ import { GIPHY_API_KEY, resolveGifLayers } from './giphy';
 import { mayPublishAnonymously } from './anonymous';
 import { isBlocked } from './anonymousAccess';
 import { campaignOffer } from './campaigns';
-import { businessNoteCurrent } from './businessRegistry';
 
 /**
  * High-quality world locks used to go live without review in the Supabase build. App Review
@@ -36,9 +35,10 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
   return { id, placement_state: data.placement_state ?? null, status: data.status };
 }
 
-export type BusinessNoteMetadata = { id: string; name: string; lat: number; lng: number; radius: number; revision: number };
+/** How a location note's position was measured; see placeNoteRules.ts. */
+export type LocationNoteMetadata = { source: 'geospatial' | 'gps' | 'manual'; accuracy_m: number; pin_drag_m: number; notify_radius_m: number };
 
-export async function createPostHandler(request: CallableRequest<CreatePostBody>, businessNote?: BusinessNoteMetadata) {
+export async function createPostHandler(request: CallableRequest<CreatePostBody>, locationNote?: LocationNoteMetadata) {
   const caller = requireCaller(request);
   await assertServiceEnabled('create_post');
   const body = request.data as CreatePostBody;
@@ -66,7 +66,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
       if (!existing.exists) return null;
       const data = existing.data()!;
       if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
-      if (businessNote && (data.business_note?.id !== businessNote.id || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
+      if (locationNote && (data.note_kind !== 'location' || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
       return { post: serializePost(postId, data), publishStatus: data.status, idempotentReplay: true };
     });
     if (replay) return replay;
@@ -98,7 +98,8 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
     lng,
     geohash: encodeGeohash(lat, lng, 10),
     place_id: place?.id ?? null,
-    ...(businessNote ? { note_kind: 'business', business_id: businessNote.id, business_note: businessNote } : {}),
+    ...(locationNote ? { note_kind: 'location', location_note: { source: locationNote.source, accuracy_m: locationNote.accuracy_m, pin_drag_m: locationNote.pin_drag_m },
+      notify_radius_m: locationNote.notify_radius_m, push_state: 'none' } : {}),
     pose_json: JSON.stringify(body.pose),
     ref_image_url: body.refImageUri,
     edit_data_json: JSON.stringify(body.editData),
@@ -135,11 +136,9 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
     if (existing.exists) {
       const data = existing.data()!;
       if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
-      if (businessNote && (data.business_note?.id !== businessNote.id || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
+      if (locationNote && (data.note_kind !== 'location' || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
       return { kind: 'replay' as const, post: serializePost(postId, data), publishStatus: data.status };
     }
-    const venue = businessNote ? await tx.get(db.collection('business_places').doc(businessNote.id)) : null;
-    if (venue?.exists && (venue.get('status') !== 'active' || venue.get('revision') !== businessNote!.revision)) throw new HttpsError('failed-precondition', 'Business changed; refresh and retry');
     if (reclamation.exists && reclamation.get('state') !== 'draft') throw reasonError('failed-precondition', 'World map draft expired; create a new draft', 'draft_expired');
 
     // The zone scan is deliberately fresh on every transaction attempt. It is not a cached
@@ -169,8 +168,6 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
       return { kind: 'limited' as const };
     }
     updateDensityLock(tx, densityLock, Date.now());
-    if (businessNote && venue && !venue.exists) tx.create(venue.ref, { ...businessNote, status: 'active', notify_diameter_m: 5,
-      created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp(), identity_verified: false });
     if (anchorRef) tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp(), expires_at: FieldValue.delete() });
     tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', is_anonymous: true, world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
     tx.create(postRef, { ...document, creator_handle: String(profile.handle ?? '') });
@@ -250,7 +247,6 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
     const viewable = post.creator_id === caller.luid
       || (post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
     if (!viewable) throw new HttpsError('permission-denied', 'post_not_viewable');
-    if (post.creator_id !== caller.luid && !await businessNoteCurrent(tx, post)) throw new HttpsError('permission-denied', 'post_not_viewable');
     if (await isBlocked(caller.luid, String(post.creator_id), tx)) throw new HttpsError('permission-denied', 'post_not_viewable');
     const receipt = await tx.get(receiptRef);
     const current = Number(post.views_count ?? 0);

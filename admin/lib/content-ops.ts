@@ -99,8 +99,6 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
       caption:input.caption,edit_data_json:JSON.stringify(editData),content_source_json:JSON.stringify(contentSource),
       lat:input.lat,lng:input.lng,geohash:encodeGeohash(input.lat,input.lng,10),visibility:input.visibility,age_rating:input.ageRating,status:input.status,
       ...(!before.exists || moved ? placement(input,id) : {}),
-      ...(before.exists && before.get('note_kind') === 'business' && (before.get('lat') !== input.lat || before.get('lng') !== input.lng)
-        ? { note_kind: FieldValue.delete(), business_id: FieldValue.delete(), business_note: FieldValue.delete() } : {}),
       protected_zone_name:blockedZones.length ? blockedZones.map(z => String(z.get('name'))).join(', ') : null,
       admin_zone_exception:blockedZones.length ? {reason:input.zoneExceptionReason,actor_id:actorId,zone_ids:blockedZones.map(z=>z.id)} : null,
       updated_at:FieldValue.serverTimestamp(),updated_by_admin:actorId,

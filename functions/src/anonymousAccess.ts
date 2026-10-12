@@ -3,7 +3,6 @@ import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, Http
 import { requireCaller } from './core';
 import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
 import { isPublicActive } from './counters';
-import { businessNoteCurrent } from './businessRegistry';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
 export async function isBlocked(a: string, b: string, tx?: FirebaseFirestore.Transaction): Promise<boolean> {
@@ -103,7 +102,7 @@ export const readActivity = onCall(options, async request => {
         await requireActiveAccount(tx, caller.luid);
         if (!isUUID(data.post_id)) return null;
         const post = await tx.get(db.collection('posts').doc(data.post_id));
-        if (!post.exists || !isPublicActive(post.data()) || !await businessNoteCurrent(tx, post.data())) return null;
+        if (!post.exists || !isPublicActive(post.data())) return null;
         const [author, deletion] = await tx.getAll(db.collection('profiles').doc(post.get('creator_id')), accountDeletionRef(post.get('creator_id')));
         if (profileBlock(author.data()) || deletion.exists || await isBlocked(caller.luid, post.get('creator_id'), tx)) return null;
         const reports = await tx.get(db.collection('moderation_flags').where('user_id', '==', caller.luid).where('post_id', '==', post.id).limit(1));

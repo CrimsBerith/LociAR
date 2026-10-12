@@ -21,14 +21,8 @@ service cloud.firestore {
     function createdNow() { return request.resource.data.created_at == request.time; }
     function postExists(postId) { return post(postId) != null; }
     function post(postId) { return get(/databases/$(database)/documents/posts/$(postId)).data; }
-    function businessMatches(data) {
-      let venue = get(/databases/$(database)/documents/business_places/$(data.business_id)).data;
-      return venue != null && venue.status == 'active' && venue.revision == data.business_note.revision
-        && data.get('business_invalidated', false) != true;
-    }
-    function businessCurrent(data) { return data.get('note_kind', '') != 'business' || businessMatches(data); }
     function postIsPublicActive(postId) {
-      return post(postId).status == 'active' && post(postId).visibility == 'public' && businessCurrent(post(postId))
+      return post(postId).status == 'active' && post(postId).visibility == 'public'
         && post(postId).get('age_rating', 'all') != '18_plus' && post(postId).get('deleted_at', null) == null
         && activeAccount(post(postId).creator_id);
     }
@@ -89,7 +83,6 @@ service cloud.firestore {
       allow get: if (resource.data.get('is_anonymous', false) != true
           && resource.data.status == 'active' && resource.data.visibility == 'public'
           && resource.data.get('age_rating', 'all') != '18_plus' && resource.data.get('deleted_at', null) == null
-          && businessCurrent(resource.data)
           && activeAccount(resource.data.creator_id) && (!signedIn() || !blockedBy(resource.data.creator_id)))
         || (signedIn() && resource.data.creator_id == me() && activeAccount(me()));
       // Public feeds use readPublicContent so account fences and bidirectional blocks do not

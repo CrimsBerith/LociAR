@@ -313,19 +313,11 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "note_kind",
+          "fieldPath": "push_state",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "visibility",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "lat",
+          "fieldPath": "geohash",
           "order": "ASCENDING"
         }
       ]
@@ -335,70 +327,26 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "business_id",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "status",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "visibility",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
+          "fieldPath": "likes_count",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "posts",
+      "collectionGroup": "note_density",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "business_id",
+          "fieldPath": "precision",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "status",
+          "fieldPath": "cell",
           "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "business_note.revision",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "posts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "business_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "posts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "business_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
         }
       ]
     }
@@ -629,12 +577,6 @@
     },
     {
       "collectionGroup": "place_note_notification_receipts",
-      "fieldPath": "expires_at",
-      "ttl": true,
-      "indexes": []
-    },
-    {
-      "collectionGroup": "place_note_push_quota",
       "fieldPath": "expires_at",
       "ttl": true,
       "indexes": []

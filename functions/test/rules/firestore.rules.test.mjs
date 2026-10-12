@@ -39,23 +39,13 @@ beforeEach(async () => {
 
 const as = (luid) => env.authenticatedContext(`uid-${luid}`, { luid }).firestore();
 
-test('business revision/status fence rejects interactions on closed or outdated notes within rule access limits', async () => {
-  const business = '88888888-8888-4888-8888-888888888888', db = as(ALICE);
-  await env.withSecurityRulesDisabled(async ctx => {
-    await setDoc(doc(ctx.firestore(), 'business_places', business), { status: 'active', revision: 1 });
-    await updateDoc(doc(ctx.firestore(), 'posts', POST), { note_kind: 'business', business_id: business, business_note: { revision: 1 } });
-  });
+test('location-note fields do not change post access or interactions', async () => {
+  const db = as(ALICE);
+  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { note_kind: 'location', notify_radius_m: 20, push_state: 'approved' }));
   const like = () => setDoc(doc(db, 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() });
-  const save = () => setDoc(doc(db, 'post_saves', `${ALICE}_${POST}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() });
-  const comment = () => setDoc(doc(db, 'comments', 'venue-note-comment'), { id: 'venue-note-comment', post_id: POST, user_id: ALICE, text: 'Thanks', created_at: serverTimestamp() });
-  await assertSucceeds(like()); await assertSucceeds(save()); await assertSucceeds(comment());
+  await assertSucceeds(like());
   await assertSucceeds(deleteDoc(doc(db, 'likes', `${POST}_${ALICE}`)));
-  await assertSucceeds(deleteDoc(doc(db, 'post_saves', `${ALICE}_${POST}`)));
-  await assertSucceeds(deleteDoc(doc(db, 'comments', 'venue-note-comment')));
-  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'business_places', business), { status: 'closed' }));
-  await assertFails(getDoc(doc(db, 'posts', POST))); await assertFails(like()); await assertFails(save()); await assertFails(comment());
-  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'business_places', business), { status: 'active', revision: 2 }));
-  await assertFails(like());
+  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { note_kind: null, notify_radius_m: null, push_state: null }));
 });
 
 test('anonymous author and liker identities cannot be fetched directly, even by the post owner', async () => {
@@ -353,7 +343,7 @@ test('places are public read-only', async () => {
 });
 
 test('server-only collections stay closed for clients (reads and writes)', async () => {
-  for (const name of ['brands', 'brand_memberships', 'campaigns', 'campaign_targets', 'campaign_departure_regions', 'business_places', 'place_note_notification_receipts', 'place_note_push_quota', 'campaign_locations', 'admin_notification_jobs', 'admin_notification_receipts', 'campaign_view_receipts', 'promotion_push_quota', 'brand_submission_quota', 'user_locations', 'user_device_context', 'user_data_preferences', 'invites', 'invite_attempts', 'gif_search_quota', 'handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
+  for (const name of ['brands', 'brand_memberships', 'campaigns', 'campaign_targets', 'campaign_departure_regions', 'note_density', 'note_density_members', 'place_note_notification_receipts', 'campaign_locations', 'admin_notification_jobs', 'admin_notification_receipts', 'campaign_view_receipts', 'promotion_push_quota', 'brand_submission_quota', 'user_locations', 'user_device_context', 'user_data_preferences', 'invites', 'invite_attempts', 'gif_search_quota', 'handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
     await assertFails(getDoc(doc(as(ALICE), name, 'x')));
     await assertFails(setDoc(doc(as(ALICE), name, 'x'), { owner_luid: ALICE }));
   }
