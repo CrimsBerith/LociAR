@@ -53,7 +53,7 @@ export default function PrivacyPage() {
       <h2>Amaçlar ve hukuki sebepler</h2>
       <ul>
         <li>Hesap açma, giriş, içerik yayınlama ve gösterme — sözleşmenin kurulması ve ifası (KVKK m.5/2-c).</li>
-        <li>Sosyal bildirimler, işletme notları, marka indirimleri ve yönetici mesajları — Profil → Ayarlar → Bildirimler üzerinden birlikte onayınıza bağlıdır; ayrıca iOS bildirim izni gerekir.</li>
+        <li>Sosyal bildirimler, konum notları, marka indirimleri ve yönetici mesajları — Profil → Ayarlar → Bildirimler üzerinden birlikte onayınıza bağlıdır; ayrıca iOS bildirim izni gerekir.</li>
         <li>Moderasyon, korumalı bölge ve 18+ içerik engelleri, profil fotoğrafı incelemesi, spam ve kötüye kullanımın önlenmesi,
           güvenlik — meşru menfaat (m.5/2-f) ve hukuki yükümlülük (m.5/2-ç).</li>
         <li>Çökme raporlarıyla uygulamanın kararlılığını sağlamak — meşru menfaat (m.5/2-f); Profil → Ayarlar&apos;dan kapatılabilir.</li>
@@ -101,7 +101,7 @@ export default function PrivacyPage() {
       </p>
 
       <h2>Bildirimler ve konum hatırlatmaları</h2>
-      <p>Profil → Ayarlar&apos;daki varsayılanı kapalı tek Bildirimler seçeneği beğeni, yorum, takip, işletme notları,
+      <p>Profil → Ayarlar&apos;daki varsayılanı kapalı tek Bildirimler seçeneği beğeni, yorum, takip, konum notları,
         marka indirimleri ve yönetici mesajlarını kapsar. Açmadan önce bu kapsam açıklanır. Yönetici konum paylaşımı
         ve teknik paylaşım ayrı kalır. Ayrıca iOS bildirim izni gerekir; onaylanan metin kilit ekranında görünebilir.
         Bildirimleri kapatınca bu cihazda alan izleme, belirteç kaydı ve yeni bildirim kabulü durur.
@@ -111,27 +111,31 @@ export default function PrivacyPage() {
         teklif seçiminde kullanılabilir; markalar kişisel konumunuzu veya alıcı listelerini göremez.
         Gönderim FCM kabulü olarak kaydedilir; cihazda teslim veya okunma garantisi değildir.
         Özel yönetici mesajları otomatik çevrilmez.</p>
-      <p>Yakındaki hatırlatmalar için uygulama açıkken eşitlenen en fazla 20 işletme/teklif alanını iOS izler.
-        Büyük GPS alanı, en fazla iki dakika süren hassas konum kontrolünü başlatır. Gerçek giriş kontrolü seçilen
-        2–5 metre çapta, ölçüm belirsizliği tamamen alanın içindeyken ve en az iki saniye arayla iki iyi ölçümle yapılır.
-        Arka planda Her zaman konum izni gerekir ve iOS konum göstergesini gösterir. İnternet ve güncel sunucu onayı gerekir.
-        GPS bu ölçekte mağaza içini veya kapıdan girişi garanti edemez; belirsiz ölçümler bildirimi bastırır ve ziyaret kaçabilir.
+      <p>Yakındaki hatırlatmalar için iOS en fazla 20 alanı izler: onaylı konum notu kümeleri (en fazla 15) ve teklif alanları.
+        Liste uygulama açıkken ve arka planda yaklaşık 500 m hareket ettiğinizde, kaba bir konumla eşitlenir.
+        Büyük GPS alanı hassas konum kontrolünü başlatır: konum notlarında bildirim gidene, alandan çıkana veya en fazla
+        10 dakika; teklif varışlarında en fazla iki dakika. Not uzaktayken daha düşük hassasiyet kullanılır.
+        Konum notu girişi 15–100 m yarıçaplı alanda, ölçüm belirsizliği alana değdiğinde (en fazla 20 m tolerans,
+        35 m'den kötü ölçümler sayılmaz), yürüme hızında ve en az beş saniye arayla iki uyumlu ölçümle kabul edilir.
+        Teklif varışları 2–5 metre çapta, belirsizlik tamamen alanın içindeyken kontrol edilir.
+        Arka planda Her zaman konum izni ve Kesin Konum gerekir; iOS konum göstergesini gösterir. İnternet ve güncel sunucu onayı gerekir.
+        Telefon GPS&apos;i genellikle 5–30 m sapar; kapıdan girişi garanti edemez ve ziyaret kaçabilir.
         Özellikle uygulama zorla kapatıldığında iOS uyandırmayı geciktirebilir veya engelleyebilir.</p>
       <p>Ön plandaki yakın not sorgusu ve giriş/çıkış ölçümleri geçicidir; yönetici konum kaydını güncellemez.
         Alandan çıkış kampanyası, gönüllü paylaştığınız başlangıç koordinatlarını en fazla 24 saat veya kampanya bitimine
         kadar özel olarak tutabilir. Alanın eviniz olduğu çıkarılmaz veya etiketlenmez. Onayı iptal etmek alanları hemen
         geçersiz kılar; hesap silme bunları kaldırır. Çıkış hatırlatması için telefon önce alanı alıp içinde olduğunu görmelidir.</p>
-      <p>Apple Haritalar&apos;dan seçilen yaklaşık işletme noktasına anonim not bırakılabilir; yayınlanmadan önce incelenir.
-        Harita seçimi işletme kimliğini veya ziyareti doğrulamaz. Yetkili yöneticiler işletme, not ve yazar bağlantısını
-        özel panelde görür; işletmeyi düzeltebilir, kapatabilir, duraklatabilir veya taşındı işaretleyebilir.
-        İşletme bilgisi değişince eski notlar geçersiz olur; geri almak yeniden inceleme gerektirir.
-        Yeni işletme/not telefonla eşitlenmeden bildirim oluşturamaz. İşletme notları işletme başına günde bir ve toplamda
-        günde üç bildirimle sınırlıdır. Kampanyaların ayrı, ortak günlük üç bildirim sınırı ve kullanıcı/kampanya başına tek hatırlatma sınırı vardır.</p>
+      <p>Bulunduğunuz noktaya anonim konum notu bırakabilirsiniz; yayınlanmadan önce incelenir. Not, telefonunuzun ölçtüğü
+        konuma veya bu konumun en fazla 50 m yakınına elle koyduğunuz pine kaydedilir; ölçüm doğruluğu ve pinin kaydırıldığı
+        mesafe de saklanır. Ziyaret doğrulanmaz. Yetkili yöneticiler not ve yazar bağlantısını özel panelde görür.
+        Notlar beğeniye göre sıralanır. Bir not, yeterli beğeni alıp yönetici onayladıktan sonra bildirim olarak gidebilir;
+        her kişiye her not en fazla bir kez gönderilir. Notlar kendiliğinden eskimez; yönetici bitiş tarihi koyabilir veya
+        notu kaldırabilir. Kampanyaların ayrı, ortak günlük üç bildirim sınırı ve kullanıcı/kampanya başına tek hatırlatma sınırı vardır.</p>
 
       <h2>Saklama süreleri</h2>
       <p>Hedefli teklifler kampanya sonunda erişilemez olur ve otomatik silmeye alınır. Bildirim denemeleri ve kampanya
-        görüntüleme kayıtları 30 gün tutulur. İşletme notu tekrar önleme kayıtları amacına göre 2 veya 31 gün;
-        günlük sınır kayıtları 2 gün tutulur. Hesap silme bu kişisel kayıtları kaldırır. Not sahibinin hesabını silmek,
+        görüntüleme kayıtları 30 gün tutulur. Bir konum notunun size gönderildiğini gösteren kayıt, aynı notun tekrar
+        gönderilmemesi için hesabınız silinene kadar tutulur. Hesap silme bu kişisel kayıtları kaldırır. Not sahibinin hesabını silmek,
         diğer alıcıların aktivitesindeki saklanan not metnini de kaldırır.</p>
       <ul>
         <li>Hesap verileri ve içerikler: hesap silinene kadar.</li>

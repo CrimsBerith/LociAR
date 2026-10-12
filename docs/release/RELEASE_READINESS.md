@@ -31,6 +31,20 @@ Canlı Functions/rules/index/TTL/Scheduler kabulü, aday dağıtımından sonra
 `qa-live-firebase.py` ile yeniden doğrulanır. Fiziksel AR, gerçek Apple/APNs/TOTP,
 TestFlight ve App Store gönderimi bu otomatik sonuçlarla onaylanmaz.
 
+## 12 Ekim konum notu paketi (`feat/location-notes`)
+
+- İşletme seçimi kaldırıldı; not, yazarın ölçülen konumuna yazılır. GPS ekran açılınca ölçülür; ≤ 10 m ve kararlıysa
+  hemen, değilse en fazla 10 sn beklenir; 15–50 m elle pin (en fazla 50 m), > 50 m red. Ayrıntı: [LOCATION_NOTES.md](../LOCATION_NOTES.md).
+- Giriş kuralı `mesafe ≤ yarıçap + min(hata, 20 m)`, hata ≤ 35 m, 5 sn arayla iki ölçüm, yürüme hızı; 15–100 m yarıçap.
+  Eski `mesafe + hata ≤ 2,5 m` kuralı gerçek telefon GPS'iyle neredeyse hiç tetiklenmiyordu.
+- Bildirim yalnız yönetici onaylı notlar için; en çok beğenilen görülmemiş not, kişi başına bir kez. Günlük kota ve 30 gün sınırı kalktı.
+- Harita: uzakta ısı katmanı, orta zoom'da sayı balonları, yakında beğeni sırasıyla notlar (`note_density`).
+- Admin: Location notes sayfası (aday kuyruğu, onay/geri alma, kaldırma, yarıçap, bitiş tarihi, beğeni eşiği).
+- Doğrulama (yerel): Functions 118 birim + 82 rules + 9 konum notu entegrasyonu, admin 32 birim + 16 entegrasyon,
+  native birim testleri, 626 anahtar × 12 dil. Tam preflight ve CI aday commit'te ayrıca koşulmalı.
+- Açık: canlı Functions/indeks dağıtımı, fiziksel iPhone saha ölçümü (hazır olma süresi, arka plan uyanma, 15/25/50 m giriş,
+  araçla geçiş, pil), App Store konum gerekçesi ve gizlilik etiketleri. Kampanya varışları hâlâ 2–5 m kuralını kullanır.
+
 ## Kapsam
 
 - iOS 17+, Swift 6, SwiftUI, ARKit/RealityKit, ARCore Cloud Anchors/Geospatial, MapKit ve SwiftData.

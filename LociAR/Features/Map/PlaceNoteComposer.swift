@@ -202,11 +202,13 @@ struct PlaceNoteComposer: View {
                 Button("Ayarlar") { if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) } }
             }
         } else if let distance = dragDistance {
-            Text("Haritayı kaydırarak pini tam bulunduğun yere getir. Pin konumundan \(Int(distance.rounded())) m uzakta.")
+            let meters = Int(distance.rounded())
+            Text("Haritayı kaydırarak pini tam bulunduğun yere getir. Pin konumundan \(meters) m uzakta.")
                 .font(.caption).foregroundStyle(distance > LocationNotePolicy.maxPinDrag ? .red : .secondary)
         } else if let estimate = measurement.estimate {
-            Label(measurement.ready ? String(localized: "Konum hazır · ±\(Int(estimate.accuracy.rounded())) m")
-                                    : String(localized: "Konum hassaslaşıyor · ±\(Int(estimate.accuracy.rounded())) m"),
+            let meters = Int(estimate.accuracy.rounded())
+            Label(measurement.ready ? String(localized: "Konum hazır · ±\(meters) m")
+                                    : String(localized: "Konum hassaslaşıyor · ±\(meters) m"),
                   systemImage: measurement.ready ? "checkmark.circle.fill" : "location.circle")
                 .font(.caption).foregroundStyle(measurement.ready ? LociTheme.accent : .secondary)
         } else {
@@ -241,7 +243,7 @@ struct PlaceNoteComposer: View {
                 message = String(localized: "Pin, konumundan en fazla 50 m uzağa taşınabilir."); return
             }
             guard measured.accuracy <= LocationNotePolicy.maxCreateAccuracy else {
-                message = String(localized: "Konum çok belirsiz (±\(Int(measured.accuracy.rounded())) m). Açık bir alana çıkıp tekrar dene."); return
+                message = Self.tooUncertain(measured.accuracy); return
             }
             await submit(pin: pin, source: .manual, measured: measured, user: user.id)
             return
@@ -254,12 +256,18 @@ struct PlaceNoteComposer: View {
             await submit(pin: estimate.coordinate, source: .gps, measured: estimate, user: user.id)
         case .needsManualPin(let estimate):
             enterManual(at: estimate)
-            message = String(localized: "Konum ±\(Int(estimate.accuracy.rounded())) m. Pini tam bulunduğun yere getirip tekrar Burada yayınla’ya bas.")
+            let meters = Int(estimate.accuracy.rounded())
+            message = String(localized: "Konum ±\(meters) m. Pini tam bulunduğun yere getirip tekrar Burada yayınla’ya bas.")
         case .tooUncertain(let accuracy):
-            message = String(localized: "Konum çok belirsiz (±\(Int(accuracy.rounded())) m). Açık bir alana çıkıp tekrar dene.")
+            message = Self.tooUncertain(accuracy)
         case .noFix:
             message = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin.")
         }
+    }
+
+    private static func tooUncertain(_ accuracy: CLLocationAccuracy) -> String {
+        let meters = Int(accuracy.rounded())
+        return String(localized: "Konum çok belirsiz (±\(meters) m). Açık bir alana çıkıp tekrar dene.")
     }
 
     private func submit(pin: CLLocationCoordinate2D, source: PlaceNoteClient.Source, measured: LocationEstimate, user: UUID) async {

@@ -7,7 +7,7 @@ The iOS app exposes two separate, off-by-default switches in Profile → Setting
 
 Existing server events for posts, views and social interactions remain operational records. No address book, advertising identifier, IMEI, other-app activity or new phone authentication is added.
 
-The single off-by-default **Notifications** switch covers social, business-note, campaign and administrator alerts. Nearby GPS entry checks run locally for at most 120 seconds per wake; background operation needs Always permission. Transient entry fixes never update the administrator snapshot. See [BUSINESS_NOTES.md](BUSINESS_NOTES.md) and [BRAND_CAMPAIGNS.md](BRAND_CAMPAIGNS.md) for thresholds, limits and device verification.
+The single off-by-default **Notifications** switch covers social, location-note, campaign and administrator alerts. Nearby GPS entry checks run locally for at most 10 minutes per wake near an approved location note (120 seconds for campaign arrivals); background operation needs Always permission. Transient entry fixes never update the administrator snapshot. See [LOCATION_NOTES.md](LOCATION_NOTES.md) and [BRAND_CAMPAIGNS.md](BRAND_CAMPAIGNS.md) for thresholds, limits and device verification.
 
 `readDataPreferences`, `setDataPreferences` and `recordUserContext` run in `us-central1`, require Auth and production App Check, and fence suspended/deleting accounts. Consent revisions prevent old queued requests from writing after revocation. Conflicting preference updates must refresh and retry. The client persists failed preference changes and pauses sharing until the server confirms them; an offline revocation deletes the snapshot when the device reconnects.
 

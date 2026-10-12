@@ -13,7 +13,7 @@
 
 ## Consent, scope and controls
 
-- The single **Notifications** setting is off by default and covers social alerts, business notes, campaigns and administrator messages. Its combined notice covers voluntarily shared location and approved-post performance for offer selection. Administrator location sharing remains separate. iOS notification permission is independent; in-app activities do not require a registered push token.
+- The single **Notifications** setting is off by default and covers social alerts, location notes, campaigns and administrator messages. Its combined notice covers voluntarily shared location and approved-post performance for offer selection. Administrator location sharing remains separate. iOS notification permission is independent; in-app activities do not require a registered push token.
 - Brand editors do not get Firebase Admin credentials, admin roles, personal locations or audience lists. `brands.write`, `campaigns.write`, `campaigns.audience`, `users.location.read` and `notifications.send` are separate panel permissions. Initially only super admins can select recipients and send. The existing ad-operations role has campaign read access only.
 - Campaigns and target assignments are server-only, separate from public `posts`. The callable returns a post-compatible sponsored projection only to an assigned, opted-in recipient while the campaign and brand are active. No recipient identifier is included in the projection. Ordinary social interactions on these private offers are not enabled.
 - Eligibility counts approved public posts among the latest 100 by creation time. The like threshold is the best single post's count minus admin display offsets; legacy manually edited metrics without offsets do not qualify.

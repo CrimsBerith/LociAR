@@ -232,6 +232,143 @@
         }
       }
     },
+    "%lld not" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld not"
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld note"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notes"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Notiz"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Notizen"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nota"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notas"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld note"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notes"
+                }
+              }
+            }
+          }
+        },
+        "pt" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nota"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld notas"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметок: %lld"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ملاحظات"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld नोट"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldটি নোট"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件のメモ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 条笔记"
+          }
+        }
+      }
+    },
     "%lld post" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3321,83 +3458,6 @@
         }
       }
     },
-    "Ara" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ara"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suchen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rechercher"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поиск"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "بحث"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "खोजें"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "খুঁজুন"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "検索"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搜索"
-          }
-        }
-      }
-    },
     "Arka planda varış bildirimi için konum iznini Her zaman olarak ayarla." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6324,6 +6384,237 @@
         }
       }
     },
+    "Bu konum için notun" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu konum için notun"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your note for this spot"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Notiz für diesen Ort"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu nota para este lugar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta note pour cet endroit"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua nota para este local"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваша заметка для этого места"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ملاحظتك لهذا المكان"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस जगह के लिए आपका नोट"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই জায়গার জন্য আপনার নোট"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この場所へのメモ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你对这个地点的笔记"
+          }
+        }
+      }
+    },
+    "Bu konumda %lld yeni not var" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu konumda %lld yeni not var"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld new notes here"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld neue Notizen hier"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld notas nuevas aquí"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld nouvelles notes ici"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld notas novas aqui"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новых заметок здесь: %lld"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ملاحظات جديدة هنا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यहाँ %lld नए नोट हैं"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখানে %lldটি নতুন নোট আছে"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここに新しいメモが%lld件あります"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这里有 %lld 条新笔记"
+          }
+        }
+      }
+    },
+    "Bu konumda bir not var" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu konumda bir not var"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is a note here"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier gibt es eine Notiz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hay una nota aquí"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il y a une note ici"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Há uma nota aqui"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь есть заметка"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "توجد ملاحظة هنا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यहाँ एक नोट है"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখানে একটি নোট আছে"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここにメモがあります"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这里有一条笔记"
+          }
+        }
+      }
+    },
     "Bu konumda görüntülenebilir bir yayın bulunamadı." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6940,6 +7231,83 @@
         }
       }
     },
+    "Bu noktadaki notlar · en çok beğenilen önce" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu noktadaki notlar · en çok beğenilen önce"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes at this spot · most liked first"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizen an diesem Ort · beliebteste zuerst"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notas en este lugar · las más gustadas primero"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes à cet endroit · les plus aimées d’abord"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notas neste local · as mais curtidas primeiro"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметки в этом месте · сначала популярные"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الملاحظات في هذا المكان · الأكثر إعجابًا أولًا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस जगह के नोट · सबसे ज़्यादा पसंद किए गए पहले"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই জায়গার নোট · সবচেয়ে পছন্দের আগে"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この場所のメモ · いいねが多い順"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此地点的笔记 · 最多点赞优先"
+          }
+        }
+      }
+    },
     "Bu oturumu çalıştırmak için Google, sensör verilerini (ör. kamera ve konum) işler." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7398,6 +7766,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这个表面上有什么？"
+          }
+        }
+      }
+    },
+    "Burada yayınla" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Burada yayınla"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post here"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier veröffentlichen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicar aquí"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publier ici"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicar aqui"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опубликовать здесь"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انشر هنا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यहाँ पोस्ट करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখানে পোস্ট করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここに投稿"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在这里发布"
           }
         }
       }
@@ -10786,6 +11231,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "至少 8 个字符"
+          }
+        }
+      }
+    },
+    "En faydalı (%lld beğeni): %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En faydalı (%lld beğeni): %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most useful (%lld likes): %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Am hilfreichsten (%lld Likes): %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo más útil (%lld me gusta): %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La plus utile (%lld j’aime) : %@"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mais útil (%lld curtidas): %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Самая полезная (%lld лайков): %@"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأكثر فائدة (%lld إعجاب): %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सबसे उपयोगी (%lld लाइक): %@"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সবচেয়ে উপকারী (%lld লাইক): %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いちばん役立つ（%lld いいね）：%@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最有用（%lld 个赞）：%@"
           }
         }
       }
@@ -14867,6 +15389,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "用于地图、探索、搜索和 VoiceOver。"
+          }
+        }
+      }
+    },
+    "Haritayı kaydırarak pini tam bulunduğun yere getir. Pin konumundan %lld m uzakta." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haritayı kaydırarak pini tam bulunduğun yere getir. Pin konumundan %lld m uzakta."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move the map to put the pin exactly where you are. The pin is %lld m from your location."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verschiebe die Karte, bis die Nadel genau dort ist, wo du stehst. Die Nadel ist %lld m von deinem Standort entfernt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mueve el mapa para dejar el pin justo donde estás. El pin está a %lld m de tu ubicación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplace la carte pour placer l’épingle exactement là où tu es. L’épingle est à %lld m de ta position."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mova o mapa para deixar o pino exatamente onde você está. O pino está a %lld m da sua localização."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сдвиньте карту, чтобы метка была точно там, где вы. Метка в %lld м от вашего местоположения."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حرّك الخريطة لوضع الدبوس في مكانك تمامًا. الدبوس على بعد %lld م من موقعك."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पिन को ठीक अपनी जगह पर लाने के लिए मानचित्र खिसकाएँ। पिन आपकी लोकेशन से %lld मी दूर है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পিনটি ঠিক আপনার জায়গায় আনতে মানচিত্র সরান। পিন আপনার অবস্থান থেকে %lld মি দূরে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地図を動かしてピンを今いる場所に合わせてください。ピンは現在地から%lld m離れています。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移动地图，把图钉放到你所在的确切位置。图钉距你的位置 %lld 米。"
           }
         }
       }
@@ -22417,6 +23016,160 @@
         }
       }
     },
+    "Konum hassaslaşıyor · ±%lld m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum hassaslaşıyor · ±%lld m"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location improving · ±%lld m"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort wird genauer · ±%lld m"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mejorando la ubicación · ±%lld m"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position en cours d’affinage · ±%lld m"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melhorando a localização · ±%lld m"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уточняем местоположение · ±%lld м"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تتحسن دقة الموقع · ±%lld م"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लोकेशन सटीक हो रही है · ±%lld मी"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান আরও নির্ভুল হচ্ছে · ±%lld মি"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置を測定中 · ±%lld m"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位精度提升中 · ±%lld 米"
+          }
+        }
+      }
+    },
+    "Konum hazır · ±%lld m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum hazır · ±%lld m"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location ready · ±%lld m"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort bereit · ±%lld m"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubicación lista · ±%lld m"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position prête · ±%lld m"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localização pronta · ±%lld m"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Местоположение готово · ±%lld м"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الموقع جاهز · ±%lld م"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लोकेशन तैयार · ±%lld मी"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান প্রস্তুত · ±%lld মি"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置の準備完了 · ±%lld m"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位就绪 · ±%lld 米"
+          }
+        }
+      }
+    },
     "Konum henüz netleşmedi. İç mekânda biraz bekleyip tekrar dene veya Ayarlar’dan konum iznini kontrol et." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22648,6 +23401,314 @@
         }
       }
     },
+    "Konum netleşiyor…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum netleşiyor…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinning down your location…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort wird bestimmt…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precisando la ubicación…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Précision de la position…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustando a localização…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уточняем местоположение…"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ تحديد موقعك بدقة…"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लोकेशन तय हो रही है…"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান নির্ধারণ করা হচ্ছে…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置を確定しています…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在确定位置…"
+          }
+        }
+      }
+    },
+    "Konum notu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum notu"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location note"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ortsnotiz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota de ubicación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note de lieu"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota de local"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметка о месте"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ملاحظة موقع"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लोकेशन नोट"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান নোট"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所のメモ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置笔记"
+          }
+        }
+      }
+    },
+    "Konum notu bildirimleri için Ayarlar’da LociAR konumunda Kesin Konum’u aç." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum notu bildirimleri için Ayarlar’da LociAR konumunda Kesin Konum’u aç."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For location-note notifications, turn on Precise Location for LociAR in Settings."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Ortsnotiz-Benachrichtigungen aktiviere in den Einstellungen „Genauer Standort“ für LociAR."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para recibir avisos de notas de ubicación, activa Ubicación exacta para LociAR en Ajustes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour les notifications de notes de lieu, active Position exacte pour LociAR dans Réglages."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para notificações de notas de local, ative Localização Precisa para o LociAR em Ajustes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для уведомлений о заметках включите «Точная геопозиция» для LociAR в Настройках."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لتلقي إشعارات ملاحظات المواقع، فعّل الموقع الدقيق لتطبيق LociAR في الإعدادات."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लोकेशन नोट सूचनाओं के लिए सेटिंग्स में LociAR के लिए सटीक लोकेशन चालू करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান নোটের বিজ্ঞপ্তির জন্য সেটিংসে LociAR-এর সঠিক অবস্থান চালু করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所のメモの通知を受けるには、設定でLociARの「正確な位置情報」をオンにしてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如需位置笔记通知，请在“设置”中为 LociAR 打开“精确位置”。"
+          }
+        }
+      }
+    },
+    "Konum notu bırak" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum notu bırak"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave a location note"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ortsnotiz hinterlassen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dejar una nota de ubicación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laisser une note de lieu"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixar uma nota de local"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставить заметку о месте"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اترك ملاحظة موقع"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लोकेशन नोट छोड़ें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান নোট রাখুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所のメモを残す"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "留下位置笔记"
+          }
+        }
+      }
+    },
     "Konum servisine ulaşılamıyor. Bağlantınızı kontrol edin." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22798,6 +23859,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "距离太远"
+          }
+        }
+      }
+    },
+    "Konum ±%lld m. Pini tam bulunduğun yere getirip tekrar Burada yayınla’ya bas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum ±%lld m. Pini tam bulunduğun yere getirip tekrar Burada yayınla’ya bas."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location ±%lld m. Move the pin to exactly where you are, then tap Post here again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort ±%lld m. Setze die Nadel genau auf deinen Standort und tippe erneut auf „Hier veröffentlichen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubicación ±%lld m. Coloca el pin justo donde estás y toca de nuevo Publicar aquí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position ±%lld m. Place l’épingle exactement là où tu es, puis touche à nouveau Publier ici."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localização ±%lld m. Coloque o pino exatamente onde você está e toque de novo em Publicar aqui."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Точность ±%lld м. Поставьте метку точно туда, где вы, и снова нажмите «Опубликовать здесь»."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الموقع ±%lld م. ضع الدبوس في مكانك تمامًا ثم اضغط انشر هنا مرة أخرى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लोकेशन ±%lld मी। पिन को ठीक अपनी जगह पर रखें, फिर दोबारा यहाँ पोस्ट करें दबाएँ।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান ±%lld মি। পিনটি ঠিক আপনার জায়গায় রাখুন, তারপর আবার এখানে পোস্ট করুন চাপুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置の誤差 ±%lld m。ピンを今いる場所に合わせてから、もう一度「ここに投稿」をタップしてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位 ±%lld 米。请把图钉放到你所在的确切位置，然后再次点击“在这里发布”。"
+          }
+        }
+      }
+    },
+    "Konum çok belirsiz (±%lld m). Açık bir alana çıkıp tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum çok belirsiz (±%lld m). Açık bir alana çıkıp tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location too uncertain (±%lld m). Step outside into the open and try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort zu ungenau (±%lld m). Geh ins Freie und versuch es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubicación demasiado imprecisa (±%lld m). Sal a un espacio abierto e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position trop imprécise (±%lld m). Va à l’extérieur dans un endroit dégagé et réessaie."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localização muito imprecisa (±%lld m). Vá para um local aberto e tente de novo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Местоположение слишком неточное (±%lld м). Выйдите на открытое место и попробуйте снова."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الموقع غير دقيق جدًا (±%lld م). اخرج إلى مكان مفتوح وحاول مرة أخرى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लोकेशन बहुत अनिश्चित है (±%lld मी)। खुली जगह में जाकर फिर कोशिश करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান খুব অনিশ্চিত (±%lld মি)। খোলা জায়গায় গিয়ে আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置が不正確すぎます（±%lld m）。屋外の開けた場所で再度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位太不准确（±%lld 米）。请到开阔的户外再试一次。"
           }
         }
       }
@@ -23029,6 +24244,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查看位置"
+          }
+        }
+      }
+    },
+    "Konumuma dön" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konumuma dön"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to my location"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zu meinem Standort"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a mi ubicación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revenir à ma position"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voltar à minha localização"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуться к моему местоположению"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "العودة إلى موقعي"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मेरी लोकेशन पर वापस"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আমার অবস্থানে ফিরুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在地に戻る"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回到我的位置"
           }
         }
       }
@@ -25343,233 +26635,310 @@
         }
       }
     },
-    "Not anonim yayınlanır ve incelemeye gider. Haritadan seçilen konum yaklaşık kabul edilir. Bildirimleri açan ziyaretçiler yaklaşınca notunu görebilir." : {
+    "Not anonim yayınlanır ve incelemeye gider. Bulunduğun nokta kaydedilir. Beğenilen ve onaylanan notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gidebilir." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not anonim yayınlanır ve incelemeye gider. Haritadan seçilen konum yaklaşık kabul edilir. Bildirimleri açan ziyaretçiler yaklaşınca notunu görebilir."
+            "value" : "Not anonim yayınlanır ve incelemeye gider. Bulunduğun nokta kaydedilir. Beğenilen ve onaylanan notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gidebilir."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The note is anonymous and goes to review. The map location is approximate. Visitors who enable notifications can see it when nearby."
+            "value" : "Your note is posted anonymously and reviewed first. The spot where you are is saved. Liked and approved notes may be sent once as a notification to visitors who come to that spot."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Notiz ist anonym und wird geprüft. Der Kartenstandort ist ungefähr. Besucher mit aktivierten Benachrichtigungen können sie in der Nähe sehen."
+            "value" : "Deine Notiz wird anonym veröffentlicht und vorher geprüft. Der Ort, an dem du bist, wird gespeichert. Beliebte und freigegebene Notizen können Besuchern an diesem Ort einmal als Benachrichtigung gesendet werden."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La nota es anónima y se revisa. La ubicación del mapa es aproximada. Los visitantes que activen las notificaciones pueden verla al acercarse."
+            "value" : "Tu nota se publica de forma anónima y se revisa antes. Se guarda el punto donde estás. Las notas con me gusta y aprobadas pueden enviarse una vez como notificación a quienes lleguen a ese punto."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La note est anonyme et vérifiée. La position sur la carte est approximative. Les visiteurs ayant activé les notifications peuvent la voir à proximité."
+            "value" : "Ta note est publiée anonymement et vérifiée d’abord. L’endroit où tu te trouves est enregistré. Les notes aimées et approuvées peuvent être envoyées une fois en notification aux visiteurs qui arrivent à cet endroit."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A nota é anônima e passa por análise. A localização no mapa é aproximada. Visitantes que ativarem os avisos podem vê-la ao se aproximar."
+            "value" : "Sua nota é publicada anonimamente e revisada antes. O ponto onde você está é salvo. Notas curtidas e aprovadas podem ser enviadas uma vez como notificação para quem chegar a esse ponto."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Заметка анонимная и проходит проверку. Положение на карте приблизительное. Посетители с включёнными уведомлениями могут увидеть её поблизости."
+            "value" : "Заметка публикуется анонимно и сначала проходит проверку. Сохраняется точка, где вы находитесь. Популярные и одобренные заметки могут один раз прийти уведомлением тем, кто окажется в этом месте."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الملاحظة مجهولة وتخضع للمراجعة. موقع الخريطة تقريبي. يمكن للزوار الذين فعّلوا الإشعارات رؤيتها عند الاقتراب."
+            "value" : "تُنشر ملاحظتك دون اسم وتُراجع أولًا. يُحفظ المكان الذي تقف فيه. قد تُرسل الملاحظات المعجَب بها والمعتمدة مرة واحدة كإشعار للزوار الذين يصلون إلى هذا المكان."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "नोट गुमनाम है और समीक्षा में जाता है। मैप का स्थान अनुमानित है। सूचनाएँ चालू करने वाले आगंतुक पास आने पर इसे देख सकते हैं।"
+            "value" : "आपका नोट गुमनाम रूप से पोस्ट होता है और पहले समीक्षा होती है। आप जहाँ हैं वह जगह सहेजी जाती है। पसंद किए गए और स्वीकृत नोट उस जगह आने वालों को एक बार सूचना के रूप में भेजे जा सकते हैं।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "নোট বেনামী এবং পর্যালোচনা করা হয়। মানচিত্রের অবস্থান আনুমানিক। বিজ্ঞপ্তি চালু করা দর্শনার্থীরা কাছে এলে দেখতে পারেন।"
+            "value" : "আপনার নোট বেনামে পোস্ট হয় এবং আগে পর্যালোচনা হয়। আপনি যেখানে আছেন সেই জায়গা সংরক্ষিত হয়। পছন্দের ও অনুমোদিত নোট সেই জায়গায় আসা দর্শকদের একবার বিজ্ঞপ্তি হিসেবে পাঠানো হতে পারে।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メモは匿名で審査されます。地図の位置は概算です。通知を有効にした訪問者は近づくと確認できます。"
+            "value" : "メモは匿名で投稿され、先に審査されます。今いる地点が保存されます。いいねされ承認されたメモは、その地点を訪れた人に一度だけ通知されることがあります。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "留言匿名发布并接受审核。地图位置为近似位置。启用通知的访客靠近时可查看。"
+            "value" : "你的笔记会匿名发布并先经过审核。会保存你所在的位置。获赞并通过审核的笔记，可能会以通知形式发送一次给来到该地点的访客。"
           }
         }
       }
     },
-    "Notu incelemeye gönder" : {
+    "Not konumu" : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Notu incelemeye gönder"
+            "value" : "Not konumu"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Submit note for review"
+            "value" : "Note location"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Notiz zur Prüfung senden"
+            "value" : "Ort der Notiz"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enviar nota a revisión"
+            "value" : "Ubicación de la nota"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Soumettre la note"
+            "value" : "Lieu de la note"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enviar nota para análise"
+            "value" : "Local da nota"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Отправить заметку на проверку"
+            "value" : "Место заметки"
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إرسال الملاحظة للمراجعة"
+            "value" : "موقع الملاحظة"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "नोट समीक्षा के लिए भेजें"
+            "value" : "नोट की लोकेशन"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "নোট পর্যালোচনায় পাঠান"
+            "value" : "নোটের অবস্থান"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メモを審査に送信"
+            "value" : "メモの場所"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提交留言审核"
+            "value" : "笔记位置"
           }
         }
       }
     },
-    "Notun incelemeye gönderildi. Onaylanınca haritada ve uygun ziyaretçi bildirimlerinde görünür." : {
+    "Not konumu haritası" : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Notun incelemeye gönderildi. Onaylanınca haritada ve uygun ziyaretçi bildirimlerinde görünür."
+            "value" : "Not konumu haritası"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your note was submitted for review. Once approved, it can appear on the map and in eligible visitor notifications."
+            "value" : "Note location map"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Notiz wurde zur Prüfung eingereicht. Nach Freigabe kann sie auf der Karte und in Besuchermitteilungen erscheinen."
+            "value" : "Karte des Notizorts"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu nota se envió a revisión. Tras aprobarse, podrá aparecer en el mapa y en avisos a visitantes."
+            "value" : "Mapa de la ubicación de la nota"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Votre note est en cours de vérification. Une fois approuvée, elle pourra apparaître sur la carte et dans les notifications aux visiteurs."
+            "value" : "Carte du lieu de la note"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sua nota foi enviada para análise. Após aprovação, pode aparecer no mapa e nos avisos a visitantes."
+            "value" : "Mapa do local da nota"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Заметка отправлена на проверку. После одобрения она может появиться на карте и в уведомлениях посетителям."
+            "value" : "Карта места заметки"
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أُرسلت ملاحظتك للمراجعة. بعد الموافقة قد تظهر على الخريطة وفي إشعارات الزوار."
+            "value" : "خريطة موقع الملاحظة"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "नोट समीक्षा के लिए भेजा गया। स्वीकृति के बाद मैप और योग्य आगंतुकों की सूचनाओं में दिख सकता है।"
+            "value" : "नोट लोकेशन का मानचित्र"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "নোট পর্যালোচনায় পাঠানো হয়েছে। অনুমোদনের পর মানচিত্রে ও উপযুক্ত দর্শনার্থীর বিজ্ঞপ্তিতে দেখা যেতে পারে।"
+            "value" : "নোটের অবস্থানের মানচিত্র"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メモを審査に送信しました。承認後、地図や対象の訪問者への通知に表示されます。"
+            "value" : "メモの場所の地図"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "留言已提交审核。批准后可显示在地图和符合条件的访客通知中。"
+            "value" : "笔记位置地图"
+          }
+        }
+      }
+    },
+    "Notun incelemeye gönderildi. Onaylanınca haritada görünür." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notun incelemeye gönderildi. Onaylanınca haritada görünür."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your note was sent for review. It appears on the map once approved."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Notiz wurde zur Prüfung gesendet. Nach der Freigabe erscheint sie auf der Karte."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu nota se envió a revisión. Aparecerá en el mapa cuando se apruebe."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta note a été envoyée pour vérification. Elle apparaîtra sur la carte une fois approuvée."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua nota foi enviada para revisão. Ela aparece no mapa depois de aprovada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметка отправлена на проверку. После одобрения она появится на карте."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أُرسلت ملاحظتك للمراجعة. ستظهر على الخريطة بعد الموافقة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपका नोट समीक्षा के लिए भेजा गया। स्वीकृत होने पर यह मानचित्र पर दिखेगा।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার নোট পর্যালোচনার জন্য পাঠানো হয়েছে। অনুমোদনের পর মানচিত্রে দেখা যাবে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを審査に送りました。承認されると地図に表示されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的笔记已提交审核。通过后会显示在地图上。"
           }
         }
       }
@@ -26417,6 +27786,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "向左旋转 %lld°，对准发布帖子时的朝向。"
+          }
+        }
+      }
+    },
+    "Pin, konumundan en fazla 50 m uzağa taşınabilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pin, konumundan en fazla 50 m uzağa taşınabilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The pin can be at most 50 m from your location."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nadel darf höchstens 50 m von deinem Standort entfernt sein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El pin puede estar como máximo a 50 m de tu ubicación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’épingle peut être au plus à 50 m de ta position."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O pino pode ficar no máximo a 50 m da sua localização."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Метка может быть не дальше 50 м от вашего местоположения."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يمكن أن يبعد الدبوس 50 م كحد أقصى عن موقعك."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पिन आपकी लोकेशन से अधिकतम 50 मी दूर हो सकता है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পিন আপনার অবস্থান থেকে সর্বোচ্চ ৫০ মি দূরে থাকতে পারে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピンは現在地から最大50 mまでしか動かせません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图钉距你的位置最多 50 米。"
+          }
+        }
+      }
+    },
+    "Pini elle ayarla" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pini elle ayarla"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust pin by hand"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nadel von Hand setzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustar el pin a mano"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajuster l’épingle à la main"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustar o pino manualmente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поставить метку вручную"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضبط الدبوس يدويًا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पिन हाथ से सेट करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হাতে পিন ঠিক করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピンを手動で調整"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手动调整图钉"
           }
         }
       }
@@ -32581,79 +34104,79 @@
         }
       }
     },
-    "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, işletme notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Yakında en fazla iki dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni ve internet gerekir. GPS birkaç metrelik giriş tespitini garanti etmez." : {
+    "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, işletme notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Yakında en fazla iki dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni ve internet gerekir. GPS birkaç metrelik giriş tespitini garanti etmez."
+            "value" : "Tek ayar tüm bildirimleri açar: beğeni, yorum, takip, konum notları, marka indirimleri ve yönetici mesajları. Mesaj kilit ekranında görünebilir. Paylaştığın son konum ve post beğenileri teklif seçiminde kullanılabilir; markalar kişisel konumunu görmez. Onaylı bir notun yakınına gelince en fazla 10 dakika hassas GPS kullanılır; ölçümler yönetici konumuna eklenmez. Arka planda Her zaman konum izni, Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar; bildirim notun çevresine girince gelir."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One setting enables all notifications: likes, comments, follows, business notes, brand discounts and administrator messages. Messages may appear on the lock screen. Your shared last location and post likes may help select offers; brands cannot see your personal location. Precise GPS runs nearby for up to two minutes; fixes are not added to the administrator location snapshot. Background alerts require Always location permission and internet. GPS cannot guarantee entry detection within a few meters."
+            "value" : "One switch turns on all notifications: likes, comments, follows, location notes, brand discounts and administrator messages. Messages may appear on the lock screen. Your last shared location and post likes may be used to choose offers; brands never see your personal location. Near an approved note, precise GPS is used for at most 10 minutes; these readings are not added to your location shared with administrators. In the background this needs Always location access, Precise Location and internet. Phone GPS is usually 5–30 m off; the notification arrives once you are within the note's area."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine Einstellung aktiviert alle Mitteilungen: Likes, Kommentare, Follows, Geschäftsnotizen, Markenrabatte und Administratornachrichten. Nachrichten können auf dem Sperrbildschirm erscheinen. Dein geteilter Standort und Post-Likes können Angebote auswählen helfen; Marken sehen deinen persönlichen Standort nicht. In der Nähe läuft präzises GPS höchstens zwei Minuten, ohne den Administratorstandort zu aktualisieren. Im Hintergrund sind Immer und Internet erforderlich. GPS garantiert keine Erkennung auf wenige Meter."
+            "value" : "Ein Schalter aktiviert alle Benachrichtigungen: Likes, Kommentare, Follows, Ortsnotizen, Markenrabatte und Nachrichten von Administratoren. Nachrichten können auf dem Sperrbildschirm erscheinen. Dein zuletzt geteilter Standort und Post-Likes können zur Auswahl von Angeboten genutzt werden; Marken sehen deinen persönlichen Standort nie. In der Nähe einer freigegebenen Notiz wird höchstens 10 Minuten lang genaues GPS genutzt; diese Messungen fließen nicht in den mit Administratoren geteilten Standort ein. Im Hintergrund sind Standortzugriff „Immer“, „Genauer Standort“ und Internet nötig. Handy-GPS weicht meist 5–30 m ab; die Benachrichtigung kommt, sobald du im Bereich der Notiz bist."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un ajuste activa todos los avisos: me gusta, comentarios, seguidores, notas de negocios, descuentos y mensajes del administrador. Los mensajes pueden aparecer en la pantalla bloqueada. La última ubicación compartida y los me gusta pueden ayudar a elegir ofertas; las marcas no ven tu ubicación personal. Cerca se usa GPS preciso hasta dos minutos sin actualizar la ubicación del administrador. En segundo plano se requiere ubicación Siempre e internet. El GPS no garantiza detectar entradas a pocos metros."
+            "value" : "Un solo ajuste activa todas las notificaciones: me gusta, comentarios, seguidores, notas de ubicación, descuentos de marcas y mensajes de administradores. Los mensajes pueden verse en la pantalla bloqueada. Tu última ubicación compartida y los me gusta pueden usarse para elegir ofertas; las marcas nunca ven tu ubicación personal. Cerca de una nota aprobada se usa GPS preciso durante 10 minutos como máximo; esas mediciones no se añaden a la ubicación compartida con administradores. En segundo plano se necesita acceso a la ubicación Siempre, Ubicación exacta e internet. El GPS del teléfono suele desviarse 5–30 m; el aviso llega cuando estás dentro del área de la nota."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un réglage active toutes les notifications : mentions J’aime, commentaires, abonnements, notes de commerces, réductions et messages des administrateurs. Les messages peuvent apparaître sur l’écran verrouillé. Votre dernière position partagée et les mentions J’aime peuvent aider à choisir des offres ; les marques ne voient pas votre position personnelle. À proximité, le GPS précis fonctionne au plus deux minutes sans actualiser la position des administrateurs. En arrière-plan, localisation Toujours et internet sont requis. Le GPS ne garantit pas une détection à quelques mètres."
+            "value" : "Un seul réglage active toutes les notifications : j’aime, commentaires, abonnements, notes de lieu, réductions de marques et messages des administrateurs. Les messages peuvent apparaître sur l’écran verrouillé. Ta dernière position partagée et tes j’aime peuvent servir à choisir des offres ; les marques ne voient jamais ta position personnelle. Près d’une note approuvée, le GPS précis est utilisé 10 minutes au maximum ; ces mesures ne sont pas ajoutées à la position partagée avec les administrateurs. En arrière-plan, il faut l’accès à la position Toujours, la Position exacte et Internet. Le GPS d’un téléphone dévie généralement de 5 à 30 m ; la notification arrive une fois dans la zone de la note."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uma opção ativa todos os avisos: curtidas, comentários, seguidores, notas de estabelecimentos, descontos e mensagens do administrador. As mensagens podem aparecer na tela bloqueada. A última localização compartilhada e as curtidas podem ajudar a escolher ofertas; marcas não veem sua localização pessoal. Perto do local, GPS preciso funciona por até dois minutos sem atualizar a localização do administrador. Em segundo plano são necessários localização Sempre e internet. O GPS não garante detectar entradas a poucos metros."
+            "value" : "Um único ajuste ativa todas as notificações: curtidas, comentários, seguidores, notas de local, descontos de marcas e mensagens de administradores. As mensagens podem aparecer na tela bloqueada. Sua última localização compartilhada e curtidas podem ser usadas para escolher ofertas; as marcas nunca veem sua localização pessoal. Perto de uma nota aprovada, o GPS preciso é usado por no máximo 10 minutos; essas medições não entram na localização compartilhada com administradores. Em segundo plano é preciso acesso à localização Sempre, Localização Precisa e internet. O GPS do celular costuma errar 5–30 m; a notificação chega quando você entra na área da nota."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Один переключатель включает все уведомления: лайки, комментарии, подписки, заметки о заведениях, скидки и сообщения администратора. Сообщения могут появиться на экране блокировки. Последняя переданная геопозиция и лайки могут помочь выбрать предложения; бренды не видят вашу личную геопозицию. Поблизости точный GPS работает до двух минут без обновления записи для администратора. В фоне нужны доступ Всегда и интернет. GPS не гарантирует определение входа с точностью до нескольких метров."
+            "value" : "Один переключатель включает все уведомления: лайки, комментарии, подписки, заметки о местах, скидки брендов и сообщения администраторов. Сообщения могут отображаться на экране блокировки. Последнее переданное местоположение и лайки могут использоваться для подбора предложений; бренды не видят ваше местоположение. Рядом с одобренной заметкой точный GPS используется не дольше 10 минут; эти данные не добавляются к местоположению для администраторов. В фоне нужны доступ к геопозиции «Всегда», «Точная геопозиция» и интернет. GPS телефона обычно ошибается на 5–30 м; уведомление приходит, когда вы в зоне заметки."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إعداد واحد يفعّل كل الإشعارات: الإعجابات والتعليقات والمتابعات وملاحظات المنشآت والخصومات ورسائل المسؤول. قد تظهر الرسائل على شاشة القفل. قد يُستخدم آخر موقع شاركته وإعجابات منشوراتك لاختيار العروض؛ العلامات لا ترى موقعك الشخصي. قرب الموقع يعمل GPS دقيق حتى دقيقتين دون تحديث موقع المسؤول. يلزم إذن الموقع دائمًا والإنترنت في الخلفية. لا يضمن GPS اكتشاف الدخول ضمن بضعة أمتار."
+            "value" : "مفتاح واحد يفعّل كل الإشعارات: الإعجابات والتعليقات والمتابعات وملاحظات المواقع وخصومات العلامات التجارية ورسائل المشرفين. قد تظهر الرسائل على شاشة القفل. قد يُستخدم آخر موقع شاركته وإعجاباتك لاختيار العروض؛ لا ترى العلامات التجارية موقعك الشخصي أبدًا. بالقرب من ملاحظة معتمدة يُستخدم GPS الدقيق لمدة 10 دقائق كحد أقصى؛ ولا تُضاف هذه القراءات إلى الموقع المُشارك مع المشرفين. في الخلفية يلزم إذن الموقع «دائمًا» والموقع الدقيق والإنترنت. عادةً ما ينحرف GPS الهاتف بين 5 و30 م؛ يصل الإشعار عندما تكون داخل نطاق الملاحظة."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "एक सेटिंग सभी सूचनाएँ चालू करती है: लाइक, टिप्पणियाँ, फ़ॉलो, व्यवसाय के नोट, ब्रांड छूट और व्यवस्थापक संदेश। संदेश लॉक स्क्रीन पर दिख सकते हैं। साझा किया अंतिम स्थान और पोस्ट के लाइक ऑफ़र चुनने में काम आ सकते हैं; ब्रांड आपका निजी स्थान नहीं देखते। पास आने पर सटीक GPS अधिकतम दो मिनट चलता है; व्यवस्थापक स्थान रिकॉर्ड नहीं बदलता। पृष्ठभूमि में हमेशा स्थान अनुमति और इंटरनेट चाहिए। GPS कुछ मीटर के भीतर प्रवेश पहचानने की गारंटी नहीं देता।"
+            "value" : "एक ही सेटिंग सभी सूचनाएँ चालू करती है: लाइक, कमेंट, फ़ॉलो, लोकेशन नोट, ब्रांड छूट और व्यवस्थापक संदेश। संदेश लॉक स्क्रीन पर दिख सकते हैं। आपकी आख़िरी साझा लोकेशन और पोस्ट लाइक ऑफ़र चुनने में इस्तेमाल हो सकते हैं; ब्रांड आपकी निजी लोकेशन कभी नहीं देखते। किसी स्वीकृत नोट के पास अधिकतम 10 मिनट सटीक GPS इस्तेमाल होता है; ये माप व्यवस्थापकों के साथ साझा लोकेशन में नहीं जुड़ते। बैकग्राउंड में हमेशा लोकेशन अनुमति, सटीक लोकेशन और इंटरनेट चाहिए। फ़ोन का GPS आमतौर पर 5–30 मी इधर-उधर होता है; नोट के दायरे में आते ही सूचना आती है।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "একটি সেটিং সব বিজ্ঞপ্তি চালু করে: লাইক, মন্তব্য, ফলো, ব্যবসার নোট, ব্র্যান্ডের ছাড় ও প্রশাসকের বার্তা। বার্তা লক স্ক্রিনে দেখা যেতে পারে। শেয়ার করা শেষ অবস্থান ও পোস্টের লাইক অফার বাছতে ব্যবহৃত হতে পারে; ব্র্যান্ড আপনার ব্যক্তিগত অবস্থান দেখে না। কাছে এলে নির্ভুল GPS সর্বোচ্চ দুই মিনিট চলে; প্রশাসকের অবস্থান রেকর্ড বদলায় না। ব্যাকগ্রাউন্ডে সর্বদা অবস্থান অনুমতি ও ইন্টারনেট দরকার। GPS কয়েক মিটারের মধ্যে প্রবেশ শনাক্তের নিশ্চয়তা দেয় না।"
+            "value" : "একটি সুইচ সব বিজ্ঞপ্তি চালু করে: লাইক, মন্তব্য, ফলো, অবস্থান নোট, ব্র্যান্ড ছাড় ও প্রশাসকের বার্তা। বার্তা লক স্ক্রিনে দেখা যেতে পারে। আপনার শেষ শেয়ার করা অবস্থান ও পোস্টের লাইক অফার বাছাইয়ে ব্যবহার হতে পারে; ব্র্যান্ড কখনো আপনার ব্যক্তিগত অবস্থান দেখে না। অনুমোদিত নোটের কাছে সর্বোচ্চ ১০ মিনিট নির্ভুল GPS ব্যবহার হয়; এই পরিমাপ প্রশাসকের সাথে শেয়ার করা অবস্থানে যোগ হয় না। ব্যাকগ্রাউন্ডে সবসময় অবস্থান অনুমতি, সঠিক অবস্থান ও ইন্টারনেট লাগে। ফোনের GPS সাধারণত ৫–৩০ মি সরে যায়; নোটের এলাকায় ঢুকলে বিজ্ঞপ্তি আসে।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1つの設定ですべての通知を有効にします：いいね、コメント、フォロー、店舗のメモ、ブランドの割引、管理者からのメッセージ。本文はロック画面に表示される場合があります。共有した最終位置といいねをオファー選択に使う場合がありますが、ブランドは個人の位置を閲覧できません。近くでは精密GPSを最長2分間使用し、管理者向け位置記録には追加しません。バックグラウンドでは位置情報の常に許可とインターネットが必要です。GPSは数メートル以内での入店検知を保証しません。"
+            "value" : "1つのスイッチですべての通知をオンにします：いいね、コメント、フォロー、場所のメモ、ブランドの割引、管理者からのメッセージ。メッセージはロック画面に表示されることがあります。最後に共有した位置情報と投稿へのいいねはオファーの選定に使われることがありますが、ブランドがあなたの位置を見ることはありません。承認済みメモの近くでは最大10分間、高精度GPSを使います。この測定値は管理者と共有する位置情報には追加されません。バックグラウンドでは位置情報の「常に許可」、正確な位置情報、インターネットが必要です。スマートフォンのGPSは通常5～30 mずれます。メモの範囲に入ると通知が届きます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一个设置开启所有通知：点赞、评论、关注、商家留言、品牌优惠和管理员消息。内容可能出现在锁屏上。共享的最后位置和帖子点赞可用于选择优惠；品牌看不到你的个人位置。靠近时最多使用两分钟精确GPS，不更新管理员的位置记录。后台需要始终允许定位和联网。GPS无法保证在几米内识别进入。"
+            "value" : "一个开关即可开启所有通知：点赞、评论、关注、位置笔记、品牌折扣和管理员消息。消息可能显示在锁屏上。你最后共享的位置和帖子点赞可能用于挑选优惠；品牌永远看不到你的个人位置。靠近已批准的笔记时，最多使用 10 分钟精确 GPS；这些测量不会加入与管理员共享的位置。后台运行需要“始终”位置权限、精确位置和网络。手机 GPS 通常有 5–30 米误差；进入笔记范围后会收到通知。"
           }
         }
       }
@@ -34964,6 +36487,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "大致显示"
+          }
+        }
+      }
+    },
+    "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approximate location is on. To leave the note in the right spot, turn on Precise Location in Settings."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungefährer Standort ist aktiv. Damit die Notiz am richtigen Ort landet, aktiviere in den Einstellungen „Genauer Standort“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La ubicación aproximada está activada. Para dejar la nota en el lugar correcto, activa Ubicación exacta en Ajustes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La position approximative est activée. Pour placer la note au bon endroit, active Position exacte dans Réglages."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A localização aproximada está ativada. Para deixar a nota no lugar certo, ative Localização Precisa em Ajustes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включена приблизительная геопозиция. Чтобы оставить заметку в нужном месте, включите «Точная геопозиция» в Настройках."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الموقع التقريبي مفعّل. لترك الملاحظة في المكان الصحيح، فعّل الموقع الدقيق من الإعدادات."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुमानित लोकेशन चालू है। नोट सही जगह छोड़ने के लिए सेटिंग्स में सटीक लोकेशन चालू करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আনুমানিক অবস্থান চালু আছে। নোট সঠিক জায়গায় রাখতে সেটিংসে সঠিক অবস্থান চালু করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おおよその位置情報がオンです。メモを正しい場所に残すには、設定で「正確な位置情報」をオンにしてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前为大致位置。要把笔记放在正确的位置，请在“设置”中打开“精确位置”。"
           }
         }
       }
@@ -45359,468 +46959,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "操作无法完成"
-          }
-        }
-      }
-    },
-    "İşletme adı" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "İşletme adı"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Business name"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name des Geschäfts"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre del negocio"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nom du commerce"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nome do estabelecimento"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Название заведения"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اسم المنشأة"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "व्यवसाय का नाम"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ব্যবসার নাম"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "店舗名"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "商家名称"
-          }
-        }
-      }
-    },
-    "İşletme bulunamadı. Adını veya bulunduğu semti yazarak tekrar ara." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "İşletme bulunamadı. Adını veya bulunduğu semti yazarak tekrar ara."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No business found. Try its name or neighborhood."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kein Geschäft gefunden. Versuche den Namen oder Stadtteil."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se encontró el negocio. Prueba su nombre o barrio."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun commerce trouvé. Essayez son nom ou son quartier."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nenhum estabelecimento encontrado. Tente o nome ou bairro."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заведение не найдено. Попробуйте название или район."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "لم تُعثر على المنشأة. جرّب اسمها أو الحي."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "व्यवसाय नहीं मिला। उसका नाम या इलाका लिखें।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ব্যবসা পাওয়া যায়নি। নাম বা এলাকার নাম লিখুন।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "店舗が見つかりません。名前や地域名で再検索してください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未找到商家。请输入名称或所在街区重试。"
-          }
-        }
-      }
-    },
-    "İşletme notu" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "İşletme notu"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Business note"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geschäftsnotiz"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nota del negocio"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Note sur le commerce"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nota do estabelecimento"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заметка о заведении"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ملاحظة عن المنشأة"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "व्यवसाय का नोट"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ব্যবসার নোট"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "店舗へのメモ"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "商家留言"
-          }
-        }
-      }
-    },
-    "İşletme notun" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "İşletme notun"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your business note"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Geschäftsnotiz"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tu nota del negocio"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Votre note sur le commerce"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sua nota do estabelecimento"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ваша заметка о заведении"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ملاحظتك عن المنشأة"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "व्यवसाय पर आपका नोट"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ব্যবসা সম্পর্কে আপনার নোট"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "店舗へのメモ"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的商家留言"
-          }
-        }
-      }
-    },
-    "İşletmeler aranamadı. Bağlantını kontrol edip tekrar dene." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "İşletmeler aranamadı. Bağlantını kontrol edip tekrar dene."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Could not search businesses. Check your connection and try again."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geschäfte konnten nicht gesucht werden. Prüfe die Verbindung und versuche es erneut."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudieron buscar negocios. Comprueba la conexión e inténtalo de nuevo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recherche impossible. Vérifiez la connexion et réessayez."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível buscar estabelecimentos. Verifique a conexão e tente novamente."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось найти заведения. Проверьте соединение и повторите."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذر البحث. تحقق من الاتصال وحاول مجددًا."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "व्यवसाय नहीं खोज सके। कनेक्शन जाँचें और फिर कोशिश करें।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ব্যবসা খোঁজা যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "店舗を検索できません。接続を確認して再試行してください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法搜索商家。请检查网络后重试。"
-          }
-        }
-      }
-    },
-    "İşletmeye not bırak" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "İşletmeye not bırak"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leave a business note"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geschäftsnotiz hinterlassen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dejar nota en un negocio"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Laisser une note sur un commerce"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deixar nota em um estabelecimento"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Оставить заметку о заведении"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اترك ملاحظة عن منشأة"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "व्यवसाय पर नोट छोड़ें"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ব্যবসায় নোট রাখুন"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "店舗にメモを残す"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "给商家留言"
           }
         }
       }

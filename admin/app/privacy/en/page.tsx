@@ -51,7 +51,7 @@ export default function PrivacyPageEn() {
       <h2>Purposes and legal bases</h2>
       <ul>
         <li>Account creation, sign-in, publishing and displaying content — performance of our contract with you.</li>
-        <li>Social notifications, business-note reminders, brand discounts and administrator messages — enabled together with your consent in Profile → Settings → Notifications; iOS notification permission is also required.</li>
+        <li>Social notifications, location-note reminders, brand discounts and administrator messages — enabled together with your consent in Profile → Settings → Notifications; iOS notification permission is also required.</li>
         <li>Moderation, protected-zone and 18+ blocks, profile photo screening, spam and abuse prevention, security — legitimate
           interests and legal obligations.</li>
         <li>Crash reports to keep the app stable — legitimate interests; you can turn them off in Profile → Settings.</li>
@@ -95,7 +95,7 @@ export default function PrivacyPageEn() {
       </p>
 
       <h2>Notifications and location reminders</h2>
-      <p>One off-by-default Notifications switch in Profile → Settings covers likes, comments, follows, business notes,
+      <p>One off-by-default Notifications switch in Profile → Settings covers likes, comments, follows, location notes,
         brand discounts and administrator messages. Its notice explains the combined scope before enabling it.
         Administrator location and technical sharing remain separate. You also need iOS notification permission;
         approved text may appear on your lock screen. Disabling Notifications stops monitoring on this device,
@@ -104,27 +104,32 @@ export default function PrivacyPageEn() {
         to assigned recipients. Your voluntarily shared recent location and approved-post performance may help select offers.
         Brands cannot read your personal location or recipient lists. Send attempts record FCM acceptance, which
         does not guarantee device delivery or reading. Custom administrator text is not automatically translated.</p>
-      <p>For nearby reminders, iOS monitors up to 20 business and assigned-offer areas synchronized while the app is open.
-        A larger GPS area wakes a precise location check lasting at most two minutes. Actual entry checks use a selected
-        diameter of 2–5 metres, with the reported uncertainty fully inside and two good fixes at least two seconds apart.
-        Background use requires Always location permission and displays the iOS location indicator. Internet and current
-        server approval are required. GPS cannot guarantee indoor or doorway entry at this scale; uncertain fixes suppress
-        reminders and may miss visits. Wake-ups can be delayed or suppressed, especially after force-quitting.</p>
+      <p>For nearby reminders, iOS monitors up to 20 areas: approved location-note clusters (at most 15) and assigned-offer
+        areas. The list is synchronized with a coarse location while the app is open and, in the background, after you move
+        about 500 m. A larger GPS area wakes a precise location check: for location notes until a reminder is sent, you
+        leave the area, or at most 10 minutes; for offer arrivals at most two minutes. Lower accuracy is used while notes
+        are still far away. Location-note entry uses a 15–100 m radius: your reported uncertainty may touch the area (at most
+        20 m tolerance; fixes worse than 35 m are ignored), at walking speed, with two agreeing fixes at least five seconds apart.
+        Offer arrivals use a 2–5 metre diameter with the uncertainty fully inside. Background use requires Always location
+        permission and Precise Location and displays the iOS location indicator. Internet and current server approval are
+        required. Phone GPS is usually 5–30 m off; it cannot guarantee doorway entry and visits may be missed. Wake-ups can
+        be delayed or suppressed, especially after force-quitting.</p>
       <p>Foreground discovery and entry/exit fixes are transient and do not update the administrator location snapshot.
         A leaving-area campaign can retain your voluntarily shared starting coordinates privately for no more than 24 hours
         or campaign expiry. We do not infer or label this area home. Revocation immediately invalidates these areas;
         account deletion removes them. The phone must synchronize and observe itself inside before an exit reminder is armed.</p>
-      <p>Anonymous community notes can be placed at an approximate business point selected from Apple Maps and are reviewed
-        before publication. This does not verify merchant identity or attendance. Authorized administrators see the business,
-        note and author association privately and can correct, close, pause or mark a business moved. Changed business details
-        invalidate older notes; restoring them requires review. New businesses/notes cannot trigger before the phone synchronizes.
-        Reminders are limited to one per business per day and three business-note reminders total per day; campaigns share
-        a separate three-per-day promotional limit and at most one reminder per assigned campaign.</p>
+      <p>You can leave an anonymous location note where you are; it is reviewed before publication. The note is saved at the
+        position your phone measured, or at a pin you place by hand within 50 m of it; the measured accuracy and the pin
+        distance are stored too. Attendance is not verified. Authorized administrators see the note and author association
+        privately. Notes are ordered by likes. A note can be sent as a reminder only after it collects enough likes and an
+        administrator approves it; each note reaches each person at most once. Notes do not expire on their own; administrators
+        can set an end date or remove a note. Campaigns share a separate three-per-day promotional limit and at most one
+        reminder per assigned campaign.</p>
 
       <h2>Retention</h2>
       <p>Targeted offer assignments become inaccessible at campaign expiry and enter automatic deletion. Notification attempt
-        and campaign-view receipts are kept for 30 days. Business-note deduplication receipts are kept for 2 or 31 days,
-        depending on purpose; daily quota records for 2 days. Account deletion removes these personal records. Deleting
+        and campaign-view receipts are kept for 30 days. A record that a location note was sent to you is kept until you
+        delete your account, so the same note is never sent twice. Account deletion removes these personal records. Deleting
         a note author&apos;s account also removes retained note text in other recipients&apos; activity records.</p>
       <ul>
         <li>Account data and content: until you delete your account.</li>

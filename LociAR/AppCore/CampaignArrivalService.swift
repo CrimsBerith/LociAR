@@ -103,6 +103,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     @ObservationIgnored private var nextAttempt: [UUID: Date] = [:]
     @ObservationIgnored private var failures: [UUID: Int] = [:]
     @ObservationIgnored private var lowPower = false
+    @ObservationIgnored private var preciseWindowLong = false
     @ObservationIgnored private var monitoringSignificantChanges = false
     @ObservationIgnored private var backgroundSession: CLBackgroundActivitySession?
     @ObservationIgnored private var preciseWindow: Task<Void, Never>?
@@ -351,7 +352,13 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     /// Runs until every target is notified or left, or for at most 10 minutes, so a slow walker
     /// who woke the app 150 m away still reaches the note inside the window.
     private func startPreciseWindow() {
+        // Campaign arrivals keep their two-minute window; a location-note target extends it to 10 minutes.
+        let long = precisionTargets.contains { regions[$0]?.isPlaceNote == true }
+        if preciseWindow != nil, long, !preciseWindowLong {
+            preciseWindow?.cancel(); preciseWindow = nil
+        }
         guard enabled, preciseWindow == nil else { return }
+        preciseWindowLong = long
         setLowPower(false)
         manager.allowsBackgroundLocationUpdates = manager.authorizationStatus == .authorizedAlways
         if !foreground, manager.authorizationStatus == .authorizedAlways, backgroundSession == nil {
@@ -359,7 +366,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         }
         manager.startUpdatingLocation()
         preciseWindow = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(LocationNotePolicy.maxPreciseWindow)) } catch { return }
+            do { try await Task.sleep(for: .seconds(long ? LocationNotePolicy.maxPreciseWindow : 120)) } catch { return }
             self?.stopPreciseWindow()
         }
     }
@@ -433,9 +440,9 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     /// Location notes carry no venue name: the title counts new notes and the body leads with likes.
     private static func placeNoteText(_ result: ArrivalResponse) -> (title: String, body: String)? {
         guard let caption = result.body else { return nil }
-        let total = result.total ?? 1, likes = result.likes ?? 0
-        let title = total > 1 ? String(localized: "Bu konumda \(total) yeni not var") : String(localized: "Bu konumda bir not var")
-        return (title, likes > 0 ? String(localized: "En faydalı (\(likes) beğeni): \(caption)") : caption)
+        let newCount = result.total ?? 1, likeCount = result.likes ?? 0
+        let title = newCount > 1 ? String(localized: "Bu konumda \(newCount) yeni not var") : String(localized: "Bu konumda bir not var")
+        return (title, likeCount > 0 ? String(localized: "En faydalı (\(likeCount) beğeni): \(caption)") : caption)
     }
 
     private func process(_ location: CLLocation) async {

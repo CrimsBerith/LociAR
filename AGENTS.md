@@ -37,6 +37,7 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - Mobile users cannot publish in protected zones; authorized admins may use a separately permissioned, reasoned zone exception (owner decision, 5 Oct 2026). 18+ content remains hard-blocked for everyone.
 - Admin delegated posts/comments identify the selected user publicly and record the acting admin separately in audit. New managed content identities have disabled, unverified Auth logins and no admin role. See `docs/release/ADMIN_CONTENT_OPERATIONS.md`.
 - Pin uses the center reticle against detected plane geometry. Approximate placement is explicit.
+- **Location notes** (owner decision, 12 Oct 2026): written at the author's measured GPS position (no business/POI selection), ordered by likes, never self-expiring (admin end date only). Notifications only for admin-approved notes after the like threshold, each note once per person, entry rule `distance ≤ radius + min(accuracy, 20 m)` with 15–100 m radii. See `docs/LOCATION_NOTES.md`; keep `placeNoteRules.ts` and `LocationNotePolicy.swift` in sync.
 - AR re-localization uses **Google ARCore on top of the ARKit session** (SPM `arcore-ios-sdk`): Cloud Anchors
   (365-day TTL) first, then Geospatial (VPS), then the legacy ARKit world map, then aim-guided reveal.
   Authorization is keyless via the `getArcoreToken` callable; never ship an ARCore API key. Anchors are deleted
