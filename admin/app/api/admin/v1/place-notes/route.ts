@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const permission = action === 'remove' || action === 'settings' ? 'posts.moderate' : permissionForPlaceNoteAction(action);
     if (!permission) return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     const admin = await requireAdminApi(permission); if (!admin.ok) return unauthorized(admin);
-    await enforceRateLimit(admin.context.user.id, 'place_note_ops', 30, 60);
+    const limited = await enforceRateLimit(admin.context.user.id, 'place_note_ops', 30, 60); if (limited) return limited;
     const reason = requiredString(body.reason, 'reason', 8, 1000), key = idempotencyKey(request), actor = admin.context.user.id;
     const result = action === 'settings' ? await setPlaceNoteSettings(body, actor, reason, key)
       : action === 'remove' ? await moderatePost(uuid(body.id, 'id').toLowerCase(), 'soft_delete', actor, reason, key)

@@ -642,5 +642,7 @@
  "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.": "ফোনটি চোখের উচ্চতায় ধরে কাছের ভবন ও সাইনবোর্ডের দিকে ধীরে ধীরে ঘোরান। বাইরে সবচেয়ে ভালো কাজ করে; ভেতরে কাজ নাও করতে পারে।",
  "Bu konumu kullan": "এই অবস্থান ব্যবহার করুন",
  "Kamerayla aç": "ক্যামেরা দিয়ে খুলুন",
- "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "অবস্থানভিত্তিক বিজ্ঞপ্তির জন্য iOS সেটিংসে ব্যাকগ্রাউন্ড অ্যাপ রিফ্রেশ চালু করো।"
+ "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "অবস্থানভিত্তিক বিজ্ঞপ্তির জন্য iOS সেটিংসে ব্যাকগ্রাউন্ড অ্যাপ রিফ্রেশ চালু করো।",
+ "Konum bildirimleri hazır": "অবস্থানের বিজ্ঞপ্তি প্রস্তুত",
+ "Konum bildirimleri için ayarları kontrol et": "অবস্থানের বিজ্ঞপ্তির সেটিংস দেখুন"
 }

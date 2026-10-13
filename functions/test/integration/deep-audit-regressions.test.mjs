@@ -1,6 +1,7 @@
 import test,{after} from 'node:test';import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';import {createRequire} from 'node:module';
 import {adminDb,closeClients,newUser,postBody} from './_harness.mjs';
 import {onCommentCreated,onProfileUpdated} from '../../lib/triggers.js';import {claimAnchorDeletion,anchorBindError} from '../../lib/anchors.js';import {readPublicContent} from '../../lib/publicContent.js';
+import {encodeGeohash} from '../../lib/geo.js';
 const require=createRequire(import.meta.url),core=require('../../lib/core.js'),avatar=require('../../lib/avatar.js'),Vision=require('@google-cloud/vision').ImageAnnotatorClient;
 after(closeClients);
 const request=(uid,data)=>({auth:{uid,token:{email_verified:true,firebase:{sign_in_provider:'password'}}},data:{userId:core.luidForUid(uid),...data}});
@@ -39,6 +40,25 @@ test('nearby search reaches valid posts beyond 200 raw rows and covers neighbors
  const result=await readPublicContent.run(request(viewer.uid,{mode:'nearby',latitude:5,longitude:20,radiusMeters:120}));assert.ok(result.posts.some(p=>p.id===close.id));
  await close.update({lat:89.9999,lng:90});const pole=await readPublicContent.run(request(viewer.uid,{mode:'nearby',latitude:89.9999,longitude:0,radiusMeters:120}));assert.ok(pole.posts.some(p=>p.id===close.id));
  await close.delete();for(const ref of refs)await ref.delete();
+});
+
+test('indexed nearby queries cover the date line and still enforce owner, block and adult fences',async()=>{
+ const viewer=await newUser(),author=await newUser(),blocked=await newUser(),refs=[];
+ const marker=adminDb.collection('system').doc('geo_queries'),previous=(await marker.get()).data();
+ const add=async(lat,lng,extra={})=>{const ref=adminDb.collection('posts').doc(randomUUID());refs.push(ref);await ref.set({creator_id:author.luid,status:'active',visibility:'public',age_rating:'all',lat,lng,geohash:encodeGeohash(lat,lng,10),created_at:core.Timestamp.now(),...extra});return ref;};
+ try{
+  await marker.set({geohash_index_version:1});
+  await adminDb.collection('user_blocks').doc(`${blocked.luid}_${viewer.luid}`).set({blocker_id:blocked.luid,blocked_id:viewer.luid});
+  const visible=await add(3,-179.9998),own=await add(3,179.9998,{creator_id:viewer.luid,status:'pending_review',visibility:'private'});
+  const hidden=await add(3,179.9998,{creator_id:blocked.luid}),adult=await add(3,179.9998,{age_rating:'18_plus'}),far=await add(3,20);
+  const response=await readPublicContent.run(request(viewer.uid,{mode:'nearby',latitude:3,longitude:179.9999,radiusMeters:120}));
+  const ids=new Set(response.posts.map(p=>p.id));assert.ok(ids.has(visible.id));assert.ok(ids.has(own.id));
+  for(const ref of [hidden,adult,far])assert.equal(ids.has(ref.id),false);
+  await adminDb.collection('profiles').doc(author.luid).update({suspended:true});
+  const suspended=await readPublicContent.run(request(viewer.uid,{mode:'nearby',latitude:3,longitude:179.9999,radiusMeters:120}));assert.equal(suspended.posts.some(p=>p.id===visible.id),false);
+  await own.update({lat:89.9999,lng:90,geohash:encodeGeohash(89.9999,90,10)});
+  const pole=await readPublicContent.run(request(viewer.uid,{mode:'nearby',latitude:89.9999,longitude:0,radiusMeters:120}));assert.ok(pole.posts.some(p=>p.id===own.id));
+ }finally{if(previous)await marker.set(previous);else await marker.delete();for(const ref of refs)await ref.delete();}
 });
 test('older avatar cleanup preserves the newer winner and completed screening returns one stable receipt',async()=>{
  const originalBucket=core.bucket,originalVision=Vision.prototype.safeSearchDetection,objects=new Set();let heldPath=null,reached,release;

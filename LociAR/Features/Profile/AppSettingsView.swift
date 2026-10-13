@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 import UserNotifications
 
 /// Profile → Settings: notification permission and the crash-report opt-out promised in the privacy policy.
@@ -26,6 +27,12 @@ struct AppSettingsView: View {
                     } }
                 ))
                 .accessibilityIdentifier("settings-notifications")
+                if sharing.notificationsEnabled && sharing.placeNotesEnabled {
+                    Label(locationNotificationsReady ? String(localized: "Konum bildirimleri hazır") : String(localized: "Konum bildirimleri için ayarları kontrol et"),
+                          systemImage: locationNotificationsReady ? "checkmark.circle.fill" : "exclamationmark.circle")
+                        .foregroundStyle(locationNotificationsReady ? Color.green : Color.orange)
+                        .accessibilityIdentifier("settings-location-notification-status")
+                }
                 Text("Beğeni, yorum, takip, konum notu ve yönetici mesajı bildirimlerini açar. Mesaj kilit ekranında görünebilir. Her zaman konum izniyle uygulama kapalıyken de beğenilen bir notun bulunduğu yere gelince haber verir; yalnızca not alanları izlenir, alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır ve konum geçmişin saklanmaz. Ölçümler yönetici konumuna eklenmez. Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.")
                     .font(.caption).foregroundStyle(.secondary)
                 // Marketing has its own opt-in (App Review 4.5.4), only available with Notifications on.
@@ -125,7 +132,14 @@ struct AppSettingsView: View {
         }
     }
 
+    private var locationNotificationsReady: Bool {
+        [.authorized, .provisional, .ephemeral].contains(notificationStatus)
+            && CLLocationManager.locationServicesEnabled() && arrivals.isSupported && !arrivals.needsAlwaysPermission
+            && !arrivals.needsPreciseLocation && !arrivals.needsBackgroundRefresh
+    }
+
     private func refresh() async {
+        arrivals.refreshPermissions()
         await NotificationService.shared.refreshAuthorization()
         notificationStatus = NotificationService.shared.authorizationStatus
     }

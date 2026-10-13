@@ -3,6 +3,20 @@ import XCTest
 @testable import LociAR
 
 final class LocationNoteTests: XCTestCase {
+    func testInterruptedNoteDeliveryRetainsItsIDWithoutStoringContentOrLocation() throws {
+        let region = UUID(), now = Date()
+        let attempt = PlaceNoteDeliveryAttempt(deliveryID: UUID(), createdAt: now)
+        let data = try JSONEncoder().encode([region: attempt])
+        let restored = try JSONDecoder().decode([UUID: PlaceNoteDeliveryAttempt].self, from: data)
+        XCTAssertEqual(restored[region], attempt)
+        XCTAssertNil(restored[region]?.queuedActivityID)
+        XCTAssertTrue(attempt.isUsable(at: now.addingTimeInterval(60)))
+        XCTAssertFalse(attempt.isUsable(at: now.addingTimeInterval(86_400)))
+        XCTAssertFalse(attempt.isUsable(at: now.addingTimeInterval(-11)))
+        let json = String(decoding: data, as: UTF8.self)
+        for privateField in ["caption", "body", "latitude", "longitude", "location"] { XCTAssertFalse(json.contains(privateField)) }
+    }
+
     func testNoteEntryWaitsTenSecondsOfContinuousFixes() {
         var confirmation = LocationNoteEntryConfirmation()
         let start = Date(timeIntervalSince1970: 1_000)

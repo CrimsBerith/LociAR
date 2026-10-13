@@ -36,7 +36,7 @@ Each person receives each note at most once (`place_note_notification_receipts/p
 
 ### Entry detection
 
-1. `readPlaceNoteRegions` returns up to 15 wake regions: approved notes within 3 km that this user has not received, grouped within 25 m around the most-liked note. Seen clusters do not use one of iOS's 20 monitored regions. A coarse fix (≤ 1 km, ≤ 4 min old) is enough, so the list also refreshes in the background.
+1. `readPlaceNoteRegions` returns up to 15 wake regions: approved notes within 3 km that this user has not received, grouped within 25 m around the most-liked note. Completed clusters do not use one of iOS's 20 monitored regions; a reserved alert pending local queueing remains recoverable. A coarse fix (≤ 1 km, ≤ 5 min old) is enough, so the list also refreshes in the background.
 2. Significant-location-change monitoring (~500 m) wakes the app to refresh regions while it is in the background.
 3. iOS wakes the app when it enters a cluster's 300–400 m circle, ahead of the note so GPS can settle (entry and exit are both monitored; the state is requested on registration, so a user already inside is detected). This wake circle does not expand the note's 15–100 m notification radius.
 4. A precise window runs until a notification is sent, the user leaves the wake circle, or 10 minutes pass. Far from every note it uses 10 m accuracy and a 10 m filter; within 40 m of a note circle it switches to best accuracy. In the background it keeps a `CLBackgroundActivitySession`.
@@ -44,6 +44,14 @@ Each person receives each note at most once (`place_note_notification_receipts/p
 6. The native client requires 10 s of agreeing fixes inside the note circle. Leaving it, receiving an invalid fix or a gap longer than 5 s restarts confirmation. Repeated/older fixes never advance the timer. Only timing is retained on the device; no location history is uploaded.
 7. `recordPlaceNoteVisit` re-checks the fix, the confirmation window (10 s–10 min), consent, kill switch, approval, moderation, blocks, reports and the author's account, then picks the most-liked unseen approved note the visitor is inside. It writes the receipt and an anonymous activity in one transaction. Network failures retry after 2, 5 and 10 s while the user is still inside; a stale or unconfirmed server fix requests a fresh measurement and allows another attempt after 2 s.
 8. The local notification title counts new notes at the spot; the body leads with the most-liked note and its likes. Notifications for one cluster share a thread.
+
+### Interrupted delivery recovery
+
+The current iOS client persists a random `deliveryId` **before** calling `recordPlaceNoteVisit`. Its account-scoped, 24-hour journal contains only random IDs and successful local queue IDs, never note text or GPS fixes. A retry uses the same ID, so a lost response returns the same note rather than consuming the next one. Server replay rebuilds the response from current content and rechecks consent, moderation, author access, blocks, reports, freshness and distance; a locked dense spot remains text-free.
+
+Once `UNUserNotificationCenter.add` succeeds, the client persists that queue result and sends `action: 'acknowledge'` with the same ID. A failed acknowledgement is retried on a later sync. Existing pending/delivered notification identifiers suppress requeueing after an interrupted local write. GPS stops only after queueing succeeds. **Queued does not mean displayed or read**: iOS notification settings, Focus and execution constraints still apply. Legacy clients without a delivery ID keep their original one-attempt behavior. Different IDs never consume a reserved note twice, including races between devices.
+
+`place_note_visit` server logs contain only outcome, reason and elapsed milliseconds; `nearby_query` logs contain strategy, candidate count and duration. No IDs, note text or coordinates are added to these operational records. Use these measurements for latency tuning before increasing minimum instance counts or changing GPS windows.
 
 Phone GPS is usually 5–30 m off, and worse indoors. Use 15–25 m radii outdoors, 30–60 m indoors and up to 100 m for large venues. The rule cannot prove that someone entered a door. iOS may delay or suppress wake-ups, especially after force-quit.
 

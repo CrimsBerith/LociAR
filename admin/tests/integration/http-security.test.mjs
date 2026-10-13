@@ -186,6 +186,18 @@ test('rate-limited HTTP actions return 429 with no post mutation', async () => {
   assert.equal((await ref.get()).get('status'), 'pending_review');
 });
 
+test('rate-limited place-note HTTP actions cannot mutate or create an audit receipt', async () => {
+  const admin = await identity('super_admin'); const { cookie } = await session(admin);
+  const id = randomUUID(), key = randomUUID(), ref = db.collection('posts').doc(id);
+  await ref.set({ status: 'active', note_kind: 'location', push_state: 'none', notify_radius_m: 20, age_rating: 'all', deleted_at: null });
+  const before = (await ref.get()).data(), bucket = Math.floor(Date.now() / 60_000);
+  for (const window of [bucket, bucket + 1]) await db.collection('admin_rate_limits').doc(`${admin.uid}_place_note_ops_${window}`).set({ count: 30 });
+  const response = await post('/api/admin/v1/place-notes', { action: 'remove', id, reason }, cookie, { 'idempotency-key': key });
+  assert.equal(response.status, 429); assert.equal(response.headers.get('retry-after'), '60');
+  assert.deepEqual((await ref.get()).data(), before);
+  assert.equal((await db.collection('admin_audit_log').doc(key).get()).exists, false);
+});
+
 async function regularInvite(user, roleKey = null) {
   const ref = db.collection('admin_user_invites').doc(randomUUID());
   await ref.set({ email: `ci-${user.uid}@example.test`, invited_user_id: user.uid, invited_by: randomUUID(),

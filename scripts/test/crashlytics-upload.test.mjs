@@ -37,6 +37,12 @@ test('failed upload warns without discarding the archive',t=>{
   const {env}=fixture(t,'exit 7');
   assert.match(run(env).stdout,/dSYM upload failed/);
 });
+test('an explicit cloned package directory works outside the archive DerivedData folder',t=>{
+  const {root,env}=fixture(t,'printf "%s\\n" "$@" > "$DWARF_DSYM_FOLDER_PATH/args.txt"');
+  const result=run({...env,BUILD_DIR:join(root,'OtherDerivedData/Build/Products'),LOCIAR_SOURCE_PACKAGES_DIR:join(root,'SourcePackages')});
+  assert.equal(result.stdout,'');
+  assert.deepEqual(readFileSync(join(root,'args.txt'),'utf8').trim().split('\n'),['-ai','synthetic-app-id','-p','ios',join(root,'LociAR.app.dSYM')]);
+});
 test('stalled uploader is stopped within the deadline and termination grace',t=>{
   const {env}=fixture(t,'exec sleep 30');
   const started=Date.now();

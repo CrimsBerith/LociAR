@@ -1,7 +1,8 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { db, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, Timestamp } from './core';
 import { isPublicActive } from './counters';
-import { distanceMeters } from './geo';
+import { distanceMeters, geohashCoverPrefixes } from './geo';
+import { info } from 'firebase-functions/logger';
 import { requireActiveAccount } from './profileGuard';
 import { createHash } from 'node:crypto';
 import { rankForDiscover } from './discoverRanking';
@@ -79,17 +80,32 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
   return{profiles:page.docs.filter(d=>visible.has(d.id)).map(d=>({id:d.id,handle:String(d.get('handle')),avatar_url:d.get('avatar_url')??null,avatar_preset:d.get('avatar_preset')??null}))};
  }
  if(mode==='nearby'){
+  const started=Date.now();
   const lat=body.latitude,lng=body.longitude,radius=body.radiusMeters;
   if(typeof lat!=='number'||!Number.isFinite(lat)||Math.abs(lat)>90||typeof lng!=='number'||!Number.isFinite(lng)||Math.abs(lng)>180||typeof radius!=='number'||!Number.isFinite(radius)||radius<1||radius>20_000_000)throw new HttpsError('invalid-argument','Invalid search area');
-  const delta=radius/6_371_008.8*180/Math.PI,base=db.collection('posts').where('lat','>=',Math.max(-90,lat-delta)).where('lat','<=',Math.min(90,lat+delta)).orderBy('lat').orderBy('__name__');
-  let last:FirebaseFirestore.QueryDocumentSnapshot|undefined,complete=false;const matches:FirebaseFirestore.QueryDocumentSnapshot[]=[];
-  for(let i=0;i<40;i++){
-   const page=await(last?base.startAfter(last):base).limit(250).get();const candidates=page.docs.filter(d=>(isPublicActive(d.data())||d.get('creator_id')===caller.luid&&['active','pending_review','flagged'].includes(d.get('status'))&&!d.get('deleted_at')&&d.get('age_rating')!=='18_plus')&&distanceMeters(lat,lng,Number(d.get('lat')),Number(d.get('lng')))<=radius);
-   const authors=await visibleAuthors(candidates.map(d=>d.get('creator_id')),blocked);matches.push(...candidates.filter(d=>authors.has(d.get('creator_id'))));if(page.size<250){complete=true;break;}last=page.docs.at(-1);
+  // Turned on only after every legacy coordinate has been backfilled and verified.
+  // Polar/whole-Earth searches retain the complete latitude-range fallback.
+  const migrated=(await db.collection('system').doc('geo_queries').get()).get('geohash_index_version')===1;
+  const prefixes=migrated?geohashCoverPrefixes(lat,lng,radius):[];
+  const delta=radius/6_371_008.8*180/Math.PI;
+  const queries=prefixes.length?prefixes.map(prefix=>db.collection('posts').orderBy('geohash').orderBy('__name__').startAt(prefix).endAt(prefix+'\uf8ff'))
+   :[db.collection('posts').where('lat','>=',Math.max(-90,lat-delta)).where('lat','<=',Math.min(90,lat+delta)).orderBy('lat').orderBy('__name__')];
+  let scanned=0;const candidates=new Map<string,FirebaseFirestore.QueryDocumentSnapshot>();
+  for(const base of queries){
+   let last:FirebaseFirestore.QueryDocumentSnapshot|undefined,complete=false;
+   while(scanned<10_000){
+    const limit=Math.min(250,10_000-scanned),page=await(last?base.startAfter(last):base).limit(limit).get();scanned+=page.size;
+    for(const d of page.docs) if((isPublicActive(d.data())||d.get('creator_id')===caller.luid&&['active','pending_review','flagged'].includes(d.get('status'))&&!d.get('deleted_at')&&d.get('age_rating')!=='18_plus')&&distanceMeters(lat,lng,Number(d.get('lat')),Number(d.get('lng')))<=radius)candidates.set(d.id,d);
+    if(page.size<limit){complete=true;break;}last=page.docs.at(-1);
+   }
+   if(!complete){info('nearby_query',{strategy:prefixes.length?'geohash':'latitude',scanned,elapsedMs:Date.now()-started,complete:false});throw new HttpsError('resource-exhausted','Search area is too dense; reduce the radius');}
   }
-  if(!complete)throw new HttpsError('resource-exhausted','Search area is too dense; reduce the radius');
+  const matches:FirebaseFirestore.QueryDocumentSnapshot[]=[];
+  const found=[...candidates.values()];
+  for(let i=0;i<found.length;i+=100){const batch=found.slice(i,i+100),authors=await visibleAuthors(batch.map(d=>d.get('creator_id')),blocked);matches.push(...batch.filter(d=>authors.has(d.get('creator_id'))));}
   matches.sort((a,b)=>Number(b.get('engagement_score')??0)-Number(a.get('engagement_score')??0)||distanceMeters(lat,lng,a.get('lat'),a.get('lng'))-distanceMeters(lat,lng,b.get('lat'),b.get('lng'))||a.id.localeCompare(b.id));
   const offers=await ownCampaignOffers(caller.luid,lat,lng,radius);
+  info('nearby_query',{strategy:prefixes.length?'geohash':'latitude',scanned,matches:matches.length,elapsedMs:Date.now()-started,complete:true});
   return{posts:[...await rows(matches.slice(0,100),caller.luid),...offers.map(campaignRow)],next:null,total:matches.length+offers.length};
  }
  if(!['discover','creator'].includes(mode))throw new HttpsError('invalid-argument','Invalid content mode');const creator=mode==='creator'?String(body.creatorId??''):null;

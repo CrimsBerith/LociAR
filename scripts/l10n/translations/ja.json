@@ -642,5 +642,7 @@
  "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.": "スマートフォンを目の高さに持ち、近くの建物や看板に向けてゆっくり回してください。屋外で最も効果的で、屋内では使えない場合があります。",
  "Bu konumu kullan": "この位置を使う",
  "Kamerayla aç": "カメラで開く",
- "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "位置情報の通知を受け取るには、iOSの設定でAppのバックグラウンド更新をオンにしてください。"
+ "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "位置情報の通知を受け取るには、iOSの設定でAppのバックグラウンド更新をオンにしてください。",
+ "Konum bildirimleri hazır": "位置情報の通知は準備完了です",
+ "Konum bildirimleri için ayarları kontrol et": "位置情報の通知設定を確認してください"
 }

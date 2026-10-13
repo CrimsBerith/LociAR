@@ -19,7 +19,8 @@
     {
       "backendId": "lociar-admin",
       "rootDir": "admin",
-      "ignore": ["node_modules", ".git", ".next", "artifacts", "e2e", "tests", "*.local", ".env*"]
+      "ignore": ["node_modules", ".git", ".next", "artifacts", "e2e", "tests", "*.local", ".env*"],
+      "alwaysDeployFromSource": true
     }
   ],
   "emulators": {

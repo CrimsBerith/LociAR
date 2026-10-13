@@ -69,6 +69,7 @@ EXCLUDE = {
     'Publish paused post=%@', 'Publish queued post=%@ reason=offline', 'Sync committed operation=%@ id=%@', 'Sync paused id=%@',
     'apns_registration_failed: %@', 'ensure_profile_failed: %@', 'push_authorization_failed: %@', 'push_register_failed: %@',
     'push_unregister_failed: %@', 'registerCloudAnchor rejected: %@', 'world_map_save_failed: %@',
+    'Visit request completed in %lld ms; admitted: %@', 'Local notification queue completed in %lld ms',
     ' : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._', 'AIza', 'YOUR-', 'begin ', 'LZM1',
     'GeospatialAccuracy', 'CFBundleShortVersionString', 'CFBundleVersion', 'LociARStagedMedia', 'LociARWorldMaps', 'RCTAsyncLocalStorage', 'RCTAsyncLocalStorage_V1',
     'RNCAsyncLocalStorage_V1', 'Legacy dead-letter', '^[a-z0-9_.]{3,30}$', 'cannot publish', 'protected zone', 'verified Apple',

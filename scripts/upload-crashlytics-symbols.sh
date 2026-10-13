@@ -5,7 +5,8 @@ if [ -z "${LOCIAR_FIREBASE_GOOGLE_APP_ID:-}" ]; then
   echo "warning: LOCIAR_FIREBASE_GOOGLE_APP_ID is empty; dSYMs remain in the archive."
   exit 0
 fi
-symbol_uploader="${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols"
+symbol_packages="${LOCIAR_SOURCE_PACKAGES_DIR:-${BUILD_DIR%/Build/*}/SourcePackages}"
+symbol_uploader="${symbol_packages}/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols"
 if [ ! -x "${symbol_uploader}" ]; then
   echo "warning: Crashlytics upload-symbols not found; dSYMs remain in the archive."
   exit 0

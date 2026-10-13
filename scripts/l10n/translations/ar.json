@@ -642,5 +642,7 @@
  "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.": "ارفع الهاتف إلى مستوى العين وأدره ببطء نحو المباني واللافتات القريبة. يعمل بأفضل شكل في الهواء الطلق، وقد لا يعمل في الأماكن المغلقة.",
  "Bu konumu kullan": "استخدم هذا الموقع",
  "Kamerayla aç": "افتح بالكاميرا",
- "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "فعّل تحديث التطبيقات في الخلفية في إعدادات iOS لتلقي إشعارات الموقع."
+ "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "فعّل تحديث التطبيقات في الخلفية في إعدادات iOS لتلقي إشعارات الموقع.",
+ "Konum bildirimleri hazır": "إشعارات الموقع جاهزة",
+ "Konum bildirimleri için ayarları kontrol et": "تحقق من إعدادات إشعارات الموقع"
 }

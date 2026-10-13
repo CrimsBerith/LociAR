@@ -1,5 +1,7 @@
 # Konum notu ve anonimlik düzeltmeleri — 13 Ekim 2026
 
+**Sonraki aday:** [teslim kurtarma, admin 429 ve sorgu optimizasyonları](LOCATION_DELIVERY_OPTIMIZATIONS_2026-10-13.md). Aşağıdaki test/arşiv sayıları ilk adayın tarihsel kanıtıdır; güncel doğrulama bu bağlantıdadır.
+
 12 Ekim denetiminin devamı: [ilk rapor](LOCATION_ANONYMITY_AUDIT_2026-10-12.md). Dal `codex/fix-anonymous-location-audit`. **Kod ve canlı servis işleri tamamlandı.** Kullanıcı fiziksel iPhone testini sonraya bıraktı. Yeni GPS/bildirim davranışı için güncellenmiş iOS yapısının telefona kurulması gerekir; mevcut telefona veya App Store/TestFlight'a bu çalışmada kurulum/yayın yapılmadı.
 
 ## Mağaza senaryosu

@@ -70,6 +70,47 @@ test('location notes publish at once, anonymously, at the measured position with
   await zone.delete();
 });
 
+test('interrupted local delivery replays the same note until acknowledged without consuming another note', async () => {
+  const f = await fixture(); await approve(f.n);
+  const extra = await note(f.author, north(f.point, 5), { text: 'Another useful note.' }); await approve(extra);
+  const deliveryId = randomUUID(), payload = () => ({ deliveryId, location: fix(f.point.lat, f.point.lng), confirmationStartedAt: Date.now() - 11_000 });
+  const first = await f.visitor.call('recordPlaceNoteVisit', payload());
+  const replay = await f.visitor.call('recordPlaceNoteVisit', payload());
+  assert.equal(first.notify, true); assert.equal(replay.postId, first.postId); assert.equal(replay.activityId, first.activityId);
+  assert.equal(replay.deliveryId, deliveryId); assert.equal(replay.body, first.body);
+  assert.equal((await f.visitor.call('readPlaceNoteRegions', { location: fix(f.point.lat, f.point.lng) })).regions.length > 0, true);
+  const requestReceipt = adminDb.collection('place_note_notification_receipts').doc(`delivery_${f.visitor.luid}_${deliveryId}`);
+  assert.equal((await requestReceipt.get()).get('delivery_state'), 'pending');
+  const ack = { action: 'acknowledge', deliveryId };
+  for (let i = 0; i < 2; i++) assert.equal((await f.visitor.call('recordPlaceNoteVisit', ack)).reason, 'already_queued');
+  assert.equal((await f.visitor.call('recordPlaceNoteVisit', payload())).reason, 'already_queued');
+  assert.equal((await requestReceipt.get()).get('delivery_state'), 'queued');
+  assert.notEqual((await f.visit()).postId, first.postId);
+  await optIn(f.author);
+  assert.equal((await expectFailure(f.author.call('recordPlaceNoteVisit', ack))).code, 'functions/not-found');
+});
+
+test('delivery retries recheck consent, moderation and distance and never retain private payloads', async () => {
+  const f = await fixture(); await approve(f.n);
+  const deliveryId = randomUUID(), payload = () => ({ deliveryId, location: fix(f.point.lat, f.point.lng), confirmationStartedAt: Date.now() - 11_000 });
+  const [first, second] = await Promise.all([f.visitor.call('recordPlaceNoteVisit', payload()), f.visitor.call('recordPlaceNoteVisit', payload())]);
+  assert.equal(first.activityId, second.activityId);
+  await adminDb.collection('user_data_preferences').doc(f.visitor.luid).update({ place_notes: false });
+  assert.equal((await f.visitor.call('recordPlaceNoteVisit', payload())).reason, 'disabled');
+  await adminDb.collection('user_data_preferences').doc(f.visitor.luid).update({ place_notes: true });
+  await f.n.ref.update({ status: 'removed' }); assert.equal((await f.visitor.call('recordPlaceNoteVisit', payload())).reason, 'delivery_unavailable');
+  await f.n.ref.update({ status: 'active' });
+  const block = adminDb.collection('anonymous_blocks').doc(`${f.visitor.luid}_${f.author.luid}`);
+  await block.set({ blocker_id: f.visitor.luid, blocked_id: f.author.luid });
+  assert.equal((await f.visitor.call('recordPlaceNoteVisit', payload())).reason, 'delivery_unavailable'); await block.delete();
+  const far = north(f.point, 100);
+  assert.equal((await f.visitor.call('recordPlaceNoteVisit', { ...payload(), location: fix(far.lat, far.lng) })).reason, 'delivery_unavailable');
+  const stored = (await adminDb.collection('place_note_notification_receipts').doc(`delivery_${f.visitor.luid}_${deliveryId}`).get()).data();
+  for (const field of ['body', 'caption', 'lat', 'lng', 'location', 'creator_id']) assert.equal(stored[field], undefined);
+  await f.author.call('deleteAccount');
+  assert.equal((await adminDb.collection('place_note_notification_receipts').doc(`delivery_${f.visitor.luid}_${deliveryId}`).get()).exists, false);
+});
+
 test('wake regions list only approved notes the visitor has not received, without author identity', async () => {
   const f = await fixture(), read = async () => (await f.visitor.call('readPlaceNoteRegions', { location: fix(f.point.lat, f.point.lng, 30) })).regions;
   await f.n.ref.update({ status: 'active' });
@@ -199,6 +240,16 @@ async function denseSpot(count = 30) {
   const spot = (await adminDb.collection('note_spots').doc(spotId).get()).data();
   return { visitor, author, spotId, centre: { lat: spot.lat, lng: spot.lng }, n: notes[0] };
 }
+
+test('a response-lost dense-spot alert replays without text and acknowledges the same delivery', async () => {
+  const f = await denseSpot(), deliveryId = randomUUID();
+  const payload = () => ({ deliveryId, location: fix(f.centre.lat, f.centre.lng), confirmationStartedAt: Date.now() - 11_000 });
+  const first = await f.visitor.call('recordPlaceNoteVisit', payload()), retry = await f.visitor.call('recordPlaceNoteVisit', payload());
+  assert.equal(first.notify, true); assert.equal(retry.activityId, first.activityId); assert.equal(retry.kind, 'dense_spot');
+  assert.equal(retry.body, undefined); assert.equal(retry.postId, undefined);
+  await f.visitor.call('recordPlaceNoteVisit', { action: 'acknowledge', deliveryId });
+  assert.equal((await f.visitor.call('recordPlaceNoteVisit', payload())).reason, 'already_queued');
+});
 const single = (user, id) => user.call('readPublicContent', { mode: 'single', postId: id }).then(r => r.posts[0]);
 
 test('notes in a dense spot show only place and count until the visitor unlocks the spot on site', async () => {

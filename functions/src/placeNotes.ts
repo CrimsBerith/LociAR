@@ -1,4 +1,5 @@
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
+import { info } from 'firebase-functions/logger';
 import { db, Timestamp, FieldValue, requireCaller, isUUID, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES } from './core';
 import { createPostHandler, type LocationNoteMetadata } from './posts';
 import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
@@ -81,6 +82,19 @@ function ranked(p: FirebaseFirestore.DocumentSnapshot): RankedNote {
 }
 
 const receiptRef = (luid: string, postId: string) => db.collection('place_note_notification_receipts').doc(`post_${luid}_${postId}`);
+const deliveryRef = (luid: string, id: string) => db.collection('place_note_notification_receipts').doc(`delivery_${luid}_${id}`);
+
+// Rebuild from live content on every retry; never cache a caption across moderation or opt-out.
+async function noteNotification(tx: FirebaseFirestore.Transaction, top: FirebaseFirestore.DocumentSnapshot, luid: string, now: number, total: number) {
+  const activityId = `place_note_${luid}_${top.id}`, spotId = top.get('spot_id');
+  const spot = typeof spotId === 'string' ? await tx.get(db.collection('note_spots').doc(spotId)) : null;
+  const settings = spot?.exists ? await spotSettings(tx) : null;
+  const unlock = spot?.exists ? await tx.get(db.collection('dense_spot_unlocks').doc(`${luid}_${spot.id}`)) : null;
+  const locked = !!spot?.exists && Number(spot.get('count') ?? 0) >= settings!.denseThreshold
+    && !(unlock?.exists && unlock.get('expires_at') instanceof Timestamp && unlock.get('expires_at').toMillis() > now);
+  if (locked) return { notify: true, kind: 'dense_spot', total: Number(spot!.get('count')), spotLat: spot!.get('lat'), spotLng: spot!.get('lng'), activityId, recipientId: luid };
+  return { notify: true, body: top.get('caption'), postId: top.id, activityId, recipientId: luid, likes: Number(top.get('likes_count') ?? 0), total };
+}
 
 /** Approved, live, not own, author visible, not blocked and not reported by the viewer. */
 async function readable(tx: FirebaseFirestore.Transaction, p: FirebaseFirestore.DocumentSnapshot, luid: string) {
@@ -114,7 +128,8 @@ export const readPlaceNoteRegions = onCall(options, async request => {
     // Identity and report checks are bounded; farther notes are picked up on a later refresh.
     for (const p of near.slice(0, 80)) {
       if (!await readable(tx, p, caller.luid)) continue;
-      if ((await tx.get(receiptRef(caller.luid, p.id))).exists) continue;
+      const receipt = await tx.get(receiptRef(caller.luid, p.id));
+      if (receipt.exists && receipt.get('delivery_state') !== 'pending') continue;
       unseen.push(ranked(p));
     }
     // Dense spots (30+ notes) wake the phone for a text-free "many notes here" alert, once per 30 days.
@@ -139,14 +154,49 @@ export const readPlaceNoteRegions = onCall(options, async request => {
  * Called after a 10 s native entry confirmation. Picks the most-liked approved note the
  * visitor is inside and has never been notified about; each note reaches a person once.
  */
-export const recordPlaceNoteVisit = onCall(options, async request => {
-  const caller = requireCaller(request), b = request.data, now = Date.now(), f = parseFix(b?.location);
+async function recordPlaceNoteVisitHandler(request: CallableRequest) {
+  const caller = requireCaller(request), b = request.data, now = Date.now();
+  const deliveryId = b?.deliveryId == null ? null : b.deliveryId;
+  if (deliveryId !== null && !isUUID(deliveryId)) throw new HttpsError('invalid-argument', 'Invalid delivery ID');
+  if (b?.action === 'acknowledge') {
+    if (!deliveryId) throw new HttpsError('invalid-argument', 'A delivery ID is required');
+    return db.runTransaction(async tx => {
+      await requireActiveAccount(tx, caller.luid);
+      if (!await notificationsAllowed(tx, caller.luid)) return { notify: false, reason: 'disabled' };
+      const delivery = await tx.get(deliveryRef(caller.luid, deliveryId));
+      if (!delivery.exists) throw new HttpsError('not-found', 'Delivery not found');
+      const postId = delivery.get('post_id');
+      const receipt = typeof postId === 'string' ? await tx.get(receiptRef(caller.luid, postId)) : null;
+      tx.update(delivery.ref, { delivery_state: 'queued', local_queued_at: FieldValue.serverTimestamp() });
+      if (receipt?.exists && receipt.get('delivery_id') === deliveryId) tx.update(receipt.ref, { delivery_state: 'queued', local_queued_at: FieldValue.serverTimestamp() });
+      return { notify: false, reason: 'already_queued' };
+    });
+  }
+  if (b?.action != null) throw new HttpsError('invalid-argument', 'Invalid delivery action');
+  const f = parseFix(b?.location);
   if (!fixIsFresh(f, now)) return { notify: false, reason: 'stale_fix' };
   if (f.accuracy > MAX_ENTRY_ACCURACY_M) return { notify: false, reason: 'inaccurate_fix' };
   if (!confirmationValid(b?.confirmationStartedAt, f)) return { notify: false, reason: 'unconfirmed' };
   return db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     if (!await notificationsAllowed(tx, caller.luid)) return { notify: false, reason: 'disabled' };
+    if (deliveryId) {
+      const previous = await tx.get(deliveryRef(caller.luid, deliveryId));
+      if (previous.exists) {
+        if (previous.get('delivery_state') === 'queued') return { notify: false, reason: 'already_queued' };
+        const postId = previous.get('post_id');
+        if (typeof postId === 'string') {
+          const post = await tx.get(db.collection('posts').doc(postId));
+          if (!await readable(tx, post, caller.luid) || !fixInsideNote(f, post.get('lat'), post.get('lng'), clampNotifyRadius(post.get('notify_radius_m')))) return { notify: false, reason: 'delivery_unavailable' };
+          return { ...await noteNotification(tx, post, caller.luid, now, Number(previous.get('total') ?? 1)), deliveryId };
+        }
+        const spot = await tx.get(db.collection('note_spots').doc(previous.get('spot'))), settings = await spotSettings(tx);
+        if (!spot.exists || Number(spot.get('count')) < settings.denseThreshold
+          || distanceMeters(f.lat, f.lng, spot.get('lat'), spot.get('lng')) > Number(spot.get('radius') ?? 0) + 10 + Math.min(f.accuracy, ENTRY_TOLERANCE_CAP_M)) return { notify: false, reason: 'delivery_unavailable' };
+        return { notify: true, kind: 'dense_spot', total: Number(spot.get('count')), spotLat: spot.get('lat'), spotLng: spot.get('lng'),
+          activityId: previous.get('activity_id'), recipientId: caller.luid, deliveryId };
+      }
+    }
     const inside = (await approvedNear(tx, f.lat, f.lng, MAX_NOTIFY_RADIUS_M + ENTRY_TOLERANCE_CAP_M + 5))
       .filter(p => fixInsideNote(f, p.get('lat'), p.get('lng'), clampNotifyRadius(p.get('notify_radius_m'))))
       .sort((a, b) => compareByLikes(ranked(a), ranked(b)));
@@ -166,25 +216,38 @@ export const recordPlaceNoteVisit = onCall(options, async request => {
         const receipt = await tx.get(spotReceiptRef(caller.luid, spot.id));
         if (receipt.exists && receipt.get('expires_at') instanceof Timestamp && receipt.get('expires_at').toMillis() > now) continue;
         tx.set(receipt.ref, { owner_luid: caller.luid, spot: spot.id, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
+        const activityId = `dense_spot_${caller.luid}_${spot.id}${deliveryId ? `_${deliveryId}` : ''}`;
+        if (deliveryId) tx.create(deliveryRef(caller.luid, deliveryId), { owner_luid: caller.luid, spot: spot.id, activity_id: activityId,
+          delivery_state: 'pending', created_at: FieldValue.serverTimestamp() });
         return { notify: true, kind: 'dense_spot', total: spot.count, spotLat: spot.lat, spotLng: spot.lng, unlockRadius: settings.unlockRadius,
-          activityId: `dense_spot_${caller.luid}_${spot.id}`, recipientId: caller.luid };
+          activityId, recipientId: caller.luid, ...(deliveryId ? { deliveryId } : {}) };
       }
       return { notify: false, reason: 'nothing_new' };
     }
     const activityId = `place_note_${caller.luid}_${top.id}`;
-    // A note inside a dense spot never travels as text: the alert only counts the notes there.
-    const spotId = top.get('spot_id');
-    const spot = typeof spotId === 'string' ? await tx.get(db.collection('note_spots').doc(spotId)) : null;
-    const settings = spot?.exists ? await spotSettings(tx) : null;
-    const unlock = spot?.exists ? await tx.get(db.collection('dense_spot_unlocks').doc(`${caller.luid}_${spot.id}`)) : null;
-    const locked = !!spot?.exists && Number(spot.get('count') ?? 0) >= settings!.denseThreshold
-      && !(unlock?.exists && unlock.get('expires_at') instanceof Timestamp && unlock.get('expires_at').toMillis() > now);
+    const notification = await noteNotification(tx, top, caller.luid, now, eligible.length);
     // No expiry: the same note is never sent to the same person again.
-    tx.create(receiptRef(caller.luid, top.id), { owner_luid: caller.luid, post_id: top.id, created_at: FieldValue.serverTimestamp() });
+    tx.create(receiptRef(caller.luid, top.id), { owner_luid: caller.luid, post_id: top.id, created_at: FieldValue.serverTimestamp(),
+      ...(deliveryId ? { delivery_id: deliveryId, delivery_state: 'pending' } : {}) });
+    if (deliveryId) tx.create(deliveryRef(caller.luid, deliveryId), { owner_luid: caller.luid, post_id: top.id, total: eligible.length,
+      activity_id: activityId, delivery_state: 'pending', created_at: FieldValue.serverTimestamp() });
     tx.set(db.collection('activity_events').doc(activityId), { kind: 'place_note', anonymous: true, actor_id: null, recipient_id: caller.luid,
       post_id: top.id, body: top.get('caption'), read_at: null, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
-    if (locked) return { notify: true, kind: 'dense_spot', total: Number(spot!.get('count')), spotLat: spot!.get('lat'), spotLng: spot!.get('lng'), activityId, recipientId: caller.luid };
-    return { notify: true, body: top.get('caption'), postId: top.id, activityId, recipientId: caller.luid,
-      likes: Number(top.get('likes_count') ?? 0), total: eligible.length };
+    return { ...notification, ...(deliveryId ? { deliveryId } : {}) };
   });
+}
+
+export const recordPlaceNoteVisit = onCall(options, async request => {
+  const started = Date.now();
+  try {
+    const result = await recordPlaceNoteVisitHandler(request);
+    const outcome = result as { notify: boolean; reason?: string };
+    // Operational aggregates only: no recipient, author, request ID, text or coordinates.
+    info('place_note_visit', { action: request.data?.action === 'acknowledge' ? 'acknowledge' : 'visit',
+      notify: outcome.notify, reason: outcome.reason ?? 'reserved', elapsedMs: Date.now() - started });
+    return result;
+  } catch (error) {
+    info('place_note_visit', { outcome: 'error', code: error instanceof HttpsError ? error.code : 'internal', elapsedMs: Date.now() - started });
+    throw error;
+  }
 });

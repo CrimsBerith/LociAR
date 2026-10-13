@@ -642,5 +642,7 @@
  "Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.": "Tenez le téléphone à hauteur des yeux et tournez-le lentement vers les bâtiments et panneaux proches. Fonctionne mieux en extérieur ; peut ne pas fonctionner à l’intérieur.",
  "Bu konumu kullan": "Utiliser cette position",
  "Kamerayla aç": "Ouvrir avec la caméra",
- "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Active l’actualisation en arrière-plan dans les réglages iOS pour les notifications de localisation."
+ "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Active l’actualisation en arrière-plan dans les réglages iOS pour les notifications de localisation.",
+ "Konum bildirimleri hazır": "Les notifications de localisation sont prêtes",
+ "Konum bildirimleri için ayarları kontrol et": "Vérifiez les réglages des notifications de localisation"
 }
