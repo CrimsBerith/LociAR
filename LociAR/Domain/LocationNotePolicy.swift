@@ -1,6 +1,16 @@
 import CoreLocation
 import Foundation
 
+enum ArrivalLocationMode: Equatable {
+    case stopped, lowPower, precise
+
+    static func resolve(monitoring: Bool, foreground: Bool, authorized: Bool, fullAccuracy: Bool, hasPreciseTargets: Bool) -> Self {
+        guard monitoring, authorized else { return .stopped }
+        if fullAccuracy && hasPreciseTargets { return .precise }
+        return foreground ? .lowPower : .stopped
+    }
+}
+
 /// Location-note thresholds. Mirrors `functions/src/placeNoteRules.ts`; keep the numbers in sync.
 enum LocationNotePolicy {
     /// A GPS estimate this good and stable can be published without waiting.

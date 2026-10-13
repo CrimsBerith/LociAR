@@ -1,4 +1,4 @@
-import { anyBlocked } from './moderation';
+import { anyBlocked, containsURL } from './moderation';
 import { GIF_ID } from './giphyId';
 
 /**
@@ -191,6 +191,7 @@ function layerShapeError(layers: unknown[]): string | null {
 
 function contentPolicyError(body: CreatePostBody): string | null {
   if (anyBlocked([body.caption, ...layerTexts(body)])) return 'Content not allowed';
+  if ([body.caption, ...layerTexts(body)].some(containsURL)) return 'Links are not allowed';
   const layers = (body.editData as { layers?: unknown[] }).layers ?? [];
   const shapeError = layerShapeError(layers);
   if (shapeError) return shapeError;

@@ -63,7 +63,9 @@ export const readCampaignZones = onCall(options, async request => {
           regions.push({ ...base, lat: c.get('lat'), lng: c.get('lng'), radius: 150, area: { lat: c.get('lat'), lng: c.get('lng'), radius: c.get('radius') } });
         } else if (step.zone) {
           const b = zoneBounds(step.zone);
-          regions.push({ ...base, lat: b.lat, lng: b.lng, radius: Math.min(3_000, Math.max(150, Math.ceil(b.radius + 50))), zone: step.zone,
+          // Legacy oversized definitions must be corrected in admin, never advertised with clipped coverage.
+          if (b.radius > 2_950) continue;
+          regions.push({ ...base, lat: b.lat, lng: b.lng, radius: Math.max(150, Math.ceil(b.radius + 50)), zone: step.zone,
             dwellSeconds: step.dwellSeconds ?? null });
         }
       }

@@ -6,7 +6,7 @@ import { info } from 'firebase-functions/logger';
 import { requireActiveAccount } from './profileGuard';
 import { createHash } from 'node:crypto';
 import { rankForDiscover } from './discoverRanking';
-import { anonymousGeometry, anonymousIdentity } from './anonymous';
+import { anonymousGeometry, anonymousIdentity, publicEditData } from './anonymous';
 import { campaignOffer, ownCampaignOffers } from './campaigns';
 import { denseLocks, type SpotLock } from './denseSpots';
 
@@ -31,7 +31,7 @@ function row(doc:FirebaseFirestore.DocumentSnapshot, viewerId:string, lock?:Spot
  const geometry=(value:unknown)=>anonymous?anonymousGeometry(embedded(value),doc.id):embedded(value);
  return json({id:doc.id,...anonymousIdentity(doc.id,p.creator_id,viewerId,anonymous),
  creator_handle:anonymous?null:p.creator_handle??null,created_at:p.created_at,
- pose:geometry(p.pose_json),edit_data:embedded(p.edit_data_json),content_source:embedded(p.content_source_json),
+ pose:geometry(p.pose_json),edit_data:publicEditData(embedded(p.edit_data_json)),content_source:null,
  anchor_bundle:geometry(p.anchor_bundle_json),caption:p.caption??'', status:p.status,visibility:p.visibility,
  age_rating:p.age_rating??'all',views_count:p.views_count??0,likes_count:p.likes_count??0,comments_count:p.comments_count??0,note_kind:p.note_kind??null,notify_radius_m:p.notify_radius_m??null,push_state:p.push_state??null});
 }
@@ -103,7 +103,8 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
   const matches:FirebaseFirestore.QueryDocumentSnapshot[]=[];
   const found=[...candidates.values()];
   for(let i=0;i<found.length;i+=100){const batch=found.slice(i,i+100),authors=await visibleAuthors(batch.map(d=>d.get('creator_id')),blocked);matches.push(...batch.filter(d=>authors.has(d.get('creator_id'))));}
-  matches.sort((a,b)=>Number(b.get('engagement_score')??0)-Number(a.get('engagement_score')??0)||distanceMeters(lat,lng,a.get('lat'),a.get('lng'))-distanceMeters(lat,lng,b.get('lat'),b.get('lng'))||a.id.localeCompare(b.id));
+  // Distance selects the nearby set; popularity orders notes at a place in the native panel.
+  matches.sort((a,b)=>distanceMeters(lat,lng,a.get('lat'),a.get('lng'))-distanceMeters(lat,lng,b.get('lat'),b.get('lng'))||Number(b.get('likes_count')??0)-Number(a.get('likes_count')??0)||a.id.localeCompare(b.id));
   const offers=await ownCampaignOffers(caller.luid,lat,lng,radius);
   info('nearby_query',{strategy:prefixes.length?'geohash':'latitude',scanned,matches:matches.length,elapsedMs:Date.now()-started,complete:true});
   return{posts:[...await rows(matches.slice(0,100),caller.luid),...offers.map(campaignRow)],next:null,total:matches.length+offers.length};

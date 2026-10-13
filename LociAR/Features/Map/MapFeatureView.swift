@@ -269,8 +269,14 @@ struct MapFeatureView: View {
 
     /// Panel order follows likes so the most useful note at a place comes first.
     private var listedPosts: [LociPost] {
-        guard let clusterFocus else { return posts }
-        return posts.filter { clusterFocus.contains($0.id) }
+        if let clusterFocus { return posts.filter { clusterFocus.contains($0.id) } }
+        guard let current = location.location else { return posts }
+        // Nearby places first; notes within each 25 m group retain their likes order.
+        return clusters.sorted {
+            let a = current.distance(from: CLLocation(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude))
+            let b = current.distance(from: CLLocation(latitude: $1.coordinate.latitude, longitude: $1.coordinate.longitude))
+            return a != b ? a < b : $0.id.uuidString < $1.id.uuidString
+        }.flatMap(\.posts)
     }
 
     /// Dense spot: the count is public, the text opens only on site (GPS ~15 m, AR camera 2-5 m).
@@ -401,7 +407,7 @@ struct MapFeatureView: View {
         }
         do {
             posts = mergedPosts(try await container.posts.nearby(
-                latitude: current.coordinate.latitude, longitude: current.coordinate.longitude, radiusMeters: 50_000
+                latitude: current.coordinate.latitude, longitude: current.coordinate.longitude, radiusMeters: 1_000
             ))
             message = posts.isEmpty ? String(localized: "Yakında görünür post bulunamadı.") : nil
         } catch {

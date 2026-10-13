@@ -4,7 +4,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { db, FieldValue, Timestamp, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, logger } from './core';
 import { isPublicActive } from './counters';
 import { autoApproveNote } from './noteAutomation';
-import { syncSpotMembership } from './denseSpots';
+import { repairSpotCount, syncSpotMembership } from './denseSpots';
 import { refreshArea } from './campaignJourneys';
 import { requireActiveAccount } from './profileGuard';
 import { densityCells, densityQueryPrefixes, geohashBounds, validBox, validCoordinates, DENSITY_PRECISIONS } from './placeNoteRules';
@@ -43,6 +43,8 @@ export const onPostDensityWritten = onDocumentWritten({ document: 'posts/{postId
   if (counted(before) !== counted(after)) {
     await syncNoteDensity(event.params.postId);
     await syncSpotMembership(event.params.postId);
+    // Old posts may predate the persistent member record. Recounting is redelivery-safe.
+    if (typeof before?.spot_id === 'string') await repairSpotCount(before.spot_id);
   }
   // Phones nearby refresh their regions when a note starts notifying.
   if (after?.push_state === 'approved' && before?.push_state !== 'approved' && typeof after.lat === 'number') await refreshArea(after.lat, after.lng, 3_000);
@@ -60,7 +62,12 @@ export const reconcileNoteDensity = onSchedule({ schedule: 'every 60 minutes', t
   if (typeof cursor === 'string' && cursor) query = query.startAfter(cursor);
   const page = await query.get();
   for (const post of page.docs) { await syncNoteDensity(post.id); await syncSpotMembership(post.id); }
-  await state.set({ cursor: page.size === 500 ? page.docs.at(-1)!.id : null, updated_at: FieldValue.serverTimestamp() });
+  const spotCursor = (await state.get()).get('spot_cursor');
+  const base = db.collection('note_spots').orderBy('__name__');
+  const spotPage = await (typeof spotCursor === 'string' ? base.startAfter(spotCursor) : base).limit(100).get();
+  for (const spot of spotPage.docs) await repairSpotCount(spot.id);
+  await state.set({ cursor: page.size === 500 ? page.docs.at(-1)!.id : null,
+    spot_cursor: spotPage.size === 100 ? spotPage.docs.at(-1)!.id : null, updated_at: FieldValue.serverTimestamp() });
   logger.info('note density reconcile', { checked: page.size });
 });
 

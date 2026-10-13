@@ -4,6 +4,7 @@ import { deleteAccountStorage } from './accountStorage';
 import { claimAnchorDeletion, deleteAnchorOfPost } from './anchors';
 import { deleteAnchorOrQueue } from './anchorQueue';
 import { accountDeletionRef } from './profileGuard';
+import { repairSpotCount, syncSpotMembership } from './denseSpots';
 
 export const ACCOUNT_DELETION_LEASE_MS = 10 * 60_000;
 const PAGE_SIZE = 300;
@@ -110,6 +111,23 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
         existing.forEach(post => tx.delete(post.ref));
         tx.update(jobRef, { posts_removed: FieldValue.increment(existing.length) });
       });
+      for (const post of posts.docs) {
+        if (typeof post.get('spot_id') !== 'string') continue;
+        checkBudget();
+        await syncSpotMembership(post.id);
+        await repairSpotCount(post.get('spot_id'));
+      }
+    }
+    // Resume cleanup even if a worker died after deleting posts but before settling their spots.
+    for (;;) {
+      checkBudget();
+      const members = await db.collection('note_spot_members').where('owner_luid', '==', luid).limit(100).get();
+      if (members.empty) break;
+      for (const member of members.docs) {
+        checkBudget();
+        await syncSpotMembership(member.id);
+        if (typeof member.get('spot_id') === 'string') await repairSpotCount(member.get('spot_id'));
+      }
     }
     const byField: Array<[string, string]> = [
       ['likes', 'user_id'], ['comments', 'user_id'], ['post_saves', 'user_id'], ['filtered_comments', 'user_id'],

@@ -343,6 +343,8 @@ test('places are public read-only', async () => {
 });
 
 test('server-only collections stay closed for clients (reads and writes)', async () => {
+  await assertFails(getDoc(doc(as(ALICE), 'note_spot_members', POST)));
+  await assertFails(setDoc(doc(as(ALICE), 'note_spot_members', POST), { post_id: POST, owner_luid: ALICE, spot_id: 'hidden' }));
   for (const name of ['brands', 'brand_memberships', 'campaigns', 'campaign_targets', 'campaign_departure_regions', 'note_density', 'note_density_members', 'dense_spot_unlocks', 'dense_spot_receipts', 'note_spots', 'campaign_progress', 'campaign_step_stats', 'campaign_codes', 'place_note_notification_receipts', 'campaign_locations', 'admin_notification_jobs', 'admin_notification_receipts', 'campaign_view_receipts', 'promotion_push_quota', 'brand_submission_quota', 'user_locations', 'user_device_context', 'user_data_preferences', 'invites', 'invite_attempts', 'gif_search_quota', 'handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
     await assertFails(getDoc(doc(as(ALICE), name, 'x')));
     await assertFails(setDoc(doc(as(ALICE), name, 'x'), { owner_luid: ALICE }));

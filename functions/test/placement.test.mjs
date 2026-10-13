@@ -72,6 +72,13 @@ test('only text and GIF posts are accepted: no device media and no links of any 
   assert.equal(validateCreatePostBody({ ...base(), contentSource: null }), null);
   assert.equal(validateCreatePostBody({ ...base(), contentSource: { platform: 'text', url: '' } }), null);
 });
+test('URLs in captions and text layers are rejected without rejecting numbers or ordinary punctuation', () => {
+  for (const text of ['https://example.com/p', 'www.example.com', 'example.com', 'mailto:a@example.com', 'javascript:alert(1)']) {
+    assert.equal(validateCreatePostBody({ ...base(), caption: text }), 'Links are not allowed');
+    assert.equal(validateCreatePostBody({ ...base(), editData: { layers: [{ type: 'text', text }] } }), 'Links are not allowed');
+  }
+  for (const caption of ['Kalite: iyi. Fiyat 12.50', 'Version 1.2', 'İkinci kapıdan gir.']) assert.equal(validateCreatePostBody({ ...base(), caption }), null);
+});
 
 test('reference image must be a storage path or the pending placeholder', () => {
   assert.equal(validateCreatePostBody({ ...base(), refImageUri: 'https://tracker.example/pixel.jpg' }), 'Invalid reference image');

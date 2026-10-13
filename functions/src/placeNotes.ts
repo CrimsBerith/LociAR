@@ -4,9 +4,10 @@ import { db, Timestamp, FieldValue, requireCaller, isUUID, HttpsError, ENFORCE_A
 import { createPostHandler, type LocationNoteMetadata } from './posts';
 import { requireActiveAccount } from './profileGuard';
 import { noteCandidate, readableNoteIds } from './placeNoteAccess';
-import { anyBlocked } from './moderation';
+import { anyBlocked, containsURL } from './moderation';
 import { denseSpotsNear, spotReceiptRef, spotSettings } from './denseSpots';
-import { distanceMeters, geohashCoverPrefixes } from './geo';
+import { distanceMeters } from './geo';
+import { geoCandidates } from './geoQuery';
 import {
   clampNotifyRadius, clusterNotes, compareByLikes, confirmationValid, defaultNotifyRadius, fixInsideNote, fixIsFresh,
   validCoordinates, WAKE_RADIUS_MIN_M, ENTRY_TOLERANCE_CAP_M, MAX_CREATE_ACCURACY_M, MAX_ENTRY_ACCURACY_M, MAX_NOTIFY_RADIUS_M, MAX_PIN_DRAG_M,
@@ -18,11 +19,10 @@ const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX
 const DAY = 86_400_000;
 const SOURCES: FixSource[] = ['geospatial', 'gps', 'manual'];
 const MAX_REGIONS = 15;
-const PAGE = 400;
 
 function plain(value: unknown, max: number): string {
   if (typeof value !== 'string' || !value.trim() || value.length > max || /[\u0000-\u0008\u000b-\u001f]/.test(value)
-      || anyBlocked([value]) || /[a-z][a-z0-9+.-]*:\/\/|www\.|[\p{L}\p{N}-]+\.[\p{L}]{2,63}(?:\b|$)/iu.test(value)) throw new HttpsError('invalid-argument', 'Only moderated text without links is allowed');
+      || anyBlocked([value]) || containsURL(value)) throw new HttpsError('invalid-argument', 'Only moderated text without links is allowed');
   return value.trim();
 }
 
@@ -60,19 +60,9 @@ function parseFix(value: unknown): Fix {
   return f;
 }
 
-/** Approved notes whose stored position lies within `radius`; narrows the search when an area is dense. */
+/** Complete coverage of the requested radius, including polar searches. */
 async function approvedNear(tx: FirebaseFirestore.Transaction, lat: number, lng: number, radius: number) {
-  for (const r of [radius, 1_000, 400]) {
-    if (r > radius) continue;
-    const prefixes = geohashCoverPrefixes(lat, lng, r);
-    if (!prefixes.length) return [];
-    const pages = await Promise.all(prefixes.map(prefix => tx.get(db.collection('posts').where('push_state', '==', 'approved')
-      .orderBy('geohash').startAt(prefix).endAt(prefix + '\uf8ff').limit(PAGE))));
-    if (pages.some(page => page.size === PAGE) && r > 400) continue;
-    const unique = new Map(pages.flatMap(page => page.docs).map(d => [d.id, d]));
-    return [...unique.values()].filter(d => validCoordinates(d.get('lat'), d.get('lng')) && distanceMeters(lat, lng, d.get('lat'), d.get('lng')) <= r);
-  }
-  return [];
+  return geoCandidates(tx, db.collection('posts').where('push_state', '==', 'approved'), lat, lng, radius);
 }
 
 function ranked(p: FirebaseFirestore.DocumentSnapshot): RankedNote {
@@ -102,14 +92,18 @@ function retryActive(receipt: FirebaseFirestore.DocumentSnapshot, now: number) {
 }
 
 /** Read lifetime receipts first, so seen/expired notes do not trigger author and report reads. */
-async function unseenNotes(tx: FirebaseFirestore.Transaction, posts: FirebaseFirestore.DocumentSnapshot[], luid: string, now: number, includePending: boolean) {
+async function unseenNotes(tx: FirebaseFirestore.Transaction, posts: FirebaseFirestore.DocumentSnapshot[], luid: string, now: number, includePending: boolean, limit: number) {
   const candidates = posts.filter(post => noteCandidate(post, luid));
-  if (!candidates.length) return [];
-  const receipts = await tx.getAll(...candidates.map(post => receiptRef(luid, post.id)));
-  const unseen = candidates.filter((_, index) => !receipts[index].exists
-    || includePending && receipts[index].get('delivery_state') === 'pending' && retryActive(receipts[index], now));
-  const readable = await readableNoteIds(tx, unseen, luid);
-  return unseen.filter(post => readable.has(post.id));
+  const result: FirebaseFirestore.DocumentSnapshot[] = [];
+  for (let start = 0; start < candidates.length && result.length < limit; start += 80) {
+    const batch = candidates.slice(start, start + 80);
+    const receipts = await tx.getAll(...batch.map(post => receiptRef(luid, post.id)));
+    const unseen = batch.filter((_, index) => !receipts[index].exists
+      || includePending && receipts[index].get('delivery_state') === 'pending' && retryActive(receipts[index], now));
+    const readable = await readableNoteIds(tx, unseen, luid);
+    result.push(...unseen.filter(post => readable.has(post.id)));
+  }
+  return result.slice(0, limit);
 }
 
 async function notificationsAllowed(tx: FirebaseFirestore.Transaction, luid: string) {
@@ -130,12 +124,11 @@ export const readPlaceNoteRegions = onCall(options, async request => {
     if (!await notificationsAllowed(tx, caller.luid)) return { regions: [] };
     const near = (await approvedNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M))
       .sort((a, b) => distanceMeters(f.lat, f.lng, a.get('lat'), a.get('lng')) - distanceMeters(f.lat, f.lng, b.get('lat'), b.get('lng')));
-    // Identity and report checks are bounded; farther notes are picked up on a later refresh.
-    const unseen = (await unseenNotes(tx, near.slice(0, 80), caller.luid, now, true)).map(ranked);
+    const unseen = (await unseenNotes(tx, near, caller.luid, now, true, 80)).map(ranked);
     // Dense spots (30+ notes) wake the phone for a text-free "many notes here" alert, once per 30 days.
     const settings = await spotSettings(tx);
     const spots = [];
-    const nearbySpots = (await denseSpotsNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M, settings.denseThreshold)).slice(0, 30);
+    const nearbySpots = await denseSpotsNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M, settings.denseThreshold);
     const spotReceipts = nearbySpots.length ? await tx.getAll(...nearbySpots.map(spot => spotReceiptRef(caller.luid, spot.id))) : [];
     for (const [index, spot] of nearbySpots.entries()) {
       const receipt = spotReceipts[index];
@@ -143,6 +136,7 @@ export const readPlaceNoteRegions = onCall(options, async request => {
       const r = Math.min(MAX_NOTIFY_RADIUS_M, Math.max(SPOT_TRIGGER_RADIUS_M, Math.ceil(spot.radius + 10)));
       spots.push({ id: stableUuid(`dense:${spot.id}`), lat: spot.lat, lng: spot.lng, radius: WAKE_RADIUS_MIN_M,
         triggerRadius: r, notes: [{ lat: spot.lat, lng: spot.lng, r }], spot: spot.id });
+      if (spots.length === 30) break;
     }
     const regions = [...clusterNotes(unseen), ...spots]
       .sort((a, b) => distanceMeters(f.lat, f.lng, a.lat, a.lng) - distanceMeters(f.lat, f.lng, b.lat, b.lng))
@@ -203,7 +197,7 @@ async function recordPlaceNoteVisitHandler(request: CallableRequest) {
     const inside = (await approvedNear(tx, f.lat, f.lng, MAX_NOTIFY_RADIUS_M + ENTRY_TOLERANCE_CAP_M + 5))
       .filter(p => fixInsideNote(f, p.get('lat'), p.get('lng'), clampNotifyRadius(p.get('notify_radius_m'))))
       .sort((a, b) => compareByLikes(ranked(a), ranked(b)));
-    const eligible = await unseenNotes(tx, inside.slice(0, 40), caller.luid, now, false);
+    const eligible = await unseenNotes(tx, inside, caller.luid, now, false, 40);
     const top = eligible[0];
     if (!top) {
       // No approved note here: a dense spot still earns one text-free alert per 30 days.

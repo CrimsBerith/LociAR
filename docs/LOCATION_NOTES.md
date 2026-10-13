@@ -75,6 +75,8 @@ A spot is a server-side cluster (`note_spots`): a public note joins the nearest 
 
 ## Map
 
+Opening the map reads the nearest 100 visible posts within a 1 km radius of the GPS fix. Distance selects the results before popularity; notes at a place remain ordered by likes. Camera and AR world-lock records are not required for a location note. Dense spots can be opened with GPS using **Open here**; camera refinement is optional.
+
 | Visible width | Layer | Data |
 |---|---|---|
 | > 50 km | Heat | `note_density` precision 4 |
@@ -83,7 +85,7 @@ A spot is a server-side cluster (`note_spots`): a public note joins the nearest 
 | 300 m–1 km | Count bubbles | precision 7 (~150 m) |
 | < 300 m | Notes, grouped within 25 m | `readPublicContent` nearby |
 
-`onPostDensityWritten` keeps one server-only counter per geohash cell for every public active post. A per-post member record (`note_density_members`) makes replays and out-of-order events converge; `reconcileNoteDensity` re-checks 500 posts per hour and seeds counters for older posts. `readNoteDensity` reads only non-empty cells with at most 12 prefix range queries.
+`onPostDensityWritten` keeps one server-only counter per geohash cell for every public active post. A per-post member record (`note_density_members`) makes replays and out-of-order events converge; `reconcileNoteDensity` re-checks 500 posts and repairs 100 spot counts per hour. Persistent `note_spot_members` records settle hard deletions exactly once and are removed during account deletion. Legacy spot counts are recalculated from live posts. `readNoteDensity` reads only non-empty cells with at most 12 prefix range queries.
 
 ## Administration
 
@@ -92,3 +94,9 @@ A spot is a server-side cluster (`note_spots`): a public note joins the nearest 
 ## Release
 
 Deploy Functions (`createPlaceNote`, `readPlaceNoteRegions`, `recordPlaceNoteVisit`, `readNoteDensity`, `unlockDenseSpot`, `onPostDensityWritten`, `reconcileNoteDensity`, `expireScheduledNotes`), the new indexes (`push_state + geohash`, `status + likes_count`, `note_density precision + cell`), App Hosting and the iOS build. Field checks on physical iPhones: time-to-ready outdoors and indoors, background wake from 300 m, entry at 15/25/50 m radii, continuous 10 s confirmation, gaps/outside restarting confirmation, drive-by suppression, exit ending the window, battery over a 10-minute window, approximate-location prompt, and opt-out.
+
+## Query and input correctness
+
+Notification searches cover the full requested radius with paged geohash ranges and a latitude fallback near the poles. A 10,000-document scan budget fails explicitly rather than returning partial `nothing_new` results. Lifetime receipts and access checks precede the 80-region-candidate / 40-visit-candidate limits; each native note cluster carries at most 50 targets. Like approval scans subsequent pages until the configured 1–1000 established-account threshold is met or likes are exhausted, excluding account-deletion fences.
+
+Public edit projections keep only text, GIF and legacy drawing fields; owner-folder media/texture paths and old link sources are omitted. New caption/layer text rejects URLs consistently in native-callable and admin admission.

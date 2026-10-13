@@ -332,10 +332,20 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             monitoringVisits = wantsVisits
             if wantsVisits { manager.startMonitoringVisits() } else { manager.stopMonitoringVisits() }
         }
-        if monitoring, foreground, manager.authorizationStatus == .authorizedAlways || manager.authorizationStatus == .authorizedWhenInUse {
-            if preciseWindow == nil { setLowPower(true) }
-            manager.startUpdatingLocation()
-        } else if preciseWindow == nil { manager.stopUpdatingLocation() }
+        applyLocationMode()
+    }
+
+    private func applyLocationMode() {
+        let authorized = manager.authorizationStatus == .authorizedAlways
+            || foreground && manager.authorizationStatus == .authorizedWhenInUse
+        let mode = ArrivalLocationMode.resolve(monitoring: enabled && (placeNotesEnabled || promotionsEnabled), foreground: foreground,
+            authorized: authorized, fullAccuracy: manager.accuracyAuthorization == .fullAccuracy,
+            hasPreciseTargets: preciseWindow != nil && !precisionTargets.isEmpty)
+        switch mode {
+        case .stopped: manager.stopUpdatingLocation()
+        case .lowPower: setLowPower(true); manager.startUpdatingLocation()
+        case .precise: manager.startUpdatingLocation() // The target-edge check selects precise/approach accuracy.
+        }
     }
 
     private func removeDisabledRegions() {
@@ -440,7 +450,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             lastRegionRefresh = Date()
             regions = Dictionary(selected.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
             precisionTargets.formIntersection(Set(regions.keys))
-            if foreground, !selected.isEmpty { manager.startUpdatingLocation() }
+            if precisionTargets.isEmpty, preciseWindow != nil { stopPreciseWindow() }
+            else { applyLocationMode() }
             armedExits.formIntersection(Set(selected.filter(\.isExit).map(\.id)))
             persistArmedExits()
             UserDefaults.standard.set(try JSONEncoder().encode(selected), forKey: regionsKey(id))
@@ -619,9 +630,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         dwellStart.removeAll(); wasInside.removeAll()
         backgroundSession?.invalidate(); backgroundSession = nil
         manager.allowsBackgroundLocationUpdates = false
-        setLowPower(false)
-        manager.distanceFilter = 1
-        if !foreground { manager.stopUpdatingLocation() }
+        applyLocationMode()
     }
 
     /// Far from every note: 10 m accuracy and a 10 m filter. Near one: best accuracy, every fix.

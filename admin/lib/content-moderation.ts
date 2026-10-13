@@ -48,6 +48,11 @@ export function anyBlocked(texts: Array<string | null | undefined>): boolean {
   return texts.some((t) => typeof t === 'string' && t.length > 0 && containsBlockedTerm(t));
 }
 
+/** Keep identical to functions/src/moderation.ts. */
+export function containsURL(text: string): boolean {
+  return /[a-z][a-z0-9+.-]*:\/\/|www\.|(?:mailto|javascript|data|tel):|[\p{L}\p{N}-]+\.[\p{L}]{2,63}(?:\b|$)/iu.test(text);
+}
+
 export function handleIsBlocked(handle: string): boolean {
   return containsBlockedTerm(handle.replace(/[._]+/g, ' ')) || containsBlockedTerm(handle.replace(/[._]+/g, ''));
 }

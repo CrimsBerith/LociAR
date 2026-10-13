@@ -1,6 +1,7 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { db, FieldValue, Timestamp } from './core';
 import { isPublicActive } from './counters';
+import { accountDeletionRef } from './profileGuard';
 
 /**
  * User location notes publish without manual review (text filter, protected zones and rate
@@ -27,15 +28,23 @@ export async function autoApproveNote(postId: string, now = Date.now()) {
     if (!data || data.note_kind !== 'location' || !isPublicActive(data) || (data.push_state ?? 'none') !== 'none') return false;
     const { like } = await thresholds(tx);
     if (Number(data.likes_count ?? 0) < like) return false;
-    const likes = await tx.get(db.collection('likes').where('post_id', '==', postId).limit(200));
-    const likers = [...new Set(likes.docs.map(d => String(d.get('user_id'))).filter(id => id && id !== data.creator_id))];
-    if (likers.length < like) return false;
-    const profiles = await tx.getAll(...likers.map(id => db.collection('profiles').doc(id)));
-    const established = profiles.filter(p => {
-      const created = p.get('created_at');
-      return p.exists && !p.get('suspended') && !p.get('deleted_at') && created instanceof Timestamp && now - created.toMillis() >= MIN_LIKER_AGE_MS;
-    });
-    if (established.length < like) return false;
+    const base = db.collection('likes').where('post_id', '==', postId).orderBy('__name__');
+    const counted = new Set<string>();
+    let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
+    while (counted.size < like) {
+      const page = await tx.get((cursor ? base.startAfter(cursor) : base).limit(200));
+      const likers = [...new Set(page.docs.map(d => String(d.get('user_id')))
+        .filter(id => id && id !== data.creator_id && !counted.has(id)))];
+      const records = likers.length ? await tx.getAll(...likers.flatMap(id => [db.collection('profiles').doc(id), accountDeletionRef(id)])) : [];
+      for (const [i, id] of likers.entries()) {
+        const profile = records[i * 2], created = profile.get('created_at');
+        if (profile.exists && !profile.get('suspended') && !profile.get('deleted_at') && !records[i * 2 + 1].exists
+          && created instanceof Timestamp && now - created.toMillis() >= MIN_LIKER_AGE_MS) counted.add(id);
+      }
+      if (page.size < 200) break;
+      cursor = page.docs.at(-1);
+    }
+    if (counted.size < like) return false;
     tx.update(ref, { push_state: 'approved', push_approved_by: 'system:likes', push_approved_at: FieldValue.serverTimestamp() });
     return true;
   });

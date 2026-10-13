@@ -3,7 +3,7 @@ import { FieldValue, Timestamp, type Transaction } from 'firebase-admin/firestor
 import { adminAuth, adminDb } from './firebase-admin';
 import { luidForUid } from './account-lifecycle';
 import { permissionsFor } from './rbac';
-import { anyBlocked, handleIsBlocked, isReservedHandle } from './content-moderation';
+import { anyBlocked, containsURL, handleIsBlocked, isReservedHandle } from './content-moderation';
 import { distanceMeters, encodeGeohash } from './geo';
 import { requiredString, uuid, ValidationError } from './validation';
 import { checkReceipt, ConflictError, derivedKey, mutationHash, requireActorAccountActive, requireTargetAccountActive, writeAudit } from './ops';
@@ -18,6 +18,7 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
   const caption = requiredString(body.caption, 'caption', 1, 220);
   const text = typeof body.text === 'string' ? body.text.trim() : caption;
   if (text.length > 2000 || anyBlocked([caption, text])) throw new ValidationError('content_not_allowed');
+  if ([caption, text].some(containsURL)) throw new ValidationError('links_not_allowed');
   const platform = String(body.platform ?? 'text'); const url = typeof body.url === 'string' ? body.url.trim() : '';
   // Posts are text only: social media links were removed from LociAR on 9 Oct 2026 (createPost refuses them too).
   if (platform !== 'text' || url) throw new ValidationError('links_not_allowed');

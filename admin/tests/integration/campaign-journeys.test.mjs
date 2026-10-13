@@ -28,6 +28,14 @@ test('steps are validated: zones, order, schedule, codes, channels and limits', 
   assert.throws(() => parseSteps([{ ...party[0], message: 'See https://example.com' }], 'UTC'), /without links/);
   assert.throws(() => parseSteps(Array.from({ length: 6 }, (_, i) => ({ ...party[0], id: `x${i}` })), 'UTC'), /1–5 steps/);
 });
+test('journeys reject cyclic/forward dependencies and street definitions outside their wake coverage', () => {
+  const enter = id => ({ ...party[1], id, requires: undefined });
+  assert.throws(() => parseSteps([{ ...enter('a'), requires: 'b' }, { ...enter('b'), requires: 'a' }], 'UTC'), /unknown earlier step/);
+  assert.throws(() => parseSteps([{ ...enter('a'), requires: 'b' }, enter('b')], 'UTC'), /unknown earlier step/);
+  assert.equal(parseSteps([enter('a'), { ...enter('b'), requires: 'a' }], 'UTC').length, 2);
+  assert.throws(() => parseSteps([{ ...enter('street'), zone: { kind: 'street', width: 20,
+    points: [{ lat: 41, lng: 29 }, { lat: 41.08, lng: 29 }] } }], 'UTC'), /3 km monitoring circle/);
+});
 
 test('saving steps turns a campaign into an audited zone campaign; codes redeem once and count in the funnel', async () => {
   const actor = 'journey-' + randomUUID(), id = randomUUID();

@@ -21,3 +21,32 @@ export function anonymousIdentity(postId: string, creatorId: string, viewerId: s
   return { creator_id: anonymous && creatorId !== viewerId ? postId : creatorId,
     creator_handle: anonymous ? null : undefined, is_anonymous: anonymous };
 }
+
+/** Public content has no legacy media locators or arbitrary metadata containing owner folders. */
+export function publicEditData(value: unknown): Record<string, unknown> {
+  const data = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const layers = Array.isArray(data.layers) ? data.layers : [];
+  const keys = ['id', 'type', 'text', 'color', 'opacity', 'scale', 'rotation', 'points', 'gifId', 'width', 'height',
+    'x', 'y', 'zIndex', 'strokeWidth', 'fontSize'];
+  const safe = layers.flatMap(raw => {
+    if (!raw || typeof raw !== 'object') return [];
+    const layer = raw as Record<string, unknown>, type = layer.type ?? layer.kind;
+    if (!['text', 'gif', 'drawing'].includes(String(type))) return [];
+    const cleaned: Record<string, unknown> = { type };
+    for (const key of keys) {
+      const item = layer[key];
+      if (['id', 'text', 'color', 'gifId'].includes(key) && typeof item === 'string') cleaned[key] = item;
+      else if (typeof item === 'number' && Number.isFinite(item)) cleaned[key] = item;
+    }
+    if (Array.isArray(layer.points)) cleaned.points = layer.points.slice(0, 2000).flatMap(point => {
+      if (!point || typeof point !== 'object') return [];
+      const p = point as { x?: unknown; y?: unknown };
+      return typeof p.x === 'number' && Number.isFinite(p.x) && typeof p.y === 'number' && Number.isFinite(p.y) ? [{ x: p.x, y: p.y }] : [];
+    });
+    return [cleaned];
+  });
+  const canvas = data.canvas as { width?: unknown; height?: unknown } | undefined;
+  const size = (v: unknown, fallback: number) => typeof v === 'number' && Number.isFinite(v) ? Math.min(4096, Math.max(1, v)) : fallback;
+  return { version: typeof data.version === 'number' ? data.version : 1, layers: safe,
+    canvas: { width: size(canvas?.width, 1080), height: size(canvas?.height, 1920) } };
+}

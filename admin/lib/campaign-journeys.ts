@@ -1,10 +1,11 @@
 import 'server-only';
 import { FieldValue, Timestamp, type Transaction } from 'firebase-admin/firestore';
 import { adminDb } from './firebase-admin';
-import { anyBlocked } from './content-moderation';
+import { anyBlocked, containsURL } from './content-moderation';
 import { permissionsFor } from './rbac';
 import { checkReceipt, ConflictError, mutationHash, requireActorAccountActive, writeAudit } from './ops';
 import { requiredString, uuid, ValidationError } from './validation';
+import { distanceMeters } from './geo';
 
 /**
  * Zone-campaign steps, validated with the same shape functions/src/journeyRules.ts admits.
@@ -27,7 +28,7 @@ function num(value: unknown, name: string, min: number, max: number): number {
 }
 function plain(value: unknown, name: string, max: number): string {
   const s = requiredString(value, name, 1, max);
-  if (anyBlocked([s]) || /[a-z][a-z0-9+.-]*:\/\/|www\./i.test(s)) throw new ValidationError(`${name}: only moderated text without links`);
+  if (anyBlocked([s]) || containsURL(s)) throw new ValidationError(`${name}: only moderated text without links`);
   return s;
 }
 const point = (p: unknown) => {
@@ -48,9 +49,15 @@ export function parseSteps(raw: unknown, timezone: string): JourneyStep[] {
     if (trigger !== 'leave_usual_place') {
       if (s.zone?.kind === 'circle') zone = { kind: 'circle', ...point(s.zone), radius: Math.round(num(s.zone.radius, `Step ${id} radius`, 15, 2_000)) };
       else if (s.zone?.kind === 'street') {
-        const points = (Array.isArray(s.zone.points) ? s.zone.points : []).map(point);
+        const points: Array<{ lat: number; lng: number }> = (Array.isArray(s.zone.points) ? s.zone.points : []).map(point);
         if (points.length < 2 || points.length > 20) throw new ValidationError(`Step ${id}: a street needs 2–20 points`);
         zone = { kind: 'street', points, width: Math.round(num(s.zone.width, `Step ${id} street width`, 10, 200)) };
+        // One native wake circle covers this whole step, with a 50 m walking margin.
+        const lat = points.reduce((sum, p) => sum + p.lat, 0) / points.length;
+        const lng = points.reduce((sum, p) => sum + p.lng, 0) / points.length;
+        if (Math.max(...points.map(p => distanceMeters(lat, lng, p.lat, p.lng))) + zone.width / 2 > 2_950) {
+          throw new ValidationError(`Step ${id}: street exceeds the 3 km monitoring circle; split it into shorter steps`);
+        }
       } else throw new ValidationError(`Step ${id}: a zone is required`);
     }
     const days: number[] = Array.isArray(s.schedule?.days) ? [...new Set<number>(s.schedule.days.map(Number))].filter(d => Number.isInteger(d) && d >= 0 && d <= 6) : [];
@@ -74,7 +81,11 @@ export function parseSteps(raw: unknown, timezone: string): JourneyStep[] {
       ...(s.budget != null && s.budget !== '' ? { budget: Math.round(num(Number(s.budget), `Step ${id} budget`, 1, 1_000_000)) } : {}),
     };
   });
-  for (const s of steps) if (s.requires && (!ids.has(s.requires) || s.requires === s.id)) throw new ValidationError(`Step ${s.id}: unknown earlier step ${s.requires}`);
+  const earlier = new Set<string>();
+  for (const s of steps) {
+    if (s.requires && !earlier.has(s.requires)) throw new ValidationError(`Step ${s.id}: unknown earlier step ${s.requires}`);
+    earlier.add(s.id);
+  }
   return steps;
 }
 

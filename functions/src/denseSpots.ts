@@ -2,7 +2,8 @@ import { onCall } from 'firebase-functions/v2/https';
 import { db, Timestamp, FieldValue, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES } from './core';
 import { requireActiveAccount } from './profileGuard';
 import { isPublicActive } from './counters';
-import { distanceMeters, encodeGeohash, geohashCoverPrefixes } from './geo';
+import { distanceMeters, encodeGeohash } from './geo';
+import { geoCandidates } from './geoQuery';
 import {
   distanceToSpot, fixIsFresh, fixUnlocksSpot, joinSpot, spotOf, validCoordinates, DEFAULT_DENSE_THRESHOLD, DEFAULT_UNLOCK_RADIUS_M,
   MAX_ENTRY_ACCURACY_M, MAX_SPOT_RADIUS_M, MAX_UNLOCK_RADIUS_M, MIN_SPOT_SIZE, MIN_UNLOCK_RADIUS_M, SPOT_JOIN_RADIUS_M,
@@ -12,8 +13,7 @@ import {
 /**
  * Spots are server-only clusters of public posts (notes within 25 m of a running centroid,
  * at most 40 m wide). A spot holding at least `dense_threshold` posts is dense: its text opens
- * only on site. Membership lives on the post (`spot_id`), so the count follows the real notes
- * instead of a fixed grid cell.
+ * only on site. A server-only membership record survives deletion until the count is settled.
  */
 export type SpotSettings = { denseThreshold: number; unlockRadius: number };
 
@@ -28,15 +28,15 @@ export async function spotSettings(tx?: FirebaseFirestore.Transaction): Promise<
 }
 
 const spots = () => db.collection('note_spots');
+const memberRef = (postId: string) => db.collection('note_spot_members').doc(postId);
 const unlockRef = (luid: string, spot: string) => db.collection('dense_spot_unlocks').doc(`${luid}_${spot}`);
 export const spotReceiptRef = (luid: string, spot: string) => db.collection('dense_spot_receipts').doc(`${luid}_${spot}`);
 type SpotDoc = Spot & { id: string; count: number };
 const spotData = (d: FirebaseFirestore.DocumentSnapshot): SpotDoc => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), radius: d.get('radius'), count: Number(d.get('count') ?? 0) });
 
 async function spotsNear(tx: FirebaseFirestore.Transaction, lat: number, lng: number, radius: number): Promise<SpotDoc[]> {
-  const prefixes = geohashCoverPrefixes(lat, lng, radius + MAX_SPOT_RADIUS_M);
-  const pages = await Promise.all(prefixes.map(p => tx.get(spots().orderBy('geohash').startAt(p).endAt(p + '\uf8ff').limit(300))));
-  return pages.flatMap(p => p.docs).map(spotData).filter(s => validCoordinates(s.lat, s.lng) && distanceToSpot(lat, lng, s) <= radius);
+  return (await geoCandidates(tx, spots(), lat, lng, radius + MAX_SPOT_RADIUS_M)).map(spotData)
+    .filter(s => distanceToSpot(lat, lng, s) <= radius);
 }
 
 /**
@@ -46,33 +46,62 @@ async function spotsNear(tx: FirebaseFirestore.Transaction, lat: number, lng: nu
  */
 export async function syncSpotMembership(postId: string) {
   await db.runTransaction(async tx => {
-    const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
+    const ref = db.collection('posts').doc(postId);
+    const [post, member] = await tx.getAll(ref, memberRef(postId)), data = post.data();
     const counted = !!data && isPublicActive(data) && validCoordinates(data.lat, data.lng);
-    const currentId = typeof data?.spot_id === 'string' ? data.spot_id : null;
+    const currentId = typeof member.get('spot_id') === 'string' ? member.get('spot_id') : typeof data?.spot_id === 'string' ? data.spot_id : null;
     const current = currentId ? await tx.get(spots().doc(currentId)) : null;
     const stillInside = counted && current?.exists && distanceMeters(data!.lat, data!.lng, current.get('lat'), current.get('lng')) <= MAX_SPOT_RADIUS_M;
-    if (stillInside) return;
+    if (stillInside) {
+      if (!member.exists) tx.set(member.ref, { post_id: postId, spot_id: currentId, owner_luid: data!.creator_id });
+      return;
+    }
     const nearby = counted ? await spotsNear(tx, data!.lat, data!.lng, SPOT_JOIN_RADIUS_M) : [];
-    const pages = counted && !nearby.length ? await Promise.all(geohashCoverPrefixes(data!.lat, data!.lng, SPOT_JOIN_RADIUS_M)
-      .map(p => tx.get(db.collection('posts').orderBy('geohash').startAt(p).endAt(p + '\uf8ff').limit(300)))) : [];
+    const candidates = counted && !nearby.length ? await geoCandidates(tx, db.collection('posts'), data!.lat, data!.lng, SPOT_JOIN_RADIUS_M) : [];
     // Reads are done; writes follow. The old spot loses the post unless it rejoins that same spot.
     const best = nearby.sort((a, b) => distanceMeters(data!.lat, data!.lng, a.lat, a.lng) - distanceMeters(data!.lat, data!.lng, b.lat, b.lng))[0];
     if (current?.exists && best?.id !== currentId) tx.update(current.ref, { count: FieldValue.increment(-1), updated_at: FieldValue.serverTimestamp() });
-    if (!counted) { if (currentId) tx.update(ref, { spot_id: FieldValue.delete() }); return; }
+    if (!counted) {
+      if (post.exists && data?.spot_id) tx.update(ref, { spot_id: FieldValue.delete() });
+      if (member.exists) tx.delete(member.ref);
+      return;
+    }
     if (best && best.id === currentId) return;
     if (best) {
       const next = joinSpot(best, data!.lat, data!.lng);
       tx.update(spots().doc(best.id), { ...next, geohash: encodeGeohash(next.lat, next.lng, 9), updated_at: FieldValue.serverTimestamp() });
       tx.update(ref, { spot_id: best.id });
+      tx.set(member.ref, { post_id: postId, spot_id: best.id, owner_luid: data!.creator_id });
       return;
     }
-    const members = [...new Map(pages.flatMap(p => p.docs).map(d => [d.id, d])).values()].filter(d => (d.id === postId || !d.get('spot_id')) && isPublicActive(d.data())
+    const members = candidates.filter(d => (d.id === postId || !d.get('spot_id')) && isPublicActive(d.data())
       && validCoordinates(d.get('lat'), d.get('lng')) && distanceMeters(data!.lat, data!.lng, d.get('lat'), d.get('lng')) <= SPOT_JOIN_RADIUS_M);
     if (!members.some(d => d.id === postId)) members.push(post as FirebaseFirestore.QueryDocumentSnapshot);
-    if (members.length < MIN_SPOT_SIZE) { if (currentId) tx.update(ref, { spot_id: FieldValue.delete() }); return; }
-    const spot = spotOf(members.map(d => ({ lat: d.get('lat'), lng: d.get('lng') }))), spotRef = spots().doc(postId);
+    if (members.length < MIN_SPOT_SIZE) {
+      if (currentId) tx.update(ref, { spot_id: FieldValue.delete() });
+      if (member.exists) tx.delete(member.ref);
+      return;
+    }
+    // Two writes per member, still below Firestore's 500-write transaction budget.
+    const selected = members.slice(0, 200);
+    const spot = spotOf(selected.map(d => ({ lat: d.get('lat'), lng: d.get('lng') }))), spotRef = spots().doc(postId);
     tx.set(spotRef, { ...spot, geohash: encodeGeohash(spot.lat, spot.lng, 9), created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
-    for (const m of members.slice(0, 200)) tx.update(m.ref, { spot_id: spotRef.id });
+    for (const m of selected) {
+      tx.update(m.ref, { spot_id: spotRef.id });
+      tx.set(memberRef(m.id), { post_id: m.id, spot_id: spotRef.id, owner_luid: m.get('creator_id') });
+    }
+  });
+}
+
+/** Idempotent legacy repair: derive the count from live source posts, never a historical delta. */
+export async function repairSpotCount(spotId: string) {
+  await db.runTransaction(async tx => {
+    const spot = await tx.get(spots().doc(spotId));
+    if (!spot.exists) return;
+    const posts = await tx.get(db.collection('posts').where('spot_id', '==', spotId)
+      .select('status', 'visibility', 'age_rating', 'deleted_at'));
+    const count = posts.docs.filter(post => isPublicActive(post.data())).length;
+    if (spot.get('count') !== count) tx.update(spot.ref, { count, updated_at: FieldValue.serverTimestamp() });
   });
 }
 

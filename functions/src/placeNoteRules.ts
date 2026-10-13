@@ -109,7 +109,7 @@ export type NoteCluster = { id: string; lat: number; lng: number; radius: number
 export function clusterNotes(notes: RankedNote[]): NoteCluster[] {
   const groups: RankedNote[][] = [];
   for (const note of [...notes].sort(compareByLikes)) {
-    const group = groups.find(g => distanceMeters(g[0].lat, g[0].lng, note.lat, note.lng) <= CLUSTER_RADIUS_M);
+    const group = groups.find(g => g.length < 50 && distanceMeters(g[0].lat, g[0].lng, note.lat, note.lng) <= CLUSTER_RADIUS_M);
     if (group) group.push(note); else groups.push([note]);
   }
   return groups.map(group => {

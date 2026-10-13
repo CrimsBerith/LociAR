@@ -3,6 +3,14 @@ import XCTest
 @testable import LociAR
 
 final class LocationNoteTests: XCTestCase {
+    func testLocationModeStopsAfterLastBackgroundTargetAndReturnsToLowPowerInForeground() {
+        XCTAssertEqual(ArrivalLocationMode.resolve(monitoring: true, foreground: false, authorized: true, fullAccuracy: true, hasPreciseTargets: true), .precise)
+        XCTAssertEqual(ArrivalLocationMode.resolve(monitoring: true, foreground: false, authorized: true, fullAccuracy: true, hasPreciseTargets: false), .stopped)
+        XCTAssertEqual(ArrivalLocationMode.resolve(monitoring: true, foreground: true, authorized: true, fullAccuracy: true, hasPreciseTargets: false), .lowPower)
+        XCTAssertEqual(ArrivalLocationMode.resolve(monitoring: false, foreground: true, authorized: true, fullAccuracy: true, hasPreciseTargets: true), .stopped)
+        XCTAssertEqual(ArrivalLocationMode.resolve(monitoring: true, foreground: true, authorized: false, fullAccuracy: true, hasPreciseTargets: true), .stopped)
+        XCTAssertEqual(ArrivalLocationMode.resolve(monitoring: true, foreground: false, authorized: true, fullAccuracy: false, hasPreciseTargets: true), .stopped)
+    }
     func testInterruptedNoteDeliveryRetainsItsIDWithoutStoringContentOrLocation() throws {
         let region = UUID(), now = Date()
         let attempt = PlaceNoteDeliveryAttempt(deliveryID: UUID(), createdAt: now)
