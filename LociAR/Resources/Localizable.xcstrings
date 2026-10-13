@@ -44867,6 +44867,83 @@
         }
       }
     },
+    "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS may limit background activity. If you force quit the app, location notifications may be delayed or may not arrive."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS kann die Hintergrundaktivität einschränken. Wenn du die App zwangsweise beendest, können Standortmitteilungen verspätet oder gar nicht eintreffen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS puede limitar la actividad en segundo plano. Si fuerzas el cierre de la app, las notificaciones de ubicación pueden retrasarse o no llegar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS peut limiter l’activité en arrière-plan. Si vous forcez la fermeture de l’app, les notifications de position peuvent être retardées ou ne pas arriver."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O iOS pode limitar a atividade em segundo plano. Se você fechar o app à força, as notificações de localização podem atrasar ou não chegar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS может ограничивать работу в фоне. Если принудительно закрыть приложение, уведомления о местоположении могут задержаться или не прийти."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قد يحدّ iOS من النشاط في الخلفية. إذا أغلقت التطبيق قسريًا، فقد تتأخر إشعارات الموقع أو لا تصل."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS बैकग्राउंड गतिविधि सीमित कर सकता है। अगर आप ऐप को बलपूर्वक बंद करते हैं, तो स्थान सूचनाएँ देर से आ सकती हैं या नहीं आ सकतीं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS পটভূমির কার্যকলাপ সীমিত করতে পারে। অ্যাপ জোর করে বন্ধ করলে অবস্থানের বিজ্ঞপ্তি দেরিতে আসতে পারে বা নাও আসতে পারে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS によりバックグラウンド動作が制限される場合があります。アプリを強制終了すると、位置情報の通知が遅れたり届かなかったりする場合があります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS 可能会限制后台运行。如果强制关闭应用，位置通知可能会延迟或无法送达。"
+          }
+        }
+      }
+    },
     "kullanıcı" : {
       "extractionState" : "manual",
       "localizations" : {

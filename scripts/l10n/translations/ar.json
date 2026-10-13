@@ -644,5 +644,6 @@
  "Kamerayla aç": "افتح بالكاميرا",
  "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "فعّل تحديث التطبيقات في الخلفية في إعدادات iOS لتلقي إشعارات الموقع.",
  "Konum bildirimleri hazır": "إشعارات الموقع جاهزة",
- "Konum bildirimleri için ayarları kontrol et": "تحقق من إعدادات إشعارات الموقع"
+ "Konum bildirimleri için ayarları kontrol et": "تحقق من إعدادات إشعارات الموقع",
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "قد يحدّ iOS من النشاط في الخلفية. إذا أغلقت التطبيق قسريًا، فقد تتأخر إشعارات الموقع أو لا تصل."
 }

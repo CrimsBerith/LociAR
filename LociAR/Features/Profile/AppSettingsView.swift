@@ -35,6 +35,8 @@ struct AppSettingsView: View {
                 }
                 Text("Beğeni, yorum, takip, konum notu ve yönetici mesajı bildirimlerini açar. Mesaj kilit ekranında görünebilir. Her zaman konum izniyle uygulama kapalıyken de beğenilen bir notun bulunduğu yere gelince haber verir; yalnızca not alanları izlenir, alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır ve konum geçmişin saklanmaz. Ölçümler yönetici konumuna eklenmez. Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.")
                     .font(.caption).foregroundStyle(.secondary)
+                Text("iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.")
+                    .font(.caption).foregroundStyle(.secondary)
                 // Marketing has its own opt-in (App Review 4.5.4), only available with Notifications on.
                 Toggle(String(localized: "Kampanyalar ve teklifler"), isOn: Binding(
                     get: { sharing.notificationsEnabled && sharing.promotionsEnabled },

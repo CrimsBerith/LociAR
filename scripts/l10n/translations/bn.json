@@ -644,5 +644,6 @@
  "Kamerayla aç": "ক্যামেরা দিয়ে খুলুন",
  "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "অবস্থানভিত্তিক বিজ্ঞপ্তির জন্য iOS সেটিংসে ব্যাকগ্রাউন্ড অ্যাপ রিফ্রেশ চালু করো।",
  "Konum bildirimleri hazır": "অবস্থানের বিজ্ঞপ্তি প্রস্তুত",
- "Konum bildirimleri için ayarları kontrol et": "অবস্থানের বিজ্ঞপ্তির সেটিংস দেখুন"
+ "Konum bildirimleri için ayarları kontrol et": "অবস্থানের বিজ্ঞপ্তির সেটিংস দেখুন",
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS পটভূমির কার্যকলাপ সীমিত করতে পারে। অ্যাপ জোর করে বন্ধ করলে অবস্থানের বিজ্ঞপ্তি দেরিতে আসতে পারে বা নাও আসতে পারে।"
 }

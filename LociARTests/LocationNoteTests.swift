@@ -47,6 +47,16 @@ final class LocationNoteTests: XCTestCase {
         XCTAssertTrue(confirmation.observe(sampleAt: start.addingTimeInterval(21)))
     }
 
+    func testLongCampaignWindowCannotReuseAnExpiredNoteConfirmation() {
+        var confirmation = LocationNoteEntryConfirmation()
+        let start = Date(timeIntervalSince1970: 1_000)
+        for second in stride(from: 0, through: 600, by: 2) { _ = confirmation.observe(sampleAt: start.addingTimeInterval(Double(second))) }
+        XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(602)), "server confirmation limit is 600 seconds even in a 30-minute campaign window")
+        XCTAssertEqual(confirmation.startedAt, start.addingTimeInterval(602))
+        for second in [604, 606, 608, 610] { XCTAssertFalse(confirmation.observe(sampleAt: start.addingTimeInterval(Double(second)))) }
+        XCTAssertTrue(confirmation.observe(sampleAt: start.addingTimeInterval(612)))
+    }
+
     func testRepeatedOrOlderFixesCannotConfirmNoteEntry() {
         var confirmation = LocationNoteEntryConfirmation()
         let start = Date(timeIntervalSince1970: 1_000)
@@ -92,6 +102,27 @@ final class LocationNoteTests: XCTestCase {
         // The weighted mean ignores the early Wi-Fi fixes and lands within a metre of the truth.
         XCTAssertLessThan(estimate.location.distance(from: CLLocation(latitude: 41, longitude: 29)), 1.5)
         guard case .gps = estimator.outcome else { return XCTFail("expected a GPS outcome") }
+    }
+
+    func testGPSAverageCrossesTheDateLineWithoutJumpingToGreenwich() throws {
+        var estimator = LocationFixEstimator(startedAt: start)
+        for (i, longitude) in [179.999999, -179.999999, 179.999998].enumerated() {
+            let time = start.addingTimeInterval(Double(i + 1))
+            estimator.add(.init(latitude: 40, longitude: longitude, accuracy: 5, timestamp: time), now: time)
+        }
+        let estimate = try XCTUnwrap(estimator.estimate)
+        XCTAssertGreaterThan(abs(estimate.longitude), 179.9999)
+        XCTAssertLessThan(estimate.location.distance(from: CLLocation(latitude: 40, longitude: 180)), 1)
+        XCTAssertTrue(estimator.isReady(now: start.addingTimeInterval(3)))
+    }
+
+    func testExtremeAccuracyCannotOverflowTheGPSAverage() throws {
+        var estimator = LocationFixEstimator(startedAt: start)
+        estimator.add(.init(latitude: 89.9998, longitude: 179.9, accuracy: 1e250, timestamp: start), now: start)
+        let estimate = try XCTUnwrap(estimator.estimate)
+        XCTAssertTrue(estimate.latitude.isFinite); XCTAssertTrue(estimate.longitude.isFinite)
+        XCTAssertEqual(estimate.accuracy, 1e250)
+        guard case .tooUncertain = estimator.outcome else { return XCTFail("unusable precision must never publish") }
     }
 
     func testUnstableOrWarmupFixesAreNotReady() {

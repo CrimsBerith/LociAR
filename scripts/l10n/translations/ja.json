@@ -644,5 +644,6 @@
  "Kamerayla aç": "カメラで開く",
  "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "位置情報の通知を受け取るには、iOSの設定でAppのバックグラウンド更新をオンにしてください。",
  "Konum bildirimleri hazır": "位置情報の通知は準備完了です",
- "Konum bildirimleri için ayarları kontrol et": "位置情報の通知設定を確認してください"
+ "Konum bildirimleri için ayarları kontrol et": "位置情報の通知設定を確認してください",
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS によりバックグラウンド動作が制限される場合があります。アプリを強制終了すると、位置情報の通知が遅れたり届かなかったりする場合があります。"
 }

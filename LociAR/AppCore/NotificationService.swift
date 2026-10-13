@@ -356,24 +356,59 @@ extension NotificationService: MessagingDelegate {
     }
 }
 
+@MainActor
 final class LociAppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        if launchOptions?[.location] != nil, !UITestFixtures.authenticatedSessionEnabled {
-            // A region wake must restore its manager and account before SwiftUI runs .task.
-            let configuration = AppConfiguration.load()
-            if configuration.configureFirebaseIfNeeded(), let firebase = configuration.firebase {
-                UserContextService.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
-                let id = FirebaseIdentity.currentLUID()
+    private var backgroundAuthListener: AuthStateDidChangeListenerHandle?
+    private var backgroundIdentityResolved = false
+
+    /// Every launch path restores the same account-scoped services, without profile networking.
+    private func restoreBackgroundServices() {
+        guard !UITestFixtures.authenticatedSessionEnabled else { return }
+        let configuration = AppConfiguration.load()
+        guard configuration.configureFirebaseIfNeeded(), let firebase = configuration.firebase else { return }
+        UserContextService.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
+        if let id = FirebaseIdentity.currentLUID() {
+            NotificationService.shared.setUser(id)
+            UserContextService.shared.setUser(id)
+        }
+        guard backgroundAuthListener == nil else { return }
+        backgroundAuthListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            let id = user.map { FirebaseIdentity.luid(forFirebaseUID: $0.uid) }
+            Task { @MainActor in
+                guard FirebaseIdentity.currentLUID() == id else { return }
+                self?.backgroundIdentityResolved = true
                 NotificationService.shared.setUser(id)
                 UserContextService.shared.setUser(id)
+                if id != nil, UIApplication.shared.applicationState != .active {
+                    CampaignArrivalService.shared.resumeBackgroundLocation()
+                }
             }
         }
+    }
+
+    private func prepareBackgroundWake() async -> Bool {
+        restoreBackgroundServices()
+        guard FirebaseApp.app() != nil, !UITestFixtures.authenticatedSessionEnabled else { return false }
+        let deadline = Date().addingTimeInterval(2)
+        while !backgroundIdentityResolved, FirebaseIdentity.currentLUID() == nil, Date() < deadline {
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return false }
+        }
+        guard !Task.isCancelled, let id = FirebaseIdentity.currentLUID() else { return false }
+        NotificationService.shared.setUser(id)
+        UserContextService.shared.setUser(id)
+        return true
+    }
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        restoreBackgroundServices()
+        if launchOptions?[.location] != nil { CampaignArrivalService.shared.resumeBackgroundLocation() }
         // Periodic refresh of monitored note and campaign regions (safety net for missed pushes).
         BGTaskScheduler.shared.register(forTaskWithIdentifier: CampaignArrivalService.refreshTaskID, using: nil) { task in
             CampaignArrivalService.scheduleBackgroundRefresh()
             let work = Task { @MainActor in
-                await CampaignArrivalService.shared.handleSilentRefresh()
-                task.setTaskCompleted(success: true)
+                guard await self.prepareBackgroundWake() else { task.setTaskCompleted(success: false); return }
+                let refreshed = await CampaignArrivalService.shared.handleSilentRefresh()
+                task.setTaskCompleted(success: refreshed && !Task.isCancelled)
             }
             task.expirationHandler = { work.cancel() }
         }
@@ -382,9 +417,10 @@ final class LociAppDelegate: NSObject, UIApplicationDelegate {
     /// Silent "region_refresh" pushes arrive when a campaign or notifying note goes live in this area.
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
         guard userInfo["type"] as? String == "region_refresh" else { return .noData }
-        await CampaignArrivalService.shared.handleSilentRefresh()
-        return .newData
+        guard await prepareBackgroundWake() else { return .noData }
+        return await CampaignArrivalService.shared.handleSilentRefresh() ? .newData : .noData
     }
+    func applicationProtectedDataDidBecomeAvailable(_ application: UIApplication) { restoreBackgroundServices() }
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         NotificationService.shared.didRegisterForRemoteNotifications(deviceToken: deviceToken)
     }

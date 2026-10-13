@@ -52,7 +52,8 @@ struct LocationNoteEntryConfirmation {
         guard sampleAt.timeIntervalSince1970.isFinite else { self = Self(); return false }
         if let lastGoodAt {
             guard sampleAt > lastGoodAt else { return false }
-            if sampleAt.timeIntervalSince(lastGoodAt) > LocationNotePolicy.maxConfirmationSampleGap {
+            if sampleAt.timeIntervalSince(lastGoodAt) > LocationNotePolicy.maxConfirmationSampleGap
+                || startedAt.map({ sampleAt.timeIntervalSince($0) > LocationNotePolicy.maxPreciseWindow }) == true {
                 startedAt = sampleAt
             }
         } else { startedAt = sampleAt }
@@ -142,12 +143,14 @@ struct LocationFixEstimator: Sendable {
     var estimate: LocationEstimate? {
         guard let best = bestAccuracy else { return nil }
         let good = samples.filter { $0.accuracy <= max(best * 1.5, best + 2) }
-        var weight = 0.0, lat = 0.0, lng = 0.0
+        var x = 0.0, y = 0.0, z = 0.0
         for sample in good {
-            let w = 1 / max(sample.accuracy * sample.accuracy, 1)
-            weight += w; lat += sample.latitude * w; lng += sample.longitude * w
+            // Relative inverse variance avoids overflow; spherical averaging crosses ±180° safely.
+            let relative = max(best, 1) / max(sample.accuracy, 1), w = relative * relative
+            let lat = sample.latitude * .pi / 180, lng = sample.longitude * .pi / 180
+            x += w * cos(lat) * cos(lng); y += w * cos(lat) * sin(lng); z += w * sin(lat)
         }
-        let mean = CLLocation(latitude: lat / weight, longitude: lng / weight)
+        let mean = CLLocation(latitude: atan2(z, hypot(x, y)) * 180 / .pi, longitude: atan2(y, x) * 180 / .pi)
         let spread = good.map { $0.location.distance(from: mean) }.max() ?? 0
         return LocationEstimate(latitude: mean.coordinate.latitude, longitude: mean.coordinate.longitude, accuracy: max(best, spread),
                                 timestamp: good.map(\.timestamp).max()!)
