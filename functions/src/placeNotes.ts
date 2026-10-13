@@ -2,16 +2,16 @@ import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { info } from 'firebase-functions/logger';
 import { db, Timestamp, FieldValue, requireCaller, isUUID, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES } from './core';
 import { createPostHandler, type LocationNoteMetadata } from './posts';
-import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
-import { isBlocked } from './anonymousAccess';
+import { requireActiveAccount } from './profileGuard';
+import { noteCandidate, readableNoteIds } from './placeNoteAccess';
 import { anyBlocked } from './moderation';
 import { denseSpotsNear, spotReceiptRef, spotSettings } from './denseSpots';
-import { isPublicActive } from './counters';
 import { distanceMeters, geohashCoverPrefixes } from './geo';
 import {
   clampNotifyRadius, clusterNotes, compareByLikes, confirmationValid, defaultNotifyRadius, fixInsideNote, fixIsFresh,
   validCoordinates, WAKE_RADIUS_MIN_M, ENTRY_TOLERANCE_CAP_M, MAX_CREATE_ACCURACY_M, MAX_ENTRY_ACCURACY_M, MAX_NOTIFY_RADIUS_M, MAX_PIN_DRAG_M,
   REGION_SEARCH_RADIUS_M, SPOT_TRIGGER_RADIUS_M, stableUuid, type Fix, type FixSource, type RankedNote,
+  deliveryRetryActive, DELIVERY_RETRY_WINDOW_MS,
 } from './placeNoteRules';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 60 };
@@ -96,14 +96,20 @@ async function noteNotification(tx: FirebaseFirestore.Transaction, top: Firebase
   return { notify: true, body: top.get('caption'), postId: top.id, activityId, recipientId: luid, likes: Number(top.get('likes_count') ?? 0), total };
 }
 
-/** Approved, live, not own, author visible, not blocked and not reported by the viewer. */
-async function readable(tx: FirebaseFirestore.Transaction, p: FirebaseFirestore.DocumentSnapshot, luid: string) {
-  const data = p.data();
-  if (!data || !isPublicActive(data) || data.push_state !== 'approved' || data.creator_id === luid) return false;
-  const [author, deletion] = await tx.getAll(db.collection('profiles').doc(data.creator_id), accountDeletionRef(data.creator_id));
-  if (profileBlock(author.data()) || deletion.exists || await isBlocked(luid, data.creator_id, tx)) return false;
-  const reports = await tx.get(db.collection('moderation_flags').where('user_id', '==', luid).where('post_id', '==', p.id).limit(1));
-  return reports.empty;
+function retryActive(receipt: FirebaseFirestore.DocumentSnapshot, now: number) {
+  const created = receipt.get('created_at'), until = receipt.get('retry_until');
+  return deliveryRetryActive(created instanceof Timestamp ? created.toMillis() : null, now, until instanceof Timestamp ? until.toMillis() : null);
+}
+
+/** Read lifetime receipts first, so seen/expired notes do not trigger author and report reads. */
+async function unseenNotes(tx: FirebaseFirestore.Transaction, posts: FirebaseFirestore.DocumentSnapshot[], luid: string, now: number, includePending: boolean) {
+  const candidates = posts.filter(post => noteCandidate(post, luid));
+  if (!candidates.length) return [];
+  const receipts = await tx.getAll(...candidates.map(post => receiptRef(luid, post.id)));
+  const unseen = candidates.filter((_, index) => !receipts[index].exists
+    || includePending && receipts[index].get('delivery_state') === 'pending' && retryActive(receipts[index], now));
+  const readable = await readableNoteIds(tx, unseen, luid);
+  return unseen.filter(post => readable.has(post.id));
 }
 
 async function notificationsAllowed(tx: FirebaseFirestore.Transaction, luid: string) {
@@ -124,19 +130,15 @@ export const readPlaceNoteRegions = onCall(options, async request => {
     if (!await notificationsAllowed(tx, caller.luid)) return { regions: [] };
     const near = (await approvedNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M))
       .sort((a, b) => distanceMeters(f.lat, f.lng, a.get('lat'), a.get('lng')) - distanceMeters(f.lat, f.lng, b.get('lat'), b.get('lng')));
-    const unseen: RankedNote[] = [];
     // Identity and report checks are bounded; farther notes are picked up on a later refresh.
-    for (const p of near.slice(0, 80)) {
-      if (!await readable(tx, p, caller.luid)) continue;
-      const receipt = await tx.get(receiptRef(caller.luid, p.id));
-      if (receipt.exists && receipt.get('delivery_state') !== 'pending') continue;
-      unseen.push(ranked(p));
-    }
+    const unseen = (await unseenNotes(tx, near.slice(0, 80), caller.luid, now, true)).map(ranked);
     // Dense spots (30+ notes) wake the phone for a text-free "many notes here" alert, once per 30 days.
     const settings = await spotSettings(tx);
     const spots = [];
-    for (const spot of (await denseSpotsNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M, settings.denseThreshold)).slice(0, 30)) {
-      const receipt = await tx.get(spotReceiptRef(caller.luid, spot.id));
+    const nearbySpots = (await denseSpotsNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M, settings.denseThreshold)).slice(0, 30);
+    const spotReceipts = nearbySpots.length ? await tx.getAll(...nearbySpots.map(spot => spotReceiptRef(caller.luid, spot.id))) : [];
+    for (const [index, spot] of nearbySpots.entries()) {
+      const receipt = spotReceipts[index];
       if (receipt.exists && receipt.get('expires_at') instanceof Timestamp && receipt.get('expires_at').toMillis() > now) continue;
       const r = Math.min(MAX_NOTIFY_RADIUS_M, Math.max(SPOT_TRIGGER_RADIUS_M, Math.ceil(spot.radius + 10)));
       spots.push({ id: stableUuid(`dense:${spot.id}`), lat: spot.lat, lng: spot.lng, radius: WAKE_RADIUS_MIN_M,
@@ -184,10 +186,11 @@ async function recordPlaceNoteVisitHandler(request: CallableRequest) {
       const previous = await tx.get(deliveryRef(caller.luid, deliveryId));
       if (previous.exists) {
         if (previous.get('delivery_state') === 'queued') return { notify: false, reason: 'already_queued' };
+        if (!retryActive(previous, now)) return { notify: false, reason: 'delivery_expired' };
         const postId = previous.get('post_id');
         if (typeof postId === 'string') {
           const post = await tx.get(db.collection('posts').doc(postId));
-          if (!await readable(tx, post, caller.luid) || !fixInsideNote(f, post.get('lat'), post.get('lng'), clampNotifyRadius(post.get('notify_radius_m')))) return { notify: false, reason: 'delivery_unavailable' };
+          if (!(await readableNoteIds(tx, [post], caller.luid)).has(post.id) || !fixInsideNote(f, post.get('lat'), post.get('lng'), clampNotifyRadius(post.get('notify_radius_m')))) return { notify: false, reason: 'delivery_unavailable' };
           return { ...await noteNotification(tx, post, caller.luid, now, Number(previous.get('total') ?? 1)), deliveryId };
         }
         const spot = await tx.get(db.collection('note_spots').doc(previous.get('spot'))), settings = await spotSettings(tx);
@@ -200,12 +203,7 @@ async function recordPlaceNoteVisitHandler(request: CallableRequest) {
     const inside = (await approvedNear(tx, f.lat, f.lng, MAX_NOTIFY_RADIUS_M + ENTRY_TOLERANCE_CAP_M + 5))
       .filter(p => fixInsideNote(f, p.get('lat'), p.get('lng'), clampNotifyRadius(p.get('notify_radius_m'))))
       .sort((a, b) => compareByLikes(ranked(a), ranked(b)));
-    const eligible: FirebaseFirestore.DocumentSnapshot[] = [];
-    for (const p of inside.slice(0, 40)) {
-      if (!await readable(tx, p, caller.luid)) continue;
-      if ((await tx.get(receiptRef(caller.luid, p.id))).exists) continue;
-      eligible.push(p);
-    }
+    const eligible = await unseenNotes(tx, inside.slice(0, 40), caller.luid, now, false);
     const top = eligible[0];
     if (!top) {
       // No approved note here: a dense spot still earns one text-free alert per 30 days.
@@ -218,7 +216,7 @@ async function recordPlaceNoteVisitHandler(request: CallableRequest) {
         tx.set(receipt.ref, { owner_luid: caller.luid, spot: spot.id, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
         const activityId = `dense_spot_${caller.luid}_${spot.id}${deliveryId ? `_${deliveryId}` : ''}`;
         if (deliveryId) tx.create(deliveryRef(caller.luid, deliveryId), { owner_luid: caller.luid, spot: spot.id, activity_id: activityId,
-          delivery_state: 'pending', created_at: FieldValue.serverTimestamp() });
+          delivery_state: 'pending', created_at: Timestamp.fromMillis(now), retry_until: Timestamp.fromMillis(now + DELIVERY_RETRY_WINDOW_MS) });
         return { notify: true, kind: 'dense_spot', total: spot.count, spotLat: spot.lat, spotLng: spot.lng, unlockRadius: settings.unlockRadius,
           activityId, recipientId: caller.luid, ...(deliveryId ? { deliveryId } : {}) };
       }
@@ -227,10 +225,10 @@ async function recordPlaceNoteVisitHandler(request: CallableRequest) {
     const activityId = `place_note_${caller.luid}_${top.id}`;
     const notification = await noteNotification(tx, top, caller.luid, now, eligible.length);
     // No expiry: the same note is never sent to the same person again.
-    tx.create(receiptRef(caller.luid, top.id), { owner_luid: caller.luid, post_id: top.id, created_at: FieldValue.serverTimestamp(),
-      ...(deliveryId ? { delivery_id: deliveryId, delivery_state: 'pending' } : {}) });
+    tx.create(receiptRef(caller.luid, top.id), { owner_luid: caller.luid, post_id: top.id, created_at: Timestamp.fromMillis(now),
+      ...(deliveryId ? { delivery_id: deliveryId, delivery_state: 'pending', retry_until: Timestamp.fromMillis(now + DELIVERY_RETRY_WINDOW_MS) } : {}) });
     if (deliveryId) tx.create(deliveryRef(caller.luid, deliveryId), { owner_luid: caller.luid, post_id: top.id, total: eligible.length,
-      activity_id: activityId, delivery_state: 'pending', created_at: FieldValue.serverTimestamp() });
+      activity_id: activityId, delivery_state: 'pending', created_at: Timestamp.fromMillis(now), retry_until: Timestamp.fromMillis(now + DELIVERY_RETRY_WINDOW_MS) });
     tx.set(db.collection('activity_events').doc(activityId), { kind: 'place_note', anonymous: true, actor_id: null, recipient_id: caller.luid,
       post_id: top.id, body: top.get('caption'), read_at: null, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
     return { ...notification, ...(deliveryId ? { deliveryId } : {}) };

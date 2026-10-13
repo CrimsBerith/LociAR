@@ -1,5 +1,7 @@
 # Konum bildirimi ve sorgu iyileştirmeleri — 13 Ekim 2026
 
+**Sonraki aday:** [onay kuyruğu, süre sınırı ve toplu okuma optimizasyonları](LOCATION_QUEUE_OPTIMIZATIONS_2026-10-13.md). Aşağıdaki sayılar bu ilk iyileştirme adayının kanıtıdır.
+
 [Önceki adayın devamı](LOCATION_ANONYMITY_FIXES_2026-10-13.md). Bu çalışma kod düzeltmeleri, yerel doğrulama ve canlı Firebase/App Hosting dağıtımını kapsar. Fiziksel iPhone kabulü kullanıcının önceki kararıyla sonraya bırakıldı.
 
 ## Düzeltilenler

@@ -7,15 +7,6 @@ import OSLog
 import UIKit
 import UserNotifications
 
-/// Contains only random delivery IDs and notification IDs, scoped to the signed-in account.
-/// Captions and GPS fixes are never retained for offline notification delivery.
-struct PlaceNoteDeliveryAttempt: Codable, Equatable {
-    let deliveryID: UUID
-    let createdAt: Date
-    var queuedActivityID: String?
-    func isUsable(at now: Date) -> Bool { now.timeIntervalSince(createdAt) >= -10 && now.timeIntervalSince(createdAt) < 86_400 }
-}
-
 /// Only acknowledged, account-scoped choices may restart monitoring on a background launch.
 struct ArrivalMonitoringPreferences {
     let enabled: Bool
@@ -157,6 +148,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     @ObservationIgnored private var nextAttempt: [UUID: Date] = [:]
     @ObservationIgnored private var failures: [UUID: Int] = [:]
     @ObservationIgnored private var noteDeliveries: [UUID: PlaceNoteDeliveryAttempt] = [:]
+    @ObservationIgnored private let acknowledgementPump = PlaceNoteAcknowledgementPump()
     @ObservationIgnored private var lowPower = false
     @ObservationIgnored private var preciseWindowLong = false
     @ObservationIgnored private var monitoringSignificantChanges = false
@@ -198,6 +190,17 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         if noteDeliveries.isEmpty { UserDefaults.standard.removeObject(forKey: deliveriesKey(userID)) }
         else if let data = try? JSONEncoder().encode(noteDeliveries) { UserDefaults.standard.set(data, forKey: deliveriesKey(userID)) }
     }
+    private func pruneNoteDeliveries(at now: Date = Date()) {
+        let expired = PlaceNoteDeliveryAttempt.expiredRegions(in: noteDeliveries, at: now)
+        guard !expired.isEmpty else { return }
+        for id in expired {
+            noteDeliveries.removeValue(forKey: id)
+            leavePlaceNoteRegion(id); regions.removeValue(forKey: id); pending.remove(id)
+            if let userID, let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(userID) + id.uuidString.lowercased() }) { manager.stopMonitoring(for: region) }
+        }
+        persistNoteDeliveries()
+        if let userID, let data = try? JSONEncoder().encode(Array(regions.values)) { UserDefaults.standard.set(data, forKey: regionsKey(userID)) }
+    }
     private func promotionsKey(_ id: UUID) -> String { "lociar.promotions.enabled.\(id.uuidString)" }
     private func prefix(_ id: UUID) -> String { "lociar.arrival.\(id.uuidString.lowercased())." }
     private func usualKey(_ id: UUID) -> String { "lociar.usual-place.\(id.uuidString)" }
@@ -217,6 +220,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
 
     func setUser(_ id: UUID?) {
         guard id != userID else { return }
+        acknowledgementPump.cancel()
         if let previous = userID { UserDefaults.standard.removeObject(forKey: deliveriesKey(previous)) }
         stopPreciseWindow(); manager.stopUpdatingLocation()
         generation += 1; pending.removeAll(); regions.removeAll(); armedExits.removeAll(); endBackgroundTask()
@@ -231,7 +235,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             let saved = ArrivalMonitoringPreferences(userID: id, defaults: defaults)
             enabled = saved.enabled; placeNotesEnabled = saved.placeNotes; promotionsEnabled = saved.promotions
             if placeNotesEnabled, let data = defaults.data(forKey: deliveriesKey(id)), let saved = try? JSONDecoder().decode([UUID: PlaceNoteDeliveryAttempt].self, from: data) {
-                noteDeliveries = saved.filter { $0.value.isUsable(at: Date()) }
+                noteDeliveries = saved
             }
             if let data = defaults.data(forKey: regionsKey(id)), let saved = try? JSONDecoder().decode([CampaignRegion].self, from: data) {
                 regions = Dictionary(saved.filter { $0.isUsable(at: Date()) }.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -242,6 +246,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                 usualLearner = defaults.data(forKey: usualKey(id)).flatMap { try? JSONDecoder().decode(UsualPlaceLearner.self, from: $0) } ?? UsualPlaceLearner()
             }
         }
+        pruneNoteDeliveries()
         removeDisabledRegions()
         updatePermissionState()
         if !enabled { stopRegions() }
@@ -334,7 +339,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     }
 
     private func removeDisabledRegions() {
-        if !placeNotesEnabled { noteDeliveries.removeAll(); persistNoteDeliveries() }
+        if !placeNotesEnabled { acknowledgementPump.cancel(); noteDeliveries.removeAll(); persistNoteDeliveries() }
         let removed = regions.values.filter { $0.isPlaceNote ? !placeNotesEnabled : !promotionsEnabled }.map(\.id)
         for id in removed {
             leavePlaceNoteRegion(id); regions.removeValue(forKey: id); pending.remove(id); armedExits.remove(id)
@@ -349,6 +354,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     }
 
     private func stopRegions() {
+        acknowledgementPump.cancel()
         stopPreciseWindow()
         manager.stopUpdatingLocation()
         for region in manager.monitoredRegions where Self.ownsRegion(region.identifier) { manager.stopMonitoring(for: region) }
@@ -389,12 +395,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         syncing = true
         defer { syncing = false }
         do {
-            noteDeliveries = noteDeliveries.filter { $0.value.isUsable(at: Date()) }
-            persistNoteDeliveries()
-            for region in Array(noteDeliveries.keys) {
-                await acknowledgeNoteDelivery(region, account: id, epoch: epoch)
-                guard enabled, epoch == generation, userID == id else { return }
-            }
+            pruneNoteDeliveries()
+            scheduleNoteAcknowledgements(account: id, epoch: epoch)
             var all: [CampaignRegion] = []
             if promotionsEnabled {
                 let response: RegionResponse = try await callables.call("readCampaignRegions", payload: EmptyPayload(userId: FirebaseIdentity.key(id)))
@@ -754,14 +756,25 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         var deliveryId: String? = nil
     }
 
-    private func acknowledgeNoteDelivery(_ region: UUID, account: UUID, epoch: Int) async {
+    private func scheduleNoteAcknowledgements(account: UUID, epoch: Int) {
+        guard enabled, placeNotesEnabled, userID == account, generation == epoch else { return }
+        let queued = noteDeliveries.filter { $0.value.queuedActivityID != nil }
+            .sorted { $0.value.createdAt < $1.value.createdAt }.map(\.key)
+        acknowledgementPump.schedule(queued) { [weak self] region in
+            guard let self else { return false }
+            return await self.acknowledgeNoteDelivery(region, account: account, epoch: epoch)
+        }
+    }
+
+    private func acknowledgeNoteDelivery(_ region: UUID, account: UUID, epoch: Int) async -> Bool {
         guard enabled, placeNotesEnabled, userID == account, generation == epoch,
-              let attempt = noteDeliveries[region], attempt.queuedActivityID != nil, let callables else { return }
+              let attempt = noteDeliveries[region], attempt.isUsable(at: Date()), attempt.queuedActivityID != nil, let callables else { return false }
         do {
             let _: ArrivalResponse = try await callables.call("recordPlaceNoteVisit", payload: NoteAcknowledgement(deliveryId: attempt.deliveryID.uuidString.lowercased()), timeout: 5)
-            guard userID == account, generation == epoch, noteDeliveries[region]?.deliveryID == attempt.deliveryID else { return }
+            guard enabled, placeNotesEnabled, userID == account, generation == epoch, noteDeliveries[region]?.deliveryID == attempt.deliveryID else { return false }
             noteDeliveries.removeValue(forKey: region); persistNoteDeliveries()
-        } catch { /* Already queued locally; retain only the acknowledgement for a later sync. */ }
+            return true
+        } catch { return false } // Keep only the ACK metadata; region refresh never waits for it.
     }
 
     /// Location notes carry no venue name: the title counts new notes and the body leads with likes.
@@ -813,7 +826,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                     }
                     let attempt = noteDeliveries[campaign]!
                     if attempt.queuedActivityID != nil {
-                        await acknowledgeNoteDelivery(campaign, account: id, epoch: epoch)
+                        scheduleNoteAcknowledgements(account: id, epoch: epoch)
                         if epoch == generation, userID == id { leavePlaceNoteRegion(campaign) }
                         continue
                     }
@@ -823,7 +836,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                     guard epoch == generation, userID == id else { break }
                     failures.removeValue(forKey: campaign)
                     // Everything here was already delivered: stop measuring for this cluster.
-                    if !result.notify, ["nothing_new", "already_queued", "delivery_unavailable", "disabled"].contains(result.reason ?? "") {
+                    if !result.notify, ["nothing_new", "already_queued", "delivery_unavailable", "delivery_expired", "disabled"].contains(result.reason ?? "") {
                         noteDeliveries.removeValue(forKey: campaign); persistNoteDeliveries(); leavePlaceNoteRegion(campaign)
                     }
                     if !result.notify, ["stale_fix", "inaccurate_fix", "unconfirmed"].contains(result.reason ?? ""),
@@ -874,7 +887,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                     }
                     noteDeliveries[campaign]?.queuedActivityID = activity; persistNoteDeliveries()
                     leavePlaceNoteRegion(campaign) // Only stop GPS after local queueing succeeds.
-                    await acknowledgeNoteDelivery(campaign, account: id, epoch: epoch)
+                    scheduleNoteAcknowledgements(account: id, epoch: epoch)
                 }
                 if !placeNote, stepRegion == nil {
                     if let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(id) + post }) { manager.stopMonitoring(for: region) }

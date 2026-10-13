@@ -1,9 +1,11 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { adminDb, closeClients, newAnonymousUser, newUser, expectFailure } from './_harness.mjs';
 import { expireDueNotes } from '../../lib/noteDensity.js';
+import { db } from '../../lib/core.js';
+import { readableNoteIds } from '../../lib/placeNoteAccess.js';
 after(closeClients);
 
 const METER = 1 / 111_320;
@@ -122,6 +124,55 @@ test('wake regions list only approved notes the visitor has not received, withou
   assert.equal(JSON.stringify(region).includes(f.author.luid), false);
   assert.equal((await f.visit()).notify, true);
   assert.equal((await read()).length, 0, 'a received note no longer occupies a monitored region');
+});
+
+test('pending delivery expiry frees wake regions while lifetime receipts still prevent duplicate notes', async () => {
+  const f = await fixture(); await approve(f.n);
+  const deliveryId = randomUUID(), payload = () => ({ deliveryId, location: fix(f.point.lat, f.point.lng), confirmationStartedAt: Date.now() - 11_000 });
+  const first = await f.visitor.call('recordPlaceNoteVisit', payload()); assert.equal(first.notify, true);
+  const postReceipt = adminDb.collection('place_note_notification_receipts').doc(`post_${f.visitor.luid}_${f.n.created.post.id}`);
+  const requestReceipt = adminDb.collection('place_note_notification_receipts').doc(`delivery_${f.visitor.luid}_${deliveryId}`);
+  const read = () => f.visitor.call('readPlaceNoteRegions', { location: fix(f.point.lat, f.point.lng) });
+  assert.ok((await read()).regions.some(region => region.id === f.n.created.post.id));
+  assert.ok((await postReceipt.get()).get('retry_until') instanceof Timestamp);
+  // Old deployed receipts lack retry_until: created_at still provides the same bound.
+  for (const ref of [postReceipt, requestReceipt]) await ref.set({ created_at: Timestamp.fromMillis(Date.now() - 86_401_000), retry_until: Timestamp.fromMillis(Date.now() + 86_400_000) }, { merge: true });
+  await postReceipt.update({ retry_until: FieldValue.delete() });
+  assert.equal((await read()).regions.length, 0);
+  assert.equal((await f.visitor.call('recordPlaceNoteVisit', payload())).reason, 'delivery_expired');
+  assert.equal((await f.visitor.call('recordPlaceNoteVisit', { ...payload(), deliveryId: randomUUID() })).notify, false);
+  assert.equal((await postReceipt.get()).exists, true, 'expiry never removes the lifetime once-per-note fence');
+  assert.equal((await postReceipt.get()).get('expires_at'), undefined, 'no TTL on lifetime receipts');
+  await f.visitor.call('recordPlaceNoteVisit', { action: 'acknowledge', deliveryId });
+  assert.equal((await requestReceipt.get()).get('delivery_state'), 'queued', 'a late queue acknowledgement remains valid');
+});
+
+test('shared author checks read six documents total and reports/blocks are rechecked on the next transaction', async () => {
+  const f = await fixture(); await approve(f.n);
+  const extra = await note(f.author, north(f.point, 4)); await approve(extra);
+  let batches;
+  const read = () => db.runTransaction(async tx => {
+    const posts = await tx.getAll(db.collection('posts').doc(f.n.created.post.id), db.collection('posts').doc(extra.created.post.id));
+    batches = [];
+    const observed = new Proxy(tx, { get(target, key) {
+      if (key === 'getAll') return (...refs) => { batches.push(refs.map(ref => ref.path)); return target.getAll(...refs); };
+      const value = Reflect.get(target, key); return typeof value === 'function' ? value.bind(target) : value;
+    } });
+    return readableNoteIds(observed, posts, f.visitor.luid);
+  });
+  assert.equal((await read()).size, 2);
+  assert.deepEqual(batches.map(batch => batch.length), [2, 4], 'two notes from one author need six, not twelve author/block documents');
+  const report = adminDb.collection('moderation_flags').doc(randomUUID());
+  await report.set({ user_id: f.visitor.luid, post_id: extra.created.post.id });
+  assert.deepEqual([...await read()], [f.n.created.post.id]);
+  for (const collection of ['user_blocks', 'anonymous_blocks']) for (const [a, b] of [[f.visitor.luid, f.author.luid], [f.author.luid, f.visitor.luid]]) {
+    const ref = adminDb.collection(collection).doc(`${a}_${b}`);
+    await ref.set({ blocker_id: a, blocked_id: b }); assert.equal((await read()).size, 0); await ref.delete();
+  }
+  await adminDb.collection('profiles').doc(f.author.luid).update({ suspended: true }); assert.equal((await read()).size, 0);
+  assert.deepEqual(batches.map(batch => batch.length), [2], 'suspended authors incur no block or report reads');
+  await adminDb.collection('profiles').doc(f.author.luid).update({ suspended: false }); assert.equal((await read()).size, 1);
+  await adminDb.collection('account_deletion_jobs').doc(f.author.luid).set({ status: 'pending' }); assert.equal((await read()).size, 0);
 });
 
 test('a visit sends the most-liked unseen note once, then the next one; never the same note twice', async () => {

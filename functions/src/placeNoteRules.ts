@@ -25,6 +25,15 @@ export const MAX_FIX_AGE_MS = 10_000;
 export const MIN_CONFIRMATION_MS = 10_000;
 /** The native precise window lasts at most 10 minutes. */
 export const MAX_CONFIRMATION_MS = 600_000;
+/** Matches PlaceNoteDeliveryAttempt on iOS. Lifetime post receipts themselves never expire. */
+export const DELIVERY_RETRY_WINDOW_MS = 86_400_000;
+export function deliveryRetryActive(createdAtMs: number | null, now: number, retryUntilMs?: number | null): boolean {
+  if (createdAtMs === null || !Number.isFinite(createdAtMs) || !Number.isFinite(now) || createdAtMs > now + 10_000) return false;
+  const deadline = createdAtMs + DELIVERY_RETRY_WINDOW_MS;
+  // A stored deadline may shorten the window, but can never extend it beyond one day.
+  const until = typeof retryUntilMs === 'number' && Number.isFinite(retryUntilMs) ? Math.min(deadline, retryUntilMs) : deadline;
+  return now < until;
+}
 export const CLUSTER_RADIUS_M = 25;
 /** Wake ahead of the note so GPS can settle before a visitor reaches a shop-sized circle. */
 export const WAKE_RADIUS_MIN_M = 300;

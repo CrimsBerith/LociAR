@@ -6,10 +6,13 @@ import { isPublicActive } from './counters';
 import { denseLocks } from './denseSpots';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
-export async function isBlocked(a: string, b: string, tx?: FirebaseFirestore.Transaction): Promise<boolean> {
-  const refs = ['user_blocks', 'anonymous_blocks'].flatMap(collection => [
+export function blockRefs(a: string, b: string) {
+  return ['user_blocks', 'anonymous_blocks'].flatMap(collection => [
     db.collection(collection).doc(`${a}_${b}`), db.collection(collection).doc(`${b}_${a}`),
   ]);
+}
+export async function isBlocked(a: string, b: string, tx?: FirebaseFirestore.Transaction): Promise<boolean> {
+  const refs = blockRefs(a, b);
   return (await (tx ? tx.getAll(...refs) : db.getAll(...refs))).some(doc => doc.exists);
 }
 

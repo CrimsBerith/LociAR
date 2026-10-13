@@ -4,10 +4,21 @@ import { encodeGeohash } from '../lib/geo.js';
 import {
   clampNotifyRadius, clusterNotes, compareByLikes, confirmationValid, defaultNotifyRadius, densityCells, densityQueryPrefixes,
   fixInsideNote, fixIsFresh, geohashBounds, geohashesInBox, validBox, campaignEntryRadius, distanceToSpot, fixUnlocksSpot, joinSpot, spotOf, stableUuid,
+  deliveryRetryActive, DELIVERY_RETRY_WINDOW_MS,
 } from '../lib/placeNoteRules.js';
 
 const METER = 1 / 111_320; // degrees of latitude per metre
 const at = (north, accuracy, measuredAt = Date.now()) => ({ lat: 41 + north * METER, lng: 29, accuracy, measuredAt });
+
+test('delivery retry windows expire exactly at one day and malformed/future receipts fail closed', () => {
+  const now = 1_800_000_000_000, day = 86_400_000;
+  assert.equal(DELIVERY_RETRY_WINDOW_MS, day);
+  assert.equal(deliveryRetryActive(now - day + 1, now), true);
+  assert.equal(deliveryRetryActive(now - day, now), false);
+  assert.equal(deliveryRetryActive(now - day - 1, now, now + day), false, 'a stored deadline cannot extend a legacy receipt');
+  assert.equal(deliveryRetryActive(now - 1000, now, now), false, 'a stored deadline may shorten retries');
+  for (const value of [null, NaN, Infinity, now + 10_001]) assert.equal(deliveryRetryActive(value, now), false);
+});
 
 test('radius tiers follow how the author position was measured', () => {
   assert.equal(defaultNotifyRadius('geospatial', 3), 15);

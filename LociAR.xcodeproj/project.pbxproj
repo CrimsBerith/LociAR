@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0684C5B54CBF82C365DD6006 /* CampaignZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3FB9C9D3DD465022F5FCB /* CampaignZone.swift */; };
 		07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B673A12AAA93EA6AEF0A6476 /* AppSession.swift */; };
+		11D6F42EE2E0C8ECC2BC223C /* PlaceNoteDeliveryRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10B71841DEEEB76A6112317 /* PlaceNoteDeliveryRecoveryTests.swift */; };
 		15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */; };
 		17F3C538925E63AA7FE82E27 /* ARCoreGeospatial in Frameworks */ = {isa = PBXBuildFile; productRef = E659B09B1577861722AADEC8 /* ARCoreGeospatial */; };
 		1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */; };
@@ -74,6 +75,7 @@
 		A9F8BB7422598DD2E9795B48 /* ARCoreGARSession in Frameworks */ = {isa = PBXBuildFile; productRef = 8C118F10620E3EACA2FE5BA6 /* ARCoreGARSession */; };
 		AC781F66C329CD3224975507 /* PinCommitCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597BC7A038A1D23F0F47A688 /* PinCommitCoordinator.swift */; };
 		B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */; };
+		B31FC4474D83FEF5FE421C8D /* PlaceNoteDeliveryRecovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3C669048AEFCDD2404B036 /* PlaceNoteDeliveryRecovery.swift */; };
 		B392B96F3820C075F8BF6136 /* ProximityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041909C4E5F7479357846A3E /* ProximityPolicy.swift */; };
 		B3BD1873F8234F1D6A6A6AC1 /* LocationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9309C5EFBE40B5DE193B3ECF /* LocationController.swift */; };
 		B4E3F30C661575D41B716ED9 /* LociARApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */; };
@@ -208,6 +210,7 @@
 		BA62B95714894BC9F4BABA0F /* LocationNoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNoteTests.swift; sourceTree = "<group>"; };
 		BC4C259A333DB3649222F01A /* LociAR.Release.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LociAR.Release.entitlements; sourceTree = "<group>"; };
 		BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifRepository.swift; sourceTree = "<group>"; };
+		C10B71841DEEEB76A6112317 /* PlaceNoteDeliveryRecoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceNoteDeliveryRecoveryTests.swift; sourceTree = "<group>"; };
 		CFB8A5BAB83F4214657CF863 /* LocationNotePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNotePolicy.swift; sourceTree = "<group>"; };
 		D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARExperienceView.swift; sourceTree = "<group>"; };
 		D5D91864B39E041B2748830A /* AuthGateUserFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateUserFlowUITests.swift; sourceTree = "<group>"; };
@@ -218,6 +221,7 @@
 		E3FAE47CFDEB79B36F4C4E4F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E69C25E3C3DBB31A88596A54 /* AuthGateEmulatorUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthGateEmulatorUITests.swift; sourceTree = "<group>"; };
 		E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncQueueProcessor.swift; sourceTree = "<group>"; };
+		EC3C669048AEFCDD2404B036 /* PlaceNoteDeliveryRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceNoteDeliveryRecovery.swift; sourceTree = "<group>"; };
 		EED520F06CC3613D39D23784 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		F2C002889FAF74276EADB893 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreCoverageDebugView.swift; sourceTree = "<group>"; };
@@ -313,6 +317,7 @@
 				9309C5EFBE40B5DE193B3ECF /* LocationController.swift */,
 				DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */,
 				6C46B83A003BDC6A241B3BDD /* NotificationService.swift */,
+				EC3C669048AEFCDD2404B036 /* PlaceNoteDeliveryRecovery.swift */,
 				5F3FB818959D6EA5ADDE7F1E /* RootView.swift */,
 				F7796ACFDBCBD0E65741ABF9 /* UserContextService.swift */,
 			);
@@ -350,6 +355,7 @@
 				597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */,
 				BA62B95714894BC9F4BABA0F /* LocationNoteTests.swift */,
 				0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */,
+				C10B71841DEEEB76A6112317 /* PlaceNoteDeliveryRecoveryTests.swift */,
 				745BCE5D71F4B98D69FDDE61 /* ReliabilityTests.swift */,
 				29542377FC89A2155057D35C /* StoreReadinessTests.swift */,
 			);
@@ -731,6 +737,7 @@
 				49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */,
 				490A1398F7E0D759B58042D1 /* LocationNoteTests.swift in Sources */,
 				5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */,
+				11D6F42EE2E0C8ECC2BC223C /* PlaceNoteDeliveryRecoveryTests.swift in Sources */,
 				99FBBC4D6F718E4D5DA21753 /* ReliabilityTests.swift in Sources */,
 				9884BD8EC7A396BCCEBBD93A /* StoreReadinessTests.swift in Sources */,
 			);
@@ -788,6 +795,7 @@
 				AC781F66C329CD3224975507 /* PinCommitCoordinator.swift in Sources */,
 				C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */,
 				8704808FB9B3B986FAA798B7 /* PlaceNoteComposer.swift in Sources */,
+				B31FC4474D83FEF5FE421C8D /* PlaceNoteDeliveryRecovery.swift in Sources */,
 				E9F6E8DF5FE25C9C2ABF8D70 /* PostPreviewView.swift in Sources */,
 				802D0F1A682E49E233E5475B /* PostRepository.swift in Sources */,
 				93FD42006BCC639A5349A74B /* ProfileEditView.swift in Sources */,
