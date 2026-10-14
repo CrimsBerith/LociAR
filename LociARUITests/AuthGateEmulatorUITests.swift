@@ -43,8 +43,10 @@ extension AuthGateUITests {
 
     private func e2ePassOnboarding(_ app: XCUIApplication) {
         for _ in 0..<8 {
-            if app.buttons["onboarding-finish"].exists { app.buttons["onboarding-finish"].tap(); return }
-            if app.buttons["onboarding-next"].exists { app.buttons["onboarding-next"].tap(); continue }
+            let finish = e2eField(app, "onboarding-finish")
+            let next = e2eField(app, "onboarding-next")
+            if finish.exists { finish.tap(); return }
+            if next.exists { next.tap(); continue }
             return
         }
     }
@@ -92,7 +94,13 @@ extension AuthGateUITests {
         e2ePassOnboarding(app)
         e2eSignOutIfNeeded(app)
 
-        XCTAssertTrue(app.buttons["auth-mode-signup"].waitForExistence(timeout: 10), "Giriş ekranı açılmadı.")
+        let signUp = app.buttons["auth-mode-signup"]
+        if !signUp.waitForExistence(timeout: 10) {
+            capture(app, name: "e2e-auth-gate-missing")
+            print("[E2E] startup controls: \(app.buttons.allElementsBoundByIndex.map { $0.identifier + ":" + $0.label })")
+            XCTFail("Giriş ekranı açılmadı.")
+            return
+        }
         app.buttons["auth-mode-signup"].tap()
         e2eType(app, "auth-email-field", e2eEmail)
         e2eType(app, "auth-password-field", e2ePassword)

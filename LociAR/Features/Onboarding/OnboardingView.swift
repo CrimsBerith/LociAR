@@ -68,6 +68,7 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("screen-onboarding")
     }
 

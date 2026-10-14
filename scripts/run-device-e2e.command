@@ -1,7 +1,7 @@
 #!/bin/bash
 # End-to-end test of the real app on the connected iPhone against the local Firebase
 # Emulator Suite: sign-up -> email verification -> sign-in (ensureProfile) -> AR camera ->
-# publish + discover + delete post -> tabs + profile edit -> sign-out/in -> account deletion.
+# publish + discover + delete text post -> tabs + profile edit -> sign-out/in -> account deletion.
 # Results: scripts/.e2e/summary.txt (+ per-test logs and .xcresult bundles with screenshots).
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -90,22 +90,31 @@ log "build OK"
 TESTS=(
   testEmulator01SignUpVerifyAndSignIn
   testPhysicalNormalAccountARTabReceivesCameraFrame
-  testPhysicalNormalAccountPublishesSocialARPostAndDeletesIt
+  testPhysicalNormalAccountPublishesTextARPostAndDeletesIt
   testEmulator03BrowseTabsAndEditProfile
   testEmulator05SignOutAndBackIn
   testEmulator09DeleteAccount
 )
+FAILED_TESTS=0
+SKIPPED_TESTS=0
 for t in "${TESTS[@]}"; do
   rm -rf "$OUT/$t.xcresult"
   log "RUN $t"
   xcodebuild test-without-building "${COMMON[@]}" -only-testing:"LociARUITests/AuthGateUITests/$t" \
     -resultBundlePath "$OUT/$t.xcresult" > "$OUT/$t.log" 2>&1
   code=$?
-  if grep -q "Test Case .*$t.* passed" "$OUT/$t.log"; then log "  PASS $t"
-  elif grep -q "Test Case .*$t.* skipped\|Test skipped" "$OUT/$t.log"; then log "  SKIP $t"; grep -E "Test skipped|XCTSkip" "$OUT/$t.log" | head -3 | tee -a "$SUMMARY"
+  if [ "$code" -eq 0 ] && grep -q "Test Case .*$t.* passed" "$OUT/$t.log"; then log "  PASS $t"
+  elif [ "$code" -eq 0 ] && grep -q "Test Case .*$t.* skipped\|Test skipped" "$OUT/$t.log"; then
+    SKIPPED_TESTS=$((SKIPPED_TESTS + 1))
+    log "  SKIP $t"; grep -E "Test skipped|XCTSkip" "$OUT/$t.log" | head -3 | tee -a "$SUMMARY"
   else
+    FAILED_TESTS=$((FAILED_TESTS + 1))
     log "  FAIL $t (kod $code)"
     grep -E "error: |XCTAssert|failed -|\[E2E\]|\[LociAR auth\]" "$OUT/$t.log" | head -15 | tee -a "$SUMMARY"
   fi
 done
 log "BITTI"
+if [ "$FAILED_TESTS" -gt 0 ] || [ "$SKIPPED_TESTS" -gt 0 ]; then
+  log "KABUL BASARISIZ: $FAILED_TESTS hata, $SKIPPED_TESTS atlanan zorunlu test"
+  exit 1
+fi
