@@ -2,6 +2,19 @@ import CoreLocation
 import XCTest
 @testable import LociAR
 
+private final class ForegroundLocationManagerStub: CLLocationManager {
+    override var authorizationStatus: CLAuthorizationStatus { .authorizedWhenInUse }
+    override func startUpdatingLocation() {}
+    override func stopUpdatingLocation() {}
+    override func startUpdatingHeading() {}
+    override func stopUpdatingHeading() {}
+}
+
+private final class ForegroundHeadingStub: CLHeading {
+    override var headingAccuracy: CLLocationDirection { 5 }
+    override var description: String { "ForegroundHeadingStub" }
+}
+
 final class ArrivalRuntimeTests: XCTestCase {
     func testRegionMonitoringRetriesAreBoundedAndOnlyAcknowledgedSuccessClearsFailures() {
         var health = ArrivalMonitoringHealth()
@@ -40,7 +53,9 @@ final class ArrivalRuntimeTests: XCTestCase {
 
     @MainActor
     func testForegroundSearchDropsAStaleRetainedFixAndStopClearsMeasurementSeeds() {
-        let controller = LocationController(), manager = CLLocationManager(), now = Date()
+        let manager = ForegroundLocationManagerStub(), now = Date()
+        let controller = LocationController(locationManager: manager)
+        controller.start()
         let fix = CLLocation(coordinate: .init(latitude: 41, longitude: 29), altitude: 0,
                              horizontalAccuracy: 8, verticalAccuracy: -1, timestamp: now)
         controller.locationManager(manager, didUpdateLocations: [fix])
@@ -54,7 +69,9 @@ final class ArrivalRuntimeTests: XCTestCase {
 
     @MainActor
     func testForegroundSearchRejectsAFreshButUnusableAreaEstimate() {
-        let controller = LocationController(), manager = CLLocationManager(), now = Date()
+        let manager = ForegroundLocationManagerStub(), now = Date()
+        let controller = LocationController(locationManager: manager)
+        controller.start()
         controller.locationManager(manager, didUpdateLocations: [CLLocation(coordinate: .init(latitude: 41, longitude: 29),
             altitude: 0, horizontalAccuracy: .infinity, verticalAccuracy: -1, timestamp: now)])
         XCTAssertNil(controller.freshLocation(at: now))
@@ -62,13 +79,44 @@ final class ArrivalRuntimeTests: XCTestCase {
 
     @MainActor
     func testTransientLocationAcquisitionDoesNotAbortForegroundWarmup() {
-        let controller = LocationController(), manager = CLLocationManager()
+        let manager = ForegroundLocationManagerStub()
+        let controller = LocationController(locationManager: manager)
+        controller.start()
         controller.locationManager(manager, didFailWithError: NSError(domain: kCLErrorDomain,
             code: CLError.Code.locationUnknown.rawValue))
         XCTAssertNil(controller.errorMessage, "Map/AR keep waiting within their bounded acquisition window")
         controller.locationManager(manager, didFailWithError: NSError(domain: kCLErrorDomain,
             code: CLError.Code.denied.rawValue))
         XCTAssertNotNil(controller.errorMessage, "a denied permission remains actionable")
+    }
+
+    @MainActor
+    func testStoppedForegroundStreamIgnoresLateCallbacksAndRestartsWithFreshState() {
+        let manager = ForegroundLocationManagerStub(), now = Date()
+        let controller = LocationController(locationManager: manager)
+        let fix = CLLocation(coordinate: .init(latitude: 41, longitude: 29), altitude: 0,
+                             horizontalAccuracy: 8, verticalAccuracy: -1, timestamp: now)
+        controller.start()
+        controller.locationManager(manager, didUpdateLocations: [fix])
+        controller.locationManager(manager, didUpdateHeading: ForegroundHeadingStub())
+        XCTAssertNotNil(controller.heading)
+        controller.locationManager(manager, didFailWithError: NSError(domain: kCLErrorDomain, code: CLError.Code.network.rawValue))
+        let previousError = controller.errorMessage
+        XCTAssertNotNil(previousError)
+        controller.stop()
+        controller.locationManager(manager, didUpdateLocations: [fix])
+        controller.locationManager(manager, didUpdateHeading: ForegroundHeadingStub())
+        controller.locationManager(manager, didFailWithError: NSError(domain: kCLErrorDomain, code: CLError.Code.denied.rawValue))
+        XCTAssertNil(controller.location)
+        XCTAssertTrue(controller.recentLocations.isEmpty)
+        XCTAssertNil(controller.heading)
+        XCTAssertEqual(controller.errorMessage, previousError, "a stopped stream cannot replace the last error")
+        controller.start()
+        XCTAssertNil(controller.errorMessage, "a new acquisition must not abort on an old error")
+        controller.locationManager(manager, didUpdateLocations: [fix])
+        XCTAssertEqual(controller.freshLocation(at: now), fix)
+        XCTAssertEqual(controller.recentLocations.count, 1)
+        controller.stop()
     }
 
     func testAlwaysUpgradeWaitsForTheExplicitOptInAndAnActiveApp() {

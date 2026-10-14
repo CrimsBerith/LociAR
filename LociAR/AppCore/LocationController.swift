@@ -11,7 +11,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     private(set) var heading: CLHeading?
     private(set) var authorizationStatus: CLAuthorizationStatus
     private(set) var errorMessage: String?
-    @ObservationIgnored private let manager = CLLocationManager()
+    @ObservationIgnored private let manager: CLLocationManager
     @ObservationIgnored private var wantsLocationUpdates = false
     @ObservationIgnored private var wantsPreciseAccuracy = false
     /// One temporary full-accuracy prompt per AR session (reset by stop()), not one per retry.
@@ -26,7 +26,12 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     /// Purpose key in Info.plist `NSLocationTemporaryUsageDescriptionDictionary`.
     nonisolated static let geospatialAccuracyPurposeKey = "GeospatialAccuracy"
 
-    override init() {
+    override convenience init() {
+        self.init(locationManager: CLLocationManager())
+    }
+
+    init(locationManager: CLLocationManager) {
+        manager = locationManager
         authorizationStatus = manager.authorizationStatus
         errorMessage = nil
         super.init()
@@ -52,6 +57,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
             errorMessage = String(localized: "Konum izni gerekli. Ayarlar'dan konum erişimini açın.")
             return
         }
+        errorMessage = nil
         manager.startUpdatingLocation()
         if CLLocationManager.headingAvailable() { manager.startUpdatingHeading() }
     }
@@ -94,6 +100,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard wantsLocationUpdates else { return }
         let now = Date()
         let valid = locations.filter { LocationSample($0).isUsable(at: now, maxAge: LocationNotePolicy.maxFixAge) }
         guard let latest = valid.max(by: { $0.timestamp < $1.timestamp }) else { return }
@@ -103,11 +110,12 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        guard newHeading.headingAccuracy >= 0 else { return }
+        guard wantsLocationUpdates, newHeading.headingAccuracy >= 0 else { return }
         heading = newHeading
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        guard wantsLocationUpdates else { return }
         guard let locationError = error as? CLError else {
             errorMessage = String(localized: "Konum alınamadı. Tekrar deneyin.")
             return
