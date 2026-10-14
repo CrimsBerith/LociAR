@@ -2,6 +2,7 @@ import BackgroundTasks
 @preconcurrency import CoreLocation
 @preconcurrency import FirebaseCore
 @preconcurrency import FirebaseMessaging
+import FirebaseCrashlytics
 import Foundation
 import Observation
 import OSLog
@@ -133,6 +134,10 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     private(set) var needsPreciseLocation = false
     private(set) var needsBackgroundRefresh = false
     private(set) var isSupported = true
+    private(set) var needsMonitoringRecovery = false
+    @ObservationIgnored private var monitoringHealth = ArrivalMonitoringHealth()
+    @ObservationIgnored private var requestedMonitoring: [String: CLCircularRegion] = [:]
+    @ObservationIgnored private var monitoringRetries: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var callables: CallableClient?
     @ObservationIgnored private var userID: UUID?
@@ -204,7 +209,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         for id in expired {
             noteDeliveries.removeValue(forKey: id)
             leavePlaceNoteRegion(id); regions.removeValue(forKey: id); pending.remove(id)
-            if let userID, let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(userID) + id.uuidString.lowercased() }) { manager.stopMonitoring(for: region) }
+            if let userID, let region = requestedMonitoring[prefix(userID) + id.uuidString.lowercased()]
+                ?? manager.monitoredRegions.first(where: { $0.identifier == prefix(userID) + id.uuidString.lowercased() }) { stopMonitoring(region) }
         }
         persistNoteDeliveries()
         if let userID, let data = try? JSONEncoder().encode(Array(regions.values)) { UserDefaults.standard.set(data, forKey: regionsKey(userID)) }
@@ -236,13 +242,14 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         if let previous = userID { UserDefaults.standard.removeObject(forKey: deliveriesKey(previous)) }
         stopPreciseWindow(); manager.stopUpdatingLocation()
         generation += 1; pending.removeAll(); regions.removeAll(); armedExits.removeAll(); endBackgroundTask()
+        resetMonitoringHealth()
         latestSearchFix = nil; freshFixAfter = nil
         userID = id; enabled = false; placeNotesEnabled = false; promotionsEnabled = false; noteDeliveries.removeAll()
         permissionUpgrade = ArrivalPermissionUpgrade()
         usualLearner = UsualPlaceLearner()
         let session = id.map { $0.uuidString.lowercased() } ?? "no-session"
         for region in manager.monitoredRegions where Self.ownsRegion(region.identifier) && !region.identifier.contains(session) {
-            manager.stopMonitoring(for: region)
+            stopMonitoring(region)
         }
         if let id {
             let defaults = UserDefaults.standard
@@ -336,8 +343,68 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
 
     func refreshPermissions() { updatePermissionState() }
 
+    func retryMonitoring() {
+        guard enabled, locationAuthorized, manager.accuracyAuthorization == .fullAccuracy else { return }
+        monitoringHealth.renewRetryBudget()
+        for identifier in monitoringHealth.failedIDs {
+            guard let region = requestedMonitoring[identifier] else { continue }
+            monitoringRetries.removeValue(forKey: identifier)?.cancel()
+            manager.stopMonitoring(for: region)
+            startMonitoring(region)
+        }
+        if monitoringHealth.failedIDs.contains("unknown") { Task { await synchronize() } }
+    }
+
+    private func resetMonitoringHealth() {
+        monitoringRetries.values.forEach { $0.cancel() }; monitoringRetries.removeAll()
+        requestedMonitoring.removeAll(); monitoringHealth = ArrivalMonitoringHealth(); needsMonitoringRecovery = false
+    }
+
+    private func stopMonitoring(_ region: CLRegion) {
+        monitoringRetries.removeValue(forKey: region.identifier)?.cancel()
+        requestedMonitoring.removeValue(forKey: region.identifier)
+        monitoringHealth.discard(region.identifier); needsMonitoringRecovery = monitoringHealth.needsRecovery
+        manager.stopMonitoring(for: region)
+    }
+
+    private func startMonitoring(_ region: CLCircularRegion) {
+        requestedMonitoring[region.identifier] = region
+        guard ArrivalMonitoringHealth.canMonitor(radius: region.radius, maximum: manager.maximumRegionMonitoringDistance) else {
+            recordMonitoringFailure(region, error: NSError(domain: kCLErrorDomain, code: CLError.Code.regionMonitoringFailure.rawValue), retry: false)
+            return
+        }
+        manager.startMonitoring(for: region)
+    }
+
+    private func recordMonitoringFailure(_ region: CLRegion?, error: Error, retry: Bool = true) {
+        if region == nil, !requestedMonitoring.isEmpty {
+            for wanted in Array(requestedMonitoring.values) { recordMonitoringFailure(wanted, error: error, retry: retry) }
+            return
+        }
+        let identifier = region?.identifier ?? "unknown"
+        if let region {
+            guard let requested = requestedMonitoring[identifier], let circle = region as? CLCircularRegion,
+                  ArrivalMonitoringHealth.matches(circle, requested) else { return } // Ignore stopped/old-account/old-circle callbacks.
+        }
+        let delay = monitoringHealth.failed(identifier)
+        needsMonitoringRecovery = true
+        Crashlytics.crashlytics().record(error: NSError(domain: "LociAR.RegionMonitoring", code: (error as NSError).code))
+        guard retry, let delay, let region = requestedMonitoring[identifier], monitoringRetries[identifier] == nil else { return }
+        let epoch = generation
+        monitoringRetries[identifier] = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+            guard let self, self.generation == epoch else { return }
+            self.monitoringRetries.removeValue(forKey: identifier)
+            guard self.enabled, self.locationAuthorized, self.manager.accuracyAuthorization == .fullAccuracy,
+                  let wanted = self.requestedMonitoring[identifier], ArrivalMonitoringHealth.matches(wanted, region) else { return }
+            self.manager.stopMonitoring(for: region)
+            self.startMonitoring(wanted)
+        }
+    }
+
     private func updatePermissionState() {
         let monitoring = enabled && (placeNotesEnabled || promotionsEnabled)
+        if !monitoring { resetMonitoringHealth() }
         if !monitoring || !locationAuthorized { endRefreshBackgroundTask(cancelWork: true) }
         needsAlwaysPermission = monitoring && manager.authorizationStatus != .authorizedAlways
         needsBackgroundRefresh = monitoring && UIApplication.shared.backgroundRefreshStatus != .available
@@ -384,26 +451,28 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         let removed = regions.values.filter { $0.isPlaceNote ? !placeNotesEnabled : !promotionsEnabled }.map(\.id)
         for id in removed {
             leavePlaceNoteRegion(id); regions.removeValue(forKey: id); pending.remove(id); armedExits.remove(id)
-            if let userID, let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(userID) + id.uuidString.lowercased() }) {
-                manager.stopMonitoring(for: region)
+            if let userID, let region = requestedMonitoring[prefix(userID) + id.uuidString.lowercased()]
+                ?? manager.monitoredRegions.first(where: { $0.identifier == prefix(userID) + id.uuidString.lowercased() }) {
+                stopMonitoring(region)
             }
         }
         if !promotionsEnabled, let userID,
-           let region = manager.monitoredRegions.first(where: { $0.identifier == usualIdentifier(userID) }) {
-            manager.stopMonitoring(for: region)
+           let region = requestedMonitoring[usualIdentifier(userID)] ?? manager.monitoredRegions.first(where: { $0.identifier == usualIdentifier(userID) }) {
+            stopMonitoring(region)
         }
         if !placeNotesEnabled && !promotionsEnabled {
-            for region in manager.monitoredRegions where Self.ownsRegion(region.identifier) { manager.stopMonitoring(for: region) }
+            for region in manager.monitoredRegions where Self.ownsRegion(region.identifier) { stopMonitoring(region) }
             setAreaTopic(nil)
         }
     }
 
     private func stopRegions() {
+        resetMonitoringHealth()
         refreshCoordinator.cancel(); endRefreshBackgroundTask(cancelWork: true)
         acknowledgementPump.cancel()
         stopPreciseWindow()
         manager.stopUpdatingLocation()
-        for region in manager.monitoredRegions where Self.ownsRegion(region.identifier) { manager.stopMonitoring(for: region) }
+        for region in manager.monitoredRegions where Self.ownsRegion(region.identifier) { stopMonitoring(region) }
         setAreaTopic(nil)
         regions.removeAll(); pending.removeAll()
         armedExits.removeAll()
@@ -521,6 +590,9 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         guard let id = userID, enabled else { return }
         let selected = CampaignRegion.nearest(Array(regions.values), to: regionSearchFix?.coordinate, at: Date())
         applyRegionRegistration(selected, account: id)
+        if let boundary = manager.monitoredRegions.first(where: { $0.identifier == boundaryIdentifier(id) }) as? CLCircularRegion {
+            requestedMonitoring[boundary.identifier] = boundary
+        }
         updateUsualPlaceRegion()
     }
 
@@ -528,23 +600,33 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         guard isSupported, manager.accuracyAuthorization == .fullAccuracy,
               manager.authorizationStatus == .authorizedAlways || foreground && manager.authorizationStatus == .authorizedWhenInUse else { return }
         let plan = ArrivalRegionRegistrationPlan.make(account: account, selected: selected, monitored: manager.monitoredRegions)
+        let wanted = Set(selected.filter { !$0.isLeaveStep }.map { prefix(account) + $0.id.uuidString.lowercased() })
+        for region in Array(requestedMonitoring.values) where region.identifier.hasPrefix(prefix(account)) && !wanted.contains(region.identifier) { stopMonitoring(region) }
         for region in plan.stop {
             if let campaign = campaignID(for: region) { armedExits.remove(campaign) }
-            manager.stopMonitoring(for: region)
+            stopMonitoring(region)
         }
         persistArmedExits()
-        for region in plan.start { manager.startMonitoring(for: region) }
-        for region in plan.requestState { manager.requestState(for: region) }
+        for region in plan.start { startMonitoring(region) }
+        for region in plan.requestState {
+            if let circle = region as? CLCircularRegion { requestedMonitoring[region.identifier] = circle }
+            manager.requestState(for: region)
+        }
     }
 
     /// Leaving the boundary (≥ 1 km around the last refresh) reloads the region list in the background.
     private func monitorRefreshBoundary(around fix: CLLocation, regions: [CampaignRegion]) {
         guard let id = userID, manager.authorizationStatus == .authorizedAlways else { return }
         let farthest = regions.map { fix.distance(from: CLLocation(latitude: $0.lat, longitude: $0.lng)) }.max() ?? 0
-        let radius = min(3_000, max(1_000, farthest))
+        let maximum = manager.maximumRegionMonitoringDistance
+        guard maximum.isFinite, maximum > 0 else {
+            recordMonitoringFailure(nil, error: NSError(domain: kCLErrorDomain, code: CLError.Code.regionMonitoringFailure.rawValue), retry: false); return
+        }
+        // The refresh boundary can be smaller without clipping a campaign's actual area.
+        let radius = min(maximum, min(3_000, max(1_000, farthest)))
         let boundary = CLCircularRegion(center: fix.coordinate, radius: radius, identifier: boundaryIdentifier(id))
         boundary.notifyOnEntry = false; boundary.notifyOnExit = true
-        manager.startMonitoring(for: boundary)
+        startMonitoring(boundary)
     }
 
     /// One region around the learned usual place, only while a "leaves usual place" step exists nearby.
@@ -553,14 +635,17 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         let identifier = usualIdentifier(id)
         let wanted = regions.values.contains(where: \.isLeaveStep) && manager.authorizationStatus == .authorizedAlways
         guard promotionsEnabled, wanted, let place = usualLearner.usualPlace() else {
-            if let old = manager.monitoredRegions.first(where: { $0.identifier == identifier }) { manager.stopMonitoring(for: old) }
+            if let old = requestedMonitoring[identifier] ?? manager.monitoredRegions.first(where: { $0.identifier == identifier }) { stopMonitoring(old) }
             return
         }
         if let old = manager.monitoredRegions.first(where: { $0.identifier == identifier }) as? CLCircularRegion,
-           CLLocation(latitude: old.center.latitude, longitude: old.center.longitude).distance(from: CLLocation(latitude: place.latitude, longitude: place.longitude)) < 30 { return }
+           CLLocation(latitude: old.center.latitude, longitude: old.center.longitude).distance(from: CLLocation(latitude: place.latitude, longitude: place.longitude)) < 30 {
+            requestedMonitoring[identifier] = old
+            return
+        }
         let region = CLCircularRegion(center: place, radius: 150, identifier: identifier)
         region.notifyOnEntry = false; region.notifyOnExit = true
-        manager.startMonitoring(for: region)
+        startMonitoring(region)
     }
 
     /// The person left their usual place: queue every nearby "leaves usual place" step whose area
@@ -680,11 +765,11 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         // An event may precede Auth's first callback; restoring its state replays an inside region.
         guard let id = userID else { return }
         guard enabled, region.identifier.hasPrefix(prefix(id)), FirebaseIdentity.currentLUID() == id else {
-            manager.stopMonitoring(for: region); return
+            stopMonitoring(region); return
         }
         guard let campaign = UUID(uuidString: String(region.identifier.dropFirst(prefix(id).count))),
               regions[campaign]?.isUsable(at: Date()) == true else {
-            manager.stopMonitoring(for: region)
+            stopMonitoring(region)
             requestFreshRegionFix() // Expired/missing metadata must fetch replacements around a new fix.
             return
         }
@@ -945,7 +1030,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                         dwellStartedAt: dwellStart[campaign].map { $0.timeIntervalSince1970 * 1000 }, locale: Locale.current.identifier))
                     if result.activityId != nil {
                         // Admitted: drop this step and fetch what comes next (a follow-up step may now apply).
-                        if let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(id) + campaign.uuidString.lowercased() }) { manager.stopMonitoring(for: region) }
+                        if let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(id) + campaign.uuidString.lowercased() }) { stopMonitoring(region) }
                         leavePlaceNoteRegion(campaign); regions.removeValue(forKey: campaign)
                         Task { await self.synchronize() }
                     }
@@ -1023,7 +1108,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                     scheduleNoteAcknowledgements(account: id, epoch: epoch)
                 }
                 if !placeNote, stepRegion == nil {
-                    if let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(id) + post }) { manager.stopMonitoring(for: region) }
+                    if let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(id) + post }) { stopMonitoring(region) }
                     regions.removeValue(forKey: campaign)
                     armedExits.remove(campaign); persistArmedExits()
                 }
@@ -1096,7 +1181,18 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         } else if state == .inside { enqueue(region) }
         else if state == .outside, let id = campaignID(for: region), regions[id]?.isPlaceNote == true { leavePlaceNoteRegion(id) }
     }
-    func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion) { manager.requestState(for: region) }
+    func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion) {
+        guard let wanted = requestedMonitoring[region.identifier], let circle = region as? CLCircularRegion,
+              ArrivalMonitoringHealth.matches(circle, wanted) else { return }
+        monitoringRetries.removeValue(forKey: region.identifier)?.cancel()
+        monitoringHealth.registered(region.identifier); needsMonitoringRecovery = monitoringHealth.needsRecovery
+        manager.requestState(for: region)
+    }
+
+    func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
+        guard enabled, userID != nil, placeNotesEnabled || promotionsEnabled else { return }
+        recordMonitoringFailure(region, error: error)
+    }
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         let now = Date()
         var freshSearchArrived = false

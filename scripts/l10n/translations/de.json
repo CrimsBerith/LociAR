@@ -645,5 +645,6 @@
  "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Aktiviere die Hintergrundaktualisierung in den iOS-Einstellungen für Standortmitteilungen.",
  "Konum bildirimleri hazır": "Standortbenachrichtigungen sind bereit",
  "Konum bildirimleri için ayarları kontrol et": "Prüfe die Einstellungen für Standortbenachrichtigungen",
- "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS kann die Hintergrundaktivität einschränken. Wenn du die App zwangsweise beendest, können Standortmitteilungen verspätet oder gar nicht eintreffen."
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS kann die Hintergrundaktivität einschränken. Wenn du die App zwangsweise beendest, können Standortmitteilungen verspätet oder gar nicht eintreffen.",
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Die Standortbereiche konnten nicht in iOS registriert werden. Benachrichtigungen können sich verzögern; versuche es erneut."
 }

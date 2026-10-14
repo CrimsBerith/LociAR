@@ -645,5 +645,6 @@
  "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Включи обновление контента в настройках iOS для уведомлений по местоположению.",
  "Konum bildirimleri hazır": "Уведомления по местоположению готовы",
  "Konum bildirimleri için ayarları kontrol et": "Проверьте настройки уведомлений по местоположению",
- "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS может ограничивать работу в фоне. Если принудительно закрыть приложение, уведомления о местоположении могут задержаться или не прийти."
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS может ограничивать работу в фоне. Если принудительно закрыть приложение, уведомления о местоположении могут задержаться или не прийти.",
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Не удалось зарегистрировать зоны местоположения в iOS. Уведомления могут задерживаться; повторите попытку."
 }

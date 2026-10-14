@@ -98,3 +98,28 @@ enum ArrivalFixSelection {
             .max { $0.timestamp < $1.timestamp }
     }
 }
+
+/// A failed OS registration is not a ready notification area. Retries remain bounded per area.
+struct ArrivalMonitoringHealth {
+    private(set) var failedIDs = Set<String>()
+    private var attempts: [String: Int] = [:]
+    var needsRecovery: Bool { !failedIDs.isEmpty }
+
+    mutating func failed(_ id: String) -> TimeInterval? {
+        failedIDs.insert(id)
+        let count = (attempts[id] ?? 0) + 1
+        attempts[id] = count
+        return count <= 3 ? [1.0, 5.0, 15.0][count - 1] : nil
+    }
+    mutating func registered(_ id: String) { failedIDs.remove(id); attempts.removeValue(forKey: id); failedIDs.remove("unknown") }
+    mutating func discard(_ id: String) { failedIDs.remove(id); attempts.removeValue(forKey: id) }
+    mutating func renewRetryBudget() { attempts.removeAll() }
+
+    static func canMonitor(radius: Double, maximum: Double) -> Bool {
+        radius.isFinite && radius > 0 && maximum.isFinite && maximum > 0 && radius <= maximum
+    }
+    static func matches(_ a: CLCircularRegion, _ b: CLCircularRegion) -> Bool {
+        a.identifier == b.identifier && a.center.latitude == b.center.latitude && a.center.longitude == b.center.longitude
+            && a.radius == b.radius && a.notifyOnEntry == b.notifyOnEntry && a.notifyOnExit == b.notifyOnExit
+    }
+}

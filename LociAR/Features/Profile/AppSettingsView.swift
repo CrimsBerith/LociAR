@@ -70,6 +70,10 @@ struct AppSettingsView: View {
                         if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                     }
                 }
+                if arrivals.needsMonitoringRecovery {
+                    Text("Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.").font(.caption)
+                    Button("Tekrar dene") { arrivals.retryMonitoring(); Task { await arrivals.synchronize() } }
+                }
                 if sharing.notificationsEnabled && notificationStatus == .denied {
                     Button("iOS Ayarları'nda değiştir") {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
@@ -137,7 +141,7 @@ struct AppSettingsView: View {
     private var locationNotificationsReady: Bool {
         [.authorized, .provisional, .ephemeral].contains(notificationStatus)
             && CLLocationManager.locationServicesEnabled() && arrivals.isSupported && !arrivals.needsAlwaysPermission
-            && !arrivals.needsPreciseLocation && !arrivals.needsBackgroundRefresh
+            && !arrivals.needsPreciseLocation && !arrivals.needsBackgroundRefresh && !arrivals.needsMonitoringRecovery
     }
 
     private func refresh() async {

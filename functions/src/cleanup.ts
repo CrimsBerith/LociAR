@@ -1,6 +1,7 @@
 import { reconcileCounters, reconcileProfileCounters } from './reconciliation';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { db, deleteStoragePrefix, FieldValue, Timestamp } from './core';
+import { randomUUID } from 'node:crypto';
+import { db, deleteStoragePrefix, FieldValue, isUUID, Timestamp } from './core';
 import { logger, safeErrorCode } from './core';
 import { purgeOrphanUploads } from './orphanUploadStorage';
 export { purgeOrphanUploads } from './orphanUploadStorage';
@@ -58,28 +59,64 @@ export async function schedulePurgeOnStatusChange(
     const dueAt = Number.isFinite(existingDue) ? Math.min(due, existingDue) : due;
     tx.set(queueRef, {
       post_id: postId, prefix: `${data.creator_id}/${postId}/`, due_at: Timestamp.fromMillis(dueAt),
-    });
+    }, { merge: true }); // Delayed status events must not discard an in-flight purge lease.
   });
 }
 
-export async function purgeDueRemovedMedia(now = Date.now()): Promise<number> {
+const PURGE_LEASE_MS = 15 * 60_000; // Longer than the 540-second worker deadline.
+
+export async function purgeDueRemovedMedia(now = Date.now(), maxJobs = BATCH): Promise<number> {
+  if (!Number.isInteger(maxJobs) || maxJobs < 1 || maxJobs > BATCH) throw new Error('Invalid purge job budget');
   const due = await db.collection('media_purge_queue')
     .where('due_at', '<=', Timestamp.fromMillis(now))
-    .limit(BATCH)
+    .orderBy('due_at').limit(maxJobs)
     .get();
+  let completed = 0;
   for (const doc of due.docs) {
-    const post = await db.collection('posts').doc(doc.id).get();
-    // Restored in the meantime (queue entry left behind): keep the media.
-    if (!post.exists || post.data()!.status === 'removed') {
-      await deleteStoragePrefix(String(doc.data().prefix));
-      if (post.exists) await deleteAnchorOfPost(post.data()!.cloud_anchor_id, post.id);
-      // A later restore still works, but the post can only be shown approximately (no AR map).
-      if (post.exists) await post.ref.update({ media_purged_at: FieldValue.serverTimestamp() });
+    const owner = randomUUID(), postRef = db.collection('posts').doc(doc.id);
+    try {
+      const job = await db.runTransaction(async tx => {
+        const [current, post] = await tx.getAll(doc.ref, postRef);
+        const deadline = current.get('due_at'), lease = current.get('lease_until');
+        if (!current.exists || !(deadline instanceof Timestamp) || deadline.toMillis() > now
+          || lease instanceof Timestamp && lease.toMillis() > now) return null;
+        if (post.exists && post.get('status') !== 'removed') { tx.delete(current.ref); return null; }
+        const prefix = current.get('prefix'), creator = typeof prefix === 'string' ? prefix.split('/')[0] : null;
+        if (!isUUID(creator) || !isUUID(doc.id) || prefix !== `${creator}/${doc.id}/`
+          || post.exists && post.get('creator_id') !== creator) throw new Error('Invalid purge identity');
+        tx.update(current.ref, { claim_id: owner, lease_until: Timestamp.fromMillis(now + PURGE_LEASE_MS) });
+        if (post.exists) tx.update(postRef, { media_purge_state: 'purging' });
+        return { prefix: prefix as string, creator, anchor: post.get('cloud_anchor_id') };
+      });
+      if (!job) continue;
+      // External I/O runs after the claim commits, never inside a retryable transaction.
+      await deleteStoragePrefix(job.prefix);
+      await deleteAnchorOfPost(job.anchor, doc.id);
+      await db.runTransaction(async tx => {
+        const [current, post] = await tx.getAll(doc.ref, postRef);
+        if (!current.exists || current.get('claim_id') !== owner) return;
+        if (post.exists && post.get('creator_id') === job.creator) tx.update(postRef, {
+          media_purge_state: 'purged', media_purged_at: FieldValue.serverTimestamp(),
+        });
+        tx.delete(current.ref);
+      });
+      completed++;
+    } catch (error) {
+      await db.runTransaction(async tx => {
+        const current = await tx.get(doc.ref);
+        if (!current.exists || current.get('claim_id') != null && current.get('claim_id') !== owner) return;
+        tx.update(doc.ref, { claim_id: FieldValue.delete(), lease_until: FieldValue.delete(),
+          due_at: Timestamp.fromMillis(now + PURGE_LEASE_MS), last_error: 'retryable_operation_failed' });
+      });
+      logger.error('removed_media_purge_deferred', { code: safeErrorCode(error) });
     }
-    await doc.ref.delete();
   }
-  return due.size;
+  return completed;
 }
+
+/** Resume partial/abandoned purges without waiting for the nightly orphan scan. */
+export const retryRemovedMedia = onSchedule({ schedule: 'every 15 minutes', timeZone: 'Europe/Istanbul',
+  timeoutSeconds: 540, maxInstances: 1 }, async () => { await purgeDueRemovedMedia(Date.now(), 20); });
 
 /**
  * Orphan grace period: an anchor is hosted before the post is published, and the iOS offline

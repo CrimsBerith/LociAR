@@ -645,5 +645,6 @@
  "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Activa la actualización en segundo plano en los ajustes de iOS para recibir notificaciones de ubicación.",
  "Konum bildirimleri hazır": "Las notificaciones de ubicación están listas",
  "Konum bildirimleri için ayarları kontrol et": "Revisa los ajustes de las notificaciones de ubicación",
- "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS puede limitar la actividad en segundo plano. Si fuerzas el cierre de la app, las notificaciones de ubicación pueden retrasarse o no llegar."
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS puede limitar la actividad en segundo plano. Si fuerzas el cierre de la app, las notificaciones de ubicación pueden retrasarse o no llegar.",
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "No se pudieron registrar las zonas de ubicación en iOS. Las notificaciones pueden retrasarse; inténtalo de nuevo."
 }

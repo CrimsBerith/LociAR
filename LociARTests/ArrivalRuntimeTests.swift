@@ -3,6 +3,41 @@ import XCTest
 @testable import LociAR
 
 final class ArrivalRuntimeTests: XCTestCase {
+    func testRegionMonitoringRetriesAreBoundedAndOnlyAcknowledgedSuccessClearsFailures() {
+        var health = ArrivalMonitoringHealth()
+        XCTAssertEqual(health.failed("a"), 1)
+        XCTAssertEqual(health.failed("a"), 5)
+        XCTAssertEqual(health.failed("a"), 15)
+        XCTAssertNil(health.failed("a"))
+        XCTAssertTrue(health.needsRecovery)
+        _ = health.failed("b")
+        health.registered("a")
+        XCTAssertTrue(health.needsRecovery, "another failed area cannot become ready")
+        health.discard("b")
+        XCTAssertFalse(health.needsRecovery)
+        XCTAssertEqual(health.failed("a"), 1, "a newly failing registered area gets a new bounded budget")
+    }
+
+    func testUnsupportedAndInvalidMonitoringRadiiAreRefusedWithoutClippingTheCampaignArea() {
+        XCTAssertTrue(ArrivalMonitoringHealth.canMonitor(radius: 300, maximum: 1000))
+        XCTAssertFalse(ArrivalMonitoringHealth.canMonitor(radius: 3000, maximum: 1000))
+        for invalid in [0.0, -1, Double.infinity, Double.nan] {
+            XCTAssertFalse(ArrivalMonitoringHealth.canMonitor(radius: 300, maximum: invalid))
+            XCTAssertFalse(ArrivalMonitoringHealth.canMonitor(radius: invalid, maximum: 1000))
+        }
+    }
+
+    func testOldCircleAndTransitionCallbacksCannotClearANewRegistrationFailure() {
+        let center = CLLocationCoordinate2D(latitude: 41, longitude: 29)
+        let a = CLCircularRegion(center: center, radius: 300, identifier: "area")
+        let changed = CLCircularRegion(center: center, radius: 400, identifier: "area")
+        let flags = CLCircularRegion(center: center, radius: 300, identifier: "area")
+        flags.notifyOnEntry = false
+        XCTAssertTrue(ArrivalMonitoringHealth.matches(a, a))
+        XCTAssertFalse(ArrivalMonitoringHealth.matches(a, changed))
+        XCTAssertFalse(ArrivalMonitoringHealth.matches(a, flags))
+    }
+
     @MainActor
     func testForegroundSearchDropsAStaleRetainedFixAndStopClearsMeasurementSeeds() {
         let controller = LocationController(), manager = CLLocationManager(), now = Date()

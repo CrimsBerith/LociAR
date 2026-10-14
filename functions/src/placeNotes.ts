@@ -61,8 +61,11 @@ function parseFix(value: unknown): Fix {
 }
 
 /** Complete coverage of the requested radius, including polar searches. */
+export const NOTE_CANDIDATE_FIELDS = ['geohash', 'lat', 'lng', 'creator_id', 'status', 'visibility', 'age_rating',
+  'deleted_at', 'push_state', 'notify_radius_m', 'likes_count', 'created_at', 'spot_id', 'caption'] as const;
 async function approvedNear(tx: FirebaseFirestore.Transaction, lat: number, lng: number, radius: number) {
-  return geoCandidates(tx, db.collection('posts').where('push_state', '==', 'approved'), lat, lng, radius);
+  // Region/visit metadata does not need AR maps, geometry, edit layers or legacy media locators.
+  return geoCandidates(tx, db.collection('posts').where('push_state', '==', 'approved').select(...NOTE_CANDIDATE_FIELDS), lat, lng, radius);
 }
 
 function ranked(p: FirebaseFirestore.DocumentSnapshot): RankedNote {

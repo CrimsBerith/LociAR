@@ -645,5 +645,6 @@
  "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Turn on Background App Refresh in iOS Settings for location notifications.",
  "Konum bildirimleri hazır": "Location notifications are ready",
  "Konum bildirimleri için ayarları kontrol et": "Check settings for location notifications",
- "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS may limit background activity. If you force quit the app, location notifications may be delayed or may not arrive."
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS may limit background activity. If you force quit the app, location notifications may be delayed or may not arrive.",
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Location areas could not be registered with iOS. Notifications may be delayed; try again."
 }

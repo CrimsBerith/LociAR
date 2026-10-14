@@ -110,6 +110,9 @@ const MODERATION_STATUS: Record<string, string> = {
 };
 
 function applyModeration(tx: Transaction, postRef: FirebaseFirestore.DocumentReference, before: DocumentData, action: string, actorId: string, reason: string) {
+  if (before.media_purge_state === 'purging') {
+    throw new ConflictError('post_media_cleanup_in_progress: retry after media cleanup completes');
+  }
   // deleteOwnPost sets deleted_at without deleted_by and wipes the post's media; the author's
   // deletion is final. Even another soft delete must not relabel it as a moderator deletion,
   // which would make a later restore possible.
@@ -129,6 +132,12 @@ function applyModeration(tx: Transaction, postRef: FirebaseFirestore.DocumentRef
     deletion_reason: soft ? reason : null,
     updated_at: FieldValue.serverTimestamp(),
   };
+  const queueRef = adminDb().collection('media_purge_queue').doc(postRef.id);
+  if (!soft) tx.delete(queueRef); // Cancel this removal lifecycle before a delayed trigger runs.
+  else if (before.status !== 'removed') tx.set(queueRef, {
+    post_id: postRef.id, prefix: `${before.creator_id}/${postRef.id}/`,
+    due_at: Timestamp.fromMillis(Date.now() + 30 * 86_400_000),
+  });
   if (typeof before.creator_id === 'string') tx.set(adminDb().collection('storage_reclamations').doc(postRef.id), { creator_id: before.creator_id, state: soft ? 'removed' : 'committed', world_map_path: before.world_map_path ?? null, public_readable: action === 'approve' && before.visibility === 'public' }, { merge: true });
   tx.update(postRef, update);
   return { ...before, ...update, deleted_at: soft ? new Date().toISOString() : null, updated_at: new Date().toISOString() };

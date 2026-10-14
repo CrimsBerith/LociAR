@@ -645,5 +645,6 @@
  "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Active l’actualisation en arrière-plan dans les réglages iOS pour les notifications de localisation.",
  "Konum bildirimleri hazır": "Les notifications de localisation sont prêtes",
  "Konum bildirimleri için ayarları kontrol et": "Vérifiez les réglages des notifications de localisation",
- "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS peut limiter l’activité en arrière-plan. Si vous forcez la fermeture de l’app, les notifications de position peuvent être retardées ou ne pas arriver."
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS peut limiter l’activité en arrière-plan. Si vous forcez la fermeture de l’app, les notifications de position peuvent être retardées ou ne pas arriver.",
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Les zones de localisation n’ont pas pu être enregistrées dans iOS. Les notifications peuvent être retardées ; réessayez."
 }

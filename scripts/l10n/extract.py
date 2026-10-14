@@ -77,7 +77,7 @@ EXCLUDE = {
     '⚠️ Yetki yok (token / ARCore API)', '✅ VPS mevcut', '❌ VPS yok', '❓ Bilinmiyor',
     'ARCore kapsam kontrolü (debug)', 'ARCore kapsamı', 'Kontrol ediliyor…', 'VPS kapsamını kontrol et', 'Loci', '%lld', '%lld/500', '%lld/220', 'Only text', 'Only one GIF', 'Powered by GIPHY',
     'Physical AR world lock evidence is incomplete',
-    ') : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._', 'LociAR.Push', 'Report reason',
+    ') : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._', 'LociAR.Push', 'LociAR.RegionMonitoring', 'Report reason',
     '^[A-Za-z0-9_-]{1,200}$', 'lociar.acceptedAccountDeletions',
 }
 

@@ -78,6 +78,7 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
     const [audit, before] = await tx.getAll(db.collection('admin_audit_log').doc(key),db.collection('posts').doc(id));
     if (checkReceipt(audit,hash)) return { id };
     if (editingId && !before.exists) throw new ValidationError('post_not_found');
+    if (before.get('media_purge_state') === 'purging') throw new ConflictError('post_media_cleanup_in_progress');
     // Approval is a moderation decision; keeping an existing approval while editing is not.
     if (input.approveNotifications && before.get('push_state') !== 'approved') {
       await requirePermission(tx,actorId,'posts.moderate');
@@ -115,6 +116,7 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
       admin_zone_exception:blockedZones.length ? {reason:input.zoneExceptionReason,actor_id:actorId,zone_ids:blockedZones.map(z=>z.id)} : null,
       updated_at:FieldValue.serverTimestamp(),updated_by_admin:actorId,
     };
+    tx.delete(db.collection('media_purge_queue').doc(id));
     if (anchor?.exists && anchor.get('post_id') === id) {
       tx.update(anchor.ref,{state:'deleting',expires_at:FieldValue.delete()});
       tx.set(db.collection('cloud_anchor_deletions').doc(anchor.id),{next_at:Timestamp.now(),attempts:0,created_at:FieldValue.serverTimestamp()});

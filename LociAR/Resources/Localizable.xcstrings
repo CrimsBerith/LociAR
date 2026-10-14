@@ -22999,6 +22999,83 @@
         }
       }
     },
+    "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location areas could not be registered with iOS. Notifications may be delayed; try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Standortbereiche konnten nicht in iOS registriert werden. Benachrichtigungen können sich verzögern; versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron registrar las zonas de ubicación en iOS. Las notificaciones pueden retrasarse; inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les zones de localisation n’ont pas pu être enregistrées dans iOS. Les notifications peuvent être retardées ; réessayez."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível registrar as áreas de localização no iOS. As notificações podem atrasar; tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось зарегистрировать зоны местоположения в iOS. Уведомления могут задерживаться; повторите попытку."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تسجيل مناطق الموقع في iOS. قد تتأخر الإشعارات؛ حاول مرة أخرى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS में स्थान क्षेत्र दर्ज नहीं हो सके। सूचनाओं में देरी हो सकती है; फिर से कोशिश करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS-এ অবস্থানের এলাকাগুলো নিবন্ধন করা যায়নি। বিজ্ঞপ্তি আসতে দেরি হতে পারে; আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOSに位置エリアを登録できませんでした。通知が遅れる場合があります。もう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法在 iOS 中注册位置区域。通知可能延迟，请重试。"
+          }
+        }
+      }
+    },
     "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin." : {
       "extractionState" : "manual",
       "localizations" : {
