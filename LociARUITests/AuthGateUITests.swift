@@ -192,7 +192,7 @@ final class AuthGateUITests: XCTestCase {
 
     func testStoreRequiredSafetyControlsAreReachable() {
         let app = XCUIApplication()
-        app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+        app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT"]
         app.launch()
         let tabs = app.tabBars.firstMatch
         XCTAssertTrue(tabs.waitForExistence(timeout: 5))
@@ -218,6 +218,16 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["post-report"].waitForExistence(timeout: 3))
         app.buttons["post-open-profile"].tap()
         XCTAssertTrue(app.buttons["profile-block-user"].waitForExistence(timeout: 3))
+    }
+
+    func testOwnPostDoesNotOfferReportOrBlock() {
+        let app = XCUIApplication()
+        app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["post-like-button"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["post-report"].exists)
+        XCTAssertFalse(app.buttons["post-more-menu"].exists)
     }
 
     func testAllPrimaryAndProfileRoutesOpen() {

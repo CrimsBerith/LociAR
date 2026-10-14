@@ -45,7 +45,7 @@ final class AppSession {
         }
         if UITestFixtures.authenticatedSessionEnabled {
             isLocalPreview = true
-            phase = .signedIn(UITestFixtures.creator)
+            phase = .signedIn(UITestFixtures.authenticatedUser)
             return
         }
 #endif
