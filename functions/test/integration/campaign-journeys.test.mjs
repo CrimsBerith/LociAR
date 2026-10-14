@@ -25,7 +25,7 @@ async function partyFixture(stepOverrides = {}) {
     starts_at: Timestamp.fromMillis(Date.now() - 1000), ends_at: Timestamp.fromMillis(Date.now() + 86_400_000),
     post_projection: { creator_id: author.luid, pose_json: JSON.stringify({ latitude: lat, longitude: lng }), caption: 'Moda Party', visibility: 'private',
       sponsorship: { brand_name: 'Moda Party', terms: 'One per person', expires_at: new Date(Date.now() + 86_400_000).toISOString() } } });
-  await adminDb.collection('user_data_preferences').doc(user.luid).set({ owner_luid: user.luid, promotions: true, arrivals: true, departures: true });
+  await adminDb.collection('user_data_preferences').doc(user.luid).set({ owner_luid: user.luid, promotions: true, notifications: true, arrivals: true, departures: true });
   const home = fix(lat + 2_000 * M, lng, 40);
   const step = (stepId, f, extra = {}) => user.call('recordCampaignStep', { campaignId: id, stepId, location: f, ...extra });
   return { author, user, id, lat, lng, home, step };
@@ -71,7 +71,7 @@ test('budget, schedule, dwell, exit, consent and kill switch are enforced by the
   const stayed = await p.step('dwell', inside, { dwellStartedAt: Date.now() - 65_000 });
   assert.equal(stayed.notify, true); assert.equal(stayed.code, 'STAY10');
   const other = await newAnonymousUser();
-  await adminDb.collection('user_data_preferences').doc(other.luid).set({ owner_luid: other.luid, promotions: true, arrivals: true, departures: true });
+  await adminDb.collection('user_data_preferences').doc(other.luid).set({ owner_luid: other.luid, promotions: true, notifications: true, arrivals: true, departures: true });
   assert.equal((await other.call('recordCampaignStep', { campaignId: p.id, stepId: 'dwell', location: inside, dwellStartedAt: Date.now() - 65_000 })).reason, 'budget');
   assert.equal((await p.step('bye', fix(p.lat + 35 * M, p.lng))).reason, 'not_outside', 'still within GPS uncertainty');
   assert.equal((await p.step('bye', fix(p.lat + 80 * M, p.lng))).notify, true);
@@ -93,4 +93,17 @@ test('leaving is accepted only within the campaign area, and account deletion re
   await p.user.call('deleteAccount');
   assert.equal((await adminDb.collection('campaign_progress').where('owner_luid', '==', p.user.luid).get()).empty, true);
   assert.equal((await adminDb.collection('campaign_codes').where('owner_luid', '==', p.user.luid).get()).empty, true);
+});
+
+
+test('global opt-out stops push-only journeys and wake regions, while mixed map/AR rewards never notify', async () => {
+  const p = await partyFixture({ requires: undefined, withinMinutes: undefined });
+  await adminDb.collection('user_data_preferences').doc(p.user.luid).update({ notifications: false });
+  assert.deepEqual((await p.user.call('readCampaignZones', { location: p.home })).regions, []);
+  assert.equal((await p.step('s1', p.home)).reason, 'disabled');
+  assert.equal((await adminDb.collection('campaign_progress').doc(`${p.id}_${p.user.luid}`).get()).exists, false);
+  const result = await p.step('s2', fix(p.lat, p.lng + 50 * M), { confirmationStartedAt: Date.now() - 3000 });
+  assert.equal(result.notify, false); assert.match(result.code, /^BEER-/); assert.ok(result.activityId);
+  const offer = (await p.user.call('readPublicContent', { mode: 'single', postId: p.id })).posts[0];
+  assert.ok(offer.sponsorship.codes.includes(result.code));
 });

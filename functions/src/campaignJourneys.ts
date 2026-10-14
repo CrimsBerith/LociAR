@@ -45,7 +45,7 @@ export const readCampaignZones = onCall(options, async request => {
   return db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const [pref, flags] = await tx.getAll(db.collection('user_data_preferences').doc(caller.luid), db.collection('system').doc('flags'));
-    if (flags.get('kill_switch') === true || pref.get('promotions') !== true) return { regions: [] };
+    if (flags.get('kill_switch') === true || pref.get('notifications') !== true || pref.get('promotions') !== true) return { regions: [] };
     const campaigns = await tx.get(db.collection('campaigns').where('audience', '==', 'zone').where('status', '==', 'active').limit(300));
     const live = campaigns.docs.filter(c => campaignLive(c.data(), now) && distanceMeters(f.lat, f.lng, c.get('lat'), c.get('lng')) <= Number(c.get('radius') ?? 0) + SEARCH_M);
     const progress = live.length ? await tx.getAll(...live.map(c => progressRef(c.id, caller.luid))) : [];
@@ -92,7 +92,8 @@ export const recordCampaignStep = onCall(options, async request => {
     if (brand.get('status') !== 'active') return { notify: false, reason: 'inactive' };
     const step = steps(c).find(s => s.id === b.stepId);
     if (!step) return { notify: false, reason: 'unknown_step' };
-    if (!consented(pref, step.trigger)) return { notify: false, reason: 'disabled' };
+    if (!consented(pref, step.trigger) || (step.channels.push && !step.channels.map && !step.channels.ar
+      && pref.get('notifications') !== true)) return { notify: false, reason: 'disabled' };
     const timezone = String(c.timezone ?? 'Europe/Istanbul');
     if (!scheduleAllows(step.schedule, now)) return { notify: false, reason: 'outside_schedule' };
     // Geometry and confirmation for each trigger.
@@ -139,7 +140,7 @@ export const recordCampaignStep = onCall(options, async request => {
     const body = code ? `${step.message}\n${code}` : step.message;
     tx.create(db.collection('activity_events').doc(activityId), { kind: 'promotion', anonymous: true, actor_id: null, recipient_id: caller.luid,
       post_id: targetDoc ? id : null, body, read_at: null, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
-    return { notify: step.channels.push, title: step.title, body, code, postId: targetDoc ? id : null, activityId, recipientId: caller.luid, stepId: step.id };
+    return { notify: step.channels.push && pref.get('notifications') === true, title: step.title, body, code, postId: targetDoc ? id : null, activityId, recipientId: caller.luid, stepId: step.id };
   });
 });
 

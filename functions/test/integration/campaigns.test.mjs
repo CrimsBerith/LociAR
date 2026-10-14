@@ -55,8 +55,8 @@ async function arrivalFixture() {
     post_projection: { creator_id: author.luid, pose_json: JSON.stringify({ latitude: 39.92, longitude: 32.85 }), caption: 'LOCI20' } });
   const target = adminDb.collection('campaign_targets').doc(`${id}_${recipient.luid}`);
   await target.set({ owner_luid: recipient.luid, campaign_id: id, state: 'assigned', notification_mode: 'arrival', assigned_by: actor, expires_at: Timestamp.fromMillis(Date.now() + 86400000) });
-  await adminDb.collection('user_data_preferences').doc(recipient.luid).set({ owner_luid: recipient.luid, arrivals: true, promotions: true });
-  const body = { campaignId: id, locale: 'tr_TR', location: { lat: 39.92, lng: 32.85, accuracy: 0.5, measuredAt: Date.now() } };
+  await adminDb.collection('user_data_preferences').doc(recipient.luid).set({ owner_luid: recipient.luid, arrivals: true, promotions: true, notifications: true });
+  const body = { campaignId: id, locale: 'tr_TR', confirmationStartedAt: Date.now() - 3000, location: { lat: 39.92, lng: 32.85, accuracy: 0.5, measuredAt: Date.now() } };
   return { author, recipient, id, brand, actor, target, body };
 }
 
@@ -157,7 +157,22 @@ test('campaign entry uses the GPS-tolerant 15-100 m rule and still requires fres
   assert.equal((await arrive({ lat: 39.9206, accuracy: 8 })).notify, false, '~67 m away is outside 30 m + 8 m');
   assert.equal((await arrive({ measuredAt: Date.now() - 15000 }, Date.now() - 20000)).notify, false);
   assert.equal((await arrive({ measuredAt: Date.now() - 4000 })).notify, false);
-  assert.equal((await f.recipient.call('recordCampaignArrival', f.body)).notify, false);
+  assert.equal((await f.recipient.call('recordCampaignArrival', { ...f.body, confirmationStartedAt: undefined })).notify, false);
   // Passing ~35 m from the shop with a typical 8 m fix is inside 30 m + 8 m.
   assert.equal((await arrive({ lat: 39.92032, accuracy: 8 })).notify, true);
+});
+
+
+test('assigned campaign alerts require global notification consent without consuming arrival or quota', async () => {
+  const f = await arrivalFixture(), pref = adminDb.collection('user_data_preferences').doc(f.recipient.luid);
+  for (const value of [null, false, 'true']) {
+    await pref.update({ notifications: value });
+    assert.deepEqual((await f.recipient.call('readCampaignRegions')).regions, []);
+    assert.equal((await f.recipient.call('recordCampaignArrival', f.body)).notify, false);
+    assert.equal((await f.target.get()).get('arrival_notified_at'), undefined);
+    assert.equal((await adminDb.collection('promotion_push_quota').where('owner_luid', '==', f.recipient.luid).get()).size, 0);
+  }
+  await pref.update({ notifications: true });
+  const result = await f.recipient.call('recordCampaignArrival', { ...f.body, confirmationStartedAt: Date.now() - 3000, location: { ...f.body.location, measuredAt: Date.now() } });
+  assert.equal(result.notify, true);
 });

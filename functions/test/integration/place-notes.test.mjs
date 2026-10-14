@@ -17,7 +17,7 @@ const north = (point, meters) => ({ ...point, lat: point.lat + meters * METER })
 
 async function optIn(user) {
   const pref = await user.call('readDataPreferences');
-  await user.call('setDataPreferences', { telemetry: false, location: false, revision: pref.revision, noticeVersion: '2026-10-11', placeNotes: true, placeNotesNoticeVersion: '2026-10-11-place-notes' });
+  await user.call('setDataPreferences', { telemetry: false, location: false, revision: pref.revision, noticeVersion: '2026-10-11', notifications: true, notificationsNoticeVersion: '2026-10-11-notifications', placeNotes: true, placeNotesNoticeVersion: '2026-10-11-place-notes' });
 }
 async function note(author, point, overrides = {}) {
   const body = { userId: author.luid, clientMutationId: randomUUID(), lat: point.lat, lng: point.lng, source: 'gps', accuracy: 6, text: 'Entrance is around the back.', ...overrides };
@@ -33,6 +33,19 @@ async function fixture(text = 'Entrance is around the back.') {
     visitor.call('recordPlaceNoteVisit', { location, confirmationStartedAt });
   return { author, visitor, point, n, visit };
 }
+
+test('note regions and visits require explicit global consent before consuming a lifetime receipt', async () => {
+  const f = await fixture(); await approve(f.n);
+  const pref = adminDb.collection('user_data_preferences').doc(f.visitor.luid);
+  for (const value of [FieldValue.delete(), false, null, 'true']) {
+    await pref.update({ notifications: value, place_notes: true });
+    assert.deepEqual((await f.visitor.call('readPlaceNoteRegions', { location: fix(f.point.lat, f.point.lng) })).regions, []);
+    assert.deepEqual(await f.visit(), { notify: false, reason: 'disabled' });
+    assert.equal((await adminDb.collection('place_note_notification_receipts').where('owner_luid', '==', f.visitor.luid).get()).size, 0);
+  }
+  await pref.update({ notifications: true });
+  assert.equal((await f.visit()).notify, true);
+});
 
 test('a shop note waits ten seconds and an early visit does not consume its one-time delivery', async () => {
   const warning = 'Bu ürünü alma, kalitesi düşük.';

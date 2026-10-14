@@ -14,7 +14,7 @@ export const readCampaignRegions = onCall(options, async request => {
   return db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const [pref, flags] = await tx.getAll(db.collection('user_data_preferences').doc(caller.luid), db.collection('system').doc('flags'));
-    if (pref.get('promotions') !== true || (pref.get('arrivals') !== true && pref.get('departures') !== true) || flags.get('kill_switch') === true) return { regions: [] };
+    if (pref.get('notifications') !== true || pref.get('promotions') !== true || (pref.get('arrivals') !== true && pref.get('departures') !== true) || flags.get('kill_switch') === true) return { regions: [] };
     const assignments = await tx.get(db.collection('campaign_targets').where('owner_luid', '==', caller.luid).where('expires_at', '>', Timestamp.fromMillis(now)).limit(50));
     const regions = [];
     for (const a of assignments.docs) {
@@ -53,7 +53,7 @@ export const recordCampaignArrival = onCall(options, async request => {
     const [flags, pref, target, c, activity, quota] = await tx.getAll(db.collection('system').doc('flags'),
       db.collection('user_data_preferences').doc(caller.luid), db.collection('campaign_targets').doc(`${id}_${caller.luid}`),
       db.collection('campaigns').doc(id), db.collection('activity_events').doc(activityId), db.collection('promotion_push_quota').doc(pushQuotaId(caller.luid, now)));
-    if (flags.get('kill_switch') === true || pref.get('promotions') !== true || pref.get(departure ? 'departures' : 'arrivals') !== true
+    if (flags.get('kill_switch') === true || pref.get('notifications') !== true || pref.get('promotions') !== true || pref.get(departure ? 'departures' : 'arrivals') !== true
         || target.get('notification_mode') !== (departure ? 'departure' : 'arrival') || target.get('arrival_notified_at') || activity.exists
         || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now) return { notify: false };
     const offer = await campaignOffer(tx, caller.luid, id, now);

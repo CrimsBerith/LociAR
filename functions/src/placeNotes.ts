@@ -111,7 +111,7 @@ async function unseenNotes(tx: FirebaseFirestore.Transaction, posts: FirebaseFir
 
 async function notificationsAllowed(tx: FirebaseFirestore.Transaction, luid: string) {
   const [pref, flags] = await tx.getAll(db.collection('user_data_preferences').doc(luid), db.collection('system').doc('flags'));
-  return pref.get('place_notes') === true && flags.get('kill_switch') !== true;
+  return pref.get('notifications') === true && pref.get('place_notes') === true && flags.get('kill_switch') !== true;
 }
 
 /**
