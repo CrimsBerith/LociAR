@@ -6,6 +6,7 @@ export { createPlaceNote, readPlaceNoteRegions, recordPlaceNoteVisit } from './p
 export { onPostDensityWritten, reconcileNoteDensity, readNoteDensity, expireScheduledNotes } from './noteDensity';
 export { unlockDenseSpot } from './denseSpots';
 export { onReportCreated } from './noteAutomation';
+export { submitReport } from './reports';
 export { readCampaignZones, recordCampaignStep, onCampaignZoneChanged } from './campaignJourneys';
 export { readActivity, readLikeCount, blockPostAuthor, readAnonymousWorldMap } from './anonymousAccess';
 export { beginWorldMapUpload, createPost, deleteOwnPost, recordPostView } from './posts';

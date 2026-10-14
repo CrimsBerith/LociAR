@@ -646,5 +646,6 @@
  "Konum bildirimleri hazır": "إشعارات الموقع جاهزة",
  "Konum bildirimleri için ayarları kontrol et": "تحقق من إعدادات إشعارات الموقع",
  "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "قد يحدّ iOS من النشاط في الخلفية. إذا أغلقت التطبيق قسريًا، فقد تتأخر إشعارات الموقع أو لا تصل.",
- "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "تعذر تسجيل مناطق الموقع في iOS. قد تتأخر الإشعارات؛ حاول مرة أخرى."
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "تعذر تسجيل مناطق الموقع في iOS. قد تتأخر الإشعارات؛ حاول مرة أخرى.",
+ "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.": "لقد وصلت إلى الحد الأقصى للبلاغات. حاول لاحقًا."
 }

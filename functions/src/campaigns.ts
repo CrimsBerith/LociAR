@@ -7,7 +7,7 @@ import { requireActiveAccount, accountDeletionRef, profileBlock } from './profil
 import { isBlocked } from './anonymousAccess';
 import { distanceMeters } from './geo';
 import { anyBlocked } from './moderation';
-import { MAX_PUSH_DEVICES, validPushToken, pushDeliveryId, invalidPushTokenCode, pushQuotaDecision, pushQuotaId, pushLocale } from './pushPolicy';
+import { MAX_PUSH_DEVICES, pushAddress, pushAddressMatches, pushDeliveryId, invalidPushTokenCode, pushQuotaDecision, pushQuotaId, pushLocale } from './pushPolicy';
 
 export function campaignLive(c: FirebaseFirestore.DocumentData | undefined, now = Date.now()): boolean {
   return Boolean(c && c.status === 'active' && c.starts_at instanceof Timestamp && c.ends_at instanceof Timestamp
@@ -70,11 +70,12 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
       const [job, target, receipt, profile, deletion, pref, quota, actorDeletion] = await tx.getAll(ref, device.ref, receiptRef,
         db.collection('profiles').doc(recipient), accountDeletionRef(recipient), db.collection('user_data_preferences').doc(recipient), quotaRef,
         accountDeletionRef(luidForUid(initial.actor_uid)));
-      const data = job.data();
-      if (!data || data.recipient_id !== recipient || data.status === 'complete' || data.expires_at.toMillis() <= now
+      const data = job.data(), address = pushAddress(target.data());
+      if (!data || data.recipient_id !== recipient || data.status === 'complete' || !(data.expires_at instanceof Timestamp) || data.expires_at.toMillis() <= now
           || receipt.exists || !profile.exists || profile.get('suspended') || profile.get('deleted_at') || deletion.exists || actorDeletion.exists
-          || pref.get('promotions') !== true || pref.get('revision') !== data.consent_revision
-          || target.get('owner_luid') !== recipient || !validPushToken(target.get('token')) || target.get('expires_at').toMillis() <= now) return null;
+          || pref.get('notifications') !== true || pref.get('promotions') !== true || pref.get('revision') !== data.consent_revision
+          || !target.exists || target.get('owner_luid') !== recipient || !address
+          || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now) return null;
       const roles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', data.actor_uid).where('revoked_at', '==', null));
       // Only super admins send in this first phase; a future brand editor cannot address users.
       if (!roles.docs.some(d => d.get('role_key') === 'super_admin')) return null;
@@ -106,7 +107,7 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
       if (!activity.exists) tx.create(activityRef, { kind: postId ? 'promotion' : 'admin_notice', anonymous: true, actor_id: null,
         recipient_id: recipient, post_id: postId || null, body: activityBody, read_at: null, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * 86_400_000) });
       tx.create(receiptRef, { owner_luid: recipient, job_id: id, status: 'attempted', created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * 86_400_000) });
-      return { token: target.get('token'), notification: { title: data.title, body },
+      return { ...address, notification: { title: data.title, body },
         data: { recipient_id: recipient, post_id: postId, activity_id: activityRef.id },
         apns: { headers: { 'apns-collapse-id': id, 'apns-expiration': String(Math.floor(now / 1000) + 3600) }, payload: { aps: { sound: 'default' } } } } satisfies Message;
     });
@@ -117,7 +118,7 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
       const code = safeErrorCode(error);
       if (invalidPushTokenCode(code)) await db.runTransaction(async tx => {
         const latest = await tx.get(device.ref);
-        if (latest.get('owner_luid') === recipient && latest.get('token') === message.token) tx.delete(device.ref);
+        if (latest.get('owner_luid') === recipient && pushAddressMatches(latest.data(), message)) tx.delete(device.ref);
       });
       await receiptRef.update({ status: 'failed', error_code: code }).catch(() => {});
     }

@@ -7,6 +7,7 @@ import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import { reasonError } from './errors';
 import { v5 as uuidv5, validate as uuidValidate } from 'uuid';
+import { deletePagedStorageFiles, STORAGE_DELETE_PAGE_SIZE } from './storagePaging';
 
 if (getApps().length === 0) initializeApp();
 
@@ -127,9 +128,11 @@ export const ANALYTICS_RETENTION_DAYS = 180;
 export async function deleteStoragePrefix(prefix: string): Promise<number> {
   let removed = 0;
   for (const folder of STORAGE_FOLDERS) {
-    const [files] = await bucket().getFiles({ prefix: `${folder}/${prefix}` });
-    await Promise.all(files.map((file) => file.delete({ ignoreNotFound: true })));
-    removed += files.length;
+    removed += await deletePagedStorageFiles(async pageToken => {
+      const [files, next] = await bucket().getFiles({ prefix: `${folder}/${prefix}`, autoPaginate: false,
+        maxResults: STORAGE_DELETE_PAGE_SIZE, ...(pageToken ? { pageToken } : {}) });
+      return { files, nextPageToken: next?.pageToken };
+    });
   }
   return removed;
 }

@@ -10,8 +10,24 @@ export function validPushToken(token: unknown): token is string {
   return typeof token === 'string' && /^[\x21-\x7e]{20,4096}$/.test(token);
 }
 
+export type PushAddress = { fid: string; token?: never } | { token: string; fid?: never };
+export function validPushFid(value: unknown): value is string {
+  return typeof value === 'string' && /^[cdef][A-Za-z0-9_-]{21}$/.test(value);
+}
+/** Exactly one SDK targeting mode. Existing token installations remain supported. */
+export function pushAddress(data: { fid?: unknown; token?: unknown } | null | undefined): PushAddress | null {
+  if (data?.fid != null) return data.token == null && validPushFid(data.fid) ? { fid: data.fid } : null;
+  return validPushToken(data?.token) ? { token: data.token } : null;
+}
+export const pushAddressId = (address: PushAddress) => pushTokenId(address.fid ? `fid:${address.fid}` : address.token!);
+export function pushAddressMatches(data: { fid?: unknown; token?: unknown } | undefined, address: PushAddress): boolean {
+  const current = pushAddress(data);
+  return !!current && current.fid === address.fid && current.token === address.token;
+}
+
 export function invalidPushTokenCode(code: unknown): boolean {
-  return code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token';
+  return code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token'
+    || code === 'messaging/installation-id-not-registered';
 }
 
 const bodies: Record<string, [string, string, string]> = {

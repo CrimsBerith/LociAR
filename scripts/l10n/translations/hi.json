@@ -646,5 +646,6 @@
  "Konum bildirimleri hazır": "स्थान सूचनाएँ तैयार हैं",
  "Konum bildirimleri için ayarları kontrol et": "स्थान सूचनाओं के लिए सेटिंग जाँचें",
  "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS बैकग्राउंड गतिविधि सीमित कर सकता है। अगर आप ऐप को बलपूर्वक बंद करते हैं, तो स्थान सूचनाएँ देर से आ सकती हैं या नहीं आ सकतीं।",
- "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "iOS में स्थान क्षेत्र दर्ज नहीं हो सके। सूचनाओं में देरी हो सकती है; फिर से कोशिश करें।"
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "iOS में स्थान क्षेत्र दर्ज नहीं हो सके। सूचनाओं में देरी हो सकती है; फिर से कोशिश करें।",
+ "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.": "आप रिपोर्ट की सीमा तक पहुँच गए हैं। बाद में फिर कोशिश करें।"
 }

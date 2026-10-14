@@ -566,6 +566,45 @@ final class BackendAndPolicyTests: XCTestCase {
     }
 
     @MainActor
+    func testSDKRegistrationIsSingleFlightAndDrainWaitsForCompletion() async throws {
+        let gate = PushSDKRegistrationFlight()
+        let started = AsyncStream<Void>.makeStream(), release = AsyncStream<Void>.makeStream()
+        var calls = 0, completed = false, drained = false
+        let first = Task { try await gate.register {
+            calls += 1; started.continuation.yield(()); started.continuation.finish()
+            for await _ in release.stream { break }
+            completed = true
+        } }
+        for await _ in started.stream { break }
+        let joined = AsyncStream<Void>.makeStream()
+        let second = Task {
+            joined.continuation.yield(()); joined.continuation.finish()
+            try await gate.register { calls += 1 }
+        }
+        for await _ in joined.stream { break }
+        let draining = AsyncStream<Void>.makeStream()
+        let drain = Task {
+            draining.continuation.yield(()); draining.continuation.finish()
+            await gate.drain(); drained = true
+        }
+        for await _ in draining.stream { break }
+        XCTAssertEqual(calls, 1); XCTAssertFalse(drained)
+        release.continuation.yield(()); release.continuation.finish()
+        try await first.value; try await second.value; await drain.value
+        XCTAssertTrue(completed); XCTAssertTrue(drained); XCTAssertEqual(calls, 1)
+    }
+
+    @MainActor
+    func testSDKRegistrationFailureDoesNotPreventRetry() async throws {
+        let gate = PushSDKRegistrationFlight()
+        do { try await gate.register { throw URLError(.notConnectedToInternet) }; XCTFail("Expected failure") }
+        catch { XCTAssertTrue(error is URLError) }
+        var calls = 0
+        try await gate.register { calls += 1 }
+        XCTAssertEqual(calls, 1)
+    }
+
+    @MainActor
     func testPushRegistrationWaitsForSessionAndDeduplicatesSuccessfulRegistration() async {
         let client = RecordingPushClient()
         let coordinator = PushTokenCoordinator(client: client, installationID: UUID(), locale: { "tr-TR" })

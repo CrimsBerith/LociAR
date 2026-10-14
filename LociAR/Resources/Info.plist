@@ -7,7 +7,7 @@
   <key>FirebaseMessagingAutoInitEnabled</key>
   <false/>
   <key>FirebaseMessagingInstallationIdEnabled</key>
-  <false/>
+  <true/>
   <key>CFBundleDevelopmentRegion</key>
   <string>$(DEVELOPMENT_LANGUAGE)</string>
   <key>CFBundleDisplayName</key>

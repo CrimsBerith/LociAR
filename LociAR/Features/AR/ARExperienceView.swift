@@ -515,7 +515,7 @@ struct ARExperienceView: View {
             var networkError: Error?
             do { collected.append(contentsOf: try await nearbyRequest) } catch { networkError = error }
             do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
-            if collected.isEmpty, let networkError {
+            if collected.isEmpty, networkError != nil {
                 isDiscovering = false
                 discoveryMessage = String(localized: "Bağlantı kurulamadı. Biraz sonra tekrar dene.")
                 return

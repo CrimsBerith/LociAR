@@ -646,5 +646,6 @@
  "Konum bildirimleri hazır": "অবস্থানের বিজ্ঞপ্তি প্রস্তুত",
  "Konum bildirimleri için ayarları kontrol et": "অবস্থানের বিজ্ঞপ্তির সেটিংস দেখুন",
  "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS পটভূমির কার্যকলাপ সীমিত করতে পারে। অ্যাপ জোর করে বন্ধ করলে অবস্থানের বিজ্ঞপ্তি দেরিতে আসতে পারে বা নাও আসতে পারে।",
- "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "iOS-এ অবস্থানের এলাকাগুলো নিবন্ধন করা যায়নি। বিজ্ঞপ্তি আসতে দেরি হতে পারে; আবার চেষ্টা করুন।"
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "iOS-এ অবস্থানের এলাকাগুলো নিবন্ধন করা যায়নি। বিজ্ঞপ্তি আসতে দেরি হতে পারে; আবার চেষ্টা করুন।",
+ "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.": "আপনি রিপোর্টের সীমায় পৌঁছেছেন। পরে আবার চেষ্টা করুন।"
 }

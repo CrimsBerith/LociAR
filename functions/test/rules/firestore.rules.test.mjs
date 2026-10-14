@@ -135,13 +135,13 @@ test('profile: an over-long legacy display_name does not block other edits', asy
   await assertFails(updateDoc(doc(db, 'profiles', BOB), { display_name: 'y'.repeat(61), updated_at: serverTimestamp() }));
 });
 
-test('suspended accounts cannot interact but can still report', async () => {
+test('suspended accounts cannot interact or bypass the server report path', async () => {
   const db = as(CAROL);
   const c = { id: 'c-s', post_id: POST, user_id: CAROL, text: 'selam', created_at: serverTimestamp() };
   await assertFails(setDoc(doc(db, 'comments', 'c-s'), c));
   await assertFails(setDoc(doc(db, 'likes', `${POST}_${CAROL}`), { post_id: POST, user_id: CAROL, created_at: serverTimestamp() }));
   await assertFails(setDoc(doc(db, 'follows', `${CAROL}_${BOB}`), { follower_id: CAROL, following_id: BOB, created_at: serverTimestamp() }));
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'r-s'), { post_id: POST, user_id: CAROL, reason: 'spam', status: 'open', metadata: {}, created_at: serverTimestamp() }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'r-s'), { post_id: POST, user_id: CAROL, reason: 'spam', status: 'open', metadata: {}, created_at: serverTimestamp() }));
 });
 
 test('blocked users cannot comment, like or follow the blocker', async () => {
@@ -161,10 +161,10 @@ test('comments: not on private posts; author or post owner may delete', async ()
   await assertSucceeds(deleteDoc(doc(as(BOB), 'comments', 'bob-own')));
 });
 
-test('collection items only in own collections; reports create-only', async () => {
+test('collection items only in own collections; reports server-only', async () => {
   const db = as(ALICE);
   await assertFails(setDoc(doc(db, 'collection_items', `c1_${POST}`), { collection_id: 'c1', post_id: POST, owner_id: ALICE, sort_order: 1, created_at: serverTimestamp() }));
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'r1'), { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', metadata: { source: 'native_ios' }, created_at: serverTimestamp() }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'r1'), { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', metadata: { source: 'native_ios' }, created_at: serverTimestamp() }));
   await assertFails(getDoc(doc(db, 'moderation_flags', 'r1')));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'r2'), { post_id: POST, user_id: ALICE, reason: 'spam', status: 'resolved', metadata: {}, created_at: serverTimestamp() }));
 });
@@ -227,21 +227,21 @@ test('collections: validated create and update, owner-only CRUD', async () => {
   await assertSucceeds(deleteDoc(doc(db, 'collections', 'c-ok')));
 });
 
-test('moderation_flags: bounded metadata and typed post_id', async () => {
+test('moderation_flags: all client writes are denied regardless of payload', async () => {
   const db = as(ALICE);
   const flag = { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', metadata: {}, created_at: serverTimestamp() };
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'f-ok'), flag));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'f-ok'), flag));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'f-meta'), { ...flag, metadata: Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`k${i}`, i])) }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'f-type'), { ...flag, post_id: 12345 }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'f-user'), { ...flag, user_id: BOB }));
 });
 
-test('moderation_flags: metadata keys are known and every value is a string of at most 500 characters', async () => {
+test('moderation_flags: metadata cannot bypass server-only writes', async () => {
   const db = as(ALICE);
   const flag = { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', created_at: serverTimestamp() };
   const comment = { source: 'native_ios', target: 'comment', comment_id: 'c', author_id: BOB, text: 'x'.repeat(500) };
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'm-ok'), { ...flag, metadata: comment }));
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'm-user'), { ...flag, post_id: null, metadata: { source: 'native_ios', target: 'user', reported_user_id: BOB } }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'm-ok'), { ...flag, metadata: comment }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'm-user'), { ...flag, post_id: null, metadata: { source: 'native_ios', target: 'user', reported_user_id: BOB } }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'm-long'), { ...flag, metadata: { ...comment, text: 'x'.repeat(501) } }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'm-huge'), { ...flag, metadata: { source: 'y'.repeat(900_000) } }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'm-key'), { ...flag, metadata: { payload: 'x' } }));
@@ -352,7 +352,7 @@ test('server-only collections stay closed for clients (reads and writes)', async
 });
 test('client reports cannot enter trusted filter namespaces or supply system provenance',async()=>{
  const report={user_id:ALICE,post_id:POST,reason:'spam',status:'open',metadata:{target:'comment',comment_id:'c1',author_id:BOB,text:'untrusted'},created_at:serverTimestamp()};
- await assertSucceeds(setDoc(doc(as(ALICE),'moderation_flags','normal-report'),report));
+ await assertFails(setDoc(doc(as(ALICE),'moderation_flags','normal-report'),report));
  for(const reason of['comment_filtered','profile_text_filtered'])await assertFails(setDoc(doc(as(ALICE),'moderation_flags','fake-'+reason),{...report,reason}));
  await assertFails(setDoc(doc(as(ALICE),'moderation_flags','comment_c1'),report));await assertFails(setDoc(doc(as(ALICE),'moderation_flags','forged-source'),{...report,server_origin:'comment_filter'}));
 });
@@ -364,4 +364,11 @@ test('outgoing blocks deny interactions just like incoming blocks without exposi
  await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'user_blocks',`${ALICE}_${BOB}`),{blocker_id:ALICE,blocked_id:BOB}));
  await assertFails(setDoc(doc(as(ALICE),'comments','blocked-comment'),{id:'blocked-comment',post_id:POST,user_id:ALICE,text:'x',created_at:serverTimestamp()}));
  await assertFails(setDoc(doc(as(ALICE),'likes',`${POST}_${ALICE}`),{post_id:POST,user_id:ALICE,created_at:serverTimestamp()}));await assertFails(getDoc(doc(as(ALICE),'posts',POST)));
+});
+
+test('report receipts and quotas are server-only even for their owner', async () => {
+  for (const collection of ['report_receipts', 'report_quota']) {
+    await assertFails(setDoc(doc(as(ALICE), collection, ALICE), { owner_luid: ALICE }));
+    await assertFails(getDoc(doc(as(ALICE), collection, ALICE)));
+  }
 });

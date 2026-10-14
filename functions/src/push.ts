@@ -5,9 +5,9 @@ import { assertServiceEnabled, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, Fi
 import { assertAccountNotDeleting, accountDeletionRef, profileBlock } from './profileGuard';
 import { reasonError } from './errors';
 import { isBlocked } from './anonymousAccess';
-import { invalidPushTokenCode, MAX_PUSH_DEVICES, postApprovedBody, pushBody, pushDeliveryId, pushLocale, pushQuotaDecision, pushQuotaId, PUSH_QUOTA_RETENTION_DAYS, PUSH_RECEIPT_RETENTION_DAYS, PUSH_TOKEN_RETENTION_DAYS, pushTokenId, utcDay, validPushToken } from './pushPolicy';
+import { invalidPushTokenCode, MAX_PUSH_DEVICES, postApprovedBody, pushBody, pushDeliveryId, pushLocale, pushQuotaDecision, pushQuotaId, PUSH_QUOTA_RETENTION_DAYS, PUSH_RECEIPT_RETENTION_DAYS, PUSH_TOKEN_RETENTION_DAYS, pushTokenId, utcDay, pushAddress, pushAddressId, pushAddressMatches } from './pushPolicy';
 
-type Registration = { token?: unknown; installationId?: unknown; userId?: unknown; locale?: unknown };
+type Registration = { fid?: unknown; token?: unknown; installationId?: unknown; userId?: unknown; locale?: unknown };
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
 
 function registrationIdentity(data: Registration | null, luid: string): string {
@@ -23,9 +23,9 @@ export const registerPushToken = onCall(options, async request => {
   const data = request.data as Registration | null;
   const installationId = registrationIdentity(data, caller.luid);
   if (!identityVerified(caller) && !caller.isAnonymous) throw reasonError('permission-denied', 'Verified identity required', 'identity_unverified');
-  if (!validPushToken(data?.token)) throw new HttpsError('invalid-argument', 'Valid FCM token required');
-  const token = data.token;
-  const ref = db.collection('push_tokens').doc(pushTokenId(token));
+  const address = pushAddress(data);
+  if (!address) throw new HttpsError('invalid-argument', 'One valid FCM registration required');
+  const ref = db.collection('push_tokens').doc(pushAddressId(address));
   await db.runTransaction(async tx => {
     await assertAccountNotDeleting(tx, caller.luid);
     const [profile, previous] = await tx.getAll(db.collection('profiles').doc(caller.luid), ref);
@@ -40,7 +40,7 @@ export const registerPushToken = onCall(options, async request => {
       if (doc.id !== ref.id && doc.get('installation_id') === installationId) tx.delete(doc.ref);
     }
     tx.set(ref, {
-      owner_luid: caller.luid, installation_id: installationId, token, locale: pushLocale(data?.locale),
+      owner_luid: caller.luid, installation_id: installationId, ...address, locale: pushLocale(data?.locale),
       created_at: previous.get('created_at') ?? FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
       expires_at: Timestamp.fromMillis(Date.now() + PUSH_TOKEN_RETENTION_DAYS * 86_400_000),
@@ -87,11 +87,12 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
       if ((await tx.get(db.collection('user_data_preferences').doc(initial.recipient_id))).get('notifications') !== true) return null;
       const activity = activitySnap.data();
       const body = pushBody(String(activity?.kind), target.get('locale'));
+      const address = pushAddress(target.data());
       if (!activity || activity.recipient_id !== initial.recipient_id || activity.actor_id !== initial.actor_id
         || activity.post_id !== initial.post_id || activity.kind !== initial.kind
         || (activity.expires_at instanceof Timestamp && activity.expires_at.toMillis() <= now)
         || activity.read_at || !body || receipt.exists || !target.exists
-        || target.get('owner_luid') !== initial.recipient_id || !validPushToken(target.get('token'))
+        || target.get('owner_luid') !== initial.recipient_id || !address
         || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now
         || profileBlock(recipient.data()) || profileBlock(actor.data()) || blockA.exists || blockB.exists
         || recipientDeletion.exists || actorDeletion.exists || await isBlocked(initial.recipient_id, initial.actor_id, tx)) return null;
@@ -112,7 +113,7 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
         expires_at: Timestamp.fromMillis(now + PUSH_RECEIPT_RETENTION_DAYS * 86_400_000),
       });
       return {
-        token: target.get('token') as string,
+        ...address,
         notification: { title: 'LociAR', body },
         data: { activity_id: activityId, recipient_id: initial.recipient_id, post_id: isUUID(activity.post_id) ? activity.post_id : '' },
         apns: { headers: { 'apns-collapse-id': pushTokenId(activityId), 'apns-expiration': String(Math.floor(now / 1000) + 3600) }, payload: { aps: { sound: 'default' } } },
@@ -129,7 +130,7 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
       if (invalidPushTokenCode(code)) {
         await db.runTransaction(async tx => {
           const latest = await tx.get(device.ref);
-          if (latest.get('owner_luid') === initial.recipient_id && latest.get('token') === claimed.token) tx.delete(device.ref);
+          if (latest.get('owner_luid') === initial.recipient_id && pushAddressMatches(latest.data(), claimed)) tx.delete(device.ref);
         });
       }
       await receiptRef.update({ status: 'failed', error_code: code }).catch(updateError => { if (updateError.code !== 5) throw updateError; });
@@ -159,8 +160,9 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
       const [post, target, receipt, recipient, recipientDeletion] = await tx.getAll(
         postRef, device.ref, receiptRef, db.collection('profiles').doc(recipientId), accountDeletionRef(recipientId));
       if ((await tx.get(db.collection('user_data_preferences').doc(recipientId))).get('notifications') !== true) return null;
+      const address = pushAddress(target.data());
       if (!post.exists || post.get('creator_id') !== recipientId || post.get('status') !== 'active' || post.get('deleted_at')
-        || receipt.exists || !target.exists || target.get('owner_luid') !== recipientId || !validPushToken(target.get('token'))
+        || receipt.exists || !target.exists || target.get('owner_luid') !== recipientId || !address
         || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now
         || profileBlock(recipient.data()) || recipientDeletion.exists) return null;
       tx.create(receiptRef, {
@@ -169,7 +171,7 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
         expires_at: Timestamp.fromMillis(now + PUSH_RECEIPT_RETENTION_DAYS * 86_400_000),
       });
       return {
-        token: target.get('token') as string,
+        ...address,
         notification: { title: 'LociAR', body: postApprovedBody(target.get('locale')) },
         // No activity_id: the client opens the post directly.
         data: { recipient_id: recipientId, post_id: postId },
@@ -186,7 +188,7 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
       if (invalidPushTokenCode(code)) {
         await db.runTransaction(async tx => {
           const latest = await tx.get(device.ref);
-          if (latest.get('owner_luid') === recipientId && latest.get('token') === claimed.token) tx.delete(device.ref);
+          if (latest.get('owner_luid') === recipientId && pushAddressMatches(latest.data(), claimed)) tx.delete(device.ref);
         });
       }
       await receiptRef.update({ status: 'failed', error_code: code }).catch(updateError => { if (updateError.code !== 5) throw updateError; });

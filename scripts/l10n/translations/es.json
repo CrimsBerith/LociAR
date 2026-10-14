@@ -646,5 +646,6 @@
  "Konum bildirimleri hazır": "Las notificaciones de ubicación están listas",
  "Konum bildirimleri için ayarları kontrol et": "Revisa los ajustes de las notificaciones de ubicación",
  "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS puede limitar la actividad en segundo plano. Si fuerzas el cierre de la app, las notificaciones de ubicación pueden retrasarse o no llegar.",
- "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "No se pudieron registrar las zonas de ubicación en iOS. Las notificaciones pueden retrasarse; inténtalo de nuevo."
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "No se pudieron registrar las zonas de ubicación en iOS. Las notificaciones pueden retrasarse; inténtalo de nuevo.",
+ "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.": "Has alcanzado el límite de denuncias. Inténtalo más tarde."
 }

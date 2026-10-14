@@ -2,7 +2,7 @@ import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { initializeApp, getApps, deleteApp } from 'firebase-admin/app';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? '', /^(127\.0\.0\.1|localhost):\d+$/);
 initializeApp({ projectId: 'demo-lociar' });
 const { adminDb } = await import('../../lib/firebase-admin.ts');
@@ -15,7 +15,7 @@ async function fixture(overrides = {}) {
   await db.collection('admin_role_assignments').add({ user_id: actor, role_key: 'super_admin', revoked_at: null });
   await db.collection('profiles').doc(author).set({ handle: 'brand', admin_managed: true });
   await db.collection('profiles').doc(recipient).set({ handle: 'recipient' });
-  await db.collection('user_data_preferences').doc(recipient).set({ location: true, promotions: true, revision });
+  await db.collection('user_data_preferences').doc(recipient).set({ location: true, promotions: true, notifications: true, revision });
   await db.collection('user_locations').doc(recipient).set({ owner_luid: recipient, lat: 41, lng: 29, accuracy: 10,
     consent_revision: revision, measured_at: Timestamp.now(), expires_at: Timestamp.fromMillis(Date.now() + 86_400_000) });
   const brand = await saveBrand({ name: 'Test Brand', authorId: author }, actor, reason, randomUUID());
@@ -27,6 +27,38 @@ async function fixture(overrides = {}) {
     likes_count: 12, created_at: Timestamp.now() });
   return { actor, author, recipient, brand: brand.id, campaign: campaign.id, revision, postId };
 }
+
+test('notification queue refuses missing or false global consent while map-only assignments remain usable', async () => {
+  const f = await fixture(), pref = db.collection('user_data_preferences').doc(f.recipient);
+  await campaignStatus(f.campaign, 'active', f.actor, reason, randomUUID());
+  for (const value of [FieldValue.delete(), false, null, 'true']) {
+    await pref.update({ notifications: value });
+    await assert.rejects(queueNotification({ recipientId: f.recipient, title: 'LociAR', message: 'Private notice' }, f.actor, reason, randomUUID()), /opted_in_to_notifications/);
+  }
+  const assignment = await queueNotification({ recipientId: f.recipient, campaignId: f.campaign, notificationMode: 'map' }, f.actor, reason, randomUUID());
+  assert.ok(assignment.id);
+  assert.equal((await db.collection('admin_notification_jobs').where('recipient_id', '==', f.recipient).get()).size, 0);
+});
+
+test('delivery rechecks explicit global consent for legacy tokens and FID registrations', async () => {
+  const f = await fixture(), pref = db.collection('user_data_preferences').doc(f.recipient);
+  const result = await queueNotification({ recipientId: f.recipient, title: 'LociAR', message: 'Private notice' }, f.actor, reason, randomUUID());
+  const value = 'c' + randomUUID().replaceAll('-', '').slice(0, 21);
+  const device = db.collection('push_tokens').doc(randomUUID());
+  await device.set({ owner_luid: f.recipient, token: 'synthetic-legacy-' + randomUUID(), locale: 'en', expires_at: Timestamp.fromMillis(Date.now() + 86_400_000) });
+  const sent = [], send = async message => { sent.push(message); return 'synthetic-acceptance'; };
+  for (const notifications of [FieldValue.delete(), false, null, 'true']) {
+    await pref.update({ notifications });
+    await deliverAdminNotification(result.id, send);
+    assert.equal(sent.length, 0);
+    assert.equal((await db.collection('admin_notification_receipts').where('job_id', '==', result.id).get()).size, 0);
+    await db.collection('admin_notification_jobs').doc(result.id).update({ status: 'queued' });
+  }
+  await pref.update({ notifications: true });
+  await device.update({ token: FieldValue.delete(), fid: value });
+  await deliverAdminNotification(result.id, send);
+  assert.equal(sent.length, 1); assert.equal(sent[0].fid, value); assert.equal(sent[0].token, undefined);
+});
 test('campaigns stay drafts, protected zones block approval, pause/expiry stop targeting', async () => {
   const f = await fixture();
   assert.equal((await db.collection('campaigns').doc(f.campaign).get()).get('status'), 'draft');

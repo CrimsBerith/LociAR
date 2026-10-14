@@ -12,6 +12,7 @@ export const DEFAULT_LIKE_THRESHOLD = 3;
 export const DEFAULT_REPORT_THRESHOLD = 3;
 /** Likes from accounts younger than this do not count toward notifications. */
 export const MIN_LIKER_AGE_MS = 24 * 3_600_000;
+export const MIN_REPORTER_AGE_MS = MIN_LIKER_AGE_MS;
 
 async function thresholds(tx: FirebaseFirestore.Transaction) {
   const s = await tx.get(db.collection('system').doc('place_notes'));
@@ -52,19 +53,25 @@ export async function autoApproveNote(postId: string, now = Date.now()) {
 }
 
 /** Hides a public post once distinct users file enough open reports; moderators can restore it. */
-export async function autoHideReported(postId: string) {
+export async function autoHideReported(postId: string, now = Date.now()) {
   return db.runTransaction(async tx => {
     const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
     if (!data || data.status !== 'active') return false;
     const { report } = await thresholds(tx);
     const base = db.collection('moderation_flags').where('post_id', '==', postId).where('status', '==', 'open').orderBy('__name__');
     const reporters = new Set<string>();
+    const inspected = new Set<string>();
     let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
     while (reporters.size < report) {
       const page = await tx.get((cursor ? base.startAfter(cursor) : base).limit(200));
-      for (const flag of page.docs) {
-        const reporter = flag.get('user_id');
-        if (!isUUID(reporter) || reporter === data.creator_id || !isPostReport(flag.data())) continue;
+      const candidates = [...new Set(page.docs.filter(flag => isPostReport(flag.data())).map(flag => flag.get('user_id'))
+        .filter((id): id is string => isUUID(id) && id !== data.creator_id && !inspected.has(id)))];
+      const records = candidates.length ? await tx.getAll(...candidates.flatMap(id => [db.collection('profiles').doc(id), accountDeletionRef(id)])) : [];
+      for (const [index, reporter] of candidates.entries()) {
+        inspected.add(reporter);
+        const profile = records[index * 2], created = profile.get('created_at');
+        if (!profile.exists || profile.get('suspended') || profile.get('deleted_at') || records[index * 2 + 1].exists
+          || !(created instanceof Timestamp) || now - created.toMillis() < MIN_REPORTER_AGE_MS) continue;
         reporters.add(reporter);
         if (reporters.size >= report) break;
       }

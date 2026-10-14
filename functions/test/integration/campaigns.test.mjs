@@ -29,7 +29,7 @@ test('campaign post projections are recipient-only, sponsored, expiry-gated and 
   await adminDb.collection('brands').doc(brand).set({ name: 'Test Brand', author_luid: author.luid, status: 'active' });
   await adminDb.collection('campaigns').doc(id).set({ brand_id: brand, status: 'active', starts_at: Timestamp.fromMillis(Date.now() - 1000), ends_at: Timestamp.fromMillis(Date.now() + 86_400_000), post_projection: projection });
   await adminDb.collection('campaign_targets').doc(`${id}_${recipient.luid}`).set({ owner_luid: recipient.luid, campaign_id: id, state: 'assigned', expires_at: Timestamp.fromMillis(Date.now() + 86400000) });
-  await adminDb.collection('user_data_preferences').doc(recipient.luid).set({ owner_luid: recipient.luid, promotions: true });
+  await adminDb.collection('user_data_preferences').doc(recipient.luid).set({ owner_luid: recipient.luid, promotions: true, notifications: true });
   const read = user => user.call('readPublicContent', { mode: 'single', postId: id });
   const post = (await read(recipient)).posts[0]; assert.equal(post.sponsorship.brand_name, 'Test Brand');
   assert.equal(JSON.stringify(post).includes(recipient.luid), false); assert.equal((await read(stranger)).posts.length, 0);

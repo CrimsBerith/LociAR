@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { adminAuth, adminDb, closeClients, expectFailure, newUser, PROJECT } from './_harness.mjs';
 import { deliverActivityPush, deliverPostApprovedPush } from '../../lib/push.js';
-import { MAX_PUSH_DEVICES, pushDeliveryId, pushTokenId } from '../../lib/pushPolicy.js';
+import { MAX_PUSH_DEVICES, pushDeliveryId, pushTokenId, pushAddressId } from '../../lib/pushPolicy.js';
 import { onLikeCreated } from '../../lib/triggers.js';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) throw new Error('Push tests require Auth and Firestore emulators');
@@ -12,6 +12,47 @@ after(closeClients);
 const token = () => `synthetic-fcm-${randomUUID()}-${randomUUID()}`;
 const registration = (user, value = token(), installationId = randomUUID()) => ({ token: value, installationId, userId: user.luid, locale: 'tr-TR' });
 const tokenRef = value => adminDb.collection('push_tokens').doc(pushTokenId(value));
+const fid = () => 'c' + randomUUID().replaceAll('-', '').slice(0, 21);
+
+test('FID migration rotates legacy tokens, sends through the new target and supports approval pushes', async () => {
+  const f = await activityFixture(), value = fid();
+  const payload = { fid: value, installationId: f.payload.installationId, userId: f.recipient.luid, locale: 'ja' };
+  await f.recipient.call('registerPushToken', payload);
+  assert.equal((await tokenRef(f.payload.token).get()).exists, false);
+  const addressRef = adminDb.collection('push_tokens').doc(pushAddressId({ fid: value }));
+  assert.equal((await addressRef.get()).get('fid'), value); assert.equal((await addressRef.get()).get('token'), undefined);
+  const sent = []; const send = async message => { sent.push(message); return 'synthetic-fcm-acceptance'; };
+  assert.equal(await deliverActivityPush(f.id, send), 1);
+  assert.equal(await deliverPostApprovedPush(f.postId, send), 1);
+  assert.ok(sent.every(message => message.fid === value && message.token === undefined));
+  await f.recipient.call('unregisterPushToken', { installationId: f.payload.installationId });
+  assert.equal((await addressRef.get()).exists, false);
+});
+
+test('ambiguous and invalid FID payloads are refused without altering a valid legacy registration', async () => {
+  const user = await newUser(), payload = registration(user);
+  await user.call('registerPushToken', payload);
+  for (const invalid of [{ ...payload, fid: fid() }, { installationId: payload.installationId, fid: 'short' },
+    { installationId: payload.installationId, fid: 'z' + 'a'.repeat(21) }]) {
+    assert.equal((await expectFailure(user.call('registerPushToken', invalid))).code, 'functions/invalid-argument');
+  }
+  assert.equal((await tokenRef(payload.token).get()).get('owner_luid'), user.luid);
+});
+
+test('a late FID rejection cannot erase a transferred registration; current unregistered FIDs are pruned', async () => {
+  const f = await activityFixture(), nextOwner = await newUser(), value = fid();
+  const payload = { fid: value, installationId: f.payload.installationId };
+  await f.recipient.call('registerPushToken', payload);
+  const ref = adminDb.collection('push_tokens').doc(pushAddressId({ fid: value }));
+  await deliverActivityPush(f.id, async () => {
+    await nextOwner.call('registerPushToken', payload);
+    throw Object.assign(new Error('synthetic rejection'), { code: 'messaging/installation-id-not-registered' });
+  });
+  assert.equal((await ref.get()).get('owner_luid'), nextOwner.luid);
+  await f.recipient.call('registerPushToken', payload);
+  await deliverPostApprovedPush(f.postId, async () => { throw Object.assign(new Error('synthetic rejection'), { code: 'messaging/installation-id-not-registered' }); });
+  assert.equal((await ref.get()).exists, false);
+});
 
 async function activityFixture(kind = 'like') {
   const recipient = await newUser();

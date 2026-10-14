@@ -646,5 +646,6 @@
  "Konum bildirimleri hazır": "Уведомления по местоположению готовы",
  "Konum bildirimleri için ayarları kontrol et": "Проверьте настройки уведомлений по местоположению",
  "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS может ограничивать работу в фоне. Если принудительно закрыть приложение, уведомления о местоположении могут задержаться или не прийти.",
- "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Не удалось зарегистрировать зоны местоположения в iOS. Уведомления могут задерживаться; повторите попытку."
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Не удалось зарегистрировать зоны местоположения в iOS. Уведомления могут задерживаться; повторите попытку.",
+ "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.": "Вы достигли лимита жалоб. Попробуйте позже."
 }

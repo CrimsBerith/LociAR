@@ -171,6 +171,7 @@ export async function queueNotification(body: Record<string, unknown>, actor: st
     if (checkReceipt(receipt, hash)) return { id };
     await requireTargetAccountActive(tx, recipient);
     if (!profile.exists || profile.get('suspended') || profile.get('admin_managed') || pref.get('promotions') !== true) throw new ConflictError('recipient_has_not_opted_in');
+    if (mode !== 'map' && pref.get('notifications') !== true) throw new ConflictError('recipient_has_not_opted_in_to_notifications');
     if (mode === 'arrival' && pref.get('arrivals') !== true) throw new ConflictError('recipient_has_not_opted_in_to_arrivals');
     if (mode === 'departure' && (pref.get('departures') !== true || typeof pref.get('departures_revision') !== 'string')) throw new ConflictError('recipient_has_not_opted_in_to_departures');
     let c, origin;

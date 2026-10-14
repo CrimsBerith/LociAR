@@ -6,6 +6,7 @@ import UserNotifications
 @preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseCrashlytics
 @preconcurrency import FirebaseMessaging
+@preconcurrency import FirebaseInstallations
 
 @MainActor
 protocol PushRegistrationClient: AnyObject {
@@ -27,13 +28,13 @@ private final class CallablePushRegistrationClient: PushRegistrationClient {
     func register(token: String, installationID: UUID, userID: UUID, locale: String) async throws {
         try checkSession(userID)
         struct Payload: Encodable {
-            let token: String
+            let fid: String
             let installationId: String
             let userId: String
             let locale: String
         }
         let response: Response = try await callables.call("registerPushToken", payload: Payload(
-            token: token, installationId: installationID.uuidString.lowercased(),
+            fid: token, installationId: installationID.uuidString.lowercased(),
             userId: userID.uuidString.lowercased(), locale: locale
         ))
         guard response.ok else { throw BackendCallError.invalidResponse }
@@ -133,6 +134,27 @@ struct PushNotificationTarget: Equatable, Sendable {
     }
 }
 
+/// APNs callbacks and foreground refresh share one SDK registration; sign-out drains it first.
+@MainActor
+final class PushSDKRegistrationFlight {
+    private var flight: (id: UUID, task: Task<Void, Error>)?
+    func register(_ operation: @escaping @MainActor () async throws -> Void) async throws {
+        let current: (id: UUID, task: Task<Void, Error>)
+        if let flight { current = flight }
+        else {
+            current = (UUID(), Task { try await operation() })
+            flight = current
+        }
+        defer { if flight?.id == current.id { flight = nil } }
+        try await current.task.value
+    }
+    func drain() async {
+        guard let current = flight else { return }
+        _ = try? await current.task.value
+        if flight?.id == current.id { flight = nil }
+    }
+}
+
 @MainActor
 final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationService()
@@ -140,11 +162,12 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private(set) var authorizationDenied = false
     private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     private(set) var deviceTokenString: String?
-    private(set) var fcmToken: String?
+    private(set) var firebaseInstallationID: String?
     var onPostNotificationTapped: ((UUID) -> Void)? { didSet { consumePendingTap() } }
     var onActivityNotificationTapped: (() -> Void)? { didSet { consumePendingTap() } }
     var onMapFocusNotificationTapped: ((MapFocus) -> Void)? { didSet { consumePendingTap() } }
     private var coordinator: PushTokenCoordinator?
+    private let messagingRegistration = PushSDKRegistrationFlight()
     private var desiredUserID: UUID?
     private var boundUserID: UUID?
     private var transition: Task<Void, Never>?
@@ -256,19 +279,29 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             Messaging.messaging().isAutoInitEnabled = true
             UIApplication.shared.registerForRemoteNotifications()
             self.consumePendingTap()
-            if Messaging.messaging().apnsToken != nil { await self.fetchToken() }
+            if Messaging.messaging().apnsToken != nil { await self.registerMessaging() }
         }
     }
 
-    private func fetchToken() async {
+    private func registerMessaging() async {
         guard acceptsTokens, let userID = desiredUserID else { return }
         let revision = tokenRevision
         do {
-            let token = try await Messaging.messaging().token()
-            guard acceptsTokens, tokenRevision == revision,
-                  desiredUserID == userID, boundUserID == userID else { return }
-            fcmToken = token
-            coordinator?.updateToken(token)
+            try await messagingRegistration.register { try await Messaging.messaging().register() }
+            guard acceptsTokens, tokenRevision == revision, desiredUserID == userID, boundUserID == userID else { return }
+            await refreshInstallationIdentity()
+        } catch { Self.recordFailure(error) }
+    }
+
+    private func refreshInstallationIdentity() async {
+        guard acceptsTokens, Messaging.messaging().apnsToken != nil, let userID = desiredUserID else { return }
+        let revision = tokenRevision
+        do {
+            // Read current SDK state; a delayed callback's identity may belong to an older session.
+            let fid = try await Installations.installations().installationID()
+            guard acceptsTokens, tokenRevision == revision, desiredUserID == userID, boundUserID == userID else { return }
+            firebaseInstallationID = fid
+            coordinator?.updateToken(fid)
         } catch { Self.recordFailure(error) }
     }
 
@@ -284,10 +317,11 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         Messaging.messaging().isAutoInitEnabled = false
         UIApplication.shared.unregisterForRemoteNotifications()
         await coordinator?.disconnect(userID: userID)
-        do { try await Messaging.messaging().deleteToken() }
+        await messagingRegistration.drain()
+        do { try await Messaging.messaging().unregister() }
         catch { Self.recordFailure(error) }
         deviceTokenString = nil
-        fcmToken = nil
+        firebaseInstallationID = nil
         if pendingTap?.recipientID == userID || desiredUserID == nil { pendingTap = nil }
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -297,7 +331,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     func didRegisterForRemoteNotifications(deviceToken: Data) {
         deviceTokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         Messaging.messaging().apnsToken = deviceToken
-        if acceptsTokens { Task { await fetchToken() } }
+        if acceptsTokens { Task { await registerMessaging() } }
     }
 
     func didFailToRegisterForRemoteNotifications(error: Error) { Self.recordFailure(error) }
@@ -346,12 +380,12 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 }
 
 extension NotificationService: MessagingDelegate {
-    nonisolated func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        guard fcmToken != nil else { return }
+    nonisolated func messaging(_ messaging: Messaging, didReceiveRegistration installationID: String?) {
+        guard installationID != nil else { return }
         Task { @MainActor in
             guard self.acceptsTokens else { return }
-            // Read the SDK's current token instead of binding a delayed callback from an old session.
-            await self.fetchToken()
+            // Never register again from this callback: register() itself emits it.
+            await self.refreshInstallationIdentity()
         }
     }
 }

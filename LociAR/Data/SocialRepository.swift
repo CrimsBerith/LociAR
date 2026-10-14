@@ -377,25 +377,15 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
     }
 
     func report(postID: UUID, userID: UUID, reason: String) async throws {
-        try await fileReport(postID: key(postID), userID: userID, reason: reason, metadata: ["source": "native_ios"])
+        try await fileReport(kind: "post", targetID: postID, userID: userID, reason: reason)
     }
 
     func reportComment(_ comment: LociComment, userID: UUID, reason: String) async throws {
-        try await fileReport(postID: key(comment.postID), userID: userID, reason: reason, metadata: [
-            "source": "native_ios",
-            "target": "comment",
-            "comment_id": key(comment.id),
-            "author_id": key(comment.userID),
-            "text": String(comment.text.prefix(500)),
-        ])
+        try await fileReport(kind: "comment", targetID: comment.id, userID: userID, reason: reason)
     }
 
     func reportUser(targetID: UUID, userID: UUID, reason: String) async throws {
-        try await fileReport(postID: nil, userID: userID, reason: reason, metadata: [
-            "source": "native_ios",
-            "target": "user",
-            "reported_user_id": key(targetID),
-        ])
+        try await fileReport(kind: "user", targetID: targetID, userID: userID, reason: reason)
     }
 
     /// Allowed by rules for the comment's author and for the owner of the post it is on.
@@ -403,15 +393,12 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
         try await db.collection("comments").document(key(id)).delete()
     }
 
-    private func fileReport(postID: String?, userID: UUID, reason: String, metadata: [String: String]) async throws {
-        try await db.collection("moderation_flags").document(key(UUID())).setData([
-            "post_id": postID ?? NSNull(),
-            "user_id": key(userID),
-            "reason": String(reason.prefix(500)),
-            "status": "open",
-            "metadata": metadata,
-            "created_at": FieldValue.serverTimestamp(),
-        ])
+    private func fileReport(kind: String, targetID: UUID, userID: UUID, reason: String) async throws {
+        struct Payload: Encodable { let targetKind: String; let targetId: String; let userId: String; let reason: String }
+        struct Response: Decodable { let ok: Bool }
+        let response: Response = try await callables.call("submitReport", payload: Payload(
+            targetKind: kind, targetId: key(targetID), userId: key(userID), reason: reason))
+        guard response.ok else { throw BackendCallError.invalidResponse }
     }
 }
 

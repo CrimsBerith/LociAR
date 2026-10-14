@@ -132,26 +132,28 @@ struct PostPreviewView: View {
                     .buttonStyle(.plain)
                     .disabled(isSaveMutating)
                     .accessibilityIdentifier("post-save-button")
-                    Button { reportTarget = .post } label: {
-                        PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: .white)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isReporting)
-                    .accessibilityIdentifier("post-report")
-                    Menu {
-                        Button(role: .destructive) { confirmBlock = true } label: {
-                            Label("Kullanıcıyı engelle", systemImage: "person.crop.circle.badge.xmark")
+                    if !ownsPost {
+                        Button { reportTarget = .post } label: {
+                            PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: .white)
                         }
-                        .accessibilityIdentifier("post-block-user")
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        .disabled(isReporting)
+                        .accessibilityIdentifier("post-report")
+                        Menu {
+                            Button(role: .destructive) { confirmBlock = true } label: {
+                                Label("Kullanıcıyı engelle", systemImage: "person.crop.circle.badge.xmark")
+                            }
+                            .accessibilityIdentifier("post-block-user")
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .accessibilityLabel("Diğer seçenekler")
+                        .accessibilityIdentifier("post-more-menu")
                     }
-                    .accessibilityLabel("Diğer seçenekler")
-                    .accessibilityIdentifier("post-more-menu")
                     if !collections.isEmpty {
                         Menu(String(localized: "Koleksiyona ekle")) {
                             ForEach(collections) { collection in Button(collection.title) { Task { await add(to: collection) } } }
@@ -280,6 +282,11 @@ struct PostPreviewView: View {
         } message: {
             Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
         }
+    }
+
+    private var ownsPost: Bool {
+        guard case let .signedIn(user) = session.phase else { return false }
+        return post.creatorID == user.id
     }
 
     private func isMine(_ comment: LociComment) -> Bool {
@@ -455,6 +462,8 @@ struct PostPreviewView: View {
                 withAnimation { comments.removeAll { $0.id == comment.id } }
             }
             message = String(localized: "Bildirimin incelemeye gönderildi. Teşekkürler.")
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
+            message = String(localized: "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.")
         } catch {
             message = String(localized: "Bildirim gönderilemedi.")
         }

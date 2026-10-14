@@ -3,7 +3,7 @@ rules_version = '2';
 // LociAR Firestore rules — server-authoritative design.
 // Posts, profiles (creation), counters, activity, analytics and admin data are written only by
 // Cloud Functions / Admin SDK (which bypass these rules). Clients write only their own social
-// edges, comments, collections and reports, always bound to the `luid` custom claim that the
+// edges, comments and collections, always bound to the `luid` custom claim that the
 // `ensureProfile` callable sets.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -40,14 +40,6 @@ service cloud.firestore {
     function collectionDescriptionOk(data) {
       return !('description' in data) || data.description == null
         || (data.description is string && data.description.size() <= 500);
-    }
-    // Report metadata written by the iOS app (SocialRepository.fileReport): known keys only,
-    // each a string of at most 500 characters, so a report cannot carry an unbounded payload.
-    function metaString(m, k) { return !(k in m) || (m[k] is string && m[k].size() <= 500); }
-    function reportMetadataOk(m) {
-      return m.keys().hasOnly(['source', 'target', 'comment_id', 'author_id', 'text', 'reported_user_id'])
-        && metaString(m, 'source') && metaString(m, 'target') && metaString(m, 'comment_id')
-        && metaString(m, 'author_id') && metaString(m, 'text') && metaString(m, 'reported_user_id');
     }
     function avatarPreset(value) {
       return value == null || value in ['hare', 'tortoise', 'cat', 'dog', 'bear', 'bird', 'fish', 'leaf', 'star', 'moon', 'sun', 'bolt'];
@@ -219,19 +211,8 @@ service cloud.firestore {
     }
 
     match /moderation_flags/{flagId} {
-      allow read, update, delete: if false;
-      allow create: if mayWrite()
-        && request.resource.data.keys().hasOnly(['post_id', 'user_id', 'reason', 'status', 'metadata', 'created_at'])
-        && request.resource.data.user_id == me()
-        && request.resource.data.status == 'open'
-        && !flagId.matches('comment_.*|profile_.*')
-        && !(request.resource.data.reason in ['comment_filtered', 'profile_text_filtered'])
-        && request.resource.data.reason is string
-        && request.resource.data.reason.size() >= 1 && request.resource.data.reason.size() <= 500
-        && (!('post_id' in request.resource.data) || request.resource.data.post_id == null || request.resource.data.post_id is string)
-        && (!('metadata' in request.resource.data) || request.resource.data.metadata == null
-            || (request.resource.data.metadata is map && reportMetadataOk(request.resource.data.metadata)))
-        && createdNow();
+      // submitReport binds trusted target metadata, idempotency and quotas in one transaction.
+      allow read, write: if false;
     }
 
     match /activity_events/{eventId} {

@@ -164,9 +164,15 @@ test('createPost quota is race-safe: parallel calls never exceed the hourly limi
     pose: { latitude: 41.0 + i * 0.01, longitude: 28.0, heading: 10, accuracy: 8 },
   }))));
   const ok = results.filter((r) => r.status === 'fulfilled').length;
-  assert.ok(ok <= 10, `expected at most 10 successes, got ${ok}`);
+  const quotas = await adminDb.collection('post_quota').where('owner_luid', '==', user.luid).get();
+  const hours = quotas.docs.filter(doc => doc.id.startsWith(`${user.luid}_h`));
+  // Requests may cross a real UTC hour boundary while transactions contend. Each bucket must
+  // remain capped; summing two different hours is not a race-safety assertion.
+  assert.ok(hours.length > 0);
+  for (const bucket of hours) assert.ok(bucket.get('count') <= 10, `hourly bucket exceeded cap: ${bucket.get('count')}`);
+  assert.equal(hours.reduce((sum, bucket) => sum + bucket.get('count'), 0), ok);
   const flags = await adminDb.collection('moderation_flags').where('user_id', '==', user.luid).get();
-  assert.ok(flags.size <= 1, `expected at most 1 flag, got ${flags.size}`);
+  assert.ok(flags.size <= hours.length, `expected at most one flag per hour, got ${flags.size}`);
 });
 
 test('createPost with an unregistered cloud anchor is rejected; a registered one binds once', async () => {

@@ -646,5 +646,6 @@
  "Konum bildirimleri hazır": "Standortbenachrichtigungen sind bereit",
  "Konum bildirimleri için ayarları kontrol et": "Prüfe die Einstellungen für Standortbenachrichtigungen",
  "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS kann die Hintergrundaktivität einschränken. Wenn du die App zwangsweise beendest, können Standortmitteilungen verspätet oder gar nicht eintreffen.",
- "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Die Standortbereiche konnten nicht in iOS registriert werden. Benachrichtigungen können sich verzögern; versuche es erneut."
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Die Standortbereiche konnten nicht in iOS registriert werden. Benachrichtigungen können sich verzögern; versuche es erneut.",
+ "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.": "Du hast das Meldelimit erreicht. Versuche es später erneut."
 }

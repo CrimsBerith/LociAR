@@ -1,5 +1,5 @@
 /**
- * Minimal blocklist for comments (Guideline 1.2 "method for filtering objectionable material").
+ * Multilingual lexical filter for user text (Guideline 1.2 "method for filtering objectionable material").
  * Matching is on normalised whole words so ordinary text is not caught by substrings.
  * Human review of reports remains the primary moderation path.
  */
@@ -8,15 +8,29 @@ const BLOCKED_TERMS = [
   'amk', 'aq', 'orospu', 'orospuçocuğu', 'piç', 'yarrak', 'yarak', 'sikerim', 'siktir', 'sikik', 'amcık', 'göt', 'götveren',
   'ibne', 'kahpe', 'pezevenk', 'gavat',
   // English
-  'fuck', 'fucking', 'motherfucker', 'cunt', 'bitch', 'nigger', 'nigga', 'faggot', 'retard', 'whore', 'slut',
+  'fuck', 'fucking', 'motherfucker', 'cunt', 'bitch', 'nigger', 'nigga', 'faggot', 'whore', 'slut',
+  // Spanish, French, Portuguese, German and Russian; whole words avoid substring collisions.
+  'gilipollas', 'joder', 'mierda', 'puta', 'coño',
+  'connard', 'connasse', 'putain', 'merde', 'enculé', 'encule', 'salope',
+  'caralho', 'porra', 'foda', 'foder', 'fodase', 'merda',
+  'arschloch', 'scheiße', 'scheisse', 'hurensohn', 'wichser', 'fotze',
+  'блядь', 'блять', 'сука', 'пизда', 'пиздец', 'хуй', 'хуйня', 'ебать', 'ебаный',
+  // Combining marks are part of these words, not token separators.
+  'चूतिया', 'चूतिये', 'भोसड़ीके', 'मादरचोद', 'बहनचोद',
+  'মাদারচোদ', 'চোদনা', 'খানকি', 'বোকাচোদা', 'চুতিয়া',
+  'كسمك', 'كسامك', 'شرموطة', 'شرموط', 'قحبة',
+
 ];
 
 const TERMS = new Set(BLOCKED_TERMS.map(normalize));
 
 function normalize(text: string): string {
   return text
-    .toLocaleLowerCase('tr-TR')
     .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\p{Cf}|\u0307/gu, '')
+    .replace(/\u0131/g, 'i')
+    .replace(/[\u064b-\u065f\u0670\u0640]/g, '')
     .replace(/[0@]/g, 'o')
     .replace(/[1!|]/g, 'i')
     .replace(/3/g, 'e')
@@ -25,11 +39,20 @@ function normalize(text: string): string {
 }
 
 export function containsBlockedTerm(text: string): boolean {
-  const words = normalize(text).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const clean = normalize(text);
+  const words = clean.split(/[^\p{L}\p{M}\p{N}]+/u).filter(Boolean);
   if (words.some((word) => TERMS.has(word))) return true;
-  // Catch spaced-out spellings such as "s i k t i r".
-  const letters = words.filter((word) => word.length === 1).join('');
-  return letters.length >= 3 && [...TERMS].some((term) => term.length >= 4 && letters.includes(term));
+  // High-confidence CJK phrases also occur without spaces. Avoid Japanese conditional forms.
+  if (/操你妈|傻逼|狗日的|クソ野郎|糞野郎|(?:死ね|くたばれ)(?![ぁ-ゖァ-ヺー])/u.test(clean)) return true;
+  // 'retard' is ordinary French for delay; only its English directed-insult context is blocked.
+  if (/\b(?:you(?: are)?(?: a)?|fucking)\s+retard\b/u.test(clean)) return true;
+  // Only contiguous single-letter runs: unrelated initials must not form a new insult.
+  let run = '';
+  for (const word of [...words, 'end']) {
+    if ([...word].length === 1) run += word;
+    else { if ([...TERMS].some(term => term.length >= 4 && run.includes(term))) return true; run = ''; }
+  }
+  return false;
 }
 
 /** Names nobody may claim: they could be mistaken for the team or for system accounts. */
@@ -50,7 +73,8 @@ export function anyBlocked(texts: Array<string | null | undefined>): boolean {
 
 /** User-authored text never carries URLs; GIPHY URLs are constructed separately by the server. */
 export function containsURL(text: string): boolean {
-  return /[a-z][a-z0-9+.-]*:\/\/|www\.|(?:mailto|javascript|data|tel):|[\p{L}\p{N}-]+\.[\p{L}]{2,63}(?:\b|$)/iu.test(text);
+  const clean = text.normalize('NFKC').replace(/\p{Cf}/gu, '');
+  return /[a-z][a-z0-9+.-]*:\/\/|www\.|(?:mailto|javascript|data|tel):|[\p{L}\p{N}-]+\.[\p{L}]{2,63}(?:\b|$)/iu.test(clean);
 }
 
 export function handleIsBlocked(handle: string): boolean {

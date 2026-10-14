@@ -354,8 +354,14 @@
       "collectionGroup": "posts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "push_state", "order": "ASCENDING" },
-        { "fieldPath": "lat", "order": "ASCENDING" }
+        {
+          "fieldPath": "push_state",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lat",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
@@ -631,6 +637,12 @@
     },
     {
       "collectionGroup": "campaign_codes",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "report_quota",
       "fieldPath": "expires_at",
       "ttl": true,
       "indexes": []

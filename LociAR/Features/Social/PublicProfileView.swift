@@ -96,6 +96,8 @@ struct PublicProfileView: View {
         do {
             try await container.social.reportUser(targetID: user.id, userID: viewer.id, reason: reason.rawValue)
             message = String(localized: "Bildirimin incelemeye gönderildi. Teşekkürler.")
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
+            message = String(localized: "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.")
         } catch {
             message = String(localized: "Bildirim gönderilemedi.")
         }
