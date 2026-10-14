@@ -189,6 +189,7 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ? { user_id: null, 'metadata.text': null, author_deleted: true }
       : { user_id: null, reporter_deleted: true });
     await anonymize('metadata.author_id', () => ({ 'metadata.author_id': null, 'metadata.text': null, author_deleted: true }));
+    await anonymize('metadata.reported_user_id', () => ({ 'metadata.reported_user_id': null, target_deleted: true }));
     await db.runTransaction(async tx => {
       await assertLease(tx);
       tx.delete(db.collection('profiles').doc(luid));

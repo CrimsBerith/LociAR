@@ -100,3 +100,15 @@ test('account deletion removes private report receipts and quotas, while anonymi
   assert.equal((await adminDb.collection('report_quota').doc(f.viewer.luid).get()).exists, false);
   assert.equal((await adminDb.collection('moderation_flags').doc(result.flagId).get()).get('user_id'), null);
 });
+
+test('deleting a reported account removes its target identity without deleting another reporter records', async () => {
+  const f = await fixture();
+  const result = await f.viewer.call('submitReport', { targetKind: 'user', targetId: f.author.luid, reason: 'other' });
+  await f.author.call('deleteAccount');
+  const flag = await adminDb.collection('moderation_flags').doc(result.flagId).get();
+  assert.equal(flag.get('metadata.reported_user_id'), null);
+  assert.equal(flag.get('target_deleted'), true);
+  assert.equal(flag.get('user_id'), f.viewer.luid);
+  assert.equal((await adminDb.collection('report_receipts').where('target_luid', '==', f.author.luid).get()).size, 0);
+  assert.equal((await adminDb.collection('report_quota').doc(f.viewer.luid).get()).exists, true);
+});
