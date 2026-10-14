@@ -1,7 +1,8 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { db, FieldValue, Timestamp } from './core';
+import { db, FieldValue, isUUID, Timestamp } from './core';
 import { isPublicActive } from './counters';
 import { accountDeletionRef } from './profileGuard';
+import { isPostReport } from './postReports';
 
 /**
  * User location notes publish without manual review (text filter, protected zones and rate
@@ -56,8 +57,20 @@ export async function autoHideReported(postId: string) {
     const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
     if (!data || data.status !== 'active') return false;
     const { report } = await thresholds(tx);
-    const flags = await tx.get(db.collection('moderation_flags').where('post_id', '==', postId).where('status', '==', 'open').limit(100));
-    const reporters = new Set(flags.docs.map(d => d.get('user_id')).filter(id => typeof id === 'string' && id !== data.creator_id));
+    const base = db.collection('moderation_flags').where('post_id', '==', postId).where('status', '==', 'open').orderBy('__name__');
+    const reporters = new Set<string>();
+    let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
+    while (reporters.size < report) {
+      const page = await tx.get((cursor ? base.startAfter(cursor) : base).limit(200));
+      for (const flag of page.docs) {
+        const reporter = flag.get('user_id');
+        if (!isUUID(reporter) || reporter === data.creator_id || !isPostReport(flag.data())) continue;
+        reporters.add(reporter);
+        if (reporters.size >= report) break;
+      }
+      if (page.size < 200) break;
+      cursor = page.docs.at(-1);
+    }
     if (reporters.size < report) return false;
     tx.update(ref, { status: 'flagged', auto_hidden_at: FieldValue.serverTimestamp(), auto_hidden_reports: reporters.size,
       ...(data.push_state === 'approved' ? { push_state: 'revoked', push_revoked_by: 'system:reports' } : {}), updated_at: FieldValue.serverTimestamp() });

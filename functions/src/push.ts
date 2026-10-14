@@ -84,7 +84,7 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
         accountDeletionRef(initial.recipient_id), accountDeletionRef(initial.actor_id), quotaRef];
       if (isUUID(initial.post_id)) refs.push(db.collection('posts').doc(initial.post_id));
       const [activitySnap, target, receipt, recipient, actor, blockA, blockB, recipientDeletion, actorDeletion, quota, post] = await tx.getAll(...refs);
-      if ((await tx.get(db.collection('user_data_preferences').doc(initial.recipient_id))).get('notifications') === false) return null;
+      if ((await tx.get(db.collection('user_data_preferences').doc(initial.recipient_id))).get('notifications') !== true) return null;
       const activity = activitySnap.data();
       const body = pushBody(String(activity?.kind), target.get('locale'));
       if (!activity || activity.recipient_id !== initial.recipient_id || activity.actor_id !== initial.actor_id
@@ -158,7 +158,7 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
     const claimed = await db.runTransaction(async tx => {
       const [post, target, receipt, recipient, recipientDeletion] = await tx.getAll(
         postRef, device.ref, receiptRef, db.collection('profiles').doc(recipientId), accountDeletionRef(recipientId));
-      if ((await tx.get(db.collection('user_data_preferences').doc(recipientId))).get('notifications') === false) return null;
+      if ((await tx.get(db.collection('user_data_preferences').doc(recipientId))).get('notifications') !== true) return null;
       if (!post.exists || post.get('creator_id') !== recipientId || post.get('status') !== 'active' || post.get('deleted_at')
         || receipt.exists || !target.exists || target.get('owner_luid') !== recipientId || !validPushToken(target.get('token'))
         || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now

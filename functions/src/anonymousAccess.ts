@@ -1,4 +1,5 @@
 import { onCall } from 'firebase-functions/v2/https';
+import { hasPostReport } from './postReports';
 import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID } from './core';
 import { requireCaller } from './core';
 import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
@@ -109,8 +110,7 @@ export const readActivity = onCall(options, async request => {
         if (!post.exists || !isPublicActive(post.data())) return null;
         const [author, deletion] = await tx.getAll(db.collection('profiles').doc(post.get('creator_id')), accountDeletionRef(post.get('creator_id')));
         if (profileBlock(author.data()) || deletion.exists || await isBlocked(caller.luid, post.get('creator_id'), tx)) return null;
-        const reports = await tx.get(db.collection('moderation_flags').where('user_id', '==', caller.luid).where('post_id', '==', post.id).limit(1));
-        return reports.empty ? post.get('caption') : null;
+        return await hasPostReport(tx, caller.luid, post.id) ? null : post.get('caption');
       });
       if (body == null) return null;
       // A note in a dense spot stays closed in the activity list too until the viewer unlocks it on site.

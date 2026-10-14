@@ -2,6 +2,7 @@ import { db, isUUID } from './core';
 import { blockRefs } from './anonymousAccess';
 import { isPublicActive } from './counters';
 import { accountDeletionRef, profileBlock } from './profileGuard';
+import { hasPostReport } from './postReports';
 
 export function noteCandidate(post: FirebaseFirestore.DocumentSnapshot, viewer: string): boolean {
   const data = post.data();
@@ -20,10 +21,9 @@ export async function readableNoteIds(tx: FirebaseFirestore.Transaction, posts: 
   const groups = active.map(author => blockRefs(viewer, author));
   const blocks = new Map((await tx.getAll(...groups.flat())).map(record => [record.ref.path, record.exists]));
   const visible = new Set(active.filter((_, index) => !groups[index].some(ref => blocks.get(ref.path))));
-  // Keep limit(1) PER note: duplicate flags must not hide another note's report in a shared limit.
+  // Each note is checked independently; comment flags do not silence the parent note.
   const checks = await Promise.all(candidates.filter(post => visible.has(post.get('creator_id'))).map(async post => {
-    const reports = await tx.get(db.collection('moderation_flags').where('user_id', '==', viewer).where('post_id', '==', post.id).limit(1));
-    return reports.empty ? post.id : null;
+    return await hasPostReport(tx, viewer, post.id) ? null : post.id;
   }));
   return new Set(checks.filter((id): id is string => id !== null));
 }

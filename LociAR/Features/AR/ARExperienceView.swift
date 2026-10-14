@@ -491,10 +491,12 @@ struct ARExperienceView: View {
         }
         location.start()
 
-        for _ in 0..<30 where location.location == nil && location.errorMessage == nil {
-            try? await Task.sleep(for: .milliseconds(200))
+        for _ in 0..<30 where location.freshLocation() == nil && location.errorMessage == nil {
+            guard !Task.isCancelled else { isDiscovering = false; return }
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { isDiscovering = false; return }
         }
-        guard let currentLocation = location.location else {
+        guard !Task.isCancelled else { isDiscovering = false; return }
+        guard let currentLocation = location.freshLocation() else {
             isDiscovering = false
             discoveryMessage = location.errorMessage ?? String(localized: "Konum alınamadı. Yeni pin oluşturabilir veya tekrar deneyebilirsin.")
             return

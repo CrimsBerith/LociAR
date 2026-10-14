@@ -20,6 +20,7 @@ async function activityFixture(kind = 'like') {
   const id = `push-${randomUUID()}`;
   const payload = registration(recipient);
   await recipient.call('registerPushToken', payload);
+  await adminDb.collection('user_data_preferences').doc(recipient.luid).set({ notifications: true });
   await adminDb.collection('posts').doc(postId).set({ creator_id: recipient.luid, status: 'active', visibility: 'public' });
   const ref = adminDb.collection('activity_events').doc(id);
   await ref.set({ id, kind, actor_id: actor.luid, recipient_id: recipient.luid, post_id: kind === 'follow' ? null : postId, body: 'Private text must not leave the feed', read_at: null, created_at: Timestamp.now() });
@@ -229,6 +230,7 @@ test('engagement pushes stop after the daily cap; the activity feed is untouched
 
 test('post approval sends one push per device with the post and no activity id', async () => {
   const recipient = await newUser();
+  await adminDb.collection('user_data_preferences').doc(recipient.luid).set({ notifications: true });
   const payload = registration(recipient);
   await recipient.call('registerPushToken', payload);
   const postId = randomUUID();

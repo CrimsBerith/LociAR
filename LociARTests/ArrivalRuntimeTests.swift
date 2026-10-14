@@ -3,6 +3,39 @@ import XCTest
 @testable import LociAR
 
 final class ArrivalRuntimeTests: XCTestCase {
+    @MainActor
+    func testForegroundSearchDropsAStaleRetainedFixAndStopClearsMeasurementSeeds() {
+        let controller = LocationController(), manager = CLLocationManager(), now = Date()
+        let fix = CLLocation(coordinate: .init(latitude: 41, longitude: 29), altitude: 0,
+                             horizontalAccuracy: 8, verticalAccuracy: -1, timestamp: now)
+        controller.locationManager(manager, didUpdateLocations: [fix])
+        XCTAssertEqual(controller.freshLocation(at: now), fix)
+        XCTAssertNil(controller.freshLocation(at: now.addingTimeInterval(11)), "a resumed map must await a new area fix")
+        controller.stop()
+        XCTAssertNil(controller.location)
+        XCTAssertTrue(controller.recentLocations.isEmpty)
+        XCTAssertNil(controller.freshLocation(at: now))
+    }
+
+    @MainActor
+    func testForegroundSearchRejectsAFreshButUnusableAreaEstimate() {
+        let controller = LocationController(), manager = CLLocationManager(), now = Date()
+        controller.locationManager(manager, didUpdateLocations: [CLLocation(coordinate: .init(latitude: 41, longitude: 29),
+            altitude: 0, horizontalAccuracy: .infinity, verticalAccuracy: -1, timestamp: now)])
+        XCTAssertNil(controller.freshLocation(at: now))
+    }
+
+    @MainActor
+    func testTransientLocationAcquisitionDoesNotAbortForegroundWarmup() {
+        let controller = LocationController(), manager = CLLocationManager()
+        controller.locationManager(manager, didFailWithError: NSError(domain: kCLErrorDomain,
+            code: CLError.Code.locationUnknown.rawValue))
+        XCTAssertNil(controller.errorMessage, "Map/AR keep waiting within their bounded acquisition window")
+        controller.locationManager(manager, didFailWithError: NSError(domain: kCLErrorDomain,
+            code: CLError.Code.denied.rawValue))
+        XCTAssertNotNil(controller.errorMessage, "a denied permission remains actionable")
+    }
+
     func testAlwaysUpgradeWaitsForTheExplicitOptInAndAnActiveApp() {
         var permission = ArrivalPermissionUpgrade()
         XCTAssertFalse(permission.shouldRequestAlways(status: .authorizedWhenInUse, foreground: true, monitoring: true), "cached consent cannot open a system prompt")

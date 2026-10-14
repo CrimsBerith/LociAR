@@ -5,6 +5,7 @@ import type { AdminContext } from './admin';
 import { adminDb } from './firebase-admin';
 import { requireActorAccountActive, requireTargetAccountActive, writeAudit } from './ops';
 import { ValidationError, requiredString, uuid } from './validation';
+import { permissionsFor } from './rbac';
 
 export async function readPrivateUserContext(admin: AdminContext, rawLuid: string, kind: 'location' | 'telemetry', rawReason: string) {
   const permission = kind === 'location' ? 'users.location.read' : 'users.telemetry.read';
@@ -15,6 +16,11 @@ export async function readPrivateUserContext(admin: AdminContext, rawLuid: strin
   const db = adminDb(), now = Date.now();
   return db.runTransaction(async tx => {
     await requireActorAccountActive(tx, admin.user.id);
+    // Context creation precedes this read; role revocation must fence the transaction too.
+    const roles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', admin.user.id).where('revoked_at', '==', null));
+    if (!permissionsFor(roles.docs.map(role => String(role.get('role_key')))).has(permission)) {
+      const error = new ValidationError('permission_revoked'); error.status = 403; throw error;
+    }
     await requireTargetAccountActive(tx, luid);
     const [profile, preference, snapshot] = await tx.getAll(db.collection('profiles').doc(luid),
       db.collection('user_data_preferences').doc(luid), db.collection(kind === 'location' ? 'user_locations' : 'user_device_context').doc(luid));

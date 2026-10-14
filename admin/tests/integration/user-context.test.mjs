@@ -1,4 +1,4 @@
-import test, { after } from 'node:test';
+import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { initializeApp, deleteApp, getApps } from 'firebase-admin/app';
@@ -11,6 +11,8 @@ const { permissionsFor } = await import('../../lib/rbac.ts');
 const db = adminDb();
 after(async () => Promise.all(getApps().map(deleteApp)));
 const admin = { user: { id: 'context-admin-' + randomUUID() }, roles: ['super_admin'], permissions: permissionsFor(['super_admin']), assuranceLevel: 'aal2' };
+before(async () => { await db.collection('admin_role_assignments').doc(admin.user.id).set({
+  user_id: admin.user.id, role_key: 'super_admin', revoked_at: null }); });
 async function seed(age = 0) {
   const luid = randomUUID(), revision = randomUUID();
   await db.collection('profiles').doc(luid).set({ handle: 'anonymous' });
@@ -53,4 +55,17 @@ test('telemetry access returns bounded usage events, excludes expired events and
   await db.collection('user_data_preferences').doc(luid).update({ telemetry: false });
   const disabled = await readPrivateUserContext(admin, luid, 'telemetry', 'Support investigation');
   assert.equal(disabled.status, 'sharing_disabled'); assert.equal(disabled.device, undefined);
+});
+
+test('a stale MFA context cannot read private data after its live role loses permission', async () => {
+  const luid = await seed(), role = db.collection('admin_role_assignments').doc(admin.user.id);
+  try {
+    for (const patch of [{ role_key: 'support_agent' }, { role_key: 'super_admin', revoked_at: Timestamp.now() }]) {
+      await role.update(patch);
+      for (const kind of ['location', 'telemetry']) {
+        await assert.rejects(readPrivateUserContext(admin, luid, kind, 'Support investigation'), /permission_revoked/);
+      }
+    }
+    assert.equal((await db.collection('admin_audit_log').where('resource_id', '==', luid).get()).size, 0);
+  } finally { await role.update({ role_key: 'super_admin', revoked_at: null }); }
 });

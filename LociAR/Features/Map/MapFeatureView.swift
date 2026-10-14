@@ -384,12 +384,13 @@ struct MapFeatureView: View {
         }
         location.start()
         for _ in 0..<80 {
-            if let current = location.location {
+            guard !Task.isCancelled else { return }
+            if let current = location.freshLocation() {
                 await loadNearby(current)
                 return
             }
             if let error = location.errorMessage { message = error; return }
-            try? await Task.sleep(for: .milliseconds(200))
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
         }
         message = String(localized: "Konum henüz netleşmedi. İç mekânda biraz bekleyip tekrar dene veya Ayarlar’dan konum iznini kontrol et.")
     }
