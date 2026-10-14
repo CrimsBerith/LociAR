@@ -17,11 +17,28 @@ extension AuthGateUITests {
     private func e2eType(_ app: XCUIApplication, _ id: String, _ text: String) {
         let field = e2eField(app, id)
         XCTAssertTrue(field.waitForExistence(timeout: 8), "Alan yok: \(id)")
+        e2eReplace(field, with: text)
+    }
+
+    private func e2eReplace(_ field: XCUIElement, with text: String) {
         field.tap()
         if let current = field.value as? String, !current.isEmpty, !current.hasPrefix("E-posta"), !current.hasPrefix("Şifre") {
-            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
+            // Tapping a physical text field puts the caret in the middle. Select all before
+            // deleting, otherwise the old suffix survives (e.g. .testlociar.test).
+            field.press(forDuration: 1.1)
+            let app = XCUIApplication()
+            let all = app.descendants(matching: .any).matching(NSPredicate(
+                format: "label == %@ OR label == %@", "Tümünü Seç", "Select All"
+            )).firstMatch
+            guard all.waitForExistence(timeout: 3) else {
+                XCTFail("Metin alanını temizlemek için Tümünü Seç menüsü bulunamadı.")
+                return
+            }
+            all.tap()
+            field.typeText(XCUIKeyboardKey.delete.rawValue)
         }
         field.typeText(text)
+        if field.elementType == .textField { XCTAssertEqual(field.value as? String, text) }
     }
 
     private func e2eAllowSystemAlerts() {
@@ -121,6 +138,41 @@ extension AuthGateUITests {
         capture(app, name: "e2e-signed-in")
     }
 
+    /// Live pipeline phase one; the owner verifies the email before phase two runs.
+    func testProd00SignUpOnly() throws {
+        guard ProcessInfo.processInfo.environment["E2E_PRODUCTION"] == "1",
+              !e2eEmail.isEmpty, !e2ePassword.isEmpty else { throw XCTSkip("Canlı test açıkça seçilmedi.") }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        e2eAllowSystemAlerts()
+        e2ePassOnboarding(app)
+        e2eSignOutIfNeeded(app)
+        XCTAssertTrue(app.buttons["auth-mode-signup"].waitForExistence(timeout: 10))
+        app.buttons["auth-mode-signup"].tap()
+        e2eType(app, "auth-email-field", e2eEmail)
+        e2eType(app, "auth-password-field", e2ePassword)
+        e2eType(app, "auth-confirm-password-field", e2ePassword)
+        dismissKeyboard(app)
+        e2eAcceptTerms(app)
+        e2eField(app, "auth-email-submit").tap()
+        let created = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Hesabın oluşturuldu")).firstMatch
+        XCTAssertTrue(created.waitForExistence(timeout: 30), "Canlı kayıt başarısız: \(e2eMessageText(app))")
+        capture(app, name: "production-signup-awaiting-owner-verification")
+    }
+
+    func testProd01SignIn() throws {
+        guard ProcessInfo.processInfo.environment["E2E_PRODUCTION"] == "1",
+              !e2eEmail.isEmpty, !e2ePassword.isEmpty else { throw XCTSkip("Canlı test açıkça seçilmedi.") }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        e2ePassOnboarding(app)
+        e2eSignOutIfNeeded(app)
+        XCTAssertTrue(e2eSignIn(app), "Canlı giriş başarısız: \(e2eMessageText(app))")
+    }
+
     func testEmulator03BrowseTabsAndEditProfile() throws {
         guard !e2eEmail.isEmpty else { throw XCTSkip("E2E_EMAIL yok") }
         let app = XCUIApplication()
@@ -140,11 +192,7 @@ extension AuthGateUITests {
         let handleField = app.textFields["kullanıcı_adı"].exists ? app.textFields["kullanıcı_adı"] : app.textFields.firstMatch
         XCTAssertTrue(handleField.waitForExistence(timeout: 8))
         let newHandle = "e2e_" + String(Int(Date().timeIntervalSince1970) % 100000)
-        handleField.tap()
-        if let current = handleField.value as? String, !current.isEmpty {
-            handleField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
-        }
-        handleField.typeText(newHandle)
+        e2eReplace(handleField, with: newHandle)
         app.buttons["profile-edit-save"].tap()
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", newHandle)).firstMatch
             .waitForExistence(timeout: 15), "Profil güncellemesi (Firestore kuralı) başarısız.")

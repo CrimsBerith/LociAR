@@ -261,8 +261,8 @@ extension AuthGateUITests {
 
     func waitForPhysicalSurfaceCandidate(_ app: XCUIApplication, timeout: TimeInterval) -> Bool {
         let exactSurface = app.staticTexts.matching(NSPredicate(
-            format: "label == %@",
-            "Kesin yüzey hazır"
+            format: "label == %@ OR label == %@",
+            "Kesin yüzey hazır", "Gerçek yüzey hazır"
         )).firstMatch
         let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
         let deadline = Date().addingTimeInterval(timeout)
@@ -274,13 +274,13 @@ extension AuthGateUITests {
             if exactSurface.exists, trackingOK { return true }
             RunLoop.current.run(until: Date().addingTimeInterval(0.25))
         }
-        return exactSurface.exists
+        return false
     }
 
     func waitForPersistablePhysicalSurface(_ app: XCUIApplication, timeout: TimeInterval) -> Bool {
         let exactSurface = app.staticTexts.matching(NSPredicate(
-            format: "label == %@",
-            "Kesin yüzey hazır"
+            format: "label == %@ OR label == %@",
+            "Kesin yüzey hazır", "Gerçek yüzey hazır"
         )).firstMatch
         let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
         let deadline = Date().addingTimeInterval(timeout)

@@ -16,6 +16,54 @@ private final class ForegroundHeadingStub: CLHeading {
 }
 
 final class ArrivalRuntimeTests: XCTestCase {
+    @MainActor
+    func testPhysicalGPSStreamStopsAndRestartsWithNewMeasurements() async throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek Core Location akışı fiziksel iPhone gerektirir.")
+#else
+        let controller = LocationController()
+        guard controller.authorizationStatus == .authorizedWhenInUse || controller.authorizationStatus == .authorizedAlways else {
+            throw XCTSkip("Önce fiziksel konum notu UI testinde konum iznini verin.")
+        }
+        defer { controller.stop() }
+        func awaitFix(after startedAt: Date) async throws -> CLLocation {
+            let deadline = Date().addingTimeInterval(45)
+            while Date() < deadline {
+                if let fix = controller.freshLocation(), fix.timestamp >= startedAt,
+                   fix.horizontalAccuracy <= LocationNotePolicy.maxEntryAccuracy {
+                    return fix
+                }
+                try await Task.sleep(for: .milliseconds(250))
+            }
+            throw NSError(domain: "PhysicalGPSAcceptance", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "45 saniyede yeni ve en fazla 35 m belirsizliğinde gerçek GPS ölçümü alınamadı."
+            ])
+        }
+        let startedAt = Date()
+        controller.start()
+        let first = try await awaitFix(after: startedAt)
+        XCTAssertFalse(first.sourceInformation?.isSimulatedBySoftware == true)
+        let firstProof = XCTAttachment(string: "accuracy=\(first.horizontalAccuracy)m age=\(Date().timeIntervalSince(first.timestamp))s simulated=false")
+        firstProof.name = "physical-gps-first-fresh-fix"
+        firstProof.lifetime = .keepAlways
+        add(firstProof)
+
+        controller.stop()
+        try await Task.sleep(for: .seconds(2))
+        XCTAssertNil(controller.freshLocation())
+        XCTAssertTrue(controller.recentLocations.isEmpty)
+        let restartedAt = Date()
+        controller.start()
+        let second = try await awaitFix(after: restartedAt)
+        XCTAssertGreaterThan(second.timestamp, first.timestamp)
+        XCTAssertFalse(second.sourceInformation?.isSimulatedBySoftware == true)
+        let secondProof = XCTAttachment(string: "accuracy=\(second.horizontalAccuracy)m age=\(Date().timeIntervalSince(second.timestamp))s simulated=false")
+        secondProof.name = "physical-gps-restarted-fresh-fix"
+        secondProof.lifetime = .keepAlways
+        add(secondProof)
+#endif
+    }
+
     func testRegionMonitoringRetriesAreBoundedAndOnlyAcknowledgedSuccessClearsFailures() {
         var health = ArrivalMonitoringHealth()
         XCTAssertEqual(health.failed("a"), 1)

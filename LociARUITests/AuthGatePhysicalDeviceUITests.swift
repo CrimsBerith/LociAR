@@ -3,6 +3,53 @@ import XCTest
 
 /// Physical-device suites (skipped on the simulator). Run with scripts/run-device-e2e*.command.
 extension AuthGateUITests {
+    func testPhysicalLocationNoteReceivesGPSWithoutCamera() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek GPS ölçümü fiziksel iPhone gerektirir.")
+#else
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_AUTHENTICATED")
+        addPrivacyAlertMonitor()
+        app.launch()
+        XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+        app.buttons["map-location-note"].tap()
+        app.tap() // Let XCTest handle a pending Core Location permission alert.
+        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 10))
+        let measured = app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@ OR label BEGINSWITH %@",
+            "Konum hazır · ±", "Konum hassaslaşıyor · ±"
+        )).firstMatch
+        guard measured.waitForExistence(timeout: 60) else {
+            capture(app, name: "physical-gps-no-fix")
+            XCTFail("Kamera açmadan gerçek GPS ölçümü alınamadı; konum izni ve açık alan koşullarını kontrol edin.")
+            return
+        }
+        let first = XCTAttachment(string: measured.label)
+        first.name = "physical-gps-first-accuracy"
+        first.lifetime = .keepAlways
+        add(first)
+        capture(app, name: "physical-gps-without-camera")
+        XCTAssertFalse(app.buttons["ar-pin-surface"].exists)
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        XCTAssertFalse(app.buttons["place-note-publish"].isEnabled, "Boş not yayınlanmamalı.")
+
+        XCUIDevice.shared.press(.home)
+        RunLoop.current.run(until: Date().addingTimeInterval(10))
+        app.activate()
+        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 10))
+        app.buttons["Kapat"].tap()
+        XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+        app.buttons["map-location-note"].tap()
+        XCTAssertTrue(measured.waitForExistence(timeout: 60), "Arka plandan sonra yeni ölçüm oturumu konum alamadı.")
+        let resumed = XCTAttachment(string: measured.label)
+        resumed.name = "physical-gps-resumed-accuracy"
+        resumed.lifetime = .keepAlways
+        add(resumed)
+        capture(app, name: "physical-gps-new-session-after-background")
+        app.buttons["Kapat"].tap()
+#endif
+    }
+
     func testPhysicalNormalAccountARTabReceivesCameraFrame() throws {
 #if targetEnvironment(simulator)
         throw XCTSkip("Gerçek hesap ve kamera durumu fiziksel iPhone gerektirir.")
@@ -508,10 +555,12 @@ extension AuthGateUITests {
         app.tabBars.buttons["Paylaş"].tap()
         app.tap()
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 12))
-        XCTAssertTrue(
-            waitForPhysicalSurfaceCandidate(app, timeout: 45),
-            "Paylaş sekmesinde düzlem bulunamadı; telefonu dokulu zemin veya duvara tutun."
-        )
+        guard waitForPhysicalSurfaceCandidate(app, timeout: 45) else {
+            capture(app, name: "physical-paylas-no-surface")
+            let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
+            XCTFail("Paylaş sekmesinde gerçek yüzey bulunamadı; nişangâhı tamamen dokulu zemin veya duvara yöneltin. Tanı: \(diagnostic)")
+            return
+        }
         app.buttons["ar-pin-surface"].tap()
         XCTAssertTrue(app.buttons["ar-add-content"].waitForExistence(timeout: 12), "Yüzey kilitlenmedi.")
         XCTAssertTrue(

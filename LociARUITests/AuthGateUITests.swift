@@ -4,6 +4,9 @@ import XCTest
 
 extension XCUIApplication {
     @objc dynamic func loci_launch() {
+        if ProcessInfo.processInfo.environment["E2E_DEMO_EMULATOR_HTTP"] == "1" {
+            launchEnvironment["LOCIAR_DEMO_EMULATOR_HTTP"] = "1"
+        }
         if !launchArguments.contains("-AppleLanguages") {
             launchArguments += ["-AppleLanguages", "(tr)", "-AppleLocale", "tr_TR"]
         }

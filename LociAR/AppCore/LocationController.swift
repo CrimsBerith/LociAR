@@ -37,7 +37,10 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
-        manager.distanceFilter = 1
+        // A stationary phone must still receive new timestamps after a map/AR restart.
+        // A 1 m filter can keep returning only a cached fix, which freshness checks reject.
+        manager.distanceFilter = kCLDistanceFilterNone
+        manager.pausesLocationUpdatesAutomatically = false
         manager.headingFilter = 1
     }
 

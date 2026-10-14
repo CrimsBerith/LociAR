@@ -18,8 +18,9 @@ if [ -z "$EMAIL" ]; then
 fi
 [ -z "$EMAIL" ] && { echo "XX E-posta girilmedi."; pause; exit 1; }
 
-PROJECT="lociar-2f38c"
-HOST="127.0.0.1:9099"
+PROJECT="demo-lociar"
+EMULATOR_HOST="${LOCIAR_TEST_LAN_IP:-$(cat scripts/.emulator-host.txt 2>/dev/null | tr -d '[:space:]')}"
+HOST="${EMULATOR_HOST:-127.0.0.1}:9099"
 
 if ! curl -sf "http://$HOST/emulator/v1/projects/$PROJECT/config" >/dev/null 2>&1; then
   echo "XX Auth emulator'a ulasilamiyor ($HOST). Once start-emulators.command calisiyor olmali."
