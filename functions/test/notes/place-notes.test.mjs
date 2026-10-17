@@ -206,7 +206,7 @@ test('pending delivery expiry frees wake regions while lifetime receipts still p
   assert.equal((await requestReceipt.get()).get('delivery_state'), 'queued', 'a late queue acknowledgement remains valid');
 });
 
-test('shared author checks read six documents total and reports/blocks are rechecked on the next transaction', async () => {
+test('shared author checks read three documents total and reports/mutes are rechecked on the next transaction', async () => {
   const f = await fixture(); await approve(f.n);
   const extra = await note(f.author, north(f.point, 4)); await approve(extra);
   let batches;
@@ -220,14 +220,27 @@ test('shared author checks read six documents total and reports/blocks are reche
     return readableNoteIds(observed, posts, f.visitor.luid);
   });
   assert.equal((await read()).size, 2);
-  assert.deepEqual(batches.map(batch => batch.length), [2, 4], 'two notes from one author need six, not twelve author/block documents');
+  assert.deepEqual(batches.map(batch => batch.length), [2, 1], 'two anonymous notes from one author need three documents, not a set per note');
   const report = adminDb.collection('moderation_flags').doc(randomUUID());
   await report.set({ user_id: f.visitor.luid, post_id: extra.created.post.id });
   assert.deepEqual([...await read()], [f.n.created.post.id]);
-  for (const collection of ['user_blocks', 'anonymous_blocks']) for (const [a, b] of [[f.visitor.luid, f.author.luid], [f.author.luid, f.visitor.luid]]) {
+  // Profile blocks in either direction, and the author's own mutes, never hide anonymous notes:
+  // a note that disappears after a block would name its author (functions/src/visibility.ts).
+  for (const [collection, a, b] of [['user_blocks', f.visitor.luid, f.author.luid], ['user_blocks', f.author.luid, f.visitor.luid], ['anonymous_blocks', f.author.luid, f.visitor.luid]]) {
     const ref = adminDb.collection(collection).doc(`${a}_${b}`);
-    await ref.set({ blocker_id: a, blocked_id: b }); assert.equal((await read()).size, 0); await ref.delete();
+    await ref.set({ blocker_id: a, blocked_id: b }); assert.equal((await read()).size, 1, `${collection} ${a === f.visitor.luid ? 'by' : 'of'} the visitor`); await ref.delete();
   }
+  const mute = adminDb.collection('anonymous_blocks').doc(`${f.visitor.luid}_${f.author.luid}`);
+  await mute.set({ blocker_id: f.visitor.luid, blocked_id: f.author.luid }); assert.equal((await read()).size, 0, 'the visitor muted this author'); await mute.delete();
+  // A legacy attributed note follows profile blocks in both directions instead.
+  await f.n.ref.update({ is_anonymous: false });
+  assert.equal((await read()).size, 1);
+  assert.deepEqual(batches.map(batch => batch.length), [2, 3], 'one mute and two profile-block documents for an author with both kinds');
+  for (const [a, b] of [[f.visitor.luid, f.author.luid], [f.author.luid, f.visitor.luid]]) {
+    const ref = adminDb.collection('user_blocks').doc(`${a}_${b}`);
+    await ref.set({ blocker_id: a, blocked_id: b }); assert.equal((await read()).size, 0, 'attributed notes follow profile blocks'); await ref.delete();
+  }
+  await f.n.ref.update({ is_anonymous: true });
   await adminDb.collection('profiles').doc(f.author.luid).update({ suspended: true }); assert.equal((await read()).size, 0);
   assert.deepEqual(batches.map(batch => batch.length), [2], 'suspended authors incur no block or report reads');
   await adminDb.collection('profiles').doc(f.author.luid).update({ suspended: false }); assert.equal((await read()).size, 1);
