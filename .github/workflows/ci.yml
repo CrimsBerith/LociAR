@@ -158,7 +158,8 @@ jobs:
     runs-on: macos-26
     permissions:
       contents: read
-    timeout-minutes: 35
+    # A green run takes ~31 minutes on a hosted macOS runner; slower runners exceeded 35.
+    timeout-minutes: 50
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
