@@ -142,7 +142,7 @@ test('sender uses only the fixed HTTPS provider, is bounded and never exposes pr
   });
   delete process.env.ADMIN_EMAIL_API_KEY;
   await assert.rejects(sendAdminCode('admin@example.test', '123456', randomUUID()), EmailDeliveryError);
-  process.env.ADMIN_EMAIL_API_KEY = 'synthetic-key'; process.env.ADMIN_EMAIL_FROM = 'LociAR <onboarding@resend.dev>';
+  process.env.ADMIN_EMAIL_API_KEY = 'fake-api-key'; process.env.ADMIN_EMAIL_FROM = 'LociAR <onboarding@resend.dev>';
   const calls = [];
   const stub = t.mock.method(globalThis, 'fetch', async (url, init) => { calls.push({ url, init }); return new Response('{"id":"synthetic-message-id"}', { status: 200 }); });
   await sendAdminCode('admin@example.test', '123456', 'request-id');

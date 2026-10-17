@@ -15,7 +15,7 @@ ROOT = os.path.join(os.path.dirname(__file__), '..', '..')
 SRC = os.path.join(ROOT, 'LociAR')
 TURKISH = re.compile(r"[çğıöşüÇĞİÖŞÜâÂîû]")
 INT_HINTS = re.compile(r"(count|Count|meters|Meters|degrees|attempt|Int\(|roundedMeters|\.count\b|minutes|seconds|days|hours|length|limit|index|remaining|failed|Failed)")
-SKIP_PREFIX = re.compile(r"(systemImage:|systemName:|accessibilityIdentifier\(|forKey:|collection\(|whereField\(|document\(|named:|subsystem:|category:|withPurposeKey:|\.child\(|URL\(string:|order\(by:|httpsCallable\(|call\(|logger\.|Logger\(|print\(|fatalError\(|precondition|assert|predicate|NSPredicate|environment\[|arguments\.contains\(|AppStorage\(|font\(|format:)\s*$")
+SKIP_PREFIX = re.compile(r"(systemImage:|systemName:|accessibilityIdentifier\(|forKey:|collection\(|whereField\(|document\(|named:|subsystem:|category:|withPurposeKey:|\.child\(|URL\(string:|order\(by:|httpsCallable\(|call\(|logger\.|Logger\(|print\(|NSLog\(|debugTrace\(|fatalError\(|precondition|assert|predicate|NSPredicate|environment\[|arguments\.contains\(|AppStorage\(|font\(|format:)\s*$")
 
 def strip_comments(text):
     out, i, n = [], 0, len(text)
