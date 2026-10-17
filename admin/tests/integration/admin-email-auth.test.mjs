@@ -37,6 +37,9 @@ test('six-digit code creates an opaque hashed eight-hour session, records the tr
   const context = await getAdminContext(session);
   assert.equal(context.assuranceLevel, 'email_code');
   assert.equal(context.permissions.has('notifications.send'), false);
+  for (const permission of ['users.location.read', 'users.telemetry.read', 'admin_users.write', 'audit.export']) {
+    assert.equal(context.permissions.has(permission), false, `${permission} needs an authenticator session`);
+  }
   const audits = await db.collection('admin_audit_log').where('actor_id', '==', f.uid).get();
   assert.equal(audits.size, 1); assert.deepEqual(audits.docs[0].get('after_state'), { method: 'email_code', secondFactor: false });
 });

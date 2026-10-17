@@ -57,8 +57,11 @@ export async function requestAdminEmailCode(rawEmail: unknown, source: string, s
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0'), generation = randomUUID();
   const db = adminDb(), challenge = db.collection('admin_email_challenges').doc(address);
   // Bound lookup/send work too, including requests for unknown addresses. No client-chosen uid.
-  const hour = Math.floor(now / 3_600_000);
-  const limits = [[`address_${address}_${hour}`, 5], [`source_${digest(source)}_${hour}`, 30], [`global_${hour}`, 300]] as const;
+  const hour = Math.floor(now / 3_600_000), sourceKey = digest(source);
+  // Per address and network, plus a higher per-address ceiling: one attacker cannot spend the
+  // administrator's whole hourly budget from a single connection.
+  const limits = [[`address_${address}_${sourceKey}_${hour}`, 5], [`address_${address}_${hour}`, 20],
+    [`source_${sourceKey}_${hour}`, 30], [`global_${hour}`, 300]] as const;
   await db.runTransaction(async tx => {
     const snapshots = await tx.getAll(...limits.map(([id]) => db.collection('admin_email_limits').doc(id)));
     if (snapshots.some((s, i) => Number(s.get('count') ?? 0) >= limits[i][1])) throw new EmailRateLimitError();
@@ -73,7 +76,7 @@ export async function requestAdminEmailCode(rawEmail: unknown, source: string, s
       const roles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', user.uid).where('revoked_at', '==', null));
       allowed = roles.docs.some(d => isKnownRole(d.get('role_key')));
     }
-    if (user) tx.update(db.collection('admin_email_limits').doc(limits[0][0]), { owner_uid: user.uid });
+    if (user) for (const [id] of limits.slice(0, 2)) tx.update(db.collection('admin_email_limits').doc(id), { owner_uid: user.uid });
     tx.set(challenge, { uid: allowed ? user!.uid : null, owner_uid: user?.uid ?? null, generation, verifier_hash: digest(secret), code_hash: codeDigest(secret, code),
       attempts: 0, ready: false, requested_at: Timestamp.fromMillis(now), expires_at: Timestamp.fromMillis(now + EMAIL_CODE_SECONDS * 1000) });
     return allowed;

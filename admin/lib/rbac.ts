@@ -24,6 +24,25 @@ export const ROLE_PERMISSIONS: Record<string, readonly Permission[]> = {
   finance_admin: ['dashboard.read'],
 };
 
+/**
+ * Permissions that need an authenticator (TOTP, AAL2) session even though email-code sign-in is the
+ * default: they expose people's precise location, device and network data or bulk audit exports, or
+ * change who holds admin power. An email inbox alone must not unlock them (owner decision 17 Oct 2026).
+ */
+export const STEP_UP_PERMISSIONS: ReadonlySet<string> = new Set(['users.location.read', 'users.telemetry.read', 'admin_users.write', 'audit.export']);
+
+/** Role permissions for a session; an email-code session never carries the step-up permissions. */
+export function sessionPermissions(roles: string[], assurance: 'aal1' | 'aal2' | 'email_code'): Set<string> {
+  const granted = permissionsFor(roles);
+  if (assurance === 'email_code') for (const permission of STEP_UP_PERMISSIONS) granted.delete(permission);
+  return granted;
+}
+
+/** True when the roles grant `permission` but this email-code session must step up to TOTP first. */
+export function needsStepUp(context: { roles: string[]; assuranceLevel: 'aal1' | 'aal2' | 'email_code' }, permission: string): boolean {
+  return context.assuranceLevel === 'email_code' && STEP_UP_PERMISSIONS.has(permission) && permissionsFor(context.roles).has(permission);
+}
+
 export function isKnownRole(role: string): boolean {
   return Object.prototype.hasOwnProperty.call(ROLE_PERMISSIONS, role);
 }

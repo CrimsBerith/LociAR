@@ -1,4 +1,4 @@
-import { requireAdmin } from '../../../../lib/admin';
+import { needsStepUp, requireAdmin } from '../../../../lib/admin';
 import { recordPersonalDataRead } from '../../../../lib/ops';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import { getI18n } from '../../../../lib/i18n-server';
@@ -15,6 +15,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const admin = await requireAdmin({ permission: 'users.read' });
   const { t, locale } = await getI18n();
   const canManageAdmins = admin.permissions.has('admin_users.write');
+  const contextStepUp = needsStepUp(admin, 'users.location.read') || needsStepUp(admin, 'users.telemetry.read');
+  const rolesStepUp = needsStepUp(admin, 'admin_users.write');
   const canSuspend = admin.permissions.has('users.suspend');
   const params = await searchParams;
   const q = textParameter(params.q, 40);
@@ -66,7 +68,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
             {users.length === 0 ? <p className="emptyState">{t('No matching users.')}</p> : users.map(user => (
               <div className="dataRow user" key={user.id}>
                 <span><b>@{String(user.handle)}</b><small>{user.id}</small>
-                  {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') ? <details><summary>{t('Private data')}</summary><UserContextPanel luid={user.id} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
+                  {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') || contextStepUp ? <details><summary>{t('Private data')}</summary><UserContextPanel luid={user.id} stepUp={contextStepUp} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
                 </span>
                 <span>{user.suspended ? t('Suspended') : user.identity_verified ? t('Verified') : t('Unverified')}</span>
                 <span>{String(user.auth_provider ?? t('unknown'))}</span>
@@ -85,6 +87,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         )}
         {!failed ? <PageNavigation path="/admin/users" parameters={{ q }} next={page.next} previous={page.previous} /> : null}
       </section>
+      {rolesStepUp ? <p className="muted">{t('Changing administrator roles needs an authenticator (TOTP) sign-in.')}</p> : null}
       {canManageAdmins ? <section className="panel" aria-label={t('Administrator roles')}>
         <div className="panelHeader"><h2>{t('Admin roles')}</h2></div>
         {rolesFailed ? <p className="emptyState">{t('Admin roles could not be loaded.')} <a href="/admin/users">{t('Return to the first page.')}</a></p> : <>

@@ -16,7 +16,9 @@ export async function POST(request: NextRequest) {
     const body = await parseJson(request);
     if (body.action === 'request') {
       if (!process.env.ADMIN_EMAIL_API_KEY || !process.env.ADMIN_EMAIL_FROM) throw new EmailDeliveryError();
-      const source = request.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ?? 'unknown';
+      // App Hosting sets x-fah-client-ip; the last X-Forwarded-For hop there is a Google proxy.
+      const source = request.headers.get('x-fah-client-ip')?.trim()
+        || request.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() || 'unknown';
       const challenge = await requestAdminEmailCode(body.email, source);
       const response = NextResponse.json({ ok: true, message: 'Adres yetkiliyse giriş kodu gönderildi. Gelen kutunu ve spam klasörünü kontrol et.' }, { headers });
       response.cookies.set(EMAIL_CHALLENGE_COOKIE, challenge, { ...cookieOptions, path: '/api/auth/email-code', maxAge: EMAIL_CODE_SECONDS });

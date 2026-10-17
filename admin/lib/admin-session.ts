@@ -1,6 +1,6 @@
 import 'server-only';
 import { adminAuth, adminDb } from './firebase-admin';
-import { isKnownRole, permissionsFor } from './rbac';
+import { isKnownRole, permissionsFor, sessionPermissions } from './rbac';
 import { accountDeletionStarted } from './account-lifecycle';
 import { readAdminEmailSession } from './admin-email-auth';
 
@@ -35,7 +35,7 @@ export async function getAdminContextForSession(session: string | null): Promise
     if (!identity) return null;
     const roles = await activeRoles(identity.uid);
     if (!roles.length) return null;
-    return { user: { id: identity.uid, email: identity.email }, roles, permissions: permissionsFor(roles), assuranceLevel: 'email_code' };
+    return { user: { id: identity.uid, email: identity.email }, roles, permissions: sessionPermissions(roles, 'email_code'), assuranceLevel: 'email_code' };
   }
   let decoded;
   try {

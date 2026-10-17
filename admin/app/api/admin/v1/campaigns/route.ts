@@ -13,6 +13,10 @@ export async function POST(request: Request) {
     const action = String(body.action ?? ''), permission = Object.hasOwn(permissions, action) ? permissions[action] : undefined;
     if (!permission) return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     const access = await requireAdminApi(permission); if (!access.ok) return unauthorized(access);
+    // Audience search and campaign-targeted notifications read people's shared locations.
+    if (action === 'audience' || (action === 'notify' && body.campaignId)) {
+      const location = await requireAdminApi('users.location.read'); if (!location.ok) return unauthorized(location);
+    }
     const limited = await enforceRateLimit(access.context.user.id, 'campaign-operations', 20); if (limited) return limited;
     const reason = requiredString(body.reason, 'reason', 8, 1000), actor = access.context.user.id;
     let result;

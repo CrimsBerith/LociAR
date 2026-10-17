@@ -5,10 +5,14 @@ import { verifiedAdminSession, type AdminContext } from './admin-session';
 import { adminDb } from './firebase-admin';
 import { requireActorAccountActive, requireTargetAccountActive, writeAudit } from './ops';
 import { ValidationError, requiredString, uuid } from './validation';
-import { permissionsFor } from './rbac';
+import { needsStepUp, permissionsFor } from './rbac';
 
 export async function readPrivateUserContext(admin: AdminContext, rawLuid: string, kind: 'location' | 'telemetry', rawReason: string) {
   const permission = kind === 'location' ? 'users.location.read' : 'users.telemetry.read';
+  // Location and device data need an authenticator session, never an email code alone (rbac.ts).
+  if (needsStepUp(admin, permission)) {
+    const error = new ValidationError('Sign in with an authenticator code for this action'); error.status = 403; throw error;
+  }
   if (!verifiedAdminSession(admin) || !admin.permissions.has(permission)) {
     const error = new ValidationError('Private data access denied'); error.status = 403; throw error;
   }

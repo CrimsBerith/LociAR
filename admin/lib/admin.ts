@@ -2,6 +2,8 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAdminContextForSession, SESSION_COOKIE, verifiedAdminSession, type AdminContext } from './admin-session';
+import { needsStepUp } from './rbac';
+export { needsStepUp } from './rbac';
 export { required } from './firebase-admin';
 export { activeRoles, SESSION_COOKIE, verifiedAdminSession, type AdminContext } from './admin-session';
 
@@ -30,6 +32,9 @@ export async function requireAdminApi(permission: string) {
   if (!context) return { ok: false as const, status: 401, error: 'Authentication required' };
   if (!verifiedAdminSession(context)) {
     return { ok: false as const, status: 403, error: 'Email-code verification or MFA is required' };
+  }
+  if (needsStepUp(context, permission)) {
+    return { ok: false as const, status: 403, error: 'Sign in with an authenticator code for this action' };
   }
   if (!context.permissions.has(permission)) {
     return { ok: false as const, status: 403, error: `Missing permission: ${permission}` };

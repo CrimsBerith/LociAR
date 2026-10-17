@@ -70,11 +70,15 @@ test('a stale MFA context cannot read private data after its live role loses per
   } finally { await role.update({ role_key: 'super_admin', revoked_at: null }); }
 });
 
-test('owner-authorized email sessions retain private-data permission and recipient consent checks', async () => {
+test('email-code sessions must step up to an authenticator before reading location or device data', async () => {
   const luid = await seed(), emailAdmin = { ...admin, assuranceLevel: 'email_code' };
-  assert.equal((await readPrivateUserContext(emailAdmin, luid, 'location', 'Support investigation')).status, 'recent');
-  await assert.rejects(readPrivateUserContext({ ...emailAdmin, permissions: permissionsFor(['support_agent']) }, luid, 'location', 'Support investigation'), /denied/);
+  for (const kind of ['location', 'telemetry']) {
+    await assert.rejects(readPrivateUserContext(emailAdmin, luid, kind, 'Support investigation'), /authenticator/);
+  }
+  await assert.rejects(readPrivateUserContext({ ...emailAdmin, roles: ['support_agent'], permissions: permissionsFor(['support_agent']) }, luid, 'location', 'Support investigation'), /denied/);
+  assert.equal((await db.collection('admin_audit_log').where('resource_id', '==', luid).get()).size, 0, 'refused reads are not audited as reads');
+  // The same administrator with an authenticator session still sees consent applied.
   await db.collection('user_data_preferences').doc(luid).update({ location: false });
-  const result = await readPrivateUserContext(emailAdmin, luid, 'location', 'Support investigation');
+  const result = await readPrivateUserContext(admin, luid, 'location', 'Support investigation');
   assert.equal(result.status, 'sharing_disabled'); assert.equal(result.lat, undefined);
 });

@@ -8,7 +8,7 @@ type Result = { status: string; lat?: number; lng?: number; accuracy?: number; m
     installationId: string; observedIp: string | null; lastSeen: string };
   events?: Array<{ name: string; at: string; postId: string | null }> };
 
-export default function UserContextPanel({ luid, canLocation, canTelemetry, canNotify = false }: { luid: string; canLocation: boolean; canTelemetry: boolean; canNotify?: boolean }) {
+export default function UserContextPanel({ luid, canLocation, canTelemetry, canNotify = false, stepUp = false }: { luid: string; canLocation: boolean; canTelemetry: boolean; canNotify?: boolean; stepUp?: boolean }) {
   const t = useT();
   const [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [result, setResult] = useState<Result | null>(null);
@@ -35,6 +35,7 @@ export default function UserContextPanel({ luid, canLocation, canTelemetry, canN
   return <section className="panel">
     <h2>{t('Private user data')}</h2>
     <p className="muted">{t('Optional user consent is required. Each read is audited. Location is the last device report while the app was open; it is not a guaranteed live location.')}</p>
+    {stepUp ? <p className="muted">{t('Location, device and IP data need an authenticator (TOTP) sign-in.')}</p> : null}
     <label>{t('Access reason')}<input value={reason} onChange={e => setReason(e.target.value)} minLength={8} maxLength={1000} placeholder={t('Describe the purpose of this access')} /></label>
     <div className="filterBar">
       {canLocation ? <button disabled={busy || reason.trim().length < 8} onClick={() => read('location')}>{t('Read last shared location')}</button> : null}
