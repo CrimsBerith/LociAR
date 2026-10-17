@@ -6,6 +6,7 @@ import { anyBlocked } from './moderation';
 import { GIF_ID } from './giphyId';
 export { GIF_ID };
 import { requireActiveAccount } from './profileGuard';
+import { TtlCache } from './memoryLimits';
 
 /**
  * GIF posts use GIPHY (Tenor's public API was shut down on 30 Jun 2026). The API key stays in
@@ -23,6 +24,17 @@ const PAGE_SIZE = 24;
 const MAX_OFFSET = 480;
 const MAX_QUERY = 50;
 const REQUEST_TIMEOUT_MS = 5_000;
+/**
+ * GIPHY's beta key allows about 100 calls per hour for the whole app. Identical searches and GIF
+ * lookups are served from this instance's memory for a while; a production key still has to be
+ * requested before launch (docs/release/GIPHY_PRODUCTION_KEY.md).
+ */
+const SEARCH_CACHE_MS = 30 * 60_000;
+const TRENDING_CACHE_MS = 10 * 60_000;
+const GIF_CACHE_MS = 6 * 3_600_000;
+const searchCache = new TtlCache<{ gifs: GifSummary[]; nextOffset: number | null }>(500);
+// Only accepted GIFs are cached: a missing or over-rated id is asked again next time.
+const gifCache = new TtlCache<GifSummary>(2_000);
 /** GIPHY language codes for the app's 12 languages (GIPHY uses zh-CN for Simplified Chinese). */
 const LANGS: Record<string, string> = {
   tr: 'tr', en: 'en', 'zh-hans': 'zh-CN', hi: 'hi', es: 'es', fr: 'fr', ar: 'ar', bn: 'bn', pt: 'pt', ru: 'ru', de: 'de', ja: 'ja',
@@ -96,9 +108,14 @@ export async function resolveGifLayers(editData: { layers?: unknown[] }, fetcher
   for (let index = 0; index < layers.length; index += 1) {
     const layer = (layers[index] ?? {}) as Record<string, unknown>;
     if (String(layer.type ?? layer.kind) !== 'gif') continue;
-    let gif: GifSummary | null;
+    // The cache serves only real GIPHY lookups; an injected fetcher (tests) always goes through.
+    const useCache = fetcher === fetch, id = String(layer.gifId ?? '');
+    let gif: GifSummary | null | undefined = useCache ? gifCache.get(id) : undefined;
     try {
-      gif = await fetchGif(String(layer.gifId ?? ''), apiKey(), fetcher);
+      if (gif === undefined) {
+        gif = await fetchGif(id, apiKey(), fetcher);
+        if (gif && useCache) gifCache.set(id, gif, GIF_CACHE_MS);
+      }
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       logger.warn('giphy_lookup_failed', { code: safeErrorCode(error) });
@@ -131,9 +148,13 @@ export const searchGifs = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstan
   });
   if (!allowed) throw reasonError('resource-exhausted', 'GIF search limit reached', 'rate_limited');
 
+  const lang = giphyLanguage(data.locale);
+  const cacheKey = `${query.toLowerCase()}|${offset}|${query ? lang : ''}`;
+  const cached = searchCache.get(cacheKey);
+  if (cached) return cached;
   let body: unknown;
   try {
-    body = await giphyJSON(searchURL(apiKey(), query, offset, giphyLanguage(data.locale)), fetch);
+    body = await giphyJSON(searchURL(apiKey(), query, offset, lang), fetch);
   } catch (error) {
     if (error instanceof HttpsError) throw error;
     logger.warn('giphy_search_failed', { code: safeErrorCode(error) });
@@ -142,5 +163,7 @@ export const searchGifs = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstan
   const raw = Array.isArray((body as { data?: unknown } | null)?.data) ? (body as { data: unknown[] }).data : [];
   const gifs = raw.map(summarizeGif).filter((gif): gif is GifSummary => gif !== null);
   const nextOffset = raw.length === PAGE_SIZE && offset + PAGE_SIZE <= MAX_OFFSET ? offset + PAGE_SIZE : null;
-  return { gifs, nextOffset };
+  const result = { gifs, nextOffset };
+  searchCache.set(cacheKey, result, query ? SEARCH_CACHE_MS : TRENDING_CACHE_MS);
+  return result;
 });

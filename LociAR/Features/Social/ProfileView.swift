@@ -44,7 +44,7 @@ struct ProfileView: View {
                 Section {
                     Button("Hesap oluştur") { showAccountCreation = true }
                         .accessibilityIdentifier("profile-create-account")
-                    Text("Hesap bağlayarak anonim notlarını koru. Paylaşımlarında kimliğin görünmez.")
+                    Text("Not bırakmak ve yorum yazmak için hesap oluştur. Notlarında adın diğer kullanıcılara gösterilmez.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }

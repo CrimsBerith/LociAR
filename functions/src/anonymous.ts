@@ -1,6 +1,10 @@
-/** Anonymous Auth is an installation identity, never a verified email identity. */
+/**
+ * Posts are shown without their author, but every post belongs to a verified Apple or email
+ * identity that moderators can act on (App Store 1.2; owner decision 17 Oct 2026). Guests
+ * (Anonymous Auth installations) may browse, like, report and block, but not publish.
+ */
 export function mayPublishAnonymously(caller: { provider: string; isAnonymous: boolean; isAppleUser: boolean; emailVerified: boolean }): boolean {
-  return caller.isAnonymous || caller.isAppleUser || caller.emailVerified;
+  return !caller.isAnonymous && (caller.isAppleUser || caller.emailVerified);
 }
 
 /** A map locator must not disclose the author's account folder. The callable resolves it. */

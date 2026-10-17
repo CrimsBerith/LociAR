@@ -81,7 +81,7 @@ struct PublicProfileView: View {
             Button("Engelle", role: .destructive) { Task { await block() } }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: {
-            Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
+            Text("Bu kullanıcının adıyla paylaşılanları ve yorumlarını görmezsin, seni takip edemez. Anonim notlar kimseye yazarını göstermediği için bu engelden etkilenmez.")
         }
         .confirmationDialog("Neden bildiriyorsun?", isPresented: $reportingUser, titleVisibility: .visible) {
             ForEach(ReportReason.allCases) { reason in

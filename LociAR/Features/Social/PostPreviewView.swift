@@ -52,6 +52,8 @@ struct PostPreviewView: View {
     @State private var isReporting = false
     @State private var reportTarget: ReportTarget?
     @State private var confirmBlock = false
+    @State private var confirmOwnAnonymousComment = false
+    @State private var showAccountCreation = false
     // Bumped on user actions only, so loading server state never fires a haptic.
     @State private var likeTaps = 0
     @State private var saveTaps = 0
@@ -141,7 +143,10 @@ struct PostPreviewView: View {
                         .accessibilityIdentifier("post-report")
                         Menu {
                             Button(role: .destructive) { confirmBlock = true } label: {
-                                Label("Kullanıcıyı engelle", systemImage: "person.crop.circle.badge.xmark")
+                                // An anonymous note offers a mute that hides only this author's anonymous
+                                // notes and never names them (functions/src/visibility.ts).
+                                Label(post.isAnonymous ? String(localized: "Bu yazarın notlarını gizle") : String(localized: "Kullanıcıyı engelle"),
+                                      systemImage: "person.crop.circle.badge.xmark")
                             }
                             .accessibilityIdentifier("post-block-user")
                         } label: {
@@ -213,6 +218,22 @@ struct PostPreviewView: View {
                         .accessibilityElement(children: .contain)
                     }
                 }
+                if isGuest {
+                    // Comments need a verified account (firestore.rules verifiedIdentity()).
+                    Button { showAccountCreation = true } label: {
+                        Label("Yorum yazmak için hesap oluştur", systemImage: "person.crop.circle.badge.plus")
+                    }
+                    .accessibilityIdentifier("comment-account-required")
+                } else {
+                if commentRevealsAuthor {
+                    LociInlineNotice(
+                        title: String(localized: "Bu not anonim"),
+                        message: String(localized: "Buraya yazacağın yorum @\(ownHandle) adınla görünür ve notun sana ait olduğunu belli eder."),
+                        symbol: "eye.trianglebadge.exclamationmark",
+                        color: .orange
+                    )
+                    .accessibilityIdentifier("comment-reveals-author")
+                }
                 VStack(alignment: .trailing, spacing: 6) {
                     HStack(spacing: 10) {
                         TextField("Yorum yaz…", text: $commentText, axis: .vertical)
@@ -221,7 +242,7 @@ struct PostPreviewView: View {
                             .padding(.vertical, 10)
                             .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 14))
                         Button {
-                            Task { await addComment() }
+                            if commentRevealsAuthor { confirmOwnAnonymousComment = true } else { Task { await addComment() } }
                         } label: {
                             if isCommentSending {
                                 ProgressView().tint(LociTheme.accent)
@@ -242,6 +263,7 @@ struct PostPreviewView: View {
                             .font(.caption2)
                             .foregroundStyle(commentText.count > 500 ? .red : .secondary)
                     }
+                }
                 }
                 }
                 if let message { Text(message.localizedUI).font(.caption).foregroundStyle(.secondary) }
@@ -276,17 +298,43 @@ struct PostPreviewView: View {
         } message: { _ in
             Text("Bildirimler 24 saat içinde incelenir. İçeriği görmek istemiyorsan kullanıcıyı engelleyebilirsin.")
         }
-        .confirmationDialog("@\(creatorUser.handle) engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
-            Button("Engelle", role: .destructive) { Task { await blockCreator() } }
+        .confirmationDialog(
+            post.isAnonymous ? String(localized: "Bu yazarın notları gizlensin mi?") : String(localized: "@\(creatorUser.handle) engellensin mi?"),
+            isPresented: $confirmBlock, titleVisibility: .visible
+        ) {
+            Button(post.isAnonymous ? String(localized: "Gizle") : String(localized: "Engelle"), role: .destructive) { Task { await blockCreator() } }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: {
-            Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
+            Text(post.isAnonymous
+                 ? String(localized: "Bu yazarın anonim notlarını artık görmezsin. Yazarın kim olduğu sana gösterilmez.")
+                 : String(localized: "Bu kullanıcının adıyla paylaşılanları ve yorumlarını görmezsin, seni takip edemez. Anonim notlar kimseye yazarını göstermediği için bu engelden etkilenmez."))
         }
+        .confirmationDialog("Yorumun adınla görünecek", isPresented: $confirmOwnAnonymousComment, titleVisibility: .visible) {
+            Button("Yine de gönder") { Task { await addComment() } }
+            Button("Vazgeç", role: .cancel) { /* Keeps the draft; nothing is sent. */ }
+        } message: {
+            Text("Bu yorum, anonim notun sana ait olduğunu diğer kullanıcılara gösterir.")
+        }
+        .sheet(isPresented: $showAccountCreation) { AuthView() }
+        .onChange(of: isGuest) { _, guest in if !guest { showAccountCreation = false } }
     }
 
     private var ownsPost: Bool {
         guard case let .signedIn(user) = session.phase else { return false }
         return post.creatorID == user.id
+    }
+
+    private var isGuest: Bool {
+        guard case let .signedIn(user) = session.phase else { return false }
+        return user.isAnonymousAccount
+    }
+
+    /// The author's own comment shows their handle and so reveals who wrote an anonymous note.
+    private var commentRevealsAuthor: Bool { post.isAnonymous && ownsPost }
+
+    private var ownHandle: String {
+        guard case let .signedIn(user) = session.phase else { return "" }
+        return user.handle
     }
 
     private func isMine(_ comment: LociComment) -> Bool {

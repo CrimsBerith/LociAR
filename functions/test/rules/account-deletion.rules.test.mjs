@@ -58,7 +58,8 @@ beforeEach(async () => {
   });
 });
 
-const as = luid => env.authenticatedContext(`uid-${luid}`, { luid });
+// A verified email identity: comments need one (guests may not write them).
+const as = luid => env.authenticatedContext(`uid-${luid}`, { luid, email_verified: true });
 const aliceDb = () => as(ALICE).firestore();
 const aliceStorage = () => as(ALICE).storage();
 async function tombstone(luid, status) {

@@ -4,7 +4,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { getMessaging, type Message } from 'firebase-admin/messaging';
 import { db, FieldValue, Timestamp, isUUID, luidForUid, HttpsError, requireCaller, identityVerified, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, safeErrorCode } from './core';
 import { requireActiveAccount, accountDeletionRef, profileBlock } from './profileGuard';
-import { isBlocked } from './anonymousAccess';
+import { identityBlocked } from './anonymousAccess';
 import { distanceMeters } from './geo';
 import { anyBlocked } from './moderation';
 import { MAX_PUSH_DEVICES, pushAddress, pushAddressMatches, pushDeliveryId, invalidPushTokenCode, pushQuotaDecision, pushQuotaId, pushLocale } from './pushPolicy';
@@ -25,7 +25,7 @@ export async function campaignOffer(tx: FirebaseFirestore.Transaction, luid: str
   await requireActiveAccount(tx, luid);
   const [author, deletion] = await tx.getAll(db.collection('profiles').doc(brand.get('author_luid')), accountDeletionRef(brand.get('author_luid')));
   if (profileBlock(author.data()) || deletion.exists) return null;
-  if (await isBlocked(luid, brand.get('author_luid'), tx)) return null;
+  if (await identityBlocked(luid, brand.get('author_luid'), tx)) return null;
   // Zone-campaign codes issued to this person travel on their private offer card.
   const codes = Object.values(target.get('codes') ?? {}).filter(v => typeof v === 'string');
   return { id: c.id, ...c.get('post_projection'), sponsorship: { ...c.get('post_projection.sponsorship'), ...(codes.length ? { codes } : {}) }, views_count: c.get('views_count') ?? 0,

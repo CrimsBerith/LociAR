@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { anonymousGeometry, anonymousIdentity, mayPublishAnonymously, publicEditData } from '../lib/anonymous.js';
 
-test('anonymous identities may publish without granting unverified registered accounts that right', () => {
-  const caller = { provider: 'anonymous', isAnonymous: true, isAppleUser: false, emailVerified: false };
-  assert.equal(mayPublishAnonymously(caller), true);
-  assert.equal(mayPublishAnonymously({ ...caller, isAnonymous: false }), false, 'linked unverified identity stays blocked');
-  assert.equal(mayPublishAnonymously({ ...caller, provider: 'password', isAnonymous: false }), false);
-  assert.equal(mayPublishAnonymously({ ...caller, isAnonymous: false, emailVerified: true }), true);
+test('only verified Apple or email identities may publish; guests and unverified accounts may not', () => {
+  const guest = { provider: 'anonymous', isAnonymous: true, isAppleUser: false, emailVerified: false };
+  assert.equal(mayPublishAnonymously(guest), false, 'guests browse, like, report and block only');
+  assert.equal(mayPublishAnonymously({ ...guest, isAnonymous: false }), false, 'linked unverified identity stays blocked');
+  assert.equal(mayPublishAnonymously({ ...guest, provider: 'password', isAnonymous: false }), false);
+  assert.equal(mayPublishAnonymously({ ...guest, provider: 'password', isAnonymous: false, emailVerified: true }), true);
+  assert.equal(mayPublishAnonymously({ ...guest, provider: 'apple.com', isAnonymous: false, isAppleUser: true }), true);
 });
 test('public edit data drops legacy media and hidden owner metadata while preserving drawings and GIFs', () => {
   const source = { version: 1, surfaceTextureUri: 'storage://owner/texture', creator_id: 'owner', layers: [

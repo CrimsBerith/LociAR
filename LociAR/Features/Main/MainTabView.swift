@@ -27,7 +27,14 @@ struct MainTabView: View {
                 .tag(AppRouter.Tab.map)
                 .accessibilityIdentifier("tab-map")
 
-            NavigationStack { ARExperienceView(mode: .create) }
+            NavigationStack {
+                // Guests browse only; publishing needs a verified account (AccountRequiredView).
+                if user.isAnonymousAccount {
+                    AccountRequiredView().navigationTitle("Paylaş")
+                } else {
+                    ARExperienceView(mode: .create)
+                }
+            }
                 .id("tab-create")
                 .accessibilityElement(children: .contain)
                 .tabItem { Label("Paylaş", systemImage: "plus.circle.fill") }
@@ -53,7 +60,14 @@ struct MainTabView: View {
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .sheet(isPresented: createPresented) {
-            CreatePostView(anchor: UITestFixtures.editorPreviewEnabled ? UITestFixtures.anchor : nil)
+            if user.isAnonymousAccount {
+                NavigationStack {
+                    AccountRequiredView()
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { router.isCreatePresented = false } } }
+                }
+            } else {
+                CreatePostView(anchor: UITestFixtures.editorPreviewEnabled ? UITestFixtures.anchor : nil)
+            }
         }
         .sheet(isPresented: Binding(
             get: { UITestFixtures.openPostDirectly },

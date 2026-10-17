@@ -143,7 +143,7 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ['admin_notification_jobs', 'owner_luid'], ['admin_notification_receipts', 'owner_luid'], ['promotion_push_quota', 'owner_luid'],
       ['brands', 'author_luid'], ['campaigns', 'author_luid'], ['campaigns', 'submitted_by'], ['campaign_locations', 'author_luid'],
       ['post_quota', 'owner_luid'], ['anchor_quota', 'owner_luid'], ['arcore_token_quota', 'owner_luid'], ['gif_search_quota', 'owner_luid'],
-      ['report_quota', 'owner_luid'], ['report_receipts', 'owner_luid'], ['report_receipts', 'target_luid'],
+      ['report_quota', 'owner_luid'], ['report_receipts', 'owner_luid'], ['report_receipts', 'target_luid'], ['anonymous_block_quota', 'owner_luid'],
       ['push_tokens', 'owner_luid'], ['push_devices', 'luid'], ['push_quota', 'owner_luid'], ['push_delivery_receipts', 'owner_luid'],
       ['handles', 'luid'], ['avatar_reviews', 'luid'], ['avatar_uploads', 'luid'], ['avatar_screenings', 'luid'], ['avatar_deletions', 'luid'], ['moderation_originals', 'user_id'],
       ['storage_reclamations', 'creator_id'], ['storage_reclamation_queue', 'creator_id'],

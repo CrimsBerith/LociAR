@@ -9,15 +9,34 @@ import { rankForDiscover } from './discoverRanking';
 import { anonymousGeometry, anonymousIdentity, publicEditData } from './anonymous';
 import { campaignOffer, ownCampaignOffers } from './campaigns';
 import { denseLocks, type SpotLock } from './denseSpots';
+import { postHiddenByBlocks, type BlockSets } from './visibility';
+import { MEMORY_LIMITS_ENABLED, WindowLimiter } from './memoryLimits';
+import { reasonError } from './errors';
 
-async function exclusions(luid:string){
-  const pages = await Promise.all(['user_blocks', 'anonymous_blocks'].flatMap(collection => [db.collection(collection).where('blocker_id','==',luid).get(), db.collection(collection).where('blocked_id','==',luid).get()]));
-  return new Set(pages.flatMap((page, index) => page.docs.map(d => String(d.get(index % 2 === 0 ? 'blocked_id' : 'blocker_id')))));
+/**
+ * The app asks for 120 m (AR) and 1 km (map). Larger areas are clamped and each request scans a
+ * bounded number of rows, so a scripted client cannot turn one call into thousands of billed reads.
+ */
+export const MAX_NEARBY_RADIUS_M = 5_000;
+export const MAX_NEARBY_SCAN = 5_000;
+const nearbyLimiter = new WindowLimiter(30, 60_000);
+
+/** Identity blocks work in both directions; an anonymous mute only for the viewer who set it. */
+async function exclusions(luid:string):Promise<BlockSets>{
+  const [blocking,blockedBy,muted]=await Promise.all([db.collection('user_blocks').where('blocker_id','==',luid).get(),
+   db.collection('user_blocks').where('blocked_id','==',luid).get(),db.collection('anonymous_blocks').where('blocker_id','==',luid).get()]);
+  return {identity:new Set([...blocking.docs.map(d=>String(d.get('blocked_id'))),...blockedBy.docs.map(d=>String(d.get('blocker_id')))]),
+   muted:new Set(muted.docs.map(d=>String(d.get('blocked_id'))))};
 }
-async function visibleAuthors(ids:string[],blocked:Set<string>){
+async function visibleAuthors(ids:string[],blocked:ReadonlySet<string>){
   const unique=[...new Set(ids)].filter(id=>/^[0-9a-f-]{36}$/.test(id)&&!blocked.has(id));if(!unique.length)return new Set<string>();
   const docs=await db.getAll(...unique.flatMap(id=>[db.collection('profiles').doc(id),db.collection('account_deletion_jobs').doc(id)]));
   return new Set(unique.filter((_,i)=>docs[i*2].exists&&!docs[i*2].get('deleted_at')&&!docs[i*2].get('suspended')&&!docs[i*2+1].exists));
+}
+/** Account fences for every post, then the block rule that matches the post's kind (visibility.ts). */
+async function visiblePosts<T extends FirebaseFirestore.DocumentSnapshot>(docs:T[],blocks:BlockSets,viewer:string):Promise<T[]>{
+  const authors=await visibleAuthors(docs.map(d=>String(d.get('creator_id'))),new Set());
+  return docs.filter(d=>{const author=String(d.get('creator_id'));return authors.has(author)&&!postHiddenByBlocks(viewer,author,d.get('is_anonymous')===true,blocks);});
 }
 function json(value:unknown):unknown{
   if(value instanceof Timestamp)return value.toDate().toISOString();if(Array.isArray(value))return value.map(json);
@@ -62,27 +81,29 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
  const blocked=await exclusions(caller.luid);
  if(mode==='eligible_authors'){
   const ids=body.authorIds;if(!Array.isArray(ids)||ids.length>100||ids.some(id=>typeof id!=='string'||!/^[0-9a-f-]{36}$/.test(id)))throw new HttpsError('invalid-argument','Invalid author list');
-  return {authorIds:[...await visibleAuthors(ids,blocked)]};
+  return {authorIds:[...await visibleAuthors(ids,blocked.identity)]};
  }
  if(mode==='profile'){
-  const id=String(body.creatorId??'');if(!(await visibleAuthors([id],blocked)).has(id))return{profile:null};const p=(await db.collection('profiles').doc(id).get()).data()!;
+  const id=String(body.creatorId??'');if(!(await visibleAuthors([id],blocked.identity)).has(id))return{profile:null};const p=(await db.collection('profiles').doc(id).get()).data()!;
   return{profile:json({id,handle:p.handle,avatar_url:p.avatar_url??null,avatar_preset:p.avatar_preset??null,bio:p.bio??null,public_post_count:p.public_post_count??0,follower_count:p.follower_count??0,following_count:p.following_count??0})};
  }
  if(mode==='single'){
   const id=String(body.postId??'');if(!/^[0-9a-f-]{36}$/.test(id))throw new HttpsError('invalid-argument','Invalid post ID');const p=await db.collection('posts').doc(id).get();
   if(!p.exists){const offer=await db.runTransaction(tx=>campaignOffer(tx,caller.luid,id));return{posts:offer?[campaignRow(offer)]:[],next:null};}
-  if(!isPublicActive(p.data())||!(await visibleAuthors([p.get('creator_id')],blocked)).has(p.get('creator_id')))return{posts:[],next:null};
+  if(!isPublicActive(p.data())||!(await visiblePosts([p],blocked,caller.luid)).length)return{posts:[],next:null};
   return{posts:await rows([p],caller.luid),next:null};
  }
  if(mode==='search_profiles'){
   const term=String(body.term??'').trim().toLowerCase().replace(/^@/,'');if(term.length<2||term.length>40)throw new HttpsError('invalid-argument','Invalid handle prefix');
-  const page=await db.collection('profiles').where('handle','>=',term).where('handle','<=',term+'\uf8ff').orderBy('handle').limit(50).get(),visible=await visibleAuthors(page.docs.map(d=>d.id),blocked);
+  const page=await db.collection('profiles').where('handle','>=',term).where('handle','<=',term+'\uf8ff').orderBy('handle').limit(50).get(),visible=await visibleAuthors(page.docs.map(d=>d.id),blocked.identity);
   return{profiles:page.docs.filter(d=>visible.has(d.id)).map(d=>({id:d.id,handle:String(d.get('handle')),avatar_url:d.get('avatar_url')??null,avatar_preset:d.get('avatar_preset')??null}))};
  }
  if(mode==='nearby'){
   const started=Date.now();
-  const lat=body.latitude,lng=body.longitude,radius=body.radiusMeters;
-  if(typeof lat!=='number'||!Number.isFinite(lat)||Math.abs(lat)>90||typeof lng!=='number'||!Number.isFinite(lng)||Math.abs(lng)>180||typeof radius!=='number'||!Number.isFinite(radius)||radius<1||radius>20_000_000)throw new HttpsError('invalid-argument','Invalid search area');
+  const lat=body.latitude,lng=body.longitude,requested=body.radiusMeters;
+  if(typeof lat!=='number'||!Number.isFinite(lat)||Math.abs(lat)>90||typeof lng!=='number'||!Number.isFinite(lng)||Math.abs(lng)>180||typeof requested!=='number'||!Number.isFinite(requested)||requested<1||requested>20_000_000)throw new HttpsError('invalid-argument','Invalid search area');
+  if(MEMORY_LIMITS_ENABLED&&!nearbyLimiter.allow(caller.luid))throw reasonError('resource-exhausted','Too many map requests; try again shortly','rate_limited');
+  const radius=Math.min(requested,MAX_NEARBY_RADIUS_M);
   // Turned on only after every legacy coordinate has been backfilled and verified.
   // Polar/whole-Earth searches retain the complete latitude-range fallback.
   const migrated=(await db.collection('system').doc('geo_queries').get()).get('geohash_index_version')===1;
@@ -93,8 +114,8 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
   let scanned=0;const candidates=new Map<string,FirebaseFirestore.QueryDocumentSnapshot>();
   for(const base of queries){
    let last:FirebaseFirestore.QueryDocumentSnapshot|undefined,complete=false;
-   while(scanned<10_000){
-    const limit=Math.min(250,10_000-scanned),page=await(last?base.startAfter(last):base).limit(limit).get();scanned+=page.size;
+   while(scanned<MAX_NEARBY_SCAN){
+    const limit=Math.min(250,MAX_NEARBY_SCAN-scanned),page=await(last?base.startAfter(last):base).limit(limit).get();scanned+=page.size;
     for(const d of page.docs) if((isPublicActive(d.data())||d.get('creator_id')===caller.luid&&['active','pending_review','flagged'].includes(d.get('status'))&&!d.get('deleted_at')&&d.get('age_rating')!=='18_plus')&&distanceMeters(lat,lng,Number(d.get('lat')),Number(d.get('lng')))<=radius)candidates.set(d.id,d);
     if(page.size<limit){complete=true;break;}last=page.docs.at(-1);
    }
@@ -102,7 +123,7 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
   }
   const matches:FirebaseFirestore.QueryDocumentSnapshot[]=[];
   const found=[...candidates.values()];
-  for(let i=0;i<found.length;i+=100){const batch=found.slice(i,i+100),authors=await visibleAuthors(batch.map(d=>d.get('creator_id')),blocked);matches.push(...batch.filter(d=>authors.has(d.get('creator_id'))));}
+  for(let i=0;i<found.length;i+=100)matches.push(...await visiblePosts(found.slice(i,i+100),blocked,caller.luid));
   // Distance selects the nearby set; popularity orders notes at a place in the native panel.
   matches.sort((a,b)=>distanceMeters(lat,lng,a.get('lat'),a.get('lng'))-distanceMeters(lat,lng,b.get('lat'),b.get('lng'))||Number(b.get('likes_count')??0)-Number(a.get('likes_count')??0)||a.id.localeCompare(b.id));
   const offers=await ownCampaignOffers(caller.luid,lat,lng,radius);
@@ -110,13 +131,13 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
   return{posts:[...await rows(matches.slice(0,100),caller.luid),...offers.map(campaignRow)],next:null,total:matches.length+offers.length};
  }
  if(!['discover','creator'].includes(mode))throw new HttpsError('invalid-argument','Invalid content mode');const creator=mode==='creator'?String(body.creatorId??''):null;
- if(creator&&!(await visibleAuthors([creator],blocked)).has(creator))return{posts:[],next:null};const scope=fingerprint([caller.luid,mode,creator]),continuation=decode(body.cursor,scope);
+ if(creator&&!(await visibleAuthors([creator],blocked.identity)).has(creator))return{posts:[],next:null};const scope=fingerprint([caller.luid,mode,creator]),continuation=decode(body.cursor,scope);
  let query=db.collection('posts').where('status','==','active').where('visibility','==','public');if(creator)query=query.where('creator_id','==',creator);
  let ordered=query.orderBy('created_at','desc').orderBy('__name__','desc');if(continuation)ordered=ordered.startAfter(continuation.date,continuation.id);
- const page=await ordered.limit(51).get(),documents=page.docs.slice(0,50),authors=await visibleAuthors(documents.map(d=>d.get('creator_id')),blocked);
+ const page=await ordered.limit(51).get(),documents=page.docs.slice(0,50),allowed=new Set((await visiblePosts(documents,blocked,caller.luid)).map(d=>d.id));
  // The cursor is taken from the chronological page; only the first discover page is re-ordered.
  const next=page.size>50?cursor(documents.at(-1)!,scope):null;
- const visible=documents.filter(d=>isPublicActive(d.data())&&authors.has(d.get('creator_id'))&&(!creator||creator===caller.luid||d.get('is_anonymous')!==true));
+ const visible=documents.filter(d=>isPublicActive(d.data())&&allowed.has(d.id)&&(!creator||creator===caller.luid||d.get('is_anonymous')!==true));
  const ordering=mode==='discover'&&!continuation?rankForDiscover(visible,d=>({engagement:d.get('engagement_score'),createdAtMs:d.get('created_at') instanceof Timestamp?d.get('created_at').toMillis():null}),Date.now()):visible;
  return{posts:await rows(ordering,caller.luid),next};
 });

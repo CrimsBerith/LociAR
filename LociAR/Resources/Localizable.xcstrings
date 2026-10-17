@@ -3073,83 +3073,6 @@
         }
       }
     },
-    "Anonim devam et" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anonim devam et"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue anonymously"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anonym fortfahren"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continuar de forma anónima"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continuer anonymement"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continuar anonimamente"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Продолжить анонимно"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "المتابعة بشكل مجهول"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "अनाम रूप से जारी रखें"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "বেনামীভাবে চালিয়ে যান"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "匿名で続ける"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "匿名继续"
-          }
-        }
-      }
-    },
     "Apple ile doğrula ve sil" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7231,79 +7154,79 @@
         }
       }
     },
-    "Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz." : {
+    "Bu kullanıcının adıyla paylaşılanları ve yorumlarını görmezsin, seni takip edemez. Anonim notlar kimseye yazarını göstermediği için bu engelden etkilenmez." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz."
+            "value" : "Bu kullanıcının adıyla paylaşılanları ve yorumlarını görmezsin, seni takip edemez. Anonim notlar kimseye yazarını göstermediği için bu engelden etkilenmez."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You will not see this user’s posts or comments. They cannot follow you or comment on your posts."
+            "value" : "You will not see what this user posts under their name or their comments, and they cannot follow you. Anonymous notes never show their author to anyone, so this block does not affect them."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Beiträge oder Kommentare dieses Benutzers werden Ihnen nicht angezeigt. Dieser Benutzer kann Ihnen nicht folgen oder Ihre Beiträge kommentieren."
+            "value" : "Du siehst nicht mehr, was diese Person unter ihrem Namen teilt, und keine ihrer Kommentare; sie kann dir nicht folgen. Anonyme Notizen zeigen niemandem ihren Verfasser und sind daher von dieser Blockierung nicht betroffen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No verás las publicaciones ni los comentarios de este usuario. No pueden seguirte ni comentar tus publicaciones."
+            "value" : "No verás lo que este usuario publica con su nombre ni sus comentarios, y no podrá seguirte. Las notas anónimas nunca muestran su autor a nadie, así que este bloqueo no las afecta."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vous ne verrez pas les publications ou les commentaires de cet utilisateur. Cette personne ne peut pas vous suivre ni commenter vos publications."
+            "value" : "Tu ne verras plus ce que cet utilisateur publie sous son nom ni ses commentaires, et il ne pourra pas te suivre. Les notes anonymes ne montrent jamais leur auteur à personne : ce blocage ne les concerne donc pas."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Você não verá as postagens ou comentários deste usuário. Esse usuário não poderá seguir você nem comentar suas postagens."
+            "value" : "Você não verá o que este usuário publica com o nome dele nem os comentários dele, e ele não poderá seguir você. Notas anônimas nunca mostram o autor a ninguém, então este bloqueio não as afeta."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вы не увидите публикации и комментарии этого пользователя. Этот пользователь не сможет подписаться на вас или комментировать ваши публикации."
+            "value" : "Вы не увидите публикации этого пользователя под его именем и его комментарии, а он не сможет подписаться на вас. Анонимные заметки никому не показывают автора, поэтому эта блокировка на них не влияет."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لن ترى مشاركات هذا المستخدم أو تعليقاته. لا يمكنهم متابعتك أو التعليق على منشوراتك."
+            "value" : "لن ترى ما ينشره هذا المستخدم باسمه ولا تعليقاته، ولن يتمكن من متابعتك. لا تُظهر الملاحظات المجهولة كاتبها لأي أحد، لذا لا يؤثر هذا الحظر عليها."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आप इस उपयोगकर्ता की पोस्ट या टिप्पणियाँ नहीं देखेंगे. वे आपको फ़ॉलो नहीं कर सकते या आपकी पोस्ट पर टिप्पणी नहीं कर सकते."
+            "value" : "आप इस उपयोगकर्ता की उसके नाम से की गई पोस्ट और टिप्पणियाँ नहीं देखेंगे, और वह आपको फ़ॉलो नहीं कर पाएगा। अनाम नोट किसी को उनका लेखक नहीं दिखाते, इसलिए इस ब्लॉक का उन पर असर नहीं होता।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আপনি এই ব্যবহারকারীর পোস্ট বা মন্তব্য দেখতে পাবেন না. তারা আপনাকে অনুসরণ করতে পারে না বা আপনার পোস্টে মন্তব্য করতে পারে না।"
+            "value" : "এই ব্যবহারকারী নিজের নামে যা পোস্ট করেন এবং তাঁর মন্তব্য আপনি দেখবেন না, আর তিনি আপনাকে ফলো করতে পারবেন না। বেনামী নোট কাউকে লেখকের পরিচয় দেখায় না, তাই এই ব্লক সেগুলোর ওপর প্রভাব ফেলে না।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このユーザーの投稿やコメントは表示されません。彼らはあなたをフォローしたり、あなたの投稿にコメントしたりすることはできません。"
+            "value" : "このユーザーが名前付きで投稿したものやコメントは表示されなくなり、相手はあなたをフォローできません。匿名のメモは誰にも投稿者を表示しないため、このブロックの影響を受けません。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "您将看不到该用户的帖子或评论。他们无法关注您或评论您的帖子。"
+            "value" : "你将看不到该用户以其名义发布的内容和评论，对方也无法关注你。匿名笔记从不向任何人显示作者，因此不受此屏蔽影响。"
           }
         }
       }
@@ -7616,6 +7539,83 @@
         }
       }
     },
+    "Bu not anonim" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu not anonim"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This note is anonymous"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Notiz ist anonym"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta nota es anónima"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette note est anonyme"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta nota é anônima"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта заметка анонимна"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هذه الملاحظة مجهولة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह नोट अनाम है"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই নোটটি বেনামী"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このメモは匿名です"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这条笔记是匿名的"
+          }
+        }
+      }
+    },
     "Bu oturumu çalıştırmak için Google, sensör verilerini (ör. kamera ve konum) işler." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7924,6 +7924,237 @@
         }
       }
     },
+    "Bu yazarın anonim notlarını artık görmezsin. Yazarın kim olduğu sana gösterilmez." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu yazarın anonim notlarını artık görmezsin. Yazarın kim olduğu sana gösterilmez."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will no longer see this author’s anonymous notes. Who the author is stays hidden from you."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du siehst die anonymen Notizen dieser Person nicht mehr. Wer sie verfasst hat, wird dir nicht angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya no verás las notas anónimas de este autor. No se te mostrará quién es."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu ne verras plus les notes anonymes de cet auteur. Son identité ne t’est pas révélée."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você não verá mais as notas anônimas deste autor. Quem ele é continua oculto para você."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы больше не увидите анонимные заметки этого автора. Кто он, вам не покажут."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لن ترى بعد الآن ملاحظات هذا الكاتب المجهولة. لن تُعرض لك هوية الكاتب."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अब आप इस लेखक के अनाम नोट नहीं देखेंगे। लेखक कौन है, यह आपको नहीं दिखाया जाएगा।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি আর এই লেখকের বেনামী নোট দেখবেন না। লেখক কে, তা আপনাকে দেখানো হবে না।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この投稿者の匿名メモは今後表示されません。投稿者が誰かは表示されません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你将不再看到此作者的匿名笔记。作者的身份不会向你显示。"
+          }
+        }
+      }
+    },
+    "Bu yazarın notları gizlensin mi?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu yazarın notları gizlensin mi?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide this author’s notes?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizen dieser Person ausblenden?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Ocultar las notas de este autor?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer les notes de cet auteur ?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar as notas deste autor?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть заметки этого автора?"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إخفاء ملاحظات هذا الكاتب؟"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस लेखक के नोट छिपाएँ?"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই লেখকের নোট লুকাবেন?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この投稿者のメモを非表示にしますか？"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要隐藏此作者的笔记吗？"
+          }
+        }
+      }
+    },
+    "Bu yazarın notlarını gizle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu yazarın notlarını gizle"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide this author’s notes"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizen dieser Person ausblenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar las notas de este autor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer les notes de cet auteur"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar as notas deste autor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть заметки этого автора"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إخفاء ملاحظات هذا الكاتب"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस लेखक के नोट छिपाएँ"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই লেখকের নোট লুকান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この投稿者のメモを非表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏此作者的笔记"
+          }
+        }
+      }
+    },
     "Bu yerleşimi kullan" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7997,6 +8228,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用此放置位置"
+          }
+        }
+      }
+    },
+    "Bu yorum, anonim notun sana ait olduğunu diğer kullanıcılara gösterir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu yorum, anonim notun sana ait olduğunu diğer kullanıcılara gösterir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This comment shows other people that the anonymous note is yours."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Kommentar zeigt anderen, dass die anonyme Notiz von dir ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este comentario muestra a los demás que la nota anónima es tuya."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce commentaire montre aux autres que la note anonyme est la tienne."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este comentário mostra aos outros que a nota anônima é sua."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот комментарий покажет другим, что анонимная заметка ваша."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يكشف هذا التعليق للآخرين أن الملاحظة المجهولة لك."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह टिप्पणी दूसरों को दिखा देगी कि अनाम नोट आपका है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই মন্তব্য অন্যদের দেখাবে যে বেনামী নোটটি আপনার।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコメントで、匿名のメモがあなたのものだとほかの人に分かります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这条评论会让其他人知道这条匿名笔记是你的。"
           }
         }
       }
@@ -8365,6 +8673,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在这里发布"
+          }
+        }
+      }
+    },
+    "Buraya yazacağın yorum @%@ adınla görünür ve notun sana ait olduğunu belli eder." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buraya yazacağın yorum @%@ adınla görünür ve notun sana ait olduğunu belli eder."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A comment you write here appears as @%@ and shows that the note is yours."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Kommentar, den du hier schreibst, erscheint als @%@ und zeigt, dass die Notiz von dir ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un comentario que escribas aquí aparece como @%@ y muestra que la nota es tuya."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un commentaire écrit ici apparaît sous @%@ et montre que la note est la tienne."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um comentário escrito aqui aparece como @%@ e mostra que a nota é sua."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Комментарий здесь будет подписан @%@ и покажет, что заметка ваша."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يظهر التعليق الذي تكتبه هنا باسم @%@ ويكشف أن الملاحظة لك."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यहाँ लिखी आपकी टिप्पणी @%@ नाम से दिखेगी और बताएगी कि यह नोट आपका है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখানে লেখা আপনার মন্তব্য @%@ নামে দেখা যাবে এবং বোঝাবে যে নোটটি আপনার।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここに書いたコメントは @%@ として表示され、このメモがあなたのものだと分かります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你在这里写的评论会以 @%@ 显示，并表明这条笔记是你的。"
           }
         }
       }
@@ -14991,6 +15376,83 @@
         }
       }
     },
+    "Gizle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gizle"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausblenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إخفاء"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "छिपाएँ"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লুকান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示にする"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏"
+          }
+        }
+      }
+    },
     "Gizlilik" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17455,156 +17917,79 @@
         }
       }
     },
-    "Hesap açmadan anonim not bırakabilir ve beğenebilirsin. Notlarda adın ve profilin görünmez." : {
+    "Hesap açmadan notları görebilir ve beğenebilirsin. Not bırakmak ve yorum yazmak için Apple ile giriş yap ya da e-postanla kaydol." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hesap açmadan anonim not bırakabilir ve beğenebilirsin. Notlarda adın ve profilin görünmez."
+            "value" : "Hesap açmadan notları görebilir ve beğenebilirsin. Not bırakmak ve yorum yazmak için Apple ile giriş yap ya da e-postanla kaydol."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leave anonymous notes and likes without creating an account. Your name and profile are hidden on notes."
+            "value" : "Without an account you can view and like notes. To leave notes and write comments, sign in with Apple or sign up with your email."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hinterlasse anonyme Notizen und Likes ohne Konto. Dein Name und Profil werden in Notizen nicht angezeigt."
+            "value" : "Ohne Konto kannst du Notizen ansehen und mit „Gefällt mir“ markieren. Um Notizen zu hinterlassen und zu kommentieren, melde dich mit Apple an oder registriere dich mit deiner E-Mail-Adresse."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deja notas y me gusta anónimos sin crear una cuenta. Tu nombre y perfil no aparecen en las notas."
+            "value" : "Sin cuenta puedes ver notas y darles me gusta. Para dejar notas y escribir comentarios, inicia sesión con Apple o regístrate con tu correo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Laissez des notes et des mentions J’aime anonymes sans créer de compte. Votre nom et votre profil sont masqués sur les notes."
+            "value" : "Sans compte, tu peux voir les notes et les aimer. Pour laisser des notes et écrire des commentaires, connecte-toi avec Apple ou inscris-toi avec ton e-mail."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deixe notas e curtidas anônimas sem criar uma conta. Seu nome e perfil ficam ocultos nas notas."
+            "value" : "Sem conta, você pode ver e curtir notas. Para deixar notas e escrever comentários, entre com a Apple ou cadastre-se com seu e-mail."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Оставляйте анонимные заметки и отметки «Нравится» без регистрации. Имя и профиль не показываются в заметках."
+            "value" : "Без аккаунта можно смотреть заметки и ставить отметки «Нравится». Чтобы оставлять заметки и комментарии, войдите через Apple или зарегистрируйтесь по эл. почте."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اترك ملاحظات وإعجابات مجهولة دون إنشاء حساب. لا يظهر اسمك أو ملفك الشخصي في الملاحظات."
+            "value" : "بدون حساب يمكنك عرض الملاحظات والإعجاب بها. لترك الملاحظات وكتابة التعليقات، سجّل الدخول عبر Apple أو أنشئ حسابًا ببريدك الإلكتروني."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "खाता बनाए बिना अनाम नोट लिखें और पसंद करें। नोट पर आपका नाम और प्रोफ़ाइल छिपे रहते हैं।"
+            "value" : "बिना खाते के आप नोट देख और पसंद कर सकते हैं। नोट छोड़ने और टिप्पणी लिखने के लिए Apple से साइन इन करें या अपने ईमेल से साइन अप करें।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "অ্যাকাউন্ট তৈরি না করেই বেনামী নোট লিখুন এবং পছন্দ করুন। নোটে আপনার নাম ও প্রোফাইল লুকানো থাকে।"
+            "value" : "অ্যাকাউন্ট ছাড়াই আপনি নোট দেখতে ও লাইক করতে পারেন। নোট রাখতে ও মন্তব্য লিখতে Apple দিয়ে সাইন ইন করুন বা ইমেইল দিয়ে সাইন আপ করুন।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アカウントを作成せずに匿名でメモを投稿し、いいねできます。メモに名前やプロフィールは表示されません。"
+            "value" : "アカウントがなくてもメモの閲覧と「いいね」ができます。メモを残したりコメントを書いたりするには、Appleでサインインするか、メールアドレスで登録してください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无需创建账户即可发布匿名留言和点赞。留言不会显示你的姓名和个人资料。"
-          }
-        }
-      }
-    },
-    "Hesap bağlayarak anonim notlarını koru. Paylaşımlarında kimliğin görünmez." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hesap bağlayarak anonim notlarını koru. Paylaşımlarında kimliğin görünmez."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link an account to keep your anonymous notes. Your identity stays hidden on posts."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verknüpfe ein Konto, um deine anonymen Notizen zu behalten. Deine Identität bleibt in Beiträgen verborgen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vincula una cuenta para conservar tus notas anónimas. Tu identidad permanece oculta en las publicaciones."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Associez un compte pour conserver vos notes anonymes. Votre identité reste masquée dans les publications."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vincule uma conta para manter suas notas anônimas. Sua identidade continua oculta nas publicações."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Привяжите аккаунт, чтобы сохранить анонимные заметки. Ваша личность останется скрытой в публикациях."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اربط حسابًا للاحتفاظ بملاحظاتك المجهولة. تبقى هويتك مخفية في المنشورات."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "अपने अनाम नोट सुरक्षित रखने के लिए खाता जोड़ें। पोस्ट में आपकी पहचान छिपी रहती है।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "বেনামী নোট সংরক্ষণ করতে একটি অ্যাকাউন্ট যুক্ত করুন। পোস্টে আপনার পরিচয় লুকানো থাকে।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アカウントを連携して匿名のメモを保存しましょう。投稿では引き続きあなたの身元が非表示になります。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "绑定账户以保留匿名留言。发布内容时仍隐藏你的身份。"
+            "value" : "无需账户即可浏览笔记并点赞。如需留下笔记或发表评论，请使用 Apple 登录或用电子邮件注册。"
           }
         }
       }
@@ -17990,6 +18375,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂时无法删除账号。请稍后重试。"
+          }
+        }
+      }
+    },
+    "Hesapsız devam et" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hesapsız devam et"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue without an account"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Konto fortfahren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar sin cuenta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer sans compte"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar sem conta"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить без аккаунта"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المتابعة بدون حساب"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बिना खाते के जारी रखें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্ট ছাড়াই চালিয়ে যান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントなしで続ける"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无需账户继续"
+          }
+        }
+      }
+    },
+    "Hesapsız kullanımda notları görebilir, beğenebilir, şikâyet edebilir ve engelleyebilirsin. Not bırakmak ve yorum yazmak için Apple ile giriş yap ya da e-postanla hesap oluştur." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hesapsız kullanımda notları görebilir, beğenebilir, şikâyet edebilir ve engelleyebilirsin. Not bırakmak ve yorum yazmak için Apple ile giriş yap ya da e-postanla hesap oluştur."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without an account you can view, like, report and block. To leave notes and write comments, sign in with Apple or create an account with your email."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Konto kannst du Inhalte ansehen, mit „Gefällt mir“ markieren, melden und blockieren. Um Notizen zu hinterlassen und zu kommentieren, melde dich mit Apple an oder erstelle ein Konto mit deiner E-Mail-Adresse."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin cuenta puedes ver, dar me gusta, denunciar y bloquear. Para dejar notas y escribir comentarios, inicia sesión con Apple o crea una cuenta con tu correo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans compte, tu peux voir, aimer, signaler et bloquer. Pour laisser des notes et écrire des commentaires, connecte-toi avec Apple ou crée un compte avec ton e-mail."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem conta, você pode ver, curtir, denunciar e bloquear. Para deixar notas e escrever comentários, entre com a Apple ou crie uma conta com seu e-mail."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без аккаунта можно смотреть, ставить отметки «Нравится», жаловаться и блокировать. Чтобы оставлять заметки и комментарии, войдите через Apple или создайте аккаунт по эл. почте."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بدون حساب يمكنك العرض والإعجاب والإبلاغ والحظر. لترك الملاحظات وكتابة التعليقات، سجّل الدخول عبر Apple أو أنشئ حسابًا ببريدك الإلكتروني."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बिना खाते के आप देख, पसंद, रिपोर्ट और ब्लॉक कर सकते हैं। नोट छोड़ने और टिप्पणी लिखने के लिए Apple से साइन इन करें या अपने ईमेल से खाता बनाएं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্ট ছাড়াই আপনি দেখতে, লাইক করতে, রিপোর্ট ও ব্লক করতে পারেন। নোট রাখতে ও মন্তব্য লিখতে Apple দিয়ে সাইন ইন করুন বা ইমেইল দিয়ে অ্যাকাউন্ট তৈরি করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントがなくても、閲覧、「いいね」、報告、ブロックができます。メモを残したりコメントを書いたりするには、Appleでサインインするか、メールアドレスでアカウントを作成してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无需账户即可浏览、点赞、举报和屏蔽。如需留下笔记或发表评论，请使用 Apple 登录或用电子邮件创建账户。"
           }
         }
       }
@@ -28000,6 +28539,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的笔记会立即匿名发布。会保存你所在的位置。获得足够点赞的笔记会以通知形式发送一次给来到这里的访客；被举报的笔记会被隐藏。"
+          }
+        }
+      }
+    },
+    "Not bırakmak için hesap gerekiyor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not bırakmak için hesap gerekiyor"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An account is needed to leave notes"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Hinterlassen von Notizen brauchst du ein Konto"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Necesitas una cuenta para dejar notas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un compte est nécessaire pour laisser des notes"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "É preciso ter uma conta para deixar notas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы оставлять заметки, нужен аккаунт"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يلزم حساب لترك الملاحظات"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट छोड़ने के लिए खाता चाहिए"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট রাখতে অ্যাকাউন্ট প্রয়োজন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを残すにはアカウントが必要です"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要账户才能留下笔记"
+          }
+        }
+      }
+    },
+    "Not bırakmak ve yorum yazmak için hesap oluştur. Notlarında adın diğer kullanıcılara gösterilmez." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not bırakmak ve yorum yazmak için hesap oluştur. Notlarında adın diğer kullanıcılara gösterilmez."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create an account to leave notes and write comments. Your name is not shown to other people on your notes."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstelle ein Konto, um Notizen zu hinterlassen und zu kommentieren. Bei deinen Notizen wird anderen dein Name nicht angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una cuenta para dejar notas y escribir comentarios. En tus notas, tu nombre no se muestra a los demás."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crée un compte pour laisser des notes et écrire des commentaires. Ton nom n’apparaît pas aux autres sur tes notes."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crie uma conta para deixar notas e escrever comentários. Nas suas notas, seu nome não aparece para os outros."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создайте аккаунт, чтобы оставлять заметки и комментарии. В ваших заметках другие не видят вашего имени."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنشئ حسابًا لترك الملاحظات وكتابة التعليقات. لا يظهر اسمك للآخرين في ملاحظاتك."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट छोड़ने और टिप्पणी लिखने के लिए खाता बनाएं। आपके नोट पर दूसरों को आपका नाम नहीं दिखता।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট রাখতে ও মন্তব্য লিখতে অ্যাকাউন্ট তৈরি করুন। আপনার নোটে অন্যরা আপনার নাম দেখতে পায় না।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを残したりコメントを書いたりするにはアカウントを作成してください。あなたのメモでは、ほかの人に名前は表示されません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建账户即可留下笔记和发表评论。你的笔记不会向其他人显示你的名字。"
           }
         }
       }
@@ -41171,6 +41864,83 @@
         }
       }
     },
+    "Yine de gönder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yine de gönder"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send anyway"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trotzdem senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar de todos modos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer quand même"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar mesmo assim"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всё равно отправить"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الإرسال على أي حال"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फिर भी भेजें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তবুও পাঠান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "それでも送信"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍然发送"
+          }
+        }
+      }
+    },
     "Yorum en fazla 500 karakter olabilir." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -41552,6 +42322,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法删除评论。"
+          }
+        }
+      }
+    },
+    "Yorum yazmak için hesap oluştur" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yorum yazmak için hesap oluştur"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create an account to comment"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto erstellen, um zu kommentieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una cuenta para comentar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crée un compte pour commenter"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crie uma conta para comentar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создайте аккаунт, чтобы комментировать"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنشئ حسابًا للتعليق"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "टिप्पणी करने के लिए खाता बनाएं"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মন্তব্য করতে অ্যাকাউন্ট তৈরি করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントするにはアカウントを作成"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建账户以发表评论"
           }
         }
       }
@@ -42014,6 +42861,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除评论"
+          }
+        }
+      }
+    },
+    "Yorumun adınla görünecek" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yorumun adınla görünecek"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your comment will show your name"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Kommentar zeigt deinen Namen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu comentario mostrará tu nombre"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ton commentaire affichera ton nom"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu comentário vai mostrar seu nome"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Комментарий будет с вашим именем"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سيظهر تعليقك باسمك"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपकी टिप्पणी आपके नाम से दिखेगी"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার মন্তব্য আপনার নামে দেখাবে"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントにはあなたの名前が表示されます"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的评论将显示你的名字"
           }
         }
       }

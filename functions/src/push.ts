@@ -4,7 +4,6 @@ import { getMessaging, type Message } from 'firebase-admin/messaging';
 import { assertServiceEnabled, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID, requireCaller, Timestamp } from './core';
 import { assertAccountNotDeleting, accountDeletionRef, profileBlock } from './profileGuard';
 import { reasonError } from './errors';
-import { isBlocked } from './anonymousAccess';
 import { invalidPushTokenCode, MAX_PUSH_DEVICES, postApprovedBody, pushBody, pushDeliveryId, pushLocale, pushQuotaDecision, pushQuotaId, PUSH_QUOTA_RETENTION_DAYS, PUSH_RECEIPT_RETENTION_DAYS, PUSH_TOKEN_RETENTION_DAYS, pushTokenId, utcDay, pushAddress, pushAddressId, pushAddressMatches } from './pushPolicy';
 
 type Registration = { fid?: unknown; token?: unknown; installationId?: unknown; userId?: unknown; locale?: unknown };
@@ -95,7 +94,7 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
         || target.get('owner_luid') !== initial.recipient_id || !address
         || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now
         || profileBlock(recipient.data()) || profileBlock(actor.data()) || blockA.exists || blockB.exists
-        || recipientDeletion.exists || actorDeletion.exists || await isBlocked(initial.recipient_id, initial.actor_id, tx)) return null;
+        || recipientDeletion.exists || actorDeletion.exists) return null;
       if (activity.kind !== 'follow' && (!post?.exists || post.get('creator_id') !== initial.recipient_id
         || post.get('status') !== 'active' || post.get('deleted_at'))) return null;
       // At most PUSH_DAILY_LIMIT engagement pushes per recipient and UTC day; the feed still shows the rest.

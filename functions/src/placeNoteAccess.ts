@@ -1,5 +1,5 @@
 import { db, isUUID } from './core';
-import { blockRefs } from './anonymousAccess';
+import { anonymousMuteRef, identityBlockRefs } from './anonymousAccess';
 import { isPublicActive } from './counters';
 import { accountDeletionRef, profileBlock } from './profileGuard';
 import { hasPostReport } from './postReports';
@@ -18,11 +18,25 @@ export async function readableNoteIds(tx: FirebaseFirestore.Transaction, posts: 
   const records = await tx.getAll(...authors.flatMap(author => [db.collection('profiles').doc(author), accountDeletionRef(author)]));
   const active = authors.filter((_, index) => !profileBlock(records[index * 2].data()) && !records[index * 2 + 1].exists);
   if (!active.length) return new Set();
-  const groups = active.map(author => blockRefs(viewer, author));
-  const blocks = new Map((await tx.getAll(...groups.flat())).map(record => [record.ref.path, record.exists]));
-  const visible = new Set(active.filter((_, index) => !groups[index].some(ref => blocks.get(ref.path))));
+  // Anonymous notes honour only the viewer's own mute and attributed notes only identity blocks
+  // (visibility.ts), so a block never reveals which notes an account wrote anonymously.
+  const anonymousAuthors = new Set(candidates.filter(post => post.get('is_anonymous') === true).map(post => String(post.get('creator_id'))));
+  const attributedAuthors = new Set(candidates.filter(post => post.get('is_anonymous') !== true).map(post => String(post.get('creator_id'))));
+  const refs = active.flatMap(author => [
+    ...(anonymousAuthors.has(author) ? [anonymousMuteRef(viewer, author)] : []),
+    ...(attributedAuthors.has(author) ? identityBlockRefs(viewer, author) : []),
+  ]);
+  const blocks = new Map((refs.length ? await tx.getAll(...refs) : []).map(record => [record.ref.path, record.exists]));
+  const activeSet = new Set(active);
+  const hidden = (post: FirebaseFirestore.DocumentSnapshot) => {
+    const author = String(post.get('creator_id'));
+    if (!activeSet.has(author)) return true;
+    return post.get('is_anonymous') === true
+      ? blocks.get(anonymousMuteRef(viewer, author).path) === true
+      : identityBlockRefs(viewer, author).some(ref => blocks.get(ref.path) === true);
+  };
   // Each note is checked independently; comment flags do not silence the parent note.
-  const checks = await Promise.all(candidates.filter(post => visible.has(post.get('creator_id'))).map(async post => {
+  const checks = await Promise.all(candidates.filter(post => !hidden(post)).map(async post => {
     return await hasPostReport(tx, viewer, post.id) ? null : post.id;
   }));
   return new Set(checks.filter((id): id is string => id !== null));

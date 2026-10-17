@@ -13,6 +13,18 @@ export const DEFAULT_REPORT_THRESHOLD = 3;
 /** Likes from accounts younger than this do not count toward notifications. */
 export const MIN_LIKER_AGE_MS = 24 * 3_600_000;
 export const MIN_REPORTER_AGE_MS = MIN_LIKER_AGE_MS;
+/**
+ * Brigading guard: only verified Apple/email accounts (users_private.identity_verified) count as
+ * reporters, and a popular or long-standing post needs twice the reports before it is hidden
+ * automatically. Every report still reaches the moderation queue.
+ */
+export const POPULAR_POST_LIKES = 10;
+export const ESTABLISHED_POST_AGE_MS = 30 * 86_400_000;
+export function reportsNeeded(threshold: number, post: FirebaseFirestore.DocumentData, now = Date.now()): number {
+  const created = post.created_at instanceof Timestamp ? post.created_at.toMillis() : now;
+  const established = Number(post.likes_count ?? 0) >= POPULAR_POST_LIKES || now - created >= ESTABLISHED_POST_AGE_MS;
+  return established ? threshold * 2 : threshold;
+}
 
 async function thresholds(tx: FirebaseFirestore.Transaction) {
   const s = await tx.get(db.collection('system').doc('place_notes'));
@@ -57,7 +69,7 @@ export async function autoHideReported(postId: string, now = Date.now()) {
   return db.runTransaction(async tx => {
     const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
     if (!data || data.status !== 'active') return false;
-    const { report } = await thresholds(tx);
+    const report = reportsNeeded((await thresholds(tx)).report, data, now);
     const base = db.collection('moderation_flags').where('post_id', '==', postId).where('status', '==', 'open').orderBy('__name__');
     const reporters = new Set<string>();
     const inspected = new Set<string>();
@@ -66,11 +78,13 @@ export async function autoHideReported(postId: string, now = Date.now()) {
       const page = await tx.get((cursor ? base.startAfter(cursor) : base).limit(200));
       const candidates = [...new Set(page.docs.filter(flag => isPostReport(flag.data())).map(flag => flag.get('user_id'))
         .filter((id): id is string => isUUID(id) && id !== data.creator_id && !inspected.has(id)))];
-      const records = candidates.length ? await tx.getAll(...candidates.flatMap(id => [db.collection('profiles').doc(id), accountDeletionRef(id)])) : [];
+      const records = candidates.length ? await tx.getAll(...candidates.flatMap(id => [
+        db.collection('profiles').doc(id), accountDeletionRef(id), db.collection('users_private').doc(id)])) : [];
       for (const [index, reporter] of candidates.entries()) {
         inspected.add(reporter);
-        const profile = records[index * 2], created = profile.get('created_at');
-        if (!profile.exists || profile.get('suspended') || profile.get('deleted_at') || records[index * 2 + 1].exists
+        const profile = records[index * 3], created = profile.get('created_at');
+        if (!profile.exists || profile.get('suspended') || profile.get('deleted_at') || records[index * 3 + 1].exists
+          || records[index * 3 + 2].get('identity_verified') !== true
           || !(created instanceof Timestamp) || now - created.toMillis() < MIN_REPORTER_AGE_MS) continue;
         reporters.add(reporter);
         if (reporters.size >= report) break;

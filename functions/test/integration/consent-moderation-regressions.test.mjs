@@ -58,7 +58,10 @@ test('duplicate and comment reports cannot starve later distinct post reporters'
   await ref.set({ creator_id: author, status: 'active', push_state: 'approved' });
   const batch = adminDb.batch();
   const reporters = [duplicateReporter, randomUUID(), randomUUID()];
-  for (const id of reporters) batch.set(adminDb.collection('profiles').doc(id), { created_at: Timestamp.fromMillis(Date.now() - 2 * 86_400_000) });
+  for (const id of reporters) {
+    batch.set(adminDb.collection('profiles').doc(id), { created_at: Timestamp.fromMillis(Date.now() - 2 * 86_400_000) });
+    batch.set(adminDb.collection('users_private').doc(id), { identity_verified: true });
+  }
   for (let i = 0; i < 220; i++) batch.set(adminDb.collection('moderation_flags').doc(`audit_${postId}_a${String(i).padStart(3, '0')}`), {
     post_id: postId, user_id: duplicateReporter, reason: 'spam', status: 'open' });
   for (let i = 0; i < 2; i++) batch.set(adminDb.collection('moderation_flags').doc(`audit_${postId}_z${i}`), {

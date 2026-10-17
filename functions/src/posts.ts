@@ -16,7 +16,7 @@ import { TRUSTED_AUTO_PUBLISH, authorIsTrusted, hasDrawingLayer } from './trust'
 import { placeAt } from './places';
 import { GIPHY_API_KEY, resolveGifLayers } from './giphy';
 import { mayPublishAnonymously } from './anonymous';
-import { isBlocked } from './anonymousAccess';
+import { contentBlocked } from './anonymousAccess';
 import { campaignOffer } from './campaigns';
 
 /**
@@ -249,7 +249,7 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
     const viewable = post.creator_id === caller.luid
       || (post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
     if (!viewable) throw new HttpsError('permission-denied', 'post_not_viewable');
-    if (await isBlocked(caller.luid, String(post.creator_id), tx)) throw new HttpsError('permission-denied', 'post_not_viewable');
+    if (await contentBlocked(caller.luid, post, tx)) throw new HttpsError('permission-denied', 'post_not_viewable');
     const receipt = await tx.get(receiptRef);
     const current = Number(post.views_count ?? 0);
     if (receipt.exists) return { views: current };

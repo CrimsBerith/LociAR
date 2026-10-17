@@ -83,7 +83,8 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         return PostPage(posts: await withoutHidden(posts), next: response.next)
     }
     func nearby(latitude: Double, longitude: Double, radiusMeters: Double) async throws -> [LociPost] {
-        try await projected(PublicRequest(mode: "nearby", latitude: latitude, longitude: longitude, radiusMeters: max(1,min(radiusMeters,20_000_000)))).posts
+        // The server clamps to 5 km as well (MAX_NEARBY_RADIUS_M in functions/src/publicContent.ts).
+        try await projected(PublicRequest(mode: "nearby", latitude: latitude, longitude: longitude, radiusMeters: max(1, min(radiusMeters, 5_000)))).posts
     }
     func discover() async throws -> [LociPost] { try await discoverPage(cursor: nil).posts }
     func discoverPage(cursor: String?) async throws -> PostPage { try await projected(PublicRequest(mode: "discover", cursor: cursor)) }

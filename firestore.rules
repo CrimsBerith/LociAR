@@ -10,6 +10,15 @@ service cloud.firestore {
 
     function signedIn() { return request.auth != null && request.auth.token.luid is string; }
     function me() { return request.auth.token.luid; }
+    // Guests (Firebase anonymous auth) may browse, like, save, follow, block and report. Writing
+    // comments needs a verified Apple or email identity (App Store 1.2; owner decision 17 Oct
+    // 2026). Mirrors identityVerified() in functions/src/core.ts.
+    function verifiedIdentity() {
+      let firebase = request.auth.token.get('firebase', {});
+      return request.auth.token.get('email_verified', false) == true
+        || firebase.get('sign_in_provider', '') == 'apple.com'
+        || 'apple.com' in firebase.get('identities', {});
+    }
     // The persistent server-only fence survives profile/Auth removal and rejects stale tokens.
     function activeAccount(luid) {
       let profile = get(/databases/$(database)/documents/profiles/$(luid)).data;
@@ -30,12 +39,17 @@ service cloud.firestore {
     function notSuspended() {
       return get(/databases/$(database)/documents/profiles/$(me())).data.get('suspended', false) != true;
     }
-    // True when `owner` has blocked the caller.
+    // An identity block between the caller and `owner`, in either direction (profile "Block").
+    // Anonymous mutes (anonymous_blocks) are server-only and never change what rules allow: a
+    // denied write would otherwise reveal who wrote an anonymous note (functions/src/visibility.ts).
     function blockedBy(owner) {
       return exists(/databases/$(database)/documents/user_blocks/$(owner + '_' + me()))
-        || exists(/databases/$(database)/documents/user_blocks/$(me() + '_' + owner))
-        || exists(/databases/$(database)/documents/anonymous_blocks/$(owner + '_' + me()))
-        || exists(/databases/$(database)/documents/anonymous_blocks/$(me() + '_' + owner));
+        || exists(/databases/$(database)/documents/user_blocks/$(me() + '_' + owner));
+    }
+    // Identity blocks fence attributed posts only. An anonymous post behaves the same for every
+    // viewer, so a failed like or comment cannot identify its author.
+    function blockedOnPost(postId) {
+      return post(postId).get('is_anonymous', false) != true && blockedBy(post(postId).creator_id);
     }
     function collectionDescriptionOk(data) {
       return !('description' in data) || data.description == null
@@ -46,7 +60,8 @@ service cloud.firestore {
     }
 
     match /profiles/{luid} {
-      allow read: if true;
+      // Signed-in (guest or account) reads only: no anonymous bulk scraping of every profile.
+      allow read: if signedIn();
       allow create, delete: if false;
       // Handles change only through the updateHandle callable (uniqueness); photo avatars are set
       // only by the moderation function. The owner may pick a preset or remove the photo.
@@ -92,7 +107,7 @@ service cloud.firestore {
         && request.resource.data.user_id == me()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
-        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
       allow delete: if mayWrite() && (resource == null || resource.data.user_id == me());
@@ -107,14 +122,16 @@ service cloud.firestore {
         && request.resource.data.user_id == me()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
-        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
       allow delete: if mayWrite() && (resource == null || resource.data.user_id == me());
     }
 
     match /follows/{followId} {
-      allow read: if signedIn();
+      // Only edges that involve the caller; counts come from server-maintained profile fields.
+      allow get: if signedIn() && (resource == null || resource.data.follower_id == me() || resource.data.following_id == me());
+      allow list: if signedIn() && (resource.data.follower_id == me() || resource.data.following_id == me());
       allow create: if mayWrite()
         && onlyKeys(['follower_id', 'following_id', 'created_at'])
         && request.resource.data.follower_id == me()
@@ -148,7 +165,7 @@ service cloud.firestore {
       // Only comments of public, active posts are readable, and only while signed in.
       allow read: if signedIn()
         && postIsPublicActive(resource.data.post_id)
-        && !blockedBy(post(resource.data.post_id).creator_id);
+        && !blockedOnPost(resource.data.post_id);
       // `username` is not accepted from clients: onCommentCreated fills it from the profile.
       allow create: if mayWrite()
         && onlyKeys(['id', 'post_id', 'user_id', 'text', 'created_at'])
@@ -157,9 +174,10 @@ service cloud.firestore {
         && request.resource.data.post_id is string
         && request.resource.data.text is string
         && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 500
+        && verifiedIdentity()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
-        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
       // The author, or the owner of the post it was left on, may remove a comment.
@@ -203,7 +221,7 @@ service cloud.firestore {
         && request.resource.data.sort_order is int
         && createdNow()
         && request.resource.data.post_id is string
-        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && !blockedOnPost(request.resource.data.post_id)
         && (postIsPublicActive(request.resource.data.post_id) || post(request.resource.data.post_id).creator_id == me())
         && get(/databases/$(database)/documents/collections/$(request.resource.data.collection_id)).data.owner_id == me();
       allow update: if false;

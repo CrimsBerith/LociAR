@@ -8,6 +8,11 @@ import { repairSpotCount, syncSpotMembership } from './denseSpots';
 import { refreshArea } from './campaignJourneys';
 import { requireActiveAccount } from './profileGuard';
 import { densityCells, densityQueryPrefixes, geohashBounds, validBox, validCoordinates, DENSITY_PRECISIONS } from './placeNoteRules';
+import { MEMORY_LIMITS_ENABLED, WindowLimiter } from './memoryLimits';
+import { reasonError } from './errors';
+
+/** Map pans call readNoteDensity; this bounds a scripted client without writing a quota document. */
+const densityLimiter = new WindowLimiter(60, 60_000);
 
 /**
  * Map heat data: one server-only counter per geohash cell at precisions 4-7. Each post keeps a
@@ -54,8 +59,12 @@ export const onPostDensityWritten = onDocumentWritten({ document: 'posts/{postId
   }
 });
 
-/** Self-healing pass over every post; also seeds counters for posts older than this feature. */
-export const reconcileNoteDensity = onSchedule({ schedule: 'every 60 minutes', timeoutSeconds: 540, memory: '512MiB' }, async () => {
+/**
+ * Self-healing pass over every post; also seeds counters for posts older than this feature. Triggers
+ * keep counts current, so a daily pass of 500 posts is enough and keeps reads well inside the free
+ * daily quota (an hourly pass alone could read more than 50,000 documents a day).
+ */
+export const reconcileNoteDensity = onSchedule({ schedule: 'every day 05:23', timeZone: 'Europe/Istanbul', timeoutSeconds: 540, memory: '512MiB' }, async () => {
   const state = db.collection('system').doc('note_density_reconcile');
   const cursor = (await state.get()).get('cursor');
   let query = db.collection('posts').orderBy('__name__').limit(500);
@@ -79,6 +88,7 @@ export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxI
   const caller = requireCaller(request), b = request.data as Record<string, unknown>;
   const box = b?.box, precision = b?.precision;
   if (!validBox(box) || typeof precision !== 'number' || !(DENSITY_PRECISIONS as readonly number[]).includes(precision)) throw new HttpsError('invalid-argument', 'Invalid map area');
+  if (MEMORY_LIMITS_ENABLED && !densityLimiter.allow(caller.luid)) throw reasonError('resource-exhausted', 'Too many map requests; try again shortly', 'rate_limited');
   await db.runTransaction(tx => requireActiveAccount(tx, caller.luid));
   const prefixes = densityQueryPrefixes(box, precision);
   const pages = await Promise.all(prefixes.map(prefix => db.collection('note_density').where('precision', '==', precision)

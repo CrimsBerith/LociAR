@@ -37,7 +37,9 @@ beforeEach(async () => {
   });
 });
 
-const as = (luid) => env.authenticatedContext(`uid-${luid}`, { luid }).firestore();
+// Verified email identity by default; `guest` is a Firebase anonymous-auth installation.
+const as = (luid, claims = {}) => env.authenticatedContext(`uid-${luid}`, { luid, email_verified: true, ...claims }).firestore();
+const guest = (luid) => env.authenticatedContext(`guest-${luid}`, { luid, firebase: { sign_in_provider: 'anonymous', identities: {} } }).firestore();
 
 test('email login challenges, sessions and rate limits are denied to every client, including claimed admins', async () => {
   for (const name of ['admin_email_challenges', 'admin_email_sessions', 'admin_email_limits']) {
@@ -72,9 +74,51 @@ test('anonymous author and liker identities cannot be fetched directly, even by 
   await assertFails(getDoc(doc(as(BOB), 'activity_events', 'opaque-like')));
 });
 
-test('private anonymous blocks retain interaction fences without exposing the target identity', async () => {
+test('anonymous mutes stay private and never change what rules allow', async () => {
   await env.withSecurityRulesDisabled(async ctx => {
     await setDoc(doc(ctx.firestore(), 'anonymous_blocks', `${ALICE}_${BOB}`), { blocker_id: ALICE, blocked_id: BOB });
+  });
+  await assertFails(getDoc(doc(as(ALICE), 'anonymous_blocks', `${ALICE}_${BOB}`)));
+  await assertFails(setDoc(doc(as(BOB), 'anonymous_blocks', `${ALICE}_${BOB}`), { blocker_id: BOB, blocked_id: ALICE }));
+  // Any denial here would let ALICE test candidate accounts against the note she muted.
+  await assertSucceeds(setDoc(doc(as(ALICE), 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(as(ALICE), 'follows', `${ALICE}_${BOB}`), { follower_id: ALICE, following_id: BOB, created_at: serverTimestamp() }));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'profiles', BOB)));
+});
+
+test('identity blocks do not change interactions with anonymous notes', async () => {
+  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { is_anonymous: true }));
+  // BOB blocked DAVE (beforeEach). Treating BOB's anonymous note differently would name its author.
+  const db = as(DAVE);
+  await assertSucceeds(setDoc(doc(db, 'likes', `${POST}_${DAVE}`), { post_id: POST, user_id: DAVE, created_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db, 'post_saves', `${DAVE}_${POST}`), { post_id: POST, user_id: DAVE, created_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db, 'comments', 'c-anon'), { id: 'c-anon', post_id: POST, user_id: DAVE, text: 'selam', created_at: serverTimestamp() }));
+  await assertSucceeds(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))));
+  await assertFails(setDoc(doc(db, 'follows', `${DAVE}_${BOB}`), { follower_id: DAVE, following_id: BOB, created_at: serverTimestamp() }), 'the account block itself still applies');
+});
+
+test('guests may like but only verified Apple or email identities may comment', async () => {
+  const comment = id => ({ id, post_id: POST, user_id: ALICE, text: 'selam', created_at: serverTimestamp() });
+  await assertSucceeds(setDoc(doc(guest(ALICE), 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() }));
+  await assertFails(setDoc(doc(guest(ALICE), 'comments', 'c-guest'), comment('c-guest')));
+  const unverified = env.authenticatedContext('uid-unverified', { luid: ALICE, email_verified: false, firebase: { sign_in_provider: 'password', identities: { email: ['alice@example.test'] } } }).firestore();
+  await assertFails(setDoc(doc(unverified, 'comments', 'c-unverified'), comment('c-unverified')));
+  const apple = env.authenticatedContext('uid-apple', { luid: ALICE, firebase: { sign_in_provider: 'apple.com', identities: { 'apple.com': ['apple-alice'] } } }).firestore();
+  await assertSucceeds(setDoc(doc(apple, 'comments', 'c-apple'), comment('c-apple')));
+  await assertSucceeds(setDoc(doc(as(ALICE), 'comments', 'c-email'), comment('c-email')));
+});
+
+test('profiles need a session and follow edges are readable only by the people they involve', async () => {
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'profiles', BOB)));
+  await assertFails(getDocs(collection(env.unauthenticatedContext().firestore(), 'profiles')));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'profiles', BOB)));
+  await assertSucceeds(getDoc(doc(guest(ALICE), 'profiles', BOB)));
+  await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'follows', `${ALICE}_${BOB}`), { follower_id: ALICE, following_id: BOB }));
+  await assertSucceeds(getDoc(doc(as(BOB), 'follows', `${ALICE}_${BOB}`)));
+  await assertSucceeds(getDocs(query(collection(as(BOB), 'follows'), where('following_id', '==', BOB))));
+  await assertFails(getDoc(doc(as(DAVE), 'follows', `${ALICE}_${BOB}`)));
+  await assertFails(getDocs(query(collection(as(DAVE), 'follows'), where('following_id', '==', BOB))));
+});
   });
   await assertFails(getDoc(doc(as(ALICE), 'anonymous_blocks', `${ALICE}_${BOB}`)));
   await assertFails(setDoc(doc(as(ALICE), 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() }));

@@ -30,6 +30,12 @@ struct MapFeatureView: View {
     @State private var unlockMessage: String?
     @State private var showCameraUnlock = false
 
+    /// Guests browse only; leaving a note needs a verified account (AccountRequiredView).
+    private var isGuest: Bool {
+        if case let .signedIn(user) = session.phase { return user.isAnonymousAccount }
+        return false
+    }
+
     var body: some View {
         Map(position: $camera, selection: $selection) {
             UserAnnotation()
@@ -76,7 +82,16 @@ struct MapFeatureView: View {
             selection = nil
             clusterFocus = nil
             Task { await startAndLoad() }
-        }) { PlaceNoteComposer(seed: location.recentLocations) }
+        }) {
+            if isGuest {
+                NavigationStack {
+                    AccountRequiredView()
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { showPlaceNote = false } } }
+                }
+            } else {
+                PlaceNoteComposer(seed: location.recentLocations)
+            }
+        }
         .fullScreenCover(isPresented: $showCameraUnlock) {
             CameraLocationRefineView { fix in Task { await unlockHere(cameraFix: fix) } }
         }

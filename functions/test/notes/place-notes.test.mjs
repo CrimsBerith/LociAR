@@ -34,7 +34,7 @@ async function note(author, point, overrides = {}) {
 }
 const approve = (n, extra = {}) => n.ref.update({ status: 'active', push_state: 'approved', ...extra });
 async function fixture(text = 'Entrance is around the back.') {
-  const author = await newAnonymousUser(), visitor = await newAnonymousUser(), point = base();
+  const author = await newUser(), visitor = await newAnonymousUser(), point = base();
   await optIn(visitor);
   const n = await note(author, point, { text });
   const visit = (location = fix(point.lat, point.lng), confirmationStartedAt = Date.now() - 11_000) =>
@@ -101,7 +101,7 @@ test('location notes publish at once, anonymously, at the measured position with
 });
 
 test('location-note text uses the same trimmed UTF-16 limit as the native composers', async () => {
-  const author = await newAnonymousUser(), point = base();
+  const author = await newUser(), point = base();
   for (const text of ['😀'.repeat(110), 'e\u0301'.repeat(110), 'a'.repeat(220)]) {
     const n = await note(author, point, { text });
     assert.equal(n.created.publishStatus, 'active');
@@ -120,7 +120,7 @@ test('location-note text uses the same trimmed UTF-16 limit as the native compos
 });
 
 test('location-note validation returns stable localized reasons without writing rejected content', async () => {
-  const author = await newAnonymousUser(), point = base();
+  const author = await newUser(), point = base();
   for (const [text, reason] of [['See https://example.com', 'links_not_allowed'], ['siktir git', 'content_not_allowed'], ['a\u0001b', 'invalid_caption']]) {
     const error = await expectFailure(note(author, point, { text }));
     assert.equal(error.code, 'functions/invalid-argument');
@@ -354,7 +354,7 @@ test('an administrator end date removes the note like a moderator soft delete; n
 
 /** Five notes within ~6 m form a spot; its count is then raised to simulate a crowded place. */
 async function denseSpot(count = 30) {
-  const author = await newAnonymousUser(), visitor = await newAnonymousUser(), point = base();
+  const author = await newUser(), visitor = await newAnonymousUser(), point = base();
   await optIn(visitor);
   const notes = [];
   for (const [n, e] of [[0, 0], [3, 0], [-3, 0], [0, 3], [0, -3]]) {

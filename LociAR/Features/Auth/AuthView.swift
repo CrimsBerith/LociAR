@@ -52,13 +52,14 @@ struct AuthView: View {
                             catch { message = error.localizedDescription }
                         }
                     } label: {
-                        Label("Anonim devam et", systemImage: "person.crop.circle.badge.questionmark")
+                        Label("Hesapsız devam et", systemImage: "person.crop.circle.badge.questionmark")
                             .frame(maxWidth: .infinity, minHeight: 48)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!termsAccepted || isWorking)
                     .accessibilityIdentifier("auth-anonymous")
-                    Text("Hesap açmadan anonim not bırakabilir ve beğenebilirsin. Notlarda adın ve profilin görünmez.")
+                    // Guests browse only; posting needs a verified identity (App Store 1.2, functions/src/anonymous.ts).
+                    Text("Hesap açmadan notları görebilir ve beğenebilirsin. Not bırakmak ve yorum yazmak için Apple ile giriş yap ya da e-postanla kaydol.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(24)

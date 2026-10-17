@@ -109,3 +109,44 @@ struct ProfileLinkRow: View {
         .padding(.vertical, 3)
     }
 }
+
+/// Shown to guests instead of a composer. Notes and comments need a verified Apple or email
+/// account (App Store 1.2; `mayPublishAnonymously` in functions/src/anonymous.ts). Guests can
+/// still browse, like, report and block. Linking keeps the guest's likes and settings.
+struct AccountRequiredView: View {
+    @Environment(AppSession.self) private var session
+    @State private var showAccountCreation = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.system(size: 52))
+                    .foregroundStyle(LociTheme.accent)
+                    .accessibilityHidden(true)
+                Text("Not bırakmak için hesap gerekiyor")
+                    .font(.title3.bold())
+                    .multilineTextAlignment(.center)
+                Text("Hesapsız kullanımda notları görebilir, beğenebilir, şikâyet edebilir ve engelleyebilirsin. Not bırakmak ve yorum yazmak için Apple ile giriş yap ya da e-postanla hesap oluştur.")
+                    .font(.subheadline)
+                    .foregroundStyle(LociTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button { showAccountCreation = true } label: { Text("Hesap oluştur") }
+                    .buttonStyle(LociPrimaryButtonStyle())
+                    .accessibilityIdentifier("account-required-create")
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity)
+        }
+        .background(LociScreenBackground())
+        .onChange(of: isGuest) { _, guest in if !guest { showAccountCreation = false } }
+        .sheet(isPresented: $showAccountCreation) { AuthView() }
+        .accessibilityIdentifier("screen-account-required")
+    }
+
+    private var isGuest: Bool {
+        if case let .signedIn(user) = session.phase { return user.isAnonymousAccount }
+        return false
+    }
+}

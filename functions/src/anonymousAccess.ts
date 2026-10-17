@@ -1,20 +1,40 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { hasPostReport } from './postReports';
-import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID } from './core';
+import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID, Timestamp } from './core';
 import { requireCaller } from './core';
 import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
 import { isPublicActive } from './counters';
 import { denseLocks } from './denseSpots';
+import { bumpWindow } from './limits';
+import { reasonError } from './errors';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
-export function blockRefs(a: string, b: string) {
-  return ['user_blocks', 'anonymous_blocks'].flatMap(collection => [
-    db.collection(collection).doc(`${a}_${b}`), db.collection(collection).doc(`${b}_${a}`),
-  ]);
+export const ANONYMOUS_MUTE_MINUTE_LIMIT = 5;
+export const ANONYMOUS_MUTE_DAILY_LIMIT = 30;
+
+/** Identity blocks between two accounts (profile "Block"); see visibility.ts for the semantics. */
+export function identityBlockRefs(a: string, b: string) {
+  return [db.collection('user_blocks').doc(`${a}_${b}`), db.collection('user_blocks').doc(`${b}_${a}`)];
 }
-export async function isBlocked(a: string, b: string, tx?: FirebaseFirestore.Transaction): Promise<boolean> {
-  const refs = blockRefs(a, b);
+export async function identityBlocked(a: string, b: string, tx?: FirebaseFirestore.Transaction): Promise<boolean> {
+  const refs = identityBlockRefs(a, b);
   return (await (tx ? tx.getAll(...refs) : db.getAll(...refs))).some(doc => doc.exists);
+}
+/** The viewer's own mute of an anonymous author. Never consulted for attributed content. */
+export const anonymousMuteRef = (viewer: string, author: string) => db.collection('anonymous_blocks').doc(`${viewer}_${author}`);
+
+/**
+ * Whether blocks hide this post from the viewer. Anonymous posts ignore identity blocks and honour
+ * only the viewer's own mute, so a block can never be used to find out who wrote them.
+ */
+export async function contentBlocked(viewer: string, post: FirebaseFirestore.DocumentData, tx?: FirebaseFirestore.Transaction): Promise<boolean> {
+  const author = String(post.creator_id);
+  if (author === viewer) return false;
+  if (post.is_anonymous === true) {
+    const ref = anonymousMuteRef(viewer, author);
+    return (await (tx ? tx.get(ref) : ref.get())).exists;
+  }
+  return identityBlocked(viewer, author, tx);
 }
 
 async function readablePost(postId: string, luid: string) {
@@ -25,7 +45,7 @@ async function readablePost(postId: string, luid: string) {
     if (!post) throw new HttpsError('permission-denied', 'Post unavailable');
     await requireActiveAccount(tx, String(post.creator_id));
     if (post.deleted_at || !(post.creator_id === luid || isPublicActive(post))
-      || await isBlocked(luid, String(post.creator_id), tx)) throw new HttpsError('permission-denied', 'Post unavailable');
+      || await contentBlocked(luid, post, tx)) throw new HttpsError('permission-denied', 'Post unavailable');
     return post;
   });
 }
@@ -43,17 +63,31 @@ export const readLikeCount = onCall(options, async request => {
   return { count: count.data().count };
 });
 
-/** The block target stays server-only; exposing the block edge would reveal the author. */
+/**
+ * "Hide this author's notes" on an anonymous note. The mute stays server-only and affects only
+ * anonymous content for this viewer (visibility.ts); exposing it or applying it to profiles would
+ * reveal the author. Quotas stop a script from muting authors one by one at scale.
+ */
 export const blockPostAuthor = onCall(options, async request => {
   const caller = requireCaller(request), postId = requestedPost(request.data);
+  const quotaRef = db.collection('anonymous_block_quota').doc(caller.luid);
   await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const post = (await tx.get(db.collection('posts').doc(postId))).data();
     if (!post || !isPublicActive(post)) throw new HttpsError('permission-denied', 'Post unavailable');
+    if (post.is_anonymous !== true) throw new HttpsError('invalid-argument', 'Block the profile instead');
     const target = String(post.creator_id);
     if (target === caller.luid) throw new HttpsError('invalid-argument', 'Cannot block yourself');
     await requireActiveAccount(tx, target);
-    tx.set(db.collection('anonymous_blocks').doc(`${caller.luid}_${target}`), {
+    const [existing, quota] = await tx.getAll(anonymousMuteRef(caller.luid, target), quotaRef);
+    // Muting an already muted author again is free and changes nothing.
+    if (existing.exists) return;
+    const now = Date.now();
+    const minute = bumpWindow(quota.get('minute'), now, 60_000, ANONYMOUS_MUTE_MINUTE_LIMIT);
+    const day = bumpWindow(quota.get('day'), now, 86_400_000, ANONYMOUS_MUTE_DAILY_LIMIT);
+    if (!minute.allowed || !day.allowed) throw reasonError('resource-exhausted', 'Too many hidden authors; try again later', 'rate_limited');
+    tx.set(quotaRef, { owner_luid: caller.luid, minute: minute.next, day: day.next, expires_at: Timestamp.fromMillis(now + 2 * 86_400_000) });
+    tx.set(anonymousMuteRef(caller.luid, target), {
       blocker_id: caller.luid, blocked_id: target, created_at: FieldValue.serverTimestamp(),
     });
   });
@@ -109,7 +143,7 @@ export const readActivity = onCall(options, async request => {
         const post = await tx.get(db.collection('posts').doc(data.post_id));
         if (!post.exists || !isPublicActive(post.data())) return null;
         const [author, deletion] = await tx.getAll(db.collection('profiles').doc(post.get('creator_id')), accountDeletionRef(post.get('creator_id')));
-        if (profileBlock(author.data()) || deletion.exists || await isBlocked(caller.luid, post.get('creator_id'), tx)) return null;
+        if (profileBlock(author.data()) || deletion.exists || await contentBlocked(caller.luid, post.data()!, tx)) return null;
         return await hasPostReport(tx, caller.luid, post.id) ? null : post.get('caption');
       });
       if (body == null) return null;

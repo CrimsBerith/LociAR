@@ -1,7 +1,7 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { adminDb, closeClients, newAnonymousUser, postBody, expectFailure } from './_harness.mjs';
+import { adminDb, closeClients, newAnonymousUser, newUser, postBody, expectFailure } from './_harness.mjs';
 import { db, Timestamp } from '../../lib/core.js';
 import { encodeGeohash } from '../../lib/geo.js';
 import { geoCandidates } from '../../lib/geoQuery.js';
@@ -19,7 +19,8 @@ const meter = 1 / 111320;
 let fixtureIndex = 0;
 const fix = p => ({ ...p, accuracy: 6, measuredAt: Date.now() });
 async function fixture() {
-  const author = await newAnonymousUser(), visitor = await newAnonymousUser();
+  // Guests may browse and receive alerts; only verified accounts publish (anonymous.ts).
+  const author = await newUser(), visitor = await newAnonymousUser();
   const point = { lat: -30 + fixtureIndex++ * 0.1, lng: 100 };
   await adminDb.collection('user_data_preferences').doc(visitor.luid).set({ owner_luid: visitor.luid, notifications: true, place_notes: true });
   await adminDb.collection('system').doc('place_notes').set({ dense_threshold: 1000, push_like_threshold: 3 });
