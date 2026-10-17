@@ -69,3 +69,12 @@ test('a stale MFA context cannot read private data after its live role loses per
     assert.equal((await db.collection('admin_audit_log').where('resource_id', '==', luid).get()).size, 0);
   } finally { await role.update({ role_key: 'super_admin', revoked_at: null }); }
 });
+
+test('owner-authorized email sessions retain private-data permission and recipient consent checks', async () => {
+  const luid = await seed(), emailAdmin = { ...admin, assuranceLevel: 'email_code' };
+  assert.equal((await readPrivateUserContext(emailAdmin, luid, 'location', 'Support investigation')).status, 'recent');
+  await assert.rejects(readPrivateUserContext({ ...emailAdmin, permissions: permissionsFor(['support_agent']) }, luid, 'location', 'Support investigation'), /denied/);
+  await db.collection('user_data_preferences').doc(luid).update({ location: false });
+  const result = await readPrivateUserContext(emailAdmin, luid, 'location', 'Support investigation');
+  assert.equal(result.status, 'sharing_disabled'); assert.equal(result.lat, undefined);
+});

@@ -196,8 +196,17 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     private static func recordFailure(_ error: Error) {
+        debugTrace("failure domain=\((error as NSError).domain) code=\((error as NSError).code)")
         // Firebase errors can include request details; record a value-free error instead.
         Crashlytics.crashlytics().record(error: NSError(domain: "LociAR.Push", code: (error as NSError).code))
+    }
+
+    private static func debugTrace(_ message: String) {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--push-diagnostics") {
+            NSLog("[LociAR.Push] %@", message)
+        }
+#endif
     }
 
     func checkAuthorizationStatus() async {
@@ -205,6 +214,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         authorizationStatus = settings.authorizationStatus
         isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
         authorizationDenied = settings.authorizationStatus == .denied
+        Self.debugTrace("authorization=\(settings.authorizationStatus.rawValue) delivery=\(deliveryEnabled) user=\(desiredUserID != nil)")
     }
 
     /// Never prompts at launch: the profile button explicitly requests permission.
@@ -285,6 +295,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     private func registerMessaging() async {
         guard acceptsTokens, let userID = desiredUserID else { return }
+        Self.debugTrace("messaging registration started")
         let revision = tokenRevision
         do {
             try await messagingRegistration.register { try await Messaging.messaging().register() }
@@ -301,6 +312,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             let fid = try await Installations.installations().installationID()
             guard acceptsTokens, tokenRevision == revision, desiredUserID == userID, boundUserID == userID else { return }
             firebaseInstallationID = fid
+            Self.debugTrace("installation identity ready")
             coordinator?.updateToken(fid)
         } catch { Self.recordFailure(error) }
     }
@@ -329,6 +341,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func didRegisterForRemoteNotifications(deviceToken: Data) {
+        Self.debugTrace("APNs registration succeeded")
         deviceTokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         Messaging.messaging().apnsToken = deviceToken
         if acceptsTokens { Task { await registerMessaging() } }
@@ -361,21 +374,31 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                           withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void) {
         let recipient = notification.request.content.userInfo["recipient_id"] as? String
         let id = recipient.flatMap(UUID.init(uuidString:))
-        return await MainActor.run {
-            guard let id, self.acceptsTokens, self.desiredUserID == id, self.boundUserID == id else { return [] }
-            return [.banner, .sound, .badge]
+        Task { @MainActor in
+            guard let id, self.acceptsTokens, self.desiredUserID == id, self.boundUserID == id else {
+                completionHandler([]); return
+            }
+            completionHandler([.banner, .sound, .badge])
         }
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                           withCompletionHandler completionHandler: @escaping @Sendable () -> Void) {
         let info = response.notification.request.content.userInfo
         let target = PushNotificationTarget(recipient: info["recipient_id"] as? String, post: info["post_id"] as? String, activity: info["activity_id"] as? String,
                                             focusLat: info["focus_lat"] as? Double, focusLng: info["focus_lng"] as? Double)
-        guard let target else { return }
-        await MainActor.run { self.pendingTap = target; self.consumePendingTap() }
+        // UIKit's background-to-foreground restoration requires completion on main.
+        // The async Objective-C bridge may otherwise invoke it on a worker executor.
+        Task { @MainActor in
+            defer { completionHandler() }
+            guard let target else { return }
+            self.pendingTap = target
+            self.consumePendingTap()
+        }
     }
 }
 

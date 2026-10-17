@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
 import MapPicker, { type MapShape } from '../MapPicker';
+import { useT } from '../../I18nProvider';
 
 type Step = {
   id: string; trigger: 'leave_usual_place' | 'enter' | 'dwell' | 'exit';
@@ -70,6 +71,7 @@ function toPayload(s: Step) {
 export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved, timezone, canNotify }: {
   campaignId: string; lat: number; lng: number; areaRadius: number; saved: Saved[]; timezone: string; canNotify: boolean;
 }) {
+  const t = useT();
   const [steps, setSteps] = useState<Step[]>(saved.length ? saved.map(s => fromSaved(s, lat, lng)) : [blank(0, lat, lng)]);
   const [tz, setTz] = useState(timezone), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
   const [recipient, setRecipient] = useState(''), [testStatus, setTestStatus] = useState<Record<number, string>>({});
@@ -82,15 +84,15 @@ export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved,
   }
   async function sendTest(i: number) {
     const s = steps[i];
-    setTestStatus(old => ({ ...old, [i]: 'Sending…' }));
+    setTestStatus(old => ({ ...old, [i]: t('Sending…') }));
     const body = { action: 'notify', recipientId: recipient.trim(), title: `[Test] ${s.title}`.slice(0, 80), message: testMessage(s),
       reason: `Test of zone campaign step ${s.id} on campaign ${campaignId}` };
     try {
       const { response, result } = await testMutation.current.post('/api/admin/v1/campaigns', body);
       if (!response.ok) throw new Error(result.error ?? 'Test could not be queued');
       testMutation.current.clear('/api/admin/v1/campaigns', body);
-      setTestStatus(old => ({ ...old, [i]: 'Queued. It should arrive within a minute. Tests count toward that account’s 3 offers a day.' }));
-    } catch (error) { setTestStatus(old => ({ ...old, [i]: mutationError(error) })); }
+      setTestStatus(old => ({ ...old, [i]: t('Queued. It should arrive within a minute. Tests count toward that account’s 3 offers a day.') }));
+    } catch (error) { setTestStatus(old => ({ ...old, [i]: t(mutationError(error)) })); }
   }
   const area: MapShape = { kind: 'circle', lat, lng, radius: areaRadius, color: '#64748b', dashed: true };
   function zoneShapes(s: Step): MapShape[] {
@@ -107,74 +109,75 @@ export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved,
     try {
       const { response, result } = await mutation.current.post('/api/admin/v1/campaigns', body);
       if (!response.ok) throw new Error(result.error ?? 'Could not save steps');
-      mutation.current.clear('/api/admin/v1/campaigns', body); setMessage('Steps saved. Active campaigns reach phones in the area within minutes.'); router.refresh();
-    } catch (error) { setMessage(mutationError(error)); } finally { setBusy(false); }
+      mutation.current.clear('/api/admin/v1/campaigns', body); setMessage(t('Steps saved. Active campaigns reach phones in the area within minutes.')); router.refresh();
+    } catch (error) { setMessage(t(mutationError(error))); } finally { setBusy(false); }
   }
-  return <details className="panel"><summary>Zone campaign steps ({steps.length})</summary><div className="decisionForm">
-    <p className="muted">Everyone who turned on Notifications and is near the campaign can trigger these steps; you do not pick recipients. Phones learn their usual place (where they spend nights) on the device only; the campaign area below decides who gets a “leaves usual place” step. GPS is usually 5–30 m off, so zones smaller than 15–20 m are unreliable.</p>
-    <label>Time zone for schedules<input value={tz} onChange={e => setTz(e.target.value)} maxLength={64}/></label>
-    {canNotify ? <label>Test phone: LociAR user ID that receives “Send test” (your own account; it must have Campaigns and offers on)
+  return <details className="panel"><summary>{t('Zone campaign steps ({count})', { count: steps.length })}</summary><div className="decisionForm">
+    <p className="muted">{t('Everyone who turned on Notifications and is near the campaign can trigger these steps; you do not pick recipients. Phones learn their usual place (where they spend nights) on the device only; the campaign area below decides who gets a “leaves usual place” step. GPS is usually 5–30 m off, so zones smaller than 15–20 m are unreliable.')}</p>
+    <label>{t('Time zone for schedules')}<input value={tz} onChange={e => setTz(e.target.value)} maxLength={64}/></label>
+    {canNotify ? <label>{t('Test phone: LociAR user ID that receives “Send test” (your own account; it must have Campaigns and offers on)')}
       <input value={recipient} onChange={e => rememberRecipient(e.target.value)} placeholder="00000000-0000-0000-0000-000000000000" maxLength={36}/></label> : null}
-    {steps.map((s, i) => <fieldset key={i}><legend>Step {i + 1} · {s.id}</legend>
-      <label>When<select value={s.trigger} onChange={e => update(i, { trigger: e.target.value as Step['trigger'] })}>
-        {Object.entries(TRIGGER_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+    {steps.map((s, i) => <fieldset key={i}><legend>{t('Step')} {i + 1} · {s.id}</legend>
+      <label>{t('When')}<select value={s.trigger} onChange={e => update(i, { trigger: e.target.value as Step['trigger'] })}>
+        {Object.entries(TRIGGER_LABELS).map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}</select></label>
       {s.trigger !== 'leave_usual_place' ? <>
-        <label>Zone<select value={s.zoneKind} onChange={e => update(i, { zoneKind: e.target.value as Step['zoneKind'] })}><option value="circle">Circle</option><option value="street">Street (line + width)</option></select></label>
+        <label>{t('Zone')}<select value={s.zoneKind} onChange={e => update(i, { zoneKind: e.target.value as Step['zoneKind'] })}><option value="circle">{t('Circle')}</option><option value="street">{t('Street (line + width)')}</option></select></label>
         {s.zoneKind === 'circle' ? <div className="metricForm">
-          <label>Latitude<input type="number" step="any" value={s.lat} onChange={e => update(i, { lat: Number(e.target.value) })}/></label>
-          <label>Longitude<input type="number" step="any" value={s.lng} onChange={e => update(i, { lng: Number(e.target.value) })}/></label>
-          <label>Radius (m)<input type="number" min={15} max={2000} value={s.radius} onChange={e => update(i, { radius: Number(e.target.value) })}/></label>
+          <label>{t('Latitude')}<input type="number" step="any" value={s.lat} onChange={e => update(i, { lat: Number(e.target.value) })}/></label>
+          <label>{t('Longitude')}<input type="number" step="any" value={s.lng} onChange={e => update(i, { lng: Number(e.target.value) })}/></label>
+          <label>{t('Radius (m)')}<input type="number" min={15} max={2000} value={s.radius} onChange={e => update(i, { radius: Number(e.target.value) })}/></label>
         </div> : <>
-          <label>Street points, one “latitude, longitude” per line (2–20)<textarea value={s.streetPoints} onChange={e => update(i, { streetPoints: e.target.value })} rows={4}/></label>
-          <label>Street width (m)<input type="number" min={10} max={200} value={s.width} onChange={e => update(i, { width: Number(e.target.value) })}/></label>
+          <label>{t('Street points, one “latitude, longitude” per line (2–20)')}<textarea value={s.streetPoints} onChange={e => update(i, { streetPoints: e.target.value })} rows={4}/></label>
+          <label>{t('Street width (m)')}<input type="number" min={10} max={200} value={s.width} onChange={e => update(i, { width: Number(e.target.value) })}/></label>
           <div className="metricForm">
-            <button type="button" className="secondaryButton" onClick={() => update(i, { streetPoints: s.streetPoints.trim().split('\n').slice(0, -1).join('\n') })}>Undo last point</button>
-            <button type="button" className="secondaryButton" onClick={() => update(i, { streetPoints: '' })}>Clear points</button>
+            <button type="button" className="secondaryButton" onClick={() => update(i, { streetPoints: s.streetPoints.trim().split('\n').slice(0, -1).join('\n') })}>{t('Undo last point')}</button>
+            <button type="button" className="secondaryButton" onClick={() => update(i, { streetPoints: '' })}>{t('Clear points')}</button>
           </div>
         </>}
-        <MapPicker label={`Step ${i + 1} zone map`} center={s.zoneKind === 'circle' || !streetPoints(s).length ? { lat: s.lat, lng: s.lng } : streetPoints(s)[0]}
+        <MapPicker label={t('Step {n} zone map', { n: i + 1 })} center={s.zoneKind === 'circle' || !streetPoints(s).length ? { lat: s.lat, lng: s.lng } : streetPoints(s)[0]}
           shapes={zoneShapes(s)} onPick={point => pick(i, point)}
-          hint={s.zoneKind === 'circle' ? 'Click the map to move the circle centre. Dashed: the campaign area.' : 'Click along the street to add points in order (up to 20). Dashed: the campaign area.'}/>
-      </> : <p className="muted">Fires when someone whose usual place lies inside the campaign area leaves it, within about 150 m and usually 1–3 minutes.</p>}
-      {s.trigger === 'dwell' ? <label>Stay at least (seconds)<input type="number" min={10} max={1800} value={s.dwellSeconds} onChange={e => update(i, { dwellSeconds: Number(e.target.value) })}/></label> : null}
-      <label>Only after step<select value={s.requires} onChange={e => update(i, { requires: e.target.value })}><option value="">— no earlier step needed —</option>
+          hint={s.zoneKind === 'circle' ? t('Click the map to move the circle centre. Dashed: the campaign area.') : t('Click along the street to add points in order (up to 20). Dashed: the campaign area.')}/>
+      </> : <p className="muted">{t('Fires when someone whose usual place lies inside the campaign area leaves it, within about 150 m and usually 1–3 minutes.')}</p>}
+      {s.trigger === 'dwell' ? <label>{t('Stay at least (seconds)')}<input type="number" min={10} max={1800} value={s.dwellSeconds} onChange={e => update(i, { dwellSeconds: Number(e.target.value) })}/></label> : null}
+      <label>{t('Only after step')}<select value={s.requires} onChange={e => update(i, { requires: e.target.value })}><option value="">{t('— no earlier step needed —')}</option>
         {steps.filter((_, j) => j !== i).map(o => <option key={o.id} value={o.id}>{o.id}</option>)}</select></label>
-      {s.requires ? <label>…received within (minutes)<input type="number" min={5} max={10080} value={s.withinMinutes} onChange={e => update(i, { withinMinutes: Number(e.target.value) })}/></label> : null}
-      <label><input type="checkbox" checked={s.scheduled} onChange={e => update(i, { scheduled: e.target.checked })}/> Only on certain days and hours</label>
+      {s.requires ? <label>{t('…received within (minutes)')}<input type="number" min={5} max={10080} value={s.withinMinutes} onChange={e => update(i, { withinMinutes: Number(e.target.value) })}/></label> : null}
+      <label><input type="checkbox" checked={s.scheduled} onChange={e => update(i, { scheduled: e.target.checked })}/> {t('Only on certain days and hours')}</label>
       {s.scheduled ? <div className="metricForm">
-        {DAYS.map((d, n) => <label key={d}><input type="checkbox" checked={s.days.includes(n)} onChange={e => update(i, { days: e.target.checked ? [...s.days, n] : s.days.filter(x => x !== n) })}/> {d}</label>)}
-        <label>From<input type="time" value={s.start} onChange={e => update(i, { start: e.target.value })}/></label>
-        <label>Until<input type="time" value={s.end} onChange={e => update(i, { end: e.target.value })}/></label>
+        {DAYS.map((d, n) => <label key={d}><input type="checkbox" checked={s.days.includes(n)} onChange={e => update(i, { days: e.target.checked ? [...s.days, n] : s.days.filter(x => x !== n) })}/> {t(d)}</label>)}
+        <label>{t('From')}<input type="time" value={s.start} onChange={e => update(i, { start: e.target.value })}/></label>
+        <label>{t('Until')}<input type="time" value={s.end} onChange={e => update(i, { end: e.target.value })}/></label>
       </div> : null}
-      <label>Title<input value={s.title} onChange={e => update(i, { title: e.target.value })} maxLength={80} required/></label>
-      <label>Message<textarea value={s.message} onChange={e => update(i, { message: e.target.value })} maxLength={240} required/></label>
+      <label>{t('Title')}<input value={s.title} onChange={e => update(i, { title: e.target.value })} maxLength={80} required/></label>
+      <label>{t('Message')}<textarea value={s.message} onChange={e => update(i, { message: e.target.value })} maxLength={240} required/></label>
       <div className="metricForm">
-        <label><input type="checkbox" checked={s.push} onChange={e => update(i, { push: e.target.checked })}/> Notification</label>
-        <label><input type="checkbox" checked={s.map} onChange={e => update(i, { map: e.target.checked })}/> Note on the map</label>
-        <label><input type="checkbox" checked={s.ar} onChange={e => update(i, { ar: e.target.checked })}/> Note in AR</label>
+        <label><input type="checkbox" checked={s.push} onChange={e => update(i, { push: e.target.checked })}/> {t('Notification')}</label>
+        <label><input type="checkbox" checked={s.map} onChange={e => update(i, { map: e.target.checked })}/> {t('Note on the map')}</label>
+        <label><input type="checkbox" checked={s.ar} onChange={e => update(i, { ar: e.target.checked })}/> {t('Note in AR')}</label>
       </div>
-      <label>Code<select value={s.codeKind} onChange={e => update(i, { codeKind: e.target.value as Step['codeKind'] })}><option value="none">No code</option><option value="shared">Same code for everyone</option><option value="unique">Unique code per person</option></select></label>
-      {s.codeKind === 'shared' ? <label>Code<input value={s.codeValue} onChange={e => update(i, { codeValue: e.target.value })} maxLength={40}/></label> : null}
-      {s.codeKind === 'unique' ? <label>Code prefix<input value={s.codePrefix} onChange={e => update(i, { codePrefix: e.target.value })} maxLength={10}/></label> : null}
-      <label>How often per person<select value={s.frequency} onChange={e => update(i, { frequency: e.target.value as Step['frequency'] })}><option value="once">Once</option><option value="daily">Once a day</option><option value="hours">Every N hours</option></select></label>
-      {s.frequency === 'hours' ? <label>Hours<input type="number" min={1} max={720} value={s.hours} onChange={e => update(i, { hours: Number(e.target.value) })}/></label> : null}
-      <label>Total limit (optional, e.g. first 300 people)<input type="number" min={1} value={s.budget} onChange={e => update(i, { budget: e.target.value })}/></label>
+      <label>{t('Code')}<select value={s.codeKind} onChange={e => update(i, { codeKind: e.target.value as Step['codeKind'] })}><option value="none">{t('No code')}</option><option value="shared">{t('Same code for everyone')}</option><option value="unique">{t('Unique code per person')}</option></select></label>
+      {s.codeKind === 'shared' ? <label>{t('Code')}<input value={s.codeValue} onChange={e => update(i, { codeValue: e.target.value })} maxLength={40}/></label> : null}
+      {s.codeKind === 'unique' ? <label>{t('Code prefix')}<input value={s.codePrefix} onChange={e => update(i, { codePrefix: e.target.value })} maxLength={10}/></label> : null}
+      <label>{t('How often per person')}<select value={s.frequency} onChange={e => update(i, { frequency: e.target.value as Step['frequency'] })}><option value="once">{t('Once')}</option><option value="daily">{t('Once a day')}</option><option value="hours">{t('Every N hours')}</option></select></label>
+      {s.frequency === 'hours' ? <label>{t('Hours')}<input type="number" min={1} max={720} value={s.hours} onChange={e => update(i, { hours: Number(e.target.value) })}/></label> : null}
+      <label>{t('Total limit (optional, e.g. first 300 people)')}<input type="number" min={1} value={s.budget} onChange={e => update(i, { budget: e.target.value })}/></label>
       {canNotify ? <div className="metricForm">
-        <button type="button" className="secondaryButton" disabled={!/^[0-9a-f-]{36}$/i.test(recipient.trim()) || !s.title.trim() || !s.message.trim() || testStatus[i] === 'Sending…'}
-          onClick={() => void sendTest(i)}>Send test to my phone</button>
-        {testStatus[i] ? <span role="status">{testStatus[i]}</span> : <span className="muted">Sends this title and message now, without the zone check, codes or step counters.</span>}
+        <button type="button" className="secondaryButton" disabled={!/^[0-9a-f-]{36}$/i.test(recipient.trim()) || !s.title.trim() || !s.message.trim() || testStatus[i] === t('Sending…')}
+          onClick={() => void sendTest(i)}>{t('Send test to my phone')}</button>
+        {testStatus[i] ? <span role="status">{testStatus[i]}</span> : <span className="muted">{t('Sends this title and message now, without the zone check, codes or step counters.')}</span>}
       </div> : null}
-      {steps.length > 1 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => old.filter((_, j) => j !== i))}>Remove step</button> : null}
+      {steps.length > 1 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => old.filter((_, j) => j !== i))}>{t('Remove step')}</button> : null}
     </fieldset>)}
-    {steps.length < 5 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => [...old, blank(old.length, lat, lng)])}>Add step</button> : null}
-    <label>Reason<input value={reason} onChange={e => setReason(e.target.value)} minLength={8} maxLength={1000}/></label>
-    <button type="button" disabled={busy || reason.trim().length < 8} onClick={save}>Save steps</button>
+    {steps.length < 5 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => [...old, blank(old.length, lat, lng)])}>{t('Add step')}</button> : null}
+    <label>{t('Reason')}<input value={reason} onChange={e => setReason(e.target.value)} minLength={8} maxLength={1000}/></label>
+    <button type="button" disabled={busy || reason.trim().length < 8} onClick={save}>{t('Save steps')}</button>
     {message ? <p role="status">{message}</p> : null}
   </div></details>;
 }
 
 export function CodeRedeemForm() {
-  const [code, setCode] = useState(''), [reason, setReason] = useState('Redeemed at the counter'), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
+  const t = useT();
+  const [code, setCode] = useState(''), [reason, setReason] = useState(() => t('Redeemed at the counter')), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
   const mutation = useRef(createMutationClient()), router = useRouter();
   async function redeem() {
     setBusy(true); setMessage('');
@@ -182,13 +185,13 @@ export function CodeRedeemForm() {
     try {
       const { response, result } = await mutation.current.post('/api/admin/v1/campaigns', body);
       if (!response.ok) throw new Error(result.error ?? 'Could not redeem');
-      mutation.current.clear('/api/admin/v1/campaigns', body); setMessage(`Redeemed ${code}.`); setCode(''); router.refresh();
-    } catch (error) { setMessage(mutationError(error)); } finally { setBusy(false); }
+      mutation.current.clear('/api/admin/v1/campaigns', body); setMessage(t('Redeemed {code}.', { code })); setCode(''); router.refresh();
+    } catch (error) { setMessage(t(mutationError(error))); } finally { setBusy(false); }
   }
-  return <section className="panel"><h2>Redeem a code</h2><div className="decisionForm">
-    <label>Code<input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="BEER-7F3K9Q" maxLength={40}/></label>
-    <label>Reason<input value={reason} onChange={e => setReason(e.target.value)} minLength={8} maxLength={1000}/></label>
-    <button type="button" disabled={busy || code.length < 3 || reason.trim().length < 8} onClick={redeem}>Mark as used</button>
+  return <section className="panel"><h2>{t('Redeem a code')}</h2><div className="decisionForm">
+    <label>{t('Code')}<input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="BEER-7F3K9Q" maxLength={40}/></label>
+    <label>{t('Reason')}<input value={reason} onChange={e => setReason(e.target.value)} minLength={8} maxLength={1000}/></label>
+    <button type="button" disabled={busy || code.length < 3 || reason.trim().length < 8} onClick={redeem}>{t('Mark as used')}</button>
     {message ? <p role="status">{message}</p> : null}
   </div></section>;
 }

@@ -28,6 +28,12 @@ export function validateCatalog(catalog, release = false) {
   return failures;
 }
 
+export function catalogReviewCount(catalog) {
+  return Object.values(catalog.strings).reduce((count, entry) => count +
+    Object.values(entry.localizations ?? {}).reduce((total, value) =>
+      total + units(value).filter(unit => unit.state === 'needs_review').length, 0), 0);
+}
+
 // Extract whole Swift literals, skipping comments and balancing expressions such
 // as \(Int(accuracy)). A line regex alone misses formatted messages and raw errors.
 export function swiftStrings(source) {
@@ -105,8 +111,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     if (['UITestFixtures.swift', 'ARCoreCoverageDebugView.swift'].includes(path.basename(file))) continue;
     failures.push(...missingSourceKeys(readFileSync(file, 'utf8'), catalogs[0]).map(failure => `${path.relative(root, file)}:${failure}`));
   }
-  const reviewCount = catalogs.reduce((count, catalog) => count + Object.values(catalog.strings).reduce((n, entry) =>
-    n + Object.values(entry.localizations).reduce((total, value) => total + units(value).filter(unit => unit.state === 'needs_review').length, 0), 0), 0);
+  const reviewCount = catalogs.reduce((count, catalog) => count + catalogReviewCount(catalog), 0);
   for (const failure of failures) console.error(failure);
   console.log(`${catalogs.reduce((sum, catalog) => sum + Object.keys(catalog.strings).length, 0)} keys; ${LANGUAGES.length} languages; ${reviewCount} translations marked needs_review.`);
   if (failures.length) process.exitCode = 1;

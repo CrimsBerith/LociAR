@@ -42,7 +42,7 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | create_post / delete_account | Callable Cloud Functions | `functions/src/posts.ts`, `account.ts`, `profile.ts` |
 | Sayaçlar, aktivite | Firestore tetikleyicileri | `functions/src/triggers.ts` |
 | Aktivite okundu durumu | Auth + App Check callable; doğrudan istemci yazması yok | `functions/src/activity.ts` |
-| Admin panel + yasal sayfalar | Next.js, Firebase App Hosting (`lociar-admin`), Admin SDK, session cookie, TOTP MFA | `admin/lib/admin.ts`, `admin/lib/ops.ts`, `admin/apphosting.yaml` |
+| Admin panel + yasal sayfalar | Next.js, Firebase App Hosting (`lociar-admin`), Admin SDK, session cookie, e-posta kodu (eski TOTP alternatif) | `admin/lib/admin.ts`, `admin/lib/ops.ts`, `admin/apphosting.yaml` |
 
 Önemli davranışlar:
 - Her yeni post `pending_review` olarak açılır; yüksek kaliteli AR kilidinin otomatik yayını
@@ -179,7 +179,7 @@ Connect URL'leri birlikte güncellenir.
 Yerel geliştirme: `admin/.env.local` (`admin/.env.example`), `npm run dev`. Yerelde Admin SDK için
 `FIREBASE_SERVICE_ACCOUNT_JSON` yalnız geliştirici makinesinde tutulur; repo'ya ve App Hosting'e girmez.
 
-Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yeniden giriş → kod → panel.
+Admin girişi (16 Ekim 2026 ürün kararı): e-posta → 6 haneli tek kullanımlık kod → panel; QR zorunlu değil. Gönderici kurulumu ve canlı kabul şartları: [ADMIN_EMAIL_CODE.md](ADMIN_EMAIL_CODE.md). Önceki Firebase bağlantı/TOTP yöntemi alternatif olarak korunur. Yeni akışın canlıda hazır olması Resend anahtarının Secret Manager'a kaydı ve dağıtım gerektirir.
 
 ## 6. Bilinen farklar / sonraki adımlar
 

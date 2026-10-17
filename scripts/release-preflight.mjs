@@ -26,6 +26,7 @@ export function releaseSteps(root = REPOSITORY_ROOT) {
     node('Admin full dependency audit', ['scripts/check-dependency-audit.mjs', 'admin']),
     { ...npm('Firestore and Storage rules', 'functions', ['run', 'test:rules']), testSummary: 'node' },
     { ...npm('Functions emulator acceptance', 'functions', ['run', 'test:emulator']), testSummary: 'node' },
+    { ...npm('Location notes isolated emulator acceptance', 'functions', ['run', 'test:notes']), testSummary: 'node' },
     npm('Admin production test build', 'admin', ['run', 'build:ci']),
     { ...npm('Admin HTTP and authenticated browser acceptance', 'admin', ['run', 'test:emulator']), testSummary: 'node' },
     { ...npm('Public desktop and mobile browser acceptance', 'admin', ['run', 'test:e2e']), env: { ADMIN_E2E_PUBLIC_ONLY: '1' }, testSummary: 'playwright' },

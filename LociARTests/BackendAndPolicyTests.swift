@@ -428,6 +428,14 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text and GIF posts are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Links are not allowed"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Only moderated text without links is allowed"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "links_not_allowed"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "content_not_allowed"),
+                       String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene."))
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "invalid_caption"),
+                       String(localized: "Caption boş olamaz ve 220 karakteri geçemez."))
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "location_inaccurate"),
+                       String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin."))
         // Older servers still answer with the social-link wording.
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts and social media links are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Invalid social media link"), textOnly)
@@ -439,6 +447,20 @@ final class BackendAndPolicyTests: XCTestCase {
             String(localized: "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.")
         )
         XCTAssertNotEqual(InviteFlowError.invalid.errorDescription, InviteFlowError.rateLimited.errorDescription)
+    }
+
+    @MainActor
+    func testLocationNoteReplayDoesNotClaimRemovedOrReviewedContentIsVisible() throws {
+        let published = String(localized: "Notun yayınlandı. Haritada görünüyor.")
+        for status in [PostStatus.active, .pendingReview, .removed, .flagged, .blockedProtectedZone, .draft] {
+            let json = Data("{\"publishStatus\":\"\(status.rawValue)\"}".utf8)
+            let response = try JSONDecoder().decode(PlaceNoteClient.Response.self, from: json)
+            XCTAssertEqual(response.confirmationMessage == published, status == .active)
+            if status == .pendingReview {
+                XCTAssertEqual(response.confirmationMessage,
+                               String(localized: "Post gönderildi ve incelemeye alındı. Durumu Profil > Postlarım'dan takip edebilirsin."))
+            }
+        }
     }
 
     func testQueuedDeviceMediaPostsAreDetected() {

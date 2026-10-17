@@ -94,10 +94,10 @@ test('nearby selection excludes stale/revoked location and artificial likes; ass
   await assert.rejects(queueNotification({ ...body, recipientId: randomUUID() }, f.actor, reason, key), /idempotency_key_reused/);
 });
 test('manual notifications require opt-in, are capped at three daily jobs, and attempts never duplicate FCM sends', async () => {
-  const f = await fixture(), body = { recipientId: f.recipient, title: 'LociAR', message: 'An offer is ready in the app.' };
-  await db.collection('user_data_preferences').doc(f.recipient).update({ promotions: false });
+  const f = await fixture(), body = { recipientId: f.recipient, title: 'LociAR', message: 'An administrator update is ready in the app.' };
+  await db.collection('user_data_preferences').doc(f.recipient).update({ notifications: false, promotions: false });
   await assert.rejects(queueNotification(body, f.actor, reason, randomUUID()), /opted_in/);
-  await db.collection('user_data_preferences').doc(f.recipient).update({ promotions: true });
+  await db.collection('user_data_preferences').doc(f.recipient).update({ notifications: true });
   const job = await queueNotification(body, f.actor, reason, randomUUID());
   const token = 'fake-campaign-token-' + randomUUID();
   await db.collection('push_tokens').doc(randomUUID()).set({ owner_luid: f.recipient, token, locale: 'tr', expires_at: Timestamp.fromMillis(Date.now() + 86_400_000) });
@@ -108,6 +108,22 @@ test('manual notifications require opt-in, are capped at three daily jobs, and a
   assert.equal((await db.collection('admin_notification_jobs').doc(job.id).get()).get('accepted'), 1);
   await queueNotification(body, f.actor, reason, randomUUID()); await queueNotification(body, f.actor, reason, randomUUID());
   await assert.rejects(queueNotification(body, f.actor, reason, randomUUID()), /daily_notification_limit/);
+});
+test('administrator notices do not require marketing consent; campaigns still do', async () => {
+  const f = await fixture();
+  await campaignStatus(f.campaign, 'active', f.actor, reason, randomUUID());
+  const pref = db.collection('user_data_preferences').doc(f.recipient);
+  for (const promotions of [FieldValue.delete(), false, null, 'true']) {
+    await pref.update({ promotions });
+    const job = await queueNotification({ recipientId: f.recipient, title: 'LociAR', message: 'Administrator test notice' }, f.actor, reason, randomUUID());
+    await db.collection('push_tokens').doc(randomUUID()).set({ owner_luid: f.recipient, fid: 'c' + randomUUID().replaceAll('-', '').slice(0, 21), expires_at: Timestamp.fromMillis(Date.now() + 86_400_000) });
+    let sent = 0;
+    await deliverAdminNotification(job.id, async () => { sent++; return 'synthetic-acceptance'; });
+    assert.ok(sent > 0, 'administrator notice must dispatch with global notification consent');
+    await assert.rejects(queueNotification({ recipientId: f.recipient, campaignId: f.campaign }, f.actor, reason, randomUUID()), /opted_in/);
+    // Reset this synthetic recipient's quota so it does not mask consent checks.
+    await db.collection('promotion_push_quota').doc(`${f.recipient}_${new Date().toISOString().slice(0, 10)}`).delete();
+  }
 });
 test('revocation and changed ownership between queue and send prevent a push', async () => {
   const f = await fixture(), job = await queueNotification({ recipientId: f.recipient, title: 'LociAR', message: 'New message' }, f.actor, reason, randomUUID());

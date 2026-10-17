@@ -87,6 +87,16 @@ def dump(obj):
     return json.dumps(obj, ensure_ascii=False, indent=2, separators=(',', ' : ')) + '\n'
 
 
+def catalog_matches(path, expected):
+    # Xcode sorts languages and rewrites whitespace when updating catalogs in the IDE.
+    # Validate all keys, values and translation states without depending on its formatting.
+    try:
+        with open(path, encoding='utf-8') as f:
+            return json.load(f) == expected
+    except (OSError, ValueError):
+        return False
+
+
 def main():
     check = '--check' in sys.argv
     catalog, info_catalog, problems, count = build()
@@ -94,18 +104,17 @@ def main():
         print('\n'.join(problems[:50]))
         print(f'{len(problems)} localization problem(s)')
         sys.exit(1)
-    outputs = {CATALOG: dump(catalog), INFOPLIST_CATALOG: dump(info_catalog)}
+    outputs = {CATALOG: catalog, INFOPLIST_CATALOG: info_catalog}
     if check:
-        stale = [path for path, text in outputs.items()
-                 if not os.path.exists(path) or open(path, encoding='utf-8').read() != text]
+        stale = [path for path, expected in outputs.items() if not catalog_matches(path, expected)]
         if stale:
             print('Out of date (run python3 scripts/l10n/build_catalog.py):', *stale, sep='\n  ')
             sys.exit(1)
         print(f'OK: {count} keys × {len(LANGS)} languages, catalogs up to date')
         return
-    for path, text in outputs.items():
+    for path, generated in outputs.items():
         with open(path, 'w', encoding='utf-8') as f:
-            f.write(text)
+            f.write(dump(generated))
     print(f'Wrote {count} keys × {len(LANGS)} languages')
 
 

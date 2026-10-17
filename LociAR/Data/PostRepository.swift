@@ -209,6 +209,10 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         // Prefer the server's machine-readable reason; the English-text checks below stay as the
         // fallback for older server versions and for errors that carry no reason.
         switch reason {
+        case "invalid_caption": return String(localized: "Caption boş olamaz ve 220 karakteri geçemez.")
+        case "content_not_allowed": return String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene.")
+        case "links_not_allowed": return String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
+        case "location_inaccurate": return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         case "identity_unverified": return String(localized: "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor.")
         case "account_suspended": return String(localized: "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin.")
         case "protected_zone": return String(localized: "Bu korumalı bölgede post yayınlanamaz.")
@@ -227,7 +231,8 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         }
         if raw.contains("protected zone") { return String(localized: "Bu korumalı bölgede post yayınlanamaz.") }
-        if raw.contains("Only text") || raw.contains("Links are not allowed") || raw.contains("social media link") {
+        if raw.contains("Only text") || raw.contains("Links are not allowed") || raw.contains("social media link")
+            || raw.contains("Only moderated text without links is allowed") {
             return String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
         }
         if raw.contains("Only one GIF") || raw.contains("Invalid GIF") { return String(localized: "Bir posta en fazla bir GIF eklenebilir.") }

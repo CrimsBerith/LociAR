@@ -21,7 +21,7 @@ struct ProfileView: View {
                 HStack(spacing: 16) {
                     LociAvatar(handle: user.handle, avatarURL: user.avatarURL, size: 66)
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("@\(user.handle)").font(.title3.bold())
+                        Text(verbatim: "@\(user.handle)").font(.title3.bold())
                         if let email = user.email { Text(email).font(.caption).foregroundStyle(.secondary) }
                         LociStatusPill(title: String(localized: "Hesap aktif"), symbol: "checkmark.seal.fill", color: LociTheme.accent)
                     }

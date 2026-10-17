@@ -73,7 +73,7 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
       const data = job.data(), address = pushAddress(target.data());
       if (!data || data.recipient_id !== recipient || data.status === 'complete' || !(data.expires_at instanceof Timestamp) || data.expires_at.toMillis() <= now
           || receipt.exists || !profile.exists || profile.get('suspended') || profile.get('deleted_at') || deletion.exists || actorDeletion.exists
-          || pref.get('notifications') !== true || pref.get('promotions') !== true || pref.get('revision') !== data.consent_revision
+          || pref.get('notifications') !== true || (data.campaign_id && pref.get('promotions') !== true) || pref.get('revision') !== data.consent_revision
           || !target.exists || target.get('owner_luid') !== recipient || !address
           || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now) return null;
       const roles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', data.actor_uid).where('revoked_at', '==', null));

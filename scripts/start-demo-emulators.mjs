@@ -41,7 +41,9 @@ copyFileSync('functions/package.json', join(frozen, 'package.json'));
 symlinkSync(resolve('functions/node_modules'), join(frozen, 'node_modules'));
 const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1',
   privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
-writeFileSync(join(frozen, '.secret.local'), 'APPLE_PRIVATE_KEY=' + JSON.stringify(privateKey) + '\nGIPHY_API_KEY=emulator-only\n', { mode: 0o600 });
+const demoSecrets = { APPLE_PRIVATE_KEY: privateKey, GIPHY_API_KEY: 'fake-api-key' };
+writeFileSync(join(frozen, '.secret.local'), Object.entries(demoSecrets)
+  .map(([name, value]) => name + '=' + JSON.stringify(value)).join('\n') + '\n', { mode: 0o600 });
 writeFileSync(join(frozen, '.env.demo-lociar'), 'APPLE_TEAM_ID=EMULATOR\nAPPLE_KEY_ID=EMULATOR\nAPPLE_CLIENT_ID=com.khankartal.lociar\nAPPLE_AUTH_BASE_URL=http://127.0.0.1:1\nGIPHY_API_BASE_URL=http://127.0.0.1:1\n', { mode: 0o600 });
 const config = JSON.parse(readFileSync('firebase.json'));
 config.firestore.rules = resolve('firestore.rules'); config.firestore.indexes = resolve('firestore.indexes.json'); config.storage.rules = resolve('storage.rules');

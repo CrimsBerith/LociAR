@@ -56,8 +56,15 @@ async function arrivalFixture() {
   const target = adminDb.collection('campaign_targets').doc(`${id}_${recipient.luid}`);
   await target.set({ owner_luid: recipient.luid, campaign_id: id, state: 'assigned', notification_mode: 'arrival', assigned_by: actor, expires_at: Timestamp.fromMillis(Date.now() + 86400000) });
   await adminDb.collection('user_data_preferences').doc(recipient.luid).set({ owner_luid: recipient.luid, arrivals: true, promotions: true, notifications: true });
-  const body = { campaignId: id, locale: 'tr_TR', confirmationStartedAt: Date.now() - 3000, location: { lat: 39.92, lng: 32.85, accuracy: 0.5, measuredAt: Date.now() } };
-  return { author, recipient, id, brand, actor, target, body };
+  return { author, recipient, id, brand, actor, target,
+    // Capture the simulated fix when sending, after unrelated setup/cold starts.
+    // The server must still reject explicitly stale fixes within the same limits.
+    get body() {
+      const now = Date.now();
+      return { campaignId: id, locale: 'tr_TR', confirmationStartedAt: now - 3000,
+        location: { lat: 39.92, lng: 32.85, accuracy: 0.5, measuredAt: now } };
+    },
+  };
 }
 
 test('arrival regions are recipient-only; a verified arrival is globally once-only without retaining background coordinates', async () => {
@@ -66,7 +73,8 @@ test('arrival regions are recipient-only; a verified arrival is globally once-on
   assert.equal(regions[0].id, f.id); assert.equal(regions[0].radius, 150);
   assert.deepEqual((await stranger.call('readCampaignRegions')).regions, []);
   assert.equal((await stranger.call('recordCampaignArrival', f.body)).notify, false);
-  const results = await Promise.all([f.recipient.call('recordCampaignArrival', f.body), f.recipient.call('recordCampaignArrival', f.body)]);
+  const body = f.body;
+  const results = await Promise.all([f.recipient.call('recordCampaignArrival', body), f.recipient.call('recordCampaignArrival', body)]);
   assert.equal(results.filter(r => r.notify).length, 1);
   const notification = results.find(r => r.notify);
   assert.equal(notification.body, 'Sana özel bir kampanya var.'); assert.equal(notification.postId, f.id);
@@ -107,7 +115,10 @@ async function departureFixture() {
   await adminDb.collection('user_data_preferences').doc(f.recipient.luid).update({ departures: true, departures_revision: revision });
   const origin = adminDb.collection('campaign_departure_regions').doc(f.target.id);
   await origin.set({ owner_luid: f.recipient.luid, campaign_id: f.id, lat: 39.921, lng: 32.851, radius: 150, consent_revision: revision, expires_at: Timestamp.fromMillis(Date.now() + 86400000) });
-  return { ...f, origin, revision, body: { ...f.body, transition: 'exit', location: { ...f.body.location, lat: 39.925, lng: 32.851 } } };
+  return { ...f, origin, revision, get body() {
+    const body = f.body;
+    return { ...body, transition: 'exit', location: { ...body.location, lat: 39.925, lng: 32.851 } };
+  } };
 }
 
 test('departure uses a private original area and custom message, admits only a verified exit and clears the origin', async () => {

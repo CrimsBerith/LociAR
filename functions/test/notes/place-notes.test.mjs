@@ -1,12 +1,20 @@
-import test, { after } from 'node:test';
+import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
-import { adminDb, closeClients, newAnonymousUser, newUser, expectFailure } from './_harness.mjs';
+// Run in a fresh emulator (npm run test:notes). Bulk integration fixtures leave
+// queued triggers behind even when their serial test files have finished.
+import { adminDb, closeClients, newAnonymousUser, newUser, expectFailure } from '../integration/_harness.mjs';
 import { expireDueNotes } from '../../lib/noteDensity.js';
 import { db } from '../../lib/core.js';
 import { readableNoteIds } from '../../lib/placeNoteAccess.js';
 after(closeClients);
+before(async () => {
+  for (const collection of ['posts', 'note_density', 'note_density_members', 'note_spots']) {
+    assert.equal((await adminDb.collection(collection).limit(1).get()).empty, true,
+      `${collection} is not empty; run npm run test:notes in its own fresh emulator`);
+  }
+});
 
 const METER = 1 / 111_320;
 // Each fixture sits ~5 km from the others so approved notes never overlap between tests.
@@ -83,6 +91,44 @@ test('location notes publish at once, anonymously, at the measured position with
   await zone.set({ active: true, name: 'Protected', lat: f.point.lat, lng: f.point.lng, radius_meters: 100 });
   assert.equal((await expectFailure(fresh({}))).code, 'functions/permission-denied');
   await zone.delete();
+  for (const status of ['pending_review', 'flagged', 'removed']) {
+    await f.n.ref.update({ status });
+    const replay = await f.author.call('createPlaceNote', f.n.body);
+    assert.equal(replay.idempotentReplay, true);
+    assert.equal(replay.publishStatus, status, 'replaying a committed mutation must preserve moderation state');
+    assert.equal((await f.n.ref.get()).get('status'), status);
+  }
+});
+
+test('location-note text uses the same trimmed UTF-16 limit as the native composers', async () => {
+  const author = await newAnonymousUser(), point = base();
+  for (const text of ['😀'.repeat(110), 'e\u0301'.repeat(110), 'a'.repeat(220)]) {
+    const n = await note(author, point, { text });
+    assert.equal(n.created.publishStatus, 'active');
+    assert.equal((await n.ref.get()).get('caption'), text);
+  }
+  for (const text of ['😀'.repeat(111), 'e\u0301'.repeat(111), 'a'.repeat(221)]) {
+    const error = await expectFailure(note(author, point, { text }));
+    assert.equal(error.code, 'functions/invalid-argument');
+    assert.equal(error.details.reason, 'invalid_caption');
+  }
+  // Leading/trailing whitespace is trimmed before the limit, matching the composer's trimmed count.
+  const padded = await note(author, point, { text: `\n  ${'a'.repeat(220)} \t` });
+  assert.equal(padded.created.publishStatus, 'active');
+  assert.equal((await padded.ref.get()).get('caption'), 'a'.repeat(220));
+  assert.equal((await adminDb.collection('posts').where('creator_id', '==', author.luid).get()).size, 4);
+});
+
+test('location-note validation returns stable localized reasons without writing rejected content', async () => {
+  const author = await newAnonymousUser(), point = base();
+  for (const [text, reason] of [['See https://example.com', 'links_not_allowed'], ['siktir git', 'content_not_allowed'], ['a\u0001b', 'invalid_caption']]) {
+    const error = await expectFailure(note(author, point, { text }));
+    assert.equal(error.code, 'functions/invalid-argument');
+    assert.equal(error.details.reason, reason);
+  }
+  assert.equal((await adminDb.collection('posts').where('creator_id', '==', author.luid).get()).size, 0);
+  const valid = await note(author, point, { text: 'Bu ürün kalitesiz, alma.' });
+  assert.equal(valid.created.publishStatus, 'active', 'an ordinary negative review remains publishable');
 });
 
 test('interrupted local delivery replays the same note until acknowledged without consuming another note', async () => {
@@ -264,15 +310,31 @@ async function densityCount(user, point, precision) {
   return cells.reduce((s, c) => s + c.count, 0);
 }
 async function eventually(check, message) {
-  // The full suite queues Firestore triggers behind bulk cleanup/counter events.
-  // Keep the assertion strict while allowing those asynchronous writes to settle.
+  // Bound real trigger delivery; do not retry failed tests or repair their state.
   for (let i = 0; i < 120; i++) { if (await check()) return; await new Promise(r => setTimeout(r, 250)); }
-  assert.fail(message);
+  assert.fail(typeof message === 'function' ? await message() : message);
 }
 
-test('map density counts public active notes and follows removal', async () => {
+test('map density counts public active notes and follows removal', async t => {
   const f = await fixture();
-  await eventually(async () => await densityCount(f.visitor, f.point, 7) === 1, 'active note counted');
+  const started = performance.now(), observations = [];
+  let observed, lastSample = -5000;
+  t.diagnostic(`density fixture: ${JSON.stringify({ postId: f.n.ref.id, point: f.point })}`);
+  await eventually(async () => {
+    const count = await densityCount(f.visitor, f.point, 7), elapsed = Math.round(performance.now() - started);
+    if (count !== observed || elapsed - lastSample >= 5000) {
+      const member = await adminDb.collection('note_density_members').doc(f.n.ref.id).get();
+      observations.push({ elapsed, count, memberExists: member.exists });
+      lastSample = elapsed;
+    }
+    observed = count;
+    return count === 1;
+  }, async () => {
+    const member = await adminDb.collection('note_density_members').doc(f.n.ref.id).get();
+    const post = await f.n.ref.get();
+    return `active note counted: ${JSON.stringify({ observed, point: f.point, member: member.data(), status: post.get('status'), observations })}`;
+  });
+  t.diagnostic(`density activation: ${JSON.stringify(observations)}`);
   assert.equal(await densityCount(f.visitor, f.point, 4) >= 1, true);
   await f.n.ref.update({ status: 'removed' });
   await eventually(async () => await densityCount(f.visitor, f.point, 7) === 0, 'removed note uncounted');

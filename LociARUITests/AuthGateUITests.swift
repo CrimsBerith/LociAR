@@ -40,15 +40,31 @@ final class AuthGateUITests: XCTestCase {
     }
 
     func testAnonymousEntryRequiresConsent() {
+        continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_SIGNED_OUT")
         app.launch()
         let entry = app.buttons["auth-anonymous"]
         XCTAssertTrue(entry.waitForExistence(timeout: 8))
+        // A preceding real SDK run may have retained consent. Establish the
+        // unchecked state through the actual control, independently of entry.
+        let consent = identifiedControl(app, "auth-terms-consent")
+        if consent.isSelected { consent.tap() }
+        XCTAssertFalse(consent.isSelected)
         XCTAssertFalse(entry.isEnabled)
-        identifiedControl(app, "auth-terms-consent").tap()
+        consent.tap()
         XCTAssertTrue(entry.isEnabled)
-        identifiedControl(app, "auth-terms-consent").tap()
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(entry.waitForExistence(timeout: 8))
+        XCTAssertTrue(consent.isSelected, "Accepted consent must survive relaunch")
+        XCTAssertTrue(entry.isEnabled)
+        consent.tap()
+        XCTAssertFalse(entry.isEnabled)
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(entry.waitForExistence(timeout: 8))
+        XCTAssertFalse(consent.isSelected, "Revoked consent must survive relaunch")
         XCTAssertFalse(entry.isEnabled)
     }
 
@@ -108,10 +124,14 @@ final class AuthGateUITests: XCTestCase {
     }
 
     func testSignedOutCannotReachTabs() {
+        continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_SIGNED_OUT")
         app.launch()
         XCTAssertTrue(app.textFields["auth-email-field"].waitForExistence(timeout: 5))
+        let consent = identifiedControl(app, "auth-terms-consent")
+        if consent.isSelected { consent.tap() }
+        XCTAssertFalse(consent.isSelected)
         XCTAssertTrue(app.secureTextFields["auth-password-field"].exists)
         XCTAssertTrue(app.buttons["auth-email-submit"].exists)
         XCTAssertTrue(app.buttons["auth-apple"].exists)
@@ -120,9 +140,9 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(identifiedControl(app, "auth-terms").exists)
         XCTAssertTrue(identifiedControl(app, "auth-terms-consent").exists)
         XCTAssertTrue(identifiedControl(app, "auth-support").exists)
-        identifiedControl(app, "auth-terms-consent").tap()
+        consent.tap()
         XCTAssertTrue(app.buttons["auth-apple"].isEnabled)
-        identifiedControl(app, "auth-terms-consent").tap()
+        consent.tap()
         XCTAssertFalse(app.buttons["auth-apple"].isEnabled)
         XCTAssertFalse(app.buttons["auth-google"].exists)
         XCTAssertFalse(app.buttons["auth-device-preview"].exists)
@@ -166,6 +186,63 @@ final class AuthGateUITests: XCTestCase {
             .firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10), "Harita yakındaki postları yüklemedi")
         XCTAssertFalse(app.staticTexts["Yakın çevre taranıyor"].exists)
+        XCTAssertGreaterThanOrEqual(row.frame.height, 44, "Not satırı erişilebilir bir dokunma alanı sağlamalı.")
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 8))
+    }
+
+    func testCameraFreeNoteUsesServerUnicodeLengthLimit() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED"]
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+        app.tabBars.buttons["Harita"].tap()
+        for (text, allowed) in [(String(repeating: "😀", count: 110), true),
+                                (String(repeating: "😀", count: 111), false),
+                                (String(repeating: "e\u{301}", count: 111), false),
+                                ("  " + String(repeating: "a", count: 220) + "  ", true)] {
+            app.buttons["map-location-note"].tap()
+            let field = identifiedControl(app, "place-note-text")
+            scrollUntilHittable(field, in: app, maxSwipes: 6)
+            field.tap()
+            field.typeText(text)
+            XCTAssertEqual(field.value as? String, text, "Unicode fixture must reach the real input intact.")
+            dismissKeyboard(app)
+            XCTAssertFalse(app.keyboards.firstMatch.exists, "Küçük ekranda da klavye kapatılıp yayın düğmesine ulaşılmalı.")
+            let publish = app.buttons["place-note-publish"]
+            scrollUntilHittable(publish, in: app, maxSwipes: 6)
+            XCTAssertEqual(publish.isEnabled, allowed, "The input must obey the same limit as createPlaceNote.")
+            app.buttons["Kapat"].tap()
+        }
+    }
+
+    func testCameraFreeComposerAndNotificationSettingsInAllTwelveLanguages() {
+        continueAfterFailure = false
+        let languages = ["tr", "en", "zh-Hans", "hi", "es", "fr", "ar", "bn", "pt", "ru", "de", "ja"]
+        for language in languages {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "-AppleLanguages", "(\(language))", "-AppleLocale", language]
+            app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10), language)
+            app.tabBars.buttons.element(boundBy: 1).tap()
+            app.buttons["map-location-note"].tap()
+            scrollUntilHittable(identifiedControl(app, "place-note-text"), in: app, maxSwipes: 6)
+            XCTAssertTrue(identifiedControl(app, "place-note-text").waitForExistence(timeout: 10), language)
+            scrollUntilHittable(app.buttons["place-note-publish"], in: app, maxSwipes: 6)
+            XCTAssertTrue(app.buttons["place-note-publish"].exists, language)
+            XCTAssertFalse(app.buttons["place-note-publish"].isEnabled, language)
+            XCTAssertFalse(app.buttons["ar-pin-surface"].exists, language)
+            capture(app, name: "camera-free-composer-\(language)")
+            app.navigationBars.buttons.firstMatch.tap()
+            app.tabBars.buttons.element(boundBy: 4).tap()
+            scrollUntilHittable(app.buttons["profile-settings"], in: app, maxSwipes: 6)
+            app.buttons["profile-settings"].tap()
+            XCTAssertTrue(app.switches["settings-notifications"].waitForExistence(timeout: 10), language)
+            XCTAssertTrue(app.switches["settings-promotions"].exists, language)
+            capture(app, name: "notification-settings-\(language)")
+            app.terminate()
+        }
     }
 
     func testFiveTabNavigationAndLogoutReturnsToAuthGate() {
@@ -258,7 +335,9 @@ final class AuthGateUITests: XCTestCase {
         capture(app, name: "05-profile")
 
         for route in ["Postlarım", "Aktivite", "Koleksiyonlar", "Kaydedilenler", "Engellenen hesaplar"] {
-            app.staticTexts[route].tap()
+            let entry = app.staticTexts[route]
+            scrollUntilHittable(entry, in: app, maxSwipes: 6)
+            entry.tap()
             XCTAssertTrue(app.navigationBars[route == "Engellenen hesaplar" ? "Engellenenler" : route].waitForExistence(timeout: 3))
             capture(app, name: "route-\(route)")
             app.navigationBars.buttons.element(boundBy: 0).tap()

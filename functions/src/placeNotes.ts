@@ -8,6 +8,7 @@ import { anyBlocked, containsURL } from './moderation';
 import { denseSpotsNear, spotReceiptRef, spotSettings } from './denseSpots';
 import { distanceMeters } from './geo';
 import { geoCandidates } from './geoQuery';
+import { reasonError } from './errors';
 import {
   clampNotifyRadius, clusterNotes, compareByLikes, confirmationValid, defaultNotifyRadius, fixInsideNote, fixIsFresh,
   validCoordinates, WAKE_RADIUS_MIN_M, ENTRY_TOLERANCE_CAP_M, MAX_CREATE_ACCURACY_M, MAX_ENTRY_ACCURACY_M, MAX_NOTIFY_RADIUS_M, MAX_PIN_DRAG_M,
@@ -21,9 +22,15 @@ const SOURCES: FixSource[] = ['geospatial', 'gps', 'manual'];
 const MAX_REGIONS = 15;
 
 function plain(value: unknown, max: number): string {
-  if (typeof value !== 'string' || !value.trim() || value.length > max || /[\u0000-\u0008\u000b-\u001f]/.test(value)
-      || anyBlocked([value]) || containsURL(value)) throw new HttpsError('invalid-argument', 'Only moderated text without links is allowed');
-  return value.trim();
+  if (typeof value !== 'string') throw reasonError('invalid-argument', 'Invalid caption', 'invalid_caption');
+  // Count the stored (trimmed) text so the limit matches the native composer's trimmed UTF-16 count.
+  const text = value.trim();
+  if (!text || text.length > max || /[\u0000-\u0008\u000b-\u001f]/.test(text)) {
+    throw reasonError('invalid-argument', 'Invalid caption', 'invalid_caption');
+  }
+  if (anyBlocked([text])) throw reasonError('invalid-argument', 'Content not allowed', 'content_not_allowed');
+  if (containsURL(text)) throw reasonError('invalid-argument', 'Links are not allowed', 'links_not_allowed');
+  return text;
 }
 
 /**
@@ -35,7 +42,7 @@ export const createPlaceNote = onCall(options, async request => {
   if (b?.userId !== caller.luid || !isUUID(b?.clientMutationId) || !validCoordinates(b?.lat, b?.lng)) throw new HttpsError('invalid-argument', 'Invalid location');
   const source = b.source as FixSource, accuracy = b.accuracy;
   if (!SOURCES.includes(source) || typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy < 0) throw new HttpsError('invalid-argument', 'Invalid location source');
-  if (accuracy > MAX_CREATE_ACCURACY_M) throw new HttpsError('failed-precondition', 'Location is too uncertain', { reason: 'location_inaccurate' });
+  if (accuracy > MAX_CREATE_ACCURACY_M) throw reasonError('failed-precondition', 'Location is too uncertain', 'location_inaccurate');
   if (source !== 'manual' && accuracy > 15) throw new HttpsError('invalid-argument', 'Confirm an uncertain location by placing the pin');
   let drag = 0;
   if (source === 'manual') {

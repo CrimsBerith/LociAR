@@ -83,6 +83,9 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run test:rules
       - run: npm run test:emulator
+      # A fresh emulator prevents bulk-fixture trigger backlogs from delaying
+      # location-note density, spot and notification assertions.
+      - run: npm run test:notes
       - run: npm ci --prefix ../admin --ignore-scripts --no-audit --no-fund
       - run: npx --no-install playwright install --with-deps chromium
         working-directory: admin

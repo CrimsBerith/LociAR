@@ -1,6 +1,7 @@
 import { requireAdmin } from '../../../../lib/admin';
 import { recordPersonalDataRead } from '../../../../lib/ops';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
+import { getI18n } from '../../../../lib/i18n-server';
 import InviteUserForm from './InviteUserForm';
 import CreateUserForm from './CreateUserForm';
 import AdminDecision from '../AdminDecision';
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
   const admin = await requireAdmin({ permission: 'users.read' });
+  const { t, locale } = await getI18n();
   const canManageAdmins = admin.permissions.has('admin_users.write');
   const canSuspend = admin.permissions.has('users.suspend');
   const params = await searchParams;
@@ -47,28 +49,28 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   return (
     <section className="page">
       <div className="pageHeading">
-        <div><p className="eyebrow">Identity & enforcement</p><h1>Users</h1></div>
+        <div><p className="eyebrow">{t('Identity & enforcement')}</p><h1>{t('Users')}</h1></div>
         <InviteUserForm />
       </div>
       {admin.permissions.has('users.create') ? <CreateUserForm /> : null}
-      <section className="panel" aria-label="User profiles">
+      <section className="panel" aria-label={t('User profiles')}>
         <div className="panelHeader">
           <form method="get" className="inlineSearch">
-            <input name="q" defaultValue={q} placeholder="Search by handle prefix" aria-label="Search users by handle" />
-            <button>Search</button>
+            <input name="q" defaultValue={q} placeholder={t('Search by handle prefix')} aria-label={t('Search users by handle')} />
+            <button>{t('Search')}</button>
           </form>
         </div>
-        {failed ? <p className="emptyState">{invalid ? <>Invalid page link. <a href={`/admin/users?${new URLSearchParams({ q })}`}>Return to the first page.</a></> : 'User data could not be loaded.'}</p> : (
+        {failed ? <p className="emptyState">{invalid ? <>{t('Invalid page link.')} <a href={`/admin/users?${new URLSearchParams({ q })}`}>{t('Return to the first page.')}</a></> : t('User data could not be loaded.')}</p> : (
           <div className="dataTable">
-            <div className="dataRow user header"><span>User</span><span>Identity</span><span>Provider</span><span>Created</span><span>Enforcement</span></div>
-            {users.length === 0 ? <p className="emptyState">No matching users.</p> : users.map(user => (
+            <div className="dataRow user header"><span>{t('User')}</span><span>{t('Identity')}</span><span>{t('Provider')}</span><span>{t('Created')}</span><span>{t('Enforcement')}</span></div>
+            {users.length === 0 ? <p className="emptyState">{t('No matching users.')}</p> : users.map(user => (
               <div className="dataRow user" key={user.id}>
                 <span><b>@{String(user.handle)}</b><small>{user.id}</small>
-                  {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') ? <details><summary>Private data</summary><UserContextPanel luid={user.id} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
+                  {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') ? <details><summary>{t('Private data')}</summary><UserContextPanel luid={user.id} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
                 </span>
-                <span>{user.suspended ? 'Suspended' : user.identity_verified ? 'Verified' : 'Unverified'}</span>
-                <span>{String(user.auth_provider ?? 'unknown')}</span>
-                <span>{new Date(iso(user.created_at)).toLocaleDateString('en-US')}</span>
+                <span>{user.suspended ? t('Suspended') : user.identity_verified ? t('Verified') : t('Unverified')}</span>
+                <span>{String(user.auth_provider ?? t('unknown'))}</span>
+                <span>{new Date(iso(user.created_at)).toLocaleDateString(locale)}</span>
                 <span>{canSuspend ? (
                   <AdminDecision
                     endpoint={`/api/admin/v1/users/${user.id}/suspend`}
@@ -83,15 +85,15 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         )}
         {!failed ? <PageNavigation path="/admin/users" parameters={{ q }} next={page.next} previous={page.previous} /> : null}
       </section>
-      {canManageAdmins ? <section className="panel" aria-label="Administrator roles">
-        <div className="panelHeader"><h2>Admin roles</h2></div>
-        {rolesFailed ? <p className="emptyState">Admin roles could not be loaded. <a href="/admin/users">Return to the first page.</a></p> : <>
-          {rolesPage.documents.length === 0 ? <p className="emptyState">No active admin roles.</p> : rolesPage.documents.map(doc => {
+      {canManageAdmins ? <section className="panel" aria-label={t('Administrator roles')}>
+        <div className="panelHeader"><h2>{t('Admin roles')}</h2></div>
+        {rolesFailed ? <p className="emptyState">{t('Admin roles could not be loaded.')} <a href="/admin/users">{t('Return to the first page.')}</a></p> : <>
+          {rolesPage.documents.length === 0 ? <p className="emptyState">{t('No active admin roles.')}</p> : rolesPage.documents.map(doc => {
             const role = doc.data();
             return <div className="dataRow user" key={doc.id}>
               <span><b>{String(role.email ?? role.user_id)}</b><small>{String(role.user_id)}</small></span>
               <span>{String(role.role_key)}</span>
-              <span>{new Date(iso(role.created_at ?? role.granted_at)).toLocaleDateString('en-US')}</span><span />
+              <span>{new Date(iso(role.created_at ?? role.granted_at)).toLocaleDateString(locale)}</span><span />
               <AdminDecision endpoint={`/api/admin/v1/roles/${doc.id}/revoke`} actions={[{ label: 'Revoke', body: {}, className: 'dangerButton' }]} />
             </div>;
           })}

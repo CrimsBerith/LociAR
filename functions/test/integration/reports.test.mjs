@@ -48,8 +48,16 @@ test('comment and user targets are read on the server, never supplied by the rep
 test('minute quotas are transaction-safe while duplicate reports remain available at the limit', async () => {
   const f = await fixture(), ids = Array.from({ length: 8 }, () => randomUUID());
   for (const id of ids) await adminDb.collection('posts').doc(id).set({ creator_id: f.author.luid, status: 'active', visibility: 'public', age_rating: 'all' });
+  // This is a fixed UTC-minute quota. A batch straddling :00 may legitimately
+  // admit more than five reports across two windows; reserve half a minute.
+  const remaining = 60_000 - Date.now() % 60_000;
+  if (remaining < 30_000) await new Promise(resolve => setTimeout(resolve, remaining + 50));
+  const window = Math.floor(Date.now() / 60_000);
   const responses = await Promise.allSettled(ids.map(targetId => f.viewer.call('submitReport', { ...f.report, targetId })));
+  assert.equal(Math.floor(Date.now() / 60_000), window, 'the quota batch must exercise one minute window');
   assert.equal(responses.filter(r => r.status === 'fulfilled').length, 5);
+  const quota = (await adminDb.collection('report_quota').doc(f.viewer.luid).get()).get('minute');
+  assert.deepEqual(quota, { window, count: 5 });
   for (const error of responses.filter(r => r.status === 'rejected')) assert.equal(error.reason.code, 'functions/resource-exhausted');
   const accepted = responses.findIndex(r => r.status === 'fulfilled');
   assert.equal((await f.viewer.call('submitReport', { ...f.report, targetId: ids[accepted] })).alreadyReported, true);

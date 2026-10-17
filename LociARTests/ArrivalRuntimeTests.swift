@@ -1,4 +1,6 @@
 import CoreLocation
+import AVFoundation
+import UIKit
 import XCTest
 @testable import LociAR
 
@@ -16,6 +18,33 @@ private final class ForegroundHeadingStub: CLHeading {
 }
 
 final class ArrivalRuntimeTests: XCTestCase {
+    @MainActor
+    func testPhysicalCameraFramesResumeAcrossNewPinSessions() async throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek AR kamera kareleri fiziksel iPhone gerektirir.")
+#else
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
+            throw XCTSkip("Fiziksel kamera kabulü için kamera izni önceden verilmiş olmalı.")
+        }
+        let engine = ARPinningEngine()
+        let host = UIView(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        engine.registerARViewHost(host)
+        let view = try XCTUnwrap(engine.existingARView)
+        defer { engine.stopSession(); engine.unregisterARViewHost(host) }
+        for cycle in 1...3 {
+            let ready = await engine.prepareNewPinSession()
+            XCTAssertTrue(ready, "Camera did not deliver a frame in pin session \(cycle)")
+            guard ready else { return }
+            XCTAssertTrue(engine.hasRecentCameraFrame)
+            XCTAssertNotNil(engine.currentCameraTransform)
+            XCTAssertTrue(engine.existingARView === view)
+            engine.stopSession()
+            XCTAssertFalse(engine.hasRecentCameraFrame)
+            XCTAssertEqual(engine.state, .idle)
+        }
+#endif
+    }
+
     @MainActor
     func testPhysicalGPSStreamStopsAndRestartsWithNewMeasurements() async throws {
 #if targetEnvironment(simulator)

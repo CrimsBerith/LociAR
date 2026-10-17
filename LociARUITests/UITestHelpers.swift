@@ -11,7 +11,12 @@ extension AuthGateUITests {
     func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 4) {
         for _ in 0..<maxSwipes {
             if element.exists && element.isHittable { return }
-            app.swipeUp()
+            // Full-screen flings can skip a short row entirely on an iPhone SE.
+            // Use bounded drags and recover upward if the row has passed the viewport.
+            let above = element.exists && element.frame.maxY > 0 && element.frame.maxY < app.frame.minY + 100
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.42 : 0.72))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.72 : 0.42))
+            start.press(forDuration: 0.05, thenDragTo: end)
         }
     }
 
@@ -242,7 +247,13 @@ extension AuthGateUITests {
     func dismissKeyboard(_ app: XCUIApplication) {
         guard app.keyboards.element.exists else { return }
         if app.buttons["keyboard-done-button"].exists {
-            app.buttons["keyboard-done-button"].tap()
+            let done = app.buttons["keyboard-done-button"]
+            let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: done)
+            let readiness = XCTWaiter.wait(for: [ready], timeout: 5)
+            if readiness != .completed { capture(app, name: "keyboard-done-not-hittable") }
+            XCTAssertEqual(readiness, .completed, "Klavye kapatma düğmesi dokunulabilir olmalı.")
+            done.tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5), "Bitti klavyeyi kapatmalı.")
         } else if app.navigationBars["İçerik oluştur"].exists {
             app.navigationBars["İçerik oluştur"].tap()
         } else if app.buttons["create-publish"].exists {

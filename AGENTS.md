@@ -44,10 +44,11 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   Authorization is keyless via the `getArcoreToken` callable; never ship an ARCore API key. Anchors are deleted
   with the post/account (`functions/src/arcoreManagement.ts`). The Google sensor-data notice
   (`ARCoreDisclosure.swift`) must stay on every AR screen. No Android.
-- Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + TOTP MFA + static RBAC), deployed on
+- Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + static RBAC), deployed on
   **Firebase App Hosting** (`admin/apphosting.yaml`, backend `lociar-admin`). It also serves the public
   `/privacy`, `/terms`, `/support` pages the iOS app links to. Everything runs on Firebase: no Docker, no Vercel,
   no Supabase. On App Hosting the Admin SDK uses the backend's service account; no key file.
+- **Admin sign-in** (owner decision, 16 Oct 2026): six-digit single-use email code via a server-only Resend sender; QR/TOTP is not required for this path. Ten-minute codes, five guesses, resend limits, eight-hour opaque sessions, live role/account checks and audit logging are mandatory. Email-only sessions must never be called MFA/AAL2. The previous Firebase email-link/TOTP path remains available. See `docs/ADMIN_EMAIL_CODE.md`; `ADMIN_EMAIL_API_KEY` stays in Secret Manager.
 - **Push notifications:** Enabled via APNs & FirebaseMessaging (`NotificationService.swift`, `LociAR.entitlements` `aps-environment`).
   Tokens go through the `registerPushToken` / `unregisterPushToken` callables (server-only `push_tokens`, keyed by
   installation id); `onActivityCreated` (`functions/src/push.ts`) sends texts localized on the server (`pushPolicy.ts`).

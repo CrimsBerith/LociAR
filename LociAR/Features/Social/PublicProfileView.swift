@@ -27,7 +27,7 @@ struct PublicProfileView: View {
                 VStack(spacing: 14) {
                     LociAvatar(handle: profile?.handle ?? user.handle, avatarURL: isBlocked ? nil : profile?.avatarURL, size: 78)
                     VStack(spacing: 5) {
-                        Text("@\(profile?.handle ?? user.handle)").font(.title2.bold())
+                        Text(verbatim: "@\(profile?.handle ?? user.handle)").font(.title2.bold())
                         if let bio = profile?.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center) }
                     }
                     HStack(spacing: 22) {
@@ -169,7 +169,7 @@ struct PublicProfileView: View {
     }
 
     private func profileMetric(value: Int, label: String) -> some View {
-        VStack(spacing: 2) { Text("\(value)").font(.headline); Text(label.localizedUI).font(.caption).foregroundStyle(.secondary) }
+        VStack(spacing: 2) { Text(value, format: .number).font(.headline); Text(label.localizedUI).font(.caption).foregroundStyle(.secondary) }
     }
 }
 

@@ -15,7 +15,16 @@ final class PlaceNoteClient {
         let userId: String; let clientMutationId: String; let lat: Double; let lng: Double
         let source: Source; let accuracy: Double; let measuredLat: Double?; let measuredLng: Double?; let text: String
     }
-    struct Response: Decodable { let publishStatus: PostStatus }
+    struct Response: Decodable {
+        let publishStatus: PostStatus
+        var confirmationMessage: String {
+            switch publishStatus {
+            case .active: String(localized: "Notun yayınlandı. Haritada görünüyor.")
+            case .pendingReview: String(localized: "Post gönderildi ve incelemeye alındı. Durumu Profil > Postlarım'dan takip edebilirsin.")
+            default: String(localized: "Post bulunamadı ya da zaten kaldırılmış.")
+            }
+        }
+    }
 
     func create(at pin: CLLocationCoordinate2D, source: Source, measured: LocationEstimate, text: String, mutation: UUID, user: UUID) async throws -> Response {
         guard let callables, FirebaseIdentity.currentLUID() == user else { throw AuthFlowError.notSignedIn }
@@ -147,8 +156,11 @@ struct PlaceNoteComposer: View {
     @State private var waiting = false
     @State private var message: String?
     @State private var submitted = false
+    @FocusState private var isTextFocused: Bool
 
     private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+    // Match createPlaceNote/validateCreatePostBody and the AR composer, including emoji.
+    private var textLength: Int { trimmed.utf16.count }
     private var dragDistance: CLLocationDistance? {
         guard let manualPin, let estimate = measurement.estimate else { return nil }
         return CLLocation(latitude: manualPin.latitude, longitude: manualPin.longitude).distance(from: estimate.location)
@@ -171,8 +183,11 @@ struct PlaceNoteComposer: View {
                         Button("Konumuma dön", systemImage: "location.fill") { manualPin = nil; follow(measurement.estimate) }
                     }
                 }
+                .disabled(busy || submitted)
                 Section {
                     TextField("Bu konum için notun", text: $text, axis: .vertical).lineLimit(3...6)
+                        .focused($isTextFocused)
+                        .accessibilityIdentifier("place-note-text")
                         .onChange(of: text) { _, _ in mutation = UUID() }
                     Text("En fazla 220 karakter.").font(.caption).foregroundStyle(.secondary)
                     Text("Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir.")
@@ -181,16 +196,33 @@ struct PlaceNoteComposer: View {
                         if waiting { Label("Konum netleşiyor…", systemImage: "location.circle") }
                         else { Label("Burada yayınla", systemImage: "mappin.and.ellipse") }
                     }
-                    .disabled(busy || submitted || trimmed.isEmpty || text.count > 220 || measurement.denied)
+                    .disabled(busy || submitted || trimmed.isEmpty || textLength > 220 || measurement.denied)
                     .accessibilityIdentifier("place-note-publish")
                 }
-                if let message { Text(message).font(.caption).foregroundStyle(.secondary) }
+                .disabled(busy || submitted)
                 if busy && !waiting { ProgressView() }
             }
-            .disabled(submitted)
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if let message {
+                    Text(message).font(.caption).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding().background(.regularMaterial)
+                        .accessibilityIdentifier("place-note-status")
+                }
+            }
             .navigationTitle("Konum notu bırak")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } } }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() }.disabled(busy) }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Bitti") { isTextFocused = false }
+                        .accessibilityIdentifier("keyboard-done-button")
+                }
+            }
         }
+        .interactiveDismissDisabled(busy)
         .fullScreenCover(isPresented: $showCameraRefine) {
             CameraLocationRefineView { fix in
                 cameraFix = fix
@@ -231,6 +263,7 @@ struct PlaceNoteComposer: View {
             }
         }
         .frame(height: 260)
+        .allowsHitTesting(!busy && !submitted)
         .listRowInsets(EdgeInsets())
         .accessibilityLabel("Not konumu haritası")
     }
@@ -258,7 +291,7 @@ struct PlaceNoteComposer: View {
         } else {
             Text("Konum aranıyor. Açık bir alanda kısa süre bekleyin.").font(.caption).foregroundStyle(.secondary)
         }
-        if measurement.reducedAccuracy {
+        if measurement.reducedAccuracy && !measurement.denied {
             Text("Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.")
                 .font(.caption).foregroundStyle(.orange)
         }
@@ -277,7 +310,9 @@ struct PlaceNoteComposer: View {
     }
 
     private func publish() async {
+        guard !busy, !submitted, !trimmed.isEmpty, textLength <= 220, !measurement.denied else { return }
         guard case let .signedIn(user) = session.phase, !session.isLocalPreview else { return }
+        isTextFocused = false
         busy = true; message = nil
         defer { busy = false; waiting = false }
         measurement.refreshEstimate()
@@ -324,10 +359,10 @@ struct PlaceNoteComposer: View {
 
     private func submit(pin: CLLocationCoordinate2D, source: PlaceNoteClient.Source, measured: LocationEstimate, user: UUID) async {
         do {
-            _ = try await PlaceNoteClient.shared.create(at: pin, source: source, measured: measured, text: trimmed, mutation: mutation, user: user)
+            let response = try await PlaceNoteClient.shared.create(at: pin, source: source, measured: measured, text: trimmed, mutation: mutation, user: user)
             submitted = true
             measurement.stop()
-            message = String(localized: "Notun yayınlandı. Haritada görünüyor.")
+            message = response.confirmationMessage
         } catch { message = error.localizedDescription }
     }
 }

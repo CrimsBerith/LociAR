@@ -39,6 +39,16 @@ beforeEach(async () => {
 
 const as = (luid) => env.authenticatedContext(`uid-${luid}`, { luid }).firestore();
 
+test('email login challenges, sessions and rate limits are denied to every client, including claimed admins', async () => {
+  for (const name of ['admin_email_challenges', 'admin_email_sessions', 'admin_email_limits']) {
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), name, 'private'), { owner_uid: `uid-${ALICE}` }));
+    for (const db of [env.unauthenticatedContext().firestore(), as(ALICE), env.authenticatedContext('claimed-admin', { luid: ALICE, admin: true, role: 'super_admin' }).firestore()]) {
+      await assertFails(getDoc(doc(db, name, 'private')));
+      await assertFails(setDoc(doc(db, name, 'forged'), { owner_uid: `uid-${ALICE}` }));
+    }
+  }
+});
+
 test('location-note fields do not change post access or interactions', async () => {
   const db = as(ALICE);
   await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { note_kind: 'location', notify_radius_m: 20, push_state: 'approved' }));

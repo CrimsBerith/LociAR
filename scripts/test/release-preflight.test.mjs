@@ -35,6 +35,22 @@ test('an audit failure prevents emulator acceptance and deployment', () => {
   assert.equal(called.some(args => args.includes('test:rules')), false);
 });
 
+test('isolated location-note acceptance is mandatory and incomplete evidence stops release', () => {
+  const steps = releaseSteps();
+  const index = steps.findIndex(step => step.args.includes('test:notes'));
+  assert.ok(index > steps.findIndex(step => step.args.includes('test:emulator')));
+  assert.equal(steps[index].testSummary, 'node');
+  for (const result of [{ status: 17 }, { status: 0, stdout: '' }]) {
+    const called = [];
+    assert.throws(() => runSteps(steps, { onStep() {}, onOutput() {}, runner(command, args) {
+      called.push(args);
+      return args.includes('test:notes') ? result : { status: 0, stdout: completeNode };
+    } }));
+    assert.equal(called.at(-1).includes('test:notes'), true);
+    assert.equal(called.some(args => args.includes('build:ci')), false);
+  }
+});
+
 test('dry run validates but never selects live credentials or calls Firebase', () => {
   let checked = 0;
   deploy({ dryRun: true, env: { OIC_MANIFEST_PATH: '/must-not-read' }, validate() { checked++; }, runner() { throw new Error('Live call'); } });

@@ -1,7 +1,7 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
-import type { AdminContext } from './admin';
+import { verifiedAdminSession, type AdminContext } from './admin-session';
 import { adminDb } from './firebase-admin';
 import { requireActorAccountActive, requireTargetAccountActive, writeAudit } from './ops';
 import { ValidationError, requiredString, uuid } from './validation';
@@ -9,7 +9,7 @@ import { permissionsFor } from './rbac';
 
 export async function readPrivateUserContext(admin: AdminContext, rawLuid: string, kind: 'location' | 'telemetry', rawReason: string) {
   const permission = kind === 'location' ? 'users.location.read' : 'users.telemetry.read';
-  if (admin.assuranceLevel !== 'aal2' || !admin.permissions.has(permission)) {
+  if (!verifiedAdminSession(admin) || !admin.permissions.has(permission)) {
     const error = new ValidationError('Private data access denied'); error.status = 403; throw error;
   }
   const luid = uuid(rawLuid, 'luid').toLowerCase(), reason = requiredString(rawReason, 'reason', 8, 1000);

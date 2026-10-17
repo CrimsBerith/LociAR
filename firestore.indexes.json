@@ -395,6 +395,24 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "admin_email_challenges",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "admin_email_sessions",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "admin_email_limits",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "posts",
       "fieldPath": "edit_data_json",
       "indexes": []

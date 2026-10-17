@@ -1,7 +1,38 @@
 import XCTest
+import UIKit
 @testable import LociAR
 
 final class PinStateMachineTests: XCTestCase {
+    @MainActor
+    func testEngineStartupAndCleanupDoNotInitializeRealityKit() {
+        let engine = ARPinningEngine()
+        XCTAssertNil(engine.existingARView)
+        XCTAssertNil(engine.currentCameraTransform)
+        engine.stopSession()
+        engine.unregisterARViewHost(UIView())
+        XCTAssertNil(engine.existingARView, "Non-AR screens and cleanup must not compile Metal pipelines")
+        XCTAssertEqual(engine.state, .idle)
+    }
+
+    @MainActor
+    func testFirstARHostInitializesOneViewAndLaterHostsReuseIt() throws {
+        let engine = ARPinningEngine()
+        let first = UIView(), second = UIView()
+        engine.registerARViewHost(first)
+        let view = try XCTUnwrap(engine.existingARView)
+        XCTAssertTrue(view.superview === first)
+        XCTAssertTrue(view.session.delegate === engine)
+        engine.registerARViewHost(second)
+        XCTAssertTrue(engine.arView === view)
+        XCTAssertTrue(view.superview === second)
+        engine.unregisterARViewHost(first)
+        XCTAssertTrue(view.superview === second)
+        engine.unregisterARViewHost(second)
+        XCTAssertNil(view.superview)
+        engine.stopSession()
+        XCTAssertTrue(engine.existingARView === view)
+    }
+
     func testPhysicalPinPath() {
         let path: [PinSessionState] = [.idle, .initializing, .coaching, .scanning, .candidateReady, .placing, .placed, .mapping, .publishReady]
         for pair in zip(path, path.dropFirst()) {

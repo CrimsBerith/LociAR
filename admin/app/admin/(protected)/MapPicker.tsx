@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { metersPerPixel, project, TILE, unproject, type LatLng } from '../../../lib/map-tiles';
+import { useT } from '../I18nProvider';
 
 /**
  * Small OpenStreetMap picker without a map library: raster tiles (Web Mercator) plus an SVG
@@ -20,6 +21,7 @@ const round = (v: number) => Math.round(v * 1e6) / 1e6;
 export default function MapPicker({ center, zoom = 17, shapes = [], onPick, label, hint }: {
   center: LatLng; zoom?: number; shapes?: MapShape[]; onPick: (point: LatLng) => void; label: string; hint?: string;
 }) {
+  const t = useT();
   const [view, setView] = useState({ ...center, zoom });
   const [width, setWidth] = useState(640);
   const box = useRef<HTMLDivElement>(null), press = useRef<{ x: number; y: number; moved: boolean } | null>(null);
@@ -86,7 +88,7 @@ export default function MapPicker({ center, zoom = 17, shapes = [], onPick, labe
 
   const mpp = metersPerPixel(view.lat, z);
   return <div className="mapPicker">
-    <div ref={box} className="mapPickerCanvas" style={{ height }} tabIndex={0} role="application" aria-label={`${label}. Arrow keys pan, plus and minus zoom, Enter picks the map centre.`}
+    <div ref={box} className="mapPickerCanvas" style={{ height }} tabIndex={0} role="application" aria-label={`${label}. ${t('Arrow keys pan, plus and minus zoom, Enter picks the map centre.')}`}
       onPointerDown={pointer} onPointerMove={pointer} onPointerUp={pointer} onPointerCancel={pointer} onKeyDown={key}>
       {tiles.map(t => <img key={t.key} src={t.src} alt="" draggable={false} referrerPolicy="strict-origin-when-cross-origin" style={{ left: t.x, top: t.y }}/>)}
       <svg width={width} height={height} aria-hidden="true">
@@ -105,10 +107,10 @@ export default function MapPicker({ center, zoom = 17, shapes = [], onPick, labe
         <path d={`M${width / 2 - 8} ${height / 2}h16M${width / 2} ${height / 2 - 8}v16`} stroke="#111" strokeOpacity={0.4} strokeWidth={1}/>
       </svg>
       <div className="mapPickerZoom">
-        <button type="button" aria-label="Zoom in" onClick={() => setView(v => ({ ...v, zoom: clampZoom(v.zoom + 1) }))}>+</button>
-        <button type="button" aria-label="Zoom out" onClick={() => setView(v => ({ ...v, zoom: clampZoom(v.zoom - 1) }))}>−</button>
+        <button type="button" aria-label={t('Zoom in')} onClick={() => setView(v => ({ ...v, zoom: clampZoom(v.zoom + 1) }))}>+</button>
+        <button type="button" aria-label={t('Zoom out')} onClick={() => setView(v => ({ ...v, zoom: clampZoom(v.zoom - 1) }))}>−</button>
       </div>
-      <a className="mapPickerCredit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>
+      <a className="mapPickerCredit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© {t('OpenStreetMap contributors')}</a>
     </div>
     {hint ? <p className="muted">{hint}</p> : null}
   </div>;

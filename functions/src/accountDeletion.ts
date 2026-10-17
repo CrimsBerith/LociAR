@@ -152,6 +152,9 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
     for (const [collection, field] of byField) await deleteQuery(db.collection(collection).where(field, '==', luid));
     await deleteQuery(db.collection('admin_role_assignments').where('user_id', '==', job.uid));
     await deleteQuery(db.collection('admin_user_invites').where('invited_user_id', '==', job.uid));
+    for (const collection of ['admin_email_challenges', 'admin_email_sessions', 'admin_email_limits']) {
+      await deleteQuery(db.collection(collection).where('owner_uid', '==', job.uid));
+    }
     // Legacy ARCore quota buckets predate owner_luid but still have deterministic owner IDs.
     await deleteQuery(db.collection('arcore_token_quota').orderBy('__name__').startAt(`${luid}_`).endAt(`${luid}_\uf8ff`));
     for (;;) {

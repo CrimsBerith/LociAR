@@ -310,11 +310,12 @@ final class ArchitectureAndPublishTests: XCTestCase {
 
     func testSuccessfulPublishRemovesOwnedStagedMedia() async throws {
         let context = try makeContext()
-        let localURL = try await MediaAssetStore.stage(
-            data: Data(repeating: 0x42, count: 128),
-            id: UUID(),
-            isVideo: true
-        )
+        let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("LociARStagedMedia", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let localURL = root.appendingPathComponent("\(UUID().uuidString).mov")
+        try Data(repeating: 0x42, count: 128).write(to: localURL, options: .atomic)
+        defer { try? FileManager.default.removeItem(at: localURL) }
         var post = UITestFixtures.post
         post.contentSource = .video(localURL)
         let coordinator = PublishPostCoordinator(postRepository: PublishRepositoryStub(shouldFail: false))

@@ -3,12 +3,14 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMutationClient, mutationError } from '../../../lib/client-mutation';
+import { useT } from '../I18nProvider';
 
 type Action = { label: string; body: Record<string, unknown>; className?: string };
 
-/** Reason + buttons that retain an operation key while its outcome is unconfirmed. */
+/** Reason + buttons that retain an operation key while its outcome is unconfirmed. Labels are translated here. */
 export default function AdminDecision({ endpoint, actions }: { endpoint: string; actions: Action[] }) {
   const router = useRouter();
+  const t = useT();
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -19,12 +21,12 @@ export default function AdminDecision({ endpoint, actions }: { endpoint: string;
     setMessage('');
     try {
       const { response, result: payload } = await mutation.current.post(endpoint, { ...body, reason });
-      if (!response.ok) throw new Error(payload.error ?? 'Decision failed');
-      setMessage('Decision recorded in audit.');
+      if (!response.ok) throw new Error(payload.error ?? t('Decision failed'));
+      setMessage(t('Decision recorded in audit.'));
       mutation.current.clear();
       router.refresh();
     } catch (error) {
-      setMessage(mutationError(error));
+      setMessage(t(mutationError(error)));
     } finally {
       setBusy(false);
     }
@@ -32,13 +34,13 @@ export default function AdminDecision({ endpoint, actions }: { endpoint: string;
 
   return (
     <div className="decisionForm">
-      <input value={reason} onChange={event => setReason(event.target.value)} placeholder="Reason (minimum 8 characters)" aria-label="Decision reason" />
+      <input value={reason} onChange={event => setReason(event.target.value)} placeholder={t('Reason (minimum 8 characters)')} aria-label={t('Decision reason')} />
       <div className="buttonRow">
         {actions.map(action => (
-          <button key={action.label} type="button" className={action.className ?? ''} disabled={busy || reason.trim().length < 8} onClick={() => decide(action.body)}>{action.label}</button>
+          <button key={action.label} type="button" className={action.className ?? ''} disabled={busy || reason.trim().length < 8} onClick={() => decide(action.body)}>{t(action.label)}</button>
         ))}
       </div>
-      {message ? <small>{message}</small> : null}
+      {message ? <small role="status">{message}</small> : null}
     </div>
   );
 }

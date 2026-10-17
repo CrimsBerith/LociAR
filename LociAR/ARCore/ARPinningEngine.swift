@@ -36,7 +36,22 @@ final class ARPinningEngine: NSObject {
 
     private(set) var hasRecentCameraFrame = false
 
-    @ObservationIgnored let arView: ARView
+    @ObservationIgnored private(set) var existingARView: ARView?
+    /// RealityKit can compile Metal pipelines synchronously. Keep that work out of app startup.
+    var arView: ARView {
+        if let existingARView { return existingARView }
+        let view = ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)
+        view.renderOptions = [
+            .disableCameraGrain,
+            .disableMotionBlur,
+            .disableDepthOfField,
+            .disableHDR,
+            .disableAREnvironmentLighting,
+        ]
+        view.session.delegate = self
+        existingARView = view
+        return view
+    }
     @ObservationIgnored private var trackedRaycast: ARTrackedRaycast?
     @ObservationIgnored private var latestEstimatedResult: ARRaycastResult?
     @ObservationIgnored private var candidateSamples: [CandidateSample] = []
@@ -94,16 +109,7 @@ final class ARPinningEngine: NSObject {
     @ObservationIgnored var frameSink: (@MainActor (ARFrame) -> Void)?
 
     override init() {
-        arView = ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)
         super.init()
-        arView.renderOptions = [
-            .disableCameraGrain,
-            .disableMotionBlur,
-            .disableDepthOfField,
-            .disableHDR,
-            .disableAREnvironmentLighting,
-        ]
-        arView.session.delegate = self
         observeLifecycle()
     }
 
@@ -284,7 +290,7 @@ final class ARPinningEngine: NSObject {
         relocalizationTimeoutTask?.cancel()
         relocalizationTimeoutTask = nil
         relocalizationDeadline = nil
-        arView.session.pause()
+        existingARView?.session.pause()
         activeInitialWorldMap = nil
         lastFrameReceivedAt = nil
         hasRecentCameraFrame = false
@@ -334,7 +340,7 @@ final class ARPinningEngine: NSObject {
 
     func unregisterARViewHost(_ host: UIView) {
         arViewHosts.removeAll { $0.view == nil || $0.view === host }
-        if arView.superview === host { arView.removeFromSuperview() }
+        if existingARView?.superview === host { existingARView?.removeFromSuperview() }
         if let fallback = arViewHosts.reversed().compactMap(\.view).first(where: { $0.window != nil }) {
             activateARViewHost(fallback)
         }
@@ -414,7 +420,7 @@ final class ARPinningEngine: NSObject {
 
     /// Camera transform of the latest frame (what ARCore's hosting-quality estimate expects).
     var currentCameraTransform: simd_float4x4? {
-        arView.session.currentFrame?.camera.transform
+        existingARView?.session.currentFrame?.camera.transform
     }
 
     /// Shows a post at a transform found by ARCore (resolved Cloud Anchor or Geospatial pose).
@@ -846,8 +852,8 @@ final class ARPinningEngine: NSObject {
         let center = NotificationCenter.default
         notificationTokens.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.state != .idle else { return }
-                self.arView.session.pause()
+                guard let self, let view = self.existingARView, self.state != .idle else { return }
+                view.session.pause()
                 self.transition(to: .interrupted, message: String(localized: "Uygulama arka planda; AR oturumu duraklatıldı."))
             }
         })
@@ -862,9 +868,9 @@ final class ARPinningEngine: NSObject {
                 guard let self else { return }
                 if ProcessInfo.processInfo.thermalState == .critical {
                     // Nothing to pause (and nothing to resume later) when AR is not running.
-                    guard self.state != .idle else { return }
+                    guard let view = self.existingARView, self.state != .idle else { return }
                     self.pausedForThermalPressure = true
-                    self.arView.session.pause()
+                    view.session.pause()
                     self.transition(to: .interrupted, message: String(localized: "Cihaz sıcaklığı yüksek; AR geçici olarak duraklatıldı."))
                 } else if self.pausedForThermalPressure {
                     self.pausedForThermalPressure = false
@@ -1072,8 +1078,8 @@ final class ARPinningEngine: NSObject {
         gifLoopers.removeAll()
         for entity in anchorEntities.values { entity.removeFromParent() }
         anchorEntities.removeAll()
-        for anchor in arView.session.currentFrame?.anchors ?? [] where anchor.name?.hasPrefix("lociar_surface_") == true {
-            arView.session.remove(anchor: anchor)
+        for anchor in existingARView?.session.currentFrame?.anchors ?? [] where anchor.name?.hasPrefix("lociar_surface_") == true {
+            existingARView?.session.remove(anchor: anchor)
         }
         currentAnchor = nil
         isRelocalizedContentVisible = false

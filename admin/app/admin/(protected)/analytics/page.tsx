@@ -2,12 +2,14 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import PageNavigation from '../PageNavigation';
+import { getI18n } from '../../../../lib/i18n-server';
 import { pageCursors, readDocumentPage, textParameter, type DocumentPage, type SearchParameters } from '../../../../lib/pagination';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
   await requireAdmin({ permission: 'dashboard.read' });
+  const { t, locale } = await getI18n();
   const params = await searchParams;
   const requestedSince = textParameter(params.since, 10);
   const defaultSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -52,22 +54,22 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   return (
     <section className="page">
-      <div className="pageHeading"><div><p className="eyebrow">Measured behavior</p><h1>Analytics</h1></div><p className="muted">Real analytics_events only. Uncollected reliability metrics are not estimated.</p></div>
+      <div className="pageHeading"><div><p className="eyebrow">{t('Measured behavior')}</p><h1>{t('Analytics')}</h1></div><p className="muted">{t('Real analytics_events only. Uncollected reliability metrics are not estimated.')}</p></div>
       <section className="metricGrid">
-        <article className="metricCard"><span>Retained events</span><strong>{allTime.toLocaleString()}</strong></article>
-        <article className="metricCard"><span>Events in query window</span><strong>{windowCount.toLocaleString()}</strong><small>Since {sinceDate} UTC · exact server count</small></article>
-        <article className="metricCard"><span>Crash-free sessions</span><strong className="notInstrumented">Not instrumented</strong></article>
-        <article className="metricCard"><span>AR resolve success</span><strong className="notInstrumented">Not instrumented</strong></article>
+        <article className="metricCard"><span>{t('Retained events')}</span><strong>{allTime.toLocaleString()}</strong></article>
+        <article className="metricCard"><span>{t('Events in query window')}</span><strong>{windowCount.toLocaleString()}</strong><small>{t('Since {date} UTC · exact server count', { date: sinceDate })}</small></article>
+        <article className="metricCard"><span>{t('Crash-free sessions')}</span><strong className="notInstrumented">{t('Not instrumented')}</strong></article>
+        <article className="metricCard"><span>{t('AR resolve success')}</span><strong className="notInstrumented">{t('Not instrumented')}</strong></article>
       </section>
       <section className="panel actionPanel">
-        <p className="readOnlyNotice">Event summaries for this batch of {events.length} records. Counts of known users and posts are distinct within this batch. Use Next records to inspect the entire query window.</p>
-        <div className="dataRow analytics header"><span>Event</span><span>Count</span><span>Known users / posts</span><span>Latest</span></div>
-        {failed ? <p className="emptyState">Analytics events could not be loaded.</p> : rows.length === 0 ? <p className="emptyState">No analytics events in the last 30 days.</p> : rows.map(([name, value]) => (
+        <p className="readOnlyNotice">{t('Event summaries for this batch of {count} records. Counts of known users and posts are distinct within this batch. Use Next records to inspect the entire query window.', { count: events.length })}</p>
+        <div className="dataRow analytics header"><span>{t('Event')}</span><span>{t('Count')}</span><span>{t('Known users / posts')}</span><span>{t('Latest')}</span></div>
+        {failed ? <p className="emptyState">{t('Analytics events could not be loaded.')}</p> : rows.length === 0 ? <p className="emptyState">{t('No analytics events since {date}.', { date: sinceDate })}</p> : rows.map(([name, value]) => (
           <div className="dataRow analytics" key={name}>
-            <span><b>{name}</b></span><span>{value.count.toLocaleString()}</span><span>{value.users.size} / {value.posts.size}</span><span>{new Date(value.latest).toLocaleString('en-US')}</span>
+            <span><b>{name}</b></span><span>{value.count.toLocaleString()}</span><span>{value.users.size} / {value.posts.size}</span><span>{new Date(value.latest).toLocaleString(locale)}</span>
           </div>
         ))}
-        {!failed ? <PageNavigation path="/admin/analytics" parameters={{ since: sinceDate }} next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/analytics">Return to the first page.</a></p>}
+        {!failed ? <PageNavigation path="/admin/analytics" parameters={{ since: sinceDate }} next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/analytics">{t('Return to the first page.')}</a></p>}
       </section>
     </section>
   );

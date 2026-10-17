@@ -99,7 +99,7 @@ struct PostPreviewView: View {
                     HStack(spacing: 10) {
                         LociAvatar(handle: creatorUser.handle, size: 36)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("@\(creatorUser.handle)").font(.subheadline.weight(.semibold))
+                            Text(verbatim: "@\(creatorUser.handle)").font(.subheadline.weight(.semibold))
                             Text("Profili görüntüle").font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -185,7 +185,7 @@ struct PostPreviewView: View {
                         HStack(alignment: .top, spacing: 10) {
                             LociAvatar(handle: comment.username, size: 34)
                             VStack(alignment: .leading, spacing: 4) {
-                                HStack { Text("@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary) }
+                                HStack { Text(verbatim: "@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary) }
                                 Text(comment.text).font(.subheadline)
                             }
                             Spacer(minLength: 0)
@@ -238,7 +238,7 @@ struct PostPreviewView: View {
                         .accessibilityIdentifier("comment-submit")
                     }
                     if commentText.count > 400 {
-                        Text("\(commentText.count)/500")
+                        Text(verbatim: "\(commentText.count.formatted())/500")
                             .font(.caption2)
                             .foregroundStyle(commentText.count > 500 ? .red : .secondary)
                     }

@@ -72,7 +72,11 @@ struct MapFeatureView: View {
             visibleRegion = context.region
             refreshLayer(for: context.region)
         }
-        .sheet(isPresented: $showPlaceNote) { PlaceNoteComposer(seed: location.recentLocations) }
+        .sheet(isPresented: $showPlaceNote, onDismiss: {
+            selection = nil
+            clusterFocus = nil
+            Task { await startAndLoad() }
+        }) { PlaceNoteComposer(seed: location.recentLocations) }
         .fullScreenCover(isPresented: $showCameraUnlock) {
             CameraLocationRefineView { fix in Task { await unlockHere(cameraFix: fix) } }
         }
@@ -249,11 +253,13 @@ struct MapFeatureView: View {
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
+                                        .frame(minHeight: 44)
                                         .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
                                     .accessibilityElement(children: .ignore)
                                     .accessibilityLabel(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
+                                    .accessibilityAddTraits(.isButton)
                                     .accessibilityIdentifier("map-open-\(post.caption)")
                                 }
                             }

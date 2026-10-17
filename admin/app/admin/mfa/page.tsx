@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { multiFactor, onAuthStateChanged, signOut, TotpMultiFactorGenerator, type TotpSecret, type User } from 'firebase/auth';
 import QRCode from 'qrcode';
 import { clientAuth } from '../../../lib/firebase-client';
+import { useT } from '../I18nProvider';
 
 async function endSession() {
   await fetch('/api/auth/signout', { method: 'POST', credentials: 'same-origin' });
@@ -11,11 +12,12 @@ async function endSession() {
 }
 
 export default function AdminMfa() {
+  const t = useT();
   const [user, setUser] = useState<User | null>(null);
   const [secret, setSecret] = useState<TotpSecret | null>(null);
   const [qr, setQr] = useState('');
   const [code, setCode] = useState('');
-  const [message, setMessage] = useState('Loading your security factors…');
+  const [message, setMessage] = useState(() => t('Loading your security factors…'));
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function AdminMfa() {
     try {
       auth = clientAuth();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Admin authentication is not configured.');
+      setMessage(error instanceof Error ? error.message : t('Admin authentication is not configured.'));
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (current) => {
@@ -36,7 +38,7 @@ export default function AdminMfa() {
       setUser(current);
       try {
         if (multiFactor(current).enrolledFactors.length > 0) {
-          setMessage('An authenticator is already enrolled. Sign in again and enter its code to continue.');
+          setMessage(t('An authenticator is already enrolled. Sign in again and enter its code to continue.'));
           return;
         }
         const session = await multiFactor(current).getSession();
@@ -45,9 +47,9 @@ export default function AdminMfa() {
         if (!active) return;
         setSecret(generated);
         setQr(await QRCode.toDataURL(uri, { margin: 1, width: 220 }));
-        setMessage('Scan the QR code with your authenticator app, then enter the six-digit code.');
+        setMessage(t('Scan the QR code with your authenticator app, then enter the six-digit code.'));
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : 'MFA setup failed.');
+        setMessage(error instanceof Error ? error.message : t('MFA setup failed.'));
       }
     });
     return () => { active = false; unsubscribe(); };
@@ -63,7 +65,7 @@ export default function AdminMfa() {
       await endSession();
       window.location.replace('/admin/login?reason=mfa_enrolled');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Verification failed.');
+      setMessage(error instanceof Error ? error.message : t('Verification failed.'));
       setBusy(false);
     }
   }
@@ -77,18 +79,18 @@ export default function AdminMfa() {
     <main id="main" tabIndex={-1} className="authPage">
       <section className="authCard">
         <div className="brandMark">L</div>
-        <p className="eyebrow">Required security step</p>
-        <h1>Multi-factor authentication</h1>
+        <p className="eyebrow">{t('Required security step')}</p>
+        <h1>{t('Multi-factor authentication')}</h1>
         <p className="muted">{message}</p>
-        {qr ? <img className="qrCode" src={qr} alt="Authenticator enrollment QR code" /> : null}
+        {qr ? <img className="qrCode" src={qr} alt={t('Authenticator enrollment QR code')} /> : null}
         {secret ? (
           <form onSubmit={verify} className="stack">
-            <label htmlFor="totp">Authenticator code</label>
+            <label htmlFor="totp">{t('Authenticator code')}</label>
             <input id="totp" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event => setCode(event.target.value)} required autoComplete="one-time-code" />
-            <button type="submit" disabled={busy}>{busy ? 'Verifying…' : 'Verify and continue'}</button>
+            <button type="submit" disabled={busy}>{busy ? t('Verifying…') : t('Verify and continue')}</button>
           </form>
         ) : (
-          <button type="button" onClick={restart}>Sign in again</button>
+          <button type="button" onClick={restart}>{t('Sign in again')}</button>
         )}
       </section>
     </main>
