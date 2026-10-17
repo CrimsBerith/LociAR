@@ -119,11 +119,6 @@ test('profiles need a session and follow edges are readable only by the people t
   await assertFails(getDoc(doc(as(DAVE), 'follows', `${ALICE}_${BOB}`)));
   await assertFails(getDocs(query(collection(as(DAVE), 'follows'), where('following_id', '==', BOB))));
 });
-  });
-  await assertFails(getDoc(doc(as(ALICE), 'anonymous_blocks', `${ALICE}_${BOB}`)));
-  await assertFails(setDoc(doc(as(ALICE), 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() }));
-  await assertFails(setDoc(doc(as(BOB), 'anonymous_blocks', `${ALICE}_${BOB}`), { blocker_id: BOB, blocked_id: ALICE }));
-});
 
 test('anyone reads active public posts; pending only by creator', async () => {
   const anon = env.unauthenticatedContext().firestore();
