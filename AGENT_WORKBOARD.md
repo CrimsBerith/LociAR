@@ -4,6 +4,9 @@ Güncelleme: 10 Ekim 2026. Güncel kapsam native iOS + Firebase + Next.js App Ho
 Önceki çalışma panosu Git geçmişinde korunur; geçmiş test sonuçları bu adayın yayın onayı değildir.
 
 Tek güncel yayın planı: [docs/release/RELEASE_READINESS.md](docs/release/RELEASE_READINESS.md).
+
+17 Ekim: anonimlik yan kanalları, misafir yayını (App Store 1.2), maliyet sınırları, admin adım yükseltmesi ve
+CI kapıları düzeltildi; ayrıntı ve yeni sahip kapıları RELEASE_READINESS.md "17 Ekim düzeltme paketi" bölümünde.
 Kod kuralları: [AGENTS.md](AGENTS.md). Test komutları: [docs/QA_MATRIX.md](docs/QA_MATRIX.md).
 
 10 Ekim: Mac'te 127 birim + 19 simülatör UI testi ve 19 kapılı backend/admin preflight geçti.

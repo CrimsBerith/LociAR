@@ -20,7 +20,7 @@ Notizen an echte Orte heften
 Hinterlasse kurze Nachrichten und GIFs auf echten Flächen und entdecke in AR, was andere in deiner Nähe hinterlassen haben – genau dort, wo es platziert wurde.
 ```
 
-## Description (1692/4000)
+## Description (1660/4000)
 
 ```text
 Hinterlasse Notizen an echten Orten.
@@ -31,7 +31,7 @@ FUNKTIONEN
 • An echte Flächen heften: Das Fadenkreuz in der Mitte rastet auf von ARKit erkannte Flächen ein; Google ARCore Cloud Anchors und Geospatial zeigen deinen Beitrag wieder an derselben Stelle.
 • In der Nähe entdecken: Sieh Beiträge um dich herum auf der Karte und öffne sie in AR.
 • Ortsnotizen: Hinterlasse einen Tipp genau dort, wo du stehst („WLAN-Passwort liegt an der Kasse“); die beliebtesten Notizen stehen oben, und mit Standortzugriff „Immer“ kann dich eine beliebte Notiz bei deiner Ankunft benachrichtigen.
-• Sozial: Liken, kommentieren, in Sammlungen speichern, Creatorn folgen und über Likes, Kommentare und neue Follower benachrichtigt werden.
+• Sozial: Liken, kommentieren, in Sammlungen speichern und über Likes und Kommentare benachrichtigt werden.
 • Sichere Community: AR-Beiträge werden vor der Veröffentlichung geprüft, Ortsnotizen werden automatisch gefiltert und nach Meldungen ausgeblendet, geschützte Orte und 18+-Inhalte sind gesperrt, und du kannst jeden melden oder blockieren.
 • Deine Daten, deine Wahl: Lösche dein Konto und alle zugehörigen Daten jederzeit dauerhaft im Profil.
 
@@ -47,8 +47,8 @@ Erfordert ein iPhone mit ARKit-Unterstützung.
 augmented reality,karte,kamera,sozial,notiz,fläche,entdecken,standort,pin,ort,gif
 ```
 
-## What's New in This Version (235/4000)
+## What's New in This Version (225/4000)
 
 ```text
-Erste Version: kurze Nachrichten und GIFs an echte Flächen heften, Ortsnotizen dort hinterlassen, wo du stehst, Notizen in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen, Follower und Mitteilungen. In 12 Sprachen.
+Erste Version: kurze Nachrichten und GIFs an echte Flächen heften, Ortsnotizen dort hinterlassen, wo du stehst, Notizen in der Nähe auf der Karte entdecken, dazu Likes, Kommentare, Sammlungen und Mitteilungen. In 12 Sprachen.
 ```

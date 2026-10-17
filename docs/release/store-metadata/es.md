@@ -20,7 +20,7 @@ Fija notas en lugares reales
 Deja mensajes cortos y GIF en superficies reales y descubre en AR lo que otros dejaron cerca, justo donde lo dejaron.
 ```
 
-## Description (1671/4000)
+## Description (1640/4000)
 
 ```text
 Deja notas en lugares reales.
@@ -31,7 +31,7 @@ FUNCIONES
 • Fija en superficies reales: la retícula central se ajusta a las superficies detectadas por ARKit; Google ARCore Cloud Anchors y Geospatial muestran tu publicación de nuevo en el mismo punto.
 • Descubre cerca: ve publicaciones a tu alrededor en el mapa y ábrelas en AR.
 • Notas de lugar: deja un consejo justo donde estás («La contraseña del Wi-Fi está en la caja»); las notas con más me gusta aparecen primero y, con acceso a la ubicación «Siempre», una nota con me gusta puede avisarte al llegar.
-• Social: da me gusta, comenta, guarda en colecciones, sigue a creadores y recibe avisos de me gusta, comentarios y seguidores.
+• Social: da me gusta, comenta, guarda en colecciones y recibe avisos de me gusta y comentarios.
 • Comunidad segura: las publicaciones AR se revisan antes de hacerse públicas, las notas de lugar se filtran automáticamente y se ocultan cuando se denuncian, los lugares protegidos y el contenido +18 están bloqueados, y puedes denunciar o bloquear a cualquiera.
 • Tus datos, tu decisión: elimina tu cuenta y todos sus datos de forma permanente desde tu perfil cuando quieras.
 
@@ -47,8 +47,8 @@ Requiere un iPhone compatible con ARKit.
 realidad aumentada,mapa,cámara,social,nota,superficie,descubrir,ubicación,lugar,gif
 ```
 
-## What's New in This Version (225/4000)
+## What's New in This Version (213/4000)
 
 ```text
-Primera versión: fija mensajes cortos y GIF en superficies reales, deja notas de lugar donde estás, descubre notas cercanas en el mapa, además de me gusta, comentarios, colecciones, seguidores y notificaciones. En 12 idiomas.
+Primera versión: fija mensajes cortos y GIF en superficies reales, deja notas de lugar donde estás, descubre notas cercanas en el mapa, además de me gusta, comentarios, colecciones y notificaciones. En 12 idiomas.
 ```

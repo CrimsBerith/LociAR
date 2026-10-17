@@ -20,7 +20,7 @@ Mekânsal Hikâyeler ve Paylaşım
 Kısa mesajlar ve GIF'ler bırak, gerçek yüzeylere sabitle; çevrende bırakılanları, bırakıldıkları yerde AR ile keşfet.
 ```
 
-## Description (1562/4000)
+## Description (1522/4000)
 
 ```text
 Gerçek dünyayı dijital hikâyelerle zenginleştirin.
@@ -31,7 +31,7 @@ LociAR, kısa mesajlarınızı ve GIF'lerinizi gerçek yüzeylere (masa, zemin, 
 • Gerçek yüzeye sabitle: Merkez nişangâh ARKit ile algılanan yüzeye kilitlenir; Google ARCore Cloud Anchors ve Geospatial gönderinizi aynı noktada yeniden gösterir.
 • Yakında keşfet: Çevrenizdeki gönderileri haritada görün, AR'da açın.
 • Konum notları: Tam bulunduğunuz noktaya ipucu bırakın ("Wi-Fi şifresi kasada"); en çok beğenilen notlar üstte görünür, Her Zaman konum izniyle beğenilen bir not oraya vardığınızda bildirim olarak gelebilir.
-• Sosyal: Beğenin, yorum yapın, koleksiyonlara kaydedin, içerik üreticilerini takip edin; beğeni, yorum ve takipler için bildirim alın.
+• Sosyal: Beğenin, yorum yapın, koleksiyonlara kaydedin; beğeni ve yorumlar için bildirim alın.
 • Güvenli topluluk: AR gönderileri yayından önce incelenir, konum notları otomatik filtrelenir ve şikâyet edilince gizlenir, korumalı bölgeler ve 18+ içerik engellenir, herkesi şikâyet edebilir veya engelleyebilirsiniz.
 • Verileriniz sizin: Hesabınızı ve tüm verilerinizi profilinizden istediğiniz an kalıcı olarak silebilirsiniz.
 
@@ -47,8 +47,8 @@ ARKit destekli bir iPhone gerektirir.
 artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,yüzey,keşfet,konum,gif
 ```
 
-## What's New in This Version (191/4000)
+## What's New in This Version (184/4000)
 
 ```text
-İlk sürüm: kısa mesajları ve GIF'leri gerçek yüzeylere sabitle, bulunduğun yere konum notu bırak, yakındaki notları haritada keşfet; beğeni, yorum, koleksiyon, takip ve bildirimler. 12 dilde.
+İlk sürüm: kısa mesajları ve GIF'leri gerçek yüzeylere sabitle, bulunduğun yere konum notu bırak, yakındaki notları haritada keşfet; beğeni, yorum, koleksiyon ve bildirimler. 12 dilde.
 ```

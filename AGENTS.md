@@ -33,6 +33,15 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 ## Product decisions
 
 - SMS auth is disabled unless the owner re-enables it.
+- **Publishing identity** (owner decision, 17 Oct 2026, App Store 1.2): guests (Firebase anonymous auth) browse, like,
+  report and block only. Posts, location notes and comments need a verified Apple or email identity
+  (`mayPublishAnonymously` in `functions/src/anonymous.ts`, `verifiedIdentity()` in `firestore.rules`); the app shows
+  `AccountRequiredView` instead of the composers. Do not describe the product as "anonymous chat" in store copy.
+- **Blocks and anonymous authorship** (17 Oct 2026): a profile block (`user_blocks`) affects attributed content,
+  comments and profiles only; "hide this author's notes" (`anonymous_blocks`) affects that author's anonymous notes
+  only, for the muting viewer only. Neither may change any other surface, rule decision or error, or comparing
+  results would reveal who wrote a note (`functions/src/visibility.ts`; rules `blockedOnPost`). Keep the
+  differential test in `functions/test/integration/anonymous.test.mjs` passing.
 - **iOS only.** Do not add Android, Expo, Metro, or React Native.
 - Mobile users cannot publish in protected zones; authorized admins may use a separately permissioned, reasoned zone exception (owner decision, 5 Oct 2026). 18+ content remains hard-blocked for everyone.
 - Admin delegated posts/comments identify the selected user publicly and record the acting admin separately in audit. New managed content identities have disabled, unverified Auth logins and no admin role. See `docs/release/ADMIN_CONTENT_OPERATIONS.md`.
@@ -48,7 +57,7 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   **Firebase App Hosting** (`admin/apphosting.yaml`, backend `lociar-admin`). It also serves the public
   `/privacy`, `/terms`, `/support` pages the iOS app links to. Everything runs on Firebase: no Docker, no Vercel,
   no Supabase. On App Hosting the Admin SDK uses the backend's service account; no key file.
-- **Admin sign-in** (owner decision, 16 Oct 2026): six-digit single-use email code via a server-only Resend sender; QR/TOTP is not required for this path. Ten-minute codes, five guesses, resend limits, eight-hour opaque sessions, live role/account checks and audit logging are mandatory. Email-only sessions must never be called MFA/AAL2. The previous Firebase email-link/TOTP path remains available. See `docs/ADMIN_EMAIL_CODE.md`; `ADMIN_EMAIL_API_KEY` stays in Secret Manager.
+- **Admin sign-in** (owner decision, 16 Oct 2026): six-digit single-use email code via a server-only Resend sender; QR/TOTP is not required for this path. Ten-minute codes, five guesses, resend limits, eight-hour opaque sessions, live role/account checks and audit logging are mandatory. Email-only sessions must never be called MFA/AAL2. The previous Firebase email-link/TOTP path remains available. Reading users' location or device/IP data, changing admin roles and exporting audit logs need an authenticator (AAL2) session even then (`STEP_UP_PERMISSIONS` in `admin/lib/rbac.ts`, owner decision 17 Oct 2026). See `docs/ADMIN_EMAIL_CODE.md`; `ADMIN_EMAIL_API_KEY` stays in Secret Manager.
 - **Push notifications:** Enabled via APNs & FirebaseMessaging (`NotificationService.swift`, `LociAR.entitlements` `aps-environment`).
   Tokens go through the `registerPushToken` / `unregisterPushToken` callables (server-only `push_tokens`, keyed by
   installation id); `onActivityCreated` (`functions/src/push.ts`) sends texts localized on the server (`pushPolicy.ts`).

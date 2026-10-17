@@ -5,7 +5,8 @@
 ## Güvenlik ve veri
 
 - Hesap ve mevcut yönetici rolü Firebase Auth/Firestore'dan doğrulanır; yeni hesap veya rol yaratılmaz. Bilinmeyen ve yetkisiz adreslere kod gönderilmez; HTTP başarı yanıtının biçimi aynıdır.
-- Kriptografik rastgele 6 hane, 10 dakika süre, 5 yanlış deneme, 60 saniye yeniden gönderim aralığı; adres başına UTC saatte en fazla 5 istek. Kaynak ve genel gönderim limitleri de vardır.
+- Kriptografik rastgele 6 hane, 10 dakika süre, 5 yanlış deneme, 60 saniye yeniden gönderim aralığı; adres ve ağ başına UTC saatte en fazla 5, adres başına toplam 20 istek (17 Ekim). Kaynak (30) ve genel (300) gönderim limitleri de vardır. İstemci adresi App Hosting'in `x-fah-client-ip` başlığından alınır; orada `X-Forwarded-For`'un son öğesi Google'ın ara sunucusudur.
+- **Adım yükseltme (17 Ekim, ürün sahibi onayı):** e-posta kodu oturumu kullanıcıların konum ve cihaz/IP verilerini okuyamaz, yönetici rollerini değiştiremez ve denetim kaydını dışa aktaramaz (`STEP_UP_PERMISSIONS`, `admin/lib/rbac.ts`). Kampanya kitle araması ve kampanyaya bağlı bildirimler de konum okuduğu için aynı kurala tabidir. Bu işlemler için eski bağlantı + Authenticator (TOTP) yoluyla giriş yapılır; panel gerekli olduğunda bunu söyler.
 - Kodun HMAC doğrulayıcısı Firestore'da, rastgele doğrulayıcı anahtar yalnız HttpOnly/Secure/SameSite Strict tarayıcı çerezindedir. Bu nedenle kod aynı tarayıcıdaki açık giriş ekranında kullanılır. Kod ve çerez birlikte tek kez tüketilir; eşzamanlı tekrar tek oturum yaratır. Yeni istek önceki kodu geçersiz kılar.
 - Gönderici isteği kabul etmeden kod etkinleşmez; gönderim hatası giriş açmaz. Kabul, posta kutusuna teslim kanıtı değildir.
 - 8 saatlik rastgele oturumun yalnız SHA-256 özeti Firestore'da tutulur. Aktif roller, Firebase hesabının silinmesi/devre dışı bırakılması, e-posta değişikliği, hesap silme çiti ve token iptal zamanı kontrol edilir. Çıkış yakalanmış çerezi de iptal eder.

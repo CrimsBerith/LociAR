@@ -1,8 +1,40 @@
 # Native iOS / Firebase yayın hazırlığı
 
-Güncelleme: **10 Ekim 2026**. Bu belge kapsamı ve açık yayın kapılarını tutar.
+Güncelleme: **17 Ekim 2026**. Bu belge kapsamı ve açık yayın kapılarını tutar.
 Yayın adayı henüz onaylı değildir. Aşağıdaki 5 Ekim test kayıtları tarihseldir;
 güncel kaynak, CI ve canlı metadata kanıtı ayrıca değerlendirilir.
+
+## 17 Ekim düzeltme paketi
+
+Kaynak: bağımsız derin tarama (Claude) ve aynı günkü `DEEP_SCAN_2026-10-17.md`.
+
+- **Anonimlik:** profil engeli (`user_blocks`) yalnız adıyla paylaşılan içeriği, yorumları ve profilleri;
+  anonim nottaki "bu yazarın notlarını gizle" (`anonymous_blocks`) yalnız o yazarın anonim notlarını ve yalnız
+  gizleyen kişi için etkiler (`functions/src/visibility.ts`). Kurallar, okuma callable'ları, not bildirimleri
+  ve push aynı kuralı uygular; `blockPostAuthor` dakikada 5, günde 30 ile sınırlı. Yazar kendi anonim notuna
+  yorum yazarken adının görüneceği uyarısını görür.
+- **Yayın kimliği (App Store 1.2):** misafirler gezer, beğenir, şikâyet eder ve engeller; post, konum notu ve
+  yorum doğrulanmış Apple/e-posta hesabı ister. Profiller oturum ister, takip kayıtlarını yalnız ilgili iki
+  hesap okur. App Review notları "anonymous" ile başlamıyor; hesap sorumluluğu ve sohbet olmadığı yazıyor.
+- **Maliyet:** `nearby` en çok 5 km ve 5.000 satır, kullanıcı başına hız sınırı; yoğunluk okuması hız sınırlı;
+  `reconcileNoteDensity` günlük; GIPHY bellek içi önbellek; otomatik gizlemede yalnız doğrulanmış şikâyetçiler,
+  popüler veya 30 günden eski postlarda iki kat eşik.
+- **Admin:** konum, cihaz/IP, rol değişikliği ve denetim dışa aktarımı Authenticator (TOTP) oturumu ister
+  (`STEP_UP_PERMISSIONS`); e-posta kodu kotası adres+ağ başına, istemci adresi `x-fah-client-ip`.
+- **CI kapıları:** gizli tarama fixture'ı, katalog çıkarıcısı ve public giriş testi düzeltildi.
+- **Depo:** GitHub deposu herkese açık; `LICENSE` Expo şablonunun MIT metni yerine "tüm hakları saklıdır"
+  oldu. Daha önce MIT metniyle yayımlanmış kopyalar o metne tabi kalabilir (hukuki değerlendirme önerilir).
+
+### 17 Ekim'de eklenen sahip kapıları
+
+| Kapı | Neden | Kapanma kanıtı |
+|---|---|---|
+| GIPHY production anahtarı | Beta anahtarı tüm uygulama için saatte ~100 çağrı | [Başvuru adımları](GIPHY_PRODUCTION_KEY.md); production anahtarıyla arama ve GIF'li yayın |
+| App Check debug token'ları | Canlı projede "Codex Mac simulator 2026-10-16" ve "Simulator LociAR Notes Max" kayıtlı; token'ı bilen App Check'i atlar | Yayından hemen önce Firebase Console → App Check → Manage debug tokens listesinin boş olması |
+| Destek adresi ve alan adı | `support@lociar.app` KVKK iletişimi, destek sayfası ve review notlarında; `lociar.app` işi ertelenmişti | Alan adı sahipliği, MX kaydı ve bu adrese gönderilen test e-postasının ulaşması; Resend'de doğrulanmış gönderici alan adı |
+| Authenticator (TOTP) | Konum/IP okuma, rol ve denetim dışa aktarımı artık TOTP ister | Sahibin eski bağlantı + Authenticator yoluyla giriş yapıp bir kullanıcı bağlamını okuyabilmesi |
+| ABD/Texas yaş doğrulama (SB 2420) | 4 Haziran 2026'dan beri yürürlükte; uygulama "Global" | Hukuki karar: ABD'yi ilk sürümde dışarıda bırakmak ya da Declared Age Range API uyarlaması |
+| KVKK m.9 yurt dışı aktarım | Veriler ABD'de; gizlilik sayfası "uygun güvenceler" diyor | Standart sözleşmenin imzalanıp Kurum'a bildirildiğinin hukuki teyidi |
 
 ## 10 Ekim düzeltme paketi
 
