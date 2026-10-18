@@ -26,7 +26,7 @@ export function densityLockCells(lat: number, lng: number): { center: string; ne
   for (const x of [-1, 0, 1]) for (const y of [-1, 0, 1]) for (const z of [-1, 0, 1]) {
     neighbors.push(id(cell[0] + x, cell[1] + y, cell[2] + z));
   }
-  return { center: id(cell[0], cell[1], cell[2]), neighbors: neighbors.sort() };
+  return { center: id(cell[0], cell[1], cell[2]), neighbors: neighbors.sort((a, b) => a.localeCompare(b, 'en')) };
 }
 
 /** Read before all writes in the admission transaction. Empty query results need this fence too. */

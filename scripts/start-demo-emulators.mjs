@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, existsSync, cpSync, copyFileSync, symlinkSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
 import { generateKeyPairSync } from 'node:crypto';
 
 const root = resolve(import.meta.dirname, '..');
@@ -12,12 +12,14 @@ if (process.argv.includes('--check')) {
 if (Number(process.versions.node.split('.')[0]) !== 22) throw new Error('Select Node 22 in PATH.');
 const env = { ...process.env };
 const jdk = ['/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home', '/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'].find(existsSync);
-if (jdk) { env.JAVA_HOME = jdk; env.PATH = join(jdk, 'bin') + ':' + env.PATH; }
-const run = (name, args, options = {}) => spawnSync('rtk', ['proxy', name, ...args], { env, encoding: 'utf8', ...options });
+if (jdk) env.JAVA_HOME = jdk;
+// Pin tools to this Node process, the selected JDK and system directories, never inherited PATH entries.
+env.PATH = [dirname(process.execPath), ...(jdk ? [join(jdk, 'bin')] : []), '/usr/bin', '/bin', '/usr/sbin', '/sbin'].join(':');
+const run = (executable, args, options = {}) => spawnSync(executable, args, { env, encoding: 'utf8', ...options });
 let host = process.env.LOCIAR_TEST_LAN_IP;
 for (const iface of ['en0', 'en1']) {
   if (host) break;
-  const r = run('ipconfig', ['getifaddr', iface]);
+  const r = run('/usr/sbin/ipconfig', ['getifaddr', iface]);
   if (r.status === 0) host = r.stdout.trim();
 }
 const ip = host?.split('.').map(Number);
@@ -26,13 +28,13 @@ if (!ip || ip.length !== 4 || ip.some(n => !Number.isInteger(n) || n < 0 || n > 
   throw new Error('Set LOCIAR_TEST_LAN_IP to a private LAN IPv4 address.');
 }
 for (const port of [9099, 8080, 9199, 5001, 4400, 4500, 9150]) {
-  const r = run('lsof', ['-t', '-nP', '-iTCP:' + port, '-sTCP:LISTEN']);
+  const r = run('/usr/sbin/lsof', ['-t', '-nP', '-iTCP:' + port, '-sTCP:LISTEN']);
   if (r.status === 0 && r.stdout.trim()) throw new Error('Port ' + port + ' is occupied; stop its owner before starting.');
   if (r.status !== 0 && r.status !== 1) throw new Error('Could not inspect port ' + port + '.');
 }
 if (!existsSync('functions/node_modules/.bin/firebase')) throw new Error('Install Functions dependencies with Node 22 first.');
-if (run('java', ['-version']).status !== 0) throw new Error('Java 21 is required.');
-if (run('npm', ['run', 'build'], { cwd: resolve('functions'), stdio: 'inherit' }).status !== 0) throw new Error('Functions build failed.');
+if (run(jdk ? join(jdk, 'bin/java') : '/usr/bin/java', ['-version']).status !== 0) throw new Error('Java 21 is required.');
+if (run(process.execPath, [resolve('functions/node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'], { cwd: resolve('functions'), stdio: 'inherit' }).status !== 0) throw new Error('Functions build failed.');
 mkdirSync('scripts/.e2e', { recursive: true });
 const out = mkdtempSync(resolve('scripts/.e2e/manual-demo-'));
 const frozen = join(out, 'functions'); mkdirSync(frozen);
@@ -57,7 +59,7 @@ console.log(['LOCIAR_EMULATOR_HOST=' + host, 'LOCIAR_FIREBASE_PROJECT_ID=demo-lo
   'LOCIAR_FIREBASE_STORAGE_BUCKET=demo-lociar.firebasestorage.app', 'LOCIAR_FIREBASE_API_KEY=AIza' + 'A'.repeat(35),
   'LOCIAR_FIREBASE_GOOGLE_APP_ID=1:123456789012:ios:abcdef0123456789', 'LOCIAR_FIREBASE_GCM_SENDER_ID=123456789012'].join('\n'));
 console.log('Set the app Run environment LOCIAR_DEMO_EMULATOR_HTTP=1. The phone and Mac must share Wi-Fi. Ctrl+C stops this backend.');
-const child = spawn('rtk', ['proxy', resolve('functions/node_modules/.bin/firebase'), 'emulators:start', '--project', 'demo-lociar', '--config', configFile, '--only', 'auth,firestore,storage,functions'], { env, stdio: 'inherit' });
+const child = spawn(process.execPath, [resolve('functions/node_modules/.bin/firebase'), 'emulators:start', '--project', 'demo-lociar', '--config', configFile, '--only', 'auth,firestore,storage,functions'], { env, stdio: 'inherit' });
 process.on('SIGINT', () => child.kill('SIGINT'));
 process.on('SIGTERM', () => child.kill('SIGTERM'));
 const code = await new Promise(r => child.once('exit', r));

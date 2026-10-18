@@ -64,14 +64,14 @@ export default function AdminLogin() {
     {!sent ? <form onSubmit={requestCode} className="stack">
       <label htmlFor="otp-email">{t('Email')}</label>
       <input id="otp-email" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} disabled={busy}/>
-      <button disabled={busy}>{busy ? t('Sending…') : t('Send sign-in code')}</button>
+      <button type="submit" disabled={busy}>{busy ? t('Sending…') : t('Send sign-in code')}</button>
     </form> : <>
       <p>{email}</p><p className="muted">{t('The code is valid for 10 minutes. Keep this page open in the browser where you requested the code.')}</p>
       <form onSubmit={verify} className="stack">
         <label htmlFor="email-code">{t('6-digit sign-in code')}</label>
         <input id="email-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6}
           required value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} disabled={busy}/>
-        <button disabled={busy || code.length !== 6}>{busy ? t('Checking…') : t('Sign in')}</button>
+        <button type="submit" disabled={busy || code.length !== 6}>{busy ? t('Checking…') : t('Sign in')}</button>
       </form>
       <button type="button" className="secondaryButton" onClick={() => requestCode()} disabled={busy || cooldown > 0}>
         {cooldown > 0 ? t('Resend in {seconds} seconds', { seconds: cooldown }) : t('Send a new code')}</button>

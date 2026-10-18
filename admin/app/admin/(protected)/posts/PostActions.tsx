@@ -72,11 +72,11 @@ export default function PostActions(props: Props) {
         <div className="popoverPanel">
           <div className="buttonRow">
             {props.deleted
-              ? <button disabled={busy} onClick={() => moderate('restore')}>{t('Restore')}</button>
+              ? <button type="button" disabled={busy} onClick={() => moderate('restore')}>{t('Restore')}</button>
               : <>
-                  {props.status !== 'active' ? <button disabled={busy} onClick={() => moderate('approve')}>{t('Approve')}</button> : null}
-                  <button disabled={busy} className="secondaryButton" onClick={() => moderate('flag')}>{t('Flag')}</button>
-                  <button disabled={busy} className="dangerButton" onClick={() => moderate('soft_delete')}>{t('Move to trash')}</button>
+                  {props.status !== 'active' ? <button type="button" disabled={busy} onClick={() => moderate('approve')}>{t('Approve')}</button> : null}
+                  <button type="button" disabled={busy} className="secondaryButton" onClick={() => moderate('flag')}>{t('Flag')}</button>
+                  <button type="button" disabled={busy} className="dangerButton" onClick={() => moderate('soft_delete')}>{t('Move to trash')}</button>
                 </>}
           </div>
           <form className="metricForm" onSubmit={setMetrics}>
@@ -84,7 +84,7 @@ export default function PostActions(props: Props) {
             <label>{t('Likes')}<input name="likes" type="number" min={0} step={1} defaultValue={props.likes} required /></label>
             <label>{t('Comments')}<input name="comments" type="number" min={0} step={1} defaultValue={props.comments} required /></label>
             <label className="wide">{t('Reason')}<input name="reason" minLength={8} maxLength={1000} required /></label>
-            <button disabled={busy}>{t('Set raw counters')}</button>
+            <button type="submit" disabled={busy}>{t('Set raw counters')}</button>
           </form>
           {message ? <p className="formMessage" role="status">{message}</p> : null}
         </div>

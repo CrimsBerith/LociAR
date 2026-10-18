@@ -12,5 +12,5 @@ export default function CommentForm({postId,commentId,initialAuthor='',initialTe
  {commentId?<small>{t('Author')}: {authorId}</small>:<AuthorPicker value={authorId} onChange={setAuthor}/>}
  <label>{t('Comment')}<textarea aria-label={t('Comment text')} value={text} onChange={e=>setText(e.target.value)} required minLength={1} maxLength={500}/></label>
  <label>{t('Reason')}<input aria-label={t('Comment reason')} value={reason} onChange={e=>setReason(e.target.value)} required minLength={8} maxLength={1000}/></label>
- <div className="buttonRow"><button disabled={busy||!authorId||reason.trim().length<8}>{commentId?t('Save comment'):t('Create comment')}</button>{commentId?<button type="button" className="dangerButton" disabled={busy||reason.trim().length<8} onClick={()=>submit('delete')}>{t('Delete comment')}</button>:null}</div>{message?<p role="status">{message}</p>:null}</form>;
+ <div className="buttonRow"><button type="submit" disabled={busy||!authorId||reason.trim().length<8}>{commentId?t('Save comment'):t('Create comment')}</button>{commentId?<button type="button" className="dangerButton" disabled={busy||reason.trim().length<8} onClick={()=>submit('delete')}>{t('Delete comment')}</button>:null}</div>{message?<p role="status">{message}</p>:null}</form>;
 }

@@ -41,6 +41,6 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  <label>{t('Age rating')}<select value={value.ageRating} onChange={e=>set('ageRating',e.target.value as ContentInput['ageRating'])}><option value="all">{t('All ages')}</option><option value="13_plus">13+</option><option value="16_plus">16+</option></select></label>
  <label>{t('Status')}<select value={value.status} onChange={e=>set('status',e.target.value as ContentInput['status'])}><option value="pending_review">{t('Pending review')}</option>{canPublish?<option value="active">{t('Publish active')}</option>:null}</select></label>
  <label>{t('Audit reason')}<textarea value={reason} onChange={e=>setReason(e.target.value)} required minLength={8} maxLength={1000}/></label></fieldset>
- <button disabled={busy||!value.authorId}>{busy?t('Saving…'):postId?t('Save changes'):t('Create post')}</button>{message?<p role="status">{message}</p>:null}
+ <button type="submit" disabled={busy||!value.authorId}>{busy?t('Saving…'):postId?t('Save changes'):t('Create post')}</button>{message?<p role="status">{message}</p>:null}
  </form>;
 }

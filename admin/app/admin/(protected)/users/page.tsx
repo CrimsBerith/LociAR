@@ -59,7 +59,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         <div className="panelHeader">
           <form method="get" className="inlineSearch">
             <input name="q" defaultValue={q} placeholder={t('Search by handle prefix')} aria-label={t('Search users by handle')} />
-            <button>{t('Search')}</button>
+            <button type="submit">{t('Search')}</button>
           </form>
         </div>
         {failed ? <p className="emptyState">{invalid ? <>{t('Invalid page link.')} <a href={`/admin/users?${new URLSearchParams({ q })}`}>{t('Return to the first page.')}</a></> : t('User data could not be loaded.')}</p> : (

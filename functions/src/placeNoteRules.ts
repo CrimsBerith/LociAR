@@ -202,7 +202,7 @@ export function geohashesInBox(box: Box, precision: number, limit: number): stri
   if (lats.length * lngs.length > 4 * limit) return null;
   const cells = new Set<string>();
   for (const lat of lats) for (const lng of lngs) cells.add(encodeGeohash(Math.min(lat, 90 - 1e-9), Math.min(lng, 180 - 1e-9), precision));
-  return cells.size > limit ? null : [...cells].sort();
+  return cells.size > limit ? null : [...cells].sort((a, b) => a.localeCompare(b, 'en'));
 }
 
 /** Coarsest-useful prefix set for range queries: the finest precision with at most `maxPrefixes` cells. */

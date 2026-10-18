@@ -18,7 +18,7 @@ export default function ManualNotificationForm({ recipientId }: { recipientId: s
   return <details><summary>{t('Send this user a notification')}</summary><form className="decisionForm" onSubmit={submit}>
     <p className="muted">{t("User must have enabled Notifications. This form is for administrator messages; send marketing offers through a campaign with separate campaign consent. Write in the recipient's language. No automatic translation.")}</p>
     <label>{t('Title')}<input name="title" required maxLength={80} /></label><label>{t('Message')}<textarea name="message" required maxLength={240} /></label>
-    <label>{t('Reason')}<input name="reason" required minLength={8} maxLength={1000} /></label><button disabled={busy}>{t('Queue notification')}</button>
+    <label>{t('Reason')}<input name="reason" required minLength={8} maxLength={1000} /></label><button type="submit" disabled={busy}>{t('Queue notification')}</button>
     {message ? <p role="status">{message}</p> : null}
   </form></details>;
 }

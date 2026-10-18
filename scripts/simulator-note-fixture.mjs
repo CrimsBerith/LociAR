@@ -28,13 +28,13 @@ const { queueNotification } = await import('../admin/lib/campaigns.ts');
 const { luidForUid } = requireFunctions('./lib/core.js');
 const { deliverAdminNotification } = requireFunctions('./lib/campaigns.js');
 const bundle = 'com.khankartal.lociar';
-const device = JSON.parse(execFileSync('xcrun', ['simctl', 'list', 'devices', '-j'], { encoding: 'utf8' }));
+const device = JSON.parse(execFileSync('/usr/bin/xcrun', ['simctl', 'list', 'devices', '-j'], { encoding: 'utf8' }));
 assert.ok(Object.values(device.devices).flat().some(d => d.udid === simulator && d.name.startsWith('LociAR Notes')));
 let point = { lat: 41.0082, lng: 28.9784 }, arrival, arrivalAuthor, adminJob, adminActor;
 let deletingAccount, deletingPosts;
 const adminDevice = randomUUID();
 const sends = [];
-const sim = (...args) => execFileSync('xcrun', ['simctl', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+const sim = (...args) => execFileSync('/usr/bin/xcrun', ['simctl', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 let sample = 0, locationPaused = false;
 function locate() {
   if (locationPaused) return;

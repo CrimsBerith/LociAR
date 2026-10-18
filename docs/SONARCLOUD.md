@@ -13,6 +13,8 @@ The failed task's scanner context already included the configured test/build exc
 
 With the owner's explicit approval, LociAR's Sonar visibility was changed to public, matching the existing public GitHub repository. Public lines do not consume the organization's private-line allowance. No subscription purchase, deletion of the other project, quality-gate relaxation, or production-source exclusion was needed.
 
+The first completed rerun then exposed a separate quality-gate failure: 18 reliability issues (15 implicit form-submit button types and three implicit string comparators) and four executable-search-path vulnerabilities in simulator/demo tooling. Fixes declare each button's intended action, use explicit English string comparators, and launch pinned Node/JDK/system executables without the inherited PATH or the `rtk` wrapper. Maintainability findings are separate from these reliability/security failures; the existing Sonar way gate stays unchanged.
+
 ## Diagnose before changing code
 
 1. Open **Administration > Background tasks > Menu > Show Error Details**. A background task failure is separate from a completed analysis whose quality gate fails.

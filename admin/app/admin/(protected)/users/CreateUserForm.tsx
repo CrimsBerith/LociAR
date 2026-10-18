@@ -12,5 +12,5 @@ export default function CreateUserForm(){
  return <section className="panel"><h2>{t('Create content user')}</h2><p className="muted">{t('Creates a managed profile with a disabled Firebase login. Email stays unverified and no admin role is granted.')}</p>
  <form onSubmit={submit} className="metricForm"><label>{t('Handle')}<input name="handle" required pattern="[a-z0-9_.]{3,30}" minLength={3} maxLength={30}/></label>
  <label>{t('Display name')}<input name="displayName" required maxLength={60}/></label><label>{t('Email (optional)')}<input name="email" type="email" maxLength={254}/></label>
- <label>{t('User creation reason')}<input name="reason" required minLength={8} maxLength={1000}/></label><button disabled={busy}>{t('Create user')}</button></form>{message?<p role="status">{message}</p>:null}</section>;
+ <label>{t('User creation reason')}<input name="reason" required minLength={8} maxLength={1000}/></label><button type="submit" disabled={busy}>{t('Create user')}</button></form>{message?<p role="status">{message}</p>:null}</section>;
 }

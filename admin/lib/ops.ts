@@ -565,7 +565,7 @@ export async function recordPersonalDataRead(actorId: string, resource: string, 
 export async function recordMfaEnrollment(uid: string, observedFactors: string[]) {
   const db = adminDb();
   const ref = db.collection('admin_mfa_state').doc(uid);
-  const factors = [...new Set(observedFactors)].sort();
+  const factors = [...new Set(observedFactors)].sort((a, b) => a.localeCompare(b, 'en'));
   const key = randomUUID();
   await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, uid);

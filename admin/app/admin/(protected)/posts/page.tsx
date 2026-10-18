@@ -48,7 +48,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
               <option value="flagged">{t('Flagged')}</option>
               <option value="trash">{t('Trash')}</option>
             </select>
-            <button>{t('Apply')}</button>
+            <button type="submit">{t('Apply')}</button>
           </form>
         </div>
         {term && !failed ? <p className="readOnlyNotice">{t('Caption matches in this batch of {count} records. Continue searching older records to scan the remaining posts.', { count: page.documents.length })}</p> : null}

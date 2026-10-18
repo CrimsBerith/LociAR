@@ -66,7 +66,7 @@ export default function InviteUserForm() {
               </select>
             </label>
             <label className="wide">{t('Reason')}<input name="reason" minLength={8} maxLength={1000} required placeholder={t('Why is this invitation needed?')} /></label>
-            <button disabled={busy}>{busy ? t('Sending…') : t('Send invitation')}</button>
+            <button type="submit" disabled={busy}>{busy ? t('Sending…') : t('Send invitation')}</button>
           </form>
           {message ? <p className="formMessage" role="status">{message}</p> : null}
         </section>

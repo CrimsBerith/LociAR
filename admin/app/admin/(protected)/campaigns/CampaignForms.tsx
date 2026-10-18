@@ -30,7 +30,7 @@ export default function CampaignForms({ brands, canBrand }: { brands: Array<{ id
       <label>{t('Editor membership')}<select name="memberState"><option value="active">{t('Grant editor')}</option><option value="revoked">{t('Revoke editor')}</option></select></label>
       <label>{t('Status')}<select name="status"><option value="active">{t('Active')}</option><option value="paused">{t('Paused')}</option></select></label>
       <label>{t('Reason')}<input name="reason" required minLength={8} maxLength={1000} /></label>
-      <button disabled={busy}>{t('Save brand')}</button>
+      <button type="submit" disabled={busy}>{t('Save brand')}</button>
     </form></details> : null}
     <details className="panel"><summary>{t('Create discount campaign')}</summary><form onSubmit={e => submit(e, 'create')} className="decisionForm">
       <label>{t('Brand')}<select name="brandId" required>{brands.length ? null : <option value="">{t('Register an active brand first')}</option>}{brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
@@ -53,7 +53,7 @@ export default function CampaignForms({ brands, canBrand }: { brands: Array<{ id
       <label>{t('Start (your local time)')}<input name="startsAt" type="datetime-local" required /></label>
       <label>{t('End (your local time)')}<input name="endsAt" type="datetime-local" required /></label>
       <label>{t('Reason')}<input name="reason" required minLength={8} maxLength={1000} /></label>
-      <button disabled={busy || !brands.length}>{t('Save draft')}</button>
+      <button type="submit" disabled={busy || !brands.length}>{t('Save draft')}</button>
     </form></details>
     {message ? <p role="status">{message}</p> : null}
   </>;
