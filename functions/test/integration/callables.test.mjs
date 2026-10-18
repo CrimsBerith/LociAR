@@ -84,15 +84,17 @@ test('createPost: text post goes live directly and replays idempotently', async 
 
 test('createPost: system/flags.post_review_required holds new posts for moderator review', async () => {
   const user = await newUser();
+  // Own spot: the shared default pose is close to the per-area density limit for later tests.
+  const pose = { latitude: -44.701, longitude: 169.132, heading: 0, accuracy: 5 };
   const flags = adminDb.collection('system').doc('flags');
   await flags.set({ post_review_required: true }, { merge: true });
   try {
-    const held = await user.call('createPost', postBody());
+    const held = await user.call('createPost', postBody({ pose }));
     assert.equal(held.publishStatus, 'pending_review');
   } finally {
     await flags.set({ post_review_required: false }, { merge: true });
   }
-  assert.equal((await user.call('createPost', postBody())).publishStatus, 'active');
+  assert.equal((await user.call('createPost', postBody({ pose }))).publishStatus, 'active');
 });
 
 test('createPost: only text is accepted, no photos and no links', async () => {
