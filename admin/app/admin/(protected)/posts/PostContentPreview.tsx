@@ -1,12 +1,13 @@
 import { giphyPreviewUrl, strokePolylines, summarizePostContent } from '../../../../lib/postContent';
 import { getI18n } from '../../../../lib/i18n-server';
+import { withStableKeys } from '../../../../lib/values';
 
 /** Read-only view of what a post actually contains, so drawings can be reviewed before approval. */
 export default async function PostContentPreview({ post }: Readonly<{ post: Record<string, unknown> }>) {
   const { texts, gifs, strokes, source } = summarizePostContent(post);
   const { t } = await getI18n();
   if (texts.length === 0 && gifs.length === 0 && strokes.length === 0 && !source?.url) return <p className="muted">{t('No stored content.')}</p>;
-  const lines = strokePolylines(strokes);
+  const lines = withStableKeys(strokePolylines(strokes), line => JSON.stringify([line.color, line.points]));
   return (
     <details>
       <summary>
@@ -14,8 +15,8 @@ export default async function PostContentPreview({ post }: Readonly<{ post: Reco
       </summary>
       {lines.length > 0 ? (
         <svg width={160} height={160} viewBox="0 0 160 160" role="img" aria-label={t('Drawing preview')} style={{ background: '#111820', borderRadius: 8, display: 'block', margin: '8px 0' }}>
-          {lines.map((line, i) => (
-            <polyline key={i} points={line.points} fill="none" stroke={line.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          {lines.map(({ key, value: line }) => (
+            <polyline key={key} points={line.points} fill="none" stroke={line.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
           ))}
         </svg>
       ) : null}
@@ -24,7 +25,7 @@ export default async function PostContentPreview({ post }: Readonly<{ post: Reco
         // eslint-disable-next-line @next/next/no-img-element -- GIPHY media, allowed by the admin CSP only.
         return src ? <img key={id} src={src} alt={`GIPHY GIF ${id}`} width={200} referrerPolicy="no-referrer" style={{ display: 'block', margin: '8px 0', borderRadius: 8 }} /> : null;
       })}
-      {texts.map((text, i) => <small key={i}>“{text}”</small>)}
+      {withStableKeys(texts, text => text).map(({ key, value: text }) => <small key={key}>“{text}”</small>)}
       {source?.url ? (
         <small>
           {t('Legacy link, no longer shown in the app')}: {source.platform}{source.title ? ` · ${source.title}` : ''}{source.author ? ` · ${source.author}` : ''}

@@ -190,19 +190,7 @@ async function recordPlaceNoteVisitHandler(request: CallableRequest) {
     if (deliveryId) {
       const previous = await tx.get(deliveryRef(caller.luid, deliveryId));
       if (previous.exists) {
-        if (previous.get('delivery_state') === 'queued') return { notify: false, reason: 'already_queued' };
-        if (!retryActive(previous, now)) return { notify: false, reason: 'delivery_expired' };
-        const postId = previous.get('post_id');
-        if (typeof postId === 'string') {
-          const post = await tx.get(db.collection('posts').doc(postId));
-          if (!(await readableNoteIds(tx, [post], caller.luid)).has(post.id) || !fixInsideNote(f, post.get('lat'), post.get('lng'), clampNotifyRadius(post.get('notify_radius_m')))) return { notify: false, reason: 'delivery_unavailable' };
-          return { ...await noteNotification(tx, post, caller.luid, now, Number(previous.get('total') ?? 1)), deliveryId };
-        }
-        const spot = await tx.get(db.collection('note_spots').doc(previous.get('spot'))), settings = await spotSettings(tx);
-        if (!spot.exists || Number(spot.get('count')) < settings.denseThreshold
-          || distanceMeters(f.lat, f.lng, spot.get('lat'), spot.get('lng')) > Number(spot.get('radius') ?? 0) + 10 + Math.min(f.accuracy, ENTRY_TOLERANCE_CAP_M)) return { notify: false, reason: 'delivery_unavailable' };
-        return { notify: true, kind: 'dense_spot', total: Number(spot.get('count')), spotLat: spot.get('lat'), spotLng: spot.get('lng'),
-          activityId: previous.get('activity_id'), recipientId: caller.luid, deliveryId };
+        return await retryNoteDelivery(tx, previous, caller.luid, f, now, deliveryId);
       }
     }
     const inside = (await approvedNear(tx, f.lat, f.lng, MAX_NOTIFY_RADIUS_M + ENTRY_TOLERANCE_CAP_M + 5))
@@ -238,6 +226,22 @@ export const recordPlaceNoteVisit = onCall(options, async request => {
     throw error;
   }
 });
+
+async function retryNoteDelivery(tx: FirebaseFirestore.Transaction, previous: FirebaseFirestore.DocumentSnapshot, luid: string, f: Fix, now: number, deliveryId: string) {
+  if (previous.get('delivery_state') === 'queued') return { notify: false, reason: 'already_queued' };
+  if (!retryActive(previous, now)) return { notify: false, reason: 'delivery_expired' };
+  const postId = previous.get('post_id');
+  if (typeof postId === 'string') {
+    const post = await tx.get(db.collection('posts').doc(postId));
+    if (!(await readableNoteIds(tx, [post], luid)).has(post.id) || !fixInsideNote(f, post.get('lat'), post.get('lng'), clampNotifyRadius(post.get('notify_radius_m')))) return { notify: false, reason: 'delivery_unavailable' };
+    return { ...await noteNotification(tx, post, luid, now, Number(previous.get('total') ?? 1)), deliveryId };
+  }
+  const spot = await tx.get(db.collection('note_spots').doc(previous.get('spot'))), settings = await spotSettings(tx);
+  if (!spot.exists || Number(spot.get('count')) < settings.denseThreshold
+    || distanceMeters(f.lat, f.lng, spot.get('lat'), spot.get('lng')) > Number(spot.get('radius') ?? 0) + 10 + Math.min(f.accuracy, ENTRY_TOLERANCE_CAP_M)) return { notify: false, reason: 'delivery_unavailable' };
+  return { notify: true, kind: 'dense_spot', total: Number(spot.get('count')), spotLat: spot.get('lat'), spotLng: spot.get('lng'),
+    activityId: previous.get('activity_id'), recipientId: luid, deliveryId };
+}
 
 async function denseSpotNotification(tx: FirebaseFirestore.Transaction, luid: string, fix: Fix, now: number, deliveryId: string | null) {
       // No approved note here: a dense spot still earns one text-free alert per 30 days.

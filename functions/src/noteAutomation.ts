@@ -73,6 +73,17 @@ export async function autoApproveNote(postId: string, now = Date.now()) {
   });
 }
 
+function countEstablishedReporters(candidates: string[], records: FirebaseFirestore.DocumentSnapshot[],
+  inspected: Set<string>, reporters: Set<string>, now: number, threshold: number) {
+  for (const [index, reporter] of candidates.entries()) {
+    inspected.add(reporter);
+    if (!establishedProfile(records[index * 3], records[index * 3 + 1], now, MIN_REPORTER_AGE_MS)
+      || records[index * 3 + 2].get('identity_verified') !== true) continue;
+    reporters.add(reporter);
+    if (reporters.size >= threshold) break;
+  }
+}
+
 /** Hides a public post once distinct users file enough open reports; moderators can restore it. */
 export async function autoHideReported(postId: string, now = Date.now()) {
   return await db.runTransaction(async tx => {
@@ -87,13 +98,7 @@ export async function autoHideReported(postId: string, now = Date.now()) {
         .filter((id): id is string => isUUID(id) && id !== data.creator_id && !inspected.has(id)))];
       const records = candidates.length ? await tx.getAll(...candidates.flatMap(id => [
         db.collection('profiles').doc(id), accountDeletionRef(id), db.collection('users_private').doc(id)])) : [];
-      for (const [index, reporter] of candidates.entries()) {
-        inspected.add(reporter);
-        if (!establishedProfile(records[index * 3], records[index * 3 + 1], now, MIN_REPORTER_AGE_MS)
-          || records[index * 3 + 2].get('identity_verified') !== true) continue;
-        reporters.add(reporter);
-        if (reporters.size >= report) break;
-      }
+      countEstablishedReporters(candidates, records, inspected, reporters, now, report);
       if (reporters.size >= report) break;
     }
     if (reporters.size < report) return false;

@@ -69,6 +69,64 @@ export function placement(input: ContentInput, postId: string) {
     calibration_json: JSON.stringify({ state:'admin_geo_estimate', physicalRectMeters:rect }),
   };
 }
+async function validatePostEdit(tx: Transaction, before: FirebaseFirestore.DocumentSnapshot, input: ContentInput, editingId: string | undefined, actorId: string) {
+  if (editingId && !before.exists) throw new ValidationError('post_not_found');
+  if (before.get('media_purge_state') === 'purging') throw new ConflictError('post_media_cleanup_in_progress');
+  // Approval is a moderation decision; keeping an existing approval while editing is not.
+  if (input.approveNotifications && before.get('push_state') !== 'approved') {
+    await requirePermission(tx,actorId,'posts.moderate');
+    if (input.status !== 'active' || input.visibility !== 'public') throw new ValidationError('notifications need an active public note');
+  }
+  if (before.get('deleted_at')) throw new ConflictError('restore_post_before_editing');
+  const author = await activeAuthor(tx,input.authorId);
+  if (before.exists && before.get('creator_id') !== input.authorId) throw new ConflictError('post_author_cannot_be_changed');
+  return author;
+}
+
+async function postZoneExceptions(tx: Transaction, input: ContentInput, actorId: string) {
+  const db = adminDb();
+  const zones = await tx.get(db.collection('protected_zones').where('active','==',true));
+  const blockedZones = zones.docs.filter(z => z.get('policy') === 'hard_block' && distanceMeters(input.lat,input.lng,Number(z.get('lat')),Number(z.get('lng'))) <= Number(z.get('radius_meters')));
+  if (blockedZones.length) {
+    if (!input.zoneExceptionReason) throw new ConflictError('protected_zone: a reasoned admin exception is required');
+    await requirePermission(tx,actorId,'zones.override');
+  }
+  return blockedZones;
+}
+
+function placementChange(before: FirebaseFirestore.DocumentSnapshot, input: ContentInput) {
+  const oldPose = before.exists ? JSON.parse(String(before.get('pose_json') || '{}')) : {};
+  const oldRect = oldPose.anchor?.physicalRectMeters;
+  const moved = before.exists && (before.get('lat') !== input.lat || before.get('lng') !== input.lng || oldPose.heading !== input.heading
+    || (oldPose.altitude ?? 0) !== input.altitude || oldRect?.width !== input.width || oldRect?.height !== input.height);
+  return { oldPose, moved };
+}
+
+function postChanges(input: ContentInput, id: string, actorId: string, before: FirebaseFirestore.DocumentSnapshot,
+  blockedZones: FirebaseFirestore.QueryDocumentSnapshot[], moved: boolean) {
+  const editData = { version:1, canvas:{width:1080,height:1920}, backgroundColor:input.background,
+    layers:[{id:derivedKey(id,'text'),type:'text',text:input.text,color:input.color,opacity:input.opacity,scale:input.scale,rotation:input.rotation,x:0,y:0,zIndex:0,fontSize:32}] };
+  const contentSource = {platform:'other',title:input.text};
+  const changed = {
+    caption:input.caption,edit_data_json:JSON.stringify(editData),content_source_json:JSON.stringify(contentSource),
+    lat:input.lat,lng:input.lng,geohash:encodeGeohash(input.lat,input.lng,10),visibility:input.visibility,age_rating:input.ageRating,status:input.status,
+    ...(!before.exists || moved ? placement(input,id) : {}),
+    ...(input.locationNote ? { note_kind:'location', notify_radius_m:input.notifyRadius,
+      ...(before.get('note_kind') === 'location' ? {} : { location_note:{ source:'admin', accuracy_m:null, pin_drag_m:0 } }),
+      push_state: input.approveNotifications || before.get('push_state') === 'approved' ? 'approved' : (before.get('push_state') ?? 'none'),
+      ...(input.approveNotifications && before.get('push_state') !== 'approved' ? { push_approved_by:actorId, push_approved_at:FieldValue.serverTimestamp() } : {}) } : {}),
+    protected_zone_name:blockedZones.length ? blockedZones.map(z => String(z.get('name'))).join(', ') : null,
+    admin_zone_exception:blockedZones.length ? {reason:input.zoneExceptionReason,actor_id:actorId,zone_ids:blockedZones.map(z=>z.id)} : null,
+    updated_at:FieldValue.serverTimestamp(),updated_by_admin:actorId,
+  };
+  return changed;
+}
+
+function postStorageClaim(before: FirebaseFirestore.DocumentSnapshot, input: ContentInput, id: string, moved: boolean) {
+  return { state: 'committed', creator_id: input.authorId, post_id: id, is_anonymous: before.exists && before.get('is_anonymous') === true,
+    world_map_path: before.exists && !moved ? before.get('world_map_path') ?? null : null, public_readable: input.status === 'active' && input.visibility === 'public' };
+}
+
 export async function saveAdminPost(input: ContentInput, actorId: string, reason: string, key: string, editingId?: string) {
   const db = adminDb(); const id = editingId ?? derivedKey(key,'post');
   const action = editingId ? 'admin_post_edit' : 'admin_post_create';
@@ -78,45 +136,14 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
     if (input.status === 'active') await requirePermission(tx,actorId,'posts.moderate');
     const [audit, before] = await tx.getAll(db.collection('admin_audit_log').doc(key),db.collection('posts').doc(id));
     if (checkReceipt(audit,hash)) return { id };
-    if (editingId && !before.exists) throw new ValidationError('post_not_found');
-    if (before.get('media_purge_state') === 'purging') throw new ConflictError('post_media_cleanup_in_progress');
-    // Approval is a moderation decision; keeping an existing approval while editing is not.
-    if (input.approveNotifications && before.get('push_state') !== 'approved') {
-      await requirePermission(tx,actorId,'posts.moderate');
-      if (input.status !== 'active' || input.visibility !== 'public') throw new ValidationError('notifications need an active public note');
-    }
-    if (before.get('deleted_at')) throw new ConflictError('restore_post_before_editing');
-    const author = await activeAuthor(tx,input.authorId);
-    if (before.exists && before.get('creator_id') !== input.authorId) throw new ConflictError('post_author_cannot_be_changed');
-    const zones = await tx.get(db.collection('protected_zones').where('active','==',true));
-    const blockedZones = zones.docs.filter(z => z.get('policy') === 'hard_block' && distanceMeters(input.lat,input.lng,Number(z.get('lat')),Number(z.get('lng'))) <= Number(z.get('radius_meters')));
-    if (blockedZones.length) {
-      if (!input.zoneExceptionReason) throw new ConflictError('protected_zone: a reasoned admin exception is required');
-      await requirePermission(tx,actorId,'zones.override');
-    }
-    const oldPose = before.exists ? JSON.parse(String(before.get('pose_json') || '{}')) : {};
-    const oldRect = oldPose.anchor?.physicalRectMeters;
-    const moved = before.exists && (before.get('lat') !== input.lat || before.get('lng') !== input.lng || oldPose.heading !== input.heading
-      || (oldPose.altitude ?? 0) !== input.altitude || oldRect?.width !== input.width || oldRect?.height !== input.height);
+    const author = await validatePostEdit(tx, before, input, editingId, actorId);
+    const blockedZones = await postZoneExceptions(tx, input, actorId);
+    const { oldPose, moved } = placementChange(before, input);
     const oldCloudId = before.get('cloud_anchor_id');
     const anchor = moved && typeof oldCloudId === 'string' ? await tx.get(db.collection('cloud_anchors').doc(oldCloudId)) : null;
     const physical = before.exists && oldPose.anchor?.coordinateSpace !== 'admin_geo_estimate' && oldPose.anchor?.coordinateSpace !== 'camera_free_space';
     if (moved && physical && !input.replacePlacement) throw new ConflictError('confirm_approximate_replacement');
-    const editData = { version:1, canvas:{width:1080,height:1920}, backgroundColor:input.background,
-      layers:[{id:derivedKey(id,'text'),type:'text',text:input.text,color:input.color,opacity:input.opacity,scale:input.scale,rotation:input.rotation,x:0,y:0,zIndex:0,fontSize:32}] };
-    const contentSource = {platform:'other',title:input.text};
-    const changed = {
-      caption:input.caption,edit_data_json:JSON.stringify(editData),content_source_json:JSON.stringify(contentSource),
-      lat:input.lat,lng:input.lng,geohash:encodeGeohash(input.lat,input.lng,10),visibility:input.visibility,age_rating:input.ageRating,status:input.status,
-      ...(!before.exists || moved ? placement(input,id) : {}),
-      ...(input.locationNote ? { note_kind:'location', notify_radius_m:input.notifyRadius,
-        ...(before.get('note_kind') === 'location' ? {} : { location_note:{ source:'admin', accuracy_m:null, pin_drag_m:0 } }),
-        push_state: input.approveNotifications ? 'approved' : before.get('push_state') === 'approved' ? 'approved' : (before.get('push_state') ?? 'none'),
-        ...(input.approveNotifications && before.get('push_state') !== 'approved' ? { push_approved_by:actorId, push_approved_at:FieldValue.serverTimestamp() } : {}) } : {}),
-      protected_zone_name:blockedZones.length ? blockedZones.map(z => String(z.get('name'))).join(', ') : null,
-      admin_zone_exception:blockedZones.length ? {reason:input.zoneExceptionReason,actor_id:actorId,zone_ids:blockedZones.map(z=>z.id)} : null,
-      updated_at:FieldValue.serverTimestamp(),updated_by_admin:actorId,
-    };
+    const changed = postChanges(input, id, actorId, before, blockedZones, moved);
     tx.delete(db.collection('media_purge_queue').doc(id));
     if (anchor?.exists && anchor.get('post_id') === id) {
       tx.update(anchor.ref,{state:'deleting',expires_at:FieldValue.delete()});
@@ -125,7 +152,7 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
     if (before.exists) tx.update(before.ref,changed);
     else tx.create(before.ref,{...changed,id,creator_id:input.authorId,creator_handle:String(author.get('handle')),ref_image_url:'native-ar-reference://none',
       views_count:0,likes_count:0,comments_count:0,saves_count:0,engagement_score:0,client_mutation_id:id,deleted_at:null,created_at:FieldValue.serverTimestamp(),created_by_admin:actorId});
-    tx.set(db.collection('storage_reclamations').doc(id),{state:'committed',creator_id:input.authorId,post_id:id,is_anonymous:before.exists&&before.get('is_anonymous')===true,world_map_path:before.exists&&!moved?before.get('world_map_path')??null:null,public_readable:input.status==='active'&&input.visibility==='public'});
+    tx.set(db.collection('storage_reclamations').doc(id),postStorageClaim(before, input, id, moved));
     writeAudit(tx,key,{requestHash:hash,actorId,action,resourceType:'post',resourceId:id,before:before.data(),after:{...changed,creator_id:input.authorId},reason,
       permissionKey:editingId ? 'posts.edit':'posts.create',riskLevel:'sensitive'});
     return { id };
@@ -165,6 +192,37 @@ export async function removeAdminComment(postId:string,commentId:string,actorId:
   });
 }
 
+type ManagedAuthInput = { uid: string; email: string; displayName: string; job: FirebaseFirestore.DocumentReference; handle: string; key: string };
+
+async function releaseFailedIdentity(input: ManagedAuthInput, error: unknown) {
+  // Definite Auth validation/collision failures created no identity. Ambiguous failures keep
+  // the reservation so retries reconcile the same UID rather than create another identity.
+  if (!['auth/email-already-exists', 'auth/invalid-email', 'auth/invalid-display-name'].includes((error as { code?: string }).code ?? '')) return;
+  const { job, handle, key } = input, db = adminDb();
+  await db.runTransaction(async tx => {
+    const [pending, reservation] = await tx.getAll(job, db.collection('handles').doc(handle));
+    if (pending.get('status') === 'reserved' && reservation.get('creation_job') === key) { tx.delete(reservation.ref); tx.delete(job); }
+  });
+}
+
+async function createManagedAuth(input: ManagedAuthInput) {
+  const { uid, email, displayName } = input;
+  try { return await adminAuth().createUser({ uid, ...(email ? { email } : {}), displayName, disabled: true, emailVerified: false }); }
+  catch (error) {
+    if ((error as { code?: string }).code === 'auth/uid-already-exists') return await adminAuth().getUser(uid);
+    await releaseFailedIdentity(input, error);
+    throw error;
+  }
+}
+
+async function getManagedAuth(input: ManagedAuthInput) {
+  try { return await adminAuth().getUser(input.uid); }
+  catch (error) {
+    if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
+    return await createManagedAuth(input);
+  }
+}
+
 /** Create a disabled Auth identity, not a verified login or an admin role. Two external systems
  * use a durable reservation; retries reconcile the same UID and finish one profile/audit. */
 export async function createManagedUser(input:{handle:string;displayName:string;email:string},actorId:string,reason:string,key:string){
@@ -188,24 +246,9 @@ export async function createManagedUser(input:{handle:string;displayName:string;
   });
   const completed = await db.collection('admin_audit_log').doc(key).get();
   if (checkReceipt(completed, hash)) return {id:luid,handle};
-  let user;
-  try{user=await adminAuth().getUser(uid);}catch(error){
-    if((error as {code?:string}).code!=='auth/user-not-found')throw error;
-    try{user=await adminAuth().createUser({uid,...(email?{email}:{}),displayName,disabled:true,emailVerified:false});}
-    catch(createError){if((createError as {code?:string}).code==='auth/uid-already-exists')user=await adminAuth().getUser(uid);else {
-      // Definite Auth validation/collision failures created no identity. Release only this
-      // job's handle reservation; ambiguous network failures keep it for safe reconciliation.
-      if (['auth/email-already-exists','auth/invalid-email','auth/invalid-display-name'].includes((createError as {code?:string}).code ?? '')) {
-        await db.runTransaction(async tx => {
-          const [pending, reservation] = await tx.getAll(job, db.collection('handles').doc(handle));
-          if (pending.get('status') === 'reserved' && reservation.get('creation_job') === key) { tx.delete(reservation.ref); tx.delete(job); }
-        });
-      }
-      throw createError;
-    }}
-  }
+  const user = await getManagedAuth({ uid, email, displayName, job, handle, key });
   if(!user.disabled || user.emailVerified)throw new ConflictError('managed_identity_changed');
-  await adminAuth().setCustomUserClaims(uid,{...(user.customClaims??{}),luid});
+  await adminAuth().setCustomUserClaims(uid,{...user.customClaims,luid});
   await db.runTransaction(async tx=>{
     await requirePermission(tx,actorId,'users.create');
     const [audit,profile,deletion,reservation]=await tx.getAll(db.collection('admin_audit_log').doc(key),db.collection('profiles').doc(luid),db.collection('account_deletion_jobs').doc(luid),db.collection('handles').doc(handle));

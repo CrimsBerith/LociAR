@@ -1,3 +1,4 @@
+import QueryResult from '../QueryResult';
 import { Timestamp } from 'firebase-admin/firestore';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
@@ -64,11 +65,11 @@ export default async function AnalyticsPage({ searchParams }: Readonly<{ searchP
       <section className="panel actionPanel">
         <p className="readOnlyNotice">{t('Event summaries for this batch of {count} records. Counts of known users and posts are distinct within this batch. Use Next records to inspect the entire query window.', { count: events.length })}</p>
         <div className="dataRow analytics header"><span>{t('Event')}</span><span>{t('Count')}</span><span>{t('Known users / posts')}</span><span>{t('Latest')}</span></div>
-        {failed ? <p className="emptyState">{t('Analytics events could not be loaded.')}</p> : rows.length === 0 ? <p className="emptyState">{t('No analytics events since {date}.', { date: sinceDate })}</p> : rows.map(([name, value]) => (
+        <QueryResult failed={failed} isEmpty={rows.length === 0} failure={<p className="emptyState">{t('Analytics events could not be loaded.')}</p>} empty={<p className="emptyState">{t('No analytics events since {date}.', { date: sinceDate })}</p>}>{() => rows.map(([name, value]) => (
           <div className="dataRow analytics" key={name}>
             <span><b>{name}</b></span><span>{value.count.toLocaleString()}</span><span>{value.users.size} / {value.posts.size}</span><span>{new Date(value.latest).toLocaleString(locale)}</span>
           </div>
-        ))}
+        ))}</QueryResult>
         {!failed ? <PageNavigation path="/admin/analytics" parameters={{ since: sinceDate }} next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/analytics">{t('Return to the first page.')}</a></p>}
       </section>
     </section>

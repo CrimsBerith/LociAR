@@ -16,6 +16,7 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
   router.push(`/admin/posts/${(result.post as {id:string}).id}`);router.refresh();setMessage(t('Post saved and audited.'));
  }catch(error){setMessage(t(mutationError(error)));}finally{setBusy(false);}}
  const numericFields=[['lat','Latitude',-90,90],['lng','Longitude',-180,180],['altitude','Altitude (m)',-500,10000],['heading','Heading (°)',0,360],['width','Width (m)',0.15,20],['height','Height (m)',0.15,20],['opacity','Opacity',0.05,1],['scale','Text scale',0.1,5],['rotation','Text rotation (°)',-360,360]] as const;
+ const saveLabel = postId ? t('Save changes') : t('Create post');
  return <form onSubmit={submit} className="contentEditor">
  <AuthorPicker value={value.authorId} onChange={id=>set('authorId',id)} disabled={Boolean(postId)}/>
  <fieldset><legend>{t('Text')}</legend><label>{t('Caption')}<input value={value.caption} onChange={e=>set('caption',e.target.value)} required maxLength={220}/></label>
@@ -41,6 +42,6 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  <label>{t('Age rating')}<select value={value.ageRating} onChange={e=>set('ageRating',e.target.value as ContentInput['ageRating'])}><option value="all">{t('All ages')}</option><option value="13_plus">13+</option><option value="16_plus">16+</option></select></label>
  <label>{t('Status')}<select value={value.status} onChange={e=>set('status',e.target.value as ContentInput['status'])}><option value="pending_review">{t('Pending review')}</option>{canPublish?<option value="active">{t('Publish active')}</option>:null}</select></label>
  <label>{t('Audit reason')}<textarea value={reason} onChange={e=>setReason(e.target.value)} required minLength={8} maxLength={1000}/></label></fieldset>
- <button type="submit" disabled={busy||!value.authorId}>{busy?t('Saving…'):postId?t('Save changes'):t('Create post')}</button>{message?<output>{message}</output>:null}
+ <button type="submit" disabled={busy||!value.authorId}>{busy ? t('Saving…') : saveLabel}</button>{message?<output>{message}</output>:null}
  </form>;
 }

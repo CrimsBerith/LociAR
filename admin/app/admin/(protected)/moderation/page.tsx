@@ -1,3 +1,4 @@
+import QueryResult from '../QueryResult';
 import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
@@ -43,7 +44,7 @@ export default async function ModerationPage({ searchParams }: Readonly<{ search
       </div>
       <section className="panel">
         <div className="dataRow moderation header"><span>{t('Report')}</span><span>{t('Post')}</span><span>{t('Reporter')}</span><span>{t('Decision')}</span></div>
-        {failed ? <p className="emptyState">{t('Moderation data could not be loaded.')}</p> : flags.length === 0 ? <p className="emptyState">{t('No open reports.')}</p> : flags.map(flag => {
+        <QueryResult failed={failed} isEmpty={flags.length === 0} failure={<p className="emptyState">{t('Moderation data could not be loaded.')}</p>} empty={<p className="emptyState">{t('No open reports.')}</p>}>{() => flags.map(flag => {
           const post = typeof flag.post_id === 'string' ? posts.get(flag.post_id) : undefined;
           const original = originals.get(flag.id);
           const metadata = flag.metadata as Record<string, unknown> | undefined;
@@ -52,14 +53,32 @@ export default async function ModerationPage({ searchParams }: Readonly<{ search
           return (
             <div className="dataRow moderation" key={flag.id}>
               <span><b>{t(String(flag.reason))}</b><small>{flag.id} · {new Date(iso(flag.created_at)).toLocaleString(locale)}</small></span>
-              <span>{content ? scalarText(content.text ?? '') : post ? scalarText(post.caption || t('Untitled post')) : t('Content unavailable')}<small>{content ? `${t('Author')}: ${scalarText(content.user_id ?? '')}${content.field ? ` · ${t('Field')}: ${scalarText(content.field)}` : ''}` : ''}</small><small>{post ? `${t(String(post.status).replaceAll('_', ' '))}${post.deleted_at ? ` · ${t('trash')}` : ''}` : scalarText(flag.post_id ?? t('No post'))}</small></span>
+              <span>{contentCaption(content, post, t)}<small>{contentAuthor(content, t)}</small><small>{postState(post, flag, t)}</small></span>
               <span>{scalarText(flag.user_id ?? t('Server filter'))}</span>
               <span><FlagActions flagId={flag.id} hasPost={Boolean(post || content)} /></span>
             </div>
           );
-        })}
+        })}</QueryResult>
         {!failed ? <PageNavigation path="/admin/moderation" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/moderation">{t('Return to the first page.')}</a></p>}
       </section>
     </section>
   );
+}
+
+type TextRecord = Record<string, unknown>;
+type Translate = Awaited<ReturnType<typeof getI18n>>['t'];
+function contentCaption(content: TextRecord | undefined, post: TextRecord | undefined, t: Translate): string {
+  if (content) return scalarText(content.text ?? '');
+  return post ? scalarText(post.caption || t('Untitled post')) : t('Content unavailable');
+}
+function contentAuthor(content: TextRecord | undefined, t: Translate): string {
+  if (!content) return '';
+  const labels = [`${t('Author')}: ${scalarText(content.user_id ?? '')}`];
+  if (content.field) labels.push(`${t('Field')}: ${scalarText(content.field)}`);
+  return labels.join(' · ');
+}
+function postState(post: TextRecord | undefined, flag: TextRecord, t: Translate): string {
+  if (!post) return scalarText(flag.post_id ?? t('No post'));
+  const status = t(scalarText(post.status).replaceAll('_', ' '));
+  return post.deleted_at ? status + ' · ' + t('trash') : status;
 }

@@ -11,7 +11,7 @@ import { anyBlocked, containsURL } from './moderation';
 import { MAX_PUSH_DEVICES, pushAddress, pushAddressMatches, pushDeliveryId, invalidPushTokenCode, pushQuotaDecision, pushQuotaId, pushLocale } from './pushPolicy';
 
 export function campaignLive(c: FirebaseFirestore.DocumentData | undefined, now = Date.now()): boolean {
-  return Boolean(c && c.status === 'active' && c.starts_at instanceof Timestamp && c.ends_at instanceof Timestamp
+  return Boolean(c?.status === 'active' && c.starts_at instanceof Timestamp && c.ends_at instanceof Timestamp
     && c.starts_at.toMillis() <= now && c.ends_at.toMillis() > now);
 }
 
@@ -56,6 +56,27 @@ const offerBodies: Record<string, string> = {
 };
 export const campaignPushBody = (locale: unknown) => offerBodies[pushLocale(locale)];
 
+async function campaignNotificationContent(tx: FirebaseFirestore.Transaction, data: FirebaseFirestore.DocumentData, pref: FirebaseFirestore.DocumentSnapshot, target: FirebaseFirestore.DocumentSnapshot, recipient: string, now: number) {
+  const assignment = await tx.get(db.collection('campaign_targets').doc(`${data.campaign_id}_${recipient}`));
+  if ((assignment.get('notification_mode') ?? 'immediate') !== 'immediate') return null;
+  const c = (await tx.get(db.collection('campaigns').doc(data.campaign_id))).data();
+  const offer = await campaignOffer(tx, recipient, data.campaign_id, now);
+  const location = await tx.get(db.collection('user_locations').doc(recipient));
+  if (!c || !offer || pref.get('location') !== true || location.get('consent_revision') !== pref.get('revision')
+      || !(location.get('measured_at') instanceof Timestamp) || now - location.get('measured_at').toMillis() > 120_000
+      || location.get('expires_at').toMillis() <= now || location.get('accuracy') > 200
+      || distanceMeters(c.lat, c.lng, location.get('lat'), location.get('lng')) + location.get('accuracy') > c.radius) return null;
+  const posts = await tx.get(db.collection('posts').where('creator_id', '==', recipient).orderBy('created_at', 'desc').limit(100));
+  const approved = posts.docs.filter(p => p.get('status') === 'active' && p.get('visibility') === 'public' && !p.get('deleted_at') && p.get('age_rating') !== '18_plus');
+  const bestLikes = Math.max(0, ...approved.map(p => {
+    const offset = p.get('metrics_counter_offsets')?.likes_count;
+    if (p.get('metrics_admin_edited_at') && !Number.isSafeInteger(offset)) return 0;
+    return Math.max(0, Number(p.get('likes_count') ?? 0) - (Number.isSafeInteger(offset) ? offset : 0));
+  }));
+  if (approved.length < c.minPosts || bestLikes < c.minLikes) return null;
+  return { body: data.message || campaignPushBody(target.get('locale')), activityBody: data.message || 'Sana özel bir kampanya var.', postId: data.campaign_id };
+}
+
 /** At most one FCM attempt per job/device. Accepted means accepted by FCM, not delivered. */
 export async function deliverAdminNotification(id: string, send: (message: Message) => Promise<string>, now = Date.now()) {
   const ref = db.collection('admin_notification_jobs').doc(id), initial = (await ref.get()).data();
@@ -82,24 +103,9 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
       if (!roles.docs.some(d => d.get('role_key') === 'super_admin')) return null;
       let activityBody = data.message, body = data.message, postId = '';
       if (data.campaign_id) {
-        const assignment = await tx.get(db.collection('campaign_targets').doc(`${data.campaign_id}_${recipient}`));
-        if ((assignment.get('notification_mode') ?? 'immediate') !== 'immediate') return null;
-        const c = (await tx.get(db.collection('campaigns').doc(data.campaign_id))).data();
-        const offer = await campaignOffer(tx, recipient, data.campaign_id, now);
-        const location = await tx.get(db.collection('user_locations').doc(recipient));
-        if (!c || !offer || pref.get('location') !== true || location.get('consent_revision') !== pref.get('revision')
-            || !(location.get('measured_at') instanceof Timestamp) || now - location.get('measured_at').toMillis() > 120_000
-            || location.get('expires_at').toMillis() <= now || location.get('accuracy') > 200
-            || distanceMeters(c.lat, c.lng, location.get('lat'), location.get('lng')) + location.get('accuracy') > c.radius) return null;
-        const posts = await tx.get(db.collection('posts').where('creator_id', '==', recipient).orderBy('created_at', 'desc').limit(100));
-        const approved = posts.docs.filter(p => p.get('status') === 'active' && p.get('visibility') === 'public' && !p.get('deleted_at') && p.get('age_rating') !== '18_plus');
-        const bestLikes = Math.max(0, ...approved.map(p => {
-          const offset = p.get('metrics_counter_offsets')?.likes_count;
-          if (p.get('metrics_admin_edited_at') && !Number.isSafeInteger(offset)) return 0;
-          return Math.max(0, Number(p.get('likes_count') ?? 0) - (Number.isSafeInteger(offset) ? offset : 0));
-        }));
-        if (approved.length < c.minPosts || bestLikes < c.minLikes) return null;
-        body = data.message || campaignPushBody(target.get('locale')); activityBody = data.message || 'Sana özel bir kampanya var.'; postId = data.campaign_id;
+        const content = await campaignNotificationContent(tx, data, pref, target, recipient, now);
+        if (!content) return null;
+        ({ body, activityBody, postId } = content);
       }
       const decision = pushQuotaDecision(quota.data(), id, 3);
       if (!decision.allow) return null;
@@ -144,8 +150,9 @@ export const onAdminNotificationQueued = onDocumentCreated('admin_notification_j
 export const submitBrandCampaign = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async request => {
   const caller = requireCaller(request), b = request.data;
   if (!identityVerified(caller) || !isUUID(b?.brandId) || !isUUID(b?.mutationId)) throw new HttpsError('permission-denied', 'Verified brand editor required');
+  const textLimits = { name: 80, message: 1000, terms: 800 };
   const texts = ['name', 'message', 'terms'] as const;
-  for (const key of texts) if (typeof b[key] !== 'string' || b[key].trim().length < 1 || b[key].length > (key === 'name' ? 80 : key === 'message' ? 1000 : 800)
+  for (const key of texts) if (typeof b[key] !== 'string' || b[key].trim().length < 1 || b[key].length > textLimits[key]
     || anyBlocked([b[key]]) || containsURL(b[key])) throw new HttpsError('invalid-argument', 'Only moderated text without links is allowed');
   if (!Number.isFinite(b.lat) || Math.abs(b.lat) > 90 || !Number.isFinite(b.lng) || Math.abs(b.lng) > 180
     || !Number.isFinite(b.radius) || b.radius < 100 || b.radius > 5000 || !Number.isFinite(b.startsAt) || !Number.isFinite(b.endsAt)

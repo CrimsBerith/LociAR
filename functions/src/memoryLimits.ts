@@ -18,7 +18,7 @@ export class WindowLimiter {
   allow(key: string, now = Date.now()): boolean {
     const window = Math.floor(now / this.windowMs);
     const entry = this.hits.get(key);
-    if (entry && entry.window === window) {
+    if (entry?.window === window) {
       if (entry.count >= this.limit) return false;
       entry.count += 1;
       return true;

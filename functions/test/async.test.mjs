@@ -21,7 +21,7 @@ test('ordered work never overlaps, stops at failure and leaves no later work run
 });
 
 test('first-result reads never start I/O after finding a value, including false or zero', async () => {
-  for (const result of [false, 0, 'found']) {
+  for (const result of [false, 0, null, 'found']) {
     const visited = [];
     const found = await firstResultSequential([1, 2, 3], async item => {
       visited.push(item);

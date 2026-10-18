@@ -38,21 +38,40 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
 /** How a location note's position was measured; see placeNoteRules.ts. */
 export type LocationNoteMetadata = { source: 'geospatial' | 'gps' | 'manual'; accuracy_m: number; pin_drag_m: number; notify_radius_m: number };
 
-export async function createPostHandler(request: CallableRequest<CreatePostBody>, locationNote?: LocationNoteMetadata) {
-  const caller = requireCaller(request);
-  await assertServiceEnabled('create_post');
-  const body = request.data as CreatePostBody;
+function assertPublishingRequest(body: CreatePostBody, caller: ReturnType<typeof requireCaller>) {
   if (body?.userId !== caller.luid) throw reasonError('permission-denied', 'Publishing session changed', 'session_changed');
   const validationError = validateCreatePostBody(body, caller.luid);
   if (validationError) throw new HttpsError('invalid-argument', validationError);
   if (!mayPublishAnonymously(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
   }
-  // Closed-beta gate (growth plan 2.1): browsing stays open, publishing needs a redeemed invite.
-  if (INVITE_REQUIRED) {
-    const priv = await db.collection('users_private').doc(caller.luid).get();
-    if (inviteGate(priv.data(), true)) throw reasonError('permission-denied', 'An invite code is required to publish', 'invite_required');
-  }
+}
+
+async function requirePublishInvite(luid: string) {
+  // Closed-beta gate: browsing stays open, publishing needs a redeemed invite.
+  if (!INVITE_REQUIRED) return;
+  const priv = await db.collection('users_private').doc(luid).get();
+  if (inviteGate(priv.data(), true)) throw reasonError('permission-denied', 'An invite code is required to publish', 'invite_required');
+}
+
+function replayPost(existing: FirebaseFirestore.DocumentSnapshot, luid: string, body: CreatePostBody, locationNote?: LocationNoteMetadata) {
+  const data = existing.data()!;
+  if (data.creator_id !== luid) throw new HttpsError('already-exists', 'Post ID is already in use');
+  if (locationNote && (data.note_kind !== 'location' || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
+  return { post: serializePost(existing.id, data), publishStatus: data.status };
+}
+
+function worldMapPathFor(body: CreatePostBody): string | null {
+  const mapURI = body.pose.anchor?.persistence?.kind === 'arkit_world_map' ? body.pose.anchor.persistence.assetURI ?? body.pose.anchor.persistence.assetUri ?? body.pose.anchor.persistence.storagePath : null;
+  return typeof mapURI === 'string' && mapURI.startsWith('storage://') ? mapURI.slice(10) : null;
+}
+
+export async function createPostHandler(request: CallableRequest<CreatePostBody>, locationNote?: LocationNoteMetadata) {
+  const caller = requireCaller(request);
+  await assertServiceEnabled('create_post');
+  const body = request.data as CreatePostBody;
+  assertPublishingRequest(body, caller);
+  await requirePublishInvite(caller.luid);
 
   const postId = body.clientMutationId!.toLowerCase();
   const postRef = db.collection('posts').doc(postId);
@@ -64,10 +83,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
       await requireActiveAccount(tx, caller.luid);
       const existing = await tx.get(postRef);
       if (!existing.exists) return null;
-      const data = existing.data()!;
-      if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
-      if (locationNote && (data.note_kind !== 'location' || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
-      return { post: serializePost(postId, data), publishStatus: data.status, idempotentReplay: true };
+      return { ...replayPost(existing, caller.luid, body, locationNote), idempotentReplay: true };
     });
     if (replay) return replay;
   }
@@ -87,8 +103,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
   const publishStatus = autoPublish || locationNote ? 'active' : 'pending_review';
   // Landmark layer (growth plan 2.5): computed here, never trusted from the client; null on failure.
   const place = await placeAt(lat, lng);
-  const mapURI = body.pose.anchor?.persistence?.kind === 'arkit_world_map' ? body.pose.anchor.persistence.assetURI ?? body.pose.anchor.persistence.assetUri ?? body.pose.anchor.persistence.storagePath : null;
-  const worldMapPath = typeof mapURI === 'string' && mapURI.startsWith('storage://') ? mapURI.slice(10) : null;
+  const worldMapPath = worldMapPathFor(body);
   const document = {
     world_map_path: worldMapPath,
     id: postId,
@@ -135,10 +150,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
       tx.get(db.collection('storage_reclamations').doc(postId)),
     ]);
     if (existing.exists) {
-      const data = existing.data()!;
-      if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
-      if (locationNote && (data.note_kind !== 'location' || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
-      return { kind: 'replay' as const, post: serializePost(postId, data), publishStatus: data.status };
+      return { kind: 'replay' as const, ...replayPost(existing, caller.luid, body, locationNote) };
     }
     if (reclamation.exists && reclamation.get('state') !== 'draft') throw reasonError('failed-precondition', 'World map draft expired; create a new draft', 'draft_expired');
 

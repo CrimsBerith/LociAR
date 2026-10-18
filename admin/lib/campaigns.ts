@@ -149,12 +149,43 @@ export async function campaignAudience(id: string, actor: string, reason: string
     if (!campaign.exists) throw new ValidationError('campaign_not_found');
     const query = db.collection('user_locations').orderBy('__name__');
     const locations = await tx.get((after ? query.startAfter(uuid(after, 'cursor')) : query).limit(26));
-    const candidates = [];
-    for (const record of locations.docs.slice(0, 25)) { const candidate = await eligibility(tx, campaign.data()!, record.id, Date.now()); if (candidate) candidates.push(candidate); }
+    const matches = await Promise.all(locations.docs.slice(0, 25).map(record => eligibility(tx, campaign.data()!, record.id, Date.now())));
+    const candidates = matches.filter(candidate => candidate !== null);
     writeAudit(tx, randomUUID(), { actorId: actor, action: 'campaign_audience_read', resourceType: 'campaign', resourceId: id,
       after: { matched: candidates.length, scanned: Math.min(locations.size, 25) }, reason, permissionKey: 'campaigns.audience', riskLevel: 'sensitive' });
     return { candidates, next: locations.size > 25 ? locations.docs[24].id : null };
   });
+}
+
+function requireNotificationConsent(profile: FirebaseFirestore.DocumentSnapshot, pref: FirebaseFirestore.DocumentSnapshot, campaignId: string | null, mode: string) {
+  if (!profile.exists || profile.get('suspended') || profile.get('admin_managed') || (campaignId && pref.get('promotions') !== true)) throw new ConflictError('recipient_has_not_opted_in');
+  if (mode !== 'map' && pref.get('notifications') !== true) throw new ConflictError('recipient_has_not_opted_in_to_notifications');
+  if (mode === 'arrival' && pref.get('arrivals') !== true) throw new ConflictError('recipient_has_not_opted_in_to_arrivals');
+  if (mode === 'departure' && (pref.get('departures') !== true || typeof pref.get('departures_revision') !== 'string')) throw new ConflictError('recipient_has_not_opted_in_to_departures');
+}
+
+async function notificationCampaign(tx: Transaction, campaignId: string | null, recipient: string, mode: string, departureRadius: number | null) {
+  if (!campaignId) return { c: undefined, origin: undefined };
+  const db = adminDb();
+  let c: FirebaseFirestore.DocumentData | undefined, origin: FirebaseFirestore.DocumentSnapshot | undefined;
+  const campaign = await tx.get(db.collection('campaigns').doc(campaignId)); c = campaign.data();
+  if (c?.status !== 'active' || c.starts_at.toMillis() > Date.now() || c.ends_at.toMillis() <= Date.now()) throw new ConflictError('campaign_not_active');
+  const brand = await tx.get(db.collection('brands').doc(c.brand_id));
+  if (!brand.exists || brand.get('status') !== 'active') throw new ConflictError('brand_unavailable');
+  if (!await eligibility(tx, c, recipient, Date.now(), locationAgeMs(c, mode))) throw new ConflictError('recipient_no_longer_eligible');
+  if (mode === 'departure') {
+    origin = await tx.get(db.collection('user_locations').doc(recipient));
+    if (origin.get('accuracy') > departureRadius!) throw new ConflictError('departure_origin_too_uncertain');
+  }
+  return { c, origin };
+}
+
+async function requireCampaignTargetCapacity(tx: Transaction, campaignId: string | null, recipient: string) {
+  if (!campaignId) return;
+  const db = adminDb();
+  const [existingTarget, count] = await Promise.all([tx.get(db.collection('campaign_targets').doc(`${campaignId}_${recipient}`)),
+    tx.get(db.collection('campaign_targets').where('owner_luid', '==', recipient).where('expires_at', '>', Timestamp.now()).count())]);
+  if (!existingTarget.exists && count.data().count >= 50) throw new ConflictError('too_many_active_offers');
 }
 
 export async function queueNotification(body: Record<string, unknown>, actor: string, reason: string, key: string) {
@@ -171,27 +202,9 @@ export async function queueNotification(body: Record<string, unknown>, actor: st
     const [receipt, profile, pref] = await tx.getAll(db.collection('admin_audit_log').doc(key), db.collection('profiles').doc(recipient), db.collection('user_data_preferences').doc(recipient));
     if (checkReceipt(receipt, hash)) return { id };
     await requireTargetAccountActive(tx, recipient);
-    if (!profile.exists || profile.get('suspended') || profile.get('admin_managed') || (campaignId && pref.get('promotions') !== true)) throw new ConflictError('recipient_has_not_opted_in');
-    if (mode !== 'map' && pref.get('notifications') !== true) throw new ConflictError('recipient_has_not_opted_in_to_notifications');
-    if (mode === 'arrival' && pref.get('arrivals') !== true) throw new ConflictError('recipient_has_not_opted_in_to_arrivals');
-    if (mode === 'departure' && (pref.get('departures') !== true || typeof pref.get('departures_revision') !== 'string')) throw new ConflictError('recipient_has_not_opted_in_to_departures');
-    let c, origin;
-    if (campaignId) {
-      const campaign = await tx.get(db.collection('campaigns').doc(campaignId)); c = campaign.data();
-      if (!c || c.status !== 'active' || c.starts_at.toMillis() > Date.now() || c.ends_at.toMillis() <= Date.now()) throw new ConflictError('campaign_not_active');
-      const brand = await tx.get(db.collection('brands').doc(c.brand_id));
-      if (!brand.exists || brand.get('status') !== 'active') throw new ConflictError('brand_unavailable');
-      if (!await eligibility(tx, c, recipient, Date.now(), locationAgeMs(c, mode))) throw new ConflictError('recipient_no_longer_eligible');
-      if (mode === 'departure') {
-        origin = await tx.get(db.collection('user_locations').doc(recipient));
-        if (origin.get('accuracy') > departureRadius!) throw new ConflictError('departure_origin_too_uncertain');
-      }
-    }
-    if (campaignId) {
-      const [existingTarget, count] = await Promise.all([tx.get(db.collection('campaign_targets').doc(`${campaignId}_${recipient}`)),
-        tx.get(db.collection('campaign_targets').where('owner_luid', '==', recipient).where('expires_at', '>', Timestamp.now()).count())]);
-      if (!existingTarget.exists && count.data().count >= 50) throw new ConflictError('too_many_active_offers');
-    }
+    requireNotificationConsent(profile, pref, campaignId, mode);
+    const { c, origin } = await notificationCampaign(tx, campaignId, recipient, mode, departureRadius);
+    await requireCampaignTargetCapacity(tx, campaignId, recipient);
     if (campaignId && mode !== 'immediate') {
       tx.set(db.collection('campaign_targets').doc(`${campaignId}_${recipient}`), { campaign_id: campaignId, owner_luid: recipient,
         state: 'assigned', notification_mode: mode, notification_title: title, notification_message: message, assigned_by: actor, created_at: FieldValue.serverTimestamp(), expires_at: c!.ends_at }, { merge: true });

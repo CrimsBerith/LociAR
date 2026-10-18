@@ -213,7 +213,8 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
       tx.get(db.collection('profiles').doc(luid)), tx.get(db.collection('account_access').doc(luid)), isAccountDeleting(tx, luid),
     ]);
     if (deleting || !profile.exists) return false;
-    const state = profile.get('deleted_at') ? 'deleting' : profile.get('suspended') === true ? 'suspended' : 'active';
+    let state = profile.get('suspended') === true ? 'suspended' : 'active';
+    if (profile.get('deleted_at')) state = 'deleting';
     if (access.get('state') !== state) tx.set(access.ref, { state });
     return true;
   });

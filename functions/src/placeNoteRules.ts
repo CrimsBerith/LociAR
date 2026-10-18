@@ -169,6 +169,11 @@ export function densityCells(lat: number, lng: number): string[] {
 
 const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
 
+function halfBounds(min: number, max: number, upper: number): [number, number] {
+  const mid = (min + max) / 2;
+  return upper ? [mid, max] : [min, mid];
+}
+
 /** Bounds of one geohash cell. */
 export function geohashBounds(hash: string) {
   let latMin = -90, latMax = 90, lngMin = -180, lngMax = 180, even = true;
@@ -177,8 +182,8 @@ export function geohashBounds(hash: string) {
     if (value < 0) throw new Error('invalid geohash');
     for (let bit = 4; bit >= 0; bit--) {
       const on = (value >> bit) & 1;
-      if (even) { const mid = (lngMin + lngMax) / 2; if (on) lngMin = mid; else lngMax = mid; }
-      else { const mid = (latMin + latMax) / 2; if (on) latMin = mid; else latMax = mid; }
+      if (even) [lngMin, lngMax] = halfBounds(lngMin, lngMax, on);
+      else [latMin, latMax] = halfBounds(latMin, latMax, on);
       even = !even;
     }
   }

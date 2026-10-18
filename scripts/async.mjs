@@ -25,12 +25,12 @@ export function readPages(read) {
 /** @template T @param {() => Promise<T>} read @param {(value: T) => boolean} accepted @returns {Promise<T>} */
 export function pollUntil(read, accepted, attempts, intervalMs, message) {
   let remaining = attempts;
-  function attempt() {
-    return read().then(value => {
-      if (accepted(value)) return value;
-      if (--remaining <= 0) throw new Error(message);
-      return new Promise(resolve => setTimeout(resolve, intervalMs)).then(attempt);
-    });
+  async function attempt() {
+    const value = await read();
+    if (accepted(value)) return value;
+    if (--remaining <= 0) throw new Error(message);
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+    return await attempt();
   }
-  return Promise.resolve().then(attempt);
+  return attempt();
 }

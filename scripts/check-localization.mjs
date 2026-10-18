@@ -90,9 +90,9 @@ export function swiftStrings(source) {
 }
 
 export function localizationKey(value) {
-  return value.replaceAll(/\\\(Int\(accuracy\)\)/g, '%lld').replaceAll(/\\\(([^()]+)\)/g, (_, expression) =>
+  return value.replaceAll(String.raw`\(Int(accuracy))`, '%lld').replaceAll(/\\\(([^()]+)\)/g, (_, expression) =>
     ['degrees', 'nearbyPosts.count', 'posts.count', 'failedCount', 'value', 'meters', 'newCount', 'likeCount', 'noteCount'].includes(expression) ? '%lld' : '%@'
-  ).replaceAll(/\\n/g, '\n');
+  ).replaceAll(String.raw`\n`, '\n');
 }
 function sourceFiles(root) {
   return readdirSync(root, { withFileTypes: true }).flatMap(entry => {

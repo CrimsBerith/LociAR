@@ -1,4 +1,5 @@
 import { pollUntil } from './async.mjs';
+import { emulatorVerificationURL } from './emulator-verification.mjs';
 // Test-only bridge: real demo callables + simulator location/APNs transport.
 // Run with Node 22, --conditions=react-server and --import ./admin/tests/register-typescript.mjs.
 import assert from 'node:assert/strict';
@@ -188,7 +189,7 @@ const emailTimer = setInterval(async () => {
   try {
     const result = await fetch('http://127.0.0.1:9099/emulator/v1/projects/demo-lociar/oobCodes');
     const codes = ((await result.json()).oobCodes ?? []).filter(code => code.email === email && code.requestType === 'VERIFY_EMAIL');
-    await Promise.all(codes.map(code => fetch('http://127.0.0.1:9099/emulator/action?mode=verifyEmail&oobCode=' + encodeURIComponent(code.oobCode) + '&apiKey=fake-api-key')));
+    await Promise.all(codes.map(code => fetch(emulatorVerificationURL(code.oobCode))));
   } catch {}
 }, 1000);
 const server = createServer(async (request, response) => {

@@ -42,6 +42,7 @@ export default function MagicLinkForm() {
     setBusy(false);
   }
 
+  const sendLabel = cooldown > 0 ? t('Retry in {seconds}s', { seconds: cooldown }) : t('Send secure sign-in link');
   return (
     <section className="stack">
         <p className="muted">{t('Allowlisted administrators only. MFA is required after the magic link.')}</p>
@@ -49,7 +50,7 @@ export default function MagicLinkForm() {
           <label htmlFor="legacy-email">{t('Work email')}</label>
           <input id="legacy-email" type="email" value={email} onChange={event => setEmail(event.target.value)} required autoComplete="email" />
           <button type="submit" disabled={busy || cooldown > 0}>
-            {busy ? t('Sending…') : cooldown > 0 ? t('Retry in {seconds}s', { seconds: cooldown }) : t('Send secure sign-in link')}
+            {busy ? t('Sending…') : sendLabel}
           </button>
         </form>
         {message ? <output className="formMessage">{message}</output> : null}

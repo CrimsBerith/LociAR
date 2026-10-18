@@ -21,6 +21,11 @@ async function reportAccount(tx: FirebaseFirestore.Transaction, luid: string) {
   return profile;
 }
 
+function isRecentReport(previous: FirebaseFirestore.DocumentSnapshot | null, reportedAt: unknown): boolean {
+  return Boolean(previous?.exists && (previous.get('status') === 'open'
+    || reportedAt instanceof Timestamp && Date.now() - reportedAt.toMillis() < DAY));
+}
+
 export const submitReport = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async request => {
   const caller = requireCaller(request), data = request.data;
   const kind = data?.targetKind, rawId = data?.targetId, reason = typeof data?.reason === 'string' && Object.hasOwn(REASONS, data.reason) ? REASONS[data.reason] : undefined;
@@ -35,8 +40,8 @@ export const submitReport = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInst
     const previousId = receipt.get('flag_id'), reportedAt = receipt.get('reported_at');
     const previous = typeof previousId === 'string' ? await tx.get(db.collection('moderation_flags').doc(previousId)) : null;
     // Retry/duplicate is free, even if moderation removed the target after accepting the report.
-    if (previous?.exists && (previous.get('status') === 'open' || reportedAt instanceof Timestamp && Date.now() - reportedAt.toMillis() < DAY)) {
-      return { ok: true, flagId: previous.id, alreadyReported: true };
+    if (isRecentReport(previous, reportedAt)) {
+      return { ok: true, flagId: previous!.id, alreadyReported: true };
     }
     let postId: string | null = null, targetLuid: string;
     let metadata: Record<string, string> = { source: 'native_ios', target: kind };

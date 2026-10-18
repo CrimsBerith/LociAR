@@ -29,12 +29,12 @@ function normalize(text: string): string {
     .normalize('NFKC')
     .toLowerCase()
     .replace(/\p{Cf}|\u0307/gu, '')
-    .replaceAll(/\u0131/g, 'i')
+    .replaceAll('\u0131', 'i')
     .replace(/[\u064b-\u065f\u0670\u0640]/g, '')
     .replace(/[0@]/g, 'o')
     .replace(/[1!|]/g, 'i')
-    .replaceAll(/3/g, 'e')
-    .replaceAll(/4/g, 'a')
+    .replaceAll('3', 'e')
+    .replaceAll('4', 'a')
     .replaceAll(/[$5]/g, 's');
 }
 

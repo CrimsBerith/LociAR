@@ -1,3 +1,4 @@
+import QueryResult from '../QueryResult';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import AdminDecision from '../AdminDecision';
@@ -34,7 +35,7 @@ export default async function AvatarsPage({ searchParams }: Readonly<{ searchPar
       </div>
       <section className="panel">
         <div className="dataRow moderation header"><span>{t('Photo')}</span><span>{t('User')}</span><span>SafeSearch</span><span>{t('Decision')}</span></div>
-        {failed ? <p className="emptyState">{t('Photo reviews could not be loaded.')}</p> : reviews.length === 0 ? <p className="emptyState">{t('No photos waiting for review.')}</p> : reviews.map(review => (
+        <QueryResult failed={failed} isEmpty={reviews.length === 0} failure={<p className="emptyState">{t('Photo reviews could not be loaded.')}</p>} empty={<p className="emptyState">{t('No photos waiting for review.')}</p>}>{() => reviews.map(review => (
           <div className="dataRow moderation" key={review.id}>
             {/* eslint-disable-next-line @next/next/no-img-element -- authenticated moderation image relay */}
             <span>{review.imageUrl ? <img src={review.imageUrl} alt={t('Profile photo of @{handle}', { handle: review.handle })} width={96} height={96} style={{ objectFit: 'cover', borderRadius: 12 }} /> : t('Unavailable')}</span>
@@ -50,7 +51,7 @@ export default async function AvatarsPage({ searchParams }: Readonly<{ searchPar
               />
             </span>
           </div>
-        ))}
+        ))}</QueryResult>
         {!failed ? <PageNavigation path="/admin/avatars" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/avatars">{t('Return to the first page.')}</a></p>}
       </section>
     </section>

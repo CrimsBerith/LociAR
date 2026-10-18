@@ -33,18 +33,31 @@ def escaped_at(text, index):
     return backslashes % 2 == 1
 
 
+def comment_end(text, index, in_string):
+    if in_string:
+        return None
+    if text.startswith('//', index):
+        end = text.find('\n', index)
+        return len(text) if end < 0 else end
+    if text.startswith('/*', index):
+        end = text.find('*/', index)
+        return len(text) if end < 0 else end + 2
+    return None
+
+
 def strip_comments(text):
     out, i, n = [], 0, len(text)
     in_str = False
     while i < n:
-        if not in_str and text.startswith('//', i):
-            j = text.find('\n', i); i = n if j < 0 else j; continue
-        if not in_str and text.startswith('/*', i):
-            j = text.find('*/', i); i = n if j < 0 else j + 2; continue
+        end = comment_end(text, i, in_str)
+        if end is not None:
+            i = end
+            continue
         c = text[i]
-        if c == '"' and not text.startswith('"""', i):
-            if not escaped_at(text, i): in_str = not in_str
-        out.append(c); i += 1
+        if c == '"' and not text.startswith('"""', i) and not escaped_at(text, i):
+            in_str = not in_str
+        out.append(c)
+        i += 1
     return ''.join(out)
 
 LIT = re.compile(r'"((?:[^"\\\n]|\\.)*)"')

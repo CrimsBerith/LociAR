@@ -1,4 +1,5 @@
 'use client';
+import { withStableKeys } from '../../../lib/values';
 import { useEffect, useState } from 'react';
 import ManualNotificationForm from './ManualNotificationForm';
 import { useT } from '../I18nProvider';
@@ -55,7 +56,7 @@ export default function UserContextPanel({ luid, canLocation, canTelemetry, canN
       <p>{result.device.locale} · {result.device.timeZone} · {t('Last seen')}: {result.device.lastSeen}</p>
       <p>{t('Installation')}: {result.device.installationId} · {t('Observed connection IP')}: {result.device.observedIp ?? t('Unavailable')}</p>
       <p className="muted">{t("Device fields and location are reported by the client. An installation ID or IP does not establish a person's identity.")}</p>
-      <ul>{result.events?.map((event, i) => <li key={i}>{event.at} · {event.name}{event.postId ? ` · ${event.postId}` : ''}</li>)}</ul>
+      <ul>{withStableKeys(result.events ?? [], event => JSON.stringify([event.at, event.name, event.postId])).map(({ key, value: event }) => <li key={key}>{event.at} · {event.name}{event.postId ? ` · ${event.postId}` : ''}</li>)}</ul>
     </div> : null}
     {canNotify ? <ManualNotificationForm recipientId={luid} /> : null}
   </section>;

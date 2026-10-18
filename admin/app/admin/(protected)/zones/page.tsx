@@ -1,3 +1,4 @@
+import QueryResult from '../QueryResult';
 import { scalarText } from '../../../../lib/values';
 import AdminDecision from '../AdminDecision';
 import ZoneForm from './ZoneForm';
@@ -32,7 +33,7 @@ export default async function ZonesPage({ searchParams }: Readonly<{ searchParam
       {canWrite ? <section className="panel"><div className="panelHeader"><h2>{t('Add a zone')}</h2></div><ZoneForm /></section> : null}
       <section className="panel">
         <div className="dataRow place header"><span>{t('Zone')}</span><span>{t('Center')}</span><span>{t('Policy')}</span><span>{t('Created')}</span></div>
-        {failed ? <p className="emptyState">{t('Restricted-zone data could not be loaded.')}</p> : zones.length === 0 ? <p className="emptyState">{t('No restricted zones configured.')}</p> : zones.map(zone => (
+        <QueryResult failed={failed} isEmpty={zones.length === 0} failure={<p className="emptyState">{t('Restricted-zone data could not be loaded.')}</p>} empty={<p className="emptyState">{t('No restricted zones configured.')}</p>}>{() => zones.map(zone => (
           <div className="dataRow place" key={zone.id}>
             <span><b>{String(zone.name)}</b><small>{t(String(zone.category))}{zone.active === false ? ` · ${t('inactive')}` : ''}</small></span>
             <span>{formatLatLng(zone.lat, zone.lng)}<small>{t('{radius} m radius', { radius: Number(zone.radius_meters ?? 0) })}</small></span>
@@ -41,7 +42,7 @@ export default async function ZonesPage({ searchParams }: Readonly<{ searchParam
               actions={[{ label: zone.active === false ? 'Enable' : 'Disable', body: { active: zone.active === false }, className: 'secondaryButton' }]} /> : null}</span>
             <span>{new Date(iso(zone.created_at)).toLocaleDateString(locale)}</span>
           </div>
-        ))}
+        ))}</QueryResult>
         {!failed ? <PageNavigation path="/admin/zones" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/zones">{t('Return to the first page.')}</a></p>}
       </section>
     </section>

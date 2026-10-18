@@ -9,6 +9,27 @@ import { pushQuotaId, pushQuotaDecision } from './pushPolicy';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
 
+function liveDepartureOrigin(origin: FirebaseFirestore.DocumentSnapshot | null, pref: FirebaseFirestore.DocumentSnapshot, now: number): boolean {
+  return Boolean(origin?.exists && typeof pref.get('departures_revision') === 'string'
+    && origin.get('consent_revision') === pref.get('departures_revision')
+    && origin.get('expires_at') instanceof Timestamp && origin.get('expires_at').toMillis() > now);
+}
+
+function arrivalConfirmed(departure: boolean, fix: { measuredAt: number }, startedAt: unknown, pref: FirebaseFirestore.DocumentSnapshot, now: number): boolean {
+  if (departure) return true;
+  if (now - fix.measuredAt > 10_000 || fix.measuredAt > now + 5000) return false;
+  return pref.get('notifications') !== true || (Number.isFinite(startedAt) && (startedAt as number) <= fix.measuredAt - 2000 && (startedAt as number) >= now - 30_000);
+}
+
+function insideCampaignTrigger(departure: boolean, fix: { lat: number; lng: number; accuracy: number; measuredAt: number }, c: FirebaseFirestore.DocumentSnapshot, origin: FirebaseFirestore.DocumentSnapshot | null): boolean {
+    // Arrival: the same GPS-tolerant rule as location notes, so passing the shop on foot or by car counts.
+    const radius = departure ? origin!.get('radius') : campaignEntryRadius(c.get('entryRadius'));
+    const distance = distanceMeters(fix.lat, fix.lng, departure ? origin!.get('lat') : c.get('lat'), departure ? origin!.get('lng') : c.get('lng'));
+    if (!Number.isFinite(radius) || (departure && (radius < 100 || radius > 500)) || !Number.isFinite(distance)
+        || (departure ? distance - fix.accuracy <= radius : !fixInsideNote({ ...fix, measuredAt: fix.measuredAt }, c.get('lat'), c.get('lng'), radius))) return false;
+    return true;
+}
+
 /** Region monitoring receives only the signed-in user's previously assigned offers. */
 export const readCampaignRegions = onCall(options, async request => {
   const caller = requireCaller(request), now = Date.now();
@@ -26,8 +47,7 @@ export const readCampaignRegions = onCall(options, async request => {
       if (!offer) return;
       const c = await tx.get(db.collection('campaigns').doc(a.get('campaign_id')));
       const origin = departure ? await tx.get(db.collection('campaign_departure_regions').doc(a.id)) : null;
-      if (departure && (!origin?.exists || typeof pref.get('departures_revision') !== 'string' || origin.get('consent_revision') !== pref.get('departures_revision')
-          || !(origin.get('expires_at') instanceof Timestamp) || origin.get('expires_at').toMillis() <= now)) return;
+      if (departure && !liveDepartureOrigin(origin, pref, now)) return;
       const lat = departure ? origin!.get('lat') : c.get('lat'), lng = departure ? origin!.get('lng') : c.get('lng');
       const radius = departure ? origin!.get('radius') : c.get('arrivalRadius') ?? 150;
       if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180 || !Number.isFinite(radius) || radius < 100 || radius > 500) return;
@@ -59,16 +79,10 @@ export const recordCampaignArrival = onCall(options, async request => {
         || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now) return { notify: false };
     const offer = await campaignOffer(tx, caller.luid, id, now);
     if (!offer) return { notify: false };
-    if (!departure && (now - fix.measuredAt > 10_000 || fix.measuredAt > now + 5000)) return { notify: false };
-    if (!departure && pref.get('notifications') === true && (!Number.isFinite(b.confirmationStartedAt) || b.confirmationStartedAt > fix.measuredAt - 2000 || b.confirmationStartedAt < now - 30_000)) return { notify: false };
+    if (!arrivalConfirmed(departure, fix, b.confirmationStartedAt, pref, now)) return { notify: false };
     const origin = departure ? await tx.get(db.collection('campaign_departure_regions').doc(target.id)) : null;
-    if (departure && (!origin?.exists || typeof pref.get('departures_revision') !== 'string' || origin.get('consent_revision') !== pref.get('departures_revision')
-        || !(origin.get('expires_at') instanceof Timestamp) || origin.get('expires_at').toMillis() <= now)) return { notify: false };
-    // Arrival: the same GPS-tolerant rule as location notes, so passing the shop on foot or by car counts.
-    const radius = departure ? origin!.get('radius') : campaignEntryRadius(c.get('entryRadius'));
-    const distance = distanceMeters(fix.lat, fix.lng, departure ? origin!.get('lat') : c.get('lat'), departure ? origin!.get('lng') : c.get('lng'));
-    if (!Number.isFinite(radius) || (departure && (radius < 100 || radius > 500)) || !Number.isFinite(distance)
-        || (departure ? distance - fix.accuracy <= radius : !fixInsideNote({ ...fix, measuredAt: fix.measuredAt }, c.get('lat'), c.get('lng'), radius))) return { notify: false };
+    if (departure && !liveDepartureOrigin(origin, pref, now)) return { notify: false };
+    if (!insideCampaignTrigger(departure, fix, c, origin)) return { notify: false };
     const actor = target.get('assigned_by');
     if (typeof actor !== 'string') return { notify: false };
     const [roles, deletion] = await Promise.all([

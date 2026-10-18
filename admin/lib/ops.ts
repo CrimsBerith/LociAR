@@ -109,6 +109,10 @@ const MODERATION_STATUS: Record<string, string> = {
   restore: 'pending_review',
 };
 
+function postApprovalBlocked(before: DocumentData): boolean {
+  return before.age_rating === '18_plus' || Boolean(before.protected_zone_name && !before.admin_zone_exception?.reason);
+}
+
 function applyModeration(tx: Transaction, postRef: FirebaseFirestore.DocumentReference, before: DocumentData, action: string, actorId: string, reason: string) {
   if (before.media_purge_state === 'purging') {
     throw new ConflictError('post_media_cleanup_in_progress: retry after media cleanup completes');
@@ -119,10 +123,8 @@ function applyModeration(tx: Transaction, postRef: FirebaseFirestore.DocumentRef
   if (before.deleted_at && !before.deleted_by) {
     throw new ConflictError('post_deleted_by_author: posts removed by their author cannot be restored');
   }
-  if (action === 'approve') {
-    if (before.age_rating === '18_plus' || (before.protected_zone_name && !before.admin_zone_exception?.reason)) {
-      throw new ConflictError('post_not_approvable: 18+ or protected-zone content cannot be approved');
-    }
+  if (action === 'approve' && postApprovalBlocked(before)) {
+    throw new ConflictError('post_not_approvable: 18+ or protected-zone content cannot be approved');
   }
   const soft = action === 'soft_delete';
   const update = {

@@ -1,3 +1,4 @@
+import QueryResult from '../QueryResult';
 import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
@@ -42,27 +43,27 @@ export default async function PlacesPage({ searchParams }: Readonly<{ searchPara
         <div className="panelHeader"><h2>{t('Post locations')}</h2></div>
         {!postError ? <p className="readOnlyNotice">{t('Locations in this batch of {count} posts. Next records continues through older posts even when this batch contains only deleted posts.', { count: postPage.documents.length })}</p> : null}
         <div className="dataRow place header"><span>{t('Post')}</span><span>{t('Coordinate')}</span><span>{t('Placement')}</span><span>{t('Created')}</span></div>
-        {postError ? <p className="emptyState">{t('Post locations could not be loaded.')}</p> : posts.length === 0 ? <p className="emptyState">{t('No post locations.')}</p> : posts.map(post => (
+        <QueryResult failed={postError} isEmpty={posts.length === 0} failure={<p className="emptyState">{t('Post locations could not be loaded.')}</p>} empty={<p className="emptyState">{t('No post locations.')}</p>}>{() => posts.map(post => (
           <div className="dataRow place" key={post.id}>
             <span><b>{scalarText(post.caption || t('Untitled post'))}</b><small>{post.id} · {String(post.status)}</small></span>
             <span>{formatLatLng(post.lat, post.lng)}<small>{scalarText(post.geohash ?? '').slice(0, 7) || t('no geohash')}</small></span>
             <span>{t(scalarText(post.placement_state ?? 'unknown').replaceAll('_', ' '))}</span>
             <span>{new Date(iso(post.created_at)).toLocaleDateString(locale)}</span>
           </div>
-        ))}
+        ))}</QueryResult>
         {!postError ? <PageNavigation path="/admin/places" parameters={parameters} prefix="posts" next={postPage.next} previous={postPage.previous} /> : <p className="emptyState"><a href="/admin/places">{t('Return to the first page.')}</a></p>}
       </section>
       <section className="panel actionPanel">
         <div className="panelHeader"><h2>{t('Campaign locations')}</h2></div>
         <div className="dataRow place header"><span>{t('Campaign / label')}</span><span>{t('Coordinate')}</span><span>{t('Status')}</span><span>{t('Created')}</span></div>
-        {locationError ? <p className="emptyState">{t('Campaign locations could not be loaded.')}</p> : locations.length === 0 ? <p className="emptyState">{t('No campaign locations.')}</p> : locations.map(location => (
+        <QueryResult failed={locationError} isEmpty={locations.length === 0} failure={<p className="emptyState">{t('Campaign locations could not be loaded.')}</p>} empty={<p className="emptyState">{t('No campaign locations.')}</p>}>{() => locations.map(location => (
           <div className="dataRow place" key={location.id}>
             <span><b>{scalarText(location.campaign_name ?? t('Unassigned campaign'))}</b><small>{scalarText(location.label ?? location.id)}</small></span>
             <span>{formatLatLng(location.latitude, location.longitude)}</span>
             <span>{t(scalarText(location.status ?? 'unknown'))}</span>
             <span>{new Date(iso(location.created_at)).toLocaleDateString(locale)}</span>
           </div>
-        ))}
+        ))}</QueryResult>
         {!locationError ? <PageNavigation path="/admin/places" parameters={parameters} prefix="locations" next={locationPage.next} previous={locationPage.previous} /> : <p className="emptyState"><a href="/admin/places">{t('Return to the first page.')}</a></p>}
       </section>
     </section>

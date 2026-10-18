@@ -1,3 +1,4 @@
+import QueryResult from '../QueryResult';
 import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
@@ -32,7 +33,7 @@ export default async function AnchorsPage({ searchParams }: Readonly<{ searchPar
       <p className="readOnlyNotice">{t('Anchor diagnostics in this batch of {count} posts. Use Next records to inspect older posts, including when this batch has no anchors.', { count: page.documents.length })}</p>
       <section className="panel">
         <div className="dataRow anchor header"><span>{t('Post')}</span><span>{t('Provider')}</span><span>{t('Placement')}</span><span>{t('Resolvers')}</span><span>{t('Updated')}</span></div>
-        {failed ? <p className="emptyState">{t('Anchor diagnostics could not be loaded.')}</p> : anchors.length === 0 ? <p className="emptyState">{t('No anchor records.')}</p> : anchors.map(anchor => {
+        <QueryResult failed={failed} isEmpty={anchors.length === 0} failure={<p className="emptyState">{t('Anchor diagnostics could not be loaded.')}</p>} empty={<p className="emptyState">{t('No anchor records.')}</p>}>{() => anchors.map(anchor => {
           const bundleKeys = objectKeys(parseJsonField(anchor.anchor_bundle_json));
           const placement = String(anchor.placement_state);
           return (
@@ -44,7 +45,7 @@ export default async function AnchorsPage({ searchParams }: Readonly<{ searchPar
               <span>{new Date(iso(anchor.updated_at ?? anchor.created_at)).toLocaleString(locale)}</span>
             </div>
           );
-        })}
+        })}</QueryResult>
         {!failed ? <PageNavigation path="/admin/anchors" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/anchors">{t('Return to the first page.')}</a></p>}
       </section>
     </section>

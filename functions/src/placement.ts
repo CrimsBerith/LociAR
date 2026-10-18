@@ -345,6 +345,14 @@ export type PlacementResult = {
   calibration: Record<string, unknown>;
 };
 
+function stateForPlacement(eligible: boolean, space: string | undefined): PlacementResult['placementState'] {
+  if (eligible && space === 'arkit_world') return 'arkit_world_locked';
+  if (eligible && space === 'arcore_world') return 'arcore_world_locked';
+  if (space === 'arkit_world' || space === 'arcore_world') return 'recalibration_required';
+  if (space === 'visual_surface') return 'visual_surface_locked';
+  return 'free_space_approximate';
+}
+
 export async function evaluatePlacement(
   body: CreatePostBody,
   luid: string,
@@ -359,15 +367,7 @@ export async function evaluatePlacement(
   const hasPersistentResolver = hasValidPersistentResolver(anchor, worldMapExists);
   const placementQuality = placementQualityForAnchor(anchor, body.pose.accuracy, hasPersistentResolver);
   const eligible = nativeAnchorEligible(anchor, placementQuality, hasPersistentResolver);
-  const placementState = eligible && space === 'arkit_world'
-    ? 'arkit_world_locked'
-    : eligible && space === 'arcore_world'
-      ? 'arcore_world_locked'
-      : space === 'arkit_world' || space === 'arcore_world'
-        ? 'recalibration_required'
-        : space === 'visual_surface'
-          ? 'visual_surface_locked'
-          : 'free_space_approximate';
+  const placementState = stateForPlacement(eligible, space);
   const nativeProvider = providerForCoordinateSpace(space);
   const resolverStrategy = resolverStrategyForCoordinateSpace(space);
   const calibration = anchor

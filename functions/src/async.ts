@@ -6,8 +6,11 @@ export function forEachSequential<T>(items: Iterable<T>, visit: (item: T, index:
 /** Read in order until a value is found; later items never start external work. */
 export async function firstResultSequential<T, Result>(items: Iterable<T>, read: (item: T) => Promise<Result | undefined>): Promise<Result | undefined> {
   let result: Result | undefined;
+  let found = false;
   await forEachSequential(items, async item => {
-    if (result === undefined) result = await read(item);
+    if (found) return;
+    const value = await read(item);
+    if (value !== undefined) { result = value; found = true; }
   });
   return result;
 }

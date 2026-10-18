@@ -28,26 +28,13 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
   let failed = false;
   let invalid = false;
   try {
-    const query = term ? db.collection('profiles').where('handle', '>=', term).where('handle', '<=', term + '\uf8ff') : db.collection('profiles');
-    page = await readDocumentPage(query, { field: term ? 'handle' : 'created_at', direction: term ? 'asc' : 'desc', scope: JSON.stringify(['users', term]), cursors: pageCursors(params), size: 50 });
-    users = page.documents.map(d => ({ ...d.data(), id: d.id }));
-    const privateDocs = users.length ? await db.getAll(...users.map(u => db.collection('users_private').doc(u.id))) : [];
-    const byId = new Map(privateDocs.map(d => [d.id, d.data() ?? {}]));
-    users = users.map(u => ({ ...u, ...byId.get(u.id), id: u.id }));
-    await recordPersonalDataRead(admin.user.id, 'users', users.length);
+    ({ page, users } = await loadUsers(db, term, params, admin.user.id));
   } catch (error) {
     failed = true;
     invalid = error instanceof InvalidCursorError;
   }
 
-  let rolesPage: DocumentPage = { documents: [], next: null, previous: null };
-  let rolesFailed = false;
-  if (canManageAdmins) {
-    try {
-      rolesPage = await readDocumentPage(db.collection('admin_role_assignments').where('revoked_at', '==', null),
-        { field: 'role_key', direction: 'asc', scope: 'active-admin-roles', cursors: pageCursors(params, 'roles'), size: 50 });
-    } catch { rolesFailed = true; }
-  }
+  const { rolesPage, rolesFailed } = await loadAdminRoles(db, params, canManageAdmins);
 
   return (
     <section className="page">
@@ -71,7 +58,7 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
                 <span><b>@{String(user.handle)}</b><small>{user.id}</small>
                   {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') || contextStepUp ? <details><summary>{t('Private data')}</summary><UserContextPanel luid={user.id} stepUp={contextStepUp} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
                 </span>
-                <span>{user.suspended ? t('Suspended') : user.identity_verified ? t('Verified') : t('Unverified')}</span>
+                <span>{identityStatus(user, t)}</span>
                 <span>{scalarText(user.auth_provider ?? t('unknown'))}</span>
                 <span>{new Date(iso(user.created_at)).toLocaleDateString(locale)}</span>
                 <span>{canSuspend ? (
@@ -106,4 +93,31 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
       </section> : null}
     </section>
   );
+}
+
+async function loadUsers(db: ReturnType<typeof adminDb>, term: string, params: SearchParameters, actor: string) {
+  const query = term ? db.collection('profiles').where('handle', '>=', term).where('handle', '<=', term + '\uf8ff') : db.collection('profiles');
+  const page = await readDocumentPage(query, { field: term ? 'handle' : 'created_at', direction: term ? 'asc' : 'desc', scope: JSON.stringify(['users', term]), cursors: pageCursors(params), size: 50 });
+  let users = page.documents.map(d => ({ ...d.data(), id: d.id }));
+  const privateDocs = users.length ? await db.getAll(...users.map(u => db.collection('users_private').doc(u.id))) : [];
+  const byId = new Map(privateDocs.map(d => [d.id, d.data() ?? {}]));
+  users = users.map(u => ({ ...u, ...byId.get(u.id), id: u.id }));
+  await recordPersonalDataRead(actor, 'users', users.length);
+  return { page, users };
+}
+function identityStatus(user: Record<string, unknown>, t: Awaited<ReturnType<typeof getI18n>>['t']): string {
+  if (user.suspended) return t('Suspended');
+  return user.identity_verified ? t('Verified') : t('Unverified');
+}
+
+async function loadAdminRoles(db: ReturnType<typeof adminDb>, params: SearchParameters, allowed: boolean) {
+  let rolesPage: DocumentPage = { documents: [], next: null, previous: null };
+  let rolesFailed = false;
+  if (allowed) {
+    try {
+      rolesPage = await readDocumentPage(db.collection('admin_role_assignments').where('revoked_at', '==', null),
+        { field: 'role_key', direction: 'asc', scope: 'active-admin-roles', cursors: pageCursors(params, 'roles'), size: 50 });
+    } catch { rolesFailed = true; }
+  }
+  return { rolesPage, rolesFailed };
 }

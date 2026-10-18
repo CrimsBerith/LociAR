@@ -37,6 +37,21 @@ function nextStep(existing: readonly Step[], lat: number, lng: number): Step {
   return { ...blank(existing.length, lat, lng), id: `s${number}`, requires: existing.at(-1)?.id ?? '' };
 }
 
+function testCode(step: Step): string {
+  if (step.codeKind === 'shared') return step.codeValue;
+  if (step.codeKind === 'unique') return `${step.codePrefix || 'LOCI'}-TEST`;
+  return '';
+}
+function codePayload(step: Step) {
+  if (step.codeKind === 'shared') return { kind: 'shared', value: step.codeValue };
+  if (step.codeKind === 'unique') return { kind: 'unique', prefix: step.codePrefix };
+  return { kind: 'none' };
+}
+function stepCenter(step: Step) {
+  const points = streetPoints(step);
+  return step.zoneKind === 'circle' || !points.length ? { lat: step.lat, lng: step.lng } : points[0];
+}
+
 function fromSaved(s: Saved, lat: number, lng: number): Step {
   const base = blank(0, lat, lng);
   return { ...base, id: s.id, trigger: s.trigger, zoneKind: s.zone?.kind ?? 'circle', lat: s.zone?.lat ?? lat, lng: s.zone?.lng ?? lng, radius: s.zone?.radius ?? 30,
@@ -53,7 +68,7 @@ const streetPoints = (s: Step) => s.streetPoints.split('\n').map(line => line.sp
 
 /** What the phone shows for this step; unique codes get a sample in place of a real code. */
 function testMessage(s: Step) {
-  const code = s.codeKind === 'shared' ? s.codeValue : s.codeKind === 'unique' ? `${s.codePrefix || 'LOCI'}-TEST` : '';
+  const code = testCode(s);
   return (code ? `${s.message}\n${code}` : s.message).slice(0, 240);
 }
 
@@ -67,7 +82,7 @@ function toPayload(s: Step) {
     ...(s.requires ? { requires: s.requires, withinMinutes: s.withinMinutes } : {}),
     ...(s.scheduled ? { schedule: { days: s.days, start: s.start, end: s.end } } : {}),
     channels: { push: s.push, map: s.map, ar: s.ar }, title: s.title, message: s.message,
-    code: s.codeKind === 'shared' ? { kind: 'shared', value: s.codeValue } : s.codeKind === 'unique' ? { kind: 'unique', prefix: s.codePrefix } : { kind: 'none' },
+    code: codePayload(s),
     frequency: s.frequency === 'hours' ? { kind: 'hours', hours: s.hours } : { kind: s.frequency }, ...(s.budget ? { budget: Number(s.budget) } : {}) };
 }
 
@@ -141,7 +156,7 @@ export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved,
             <button type="button" className="secondaryButton" onClick={() => update(i, { streetPoints: '' })}>{t('Clear points')}</button>
           </div>
         </>}
-        <MapPicker label={t('Step {n} zone map', { n: i + 1 })} center={s.zoneKind === 'circle' || !streetPoints(s).length ? { lat: s.lat, lng: s.lng } : streetPoints(s)[0]}
+        <MapPicker label={t('Step {n} zone map', { n: i + 1 })} center={stepCenter(s)}
           shapes={zoneShapes(s)} onPick={point => pick(i, point)}
           hint={s.zoneKind === 'circle' ? t('Click the map to move the circle centre. Dashed: the campaign area.') : t('Click along the street to add points in order (up to 20). Dashed: the campaign area.')}/>
       </> : <p className="muted">{t('Fires when someone whose usual place lies inside the campaign area leaves it, within about 150 m and usually 1–3 minutes.')}</p>}

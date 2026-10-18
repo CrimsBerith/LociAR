@@ -19,7 +19,23 @@ export function legacyManualMetrics(data: FirebaseFirestore.DocumentData): boole
 }
 
 export function isPublicActive(post: FirebaseFirestore.DocumentData | undefined): boolean {
-  return Boolean(post && post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
+  return Boolean(post?.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
+}
+
+const COUNTER_SOURCES: Record<Exclude<CounterField, 'public_post_count'>, [string, string]> = {
+  likes_count: ['likes', 'post_id'], comments_count: ['comments', 'post_id'], saves_count: ['post_saves', 'post_id'],
+  following_count: ['follows', 'follower_id'], follower_count: ['follows', 'following_id'],
+};
+
+async function sourceCount(tx: FirebaseFirestore.Transaction, field: CounterField, targetId: string): Promise<number> {
+  if (field === 'public_post_count') {
+    // Legacy rows can omit deleted_at / age_rating, so those predicates run on selected fields.
+    const posts = await tx.get(db.collection('posts').where('creator_id', '==', targetId)
+      .where('status', '==', 'active').where('visibility', '==', 'public').select('status', 'visibility', 'age_rating', 'deleted_at', 'is_anonymous'));
+    return posts.docs.filter(post => isPublicActive(post.data()) && post.get('is_anonymous') !== true).length;
+  }
+  const [collection, sourceField] = COUNTER_SOURCES[field];
+  return (await tx.get(db.collection(collection).where(sourceField, '==', targetId).count())).data().count;
 }
 
 /** Reads live source rows at the transaction's snapshot, never a trigger's historical delta. */
@@ -36,17 +52,7 @@ export async function readCounterUpdate(
   const next: Record<string, number> = {};
   await forEachSequential(fields, async (field) => {
     if ((field === 'likes_count' || field === 'comments_count') && legacyManualMetrics(data)) return;
-    let count: number;
-    if (field === 'public_post_count') {
-      // Legacy rows can omit deleted_at / age_rating, so those predicates run on selected fields.
-      const posts = await tx.get(db.collection('posts').where('creator_id', '==', target.id)
-        .where('status', '==', 'active').where('visibility', '==', 'public').select('status', 'visibility', 'age_rating', 'deleted_at', 'is_anonymous'));
-      count = posts.docs.filter((post) => isPublicActive(post.data()) && post.get('is_anonymous') !== true).length;
-    } else {
-      const collection = field === 'likes_count' ? 'likes' : field === 'comments_count' ? 'comments' : field === 'saves_count' ? 'post_saves' : 'follows';
-      const sourceField = field === 'following_count' ? 'follower_id' : field === 'follower_count' ? 'following_id' : 'post_id';
-      count = (await tx.get(db.collection(collection).where(sourceField, '==', target.id).count())).data().count;
-    }
+    const count = await sourceCount(tx, field, target.id);
     const offset = data.metrics_counter_offsets?.[field];
     next[field] = Math.max(0, count + (Number.isSafeInteger(offset) ? offset : 0));
   });

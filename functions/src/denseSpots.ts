@@ -49,21 +49,21 @@ export async function syncSpotMembership(postId: string) {
     const ref = db.collection('posts').doc(postId);
     const [post, member] = await tx.getAll(ref, memberRef(postId)), data = post.data();
     const counted = !!data && isPublicActive(data) && validCoordinates(data.lat, data.lng);
-    const currentId = typeof member.get('spot_id') === 'string' ? member.get('spot_id') : typeof data?.spot_id === 'string' ? data.spot_id : null;
+    const currentId = existingSpotId(member, data);
     const current = currentId ? await tx.get(spots().doc(currentId)) : null;
     const stillInside = counted && current?.exists && distanceMeters(data!.lat, data!.lng, current.get('lat'), current.get('lng')) <= MAX_SPOT_RADIUS_M;
     if (stillInside) {
-      if (!member.exists) tx.set(member.ref, { post_id: postId, spot_id: currentId, owner_luid: data!.creator_id });
+      restoreSpotMember(tx, member, postId, currentId!, data!.creator_id);
       return;
     }
     const nearby = counted ? await spotsNear(tx, data!.lat, data!.lng, SPOT_JOIN_RADIUS_M) : [];
     const candidates = counted && !nearby.length ? await geoCandidates(tx, db.collection('posts'), data!.lat, data!.lng, SPOT_JOIN_RADIUS_M) : [];
     // Reads are done; writes follow. The old spot loses the post unless it rejoins that same spot.
-    const best = nearby.sort((a, b) => distanceMeters(data!.lat, data!.lng, a.lat, a.lng) - distanceMeters(data!.lat, data!.lng, b.lat, b.lng))[0];
+    nearby.sort((a, b) => distanceMeters(data!.lat, data!.lng, a.lat, a.lng) - distanceMeters(data!.lat, data!.lng, b.lat, b.lng));
+    const best = nearby[0];
     if (current?.exists && best?.id !== currentId) tx.update(current.ref, { count: FieldValue.increment(-1), updated_at: FieldValue.serverTimestamp() });
     if (!counted) {
-      if (post.exists && data?.spot_id) tx.update(ref, { spot_id: FieldValue.delete() });
-      if (member.exists) tx.delete(member.ref);
+      clearSpotMembership(tx, post, member, Boolean(post.exists && data?.spot_id));
       return;
     }
     if (best && best.id === currentId) return;
@@ -74,23 +74,44 @@ export async function syncSpotMembership(postId: string) {
       tx.set(member.ref, { post_id: postId, spot_id: best.id, owner_luid: data!.creator_id });
       return;
     }
-    const members = candidates.filter(d => (d.id === postId || !d.get('spot_id')) && isPublicActive(d.data())
-      && validCoordinates(d.get('lat'), d.get('lng')) && distanceMeters(data!.lat, data!.lng, d.get('lat'), d.get('lng')) <= SPOT_JOIN_RADIUS_M);
-    if (!members.some(d => d.id === postId)) members.push(post as FirebaseFirestore.QueryDocumentSnapshot);
-    if (members.length < MIN_SPOT_SIZE) {
-      if (currentId) tx.update(ref, { spot_id: FieldValue.delete() });
-      if (member.exists) tx.delete(member.ref);
-      return;
-    }
-    // Two writes per member, still below Firestore's 500-write transaction budget.
-    const selected = members.slice(0, 200);
-    const spot = spotOf(selected.map(d => ({ lat: d.get('lat'), lng: d.get('lng') }))), spotRef = spots().doc(postId);
-    tx.set(spotRef, { ...spot, geohash: encodeGeohash(spot.lat, spot.lng, 9), created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
-    for (const m of selected) {
-      tx.update(m.ref, { spot_id: spotRef.id });
-      tx.set(memberRef(m.id), { post_id: m.id, spot_id: spotRef.id, owner_luid: m.get('creator_id') });
-    }
+    seedSpot(tx, post, member, candidates, data!, currentId);
   });
+}
+
+function restoreSpotMember(tx: FirebaseFirestore.Transaction, member: FirebaseFirestore.DocumentSnapshot, postId: string, spotId: string, owner: string) {
+  if (!member.exists) tx.set(member.ref, { post_id: postId, spot_id: spotId, owner_luid: owner });
+}
+
+function existingSpotId(member: FirebaseFirestore.DocumentSnapshot, data: FirebaseFirestore.DocumentData | undefined): string | null {
+  const id = member.get('spot_id');
+  if (typeof id === 'string') return id;
+  return typeof data?.spot_id === 'string' ? data.spot_id : null;
+}
+
+function clearSpotMembership(tx: FirebaseFirestore.Transaction, post: FirebaseFirestore.DocumentSnapshot,
+  member: FirebaseFirestore.DocumentSnapshot, clearPost: boolean) {
+  if (clearPost) tx.update(post.ref, { spot_id: FieldValue.delete() });
+  if (member.exists) tx.delete(member.ref);
+}
+
+function seedSpot(tx: FirebaseFirestore.Transaction, post: FirebaseFirestore.DocumentSnapshot,
+  member: FirebaseFirestore.DocumentSnapshot, candidates: FirebaseFirestore.QueryDocumentSnapshot[], data: FirebaseFirestore.DocumentData, currentId: string | null) {
+  const members = candidates.filter(d => (d.id === post.id || !d.get('spot_id')) && isPublicActive(d.data())
+    && validCoordinates(d.get('lat'), d.get('lng')) && distanceMeters(data.lat, data.lng, d.get('lat'), d.get('lng')) <= SPOT_JOIN_RADIUS_M);
+  if (!members.some(d => d.id === post.id)) members.push(post as FirebaseFirestore.QueryDocumentSnapshot);
+  if (members.length < MIN_SPOT_SIZE) {
+    if (currentId) tx.update(post.ref, { spot_id: FieldValue.delete() });
+    if (member.exists) tx.delete(member.ref);
+    return;
+  }
+  // Two writes per member, still below Firestore's 500-write transaction budget.
+  const selected = members.slice(0, 200);
+  const spot = spotOf(selected.map(d => ({ lat: d.get('lat'), lng: d.get('lng') }))), spotRef = spots().doc(post.id);
+  tx.set(spotRef, { ...spot, geohash: encodeGeohash(spot.lat, spot.lng, 9), created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
+  for (const m of selected) {
+    tx.update(m.ref, { spot_id: spotRef.id });
+    tx.set(memberRef(m.id), { post_id: m.id, spot_id: spotRef.id, owner_luid: m.get('creator_id') });
+  }
 }
 
 /** Idempotent legacy repair: derive the count from live source posts, never a historical delta. */
