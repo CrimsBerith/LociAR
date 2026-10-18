@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import FlagActions from './FlagActions';
@@ -8,7 +9,7 @@ import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters
 
 export const dynamic = 'force-dynamic';
 
-export default async function ModerationPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function ModerationPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const params = await searchParams;
   let page: DocumentPage = { documents: [], next: null, previous: null };
   await requireAdmin({ permission: 'posts.read' });
@@ -51,8 +52,8 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           return (
             <div className="dataRow moderation" key={flag.id}>
               <span><b>{t(String(flag.reason))}</b><small>{flag.id} · {new Date(iso(flag.created_at)).toLocaleString(locale)}</small></span>
-              <span>{content ? String(content.text ?? '') : post ? String(post.caption || t('Untitled post')) : t('Content unavailable')}<small>{content ? `${t('Author')}: ${String(content.user_id ?? '')}${content.field ? ` · ${t('Field')}: ${String(content.field)}` : ''}` : ''}</small><small>{post ? `${t(String(post.status).replaceAll('_', ' '))}${post.deleted_at ? ` · ${t('trash')}` : ''}` : String(flag.post_id ?? t('No post'))}</small></span>
-              <span>{String(flag.user_id ?? t('Server filter'))}</span>
+              <span>{content ? scalarText(content.text ?? '') : post ? scalarText(post.caption || t('Untitled post')) : t('Content unavailable')}<small>{content ? `${t('Author')}: ${scalarText(content.user_id ?? '')}${content.field ? ` · ${t('Field')}: ${scalarText(content.field)}` : ''}` : ''}</small><small>{post ? `${t(String(post.status).replaceAll('_', ' '))}${post.deleted_at ? ` · ${t('trash')}` : ''}` : scalarText(flag.post_id ?? t('No post'))}</small></span>
+              <span>{scalarText(flag.user_id ?? t('Server filter'))}</span>
               <span><FlagActions flagId={flag.id} hasPost={Boolean(post || content)} /></span>
             </div>
           );

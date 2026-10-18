@@ -44,7 +44,7 @@ export default function FlagActions({ flagId, hasPost }: { flagId: string; hasPo
           <button key={action.key} type="button" className={action.className} disabled={busy || reason.trim().length < 8 || (!hasPost && action.key !== 'dismiss')} onClick={() => decide(action.key)}>{t(action.label)}</button>
         ))}
       </div>
-      {message ? <small role="status">{message}</small> : null}
+      {message ? <output>{message}</output> : null}
     </div>
   );
 }

@@ -490,17 +490,17 @@ private struct ConsentAppleSignInButton: UIViewRepresentable {
             controller.performRequests()
         }
 
-        func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        func presentationAnchor(for _: ASAuthorizationController) -> ASPresentationAnchor {
             window ?? ASPresentationAnchor()
         }
 
-        func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        func authorizationController(controller _: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
             self.controller = nil
             window = nil
             parent.onCompletion(.success(authorization))
         }
 
-        func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        func authorizationController(controller _: ASAuthorizationController, didCompleteWithError error: Error) {
             self.controller = nil
             window = nil
             parent.onCompletion(.failure(error))

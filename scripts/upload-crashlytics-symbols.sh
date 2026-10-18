@@ -12,7 +12,10 @@ if [ ! -x "${symbol_uploader}" ]; then
   exit 0
 fi
 symbol_upload_timeout="${LOCIAR_CRASHLYTICS_UPLOAD_TIMEOUT_SECONDS:-120}"
-case "$symbol_upload_timeout" in ''|*[!0-9]*) symbol_upload_timeout=120 ;; esac
+case "$symbol_upload_timeout" in
+  ''|*[!0-9]*) symbol_upload_timeout=120 ;;
+  *) : ;; # Valid numeric timeout.
+esac
 [ "$symbol_upload_timeout" -gt 0 ] 2>/dev/null || symbol_upload_timeout=120
 
 "$symbol_uploader" -ai "$LOCIAR_FIREBASE_GOOGLE_APP_ID" -p ios "${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}" &
@@ -38,6 +41,7 @@ symbol_watchdog_pid=$!
 stop_symbol_watchdog() {
   kill -TERM "$symbol_watchdog_pid" 2>/dev/null || true
   wait "$symbol_watchdog_pid" 2>/dev/null || true
+  return 0
 }
 trap 'kill -TERM "$symbol_upload_pid" 2>/dev/null; stop_symbol_watchdog; exit 143' HUP INT TERM
 if wait "$symbol_upload_pid"; then symbol_upload_status=0; else symbol_upload_status=$?; fi

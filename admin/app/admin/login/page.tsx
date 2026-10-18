@@ -70,7 +70,7 @@ export default function AdminLogin() {
       <form onSubmit={verify} className="stack">
         <label htmlFor="email-code">{t('6-digit sign-in code')}</label>
         <input id="email-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6}
-          required value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} disabled={busy}/>
+          required value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={busy}/>
         <button type="submit" disabled={busy || code.length !== 6}>{busy ? t('Checking…') : t('Sign in')}</button>
       </form>
       <button type="button" className="secondaryButton" onClick={() => requestCode()} disabled={busy || cooldown > 0}>

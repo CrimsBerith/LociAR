@@ -40,7 +40,7 @@ export default function AdminDecision({ endpoint, actions }: { endpoint: string;
           <button key={action.label} type="button" className={action.className ?? ''} disabled={busy || reason.trim().length < 8} onClick={() => decide(action.body)}>{t(action.label)}</button>
         ))}
       </div>
-      {message ? <small role="status">{message}</small> : null}
+      {message ? <output>{message}</output> : null}
     </div>
   );
 }

@@ -117,8 +117,10 @@ struct CampaignRegion: Codable, Equatable, Sendable {
             }
             return $0.id.uuidString < $1.id.uuidString
         }
-        let leave = sorted.filter(\.isLeaveStep), monitored = sorted.filter { !$0.isLeaveStep }
-        let notes = monitored.filter(\.isPlaceNote), campaigns = monitored.filter { !$0.isPlaceNote }
+        let leave = sorted.filter(\.isLeaveStep)
+        let monitored = sorted.filter { !$0.isLeaveStep }
+        let notes = monitored.filter(\.isPlaceNote)
+        let campaigns = monitored.filter { !$0.isPlaceNote }
         let keptCampaigns = Array(campaigns.prefix(18 - min(notes.count, 13)))
         return keptCampaigns + notes.prefix(18 - keptCampaigns.count) + leave.prefix(10)
     }
@@ -523,7 +525,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         guard enabled, isSupported, placeNotesEnabled || promotionsEnabled, let id = userID, let callables, !Task.isCancelled,
               FirebaseIdentity.currentLUID() == id,
               manager.authorizationStatus == .authorizedAlways || foreground && manager.authorizationStatus == .authorizedWhenInUse else { return false }
-        let epoch = generation, revision = refreshCoordinator.revision
+        let epoch = generation
+        let revision = refreshCoordinator.revision
         do {
             pruneNoteDeliveries()
             scheduleNoteAcknowledgements(account: id, epoch: epoch)
@@ -666,7 +669,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     /// Silent pushes for this ~39 x 20 km area tell the phone to refresh without the app being opened.
     private func setAreaTopic(_ topic: String?) {
         guard FirebaseApp.app() != nil else { return }
-        let defaults = UserDefaults.standard, current = defaults.string(forKey: Self.topicKey)
+        let defaults = UserDefaults.standard
+        let current = defaults.string(forKey: Self.topicKey)
         guard topic != current else { return }
         if let current { Messaging.messaging().unsubscribe(fromTopic: current) }
         if let topic { Messaging.messaging().subscribe(toTopic: topic) }
@@ -711,7 +715,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
               let id = userID, FirebaseIdentity.currentLUID() == id else { return }
         beginRefreshBackgroundTask()
         if freshFixAfter == nil || Date().timeIntervalSince(freshFixAfter!) > 20 {
-            let since = Date(), epoch = generation
+            let since = Date()
+            let epoch = generation
             freshFixAfter = since; latestSearchFix = nil; lastRegionRefresh = .distantPast; lastFixRequest = since
             freshFixRetry?.cancel()
             freshFixRetry = Task { [weak self] in
@@ -728,7 +733,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
 
     private func beginRefreshBackgroundTask() {
         guard !foreground, refreshBackgroundTask == .invalid else { return }
-        let epoch = generation, lease = UUID()
+        let epoch = generation
+        let lease = UUID()
         refreshLeaseID = lease
         refreshBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "lociar.regions.refresh") { [weak self] in
             Task { @MainActor in
@@ -926,7 +932,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             }
             guard precisionTargets.contains(item.id) else { continue }
             nearestEdge = min(nearestEdge, zone.distance(to: location))
-            let inside = zone.contains(location), ready = now >= nextAttempt[item.id] ?? .distantPast
+            let inside = zone.contains(location)
+            let ready = now >= nextAttempt[item.id] ?? .distantPast
             switch item.trigger {
             case "dwell":
                 if inside {
@@ -1003,7 +1010,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             return (String(localized: "Burada \(noteCount) not var"), String(localized: "Notları görmek için yaklaş ve haritada aç."))
         }
         guard let caption = result.body else { return nil }
-        let newCount = result.total ?? 1, likeCount = result.likes ?? 0
+        let newCount = result.total ?? 1
+        let likeCount = result.likes ?? 0
         let title = newCount > 1 ? String(localized: "Bu konumda \(newCount) yeni not var") : String(localized: "Bu konumda bir not var")
         return (title, likeCount > 0 ? String(localized: "En faydalı (\(likeCount) beğeni): \(caption)") : caption)
     }
@@ -1013,7 +1021,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         guard handling, enabled, let id = userID, let callables, location.horizontalAccuracy >= 0,
               location.horizontalAccuracy <= 200, Date().timeIntervalSince(location.timestamp) < 60,
               Date().timeIntervalSince(location.timestamp) >= -10 else { endBackgroundTask(); return }
-        let epoch = generation, campaigns = pending
+        let epoch = generation
+        let campaigns = pending
         processing = true
         defer { processing = false }
         pending.removeAll()
@@ -1148,8 +1157,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         if manager.authorizationStatus == .denied || manager.authorizationStatus == .restricted { stopRegions() }
         else { restoreCachedMonitoring(); Task { await synchronize() } }
     }
-    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) { enqueue(region) }
-    func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+    func locationManager(_ _: CLLocationManager, didEnterRegion region: CLRegion) { enqueue(region) }
+    func locationManager(_ _: CLLocationManager, didExitRegion region: CLRegion) {
         guard let id = userID else { return }
         if region.identifier == usualIdentifier(id) { leftUsualPlace(); return }
         if region.identifier == boundaryIdentifier(id) {
@@ -1159,7 +1168,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         }
         enqueue(region, exit: true)
     }
-    func locationManager(_ manager: CLLocationManager, didVisit visit: CLVisit) {
+    func locationManager(_ _: CLLocationManager, didVisit visit: CLVisit) {
         guard enabled, promotionsEnabled, let id = userID, visit.departureDate != .distantFuture, visit.arrivalDate != .distantPast,
               visit.horizontalAccuracy >= 0, visit.horizontalAccuracy <= 200,
               ProximityPolicy.isValidCoordinate(latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude) else { return }
@@ -1167,7 +1176,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         if let data = try? JSONEncoder().encode(usualLearner) { UserDefaults.standard.set(data, forKey: usualKey(id)) }
         updateUsualPlaceRegion()
     }
-    func locationManager(_ manager: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
+    func locationManager(_ _: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
         if let id = userID {
             if region.identifier == usualIdentifier(id) { return }
             if region.identifier == boundaryIdentifier(id) {
@@ -1189,11 +1198,11 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         manager.requestState(for: region)
     }
 
-    func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
+    func locationManager(_ _: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
         guard enabled, userID != nil, placeNotesEnabled || promotionsEnabled else { return }
         recordMonitoringFailure(region, error: error)
     }
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    func locationManager(_ _: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         let now = Date()
         var freshSearchArrived = false
         if let search = ArrivalFixSelection.latest(locations, at: now, maxAge: 240, maxAccuracy: 1_000,
@@ -1214,7 +1223,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         }
         if freshSearchArrived { synchronizeInBackground() }
     }
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationManager(_ _: CLLocationManager, didFailWithError error: Error) {
         if (error as? CLError)?.code == .locationUnknown { return }
         endBackgroundTask()
     }

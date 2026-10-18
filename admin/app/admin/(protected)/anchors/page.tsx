@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import { objectKeys, parseJsonField } from '../../../../lib/geo';
@@ -8,7 +9,7 @@ import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters
 
 export const dynamic = 'force-dynamic';
 
-export default async function AnchorsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function AnchorsPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const params = await searchParams;
   let page: DocumentPage = { documents: [], next: null, previous: null };
   await requireAdmin({ permission: 'anchors.read' });
@@ -36,8 +37,8 @@ export default async function AnchorsPage({ searchParams }: { searchParams: Prom
           const placement = String(anchor.placement_state);
           return (
             <div className="dataRow anchor" key={anchor.id}>
-              <span><b>{String(anchor.caption || t('Untitled post'))}</b><small>{anchor.id} · {String(anchor.status)}</small></span>
-              <span>{String(anchor.native_provider ?? t('unknown'))}</span>
+              <span><b>{scalarText(anchor.caption || t('Untitled post'))}</b><small>{anchor.id} · {String(anchor.status)}</small></span>
+              <span>{scalarText(anchor.native_provider ?? t('unknown'))}</span>
               <span><i className={`statusDot ${placement === 'arkit_world_locked' ? 'active' : 'flagged'}`} />{placement.replaceAll('_', ' ')}<small>{t('Quality')} {anchor.placement_quality == null ? t('unmeasured') : Number(anchor.placement_quality).toFixed(2)}</small></span>
               <span>{(anchor.resolver_strategy as string[] | null)?.join(' → ') || t('No resolver strategy')}<small>{t('Assets')}: {bundleKeys.join(', ') || t('none recorded')}{anchor.multi_user_ready ? ` · ${t('world map stored')}` : ''}</small></span>
               <span>{new Date(iso(anchor.updated_at ?? anchor.created_at)).toLocaleString(locale)}</span>

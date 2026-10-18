@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso, isoOrNull } from '../../../../lib/firebase-admin';
 import PostActions from './PostActions';
@@ -7,7 +8,7 @@ import { InvalidCursorError, pageCursors, readCaptionPage, textParameter, type D
 
 export const dynamic = 'force-dynamic';
 
-export default async function PostsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function PostsPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const admin = await requireAdmin({ permission: 'posts.read' });
   const { t, locale } = await getI18n();
   const params = await searchParams;
@@ -59,7 +60,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
               const deleted = Boolean(post.deleted_at);
               return (
                 <div className="dataRow post" key={post.id}>
-                  <span><a href={`/admin/posts/${post.id}`}><b>{String(post.caption || t('Untitled post'))}</b></a><small>{post.id} · @{String(post.creator_handle ?? '')} · {new Date(iso(post.created_at)).toLocaleDateString(locale)}</small></span>
+                  <span><a href={`/admin/posts/${post.id}`}><b>{scalarText(post.caption || t('Untitled post'))}</b></a><small>{post.id} · @{scalarText(post.creator_handle ?? '')} · {new Date(iso(post.created_at)).toLocaleDateString(locale)}</small></span>
                   <span><i className={`statusDot ${String(post.status)}`} />{deleted ? t('trash') : t(String(post.status).replaceAll('_', ' '))}</span>
                   <span>{t(String(post.visibility))} · {String(post.age_rating)}</span>
                   <span>{Number(post.views_count ?? 0)} / {Number(post.likes_count ?? 0)} / {Number(post.comments_count ?? 0)}{isoOrNull(post.metrics_admin_edited_at) ? <small>{t('Admin edited')}</small> : null}</span>

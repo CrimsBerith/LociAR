@@ -1,3 +1,4 @@
+import { forEachSequential } from './async';
 import { onCall } from 'firebase-functions/v2/https';
 import { db, Timestamp, FieldValue, requireCaller, isUUID, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, luidForUid } from './core';
 import { requireActiveAccount, accountDeletionRef } from './profileGuard';
@@ -11,28 +12,28 @@ const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX
 /** Region monitoring receives only the signed-in user's previously assigned offers. */
 export const readCampaignRegions = onCall(options, async request => {
   const caller = requireCaller(request), now = Date.now();
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const [pref, flags] = await tx.getAll(db.collection('user_data_preferences').doc(caller.luid), db.collection('system').doc('flags'));
     if (pref.get('notifications') !== true || pref.get('promotions') !== true || (pref.get('arrivals') !== true && pref.get('departures') !== true) || flags.get('kill_switch') === true) return { regions: [] };
     const assignments = await tx.get(db.collection('campaign_targets').where('owner_luid', '==', caller.luid).where('expires_at', '>', Timestamp.fromMillis(now)).limit(50));
-    const regions = [];
-    for (const a of assignments.docs) {
+    const regions: Array<{ id: string; lat: number; lng: number; radius: number; triggerRadius?: number; transition: 'entry' | 'exit'; expiresAt: number }> = [];
+    await forEachSequential(assignments.docs, async (a) => {
       const departure = a.get('notification_mode') === 'departure';
       if ((!departure && a.get('notification_mode') !== 'arrival') || a.get('arrival_notified_at')
-          || pref.get(departure ? 'departures' : 'arrivals') !== true) continue;
+          || pref.get(departure ? 'departures' : 'arrivals') !== true) return;
       const offer = await campaignOffer(tx, caller.luid, a.get('campaign_id'), now);
-      if (!offer) continue;
+      if (!offer) return;
       const c = await tx.get(db.collection('campaigns').doc(a.get('campaign_id')));
       const origin = departure ? await tx.get(db.collection('campaign_departure_regions').doc(a.id)) : null;
       if (departure && (!origin?.exists || typeof pref.get('departures_revision') !== 'string' || origin.get('consent_revision') !== pref.get('departures_revision')
-          || !(origin.get('expires_at') instanceof Timestamp) || origin.get('expires_at').toMillis() <= now)) continue;
+          || !(origin.get('expires_at') instanceof Timestamp) || origin.get('expires_at').toMillis() <= now)) return;
       const lat = departure ? origin!.get('lat') : c.get('lat'), lng = departure ? origin!.get('lng') : c.get('lng');
       const radius = departure ? origin!.get('radius') : c.get('arrivalRadius') ?? 150;
-      if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180 || !Number.isFinite(radius) || radius < 100 || radius > 500) continue;
+      if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180 || !Number.isFinite(radius) || radius < 100 || radius > 500) return;
       regions.push({ id: c.id, lat, lng, radius, ...(!departure ? { triggerRadius: campaignEntryRadius(c.get('entryRadius')) } : {}), transition: departure ? 'exit' : 'entry',
         expiresAt: departure ? Math.min(origin!.get('expires_at').toMillis(), c.get('ends_at').toMillis()) : c.get('ends_at').toMillis() });
-    }
+    });
     return { regions };
   });
 });
@@ -49,7 +50,7 @@ export const recordCampaignArrival = onCall(options, async request => {
     throw new HttpsError('invalid-argument', 'A recent, accurate arrival fix is required');
   }
   const id = b.campaignId.toLowerCase(), activityId = `arrival_${id}_${caller.luid}`;
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     const [flags, pref, target, c, activity, quota] = await tx.getAll(db.collection('system').doc('flags'),
       db.collection('user_data_preferences').doc(caller.luid), db.collection('campaign_targets').doc(`${id}_${caller.luid}`),
       db.collection('campaigns').doc(id), db.collection('activity_events').doc(activityId), db.collection('promotion_push_quota').doc(pushQuotaId(caller.luid, now)));

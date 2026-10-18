@@ -27,7 +27,7 @@ export function radius(value: unknown): number {
 /** A future time, or null to clear the end date. Notes never end on their own. */
 function endDate(value: unknown): Timestamp | null {
   if (value === null || value === '') return null;
-  const ms = typeof value === 'string' ? Date.parse(value) : NaN;
+  const ms = typeof value === 'string' ? Date.parse(value) : Number.NaN;
   if (!Number.isFinite(ms) || ms <= Date.now() + 60_000) throw new ValidationError('end date must be in the future');
   return Timestamp.fromMillis(ms);
 }
@@ -51,7 +51,7 @@ export async function operatePlaceNote(body: Record<string, unknown>, actor: str
   const id = uuid(body.id, 'id').toLowerCase(), action = String(body.action), permission = ACTIONS[action];
   if (!permission) throw new ValidationError('Invalid action');
   const hash = mutationHash(actor, 'place_note_' + action, id, { body, reason }), db = adminDb();
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requirePermission(tx, actor, permission);
     const [receipt, note] = await tx.getAll(db.collection('admin_audit_log').doc(key), db.collection('posts').doc(id));
     if (checkReceipt(receipt, hash)) return { id };
@@ -108,7 +108,7 @@ export async function setPlaceNoteSettings(body: Record<string, unknown>, actor:
   const report = integer(body.reportThreshold ?? DEFAULT_REPORT_THRESHOLD, 'report threshold', 1, 100);
   const unlock = integer(body.unlockRadius ?? DEFAULT_UNLOCK_RADIUS_M, 'unlock radius', 2, 50);
   const db = adminDb(), ref = db.collection('system').doc('place_notes'), hash = mutationHash(actor, 'place_note_settings', 'place_notes', { threshold, dense, unlock, report, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requirePermission(tx, actor, 'posts.moderate');
     const [receipt, current] = await tx.getAll(db.collection('admin_audit_log').doc(key), ref);
     if (checkReceipt(receipt, hash)) return { likeThreshold: threshold };

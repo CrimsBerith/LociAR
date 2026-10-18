@@ -76,7 +76,7 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
         latestHeading = newHeading
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    func locationManager(_ _: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard continuation != nil, let location = locations.last, Self.isPublishable(location) else { return }
         if let bestLocation, !Self.isPublishable(bestLocation) { self.bestLocation = nil }
         if location.horizontalAccuracy < (bestLocation?.horizontalAccuracy ?? .infinity) {
@@ -101,7 +101,7 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
         )
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationManager(_ _: CLLocationManager, didFailWithError error: Error) {
         if let locationError = error as? CLError, locationError.code == .locationUnknown {
             return
         }

@@ -62,7 +62,7 @@ export default function PrivacyPageEn() {
       <h2>Service providers and international transfers</h2>
       <p>
         Our infrastructure is provided by Google Firebase (Google Cloud); data is stored in Google data centers in the
-        <strong> United States</strong> under Google&apos;s data processing terms and appropriate safeguards. Google services we use:
+        {' '}<strong>United States</strong> under Google&apos;s data processing terms and appropriate safeguards. Google services we use:
       </p>
       <ul>
         <li><strong>Firebase Authentication, Cloud Firestore, Cloud Storage, Cloud Functions, App Check:</strong> accounts, content and security.</li>

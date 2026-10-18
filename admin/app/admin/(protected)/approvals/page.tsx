@@ -8,7 +8,7 @@ import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters
 
 export const dynamic = 'force-dynamic';
 
-export default async function ApprovalsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function ApprovalsPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const params = await searchParams;
   let page: DocumentPage = { documents: [], next: null, previous: null };
   const admin = await requireAdmin({ permission: 'posts.metrics.write' });

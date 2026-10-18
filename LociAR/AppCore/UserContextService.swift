@@ -60,7 +60,8 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
     private struct Response: Decodable { let ok: Bool }
 
     private override init() {
-        let defaults = UserDefaults.standard, key = "lociar.context-installation-id"
+        let defaults = UserDefaults.standard
+        let key = "lociar.context-installation-id"
         let id = defaults.string(forKey: key).flatMap(UUID.init(uuidString:)) ?? UUID()
         installationID = id.uuidString.lowercased()
         defaults.set(installationID, forKey: key)
@@ -269,10 +270,10 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
         }
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) { updateLocationService() }
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    func locationManagerDidChangeAuthorization(_ _: CLLocationManager) { updateLocationService() }
+    func locationManager(_ _: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard foreground, locationEnabled else { return }
         latestLocation = locations.last
     }
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) { latestLocation = nil }
+    func locationManager(_ _: CLLocationManager, didFailWithError _: Error) { latestLocation = nil }
 }

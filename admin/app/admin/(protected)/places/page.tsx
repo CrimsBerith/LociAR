@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import { formatLatLng } from '../../../../lib/geo';
@@ -7,7 +8,7 @@ import { pageCursors, readDocumentPage, textParameter, type DocumentPage, type S
 
 export const dynamic = 'force-dynamic';
 
-export default async function PlacesPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function PlacesPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   await requireAdmin({ permission: 'anchors.read' });
   const { t, locale } = await getI18n();
   const params = await searchParams;
@@ -43,9 +44,9 @@ export default async function PlacesPage({ searchParams }: { searchParams: Promi
         <div className="dataRow place header"><span>{t('Post')}</span><span>{t('Coordinate')}</span><span>{t('Placement')}</span><span>{t('Created')}</span></div>
         {postError ? <p className="emptyState">{t('Post locations could not be loaded.')}</p> : posts.length === 0 ? <p className="emptyState">{t('No post locations.')}</p> : posts.map(post => (
           <div className="dataRow place" key={post.id}>
-            <span><b>{String(post.caption || t('Untitled post'))}</b><small>{post.id} · {String(post.status)}</small></span>
-            <span>{formatLatLng(post.lat, post.lng)}<small>{String(post.geohash ?? '').slice(0, 7) || t('no geohash')}</small></span>
-            <span>{t(String(post.placement_state ?? 'unknown').replaceAll('_', ' '))}</span>
+            <span><b>{scalarText(post.caption || t('Untitled post'))}</b><small>{post.id} · {String(post.status)}</small></span>
+            <span>{formatLatLng(post.lat, post.lng)}<small>{scalarText(post.geohash ?? '').slice(0, 7) || t('no geohash')}</small></span>
+            <span>{t(scalarText(post.placement_state ?? 'unknown').replaceAll('_', ' '))}</span>
             <span>{new Date(iso(post.created_at)).toLocaleDateString(locale)}</span>
           </div>
         ))}
@@ -56,9 +57,9 @@ export default async function PlacesPage({ searchParams }: { searchParams: Promi
         <div className="dataRow place header"><span>{t('Campaign / label')}</span><span>{t('Coordinate')}</span><span>{t('Status')}</span><span>{t('Created')}</span></div>
         {locationError ? <p className="emptyState">{t('Campaign locations could not be loaded.')}</p> : locations.length === 0 ? <p className="emptyState">{t('No campaign locations.')}</p> : locations.map(location => (
           <div className="dataRow place" key={location.id}>
-            <span><b>{String(location.campaign_name ?? t('Unassigned campaign'))}</b><small>{String(location.label ?? location.id)}</small></span>
+            <span><b>{scalarText(location.campaign_name ?? t('Unassigned campaign'))}</b><small>{scalarText(location.label ?? location.id)}</small></span>
             <span>{formatLatLng(location.latitude, location.longitude)}</span>
-            <span>{t(String(location.status ?? 'unknown'))}</span>
+            <span>{t(scalarText(location.status ?? 'unknown'))}</span>
             <span>{new Date(iso(location.created_at)).toLocaleDateString(locale)}</span>
           </div>
         ))}

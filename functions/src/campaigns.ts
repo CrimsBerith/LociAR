@@ -1,3 +1,4 @@
+import { forEachSequential } from './async';
 import { createHash } from 'node:crypto';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
@@ -6,7 +7,7 @@ import { db, FieldValue, Timestamp, isUUID, luidForUid, HttpsError, requireCalle
 import { requireActiveAccount, accountDeletionRef, profileBlock } from './profileGuard';
 import { identityBlocked } from './anonymousAccess';
 import { distanceMeters } from './geo';
-import { anyBlocked } from './moderation';
+import { anyBlocked, containsURL } from './moderation';
 import { MAX_PUSH_DEVICES, pushAddress, pushAddressMatches, pushDeliveryId, invalidPushTokenCode, pushQuotaDecision, pushQuotaId, pushLocale } from './pushPolicy';
 
 export function campaignLive(c: FirebaseFirestore.DocumentData | undefined, now = Date.now()): boolean {
@@ -33,17 +34,17 @@ export async function campaignOffer(tx: FirebaseFirestore.Transaction, luid: str
 }
 
 export async function ownCampaignOffers(luid: string, lat: number, lng: number, radius: number) {
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, luid);
     const assignments = await tx.get(db.collection('campaign_targets').where('owner_luid', '==', luid).where('expires_at', '>', Timestamp.now()).limit(50));
-    const offers = [];
-    for (const assignment of assignments.docs) {
+    const offers: Array<NonNullable<Awaited<ReturnType<typeof campaignOffer>>>> = [];
+    await forEachSequential(assignments.docs, async (assignment) => {
       const offer = await campaignOffer(tx, luid, assignment.get('campaign_id'));
       if (offer) {
         const pose = JSON.parse(offer.pose_json);
         if (distanceMeters(lat, lng, pose.latitude, pose.longitude) <= radius) offers.push(offer);
       }
-    }
+    });
     return offers;
   });
 }
@@ -62,7 +63,7 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
   const recipient = initial.recipient_id;
   const devices = await db.collection('push_tokens').where('owner_luid', '==', recipient).limit(MAX_PUSH_DEVICES).get();
   let attempts = 0;
-  for (const device of devices.docs) {
+  await forEachSequential(devices.docs, async (device) => {
     const receiptRef = db.collection('admin_notification_receipts').doc(pushDeliveryId(id, device.id));
     const quotaRef = db.collection('promotion_push_quota').doc(pushQuotaId(recipient, now));
     const message = await db.runTransaction(async tx => {
@@ -111,7 +112,7 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
         data: { recipient_id: recipient, post_id: postId, activity_id: activityRef.id },
         apns: { headers: { 'apns-collapse-id': id, 'apns-expiration': String(Math.floor(now / 1000) + 3600) }, payload: { aps: { sound: 'default' } } } } satisfies Message;
     });
-    if (!message) continue;
+    if (!message) return;
     attempts++;
     try { await send(message); await receiptRef.update({ status: 'accepted' }); }
     catch (error) {
@@ -122,7 +123,7 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
       });
       await receiptRef.update({ status: 'failed', error_code: code }).catch(() => {});
     }
-  }
+  });
   await db.runTransaction(async tx => {
     const job = await tx.get(ref);
     if (!job.exists || (await tx.get(accountDeletionRef(recipient))).exists) return;
@@ -145,13 +146,13 @@ export const submitBrandCampaign = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, 
   if (!identityVerified(caller) || !isUUID(b?.brandId) || !isUUID(b?.mutationId)) throw new HttpsError('permission-denied', 'Verified brand editor required');
   const texts = ['name', 'message', 'terms'] as const;
   for (const key of texts) if (typeof b[key] !== 'string' || b[key].trim().length < 1 || b[key].length > (key === 'name' ? 80 : key === 'message' ? 1000 : 800)
-    || anyBlocked([b[key]]) || /[a-z][a-z0-9+.-]*:\/\/|www\.|[\p{L}\p{N}-]+\.[\p{L}]{2,63}(?:\b|$)/iu.test(b[key])) throw new HttpsError('invalid-argument', 'Only moderated text without links is allowed');
+    || anyBlocked([b[key]]) || containsURL(b[key])) throw new HttpsError('invalid-argument', 'Only moderated text without links is allowed');
   if (!Number.isFinite(b.lat) || Math.abs(b.lat) > 90 || !Number.isFinite(b.lng) || Math.abs(b.lng) > 180
     || !Number.isFinite(b.radius) || b.radius < 100 || b.radius > 5000 || !Number.isFinite(b.startsAt) || !Number.isFinite(b.endsAt)
     || b.endsAt <= Math.max(Date.now(), b.startsAt + 60_000) || b.endsAt > b.startsAt + 90 * 86_400_000) throw new HttpsError('invalid-argument', 'Invalid campaign location or dates');
   const id = b.mutationId.toLowerCase();
   const hash = createHash('sha256').update(JSON.stringify([caller.luid, b.brandId.toLowerCase(), b.name.trim(), b.message.trim(), b.terms.trim(), b.lat, b.lng, b.radius, b.startsAt, b.endsAt])).digest('hex');
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const [brand, membership, previous, quota] = await tx.getAll(db.collection('brands').doc(b.brandId.toLowerCase()), db.collection('brand_memberships').doc(`${b.brandId.toLowerCase()}_${caller.luid}`),
       db.collection('campaigns').doc(id), db.collection('brand_submission_quota').doc(`${caller.luid}_${Math.floor(Date.now() / 3_600_000)}`));

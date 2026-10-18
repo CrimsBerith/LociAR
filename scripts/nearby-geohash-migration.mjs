@@ -1,3 +1,4 @@
+import { forEachSequential, readPages } from './async.mjs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { deploymentEnvironment } from './firebase-deploy.mjs';
@@ -30,14 +31,18 @@ export function desiredGeohash(post) {
 }
 
 async function scan(db, apply) {
-  let cursor, examined = 0, mismatches = 0;
-  for (let page = 0; page < 100; page++) {
+  let examined = 0, mismatches = 0, pageCount = 0;
+  const pages = readPages(async cursor => {
+    if (pageCount++ >= 100) throw new Error('Scan exceeded 20,000 documents; indexed queries remain disabled. Extend the migration before retrying.');
     const base = db.collection('posts').orderBy('__name__');
     const docs = await (cursor ? base.startAfter(cursor) : base).limit(200).get();
-    for (const doc of docs.docs) {
+    return { value: docs, next: docs.size < 200 ? undefined : docs.docs.at(-1) };
+  });
+  for await (const docs of pages) {
+    await forEachSequential(docs.docs, async doc => {
       examined++;
       const expected = desiredGeohash(doc.data());
-      if (!expected || doc.get('geohash') === expected) continue;
+      if (!expected || doc.get('geohash') === expected) return;
       mismatches++;
       if (apply) await db.runTransaction(async tx => {
         const current = await tx.get(doc.ref);
@@ -45,9 +50,8 @@ async function scan(db, apply) {
         const hash = desiredGeohash(current.data());
         if (hash && current.get('geohash') !== hash) tx.update(doc.ref, { geohash: hash });
       });
-    }
+    });
     if (docs.size < 200) return { examined, mismatches, complete: true };
-    cursor = docs.docs.at(-1);
   }
   throw new Error('Scan exceeded 20,000 documents; indexed queries remain disabled. Extend the migration before retrying.');
 }
@@ -65,4 +69,7 @@ async function main(args) {
   if (apply && after.mismatches !== 0) throw new Error('Verification found mismatched coordinates; indexed queries remain disabled.');
   console.log(JSON.stringify({ apply, before, after, enabled: apply && after.complete && after.mismatches === 0 }));
 }
-if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) main(process.argv.slice(2)).catch(error => { console.error(error.message); process.exitCode = 1; });
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  try { await main(process.argv.slice(2)); }
+  catch (error) { console.error(error.message); process.exitCode = 1; }
+}

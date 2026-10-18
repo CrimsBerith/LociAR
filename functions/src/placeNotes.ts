@@ -1,3 +1,4 @@
+import { chunks, firstResultSequential, forEachSequential } from './async';
 import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { info } from 'firebase-functions/logger';
 import { db, Timestamp, FieldValue, requireCaller, isUUID, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES } from './core';
@@ -18,7 +19,7 @@ import {
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 60 };
 const DAY = 86_400_000;
-const SOURCES: FixSource[] = ['geospatial', 'gps', 'manual'];
+const SOURCES = new Set<FixSource>(['geospatial', 'gps', 'manual']);
 const MAX_REGIONS = 15;
 
 function plain(value: unknown, max: number): string {
@@ -41,7 +42,7 @@ export const createPlaceNote = onCall(options, async request => {
   const caller = requireCaller(request), b = request.data;
   if (b?.userId !== caller.luid || !isUUID(b?.clientMutationId) || !validCoordinates(b?.lat, b?.lng)) throw new HttpsError('invalid-argument', 'Invalid location');
   const source = b.source as FixSource, accuracy = b.accuracy;
-  if (!SOURCES.includes(source) || typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy < 0) throw new HttpsError('invalid-argument', 'Invalid location source');
+  if (!SOURCES.has(source) || typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy < 0) throw new HttpsError('invalid-argument', 'Invalid location source');
   if (accuracy > MAX_CREATE_ACCURACY_M) throw reasonError('failed-precondition', 'Location is too uncertain', 'location_inaccurate');
   if (source !== 'manual' && accuracy > 15) throw new HttpsError('invalid-argument', 'Confirm an uncertain location by placing the pin');
   let drag = 0;
@@ -105,14 +106,14 @@ function retryActive(receipt: FirebaseFirestore.DocumentSnapshot, now: number) {
 async function unseenNotes(tx: FirebaseFirestore.Transaction, posts: FirebaseFirestore.DocumentSnapshot[], luid: string, now: number, includePending: boolean, limit: number) {
   const candidates = posts.filter(post => noteCandidate(post, luid));
   const result: FirebaseFirestore.DocumentSnapshot[] = [];
-  for (let start = 0; start < candidates.length && result.length < limit; start += 80) {
-    const batch = candidates.slice(start, start + 80);
+  await forEachSequential(chunks(candidates, 80), async batch => {
+    if (result.length >= limit) return;
     const receipts = await tx.getAll(...batch.map(post => receiptRef(luid, post.id)));
     const unseen = batch.filter((_, index) => !receipts[index].exists
       || includePending && receipts[index].get('delivery_state') === 'pending' && retryActive(receipts[index], now));
     const readable = await readableNoteIds(tx, unseen, luid);
     result.push(...unseen.filter(post => readable.has(post.id)));
-  }
+  });
   return result.slice(0, limit);
 }
 
@@ -129,7 +130,7 @@ export const readPlaceNoteRegions = onCall(options, async request => {
   const caller = requireCaller(request), now = Date.now(), f = parseFix(request.data?.location);
   // A coarse significant-change fix (cell/Wi-Fi) is enough for a 3 km region search.
   if (f.accuracy > 1_000 || f.measuredAt < now - 5 * 60_000 || f.measuredAt > now + 10_000) throw new HttpsError('invalid-argument', 'A recent location is required');
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     if (!await notificationsAllowed(tx, caller.luid)) return { regions: [] };
     const near = (await approvedNear(tx, f.lat, f.lng, REGION_SEARCH_RADIUS_M))
@@ -162,11 +163,11 @@ export const readPlaceNoteRegions = onCall(options, async request => {
  */
 async function recordPlaceNoteVisitHandler(request: CallableRequest) {
   const caller = requireCaller(request), b = request.data, now = Date.now();
-  const deliveryId = b?.deliveryId == null ? null : b.deliveryId;
+  const deliveryId = b?.deliveryId ?? null;
   if (deliveryId !== null && !isUUID(deliveryId)) throw new HttpsError('invalid-argument', 'Invalid delivery ID');
   if (b?.action === 'acknowledge') {
     if (!deliveryId) throw new HttpsError('invalid-argument', 'A delivery ID is required');
-    return db.runTransaction(async tx => {
+    return await db.runTransaction(async tx => {
       await requireActiveAccount(tx, caller.luid);
       if (!await notificationsAllowed(tx, caller.luid)) return { notify: false, reason: 'disabled' };
       const delivery = await tx.get(deliveryRef(caller.luid, deliveryId));
@@ -183,7 +184,7 @@ async function recordPlaceNoteVisitHandler(request: CallableRequest) {
   if (!fixIsFresh(f, now)) return { notify: false, reason: 'stale_fix' };
   if (f.accuracy > MAX_ENTRY_ACCURACY_M) return { notify: false, reason: 'inaccurate_fix' };
   if (!confirmationValid(b?.confirmationStartedAt, f)) return { notify: false, reason: 'unconfirmed' };
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     if (!await notificationsAllowed(tx, caller.luid)) return { notify: false, reason: 'disabled' };
     if (deliveryId) {
@@ -209,23 +210,7 @@ async function recordPlaceNoteVisitHandler(request: CallableRequest) {
       .sort((a, b) => compareByLikes(ranked(a), ranked(b)));
     const eligible = await unseenNotes(tx, inside, caller.luid, now, false, 40);
     const top = eligible[0];
-    if (!top) {
-      // No approved note here: a dense spot still earns one text-free alert per 30 days.
-      const settings = await spotSettings(tx);
-      // Within 10 m of the spot circle, plus GPS tolerance.
-      const spots = await denseSpotsNear(tx, f.lat, f.lng, 10 + Math.min(f.accuracy, ENTRY_TOLERANCE_CAP_M), settings.denseThreshold);
-      for (const spot of spots) {
-        const receipt = await tx.get(spotReceiptRef(caller.luid, spot.id));
-        if (receipt.exists && receipt.get('expires_at') instanceof Timestamp && receipt.get('expires_at').toMillis() > now) continue;
-        tx.set(receipt.ref, { owner_luid: caller.luid, spot: spot.id, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
-        const activityId = `dense_spot_${caller.luid}_${spot.id}${deliveryId ? `_${deliveryId}` : ''}`;
-        if (deliveryId) tx.create(deliveryRef(caller.luid, deliveryId), { owner_luid: caller.luid, spot: spot.id, activity_id: activityId,
-          delivery_state: 'pending', created_at: Timestamp.fromMillis(now), retry_until: Timestamp.fromMillis(now + DELIVERY_RETRY_WINDOW_MS) });
-        return { notify: true, kind: 'dense_spot', total: spot.count, spotLat: spot.lat, spotLng: spot.lng, unlockRadius: settings.unlockRadius,
-          activityId, recipientId: caller.luid, ...(deliveryId ? { deliveryId } : {}) };
-      }
-      return { notify: false, reason: 'nothing_new' };
-    }
+    if (!top) return await denseSpotNotification(tx, caller.luid, f, now, deliveryId);
     const activityId = `place_note_${caller.luid}_${top.id}`;
     const notification = await noteNotification(tx, top, caller.luid, now, eligible.length);
     // No expiry: the same note is never sent to the same person again.
@@ -253,3 +238,24 @@ export const recordPlaceNoteVisit = onCall(options, async request => {
     throw error;
   }
 });
+
+async function denseSpotNotification(tx: FirebaseFirestore.Transaction, luid: string, fix: Fix, now: number, deliveryId: string | null) {
+      // No approved note here: a dense spot still earns one text-free alert per 30 days.
+      const settings = await spotSettings(tx);
+      // Within 10 m of the spot circle, plus GPS tolerance.
+      const spots = await denseSpotsNear(tx, fix.lat, fix.lng, 10 + Math.min(fix.accuracy, ENTRY_TOLERANCE_CAP_M), settings.denseThreshold);
+      const candidate = await firstResultSequential(spots, async spot => {
+        const receipt = await tx.get(spotReceiptRef(luid, spot.id));
+        if (receipt.exists && receipt.get('expires_at') instanceof Timestamp && receipt.get('expires_at').toMillis() > now) return undefined;
+        return { spot, receipt };
+      });
+      if (!candidate) return { notify: false, reason: 'nothing_new' };
+      const { spot, receipt } = candidate;
+        tx.set(receipt.ref, { owner_luid: luid, spot: spot.id, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * DAY) });
+        const suffix = deliveryId ? '_' + deliveryId : '';
+        const activityId = `dense_spot_${luid}_${spot.id}${suffix}`;
+        if (deliveryId) tx.create(deliveryRef(luid, deliveryId), { owner_luid: luid, spot: spot.id, activity_id: activityId,
+          delivery_state: 'pending', created_at: Timestamp.fromMillis(now), retry_until: Timestamp.fromMillis(now + DELIVERY_RETRY_WINDOW_MS) });
+        return { notify: true, kind: 'dense_spot', total: spot.count, spotLat: spot.lat, spotLng: spot.lng, unlockRadius: settings.unlockRadius,
+          activityId, recipientId: luid, ...(deliveryId ? { deliveryId } : {}) };
+}

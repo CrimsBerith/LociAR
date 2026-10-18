@@ -8,7 +8,7 @@ type Result = { status: string; lat?: number; lng?: number; accuracy?: number; m
     installationId: string; observedIp: string | null; lastSeen: string };
   events?: Array<{ name: string; at: string; postId: string | null }> };
 
-export default function UserContextPanel({ luid, canLocation, canTelemetry, canNotify = false, stepUp = false }: { luid: string; canLocation: boolean; canTelemetry: boolean; canNotify?: boolean; stepUp?: boolean }) {
+export default function UserContextPanel({ luid, canLocation, canTelemetry, canNotify = false, stepUp = false }: Readonly<{ luid: string; canLocation: boolean; canTelemetry: boolean; canNotify?: boolean; stepUp?: boolean }>) {
   const t = useT();
   const [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [result, setResult] = useState<Result | null>(null);
@@ -28,7 +28,7 @@ export default function UserContextPanel({ luid, canLocation, canTelemetry, canN
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? 'Private data could not be loaded');
       setNow(Date.now()); if (document.visibilityState === 'visible') setResult(body.result);
-    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Private data could not be loaded'); }
+    } catch (error_) { setError(error_ instanceof Error ? error_.message : 'Private data could not be loaded'); }
     finally { setBusy(false); }
   }
   const recent = result?.status === 'recent' && result.measuredAt && now - Date.parse(result.measuredAt) <= 120_000;

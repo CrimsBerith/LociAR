@@ -44,12 +44,19 @@ enum CampaignZone: Codable, Equatable, Sendable {
         case let .circle(lat, lng, radius):
             return location.distance(from: CLLocation(latitude: lat, longitude: lng)) - radius
         case let .street(points, width):
-            let lat = location.coordinate.latitude, lng = location.coordinate.longitude
-            let k = cos(lat * .pi / 180) * 111_320, m = 111_320.0
+            let lat = location.coordinate.latitude
+            let lng = location.coordinate.longitude
+            let k = cos(lat * .pi / 180) * 111_320
+            let m = 111_320.0
             var best = Double.infinity
             for (a, b) in zip(points, points.dropFirst()) {
-                let ax = (a.lng - lng) * k, ay = (a.lat - lat) * m, bx = (b.lng - lng) * k, by = (b.lat - lat) * m
-                let dx = bx - ax, dy = by - ay, length = dx * dx + dy * dy
+                let ax = (a.lng - lng) * k
+                let ay = (a.lat - lat) * m
+                let bx = (b.lng - lng) * k
+                let by = (b.lat - lat) * m
+                let dx = bx - ax
+                let dy = by - ay
+                let length = dx * dx + dy * dy
                 let t = length == 0 ? 0 : max(0, min(1, -(ax * dx + ay * dy) / length))
                 best = min(best, hypot(ax + t * dx, ay + t * dy))
             }
@@ -90,7 +97,8 @@ struct UsualPlaceLearner: Codable, Equatable, Sendable {
 
     /// Hours of a visit that fall between 00:00 and 06:00 local time, and the nights it touches.
     static func nightOverlap(_ visit: Visit, calendar: Calendar = .current) -> (hours: Double, nights: Set<Date>) {
-        var hours = 0.0, nights = Set<Date>()
+        var hours = 0.0
+        var nights = Set<Date>()
         var day = calendar.startOfDay(for: visit.arrival)
         while day <= visit.departure {
             let nightEnd = day.addingTimeInterval(6 * 3_600)

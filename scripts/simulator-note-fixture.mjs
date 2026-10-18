@@ -1,3 +1,4 @@
+import { pollUntil } from './async.mjs';
 // Test-only bridge: real demo callables + simulator location/APNs transport.
 // Run with Node 22, --conditions=react-server and --import ./admin/tests/register-typescript.mjs.
 import assert from 'node:assert/strict';
@@ -46,14 +47,10 @@ function locate() {
 const locationTimer = setInterval(() => { try { locate(); } catch {} }, 900);
 async function account() { const user = await adminAuth.getUserByEmail(email); return { user, luid: luidForUid(user.uid) }; }
 async function preferences() { const { luid } = await account(); return (await adminDb.collection('user_data_preferences').doc(luid).get()).data(); }
-async function eventually(read, accepted) {
-  for (let i = 0; i < 100; i++) {
-    const value = await read();
-    if (accepted(value)) return value;
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-  throw new Error('Expected asynchronous server state was not committed within ten seconds');
+function eventually(read, accepted) {
+  return pollUntil(read, accepted, 100, 100, 'Expected asynchronous server state was not committed within ten seconds');
 }
+
 async function push(message) {
   const payload = { aps: { alert: message.notification, sound: 'default' }, ...message.data };
   const file = resolve(output, `simulated-push-${sends.length}.json`);
@@ -173,14 +170,14 @@ const actions = {
     const { user, luid } = deletingAccount;
     await eventually(() => adminDb.collection('account_deletion_jobs').doc(luid).get(), s => s.get('status') === 'done');
     await assert.rejects(adminAuth.getUser(user.uid), error => error.code === 'auth/user-not-found');
-    for (const collection of ['profiles', 'users_private', 'user_data_preferences', 'user_locations', 'user_device_context']) {
+    await Promise.all(['profiles', 'users_private', 'user_data_preferences', 'user_locations', 'user_device_context'].map(async collection => {
       assert.equal((await adminDb.collection(collection).doc(luid).get()).exists, false, collection);
-    }
-    for (const [collection, field] of [['posts', 'creator_id'], ['activity_events', 'recipient_id'],
+    }));
+    await Promise.all([['posts', 'creator_id'], ['activity_events', 'recipient_id'],
       ['push_tokens', 'owner_luid'], ['admin_notification_jobs', 'owner_luid'],
-      ['place_note_notification_receipts', 'owner_luid'], ['handles', 'luid']]) {
+      ['place_note_notification_receipts', 'owner_luid'], ['handles', 'luid']].map(async ([collection, field]) => {
       assert.equal((await adminDb.collection(collection).where(field, '==', luid).get()).size, 0, collection);
-    }
+    }));
     await eventually(() => adminDb.getAll(...deletingPosts.map(id => adminDb.collection('note_density_members').doc(id))),
       records => records.every(record => !record.exists));
     return { authDeleted: 'true', recordsDeleted: 'true' };
@@ -190,9 +187,8 @@ const actions = {
 const emailTimer = setInterval(async () => {
   try {
     const result = await fetch('http://127.0.0.1:9099/emulator/v1/projects/demo-lociar/oobCodes');
-    for (const code of (await result.json()).oobCodes ?? []) if (code.email === email && code.requestType === 'VERIFY_EMAIL') {
-      await fetch('http://127.0.0.1:9099/emulator/action?mode=verifyEmail&oobCode=' + encodeURIComponent(code.oobCode) + '&apiKey=fake-api-key');
-    }
+    const codes = ((await result.json()).oobCodes ?? []).filter(code => code.email === email && code.requestType === 'VERIFY_EMAIL');
+    await Promise.all(codes.map(code => fetch('http://127.0.0.1:9099/emulator/action?mode=verifyEmail&oobCode=' + encodeURIComponent(code.oobCode) + '&apiKey=fake-api-key')));
   } catch {}
 }, 1000);
 const server = createServer(async (request, response) => {

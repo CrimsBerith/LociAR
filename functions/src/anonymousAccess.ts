@@ -1,7 +1,7 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { hasPostReport } from './postReports';
-import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID, Timestamp } from './core';
-import { requireCaller } from './core';
+import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID, Timestamp, requireCaller } from './core';
+
 import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
 import { isPublicActive } from './counters';
 import { denseLocks } from './denseSpots';
@@ -38,7 +38,7 @@ export async function contentBlocked(viewer: string, post: FirebaseFirestore.Doc
 }
 
 async function readablePost(postId: string, luid: string) {
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, luid);
     const snap = await tx.get(db.collection('posts').doc(postId));
     const post = snap.data();

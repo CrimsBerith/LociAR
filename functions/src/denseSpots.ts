@@ -141,7 +141,7 @@ export const unlockDenseSpot = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxI
   if (!f || !validCoordinates(f.lat, f.lng) || typeof f.accuracy !== 'number' || typeof f.measuredAt !== 'number') throw new HttpsError('invalid-argument', 'A location fix is required');
   if (!fixIsFresh(f, now)) return { unlocked: [], reason: 'stale_fix' };
   if (f.accuracy > MAX_ENTRY_ACCURACY_M) return { unlocked: [], reason: 'inaccurate_fix' };
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const settings = await spotSettings(tx);
     const near = await denseSpotsNear(tx, f.lat, f.lng, settings.unlockRadius + UNLOCK_TOLERANCE_CAP_M, settings.denseThreshold);

@@ -1,3 +1,4 @@
+import { forEachSequential } from './async';
 import { db, FieldValue, Timestamp } from './core';
 import { isAccountDeleting } from './profileGuard';
 
@@ -33,8 +34,8 @@ export async function readCounterUpdate(
   const owner = profile ? target.id : data.creator_id;
   if (typeof owner === 'string' && await isAccountDeleting(tx, owner)) return {};
   const next: Record<string, number> = {};
-  for (const field of fields) {
-    if ((field === 'likes_count' || field === 'comments_count') && legacyManualMetrics(data)) continue;
+  await forEachSequential(fields, async (field) => {
+    if ((field === 'likes_count' || field === 'comments_count') && legacyManualMetrics(data)) return;
     let count: number;
     if (field === 'public_post_count') {
       // Legacy rows can omit deleted_at / age_rating, so those predicates run on selected fields.
@@ -48,7 +49,7 @@ export async function readCounterUpdate(
     }
     const offset = data.metrics_counter_offsets?.[field];
     next[field] = Math.max(0, count + (Number.isSafeInteger(offset) ? offset : 0));
-  }
+  });
   if (!profile && fields.some((field) => field === 'likes_count' || field === 'comments_count')) {
     next.engagement_score = engagementScore(data.views_count, next.likes_count ?? data.likes_count, next.comments_count ?? data.comments_count);
   }
@@ -68,7 +69,7 @@ export async function applyCountersOnce(
   uncountedMarker?: FirebaseFirestore.DocumentReference,
 ): Promise<boolean> {
   const receiptRef = db.collection('trigger_receipts').doc(eventId);
-  return db.runTransaction(async (tx) => {
+  return await db.runTransaction(async (tx) => {
     const [receipt, ...targets] = await tx.getAll(receiptRef,
       ...updates.map((update) => db.doc(update.path)), ...(uncountedMarker ? [uncountedMarker] : []));
     if (receipt.exists) return false;

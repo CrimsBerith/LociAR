@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 export type NavGroup = { label: string; items: Array<{ href: string; label: string }> };
 
 /** Sidebar navigation grouped by area; highlights the section the admin is currently in. */
-export default function AdminNav({ groups, label }: { groups: NavGroup[]; label: string }) {
+export default function AdminNav({ groups, label }: Readonly<{ groups: NavGroup[]; label: string }>) {
   const pathname = usePathname() ?? '';
   const nav = useRef<HTMLElement>(null);
   // Keep the current section visible when the menu is taller than the sidebar.

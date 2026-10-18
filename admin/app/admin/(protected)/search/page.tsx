@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../lib/values';
 import { recordPersonalDataRead } from '../../../../lib/ops';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb } from '../../../../lib/firebase-admin';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 type Row = Record<string, unknown> & { id: string };
 
-export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function SearchPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const admin = await requireAdmin({ permission: 'dashboard.read' });
   const { t } = await getI18n();
   const params = await searchParams;
@@ -61,9 +62,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       <section className="dashboardGrid">
         <div className="stack">
           <section className="panel"><div className="panelHeader"><h2>{t('Users')}</h2></div>{failed ? <p className="emptyState">{t('User search failed.')}</p> : users.length === 0 ? <p className="emptyState">{t('No users in this page.')}</p> : users.map(user => <div className="dataRow" key={user.id}><span><b>@{String(user.handle)}</b><small>{user.id}</small></span><span>{user.suspended ? t('Suspended') : t('Active')}</span></div>)}{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="users" next={userPage.next} previous={userPage.previous} /> : null}</section>
-          <section className="panel"><div className="panelHeader"><h2>{t('Posts')}</h2></div>{failed ? <p className="emptyState">{t('Post search failed.')}</p> : posts.length === 0 ? <p className="emptyState">{t('No matching posts in this batch.')}</p> : posts.map(post => <div className="dataRow" key={post.id}><span><b>{String(post.caption || t('Untitled post'))}</b><small>{post.id}</small></span><span>{post.deleted_at ? t('trash') : t(String(post.status).replaceAll('_', ' '))}</span></div>)}{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="posts" next={postPage.next} previous={postPage.previous} scan /> : null}</section>
+          <section className="panel"><div className="panelHeader"><h2>{t('Posts')}</h2></div>{failed ? <p className="emptyState">{t('Post search failed.')}</p> : posts.length === 0 ? <p className="emptyState">{t('No matching posts in this batch.')}</p> : posts.map(post => <div className="dataRow" key={post.id}><span><b>{scalarText(post.caption || t('Untitled post'))}</b><small>{post.id}</small></span><span>{post.deleted_at ? t('trash') : t(String(post.status).replaceAll('_', ' '))}</span></div>)}{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="posts" next={postPage.next} previous={postPage.previous} scan /> : null}</section>
         </div>
-        <section className="panel"><div className="panelHeader"><h2>{t('AR anchors')}</h2></div>{failed ? <p className="emptyState">{t('Anchor search failed.')}</p> : anchors.length === 0 ? <p className="emptyState">{t('No matching anchors in this batch.')}</p> : anchors.map(anchor => <div className="auditList" key={anchor.id}><article><span className="auditIcon">⌖</span><div><b>{String(anchor.caption || t('Untitled post'))}</b><small>{String(anchor.native_provider)} · {String(anchor.placement_state)} · {t('quality')} {anchor.placement_quality == null ? t('unmeasured') : Number(anchor.placement_quality).toFixed(2)}</small></div></article></div>)}</section>
+        <section className="panel"><div className="panelHeader"><h2>{t('AR anchors')}</h2></div>{failed ? <p className="emptyState">{t('Anchor search failed.')}</p> : anchors.length === 0 ? <p className="emptyState">{t('No matching anchors in this batch.')}</p> : anchors.map(anchor => <div className="auditList" key={anchor.id}><article><span className="auditIcon">⌖</span><div><b>{scalarText(anchor.caption || t('Untitled post'))}</b><small>{String(anchor.native_provider)} · {String(anchor.placement_state)} · {t('quality')} {anchor.placement_quality == null ? t('unmeasured') : Number(anchor.placement_quality).toFixed(2)}</small></div></article></div>)}</section>
       </section>
     </section>
   );

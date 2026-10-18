@@ -67,7 +67,8 @@ final class NoteDensityClient {
 
     func cells(in region: MKCoordinateRegion, precision: Int) async throws -> [NoteDensityCell] {
         guard let callables else { return [] }
-        let halfLat = region.span.latitudeDelta / 2, halfLng = region.span.longitudeDelta / 2
+        let halfLat = region.span.latitudeDelta / 2
+        let halfLng = region.span.longitudeDelta / 2
         let box = Box(minLat: max(-90, region.center.latitude - halfLat), maxLat: min(90, region.center.latitude + halfLat),
                       minLng: max(-180, region.center.longitude - halfLng), maxLng: min(180, region.center.longitude + halfLng))
         let response: Response = try await callables.call("readNoteDensity", payload: Payload(box: box, precision: precision), timeout: 20)

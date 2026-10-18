@@ -8,7 +8,7 @@ import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters
 
 export const dynamic = 'force-dynamic';
 
-export default async function AvatarsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function AvatarsPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const params = await searchParams;
   let page: DocumentPage = { documents: [], next: null, previous: null };
   await requireAdmin({ permission: 'users.suspend' });

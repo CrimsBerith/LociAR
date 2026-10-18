@@ -259,6 +259,20 @@ FUNCTION_PURPOSE={
 'onWorldMapFinalized':'PubSub Storage finalize üzerinden world-map güvenlik/temizlik.',
 }
 
+def route_permission(route):
+    explicit = ', '.join(route['permissions'])
+    if explicit:
+        return explicit
+    for fragment, permission in (
+        ('/campaigns', 'action: brands.write; campaigns.write; campaigns.audience; notifications.send'),
+        ('/place-notes', 'action: posts.moderate veya places.write'),
+        ('/context', 'kind: users.location.read veya users.telemetry.read'),
+    ):
+        if fragment in route['path']:
+            return permission
+    return 'Origin + Auth/session/invite politikası'
+
+
 def inventories():
     p=HERE/'teknik-mimari-analizi.md';s=p.read_text();s=s.split('\n## 23. İşlev envanteri')[0]
     kinds={'onCall':'Callable','onSchedule':'Scheduler','onMessagePublished':'PubSub/Storage','onDocumentCreated':'Firestore create','onDocumentDeleted':'Firestore delete','onDocumentWritten':'Firestore write','onDocumentUpdated':'Firestore update'}
@@ -270,12 +284,7 @@ def inventories():
         s+=f"| {x['name']} | {kinds.get(x['kind'],x['kind'])} | {FUNCTION_PURPOSE[x['name']]} | {Path(x['module']).name}:{x['line']} |\n"
     s+='\n## 24. HTTP API envanteri - 24 route dosyası\n\nServer component okuma sorguları ayrı route olmak zorunda değildir; aşağıdaki liste HTTP mutasyon/auth uçlarıdır. Dinamik action izinleri ilgili route içinde seçilir.\n\n| Yol | HTTP | Gerekli izin / kapı |\n|---|---|---|\n'
     for r in INV['routes']:
-        permission=', '.join(r['permissions'])
-        if not permission:
-            permission=('action: brands.write; campaigns.write; campaigns.audience; notifications.send' if '/campaigns' in r['path'] else
-                'action: posts.moderate veya places.write' if '/place-notes' in r['path'] else
-                'kind: users.location.read veya users.telemetry.read' if '/context' in r['path'] else
-                'Origin + Auth/session/invite politikası')
+        permission = route_permission(r)
         s+=f"| {r['path']} | {', '.join(r['methods'])} | {permission} |\n"
     s+='\n## 25. TTL politika envanteri - 32 koleksiyon\n\nAlan bütününde expires_at kullanılır. TTL fiziksel silme zamanlayıcısıdır; süresi dolmuş kayıt erişimini kod hemen reddetmelidir. Süresiz place_note_notification_receipts bu listede yoktur. cloud_anchor_deletions/account deletion çitleri de bu listeyle aynı yaşam döngüsünde değildir.\n\n| Koleksiyon | TTL alanı |\n|---|---|\n'
     for name in INV['ttl_collections']:s+=f'| {name} | expires_at |\n'
@@ -308,62 +317,107 @@ class ReportDoc(SimpleDocTemplate):
             self.canv.bookmarkPage(key);self.canv.addOutlineEntry(title,key,0 if flowable.style.name=='LH2' else 1,False)
 
 def footer(c,doc):
-    w,h=doc.pagesize
+    w,_=doc.pagesize
     c.setStrokeColor(colors.HexColor(LINE));c.setLineWidth(.5);c.line(54,45,w-54,45)
     c.setFont('LociArial',8);c.setFillColor(colors.HexColor(MUTED))
     c.drawString(54,30,'LociAR | 13 Ekim 2026 | Kaynak 6052dcd')
     c.drawRightString(w-54,30,f'{doc.page}')
 
+def column_ratios(header):
+    count = len(header)
+    if count == 4:
+        return [.24, .15, .41, .20]
+    if count == 2:
+        return {'Rol': [.30, .70], 'Alan': [.22, .78]}.get(header[0], [.66, .34])
+    if count != 3:
+        return [.66, .34]
+    if header[1] == 'HTTP':
+        return [.50, .10, .40]
+    if header[1] == 'Takvim':
+        return [.35, .25, .40]
+    if header[0] == 'Yol' and header[1] == 'İstemci izni':
+        return [.26, .38, .36]
+    if header[0] == 'Katman':
+        return [.16, .40, .44]
+    if header[0] == 'Belge / bağ':
+        return [.26, .42, .32]
+    if header[0] in ('Alan', 'Veri/izin', 'Kanıt', 'Kontrol', 'Modül'):
+        return [.24, .39, .37]
+    return [.35, .12, .53]
+
+
 def table(rows,width):
-    n=len(rows[0]);sizes=([width*.24,width*.15,width*.41,width*.20] if n==4 else [width*.35,width*.12,width*.53] if n==3 else [width*.66,width*.34])
-    # User capability tables need more room in the middle than an API path table.
-    if n==3 and rows[0][0] in ('Alan','Veri/izin','Kanıt','Kontrol','Modül'):
-        sizes=[width*.24,width*.39,width*.37]
-    if n==3 and rows[0][0]=='Katman':sizes=[width*.16,width*.40,width*.44]
-    if n==3 and rows[0][0]=='Yol' and rows[0][1]=='İstemci izni':sizes=[width*.26,width*.38,width*.36]
-    if n==3 and rows[0][0]=='Belge / bağ':sizes=[width*.26,width*.42,width*.32]
-    if n==3 and rows[0][1]=='HTTP':sizes=[width*.50,width*.10,width*.40]
-    if n==3 and rows[0][1]=='Takvim':sizes=[width*.35,width*.25,width*.40]
-    if n==2 and rows[0][0]=='Rol':sizes=[width*.30,width*.70]
-    if n==2 and rows[0][0]=='Alan':sizes=[width*.22,width*.78]
+    sizes = [width * ratio for ratio in column_ratios(rows[0])]
     cells=[[Paragraph(markup(v),STYLES['LHead' if i==0 else 'LCell']) for v in row] for i,row in enumerate(rows)]
     t=Table(cells,colWidths=sizes,repeatRows=1,hAlign='LEFT',rowSplitRange=(3,len(rows)-2) if len(rows)>8 else None)
     t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor(INK)),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),9),('RIGHTPADDING',(0,0),(-1,-1),9),('TOPPADDING',(0,0),(-1,-1),8),('BOTTOMPADDING',(0,0),(-1,-1),8),('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.HexColor('#F0F5F7'),colors.white]),('LINEBELOW',(0,0),(-1,0),.6,colors.HexColor(TEAL))]))
     return t
 
+def read_table(lines, index):
+    rows = []
+    while index < len(lines) and lines[index].strip().startswith('|'):
+        row = [cell.strip() for cell in lines[index].strip().strip('|').split('|')]
+        if not all(re.fullmatch(r':?-+:?', cell) for cell in row):
+            rows.append(row)
+        index += 1
+    return rows, index
+
+
+def append_table(story, rows, width):
+    value = table(rows, width)
+    if len(rows) > 8:
+        story.append(value)
+    else:
+        previous = story[-1] if story else None
+        if isinstance(previous, Paragraph) and previous.style.name in ('LH2', 'LH3'):
+            story.pop()
+            story.append(KeepTogether([previous, value]))
+        else:
+            story.append(KeepTogether([value]))
+    story.append(Spacer(1, 11))
+
+
+def image_blocks(match, width):
+    image = (HERE / match.group(2)).resolve()
+    dimensions = Image.open(image)
+    return [Spacer(1, 8), RLImage(str(image), width=width, height=width * dimensions.height / dimensions.width),
+            Paragraph(markup(match.group(1)) + ' - Açıklama şeması; ekran fotoğrafı değildir.', STYLES['LCaption'])]
+
+
+def read_paragraph(lines, index):
+    paragraph = [lines[index].strip()]
+    index += 1
+    while index < len(lines) and lines[index].strip() and not lines[index].startswith(('#', '|', '![')):
+        paragraph.append(lines[index].strip())
+        index += 1
+    return ' '.join(paragraph), index
+
+
 def render_pdf(source,name):
     path=HERE/source;raw=path.read_text();ls=raw.splitlines();story=[];width=487.28
-    i=0
-    while i<len(ls):
-        l=ls[i].strip()
-        if not l:i+=1;continue
-        if l.startswith('# '):story.append(Paragraph(markup(l[2:]),STYLES['LTitle']));i+=1;continue
-        if l.startswith('## '):story.append(Paragraph(markup(l[3:]),STYLES['LH2']));i+=1;continue
-        if l.startswith('### '):story.append(Paragraph(markup(l[4:]),STYLES['LH3']));i+=1;continue
-        m=re.match(r'!\[([^]]+)\]\(([^)]+)\)',l)
-        if m:
-            image=(HERE/m.group(2)).resolve();im=Image.open(image)
-            story.append(Spacer(1,8));story.append(RLImage(str(image),width=width,height=width*im.height/im.width))
-            story.append(Paragraph(markup(m.group(1))+' - Açıklama şeması; ekran fotoğrafı değildir.',STYLES['LCaption']))
-            i+=1;continue
-        if l.startswith('|'):
-            rows=[]
-            while i<len(ls) and ls[i].strip().startswith('|'):
-                r=[x.strip() for x in ls[i].strip().strip('|').split('|')]
-                if not all(re.fullmatch(r':?-+:?',x) for x in r):rows.append(r)
-                i+=1
-            t=table(rows,width)
-            if len(rows)<=8:
-                previous=story[-1] if story else None
-                if isinstance(previous,Paragraph) and previous.style.name in ('LH2','LH3'):
-                    story.pop();story.append(KeepTogether([previous,t]))
-                else:story.append(KeepTogether([t]))
-            else:story.append(t)
-            story.append(Spacer(1,11));continue
-        paragraph=[l];i+=1
-        while i<len(ls) and ls[i].strip() and not ls[i].startswith(('#','|','![')):
-            paragraph.append(ls[i].strip());i+=1
-        story.append(Paragraph(markup(' '.join(paragraph)),STYLES['LBody']))
+    heading_styles = {'#': 'LTitle', '##': 'LH2', '###': 'LH3'}
+    i = 0
+    while i < len(ls):
+        line = ls[i].strip()
+        if not line:
+            i += 1
+            continue
+        marker, separator, heading = line.partition(' ')
+        if separator and marker in heading_styles:
+            story.append(Paragraph(markup(heading), STYLES[heading_styles[marker]]))
+            i += 1
+            continue
+        image = re.match(r'!\[([^]]+)\]\(([^)]+)\)', line)
+        if image:
+            story.extend(image_blocks(image, width))
+            i += 1
+            continue
+        if line.startswith('|'):
+            rows, i = read_table(ls, i)
+            append_table(story, rows, width)
+            continue
+        paragraph, i = read_paragraph(ls, i)
+        story.append(Paragraph(markup(paragraph), STYLES['LBody']))
     p=OUT/name
     doc=ReportDoc(str(p),pagesize=(595.28,841.89),rightMargin=54,leftMargin=54,topMargin=47,bottomMargin=61,title=ls[0][2:],author='LociAR - source analysis',subject='13 October 2026; source 6052dcd',pageCompression=1)
     doc.build(story,onFirstPage=footer,onLaterPages=footer)

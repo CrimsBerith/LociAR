@@ -52,7 +52,7 @@ export default function MagicLinkForm() {
             {busy ? t('Sending…') : cooldown > 0 ? t('Retry in {seconds}s', { seconds: cooldown }) : t('Send secure sign-in link')}
           </button>
         </form>
-        {message ? <p className="formMessage" role="status">{message}</p> : null}
+        {message ? <output className="formMessage">{message}</output> : null}
 </section>
   );
 }

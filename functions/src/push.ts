@@ -1,3 +1,4 @@
+import { forEachSequential } from './async';
 import { onCall } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getMessaging, type Message } from 'firebase-admin/messaging';
@@ -72,7 +73,7 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
     || initial.actor_id === initial.recipient_id || !pushBody(initial.kind, 'en')) return 0;
   const devices = await db.collection('push_tokens').where('owner_luid', '==', initial.recipient_id).limit(MAX_PUSH_DEVICES).get();
   let attempts = 0;
-  for (const device of devices.docs) {
+  await forEachSequential(devices.docs, async (device) => {
     const receiptRef = db.collection('push_delivery_receipts').doc(pushDeliveryId(activityId, device.id));
     const quotaRef = db.collection('push_quota').doc(pushQuotaId(initial.recipient_id, now));
     const claimed = await db.runTransaction(async tx => {
@@ -118,7 +119,7 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
         apns: { headers: { 'apns-collapse-id': pushTokenId(activityId), 'apns-expiration': String(Math.floor(now / 1000) + 3600) }, payload: { aps: { sound: 'default' } } },
       } satisfies Message;
     });
-    if (!claimed) continue;
+    if (!claimed) return;
     attempts++;
     try {
       await send(claimed);
@@ -135,7 +136,7 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
       await receiptRef.update({ status: 'failed', error_code: code }).catch(updateError => { if (updateError.code !== 5) throw updateError; });
       console.warn('push_send_failed', { code }); // Never log a token, FCM payload or user content.
     }
-  }
+  });
   return attempts;
 }
 
@@ -153,7 +154,7 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
   const deliveryKey = `post_approved_${postId}`;
   const devices = await db.collection('push_tokens').where('owner_luid', '==', recipientId).limit(MAX_PUSH_DEVICES).get();
   let attempts = 0;
-  for (const device of devices.docs) {
+  await forEachSequential(devices.docs, async (device) => {
     const receiptRef = db.collection('push_delivery_receipts').doc(pushDeliveryId(deliveryKey, device.id));
     const claimed = await db.runTransaction(async tx => {
       const [post, target, receipt, recipient, recipientDeletion] = await tx.getAll(
@@ -177,7 +178,7 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
         apns: { headers: { 'apns-collapse-id': pushTokenId(deliveryKey), 'apns-expiration': String(Math.floor(now / 1000) + 86_400) }, payload: { aps: { sound: 'default' } } },
       } satisfies Message;
     });
-    if (!claimed) continue;
+    if (!claimed) return;
     attempts++;
     try {
       await send(claimed);
@@ -193,7 +194,7 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
       await receiptRef.update({ status: 'failed', error_code: code }).catch(updateError => { if (updateError.code !== 5) throw updateError; });
       console.warn('push_send_failed', { code });
     }
-  }
+  });
   return attempts;
 }
 

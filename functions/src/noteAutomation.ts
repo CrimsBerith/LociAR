@@ -3,6 +3,7 @@ import { db, FieldValue, isUUID, Timestamp } from './core';
 import { isPublicActive } from './counters';
 import { accountDeletionRef } from './profileGuard';
 import { isPostReport } from './postReports';
+import { readPages } from './async';
 
 /**
  * User location notes publish without manual review (text filter, protected zones and rate
@@ -35,28 +36,36 @@ async function thresholds(tx: FirebaseFirestore.Transaction) {
   };
 }
 
+function establishedProfile(profile: FirebaseFirestore.DocumentSnapshot, deletion: FirebaseFirestore.DocumentSnapshot, now: number, minimumAge: number): boolean {
+  const created = profile.get('created_at');
+  return profile.exists && !profile.get('suspended') && !profile.get('deleted_at') && !deletion.exists
+    && created instanceof Timestamp && now - created.toMillis() >= minimumAge;
+}
+
+function reactionPages(tx: FirebaseFirestore.Transaction, base: FirebaseFirestore.Query) {
+  return readPages(async (cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined) => {
+    const page = await tx.get((cursor ? base.startAfter(cursor) : base).limit(200));
+    return { value: page, next: page.size < 200 ? undefined : page.docs.at(-1) };
+  });
+}
+
 /** Approves a location note for notifications once enough established accounts like it. */
 export async function autoApproveNote(postId: string, now = Date.now()) {
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
-    if (!data || data.note_kind !== 'location' || !isPublicActive(data) || (data.push_state ?? 'none') !== 'none') return false;
+    if (data?.note_kind !== 'location' || !isPublicActive(data) || (data.push_state ?? 'none') !== 'none') return false;
     const { like } = await thresholds(tx);
     if (Number(data.likes_count ?? 0) < like) return false;
     const base = db.collection('likes').where('post_id', '==', postId).orderBy('__name__');
     const counted = new Set<string>();
-    let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
-    while (counted.size < like) {
-      const page = await tx.get((cursor ? base.startAfter(cursor) : base).limit(200));
+    for await (const page of reactionPages(tx, base)) {
       const likers = [...new Set(page.docs.map(d => String(d.get('user_id')))
         .filter(id => id && id !== data.creator_id && !counted.has(id)))];
       const records = likers.length ? await tx.getAll(...likers.flatMap(id => [db.collection('profiles').doc(id), accountDeletionRef(id)])) : [];
       for (const [i, id] of likers.entries()) {
-        const profile = records[i * 2], created = profile.get('created_at');
-        if (profile.exists && !profile.get('suspended') && !profile.get('deleted_at') && !records[i * 2 + 1].exists
-          && created instanceof Timestamp && now - created.toMillis() >= MIN_LIKER_AGE_MS) counted.add(id);
+        if (establishedProfile(records[i * 2], records[i * 2 + 1], now, MIN_LIKER_AGE_MS)) counted.add(id);
       }
-      if (page.size < 200) break;
-      cursor = page.docs.at(-1);
+      if (counted.size >= like) break;
     }
     if (counted.size < like) return false;
     tx.update(ref, { push_state: 'approved', push_approved_by: 'system:likes', push_approved_at: FieldValue.serverTimestamp() });
@@ -66,31 +75,26 @@ export async function autoApproveNote(postId: string, now = Date.now()) {
 
 /** Hides a public post once distinct users file enough open reports; moderators can restore it. */
 export async function autoHideReported(postId: string, now = Date.now()) {
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
-    if (!data || data.status !== 'active') return false;
+    if (data?.status !== 'active') return false;
     const report = reportsNeeded((await thresholds(tx)).report, data, now);
     const base = db.collection('moderation_flags').where('post_id', '==', postId).where('status', '==', 'open').orderBy('__name__');
     const reporters = new Set<string>();
     const inspected = new Set<string>();
-    let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
-    while (reporters.size < report) {
-      const page = await tx.get((cursor ? base.startAfter(cursor) : base).limit(200));
+    for await (const page of reactionPages(tx, base)) {
       const candidates = [...new Set(page.docs.filter(flag => isPostReport(flag.data())).map(flag => flag.get('user_id'))
         .filter((id): id is string => isUUID(id) && id !== data.creator_id && !inspected.has(id)))];
       const records = candidates.length ? await tx.getAll(...candidates.flatMap(id => [
         db.collection('profiles').doc(id), accountDeletionRef(id), db.collection('users_private').doc(id)])) : [];
       for (const [index, reporter] of candidates.entries()) {
         inspected.add(reporter);
-        const profile = records[index * 3], created = profile.get('created_at');
-        if (!profile.exists || profile.get('suspended') || profile.get('deleted_at') || records[index * 3 + 1].exists
-          || records[index * 3 + 2].get('identity_verified') !== true
-          || !(created instanceof Timestamp) || now - created.toMillis() < MIN_REPORTER_AGE_MS) continue;
+        if (!establishedProfile(records[index * 3], records[index * 3 + 1], now, MIN_REPORTER_AGE_MS)
+          || records[index * 3 + 2].get('identity_verified') !== true) continue;
         reporters.add(reporter);
         if (reporters.size >= report) break;
       }
-      if (page.size < 200) break;
-      cursor = page.docs.at(-1);
+      if (reporters.size >= report) break;
     }
     if (reporters.size < report) return false;
     tx.update(ref, { status: 'flagged', auto_hidden_at: FieldValue.serverTimestamp(), auto_hidden_reports: reporters.size,

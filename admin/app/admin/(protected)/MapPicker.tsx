@@ -11,16 +11,16 @@ import { useT } from '../I18nProvider';
  */
 export type { LatLng };
 export type MapShape =
-  | { kind: 'circle'; lat: number; lng: number; radius: number; color?: string; dashed?: boolean }
-  | { kind: 'line'; points: LatLng[]; width: number; color?: string }
-  | { kind: 'point'; lat: number; lng: number; color?: string };
+  | { id: string; kind: 'circle'; lat: number; lng: number; radius: number; color?: string; dashed?: boolean }
+  | { id: string; kind: 'line'; points: LatLng[]; width: number; color?: string }
+  | { id: string; kind: 'point'; lat: number; lng: number; color?: string };
 
 const MIN_ZOOM = 3, MAX_ZOOM = 19;
 const round = (v: number) => Math.round(v * 1e6) / 1e6;
 
-export default function MapPicker({ center, zoom = 17, shapes = [], onPick, label, hint }: {
+export default function MapPicker({ center, zoom = 17, shapes = [], onPick, label, hint }: Readonly<{
   center: LatLng; zoom?: number; shapes?: MapShape[]; onPick: (point: LatLng) => void; label: string; hint?: string;
-}) {
+}>) {
   const t = useT();
   const [view, setView] = useState({ ...center, zoom });
   const [width, setWidth] = useState(640);
@@ -60,9 +60,8 @@ export default function MapPicker({ center, zoom = 17, shapes = [], onPick, labe
   function pan(dx: number, dy: number) {
     setView(v => { const p = project(v.lat, v.lng, v.zoom); return { ...unproject(p.x - dx, p.y - dy, v.zoom), zoom: v.zoom }; });
   }
-  function pointer(event: React.PointerEvent<HTMLDivElement>) {
+  function pointer(event: React.PointerEvent<HTMLButtonElement>) {
     if (event.type === 'pointerdown') {
-      if ((event.target as HTMLElement).closest('button, a')) return;
       press.current = { x: event.clientX, y: event.clientY, moved: false }; event.currentTarget.setPointerCapture(event.pointerId); return;
     }
     const p = press.current;
@@ -78,34 +77,40 @@ export default function MapPicker({ center, zoom = 17, shapes = [], onPick, labe
       onPick({ lat: round(picked.lat), lng: round(picked.lng) });
     }
   }
-  function key(event: React.KeyboardEvent<HTMLDivElement>) {
+  function key(event: React.KeyboardEvent<HTMLButtonElement>) {
     const step = 60, moves: Record<string, [number, number]> = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
     if (moves[event.key]) { event.preventDefault(); pan(...moves[event.key]); }
     else if (event.key === '+' || event.key === '=') setView(v => ({ ...v, zoom: clampZoom(v.zoom + 1) }));
     else if (event.key === '-') setView(v => ({ ...v, zoom: clampZoom(v.zoom - 1) }));
-    else if (event.key === 'Enter') onPick({ lat: round(view.lat), lng: round(view.lng) });
+    else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onPick({ lat: round(view.lat), lng: round(view.lng) });
+    }
   }
 
   const mpp = metersPerPixel(view.lat, z);
   return <div className="mapPicker">
-    <div ref={box} className="mapPickerCanvas" style={{ height }} tabIndex={0} role="application" aria-label={`${label}. ${t('Arrow keys pan, plus and minus zoom, Enter picks the map centre.')}`}
-      onPointerDown={pointer} onPointerMove={pointer} onPointerUp={pointer} onPointerCancel={pointer} onKeyDown={key}>
+    <div ref={box} className="mapPickerCanvas" style={{ height }}>
       {tiles.map(t => <img key={t.key} src={t.src} alt="" draggable={false} referrerPolicy="strict-origin-when-cross-origin" style={{ left: t.x, top: t.y }}/>)}
       <svg width={width} height={height} aria-hidden="true">
-        {shapes.map((s, i) => {
+        {shapes.map(s => {
           const color = s.color ?? '#0e7490';
-          if (s.kind === 'circle') { const p = screen(s.lat, s.lng); return <g key={i}>
+          if (s.kind === 'circle') { const p = screen(s.lat, s.lng); return <g key={s.id}>
             <circle cx={p.x} cy={p.y} r={Math.max(2, s.radius / mpp)} fill={color} fillOpacity={s.dashed ? 0.05 : 0.18} stroke={color} strokeWidth={2} strokeDasharray={s.dashed ? '6 4' : undefined}/>
             <circle cx={p.x} cy={p.y} r={3} fill={color}/></g>; }
-          if (s.kind === 'line') { const pts = s.points.map(p => screen(p.lat, p.lng)), d = pts.map(p => `${p.x},${p.y}`).join(' '); return <g key={i}>
+          if (s.kind === 'line') { const pts = s.points.map(p => ({ ...screen(p.lat, p.lng), key: `${p.lat}:${p.lng}` })), d = pts.map(p => `${p.x},${p.y}`).join(' ');
+            const dots = [...new Map(pts.map(p => [p.key, p])).values()];
+            return <g key={s.id}>
             <polyline points={d} fill="none" stroke={color} strokeOpacity={0.25} strokeWidth={Math.max(4, s.width / mpp)} strokeLinecap="round" strokeLinejoin="round"/>
             <polyline points={d} fill="none" stroke={color} strokeWidth={2}/>
-            {pts.map((p, j) => <circle key={j} cx={p.x} cy={p.y} r={4} fill="white" stroke={color} strokeWidth={2}/>)}</g>; }
+            {dots.map(p => <circle key={p.key} cx={p.x} cy={p.y} r={4} fill="white" stroke={color} strokeWidth={2}/>)}</g>; }
           const p = screen(s.lat, s.lng);
-          return <circle key={i} cx={p.x} cy={p.y} r={6} fill={color} stroke="white" strokeWidth={2}/>;
+          return <circle key={s.id} cx={p.x} cy={p.y} r={6} fill={color} stroke="white" strokeWidth={2}/>;
         })}
         <path d={`M${width / 2 - 8} ${height / 2}h16M${width / 2} ${height / 2 - 8}v16`} stroke="#111" strokeOpacity={0.4} strokeWidth={1}/>
       </svg>
+      <button type="button" className="mapPickerInteraction" aria-label={`${label}. ${t('Arrow keys pan, plus and minus zoom, Enter picks the map centre.')}`}
+        onPointerDown={pointer} onPointerMove={pointer} onPointerUp={pointer} onPointerCancel={pointer} onKeyDown={key}/>
       <div className="mapPickerZoom">
         <button type="button" aria-label={t('Zoom in')} onClick={() => setView(v => ({ ...v, zoom: clampZoom(v.zoom + 1) }))}>+</button>
         <button type="button" aria-label={t('Zoom out')} onClick={() => setView(v => ({ ...v, zoom: clampZoom(v.zoom - 1) }))}>−</button>

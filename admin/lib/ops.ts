@@ -232,7 +232,7 @@ export async function resolveModerationFlag(flagId: string, action: string, acto
       const field = String(data.field);
       if (action === 'approve') {
         if (profile.get(field) !== data.replacement) throw new ConflictError('profile_changed_since_filtering');
-        tx.update(profile.ref, { [field]: data.text, moderation_approved_text: { ...(profile.get('moderation_approved_text') ?? {}), [field]: data.text }, updated_at: FieldValue.serverTimestamp() });
+        tx.update(profile.ref, { [field]: data.text, moderation_approved_text: { ...profile.get('moderation_approved_text'), [field]: data.text }, updated_at: FieldValue.serverTimestamp() });
       }
       // The filter already removed the rejected field; newer edits must be preserved.
       const after = { ...flag, status: action === 'dismiss' ? 'dismissed' : 'reviewed' };
@@ -483,7 +483,7 @@ export async function createProtectedZone(zone: ZoneInput, actorId: string, reas
   const db = adminDb();
   const ref = db.collection('protected_zones').doc(derivedKey(idempotencyKey, 'zone'));
   const hash = mutationHash(actorId, 'zone_create', ref.id, { zone, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
     if (checkReceipt(audit, hash)) return { id: ref.id };
@@ -499,7 +499,7 @@ export async function setProtectedZoneActive(zoneId: string, active: boolean, ac
   const db = adminDb();
   const ref = db.collection('protected_zones').doc(zoneId);
   const hash = mutationHash(actorId, 'zone_active', zoneId, { active, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const [audit, snap] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
@@ -517,7 +517,7 @@ export async function setServicePaused(enabled: boolean, actorId: string, reason
   const db = adminDb();
   const ref = db.collection('system').doc('flags');
   const hash = mutationHash(actorId, 'service_paused', 'flags', { enabled, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const [audit, before] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
@@ -533,7 +533,7 @@ export async function revokeAdminRole(assignmentId: string, actorId: string, rea
   const db = adminDb();
   const ref = db.collection('admin_role_assignments').doc(assignmentId);
   const hash = mutationHash(actorId, 'role_revoke', assignmentId, { reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const [audit, snap] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
@@ -585,7 +585,7 @@ export async function recordMfaEnrollment(uid: string, observedFactors: string[]
 export async function requestMetricApproval(postId: string, payload: { viewsCount: number; likesCount: number; commentsCount: number }, actorId: string, reason: string, key: string) {
   const db = adminDb();
   const hash = mutationHash(actorId, 'approval_requested', postId, { payload, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const ref = db.collection('admin_approval_requests').doc(key);
     const [existing, post] = await tx.getAll(ref, db.collection('posts').doc(postId));

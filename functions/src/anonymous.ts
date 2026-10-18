@@ -39,8 +39,8 @@ export function publicEditData(value: unknown): Record<string, unknown> {
     const cleaned: Record<string, unknown> = { type };
     for (const key of keys) {
       const item = layer[key];
-      if (['id', 'text', 'color', 'gifId'].includes(key) && typeof item === 'string') cleaned[key] = item;
-      else if (typeof item === 'number' && Number.isFinite(item)) cleaned[key] = item;
+      if ((['id', 'text', 'color', 'gifId'].includes(key) && typeof item === 'string')
+          || (typeof item === 'number' && Number.isFinite(item))) cleaned[key] = item;
     }
     if (Array.isArray(layer.points)) cleaned.points = layer.points.slice(0, 2000).flatMap(point => {
       if (!point || typeof point !== 'object') return [];

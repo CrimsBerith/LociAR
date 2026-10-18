@@ -102,7 +102,9 @@ struct MainTabView: View {
             }
         }
         .alert("LociAR", isPresented: Binding(get: { deepLinkMessage != nil }, set: { if !$0 { deepLinkMessage = nil } })) {
-            Button("Tamam", role: .cancel) {}
+            Button("Tamam", role: .cancel) {
+                // Dismissing the alert requires no additional action.
+            }
         } message: { Text((deepLinkMessage ?? "").localizedUI) }
     }
 }

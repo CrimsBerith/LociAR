@@ -4,7 +4,7 @@ import { getI18n } from '../../../../lib/i18n-server';
 
 export const dynamic = 'force-dynamic';
 
-function Metric({ label, value, detail, missing }: { label: string; value: number | null; detail?: string; missing: string }) {
+function Metric({ label, value, detail, missing }: Readonly<{ label: string; value: number | null; detail?: string; missing: string }>) {
   return (
     <article className="metricCard">
       <span>{label}</span>

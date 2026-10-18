@@ -211,16 +211,20 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
                 }
                 box.replaceTask(nil)
                 guard Self.isVerified(user) else { continuation.yield(nil); return }
-                box.replaceTask(Task {
-                    let hydrated = try? await self.establish(user)
-                    guard !Task.isCancelled, Auth.auth().currentUser?.uid == user.uid else { return }
-                    continuation.yield(hydrated ?? self.userCacheLock.withLock { self.hydratedUsers[user.uid] } ?? Self.domainUser(user))
-                })
+                box.replaceTask(self.userStateTask(user, continuation: continuation))
             }
             continuation.onTermination = { _ in
                 box.replaceTask(nil)
                 if let handle = box.handle { Auth.auth().removeStateDidChangeListener(handle) }
             }
+        }
+    }
+
+    private func userStateTask(_ user: User, continuation: AsyncStream<LociUser?>.Continuation) -> Task<Void, Never> {
+        Task {
+            let hydrated = try? await establish(user)
+            guard !Task.isCancelled, Auth.auth().currentUser?.uid == user.uid else { return }
+            continuation.yield(hydrated ?? userCacheLock.withLock { hydratedUsers[user.uid] } ?? Self.domainUser(user))
         }
     }
 
@@ -571,5 +575,5 @@ actor UnavailableAuthRepository: AuthRepository {
     func signInWithApple(identityToken: String, nonce: String?, fullName: String?) async throws -> LociUser { throw missing }
     func signOut() async {}
     func accountDeletionMethod() async throws -> AccountDeletionMethod { throw missing }
-    func deleteAccount(password: String?, expectedUserID: UUID) async throws { throw missing }
+    func deleteAccount(password _: String?, expectedUserID _: UUID) async throws { throw missing }
 }

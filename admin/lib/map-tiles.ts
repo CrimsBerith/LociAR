@@ -16,4 +16,4 @@ export function unproject(x: number, y: number, zoom: number): LatLng {
 }
 
 /** Ground metres covered by one screen pixel at this latitude and zoom. */
-export const metersPerPixel = (lat: number, zoom: number) => 156_543.033_92 * Math.cos(lat * Math.PI / 180) / 2 ** zoom;
+export const metersPerPixel = (lat: number, zoom: number) => 156_543.03392 * Math.cos(lat * Math.PI / 180) / 2 ** zoom;

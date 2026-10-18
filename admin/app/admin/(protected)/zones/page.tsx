@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../lib/values';
 import AdminDecision from '../AdminDecision';
 import ZoneForm from './ZoneForm';
 import { requireAdmin } from '../../../../lib/admin';
@@ -10,7 +11,7 @@ import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters
 
 export const dynamic = 'force-dynamic';
 
-export default async function ZonesPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function ZonesPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const params = await searchParams;
   let page: DocumentPage = { documents: [], next: null, previous: null };
   const admin = await requireAdmin({ permission: 'anchors.read' });
@@ -35,7 +36,7 @@ export default async function ZonesPage({ searchParams }: { searchParams: Promis
           <div className="dataRow place" key={zone.id}>
             <span><b>{String(zone.name)}</b><small>{t(String(zone.category))}{zone.active === false ? ` · ${t('inactive')}` : ''}</small></span>
             <span>{formatLatLng(zone.lat, zone.lng)}<small>{t('{radius} m radius', { radius: Number(zone.radius_meters ?? 0) })}</small></span>
-            <span>{t(String(zone.policy ?? 'hard_block').replaceAll('_', ' '))}{canWrite ? <AdminDecision
+            <span>{t(scalarText(zone.policy ?? 'hard_block').replaceAll('_', ' '))}{canWrite ? <AdminDecision
               endpoint={`/api/admin/v1/zones/${zone.id}/active`}
               actions={[{ label: zone.active === false ? 'Enable' : 'Disable', body: { active: zone.active === false }, className: 'secondaryButton' }]} /> : null}</span>
             <span>{new Date(iso(zone.created_at)).toLocaleDateString(locale)}</span>

@@ -156,7 +156,7 @@ struct ARExperienceView: View {
                 )
                 .accessibilityIdentifier("ar-camera-status")
                 VStack(spacing: 6) {
-                    Text(isDiscovering ? String(localized: "Yayınlar aranıyor") : nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar"))
+                    Text(discoveryHeading)
                         .font(.title3.bold())
                     Text(discoveryMessage.localizedUI)
                         .font(.footnote)
@@ -427,6 +427,11 @@ struct ARExperienceView: View {
         if UITestFixtures.cameraPermissionDenied { return true }
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         return status == .denied || status == .restricted
+    }
+
+    private var discoveryHeading: String {
+        if isDiscovering { return String(localized: "Yayınlar aranıyor") }
+        return nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar")
     }
 
     private var discoveryCameraTitle: String {

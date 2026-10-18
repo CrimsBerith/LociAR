@@ -29,7 +29,7 @@ export const submitReport = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInst
   const id = rawId.toLowerCase();
   const receiptId = createHash('sha256').update(`${caller.luid}:${kind}:${id}`).digest('hex');
   const receiptRef = db.collection('report_receipts').doc(receiptId), quotaRef = db.collection('report_quota').doc(caller.luid);
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await reportAccount(tx, caller.luid);
     const [receipt, quota] = await tx.getAll(receiptRef, quotaRef);
     const previousId = receipt.get('flag_id'), reportedAt = receipt.get('reported_at');

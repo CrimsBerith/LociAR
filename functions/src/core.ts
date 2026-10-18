@@ -1,3 +1,5 @@
+import { forEachSequential } from './async';
+import { scalarText } from './values';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -127,13 +129,13 @@ export const ANALYTICS_RETENTION_DAYS = 180;
 /** Deletes every object under `<folder>/<prefix>` for each LociAR storage folder. */
 export async function deleteStoragePrefix(prefix: string): Promise<number> {
   let removed = 0;
-  for (const folder of STORAGE_FOLDERS) {
+  await forEachSequential(STORAGE_FOLDERS, async (folder) => {
     removed += await deletePagedStorageFiles(async pageToken => {
       const [files, next] = await bucket().getFiles({ prefix: `${folder}/${prefix}`, autoPaginate: false,
         maxResults: STORAGE_DELETE_PAGE_SIZE, ...(pageToken ? { pageToken } : {}) });
       return { files, nextPageToken: next?.pageToken };
     });
-  }
+  });
   return removed;
 }
 
@@ -174,7 +176,7 @@ export async function assertServiceEnabled(feature: KillableFeature): Promise<vo
 
 /** Provider messages may include request details; only bounded codes belong in logs. */
 export function safeErrorCode(error: unknown): string {
-  const code = String((error as { code?: unknown; response?: { status?: unknown } } | null)?.code
+  const code = scalarText((error as { code?: unknown; response?: { status?: unknown } } | null)?.code
     ?? (error as { response?: { status?: unknown } } | null)?.response?.status ?? 'unknown');
   return /^[a-z0-9_/-]{1,64}$/i.test(code) ? code : 'unknown';
 }

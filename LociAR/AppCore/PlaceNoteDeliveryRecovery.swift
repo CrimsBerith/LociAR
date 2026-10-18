@@ -27,7 +27,8 @@ final class PlaceNoteAcknowledgementPump {
 
     func schedule(_ ids: [UUID], send: @escaping @MainActor (UUID) async -> Bool) {
         guard task == nil else { return }
-        let queued = Set(ids), now = clock()
+        let queued = Set(ids)
+        let now = clock()
         nextAttempt = nextAttempt.filter { queued.contains($0.key) }
         let batch = Array(ids.filter { now >= nextAttempt[$0] ?? .distantPast }.prefix(3))
         guard !batch.isEmpty else { return }

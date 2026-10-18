@@ -18,7 +18,7 @@ export async function readPrivateUserContext(admin: AdminContext, rawLuid: strin
   }
   const luid = uuid(rawLuid, 'luid').toLowerCase(), reason = requiredString(rawReason, 'reason', 8, 1000);
   const db = adminDb(), now = Date.now();
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, admin.user.id);
     // Context creation precedes this read; role revocation must fence the transaction too.
     const roles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', admin.user.id).where('revoked_at', '==', null));

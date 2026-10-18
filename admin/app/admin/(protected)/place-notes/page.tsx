@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 type Note = FirebaseFirestore.QueryDocumentSnapshot;
 
-function Row({ note, moderate, places, t }: { note: Note; moderate: boolean; places: boolean; t: ReturnType<typeof translator> }) {
+function Row({ note, moderate, places, t }: Readonly<{ note: Note; moderate: boolean; places: boolean; t: ReturnType<typeof translator> }>) {
   const approved = note.get('push_state') === 'approved', kind = note.get('note_kind') === 'location' ? t('Location note') : t('AR post');
   const measured = note.get('location_note');
   return <article className="panel">

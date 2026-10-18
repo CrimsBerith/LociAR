@@ -49,7 +49,7 @@ export default function ZoneForm() {
       <div className="buttonRow">
         <button type="button" disabled={busy || form.reason.trim().length < 8 || !form.name || !form.lat || !form.lng} onClick={submit}>{t('Add zone')}</button>
       </div>
-      {message ? <p className="muted" role="status">{message}</p> : null}
+      {message ? <output className="muted">{message}</output> : null}
     </div>
   );
 }

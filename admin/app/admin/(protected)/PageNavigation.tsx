@@ -2,14 +2,14 @@ import Link from 'next/link';
 import { pageHref } from '../../../lib/pagination';
 import { getI18n } from '../../../lib/i18n-server';
 
-export default async function PageNavigation({ path, parameters = {}, next, previous, prefix = '', scan = false }: {
+export default async function PageNavigation({ path, parameters = {}, next, previous, prefix = '', scan = false }: Readonly<{
   path: string;
   parameters?: Record<string, string | undefined>;
   next: string | null;
   previous: string | null;
   prefix?: string;
   scan?: boolean;
-}) {
+}>) {
   if (!next && !previous) return null;
   const { t } = await getI18n();
   return <nav className="filterBar" aria-label={`${prefix || 'Records'} pagination`} style={{ padding: '16px', flexWrap: 'wrap' }}>

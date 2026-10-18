@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 
@@ -7,7 +8,7 @@ import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters
 
 export const dynamic = 'force-dynamic';
 
-export default async function AuditPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function AuditPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const params = await searchParams;
   let page: DocumentPage = { documents: [], next: null, previous: null };
   await requireAdmin({ permission: 'audit.read' });
@@ -32,9 +33,9 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
             <div className="dataRow audit header"><span>{t('Action')}</span><span>{t('Actor')}</span><span>{t('Resource')}</span><span>{t('Time')}</span></div>
             {events.length === 0 ? <p className="emptyState">{t('No audit events.')}</p> : events.map(event => (
               <div className="dataRow audit" key={event.id}>
-                <span><b>{t(String(event.action).replaceAll('_', ' '))}</b><small>{String(event.permission_key ?? 'legacy')} · {String(event.risk_level)}</small></span>
+                <span><b>{t(String(event.action).replaceAll('_', ' '))}</b><small>{scalarText(event.permission_key ?? 'legacy')} · {String(event.risk_level)}</small></span>
                 <span>{String(event.actor_id)}</span>
-                <span>{String(event.resource_type)} · {String(event.resource_id ?? 'system')}<small>{String(event.reason ?? t('No reason recorded'))}</small></span>
+                <span>{String(event.resource_type)} · {scalarText(event.resource_id ?? 'system')}<small>{scalarText(event.reason ?? t('No reason recorded'))}</small></span>
                 <span>{new Date(iso(event.created_at)).toLocaleString(locale)}</span>
               </div>
             ))}

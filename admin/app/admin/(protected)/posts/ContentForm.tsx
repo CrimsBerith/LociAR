@@ -7,12 +7,12 @@ import AuthorPicker from '../users/AuthorPicker';
 import MapPicker from '../MapPicker';
 import { useT } from '../../I18nProvider';
 
-export default function ContentForm({postId,initial=emptyContent,canPublish=false,canOverride=false}:{postId?:string;initial?:ContentInput;canPublish?:boolean;canOverride?:boolean}){
+export default function ContentForm({postId,initial=emptyContent,canPublish=false,canOverride=false}:Readonly<{postId?:string;initial?:ContentInput;canPublish?:boolean;canOverride?:boolean}>){
  const t=useT(),router=useRouter(),mutation=useRef(createMutationClient());const[value,setValue]=useState(initial),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  function set<K extends keyof ContentInput>(key:K,v:ContentInput[K]){setValue(old=>({...old,[key]:v}));}
  async function submit(event:React.FormEvent){event.preventDefault();setBusy(true);setMessage('');try{
   const{response,result}=await mutation.current.post(postId?`/api/admin/v1/posts/${postId}/edit`:'/api/admin/v1/posts',{...value,platform:'text',url:'',reason});
-  if(!response.ok)throw new Error(result.error??'Post save failed');mutation.current.clear();
+  if(!response.ok){ throw new Error(result.error??'Post save failed'); }mutation.current.clear();
   router.push(`/admin/posts/${(result.post as {id:string}).id}`);router.refresh();setMessage(t('Post saved and audited.'));
  }catch(error){setMessage(t(mutationError(error)));}finally{setBusy(false);}}
  const numericFields=[['lat','Latitude',-90,90],['lng','Longitude',-180,180],['altitude','Altitude (m)',-500,10000],['heading','Heading (°)',0,360],['width','Width (m)',0.15,20],['height','Height (m)',0.15,20],['opacity','Opacity',0.05,1],['scale','Text scale',0.1,5],['rotation','Text rotation (°)',-360,360]] as const;
@@ -25,7 +25,7 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  </fieldset>
  <fieldset><legend>{t('Location and approximate AR placement')}</legend><p className="muted">{t('Choose any coordinate. This is an approximate placement; a physical world lock requires scanning at the location.')}</p>
  <MapPicker label={t('Post location map')} center={{lat:value.lat,lng:value.lng}} zoom={16} onPick={p=>setValue(old=>({...old,lat:p.lat,lng:p.lng}))}
-  shapes={[value.locationNote?{kind:'circle',lat:value.lat,lng:value.lng,radius:value.notifyRadius}:{kind:'point',lat:value.lat,lng:value.lng}]}
+  shapes={[value.locationNote?{id:'post-location',kind:'circle',lat:value.lat,lng:value.lng,radius:value.notifyRadius}:{id:'post-location',kind:'point',lat:value.lat,lng:value.lng}]}
   hint={t('Click the map to place the post exactly; drag to pan and zoom out to reach any city.')}/>
  <div className="metricForm">{numericFields.map(([key,label,min,max])=><label key={key}>{t(label)}<input type="number" value={value[key]} onChange={e=>set(key,Number(e.target.value))} min={min} max={max} step="any" required/></label>)}</div>
  <a href={`https://www.openstreetmap.org/?mlat=${value.lat}&mlon=${value.lng}#map=18/${value.lat}/${value.lng}`} target="_blank" rel="noreferrer">{t('Check location in OpenStreetMap ↗')}</a>
@@ -41,6 +41,6 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  <label>{t('Age rating')}<select value={value.ageRating} onChange={e=>set('ageRating',e.target.value as ContentInput['ageRating'])}><option value="all">{t('All ages')}</option><option value="13_plus">13+</option><option value="16_plus">16+</option></select></label>
  <label>{t('Status')}<select value={value.status} onChange={e=>set('status',e.target.value as ContentInput['status'])}><option value="pending_review">{t('Pending review')}</option>{canPublish?<option value="active">{t('Publish active')}</option>:null}</select></label>
  <label>{t('Audit reason')}<textarea value={reason} onChange={e=>setReason(e.target.value)} required minLength={8} maxLength={1000}/></label></fieldset>
- <button type="submit" disabled={busy||!value.authorId}>{busy?t('Saving…'):postId?t('Save changes'):t('Create post')}</button>{message?<p role="status">{message}</p>:null}
+ <button type="submit" disabled={busy||!value.authorId}>{busy?t('Saving…'):postId?t('Save changes'):t('Create post')}</button>{message?<output>{message}</output>:null}
  </form>;
 }

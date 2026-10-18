@@ -23,7 +23,7 @@ for (const iface of ['en0', 'en1']) {
   if (r.status === 0) host = r.stdout.trim();
 }
 const ip = host?.split('.').map(Number);
-if (!ip || ip.length !== 4 || ip.some(n => !Number.isInteger(n) || n < 0 || n > 255) || ip.map(String).join('.') !== host
+if (ip?.length !== 4 || ip.some(n => !Number.isInteger(n) || n < 0 || n > 255) || ip.map(String).join('.') !== host
     || !(ip[0] === 10 || (ip[0] === 172 && ip[1] >= 16 && ip[1] <= 31) || (ip[0] === 192 && ip[1] === 168))) {
   throw new Error('Set LOCIAR_TEST_LAN_IP to a private LAN IPv4 address.');
 }

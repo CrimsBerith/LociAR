@@ -1,8 +1,9 @@
+import { forEachSequential } from './async';
 import { reconcileCounters, reconcileProfileCounters } from './reconciliation';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { randomUUID } from 'node:crypto';
-import { db, deleteStoragePrefix, FieldValue, isUUID, Timestamp } from './core';
-import { logger, safeErrorCode } from './core';
+import { db, deleteStoragePrefix, FieldValue, isUUID, Timestamp, logger, safeErrorCode } from './core';
+
 import { purgeOrphanUploads } from './orphanUploadStorage';
 export { purgeOrphanUploads } from './orphanUploadStorage';
 export { ORPHAN_UPLOAD_GRACE_HOURS } from './orphanUploads';
@@ -72,7 +73,7 @@ export async function purgeDueRemovedMedia(now = Date.now(), maxJobs = BATCH): P
     .orderBy('due_at').limit(maxJobs)
     .get();
   let completed = 0;
-  for (const doc of due.docs) {
+  await forEachSequential(due.docs, async (doc) => {
     const owner = randomUUID(), postRef = db.collection('posts').doc(doc.id);
     try {
       const job = await db.runTransaction(async tx => {
@@ -88,7 +89,7 @@ export async function purgeDueRemovedMedia(now = Date.now(), maxJobs = BATCH): P
         if (post.exists) tx.update(postRef, { media_purge_state: 'purging' });
         return { prefix: prefix as string, creator, anchor: post.get('cloud_anchor_id') };
       });
-      if (!job) continue;
+      if (!job) return;
       // External I/O runs after the claim commits, never inside a retryable transaction.
       await deleteStoragePrefix(job.prefix);
       await deleteAnchorOfPost(job.anchor, doc.id);
@@ -110,7 +111,7 @@ export async function purgeDueRemovedMedia(now = Date.now(), maxJobs = BATCH): P
       });
       logger.error('removed_media_purge_deferred', { code: safeErrorCode(error) });
     }
-  }
+  });
   return completed;
 }
 
@@ -162,13 +163,13 @@ export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5, de
     const { anchors, nextPageToken } = listed;
     if (anchors.length > 0) {
       const referenced = await referencedAnchorIds(anchors.map((a) => a.id));
-      for (const id of selectOrphanAnchors(anchors, referenced, now, ORPHAN_ANCHOR_GRACE_DAYS * DAY_MS)) {
-        if (!await claimAnchorDeletion(id, null)) continue;
+      await forEachSequential(selectOrphanAnchors(anchors, referenced, now, ORPHAN_ANCHOR_GRACE_DAYS * DAY_MS), async (id) => {
+        if (!await claimAnchorDeletion(id, null)) return;
         if (await deleteAnchorOrQueue(id, deps)) {
           removed++;
           await db.collection('cloud_anchors').doc(id).set({ state: 'deleted', deleted_at: FieldValue.serverTimestamp() }, { merge: true });
         }
-      }
+      });
     }
     pageToken = nextPageToken;
     if (!pageToken) break;
@@ -180,9 +181,9 @@ export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5, de
 
 export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
   let removed = 0, orphans = 0;
-  for (const task of [async () => { removed = await purgeDueRemovedMedia(); }, async () => { orphans = await purgeOrphanUploads(); }, async () => { await drainAvatarDeletions(); }]) {
+  await forEachSequential([async () => { removed = await purgeDueRemovedMedia(); }, async () => { orphans = await purgeOrphanUploads(); }, async () => { await drainAvatarDeletions(); }], async (task) => {
     try { await task(); } catch (error) { logger.error('media_cleanup_deferred', { code: safeErrorCode(error) }); }
-  }
+  });
   let pendingAvatars = 0;
   try {
     pendingAvatars = await purgeStalePendingAvatars();

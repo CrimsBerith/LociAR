@@ -1,3 +1,5 @@
+import { forEachSequential } from './async';
+import { scalarText } from './values';
 import { onCall } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, logger, requireCaller, safeErrorCode, Timestamp } from './core';
@@ -58,7 +60,7 @@ export function giphyLanguage(locale: unknown): string {
 export function summarizeGif(raw: unknown): GifSummary | null {
   const gif = (raw ?? {}) as { id?: unknown; title?: unknown; rating?: unknown; images?: { original?: { width?: unknown; height?: unknown } } };
   const id = typeof gif.id === 'string' ? gif.id : '';
-  if (!GIF_ID.test(id) || !ACCEPTED_RATINGS.has(String(gif.rating ?? '').toLowerCase())) return null;
+  if (!GIF_ID.test(id) || !ACCEPTED_RATINGS.has(scalarText(gif.rating ?? '').toLowerCase())) return null;
   const width = Number(gif.images?.original?.width);
   const height = Number(gif.images?.original?.height);
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 4096 || height > 4096) return null;
@@ -103,30 +105,35 @@ function apiKey(): string {
  * unknown or over-rated GIF and unavailable when GIPHY cannot be reached (createPost never falls
  * back to the client's values).
  */
+async function verifiedLayerGif(id: string, fetcher: Fetcher): Promise<GifSummary> {
+  // Injected fetchers always perform their own lookup; only real GIPHY results enter the cache.
+  const useCache = fetcher === fetch;
+  let gif: GifSummary | null | undefined = useCache ? gifCache.get(id) : undefined;
+  try {
+    if (gif === undefined) {
+      gif = await fetchGif(id, apiKey(), fetcher);
+      if (gif && useCache) gifCache.set(id, gif, GIF_CACHE_MS);
+    }
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    logger.warn('giphy_lookup_failed', { code: safeErrorCode(error) });
+    throw reasonError('unavailable', 'GIF service is unavailable', 'gif_unavailable');
+  }
+  if (!gif) throw reasonError('invalid-argument', 'GIF not available', 'gif_invalid');
+  return gif;
+}
+
 export async function resolveGifLayers(editData: { layers?: unknown[] }, fetcher: Fetcher = fetch): Promise<void> {
   const layers = editData.layers ?? [];
-  for (let index = 0; index < layers.length; index += 1) {
-    const layer = (layers[index] ?? {}) as Record<string, unknown>;
-    if (String(layer.type ?? layer.kind) !== 'gif') continue;
-    // The cache serves only real GIPHY lookups; an injected fetcher (tests) always goes through.
-    const useCache = fetcher === fetch, id = String(layer.gifId ?? '');
-    let gif: GifSummary | null | undefined = useCache ? gifCache.get(id) : undefined;
-    try {
-      if (gif === undefined) {
-        gif = await fetchGif(id, apiKey(), fetcher);
-        if (gif && useCache) gifCache.set(id, gif, GIF_CACHE_MS);
-      }
-    } catch (error) {
-      if (error instanceof HttpsError) throw error;
-      logger.warn('giphy_lookup_failed', { code: safeErrorCode(error) });
-      throw reasonError('unavailable', 'GIF service is unavailable', 'gif_unavailable');
-    }
-    if (!gif) throw reasonError('invalid-argument', 'GIF not available', 'gif_invalid');
+  await forEachSequential(layers.entries(), async ([index, raw]) => {
+    const layer = (raw ?? {}) as Record<string, unknown>;
+    if (scalarText(layer.type ?? layer.kind) !== 'gif') return;
+    const gif = await verifiedLayerGif(scalarText(layer.gifId ?? ''), fetcher);
     layers[index] = {
       id: layer.id, type: 'gif', gifId: gif.id, width: gif.width, height: gif.height,
       x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, zIndex: 0,
     };
-  }
+  });
 }
 
 /** GIF search for the post editor. An empty query returns trending GIFs. */

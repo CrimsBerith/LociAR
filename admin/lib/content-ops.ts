@@ -1,3 +1,4 @@
+import { scalarText } from './values';
 import 'server-only';
 import { FieldValue, Timestamp, type Transaction } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from './firebase-admin';
@@ -5,7 +6,7 @@ import { luidForUid } from './account-lifecycle';
 import { permissionsFor } from './rbac';
 import { anyBlocked, containsURL, handleIsBlocked, isReservedHandle } from './content-moderation';
 import { distanceMeters, encodeGeohash } from './geo';
-import { requiredString, uuid, ValidationError } from './validation';
+import { isEmailAddress, requiredString, uuid, ValidationError } from './validation';
 import { checkReceipt, ConflictError, derivedKey, mutationHash, requireActorAccountActive, requireTargetAccountActive, writeAudit } from './ops';
 
 import type { ContentInput } from './content-models';
@@ -19,13 +20,13 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
   const text = typeof body.text === 'string' ? body.text.trim() : caption;
   if (text.length > 2000 || anyBlocked([caption, text])) throw new ValidationError('content_not_allowed');
   if ([caption, text].some(containsURL)) throw new ValidationError('links_not_allowed');
-  const platform = String(body.platform ?? 'text'); const url = typeof body.url === 'string' ? body.url.trim() : '';
+  const platform = scalarText(body.platform ?? 'text'); const url = typeof body.url === 'string' ? body.url.trim() : '';
   // Posts are text only: social media links were removed from LociAR on 9 Oct 2026 (createPost refuses them too).
   if (platform !== 'text' || url) throw new ValidationError('links_not_allowed');
-  if (!['all','13_plus','16_plus'].includes(String(body.ageRating ?? 'all'))) throw new ValidationError('18+ content is disabled');
-  if (!['public','friends','private'].includes(String(body.visibility ?? 'public'))) throw new ValidationError('invalid_visibility');
-  if (!['active','pending_review'].includes(String(body.status ?? 'pending_review'))) throw new ValidationError('invalid_status');
-  const color = String(body.color ?? '#FFFFFF'), background = String(body.background ?? '#111827');
+  if (!['all','13_plus','16_plus'].includes(scalarText(body.ageRating ?? 'all'))) throw new ValidationError('18+ content is disabled');
+  if (!['public','friends','private'].includes(scalarText(body.visibility ?? 'public'))) throw new ValidationError('invalid_visibility');
+  if (!['active','pending_review'].includes(scalarText(body.status ?? 'pending_review'))) throw new ValidationError('invalid_status');
+  const color = scalarText(body.color ?? '#FFFFFF'), background = scalarText(body.background ?? '#111827');
   if (![color,background].every(c => /^#[0-9A-Fa-f]{6}$/.test(c))) throw new ValidationError('invalid_color');
   const zoneExceptionReason = typeof body.zoneExceptionReason === 'string' ? body.zoneExceptionReason.trim() : '';
   if (zoneExceptionReason && (zoneExceptionReason.length < 8 || zoneExceptionReason.length > 1000)) throw new ValidationError('zone exception requires 8–1000 characters');
@@ -72,7 +73,7 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
   const db = adminDb(); const id = editingId ?? derivedKey(key,'post');
   const action = editingId ? 'admin_post_edit' : 'admin_post_create';
   const hash = mutationHash(actorId,action,id,{input,reason});
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requirePermission(tx,actorId,editingId ? 'posts.edit' : 'posts.create');
     if (input.status === 'active') await requirePermission(tx,actorId,'posts.moderate');
     const [audit, before] = await tx.getAll(db.collection('admin_audit_log').doc(key),db.collection('posts').doc(id));
@@ -135,7 +136,7 @@ export async function saveAdminComment(postId: string, authorId: string, text: s
   if (anyBlocked([text])) throw new ValidationError('content_not_allowed');
   const db=adminDb(), id=editingId ?? derivedKey(key,'comment');
   const hash=mutationHash(actorId,editingId?'comment_edit':'comment_create',id,{postId,authorId,text,reason});
-  return db.runTransaction(async tx=>{
+  return await db.runTransaction(async tx=>{
     await requirePermission(tx,actorId,'comments.write');
     const [audit,post,comment] = await tx.getAll(db.collection('admin_audit_log').doc(key),db.collection('posts').doc(postId),db.collection('comments').doc(id));
     if(checkReceipt(audit,hash)) return {id};
@@ -153,7 +154,7 @@ export async function saveAdminComment(postId: string, authorId: string, text: s
 }
 export async function removeAdminComment(postId:string,commentId:string,actorId:string,reason:string,key:string){
   const db=adminDb(),hash=mutationHash(actorId,'comment_delete',commentId,{postId,reason});
-  return db.runTransaction(async tx=>{
+  return await db.runTransaction(async tx=>{
     await requirePermission(tx,actorId,'comments.write');
     const [audit,comment]=await tx.getAll(db.collection('admin_audit_log').doc(key),db.collection('comments').doc(commentId));
     if(checkReceipt(audit,hash))return {id:commentId};
@@ -172,7 +173,7 @@ export async function createManagedUser(input:{handle:string;displayName:string;
   const displayName=requiredString(input.displayName,'displayName',1,60);
   if(anyBlocked([displayName]))throw new ValidationError('display_name_not_allowed');
   const email=input.email.trim().toLowerCase();
-  if(email && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254))throw new ValidationError('invalid_email');
+  if(email && !isEmailAddress(email))throw new ValidationError('invalid_email');
   const db=adminDb(),uid='admin-managed-'+derivedKey(key,'identity'),luid=luidForUid(uid);
   const hash=mutationHash(actorId,'managed_user_create',luid,{handle,displayName,email,reason});
   const job=db.collection('admin_user_creations').doc(key);

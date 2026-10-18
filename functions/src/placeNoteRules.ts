@@ -77,7 +77,7 @@ export function clampNotifyRadius(value: unknown, fallback = DEFAULT_AR_NOTIFY_R
 
 /** The visitor's uncertainty circle may touch the note circle, within a bounded tolerance. */
 export function fixInsideNote(fix: Fix, noteLat: number, noteLng: number, radius: number): boolean {
-  if (!(fix.accuracy >= 0) || fix.accuracy > MAX_ENTRY_ACCURACY_M) return false;
+  if (!Number.isFinite(fix.accuracy) || fix.accuracy < 0 || fix.accuracy > MAX_ENTRY_ACCURACY_M) return false;
   return distanceMeters(fix.lat, fix.lng, noteLat, noteLng) <= radius + Math.min(fix.accuracy, ENTRY_TOLERANCE_CAP_M);
 }
 
@@ -139,7 +139,7 @@ export function distanceToSpot(lat: number, lng: number, spot: Spot): number {
 
 /** Unlock a dense spot: within the unlock radius of its circle, GPS tolerance capped at 5 m. */
 export function fixUnlocksSpot(fix: Fix, spot: Spot, unlockRadius: number): boolean {
-  if (!(fix.accuracy >= 0) || fix.accuracy > MAX_ENTRY_ACCURACY_M) return false;
+  if (!Number.isFinite(fix.accuracy) || fix.accuracy < 0 || fix.accuracy > MAX_ENTRY_ACCURACY_M) return false;
   return distanceToSpot(fix.lat, fix.lng, spot) <= unlockRadius + Math.min(fix.accuracy, UNLOCK_TOLERANCE_CAP_M);
 }
 

@@ -166,13 +166,31 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         Array(try await publicPostsPage(creatorID: creatorID, cursor: nil).posts.prefix(limit))
     }
     func publicProfile(creatorID: UUID) async throws -> PublicProfileProjection? {
-        struct Profile: Decodable { let id: UUID; let handle: String; let avatar_url: String?; let avatar_preset: String?; let bio: String?; let public_post_count: Int; let follower_count: Int; let following_count: Int }
+        struct Profile: Decodable {
+            let id: UUID
+            let handle: String
+            let avatarURL: String?
+            let avatarPreset: String?
+            let bio: String?
+            let publicPostCount: Int
+            let followerCount: Int
+            let followingCount: Int
+
+            enum CodingKeys: String, CodingKey {
+                case id, handle, bio
+                case avatarURL = "avatar_url"
+                case avatarPreset = "avatar_preset"
+                case publicPostCount = "public_post_count"
+                case followerCount = "follower_count"
+                case followingCount = "following_count"
+            }
+        }
         struct Response: Decodable { let profile: Profile? }
         let response: Response = try await callables.call("readPublicContent", payload: PublicRequest(mode: "profile", creatorId: FirebaseIdentity.key(creatorID)))
         guard let p = response.profile else { return nil }
-        let avatar = await AvatarReference.resolve(avatarURL: p.avatar_url, preset: p.avatar_preset)
+        let avatar = await AvatarReference.resolve(avatarURL: p.avatarURL, preset: p.avatarPreset)
         return PublicProfileProjection(id: p.id, handle: p.handle, avatarURL: avatar, bio: p.bio,
-            publicPostCount: p.public_post_count, followerCount: p.follower_count, followingCount: p.following_count)
+            publicPostCount: p.publicPostCount, followerCount: p.followerCount, followingCount: p.followingCount)
     }
     func publicPost(id: UUID) async throws -> LociPost? {
         try await projected(PublicRequest(mode: "single", postId: FirebaseIdentity.key(id))).posts.first

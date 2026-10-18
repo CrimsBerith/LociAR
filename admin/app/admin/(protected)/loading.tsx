@@ -5,7 +5,7 @@ export default async function Loading() {
   return (
     <section className="page routeState" aria-busy="true" aria-labelledby="admin-loading-heading">
       <h1 id="admin-loading-heading">{t('Loading')}</h1>
-      <p className="muted" role="status">{t('Preparing panel data. Please wait.')}</p>
+      <output className="muted">{t('Preparing panel data. Please wait.')}</output>
     </section>
   );
 }

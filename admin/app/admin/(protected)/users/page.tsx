@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../lib/values';
 import { needsStepUp, requireAdmin } from '../../../../lib/admin';
 import { recordPersonalDataRead } from '../../../../lib/ops';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
@@ -11,7 +12,7 @@ import { InvalidCursorError, pageCursors, readDocumentPage, textParameter, type 
 
 export const dynamic = 'force-dynamic';
 
-export default async function UsersPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function UsersPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const admin = await requireAdmin({ permission: 'users.read' });
   const { t, locale } = await getI18n();
   const canManageAdmins = admin.permissions.has('admin_users.write');
@@ -32,7 +33,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     users = page.documents.map(d => ({ ...d.data(), id: d.id }));
     const privateDocs = users.length ? await db.getAll(...users.map(u => db.collection('users_private').doc(u.id))) : [];
     const byId = new Map(privateDocs.map(d => [d.id, d.data() ?? {}]));
-    users = users.map(u => ({ ...u, ...(byId.get(u.id) ?? {}), id: u.id }));
+    users = users.map(u => ({ ...u, ...byId.get(u.id), id: u.id }));
     await recordPersonalDataRead(admin.user.id, 'users', users.length);
   } catch (error) {
     failed = true;
@@ -71,7 +72,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                   {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') || contextStepUp ? <details><summary>{t('Private data')}</summary><UserContextPanel luid={user.id} stepUp={contextStepUp} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
                 </span>
                 <span>{user.suspended ? t('Suspended') : user.identity_verified ? t('Verified') : t('Unverified')}</span>
-                <span>{String(user.auth_provider ?? t('unknown'))}</span>
+                <span>{scalarText(user.auth_provider ?? t('unknown'))}</span>
                 <span>{new Date(iso(user.created_at)).toLocaleDateString(locale)}</span>
                 <span>{canSuspend ? (
                   <AdminDecision

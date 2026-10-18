@@ -255,7 +255,7 @@ struct MapFeatureView: View {
                                         HStack(spacing: 10) {
                                             Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                                 .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
-                                            Text(post.isLocked ? String(localized: "Kilitli not") : post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
+                                            Text(postTitle(post))
                                                 .font(.subheadline.weight(.semibold))
                                                 .foregroundStyle(.white)
                                                 .lineLimit(1)
@@ -300,9 +300,15 @@ struct MapFeatureView: View {
         }.flatMap(\.posts)
     }
 
+    private func postTitle(_ post: LociPost) -> String {
+        if post.isLocked { return String(localized: "Kilitli not") }
+        return post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption
+    }
+
     /// Dense spot: the count is public, the text opens only on site (GPS ~15 m, AR camera 2-5 m).
     private func denseSpotBanner(_ spot: DenseSpotInfo) -> some View {
-        let meters = Int(spot.unlockRadius.rounded()), noteCount = spot.count
+        let meters = Int(spot.unlockRadius.rounded())
+        let noteCount = spot.count
         return VStack(alignment: .leading, spacing: 6) {
             Label(String(localized: "Yoğun nokta: \(noteCount) not. Açmak için \(meters) m yaklaş."), systemImage: "lock.fill")
                 .font(.caption.weight(.semibold))

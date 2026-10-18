@@ -1,3 +1,4 @@
+import { scalarText } from '../../../../../../../lib/values';
 import { NextResponse } from 'next/server';
 import { apiError, enforceRateLimit, requireSameOrigin, unauthorized } from '../../../../../../../lib/api';
 import { requireAdminApi } from '../../../../../../../lib/admin';
@@ -15,7 +16,7 @@ export async function POST(request: Request, context: { params: Promise<{ luid: 
     const limited = await enforceRateLimit(access.context.user.id, 'user-context.read', 20);
     if (limited) return limited;
     const { luid } = await context.params;
-    const result = await readPrivateUserContext(access.context, luid, body.kind, String(body.reason ?? ''));
+    const result = await readPrivateUserContext(access.context, luid, body.kind, scalarText(body.reason ?? ''));
     return NextResponse.json({ result }, { headers: { 'Cache-Control': 'no-store, private' } });
   } catch (error) { return apiError(error); }
 }

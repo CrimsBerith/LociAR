@@ -1,3 +1,4 @@
+import { scalarText } from './values';
 import { anyBlocked, containsURL } from './moderation';
 import { GIF_ID } from './giphyId';
 
@@ -210,7 +211,7 @@ function contentPolicyError(body: CreatePostBody): string | null {
   const source = body.contentSource;
   if (source != null) {
     if (typeof source !== 'object') return 'Invalid content source';
-    const platform = String(source.platform ?? '').toLowerCase();
+    const platform = scalarText(source.platform ?? '').toLowerCase();
     const mediaKind = String(source.mediaKind ?? '').toLowerCase();
     if (['image', 'photo', 'video'].includes(mediaKind) || platform === 'own_video') return 'Only text and GIF posts are allowed';
     if (source.url != null && source.url !== '') return 'Links are not allowed';

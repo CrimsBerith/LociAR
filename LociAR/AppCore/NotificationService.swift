@@ -374,7 +374,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+    nonisolated func userNotificationCenter(_ _: UNUserNotificationCenter, willPresent notification: UNNotification,
                                            withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void) {
         let recipient = notification.request.content.userInfo["recipient_id"] as? String
         let id = recipient.flatMap(UUID.init(uuidString:))
@@ -386,7 +386,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+    nonisolated func userNotificationCenter(_ _: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                            withCompletionHandler completionHandler: @escaping @Sendable () -> Void) {
         let info = response.notification.request.content.userInfo
         let target = PushNotificationTarget(recipient: info["recipient_id"] as? String, post: info["post_id"] as? String, activity: info["activity_id"] as? String,
@@ -403,7 +403,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 }
 
 extension NotificationService: MessagingDelegate {
-    nonisolated func messaging(_ messaging: Messaging, didReceiveRegistration installationID: String?) {
+    nonisolated func messaging(_ _: Messaging, didReceiveRegistration installationID: String?) {
         guard installationID != nil else { return }
         Task { @MainActor in
             guard self.acceptsTokens else { return }
@@ -456,7 +456,7 @@ final class LociAppDelegate: NSObject, UIApplicationDelegate {
         return true
     }
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+    func application(_ _: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         restoreBackgroundServices()
         if launchOptions?[.location] != nil { CampaignArrivalService.shared.resumeBackgroundLocation() }
         // Periodic refresh of monitored note and campaign regions (safety net for missed pushes).
@@ -472,16 +472,16 @@ final class LociAppDelegate: NSObject, UIApplicationDelegate {
         return true
     }
     /// Silent "region_refresh" pushes arrive when a campaign or notifying note goes live in this area.
-    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
+    func application(_ _: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
         guard userInfo["type"] as? String == "region_refresh" else { return .noData }
         guard await prepareBackgroundWake() else { return .noData }
         return await CampaignArrivalService.shared.handleSilentRefresh() ? .newData : .noData
     }
-    func applicationProtectedDataDidBecomeAvailable(_ application: UIApplication) { restoreBackgroundServices() }
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    func applicationProtectedDataDidBecomeAvailable(_ _: UIApplication) { restoreBackgroundServices() }
+    func application(_ _: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         NotificationService.shared.didRegisterForRemoteNotifications(deviceToken: deviceToken)
     }
-    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    func application(_ _: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         NotificationService.shared.didFailToRegisterForRemoteNotifications(error: error)
     }
 }

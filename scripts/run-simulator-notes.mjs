@@ -1,3 +1,4 @@
+import { forEachSequential, pollUntil } from './async.mjs';
 // Disposable Firebase + real iOS SDK/UI tests. No production config edits or deployment.
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
@@ -39,7 +40,6 @@ function start(file, args, name) {
   const child = spawn(file, args, { cwd: root, env, detached: true, stdio: ['ignore', fd, fd] });
   closeSync(fd); children.push(child); return child;
 }
-const pause = ms => new Promise(accept => setTimeout(accept, ms));
 async function listening(port) {
   return new Promise(accept => { const socket = createConnection({ host: '127.0.0.1', port });
     socket.setTimeout(300); socket.once('connect', () => { socket.destroy(); accept(true); });
@@ -53,7 +53,8 @@ async function stop() {
       else if (child.spawnargs.includes('scripts/simulator-note-fixture.mjs')) process.kill(-child.pid, 'SIGTERM');
       else child.kill('SIGINT'); } catch {}
   }
-  await Promise.all(active.map(child => child.exitCode != null || child.signalCode != null ? undefined : new Promise(accept => {
+  await Promise.all(active.map(child => new Promise(accept => {
+    if (child.exitCode != null || child.signalCode != null) { accept(); return; }
     const timer = setTimeout(accept, 10_000);
     child.once('exit', () => { clearTimeout(timer); accept(); });
   })));
@@ -68,7 +69,9 @@ async function stop() {
 process.once('SIGINT', async () => { await stop(); process.exit(130); });
 process.once('SIGTERM', async () => { await stop(); process.exit(143); });
 try {
-  for (const port of [9099, 8080, 9199, 5001, 4400, 4500, 9150, 9867]) assert.equal(await listening(port), false, `Port ${port} is occupied.`);
+  await Promise.all([9099, 8080, 9199, 5001, 4400, 4500, 9150, 9867].map(async port => {
+    assert.equal(await listening(port), false, `Port ${port} is occupied.`);
+  }));
   const inventory = command('xcrun', ['simctl', 'list', 'devices', '-j']);
   assert.equal(inventory.status, 0);
   const device = Object.values(JSON.parse(inventory.stdout).devices).flat().find(d => d.udid === sim && d.name.startsWith('LociAR Notes'));
@@ -106,20 +109,19 @@ try {
   config.functions = [{ source: relative(output, frozen), codebase: 'default', runtime: 'nodejs22' }];
   const configFile = join(output, 'firebase.json'); writeFileSync(configFile, JSON.stringify(config));
   const backend = start(process.execPath, [resolve('functions/node_modules/firebase-tools/lib/bin/firebase.js'), 'emulators:start', '--project', 'demo-lociar', '--config', configFile, '--only', 'auth,firestore,storage,functions'], 'emulators');
-  for (let i = 0; ; i++) {
-    assert.ok(i < 150 && backend.exitCode == null, 'Demo backend did not start.');
+  await pollUntil(async () => {
+    assert.ok(backend.exitCode == null, 'Demo backend did not start.');
     try {
-      const response = await fetch(`http://127.0.0.1:5001/demo-lociar/us-central1/createPlaceNote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"data":{}}' });
-      if (response.status === 401 && await listening(9099)) break;
-    } catch {}
-    await pause(1000);
-  }
+      const response = await fetch('http://127.0.0.1:5001/demo-lociar/us-central1/createPlaceNote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"data":{}}' });
+      return response.status === 401 && await listening(9099);
+    } catch { return false; }
+  }, Boolean, 150, 1000, 'Demo backend did not start.');
   env.E2E_EMAIL = 'simulator-' + randomBytes(8).toString('hex') + '@lociar.test';
   env.TEST_RUNNER_E2E_EMAIL = env.E2E_EMAIL;
   env.TEST_RUNNER_E2E_PASSWORD = randomBytes(24).toString('hex');
   env.TEST_RUNNER_E2E_DEMO_EMULATOR_HTTP = '1'; env.TEST_RUNNER_E2E_FIXTURE_URL = 'http://127.0.0.1:9867';
   start(process.execPath, ['--conditions=react-server', '--import', './admin/tests/register-typescript.mjs', 'scripts/simulator-note-fixture.mjs'], 'fixture');
-  for (let i = 0; !await listening(9867); i++) { assert.ok(i < 20, 'Fixture server did not start.'); await pause(500); }
+  await pollUntil(() => listening(9867), Boolean, 21, 500, 'Fixture server did not start.');
   const derivedData = resolve(process.env.LOCIAR_TEST_DERIVED_DATA ?? join(output, 'DerivedData'));
   const common = ['-project', 'LociAR.xcodeproj', '-scheme', 'LociAR', '-configuration', 'Debug', '-destination', 'platform=iOS Simulator,id=' + sim,
     '-derivedDataPath', derivedData,
@@ -161,7 +163,7 @@ try {
   assert.equal(tests[0], allTests[0], 'Every selection must establish a real SDK session first.');
   assert.ok(tests.every(name => allTests.includes(name)));
   const accepted = [], failed = [];
-  for (const name of tests) {
+  await forEachSequential(tests, async name => {
     if (name === tests[1]) assert.equal(command('xcrun', ['simctl', 'privacy', sim, 'grant', 'location-always', 'com.khankartal.lociar']).status, 0);
     console.log('RUN ' + name);
     try {
@@ -176,7 +178,7 @@ try {
       console.error('FAIL ' + name);
       if (name === tests[0]) throw error; // Later workflows require this real SDK session.
     }
-  }
+  });
   const finalHashes = artifactHashes();
   writeFileSync(join(output, 'app-artifact-end.json'), JSON.stringify(finalHashes, null, 2));
   assert.deepEqual(finalHashes, frozenHashes, 'The installed app artifact changed during acceptance.');

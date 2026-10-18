@@ -143,11 +143,15 @@ struct LocationFixEstimator: Sendable {
     var estimate: LocationEstimate? {
         guard let best = bestAccuracy else { return nil }
         let good = samples.filter { $0.accuracy <= max(best * 1.5, best + 2) }
-        var x = 0.0, y = 0.0, z = 0.0
+        var x = 0.0
+        var y = 0.0
+        var z = 0.0
         for sample in good {
             // Relative inverse variance avoids overflow; spherical averaging crosses ±180° safely.
-            let relative = max(best, 1) / max(sample.accuracy, 1), w = relative * relative
-            let lat = sample.latitude * .pi / 180, lng = sample.longitude * .pi / 180
+            let relative = max(best, 1) / max(sample.accuracy, 1)
+            let w = relative * relative
+            let lat = sample.latitude * .pi / 180
+            let lng = sample.longitude * .pi / 180
             x += w * cos(lat) * cos(lng); y += w * cos(lat) * sin(lng); z += w * sin(lat)
         }
         let mean = CLLocation(latitude: atan2(z, hypot(x, y)) * 180 / .pi, longitude: atan2(y, x) * 180 / .pi)

@@ -29,28 +29,28 @@ function normalize(text: string): string {
     .normalize('NFKC')
     .toLowerCase()
     .replace(/\p{Cf}|\u0307/gu, '')
-    .replace(/\u0131/g, 'i')
+    .replaceAll(/\u0131/g, 'i')
     .replace(/[\u064b-\u065f\u0670\u0640]/g, '')
     .replace(/[0@]/g, 'o')
     .replace(/[1!|]/g, 'i')
-    .replace(/3/g, 'e')
-    .replace(/4/g, 'a')
-    .replace(/\$|5/g, 's');
+    .replaceAll(/3/g, 'e')
+    .replaceAll(/4/g, 'a')
+    .replaceAll(/[$5]/g, 's');
 }
 
 export function containsBlockedTerm(text: string): boolean {
   const clean = normalize(text);
   const words = clean.split(/[^\p{L}\p{M}\p{N}]+/u).filter(Boolean);
-  if (words.some((word) => TERMS.has(word))) return true;
+  if (words.some((word) => TERMS.has(word))) { return true; }
   // High-confidence CJK phrases also occur without spaces. Avoid Japanese conditional forms.
-  if (/操你妈|傻逼|狗日的|クソ野郎|糞野郎|(?:死ね|くたばれ)(?![ぁ-ゖァ-ヺー])/u.test(clean)) return true;
+  if (/操你妈|傻逼|狗日的|クソ野郎|糞野郎|(?:死ね|くたばれ)(?![ぁ-ゖァ-ヺー])/u.test(clean)) { return true; }
   // 'retard' is ordinary French for delay; only its English directed-insult context is blocked.
-  if (/\b(?:you(?: are)?(?: a)?|fucking)\s+retard\b/u.test(clean)) return true;
+  if (/\b(?:you(?: are)?(?: a)?|fucking)\s+retard\b/u.test(clean)) { return true; }
   // Only contiguous single-letter runs: unrelated initials must not form a new insult.
   let run = '';
   for (const word of [...words, 'end']) {
-    if ([...word].length === 1) run += word;
-    else { if ([...TERMS].some(term => term.length >= 4 && run.includes(term))) return true; run = ''; }
+    if ([...word].length === 1) { run += word; }
+    else { if ([...TERMS].some(term => term.length >= 4 && run.includes(term))) { return true; } run = ''; }
   }
   return false;
 }
@@ -74,7 +74,7 @@ export function anyBlocked(texts: Array<string | null | undefined>): boolean {
 /** User-authored text never carries URLs; GIPHY URLs are constructed separately by the server. */
 export function containsURL(text: string): boolean {
   const clean = text.normalize('NFKC').replace(/\p{Cf}/gu, '');
-  return /[a-z][a-z0-9+.-]*:\/\/|www\.|(?:mailto|javascript|data|tel):|[\p{L}\p{N}-]+\.[\p{L}]{2,63}(?:\b|$)/iu.test(clean);
+  return clean.includes('://') || /www\.|(?:mailto|javascript|data|tel):|[\p{L}\p{N}-]{1,253}\.\p{L}{2,63}(?:\b|$)/iu.test(clean);
 }
 
 export function handleIsBlocked(handle: string): boolean {

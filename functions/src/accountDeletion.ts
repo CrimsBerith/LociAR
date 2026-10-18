@@ -1,3 +1,4 @@
+import { forEachSequential, readPages } from './async';
 import { randomUUID } from 'node:crypto';
 import { auth, db, FieldValue, Timestamp, type Caller } from './core';
 import { deleteAccountStorage } from './accountStorage';
@@ -78,10 +79,13 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       tx.update(jobRef, { stage, updated_at: FieldValue.serverTimestamp() });
     });
   };
+  const deletionPages = (query: FirebaseFirestore.Query, size = PAGE_SIZE) => readPages(async () => {
+    checkBudget();
+    const page = await query.limit(size).get();
+    return { value: page, next: page.empty ? undefined : true };
+  });
   const deleteQuery = async (query: FirebaseFirestore.Query) => {
-    for (;;) {
-      checkBudget();
-      const page = await query.limit(PAGE_SIZE).get();
+    for await (const page of deletionPages(query)) {
       if (page.empty) return;
       const batch = db.batch();
       page.docs.forEach(doc => batch.delete(doc.ref));
@@ -90,20 +94,17 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       if (page.size < PAGE_SIZE) return;
     }
   };
-  try {
-    await setStage('firestore');
-    for (;;) {
-      checkBudget();
-      const posts = await db.collection('posts').where('creator_id', '==', luid).limit(PAGE_SIZE).get();
+  const removeAuthoredPosts = async () => {
+    for await (const posts of deletionPages(db.collection('posts').where('creator_id', '==', luid))) {
       if (posts.empty) break;
-      for (const post of posts.docs) {
+      await forEachSequential(posts.docs, async (post) => {
         checkBudget();
         await deleteAnchorOfPost(post.get('cloud_anchor_id'), post.id);
-        for (const collection of ['likes', 'comments', 'post_saves', 'collection_items', 'filtered_comments', 'activity_events', 'place_note_notification_receipts']) {
+        await forEachSequential(['likes', 'comments', 'post_saves', 'collection_items', 'filtered_comments', 'activity_events', 'place_note_notification_receipts'], async (collection) => {
           await deleteQuery(db.collection(collection).where('post_id', '==', post.id));
-        }
+        });
         await db.collection('media_purge_queue').doc(post.id).delete();
-      }
+      });
       await db.runTransaction(async tx => {
         await assertLease(tx);
         const remaining = await tx.getAll(...posts.docs.map(post => post.ref));
@@ -111,24 +112,29 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
         existing.forEach(post => tx.delete(post.ref));
         tx.update(jobRef, { posts_removed: FieldValue.increment(existing.length) });
       });
-      for (const post of posts.docs) {
-        if (typeof post.get('spot_id') !== 'string') continue;
+      await forEachSequential(posts.docs, async (post) => {
+        if (typeof post.get('spot_id') !== 'string') return;
         checkBudget();
         await syncSpotMembership(post.id);
         await repairSpotCount(post.get('spot_id'));
-      }
+      });
     }
-    // Resume cleanup even if a worker died after deleting posts but before settling their spots.
-    for (;;) {
-      checkBudget();
-      const members = await db.collection('note_spot_members').where('owner_luid', '==', luid).limit(100).get();
+  };
+  const settleSpotMemberships = async () => {
+    for await (const members of deletionPages(db.collection('note_spot_members').where('owner_luid', '==', luid), 100)) {
       if (members.empty) break;
-      for (const member of members.docs) {
+      await forEachSequential(members.docs, async (member) => {
         checkBudget();
         await syncSpotMembership(member.id);
         if (typeof member.get('spot_id') === 'string') await repairSpotCount(member.get('spot_id'));
-      }
+      });
     }
+  };
+  try {
+    await setStage('firestore');
+    await removeAuthoredPosts();
+    // Resume cleanup even if a worker died after deleting posts but before settling their spots.
+    await settleSpotMemberships();
     const byField: Array<[string, string]> = [
       ['likes', 'user_id'], ['comments', 'user_id'], ['post_saves', 'user_id'], ['filtered_comments', 'user_id'],
       ['follows', 'follower_id'], ['follows', 'following_id'],
@@ -149,23 +155,21 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ['storage_reclamations', 'creator_id'], ['storage_reclamation_queue', 'creator_id'],
       ['invites', 'creator_id'], ['invites', 'redeemed_by'], ['invite_attempts', 'owner_luid'],
     ];
-    for (const [collection, field] of byField) await deleteQuery(db.collection(collection).where(field, '==', luid));
+    await forEachSequential(byField, async ([collection, field]) => { await deleteQuery(db.collection(collection).where(field, '==', luid)); });
     await deleteQuery(db.collection('admin_role_assignments').where('user_id', '==', job.uid));
     await deleteQuery(db.collection('admin_user_invites').where('invited_user_id', '==', job.uid));
-    for (const collection of ['admin_email_challenges', 'admin_email_sessions', 'admin_email_limits']) {
+    await forEachSequential(['admin_email_challenges', 'admin_email_sessions', 'admin_email_limits'], async (collection) => {
       await deleteQuery(db.collection(collection).where('owner_uid', '==', job.uid));
-    }
+    });
     // Legacy ARCore quota buckets predate owner_luid but still have deterministic owner IDs.
     await deleteQuery(db.collection('arcore_token_quota').orderBy('__name__').startAt(`${luid}_`).endAt(`${luid}_\uf8ff`));
-    for (;;) {
-      checkBudget();
-      const anchors = await db.collection('cloud_anchors').where('owner_luid', '==', luid).limit(PAGE_SIZE).get();
+    for await (const anchors of deletionPages(db.collection('cloud_anchors').where('owner_luid', '==', luid))) {
       if (anchors.empty) break;
       const outcomes = new Map<string, boolean>();
-      for (const record of anchors.docs) {
+      await forEachSequential(anchors.docs, async (record) => {
         const claimed = await claimAnchorDeletion(record.id, record.get('post_id') ?? null);
         outcomes.set(record.id, claimed ? await deleteAnchorOrQueue(record.id) : record.get('state') === 'deleted');
-      }
+      });
       const batch = db.batch();
       anchors.docs.forEach(record => batch.set(record.ref, {
         owner_luid: FieldValue.delete(), state: outcomes.get(record.id) ? 'deleted' : 'deleting',
@@ -174,17 +178,17 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       await commit(batch);
     }
     const anonymize = async (field: string, patch: (doc: FirebaseFirestore.QueryDocumentSnapshot) => FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>) => {
-      let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
-      for (;;) {
+      const pages = readPages(async (cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined) => {
         checkBudget();
-        let query = db.collection('moderation_flags').where(field, '==', luid).orderBy('__name__').limit(PAGE_SIZE);
-        if (cursor) query = query.startAfter(cursor);
-        const page = await query.get();
+        const base = db.collection('moderation_flags').where(field, '==', luid).orderBy('__name__').limit(PAGE_SIZE);
+        const page = await (cursor ? base.startAfter(cursor) : base).get();
+        return { value: page, next: page.size < PAGE_SIZE ? undefined : page.docs.at(-1) };
+      });
+      for await (const page of pages) {
         if (page.empty) return;
         const batch = db.batch();
         page.docs.forEach(doc => batch.update(doc.ref, patch(doc)));
         await commit(batch);
-        cursor = page.docs.at(-1);
         if (page.size < PAGE_SIZE) return;
       }
     };
@@ -248,9 +252,9 @@ export async function retryPendingAccountDeletions(now = Date.now(), maxJobs = 1
   const pending = await db.collection('account_deletion_jobs').where('next_at', '<=', Timestamp.fromMillis(now))
     .orderBy('next_at').limit(maxJobs).get();
   let done = 0;
-  for (const job of pending.docs) {
+  await forEachSequential(pending.docs, async (job) => {
     try { if (await runAccountDeletion(job.id) === 'done') done++; }
     catch { console.error('account_deletion_retry_failed', { stage: job.get('stage') ?? 'unknown' }); }
-  }
+  });
   return done;
 }

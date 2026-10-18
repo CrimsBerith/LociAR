@@ -4,7 +4,7 @@ import { createMutationClient, mutationError } from '../../../../lib/client-muta
 import { useT } from '../../I18nProvider';
 type Candidate = { luid: string; handle: string; distance: number; measuredAt: string; approvedPosts: number; bestLikes: number; arrivals: boolean; departures: boolean };
 
-export default function CampaignAudience({ campaignId }: { campaignId: string }) {
+export default function CampaignAudience({ campaignId }: Readonly<{ campaignId: string }>) {
   const t = useT();
   const [reason, setReason] = useState(''), [candidates, setCandidates] = useState<Candidate[]>([]), [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
@@ -23,6 +23,22 @@ export default function CampaignAudience({ campaignId }: { campaignId: string })
       setMessage(t('This batch scans 25 location reports. Old, inaccurate or unconsented reports are excluded.'));
     } catch (error) { setMessage(t(mutationError(error))); } finally { setBusy(false); }
   }
+  function assignmentMessage() {
+    switch (notificationMode) {
+      case 'departure': return t('Offer assigned. Departure from the user’s latest shared area can trigger the message after the phone synchronizes and observes the user inside. The origin expires within 24 hours.');
+      case 'arrival': return t('Offer assigned. The user’s device can notify on arrival after synchronizing while the app is open; location and notification permissions are required.');
+      case 'map': return t('Offer assigned on the map. No notification queued.');
+      default: return t('Offer assigned and notification queued. Check delivery attempts below; queuing is not delivery.');
+    }
+  }
+  function assignmentLabel() {
+    switch (notificationMode) {
+      case 'departure': return t('Assign and notify on departure');
+      case 'arrival': return t('Assign and notify on arrival');
+      case 'map': return t('Assign map offer');
+      default: return t('Assign offer and notify this user');
+    }
+  }
   async function notify(recipientId: string) {
     setBusy(true); setMessage('');
     try {
@@ -30,10 +46,7 @@ export default function CampaignAudience({ campaignId }: { campaignId: string })
         ...(notificationMode === 'departure' ? { departureRadius } : {}), reason };
       const { response, result } = await mutation.current.post('/api/admin/v1/campaigns', body);
       if (!response.ok) throw new Error(result.error ?? 'Offer could not be assigned');
-      setMessage(notificationMode === 'departure' ? t('Offer assigned. Departure from the user’s latest shared area can trigger the message after the phone synchronizes and observes the user inside. The origin expires within 24 hours.')
-        : notificationMode === 'arrival' ? t('Offer assigned. The user’s device can notify on arrival after synchronizing while the app is open; location and notification permissions are required.')
-        : notificationMode === 'map' ? t('Offer assigned on the map. No notification queued.')
-        : t('Offer assigned and notification queued. Check delivery attempts below; queuing is not delivery.')); mutation.current.clear('/api/admin/v1/campaigns', body);
+      setMessage(assignmentMessage()); mutation.current.clear('/api/admin/v1/campaigns', body);
     } catch (error) { setMessage(t(mutationError(error))); } finally { setBusy(false); }
   }
   return <details><summary>{t('Find nearby eligible users')}</summary>
@@ -62,8 +75,8 @@ export default function CampaignAudience({ campaignId }: { campaignId: string })
       <p>{t('Arrival consent')}: {c.arrivals ? t('Enabled') : t('Not enabled')}</p>
       <p>{t('Departure consent')}: {c.departures ? t('Enabled') : t('Not enabled')}</p>
       <button disabled={busy || reason.trim().length < 8 || (notificationMode === 'arrival' && !c.arrivals) || (notificationMode === 'departure' && !c.departures)} onClick={() => notify(c.luid)}>
-        {notificationMode === 'departure' ? t('Assign and notify on departure') : notificationMode === 'arrival' ? t('Assign and notify on arrival') : notificationMode === 'map' ? t('Assign map offer') : t('Assign offer and notify this user')}</button>
+        {assignmentLabel()}</button>
     </article>)}
-    {message ? <p role="status">{message}</p> : null}
+    {message ? <output>{message}</output> : null}
   </details>;
 }

@@ -66,7 +66,8 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
     func start(seed: [CLLocation] = []) {
         running = true; requestedPreciseAccuracy = false
         // Seeded fixes count as warm-up time already spent on the map.
-        let now = Date(), oldest = seed.map(\.timestamp).min()
+        let now = Date()
+        let oldest = seed.map(\.timestamp).min()
         estimator = LocationFixEstimator(startedAt: oldest.map { min(now, $0) } ?? now)
         estimator.seed(seed.map(LocationSample.init), now: now)
         estimate = estimator.estimate; ready = estimator.isReady(now: now); readyLogged = false
@@ -118,7 +119,7 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
         reducedAccuracy = manager.accuracyAuthorization == .reducedAccuracy
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    func locationManager(_ _: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard running else { return }
         let now = Date()
         for location in locations { estimator.add(LocationSample(location), now: now) }
@@ -131,7 +132,7 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationManager(_ _: CLLocationManager, didFailWithError error: Error) {
         if (error as? CLError)?.code == .denied { denied = true }
     }
 }

@@ -140,7 +140,7 @@ export async function admitPost(
  * survive remote deletion and every retry, so the provider ID can never be re-bound. */
 export async function claimAnchorDeletion(anchorId: string, postId: string | null): Promise<boolean> {
   const ref = db.collection('cloud_anchors').doc(anchorId);
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     const [record, queue] = await tx.getAll(ref, anchorDeletionRef(anchorId));
     const posts = await tx.get(db.collection('posts').where('cloud_anchor_id', '==', anchorId).limit(2));
     if (postId == null) {

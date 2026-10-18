@@ -19,7 +19,7 @@ function summary(data: FirebaseFirestore.DocumentData | undefined) {
 
 export const readDataPreferences = onCall(options, async request => {
   const caller = requireCaller(request);
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     return summary((await tx.get(preferences(caller.luid))).data());
   });
@@ -42,7 +42,7 @@ export const setDataPreferences = onCall(options, async request => {
       || body.placeNotesNoticeVersion !== '2026-10-11-place-notes')) throw new HttpsError('invalid-argument', 'Accept the location-note notification notice');
   if (body.notifications !== undefined && (typeof body.notifications !== 'boolean'
       || body.notificationsNoticeVersion !== '2026-10-11-notifications')) throw new HttpsError('invalid-argument', 'Accept the unified notification notice');
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const current = await tx.get(preferences(caller.luid));
     if (body.revision !== summary(current.data()).revision) throw new HttpsError('failed-precondition', 'Data preferences changed; refresh and retry');
@@ -95,7 +95,7 @@ export const recordUserContext = onCall(options, async request => {
     app_version: bounded(body.device.appVersion, 40), app_build: bounded(body.device.appBuild, 40),
     locale: bounded(body.device.locale, 80), time_zone: bounded(body.device.timeZone, 80),
   };
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const pref = summary((await tx.get(preferences(caller.luid))).data());
     if (!pref.revision || pref.revision !== body.revision || (device && !pref.telemetry) || (location && !pref.location)) {

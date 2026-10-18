@@ -7,7 +7,7 @@ import { pageCursors, readDocumentPage, textParameter, type DocumentPage, type S
 
 export const dynamic = 'force-dynamic';
 
-export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function AnalyticsPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   await requireAdmin({ permission: 'dashboard.read' });
   const { t, locale } = await getI18n();
   const params = await searchParams;

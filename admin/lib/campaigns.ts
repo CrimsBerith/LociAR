@@ -1,8 +1,9 @@
+import { scalarText } from './values';
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { Timestamp, FieldValue, type Transaction } from 'firebase-admin/firestore';
 import { adminDb } from './firebase-admin';
-import { anyBlocked } from './content-moderation';
+import { anyBlocked, containsURL } from './content-moderation';
 import { emptyContent } from './content-models';
 import { placement } from './content-ops';
 import { distanceMeters } from './geo';
@@ -21,7 +22,7 @@ function numeric(value: unknown, name: string, min: number, max: number) {
 }
 function text(value: unknown, name: string, max: number) {
   const result = requiredString(value, name, 1, max);
-  if (anyBlocked([result]) || /[a-z][a-z0-9+.-]*:\/\/|www\.|[\p{L}\p{N}-]+\.[\p{L}]{2,63}(?:\b|$)/iu.test(result)) throw new ValidationError('Only moderated text without links is allowed');
+  if (anyBlocked([result]) || containsURL(result)) throw new ValidationError('Only moderated text without links is allowed');
   return result;
 }
 export type CampaignInput = { brandId: string; name: string; message: string; terms: string; lat: number; lng: number;
@@ -46,11 +47,11 @@ export async function saveBrand(body: Record<string, unknown>, actor: string, re
   const name = text(body.name, 'brand name', 80), author = uuid(body.authorId, 'authorId').toLowerCase();
   const member = body.memberId ? uuid(body.memberId, 'memberId').toLowerCase() : null;
   const memberActive = body.memberState !== 'revoked';
-  if (body.memberState != null && !['active', 'revoked'].includes(String(body.memberState))) throw new ValidationError('Invalid member state');
+  if (body.memberState != null && !['active', 'revoked'].includes(scalarText(body.memberState))) throw new ValidationError('Invalid member state');
   const id = body.brandId ? uuid(body.brandId, 'brandId').toLowerCase() : derivedKey(key, 'brand');
   const status = body.status === 'paused' ? 'paused' : 'active', db = adminDb();
   const hash = mutationHash(actor, 'brand_save', id, { name, author, member, memberActive, status, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await access(tx, actor, 'brands.write');
     const [receipt, before, profile] = await tx.getAll(db.collection('admin_audit_log').doc(key), db.collection('brands').doc(id), db.collection('profiles').doc(author));
     if (checkReceipt(receipt, hash)) return { id };
@@ -69,7 +70,7 @@ export async function saveBrand(body: Record<string, unknown>, actor: string, re
 
 export async function createCampaign(input: CampaignInput, actor: string, reason: string, key: string) {
   const id = derivedKey(key, 'campaign'), db = adminDb(), hash = mutationHash(actor, 'campaign_create', id, { input, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await access(tx, actor, 'campaigns.write');
     const [receipt, brand] = await tx.getAll(db.collection('admin_audit_log').doc(key), db.collection('brands').doc(input.brandId));
     if (checkReceipt(receipt, hash)) return { id };
@@ -85,7 +86,7 @@ export async function createCampaign(input: CampaignInput, actor: string, reason
 
 export async function campaignStatus(id: string, status: 'active' | 'paused', actor: string, reason: string, key: string) {
   const db = adminDb(), hash = mutationHash(actor, 'campaign_status', id, { status, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await access(tx, actor, 'campaigns.write');
     const [receipt, campaign] = await tx.getAll(db.collection('admin_audit_log').doc(key), db.collection('campaigns').doc(id));
     if (checkReceipt(receipt, hash)) return { id };
@@ -142,7 +143,7 @@ async function eligibility(tx: Transaction, c: FirebaseFirestore.DocumentData, l
 
 export async function campaignAudience(id: string, actor: string, reason: string, after?: string) {
   const db = adminDb();
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await access(tx, actor, 'campaigns.audience'); await access(tx, actor, 'users.location.read');
     const campaign = await tx.get(db.collection('campaigns').doc(id));
     if (!campaign.exists) throw new ValidationError('campaign_not_found');
@@ -164,7 +165,7 @@ export async function queueNotification(body: Record<string, unknown>, actor: st
   const title = campaignId && !body.title ? 'LociAR' : text(body.title, 'title', 80), message = campaignId && !body.message ? '' : text(body.message, 'message', 240);
   const departureRadius = mode === 'departure' ? numeric(body.departureRadius ?? 150, 'departure radius', 100, 500) : null;
   const db = adminDb(), hash = mutationHash(actor, 'notification_queue', recipient, { campaignId, title, message, mode, departureRadius, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await access(tx, actor, 'notifications.send');
     if (campaignId) { await access(tx, actor, 'campaigns.audience'); await access(tx, actor, 'users.location.read'); }
     const [receipt, profile, pref] = await tx.getAll(db.collection('admin_audit_log').doc(key), db.collection('profiles').doc(recipient), db.collection('user_data_preferences').doc(recipient));

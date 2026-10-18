@@ -70,7 +70,8 @@ struct PostPreviewView: View {
             VStack(alignment: .leading, spacing: 18) {
                 PostCard(post: post, likeCount: likeCount, viewCount: viewCount)
                 if let spot = post.denseSpot {
-                    let meters = Int(spot.unlockRadius.rounded()), noteCount = spot.count
+                    let meters = Int(spot.unlockRadius.rounded())
+                    let noteCount = spot.count
                     Label(String(localized: "Bu not \(noteCount) notluk yoğun bir noktada. Okumak için \(meters) m yaklaş ve haritadan Burada aç’a bas."), systemImage: "lock.fill")
                         .font(.callout)
                 }

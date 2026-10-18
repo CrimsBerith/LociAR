@@ -1,19 +1,20 @@
 'use client';
+import { scalarText } from '../../../../lib/values';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
 import MapPicker from '../MapPicker';
 import { useT } from '../../I18nProvider';
 
-export default function CampaignForms({ brands, canBrand }: { brands: Array<{ id: string; name: string }>; canBrand: boolean }) {
+export default function CampaignForms({ brands, canBrand }: Readonly<{ brands: Array<{ id: string; name: string }>; canBrand: boolean }>) {
   const t = useT();
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
   const [spot, setSpot] = useState({ lat: 41.0082, lng: 28.9784 }), [radius, setRadius] = useState(1000), [entry, setEntry] = useState(30);
   const mutation = useRef(createMutationClient()), router = useRouter();
   async function submit(event: React.FormEvent<HTMLFormElement>, action: string) {
     event.preventDefault(); const form = event.currentTarget, data = new FormData(form), body: Record<string, unknown> = { action };
-    for (const [key, value] of data) body[key] = ['lat', 'lng', 'radius', 'arrivalRadius', 'entryRadius', 'audienceMaxAgeMinutes', 'minPosts', 'minLikes'].includes(key) ? Number(value) : String(value);
-    for (const date of ['startsAt', 'endsAt']) if (body[date]) body[date] = new Date(String(body[date])).toISOString();
+    for (const [key, value] of data) body[key] = ['lat', 'lng', 'radius', 'arrivalRadius', 'entryRadius', 'audienceMaxAgeMinutes', 'minPosts', 'minLikes'].includes(key) ? Number(value) : scalarText(value);
+    for (const date of ['startsAt', 'endsAt']) if (body[date]) body[date] = new Date(scalarText(body[date])).toISOString();
     setBusy(true); setMessage('');
     try {
       const { response, result } = await mutation.current.post('/api/admin/v1/campaigns', body);
@@ -40,7 +41,7 @@ export default function CampaignForms({ brands, canBrand }: { brands: Array<{ id
       <label>{t('Latitude')}<input name="lat" type="number" step="any" required min={-90} max={90} value={spot.lat} onChange={e => setSpot(s => ({ ...s, lat: Number(e.target.value) }))} /></label>
       <label>{t('Longitude')}<input name="lng" type="number" step="any" required min={-180} max={180} value={spot.lng} onChange={e => setSpot(s => ({ ...s, lng: Number(e.target.value) }))} /></label>
       <MapPicker label={t('Campaign location map')} center={spot} zoom={15} onPick={setSpot}
-        shapes={[{ kind: 'circle', ...spot, radius, color: '#64748b', dashed: true }, { kind: 'circle', ...spot, radius: entry }]}
+        shapes={[{ id: 'campaign-area', kind: 'circle', ...spot, radius, color: '#64748b', dashed: true }, { id: 'campaign-entry', kind: 'circle', ...spot, radius: entry }]}
         hint={t('Click the map to set the campaign location. Dashed: nearby audience radius; solid: entry radius.')} />
       <label>{t('Nearby audience radius (m)')}<input name="radius" type="number" required value={radius} onChange={e => setRadius(Number(e.target.value))} min={100} max={5000} /></label>
       <label>{t('OS wake-up radius (m)')}<input name="arrivalRadius" type="number" required defaultValue={150} min={100} max={500} /></label>
@@ -55,6 +56,6 @@ export default function CampaignForms({ brands, canBrand }: { brands: Array<{ id
       <label>{t('Reason')}<input name="reason" required minLength={8} maxLength={1000} /></label>
       <button type="submit" disabled={busy || !brands.length}>{t('Save draft')}</button>
     </form></details>
-    {message ? <p role="status">{message}</p> : null}
+    {message ? <output>{message}</output> : null}
   </>;
 }

@@ -37,31 +37,35 @@ def specs(text):
     return sorted(SPEC.findall(text))
 
 
+def localized_value(key, language, value, forms, expected, problems):
+    if specs(value) != expected:
+        problems.append(f'format specifiers differ in {language}: {key!r} -> {value!r}')
+    if not forms:
+        return unit(value)
+    for form, text in forms.items():
+        if specs(text) != expected:
+            problems.append(f'plural {form} specifiers differ in {language}: {key!r}')
+    return {'variations': {'plural': {form: unit(text) for form, text in forms.items()}}}
+
+
+def key_localizations(key, tables, plurals, problems):
+    result = {}
+    expected = specs(key) if not key.startswith('push.') else ['%@']
+    for language in LANGS:
+        value = tables[language].get(key, key if language == 'tr' else None)
+        if value is None:
+            problems.append(f'missing {language}: {key!r}')
+            continue
+        result[language] = localized_value(key, language, value, plurals.get(key, {}).get(language), expected, problems)
+    return result
+
+
 def build():
     keys = json.loads(subprocess.check_output([sys.executable, os.path.join(HERE, 'extract.py')]))
     tables = {lang: load(f'translations/{lang}.json') for lang in LANGS}
     plurals = load('plurals.json')
     problems = []
-    strings = {}
-    for key in sorted(keys):
-        localizations = {}
-        for lang in LANGS:
-            value = tables[lang].get(key, key if lang == 'tr' else None)
-            if value is None:
-                problems.append(f'missing {lang}: {key!r}')
-                continue
-            expected = specs(key) if not key.startswith('push.') else ['%@']
-            if specs(value) != expected:
-                problems.append(f'format specifiers differ in {lang}: {key!r} -> {value!r}')
-            forms = plurals.get(key, {}).get(lang)
-            if forms:
-                for form, text in forms.items():
-                    if specs(text) != expected:
-                        problems.append(f'plural {form} specifiers differ in {lang}: {key!r}')
-                localizations[lang] = {'variations': {'plural': {form: unit(text) for form, text in forms.items()}}}
-            else:
-                localizations[lang] = unit(value)
-        strings[key] = {'extractionState': 'manual', 'localizations': localizations}
+    strings = {key: {'extractionState': 'manual', 'localizations': key_localizations(key, tables, plurals, problems)} for key in sorted(keys)}
     for lang in LANGS:
         for stale in sorted(set(tables[lang]) - set(keys)):
             if lang != 'tr':

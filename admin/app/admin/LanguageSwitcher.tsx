@@ -26,13 +26,13 @@ export default function LanguageSwitcher() {
   }
 
   return (
-    <div className="langSwitch" role="group" aria-label={t('Language')} aria-busy={pending || undefined}>
+    <fieldset className="langSwitch" aria-label={t('Language')} aria-busy={pending || undefined}>
       {OPTIONS.map(option => (
         <button key={option.value} type="button" lang={option.value} title={option.name}
           aria-pressed={lang === option.value} onClick={() => choose(option.value)} disabled={pending}>
           {option.label}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }

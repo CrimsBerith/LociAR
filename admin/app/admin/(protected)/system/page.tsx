@@ -28,14 +28,14 @@ export default async function SystemPage() {
   const checks = await Promise.all([
     check('Firestore', async () => { await adminDb().collection('profiles').limit(1).get(); return t('Service query passed'); }, t('Check failed')),
     check('Auth', async () => { await adminAuth().listUsers(1); return t('Admin API reachable'); }, t('Check failed')),
-    check('Storage', async () => { const [exists] = await adminBucket().exists(); if (!exists) throw new Error(); return t('Default bucket reachable'); }, t('Check failed')),
+    check('Storage', async () => { const [exists] = await adminBucket().exists(); if (!exists) { throw new Error(); } return t('Default bucket reachable'); }, t('Check failed')),
     ...functionNames.map(name => check(`Cloud Function · ${name}`, async () => {
       const response = await fetch(`https://${region}-${projectId()}.cloudfunctions.net/${name}`, {
         method: 'OPTIONS',
         signal: AbortSignal.timeout(5000),
         cache: 'no-store',
       });
-      if (![200, 204, 401, 403, 405].includes(response.status)) throw new Error();
+      if (![200, 204, 401, 403, 405].includes(response.status)) { throw new Error(); }
       return `${t('Reachable over HTTPS')} · ${response.status}`;
     }, t('Check failed'))),
   ]);

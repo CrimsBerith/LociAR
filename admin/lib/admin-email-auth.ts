@@ -5,7 +5,7 @@ import { adminAuth, adminDb } from './firebase-admin';
 import { accountDeletionStarted } from './account-lifecycle';
 import { isKnownRole } from './rbac';
 import { writeAudit } from './ops';
-import { ValidationError } from './validation';
+import { isEmailAddress, ValidationError } from './validation';
 
 export const EMAIL_CHALLENGE_COOKIE = '__admin_email_challenge';
 export const EMAIL_CODE_SECONDS = 600;
@@ -50,7 +50,7 @@ async function userForEmail(email: string) {
 
 /** Replaces the previous challenge for this address; the verifier exists only in an HttpOnly cookie. */
 export async function requestAdminEmailCode(rawEmail: unknown, source: string, send: CodeSender = sendAdminCode, now = Date.now()) {
-  if (typeof rawEmail !== 'string' || rawEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail.trim())) {
+  if (!isEmailAddress(rawEmail)) {
     throw new ValidationError('Geçerli bir e-posta adresi yaz.');
   }
   const email = rawEmail.trim().toLowerCase(), address = digest(email), secret = randomBytes(32).toString('hex');
@@ -102,7 +102,7 @@ export async function requestAdminEmailCode(rawEmail: unknown, source: string, s
 /** Atomic consumption and session creation make concurrent use of one code succeed at most once. */
 export async function verifyAdminEmailCode(challengeCookie: unknown, code: unknown, now = Date.now()) {
   if (typeof challengeCookie !== 'string' || !/^[a-f0-9]{64}\.[a-f0-9]{64}$/.test(challengeCookie)
-      || typeof code !== 'string' || !/^[0-9]{6}$/.test(code)) return null;
+      || typeof code !== 'string' || !/^\d{6}$/.test(code)) return null;
   const [address, secret] = challengeCookie.split('.'), db = adminDb();
   const ref = db.collection('admin_email_challenges').doc(address);
   const session = `email1.${randomBytes(32).toString('hex')}`;

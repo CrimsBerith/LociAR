@@ -118,7 +118,7 @@ protocol SocialRepository: Sendable {
 }
 
 extension SocialRepository {
-    func blockAnonymousAuthor(postID: UUID, userID: UUID) async throws { throw AuthFlowError.unsupported }
+    func blockAnonymousAuthor(postID _: UUID, userID _: UUID) async throws { throw AuthFlowError.unsupported }
 }
 
 /// Social rows live in top-level Firestore collections whose document IDs encode the pair
@@ -409,7 +409,7 @@ actor PreviewSocialRepository: SocialRepository {
     private var collectionItems: [UUID: [UUID]] = [:]
 
     func activity(for userID: UUID) async throws -> [SocialActivity] { [] }
-    func markActivityRead(ids: [String], for userID: UUID) async throws -> [String: Date] { [:] }
+    func markActivityRead(ids _: [String], for _: UUID) async throws -> [String: Date] { [:] }
     func savedPostIDs(for userID: UUID) async throws -> [UUID] { Array(saved) }
     func likedPostIDs(for userID: UUID) async throws -> [UUID] { Array(liked) }
     func likeCount(for postID: UUID) async throws -> Int { liked.contains(postID) ? 1 : 0 }
@@ -441,7 +441,7 @@ actor PreviewSocialRepository: SocialRepository {
         collectionItems[collectionID]?.removeAll { $0 == postID }
     }
     func comments(for postID: UUID) async throws -> [LociComment] { [] }
-    func commentPage(for postID: UUID, before cursor: CommentPageCursor?) async throws -> LociCommentPage {
+    func commentPage(for _: UUID, before _: CommentPageCursor?) async throws -> LociCommentPage {
         LociCommentPage(comments: [], olderCursor: nil)
     }
     func addComment(postID: UUID, user: LociUser, text: String) async throws -> LociComment {
@@ -529,5 +529,7 @@ final class FirestoreInviteRepository: InviteRepository, @unchecked Sendable {
 /// Preview/UI-test builds: no backend, so invites are inert.
 struct PreviewInviteRepository: InviteRepository {
     func myInvites() async throws -> [InviteCode] { [] }
-    func redeem(code: String) async throws {}
+    func redeem(code _: String) async throws {
+        // Preview builds have no invitation backend.
+    }
 }

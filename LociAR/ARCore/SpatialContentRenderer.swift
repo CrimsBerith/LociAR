@@ -196,7 +196,14 @@ actor SpatialContentRenderer {
         let gap: CGFloat = 8
         let gifWidth: CGFloat = 560
         let maxTextWidth: CGFloat = gif != nil ? gifWidth : 640
-        let fontSize: CGFloat = (text?.count ?? 0) <= 42 ? 46 : (text?.count ?? 0) <= 105 ? 40 : 34
+        let fontSize: CGFloat
+        if (text?.count ?? 0) <= 42 {
+            fontSize = 46
+        } else if (text?.count ?? 0) <= 105 {
+            fontSize = 40
+        } else {
+            fontSize = 34
+        }
         let textColor = CGColor(gray: 1, alpha: 1)
         let handleColor = CGColor(red: 0.55, green: 0.95, blue: 0.82, alpha: 1)
         let textFrame = text.map { measure($0, fontSize: fontSize, weight: "HelveticaNeue-Medium", maxWidth: maxTextWidth) } ?? .zero

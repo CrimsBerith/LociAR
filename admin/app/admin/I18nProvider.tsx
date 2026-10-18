@@ -5,7 +5,7 @@ import { localeFor, translator, type Lang } from '../../lib/i18n';
 
 const LangContext = createContext<Lang>('en');
 
-export function I18nProvider({ lang, children }: { lang: Lang; children: ReactNode }) {
+export function I18nProvider({ lang, children }: Readonly<{ lang: Lang; children: ReactNode }>) {
   return <LangContext.Provider value={lang}>{children}</LangContext.Provider>;
 }
 

@@ -1,3 +1,4 @@
+import { forEachSequential } from './async';
 import { randomBytes } from 'node:crypto';
 import { onCall } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
@@ -42,7 +43,7 @@ const consented = (pref: FirebaseFirestore.DocumentSnapshot, trigger: Step['trig
 export const readCampaignZones = onCall(options, async request => {
   const caller = requireCaller(request), now = Date.now(), f = parseFix(request.data?.location);
   if (f.accuracy > 1_000 || f.measuredAt < now - 5 * 60_000 || f.measuredAt > now + 10_000) throw new HttpsError('invalid-argument', 'A recent location is required');
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const [pref, flags] = await tx.getAll(db.collection('user_data_preferences').doc(caller.luid), db.collection('system').doc('flags'));
     if (flags.get('kill_switch') === true || pref.get('notifications') !== true || pref.get('promotions') !== true) return { regions: [] };
@@ -82,7 +83,7 @@ export const recordCampaignStep = onCall(options, async request => {
   // Each trigger applies its own freshness below; nothing older than two minutes is considered.
   if (now - f.measuredAt > 120_000 || f.measuredAt > now + 10_000) return { notify: false, reason: 'stale_fix' };
   const id = b.campaignId.toLowerCase();
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, caller.luid);
     const [pref, flags, campaign, progressDoc] = await tx.getAll(db.collection('user_data_preferences').doc(caller.luid), db.collection('system').doc('flags'),
       db.collection('campaigns').doc(id), progressRef(id, caller.luid));
@@ -134,7 +135,7 @@ export const recordCampaignStep = onCall(options, async request => {
       expires_at: Timestamp.fromMillis(c.ends_at.toMillis() + 30 * DAY) });
     // Map/AR channels expose the private offer card; it carries the person's codes.
     if (targetDoc) tx.set(target, { campaign_id: id, owner_luid: caller.luid, state: 'assigned', notification_mode: 'zone',
-      ...(code ? { codes: { ...(targetDoc.get('codes') ?? {}), [step.id]: code } } : {}), assigned_by: 'system:zone', created_at: targetDoc.exists ? targetDoc.get('created_at') : FieldValue.serverTimestamp(),
+      ...(code ? { codes: { ...targetDoc.get('codes'), [step.id]: code } } : {}), assigned_by: 'system:zone', created_at: targetDoc.exists ? targetDoc.get('created_at') : FieldValue.serverTimestamp(),
       expires_at: c.ends_at }, { merge: true });
     const activityId = `campaign_${id}_${step.id}_${caller.luid}_${count}`;
     const body = code ? `${step.message}\n${code}` : step.message;
@@ -156,12 +157,12 @@ export async function refreshArea(lat: number, lng: number, radius: number) {
   // The emulator has no FCM backend; phones refresh on their own schedule there.
   if (process.env.FUNCTIONS_EMULATOR === 'true') return;
   const messaging = getMessaging();
-  for (const topic of areaTopics(lat, lng, radius)) {
+  await forEachSequential(areaTopics(lat, lng, radius), async (topic) => {
     try {
       await messaging.send({ topic, data: { type: 'region_refresh' },
         apns: { headers: { 'apns-push-type': 'background', 'apns-priority': '5' }, payload: { aps: { contentAvailable: true } } } });
     } catch (error) { logger.warn('region refresh push failed', { topic, error: String(error) }); }
-  }
+  });
 }
 
 export const onCampaignZoneChanged = onDocumentWritten({ document: 'campaigns/{id}', maxInstances: 2 }, async event => {

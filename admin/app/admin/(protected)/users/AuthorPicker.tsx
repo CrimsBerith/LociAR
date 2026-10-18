@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useT } from '../../I18nProvider';
-export default function AuthorPicker({value,onChange,disabled=false}:{value:string;onChange:(id:string)=>void;disabled?:boolean}){
+export default function AuthorPicker({value,onChange,disabled=false}:Readonly<{value:string;onChange:(id:string)=>void;disabled?:boolean}>){
   const t=useT();
   const [query,setQuery]=useState(value),[users,setUsers]=useState<Array<{id:string;handle:string;managed:boolean}>>([]),[message,setMessage]=useState('');
   useEffect(()=>{

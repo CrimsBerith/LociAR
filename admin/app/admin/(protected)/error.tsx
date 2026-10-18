@@ -2,7 +2,7 @@
 
 import { useT } from '../I18nProvider';
 
-export default function AdminError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function AdminError({ error, reset }: Readonly<{ error: Error & { digest?: string }; reset: () => void }>) {
   const t = useT();
   const digest = error.digest && /^[a-zA-Z0-9_-]{1,128}$/.test(error.digest) ? error.digest : undefined;
   return (

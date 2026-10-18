@@ -75,7 +75,8 @@ struct ArrivalRegionRegistrationPlan {
         }
         let ids = Set(wanted.map(\.identifier))
         var stop = monitored.filter { $0.identifier.hasPrefix("lociar.arrival.") && !ids.contains($0.identifier) }
-        var start: [CLCircularRegion] = [], state: [CLRegion] = []
+        var start: [CLCircularRegion] = []
+        var state: [CLRegion] = []
         for region in wanted {
             if let old = monitored.first(where: { $0.identifier == region.identifier }) as? CLCircularRegion {
                 if old.center.latitude == region.center.latitude && old.center.longitude == region.center.longitude

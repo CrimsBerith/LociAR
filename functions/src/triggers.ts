@@ -1,3 +1,4 @@
+import { forEachSequential } from './async';
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { createHash, randomUUID } from 'node:crypto';
 import { analyticsEventDoc, db, FieldValue, Timestamp } from './core';
@@ -217,7 +218,7 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
     return true;
   });
   if (!active) return;
-  for (const field of ['bio', 'display_name'] as const) {
+  await forEachSequential(['bio', 'display_name'] as const, async (field) => {
     if (before[field] !== after[field] && anyBlocked([after[field]]) && after.moderation_approved_text?.[field] !== after[field]) {
       await db.runTransaction(async (tx) => {
         if (await isAccountDeleting(tx, luid)) return;
@@ -235,7 +236,7 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
         tx.update(current.ref, { [field]: null, updated_at: FieldValue.serverTimestamp() });
       });
     }
-  }
+  });
   if (before.handle === after.handle) return;
   const currentProfile = await db.collection('profiles').doc(luid).get();
   if (!currentProfile.exists || currentProfile.get('deleted_at')) return;

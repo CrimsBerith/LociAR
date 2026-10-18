@@ -101,12 +101,12 @@ export async function saveCampaignSteps(body: Record<string, unknown>, actor: st
   const timezone = typeof body.timezone === 'string' && body.timezone.length <= 64 ? body.timezone : 'Europe/Istanbul';
   try { new Intl.DateTimeFormat('en-US', { timeZone: timezone }); } catch { throw new ValidationError('Unknown time zone'); }
   const steps = parseSteps(body.steps, timezone), db = adminDb(), hash = mutationHash(actor, 'campaign_steps', id, { steps, timezone, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await access(tx, actor, 'campaigns.write');
     const [receipt, campaign] = await tx.getAll(db.collection('admin_audit_log').doc(key), db.collection('campaigns').doc(id));
     if (checkReceipt(receipt, hash)) return { id };
     if (!campaign.exists) throw new ValidationError('campaign_not_found');
-    tx.update(campaign.ref, { audience: 'zone', steps: JSON.parse(JSON.stringify(steps)), timezone, updated_at: FieldValue.serverTimestamp() });
+    tx.update(campaign.ref, { audience: 'zone', steps: structuredClone(steps), timezone, updated_at: FieldValue.serverTimestamp() });
     writeAudit(tx, key, { requestHash: hash, actorId: actor, action: 'campaign_steps', resourceType: 'campaign', resourceId: id,
       after: { stepCount: steps.length, triggers: steps.map(s => s.trigger) }, reason, permissionKey: 'campaigns.write', riskLevel: 'sensitive' });
     return { id };
@@ -116,7 +116,7 @@ export async function saveCampaignSteps(body: Record<string, unknown>, actor: st
 /** Marks a unique code as used at the counter; a code can be redeemed once. */
 export async function redeemCode(body: Record<string, unknown>, actor: string, reason: string, key: string) {
   const code = requiredString(body.code, 'code', 3, 40).toUpperCase(), db = adminDb(), hash = mutationHash(actor, 'campaign_code_redeem', code, { reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await access(tx, actor, 'campaigns.write');
     const [receipt, doc] = await tx.getAll(db.collection('admin_audit_log').doc(key), db.collection('campaign_codes').doc(code));
     if (checkReceipt(receipt, hash)) return { code };

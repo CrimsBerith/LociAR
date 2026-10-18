@@ -1,3 +1,4 @@
+import { forEachSequential } from './async';
 import { onCall } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
@@ -70,11 +71,11 @@ export const reconcileNoteDensity = onSchedule({ schedule: 'every day 05:23', ti
   let query = db.collection('posts').orderBy('__name__').limit(500);
   if (typeof cursor === 'string' && cursor) query = query.startAfter(cursor);
   const page = await query.get();
-  for (const post of page.docs) { await syncNoteDensity(post.id); await syncSpotMembership(post.id); }
+  await forEachSequential(page.docs, async (post) => { await syncNoteDensity(post.id); await syncSpotMembership(post.id); });
   const spotCursor = (await state.get()).get('spot_cursor');
   const base = db.collection('note_spots').orderBy('__name__');
   const spotPage = await (typeof spotCursor === 'string' ? base.startAfter(spotCursor) : base).limit(100).get();
-  for (const spot of spotPage.docs) await repairSpotCount(spot.id);
+  await forEachSequential(spotPage.docs, async (spot) => { await repairSpotCount(spot.id); });
   await state.set({ cursor: page.size === 500 ? page.docs.at(-1)!.id : null,
     spot_cursor: spotPage.size === 100 ? spotPage.docs.at(-1)!.id : null, updated_at: FieldValue.serverTimestamp() });
   logger.info('note density reconcile', { checked: page.size });
@@ -95,7 +96,7 @@ export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxI
     .orderBy('cell').startAt(prefix).endAt(prefix + '\uf8ff').limit(500).get()));
   const cells = pages.flatMap(page => page.docs).map(d => d.data())
     .filter(c => {
-      if (!(Number(c.count) > 0) || typeof c.cell !== 'string') return false;
+      if (!Number.isFinite(Number(c.count)) || Number(c.count) <= 0 || typeof c.cell !== 'string') return false;
       // Coarse cells are far larger than a zoomed-in box, so test overlap rather than the centre.
       const b = geohashBounds(c.cell);
       return b.latMax >= box.minLat && b.latMin <= box.maxLat && b.lngMax >= box.minLng && b.lngMin <= box.maxLng;
@@ -110,7 +111,7 @@ export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxI
  */
 export async function expireDueNotes() {
   const due = await db.collection('posts').where('ends_at', '<=', Timestamp.now()).limit(200).get();
-  for (const doc of due.docs) {
+  await forEachSequential(due.docs, async (doc) => {
     await db.runTransaction(async tx => {
       const post = await tx.get(doc.ref), data = post.data();
       if (!data || !(data.ends_at instanceof Timestamp) || data.ends_at.toMillis() > Date.now()) return;
@@ -124,7 +125,7 @@ export async function expireDueNotes() {
       if (typeof data.creator_id === 'string') tx.set(db.collection('storage_reclamations').doc(doc.id),
         { creator_id: data.creator_id, state: 'removed', public_readable: false }, { merge: true });
     });
-  }
+  });
   return due.size;
 }
 

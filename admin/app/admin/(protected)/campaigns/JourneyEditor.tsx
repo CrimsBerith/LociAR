@@ -30,6 +30,13 @@ function blank(index: number, lat: number, lng: number): Step {
     frequency: 'once', hours: 24, budget: '' };
 }
 
+function nextStep(existing: readonly Step[], lat: number, lng: number): Step {
+  const ids = new Set(existing.map(step => step.id));
+  let number = 1;
+  while (ids.has(`s${number}`)) number++;
+  return { ...blank(existing.length, lat, lng), id: `s${number}`, requires: existing.at(-1)?.id ?? '' };
+}
+
 function fromSaved(s: Saved, lat: number, lng: number): Step {
   const base = blank(0, lat, lng);
   return { ...base, id: s.id, trigger: s.trigger, zoneKind: s.zone?.kind ?? 'circle', lat: s.zone?.lat ?? lat, lng: s.zone?.lng ?? lng, radius: s.zone?.radius ?? 30,
@@ -68,13 +75,13 @@ function toPayload(s: Step) {
  * Zone-campaign steps: who gets what, where and when. Example: step 1 "leaves usual place" →
  * "Party in Moda tonight"; step 2 "enters the party street", requires step 1 → unique beer code.
  */
-export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved, timezone, canNotify }: {
+export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved, timezone, canNotify }: Readonly<{
   campaignId: string; lat: number; lng: number; areaRadius: number; saved: Saved[]; timezone: string; canNotify: boolean;
-}) {
+}>) {
   const t = useT();
   const [steps, setSteps] = useState<Step[]>(saved.length ? saved.map(s => fromSaved(s, lat, lng)) : [blank(0, lat, lng)]);
   const [tz, setTz] = useState(timezone), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
-  const [recipient, setRecipient] = useState(''), [testStatus, setTestStatus] = useState<Record<number, string>>({});
+  const [recipient, setRecipient] = useState(''), [testStatus, setTestStatus] = useState<Record<string, string>>({});
   const mutation = useRef(createMutationClient()), testMutation = useRef(createMutationClient()), router = useRouter();
   const update = (i: number, patch: Partial<Step>) => setSteps(old => old.map((s, j) => j === i ? { ...s, ...patch } : s));
   useEffect(() => { try { setRecipient(localStorage.getItem(RECIPIENT_KEY) ?? ''); } catch { /* storage blocked */ } }, []);
@@ -84,19 +91,19 @@ export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved,
   }
   async function sendTest(i: number) {
     const s = steps[i];
-    setTestStatus(old => ({ ...old, [i]: t('Sending…') }));
+    setTestStatus(old => ({ ...old, [s.id]: t('Sending…') }));
     const body = { action: 'notify', recipientId: recipient.trim(), title: `[Test] ${s.title}`.slice(0, 80), message: testMessage(s),
       reason: `Test of zone campaign step ${s.id} on campaign ${campaignId}` };
     try {
       const { response, result } = await testMutation.current.post('/api/admin/v1/campaigns', body);
       if (!response.ok) throw new Error(result.error ?? 'Test could not be queued');
       testMutation.current.clear('/api/admin/v1/campaigns', body);
-      setTestStatus(old => ({ ...old, [i]: t('Queued. It should arrive within a minute. Tests count toward that account’s 3 offers a day.') }));
-    } catch (error) { setTestStatus(old => ({ ...old, [i]: t(mutationError(error)) })); }
+      setTestStatus(old => ({ ...old, [s.id]: t('Queued. It should arrive within a minute. Tests count toward that account’s 3 offers a day.') }));
+    } catch (error) { setTestStatus(old => ({ ...old, [s.id]: t(mutationError(error)) })); }
   }
-  const area: MapShape = { kind: 'circle', lat, lng, radius: areaRadius, color: '#64748b', dashed: true };
+  const area: MapShape = { id: 'campaign-area', kind: 'circle', lat, lng, radius: areaRadius, color: '#64748b', dashed: true };
   function zoneShapes(s: Step): MapShape[] {
-    return [area, s.zoneKind === 'circle' ? { kind: 'circle', lat: s.lat, lng: s.lng, radius: s.radius } : { kind: 'line', points: streetPoints(s), width: s.width }];
+    return [area, s.zoneKind === 'circle' ? { id: s.id, kind: 'circle', lat: s.lat, lng: s.lng, radius: s.radius } : { id: s.id, kind: 'line', points: streetPoints(s), width: s.width }];
   }
   function pick(i: number, point: { lat: number; lng: number }) {
     const s = steps[i];
@@ -117,7 +124,7 @@ export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved,
     <label>{t('Time zone for schedules')}<input value={tz} onChange={e => setTz(e.target.value)} maxLength={64}/></label>
     {canNotify ? <label>{t('Test phone: LociAR user ID that receives “Send test” (your own account; it must have Campaigns and offers on)')}
       <input value={recipient} onChange={e => rememberRecipient(e.target.value)} placeholder="00000000-0000-0000-0000-000000000000" maxLength={36}/></label> : null}
-    {steps.map((s, i) => <fieldset key={i}><legend>{t('Step')} {i + 1} · {s.id}</legend>
+    {steps.map((s, i) => <fieldset key={s.id}><legend>{t('Step')} {i + 1} · {s.id}</legend>
       <label>{t('When')}<select value={s.trigger} onChange={e => update(i, { trigger: e.target.value as Step['trigger'] })}>
         {Object.entries(TRIGGER_LABELS).map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}</select></label>
       {s.trigger !== 'leave_usual_place' ? <>
@@ -162,16 +169,16 @@ export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved,
       {s.frequency === 'hours' ? <label>{t('Hours')}<input type="number" min={1} max={720} value={s.hours} onChange={e => update(i, { hours: Number(e.target.value) })}/></label> : null}
       <label>{t('Total limit (optional, e.g. first 300 people)')}<input type="number" min={1} value={s.budget} onChange={e => update(i, { budget: e.target.value })}/></label>
       {canNotify ? <div className="metricForm">
-        <button type="button" className="secondaryButton" disabled={!/^[0-9a-f-]{36}$/i.test(recipient.trim()) || !s.title.trim() || !s.message.trim() || testStatus[i] === t('Sending…')}
+        <button type="button" className="secondaryButton" disabled={!/^[0-9a-f-]{36}$/i.test(recipient.trim()) || !s.title.trim() || !s.message.trim() || testStatus[s.id] === t('Sending…')}
           onClick={() => void sendTest(i)}>{t('Send test to my phone')}</button>
-        {testStatus[i] ? <span role="status">{testStatus[i]}</span> : <span className="muted">{t('Sends this title and message now, without the zone check, codes or step counters.')}</span>}
+        {testStatus[s.id] ? <output>{testStatus[s.id]}</output> : <span className="muted">{t('Sends this title and message now, without the zone check, codes or step counters.')}</span>}
       </div> : null}
       {steps.length > 1 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => old.filter((_, j) => j !== i))}>{t('Remove step')}</button> : null}
     </fieldset>)}
-    {steps.length < 5 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => [...old, blank(old.length, lat, lng)])}>{t('Add step')}</button> : null}
+    {steps.length < 5 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => [...old, nextStep(old, lat, lng)])}>{t('Add step')}</button> : null}
     <label>{t('Reason')}<input value={reason} onChange={e => setReason(e.target.value)} minLength={8} maxLength={1000}/></label>
     <button type="button" disabled={busy || reason.trim().length < 8} onClick={save}>{t('Save steps')}</button>
-    {message ? <p role="status">{message}</p> : null}
+    {message ? <output>{message}</output> : null}
   </div></details>;
 }
 
@@ -192,6 +199,6 @@ export function CodeRedeemForm() {
     <label>{t('Code')}<input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="BEER-7F3K9Q" maxLength={40}/></label>
     <label>{t('Reason')}<input value={reason} onChange={e => setReason(e.target.value)} minLength={8} maxLength={1000}/></label>
     <button type="button" disabled={busy || code.length < 3 || reason.trim().length < 8} onClick={redeem}>{t('Mark as used')}</button>
-    {message ? <p role="status">{message}</p> : null}
+    {message ? <output>{message}</output> : null}
   </div></section>;
 }

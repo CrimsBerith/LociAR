@@ -10,7 +10,7 @@ import { journeyFunnel } from '../../../../lib/campaign-journeys';
 import { getI18n } from '../../../../lib/i18n-server';
 export const dynamic = 'force-dynamic';
 
-export default async function CampaignsPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function CampaignsPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const admin = await requireAdmin({ permission: 'campaigns.read' }), db = adminDb(), parameters = await searchParams;
   const [brands, campaigns, jobs, assignments] = await Promise.all([
     db.collection('brands').orderBy('created_at', 'desc').limit(100).get(),
