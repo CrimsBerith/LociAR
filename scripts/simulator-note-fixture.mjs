@@ -194,14 +194,16 @@ const emailTimer = setInterval(async () => {
 }, 1000);
 const server = createServer(async (request, response) => {
   try {
-    assert.equal(request.method, 'POST');
+    // Fixed messages: the method and path come from the request and are never echoed or logged.
+    if (request.method !== 'POST') throw new Error('Fixture actions accept POST only');
     const action = request.url.slice(1);
-    assert.ok(Object.hasOwn(actions, action));
+    if (!Object.hasOwn(actions, action)) throw new Error('Unknown fixture action');
     const result = await actions[action]();
     response.writeHead(200, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(result));
   } catch (error) {
-    // The request path is attacker-controlled; log it only as an escaped JSON string (Sonar S5145).
-    console.error('Fixture action failed:', JSON.stringify(String(request.url ?? '')), error.message);
+    // Never log the raw request path (Sonar S5145): only a name taken from the fixture's own action list.
+    const known = Object.keys(actions).find(name => `/${name}` === request.url) ?? 'unknown action';
+    console.error('Fixture action failed:', known, error.message);
     response.writeHead(500, { 'Content-Type': 'application/json' }); response.end(JSON.stringify({ error: error.message }));
   }
 });
