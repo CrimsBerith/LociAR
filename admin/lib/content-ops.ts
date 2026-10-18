@@ -25,7 +25,7 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
   if (platform !== 'text' || url) throw new ValidationError('links_not_allowed');
   if (!['all','13_plus','16_plus'].includes(scalarText(body.ageRating ?? 'all'))) throw new ValidationError('18+ content is disabled');
   if (!['public','friends','private'].includes(scalarText(body.visibility ?? 'public'))) throw new ValidationError('invalid_visibility');
-  if (!['active','pending_review'].includes(scalarText(body.status ?? 'pending_review'))) throw new ValidationError('invalid_status');
+  if (!['active','pending_review'].includes(scalarText(body.status ?? 'active'))) throw new ValidationError('invalid_status');
   const color = scalarText(body.color ?? '#FFFFFF'), background = scalarText(body.background ?? '#111827');
   if (![color,background].every(c => /^#[0-9A-Fa-f]{6}$/.test(c))) throw new ValidationError('invalid_color');
   const zoneExceptionReason = typeof body.zoneExceptionReason === 'string' ? body.zoneExceptionReason.trim() : '';
@@ -37,7 +37,7 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
     width: number(body.width ?? 0.45,'width',0.15,20), height: number(body.height ?? 0.51,'height',0.15,20),
     opacity: number(body.opacity ?? 1,'opacity',0.05,1), scale: number(body.scale ?? 1,'scale',0.1,5), rotation: number(body.rotation ?? 0,'rotation',-360,360),
     color, background, visibility: (body.visibility ?? 'public') as ContentInput['visibility'], ageRating: (body.ageRating ?? 'all') as ContentInput['ageRating'],
-    status: (body.status ?? 'pending_review') as ContentInput['status'], zoneExceptionReason, replacePlacement: body.replacePlacement === true,
+    status: (body.status ?? 'active') as ContentInput['status'], zoneExceptionReason, replacePlacement: body.replacePlacement === true,
     locationNote: body.locationNote === true, notifyRadius: Math.round(number(body.notifyRadius ?? 20,'notification radius',15,100)),
     approveNotifications: body.locationNote === true && body.approveNotifications === true,
   };

@@ -68,18 +68,31 @@ test('usernames are unique: a taken handle is refused with a machine-readable re
   assert.equal(bad.code, 'functions/invalid-argument');
 });
 
-test('createPost: text post is created pending review and replays idempotently', async () => {
+test('createPost: text post goes live directly and replays idempotently', async () => {
   const user = await newUser();
   const body = postBody();
   const first = await user.call('createPost', body);
-  assert.equal(first.publishStatus, 'pending_review');
+  assert.equal(first.publishStatus, 'active');
   assert.equal(first.idempotentReplay, false);
   const replay = await user.call('createPost', body);
   assert.equal(replay.idempotentReplay, true);
   const stored = (await adminDb.collection('posts').doc(body.clientMutationId).get()).data();
   assert.equal(stored.creator_id, user.luid);
-  assert.equal(stored.status, 'pending_review');
+  assert.equal(stored.status, 'active');
   assert.equal(stored.likes_count, 0);
+});
+
+test('createPost: system/flags.post_review_required holds new posts for moderator review', async () => {
+  const user = await newUser();
+  const flags = adminDb.collection('system').doc('flags');
+  await flags.set({ post_review_required: true }, { merge: true });
+  try {
+    const held = await user.call('createPost', postBody());
+    assert.equal(held.publishStatus, 'pending_review');
+  } finally {
+    await flags.set({ post_review_required: false }, { merge: true });
+  }
+  assert.equal((await user.call('createPost', postBody())).publishStatus, 'active');
 });
 
 test('createPost: only text is accepted, no photos and no links', async () => {
@@ -95,7 +108,7 @@ test('createPost: only text is accepted, no photos and no links', async () => {
   })));
   assert.match(photo.message, /Only text and GIF posts/);
   const ok = await user.call('createPost', postBody());
-  assert.equal(ok.publishStatus, 'pending_review');
+  assert.equal(ok.publishStatus, 'active');
 });
 
 test('createPost: a GIPHY GIF is stored by id with the size GIPHY reports', async () => {

@@ -20,7 +20,7 @@ Notizen an echte Orte heften
 Hinterlasse kurze Nachrichten und GIFs auf echten Flächen und entdecke in AR, was andere in deiner Nähe hinterlassen haben – genau dort, wo es platziert wurde.
 ```
 
-## Description (1660/4000)
+## Description (1722/4000)
 
 ```text
 Hinterlasse Notizen an echten Orten.
@@ -32,7 +32,7 @@ FUNKTIONEN
 • In der Nähe entdecken: Sieh Beiträge um dich herum auf der Karte und öffne sie in AR.
 • Ortsnotizen: Hinterlasse einen Tipp genau dort, wo du stehst („WLAN-Passwort liegt an der Kasse“); die beliebtesten Notizen stehen oben, und mit Standortzugriff „Immer“ kann dich eine beliebte Notiz bei deiner Ankunft benachrichtigen.
 • Sozial: Liken, kommentieren, in Sammlungen speichern und über Likes und Kommentare benachrichtigt werden.
-• Sichere Community: AR-Beiträge werden vor der Veröffentlichung geprüft, Ortsnotizen werden automatisch gefiltert und nach Meldungen ausgeblendet, geschützte Orte und 18+-Inhalte sind gesperrt, und du kannst jeden melden oder blockieren.
+• Sichere Community: Jeder Beitrag durchläuft vor der Veröffentlichung einen automatischen Filter, geschützte Orte und 18+-Inhalte sind gesperrt, mehrfach gemeldete Inhalte werden automatisch ausgeblendet, Meldungen werden innerhalb von 24 Stunden geprüft, und du kannst jeden melden oder blockieren.
 • Deine Daten, deine Wahl: Lösche dein Konto und alle zugehörigen Daten jederzeit dauerhaft im Profil.
 
 DATENSCHUTZ

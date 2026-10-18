@@ -20,7 +20,7 @@ Fixe notas em lugares reais
 Deixe mensagens curtas e GIFs em superfícies reais e descubra em AR o que outras pessoas deixaram por perto, exatamente onde foi deixado.
 ```
 
-## Description (1609/4000)
+## Description (1659/4000)
 
 ```text
 Deixe notas em lugares reais.
@@ -32,7 +32,7 @@ RECURSOS
 • Descubra por perto: veja publicações ao seu redor no mapa e abra-as em AR.
 • Notas de lugar: deixe uma dica exatamente onde você está ("A senha do Wi-Fi está no caixa"); as notas mais curtidas aparecem primeiro e, com acesso à localização "Sempre", uma nota curtida pode avisar você ao chegar.
 • Social: curta, comente, salve em coleções e receba avisos de curtidas e comentários.
-• Comunidade segura: publicações AR são revisadas antes de ficarem públicas, notas de lugar são filtradas automaticamente e ocultadas quando denunciadas, locais protegidos e conteúdo 18+ são bloqueados, e você pode denunciar ou bloquear qualquer pessoa.
+• Comunidade segura: cada publicação passa por um filtro automático antes de ficar pública, locais protegidos e conteúdo 18+ são bloqueados, conteúdo denunciado por várias pessoas é ocultado automaticamente, as denúncias são analisadas em até 24 horas, e você pode denunciar ou bloquear qualquer pessoa.
 • Seus dados, sua escolha: exclua sua conta e todos os seus dados permanentemente pelo perfil a qualquer momento.
 
 PRIVACIDADE

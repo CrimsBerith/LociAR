@@ -140,29 +140,43 @@ export async function deleteStoragePrefix(prefix: string): Promise<number> {
 }
 
 /**
- * Emergency kill switch: `system/flags` = { kill_switch: true, kill_reason?: string } (admin panel →
- * Sistem, permission system.kill_switch, or the budget alert). While it is on, the admission paths listed below refuse with `unavailable` / reason `service_paused`; reads,
- * reports, blocks and account deletion keep working. Cached per instance for a few seconds.
+ * Emergency switches in `system/flags`, cached per instance for a few seconds:
+ * - `kill_switch: true` (`kill_reason?`; admin panel → Sistem, permission system.kill_switch, or the budget
+ *   alert): the admission paths listed below refuse with `unavailable` / reason `service_paused`; reads,
+ *   reports, blocks and account deletion keep working.
+ * - `post_review_required: true`: new posts wait in `pending_review` for a moderator. Off by default:
+ *   posts go live once they pass the automated checks in `createPost` (owner decision, 18 Oct 2026).
  */
 export type KillableFeature = 'create_post' | 'arcore_token' | 'register_anchor' | 'avatar_upload' | 'push_register';
+type SystemFlags = { killSwitch: boolean; postReview: boolean };
 // No caching in the emulator so tests (and local E2E) see a flag flip immediately.
 const FLAGS_TTL_MS = process.env.FUNCTIONS_EMULATOR === 'true' ? 0 : 15_000;
-let flagsCache: { at: number; on: boolean } | null = null;
+let flagsCache: { at: number; flags: SystemFlags } | null = null;
 
-export async function killSwitchOn(now = Date.now()): Promise<boolean> {
-  if (flagsCache && now - flagsCache.at < FLAGS_TTL_MS) return flagsCache.on;
-  let on = false;
+async function systemFlags(now: number): Promise<SystemFlags> {
+  if (flagsCache && now - flagsCache.at < FLAGS_TTL_MS) return flagsCache.flags;
+  let flags: SystemFlags;
   try {
-    on = (await db.collection('system').doc('flags').get()).data()?.kill_switch === true;
+    const data = (await db.collection('system').doc('flags').get()).data();
+    flags = { killSwitch: data?.kill_switch === true, postReview: data?.post_review_required === true };
   } catch (error) {
     logger.error('kill_switch_read_failed', { code: safeErrorCode(error) });
     throw reasonError('unavailable', 'Service configuration is temporarily unavailable', 'busy_retry');
   }
-  flagsCache = { at: now, on };
-  return on;
+  flagsCache = { at: now, flags };
+  return flags;
 }
 
-/** Test hook: forget the cached flag so the next call reads Firestore again. */
+export async function killSwitchOn(now = Date.now()): Promise<boolean> {
+  return (await systemFlags(now)).killSwitch;
+}
+
+/** True while `system/flags.post_review_required` holds new posts for moderator review. */
+export async function postReviewRequired(now = Date.now()): Promise<boolean> {
+  return (await systemFlags(now)).postReview;
+}
+
+/** Test hook: forget the cached flags so the next call reads Firestore again. */
 export function resetKillSwitchCache(): void {
   flagsCache = null;
 }

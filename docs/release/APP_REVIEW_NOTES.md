@@ -35,7 +35,7 @@ MARKETING (4.5.4)
 Brand offers have their own off-by-default "Campaigns and offers" switch and consent text, separate from Notifications, and can be turned off at any time. Brands never receive users' locations or identities. For offers that fire when someone leaves the place where they usually stay, that place is learned from iOS visits on the device only; it is never uploaded or labelled home.
 
 SAFETY (1.2)
-Automatic text filter (no links, blocked terms). AR posts are reviewed by a moderator before they go public. Location notes go live after the filter and are hidden automatically when several verified users report them. Report and block on every post, comment and profile, handled within 24 hours. Protected zones and 18+ content are blocked on the server. Account deletion: Profile > Permanently delete account.
+Every post passes an automatic text filter (no links, blocked terms) before it goes live. Content is hidden automatically when several verified users report it, and moderators review every report. Report and block on every post, comment and profile, handled within 24 hours. Protected zones and 18+ content are blocked on the server. Account deletion: Profile > Permanently delete account.
 
 Support: support@lociar.app, https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support
 ```

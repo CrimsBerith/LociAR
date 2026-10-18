@@ -20,7 +20,7 @@ Mekânsal Hikâyeler ve Paylaşım
 Kısa mesajlar ve GIF'ler bırak, gerçek yüzeylere sabitle; çevrende bırakılanları, bırakıldıkları yerde AR ile keşfet.
 ```
 
-## Description (1522/4000)
+## Description (1578/4000)
 
 ```text
 Gerçek dünyayı dijital hikâyelerle zenginleştirin.
@@ -32,7 +32,7 @@ LociAR, kısa mesajlarınızı ve GIF'lerinizi gerçek yüzeylere (masa, zemin, 
 • Yakında keşfet: Çevrenizdeki gönderileri haritada görün, AR'da açın.
 • Konum notları: Tam bulunduğunuz noktaya ipucu bırakın ("Wi-Fi şifresi kasada"); en çok beğenilen notlar üstte görünür, Her Zaman konum izniyle beğenilen bir not oraya vardığınızda bildirim olarak gelebilir.
 • Sosyal: Beğenin, yorum yapın, koleksiyonlara kaydedin; beğeni ve yorumlar için bildirim alın.
-• Güvenli topluluk: AR gönderileri yayından önce incelenir, konum notları otomatik filtrelenir ve şikâyet edilince gizlenir, korumalı bölgeler ve 18+ içerik engellenir, herkesi şikâyet edebilir veya engelleyebilirsiniz.
+• Güvenli topluluk: tüm gönderiler yayından önce otomatik filtreden geçer, korumalı bölgeler ve 18+ içerik engellenir, birden fazla kullanıcının şikâyet ettiği içerik otomatik gizlenir, şikâyetler 24 saat içinde incelenir ve herkesi şikâyet edebilir veya engelleyebilirsiniz.
 • Verileriniz sizin: Hesabınızı ve tüm verilerinizi profilinizden istediğiniz an kalıcı olarak silebilirsiniz.
 
 GİZLİLİK

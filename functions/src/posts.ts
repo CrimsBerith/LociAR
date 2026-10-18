@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import {
   analyticsEventDoc, bucket, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID,
-  requireCaller, Timestamp, assertServiceEnabled,
+  requireCaller, Timestamp, assertServiceEnabled, postReviewRequired,
 } from './core';
 import { encodeGeohash } from './geo';
 import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
@@ -12,18 +12,11 @@ import { activeDensity, readDensityLocks, updateDensityLock } from './postAdmiss
 import { protectedZoneAt } from './protectedZones';
 import { assertAccountNotDeleting, requireActiveAccount } from './profileGuard';
 import { INVITE_REQUIRED, inviteGate } from './invites';
-import { TRUSTED_AUTO_PUBLISH, authorIsTrusted, hasDrawingLayer } from './trust';
 import { placeAt } from './places';
 import { GIPHY_API_KEY, resolveGifLayers } from './giphy';
 import { mayPublishAnonymously } from './anonymous';
 import { contentBlocked } from './anonymousAccess';
 import { campaignOffer } from './campaigns';
-
-/**
- * High-quality world locks used to go live without review in the Supabase build. App Review
- * notes promise that every post is reviewed first, so this defaults to off.
- */
-const AUTO_PUBLISH_HIGH_QUALITY = process.env.LOCIAR_AUTO_PUBLISH_HIGH_QUALITY === 'true';
 
 async function storageObjectExists(path: string | null): Promise<boolean> {
   if (!path) return false;
@@ -92,15 +85,10 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
   const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
   // A GIF layer keeps only the GIPHY id; its size comes from GIPHY, never from the client.
   await resolveGifLayers(body.editData as { layers?: unknown[] });
-  // Drawings always go to review. Trusted authors (growth plan 3.3, off by default) may skip it.
-  const trusted = async () => {
-    const profile = (await db.collection('profiles').doc(caller.luid).get()).data();
-    return profile ? authorIsTrusted(caller.luid, profile, Date.now()) : false;
-  };
-  const autoPublish = placement.autoPublishEligible && !hasDrawingLayer(body.editData)
-    && (AUTO_PUBLISH_HIGH_QUALITY || (TRUSTED_AUTO_PUBLISH && await trusted().catch(() => false)));
-  // Location notes publish at once (owner decision, 12 Oct 2026): text filter, zones and limits still apply; reports hide them.
-  const publishStatus = autoPublish || locationNote ? 'active' : 'pending_review';
+  // Direct publishing (owner decision, 18 Oct 2026; location notes since 12 Oct): a post that passed the
+  // text filter, link ban and placement checks above, and the protected-zone, 18+ and rate/density checks
+  // below, goes live at once; reports hide it. `system/flags.post_review_required` restores review.
+  const publishStatus = await postReviewRequired() ? 'pending_review' : 'active';
   // Landmark layer (growth plan 2.5): computed here, never trusted from the client; null on failure.
   const place = await placeAt(lat, lng);
   const worldMapPath = worldMapPathFor(body);

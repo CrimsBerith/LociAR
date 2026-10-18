@@ -6,17 +6,16 @@ import { adminDb, adminAuth, closeClients, expectFailure, newAnonymousUser, newU
 import { onLikeCreated } from '../../lib/triggers.js';
 after(closeClients);
 
-test('anonymous publishing keeps review, idempotency, private ownership and author-free projections', async () => {
+test('anonymous publishing goes live directly, replays idempotently and keeps author-free projections', async () => {
   const author = await newUser(), viewer = await newUser();
   const body = postBody({ pose: { latitude: -32, longitude: 119, heading: 0, accuracy: 5 } });
   const created = await author.call('createPost', body);
-  assert.equal(created.publishStatus, 'pending_review');
+  assert.equal(created.publishStatus, 'active');
   assert.equal((await author.call('createPost', body)).idempotentReplay, true);
   const ref = adminDb.collection('posts').doc(body.clientMutationId);
   assert.equal((await ref.get()).get('creator_id'), author.luid);
   assert.equal((await ref.get()).get('is_anonymous'), true);
-  assert.equal((await viewer.call('readPublicContent', { mode: 'single', postId: ref.id })).posts.length, 0);
-  await ref.update({ status: 'active', created_at: Timestamp.now() });
+  await ref.update({ created_at: Timestamp.now() });
   const post = (await viewer.call('readPublicContent', { mode: 'single', postId: ref.id })).posts[0];
   assert.equal(post.creator_id, ref.id); assert.equal(post.creator_handle, null); assert.equal(post.is_anonymous, true);
   assert.equal(JSON.stringify(post).includes(author.luid), false);

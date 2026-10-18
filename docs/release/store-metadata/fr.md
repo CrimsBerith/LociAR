@@ -20,7 +20,7 @@ Des notes sur des lieux réels
 Laissez de courts messages et des GIF sur de vraies surfaces et découvrez en AR ce que d'autres ont laissé près de vous, à l'endroit exact.
 ```
 
-## Description (1776/4000)
+## Description (1820/4000)
 
 ```text
 Laissez des notes dans des lieux réels.
@@ -32,7 +32,7 @@ FONCTIONNALITÉS
 • Découvrez autour de vous : voyez les publications proches sur la carte et ouvrez-les en AR.
 • Notes de lieu : laissez un conseil exactement là où vous êtes (« Le mot de passe Wi-Fi est à la caisse ») ; les notes les plus aimées apparaissent en premier et, avec l'accès à la position « Toujours », une note aimée peut vous prévenir à votre arrivée.
 • Social : aimez, commentez, enregistrez dans des collections et soyez notifié des j'aime et des commentaires.
-• Communauté sûre : les publications AR sont vérifiées avant d'être publiques, les notes de lieu sont filtrées automatiquement et masquées en cas de signalements, les lieux protégés et le contenu 18+ sont bloqués, et vous pouvez signaler ou bloquer n'importe qui.
+• Communauté sûre : chaque publication passe un filtre automatique avant d'être publiée, les lieux protégés et le contenu 18+ sont bloqués, le contenu signalé par plusieurs personnes est masqué automatiquement, les signalements sont examinés sous 24 heures, et vous pouvez signaler ou bloquer n'importe qui.
 • Vos données, votre choix : supprimez définitivement votre compte et toutes ses données depuis votre profil à tout moment.
 
 CONFIDENTIALITÉ

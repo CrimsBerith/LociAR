@@ -20,7 +20,7 @@ Pin notes to real places
 Leave short messages and GIFs on real surfaces and discover what others left nearby, in AR, right where it was placed.
 ```
 
-## Description (1436/4000)
+## Description (1479/4000)
 
 ```text
 Leave notes on real places.
@@ -32,7 +32,7 @@ FEATURES
 • Discover nearby: see posts around you on the map and open them in AR.
 • Location notes: leave a tip at the exact spot where you stand ("Wi-Fi password is at the counter"); the most-liked notes come first, and with Always location access a liked note can notify you when you arrive.
 • Social: like, comment, save to collections and get notified about likes and comments.
-• Safe community: AR posts are reviewed before they go public, location notes are filtered automatically and hidden when reported, protected places and 18+ content are blocked, and you can report or block anyone.
+• Safe community: every post passes an automatic filter before it goes live, protected places and 18+ content are blocked, content reported by several users is hidden automatically, reports are reviewed within 24 hours, and you can report or block anyone.
 • Your data, your choice: permanently delete your account and all its data from your profile at any time.
 
 PRIVACY
