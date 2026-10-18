@@ -66,7 +66,7 @@ export async function syncSpotMembership(postId: string) {
       clearSpotMembership(tx, post, member, Boolean(post.exists && data?.spot_id));
       return;
     }
-    if (best && best.id === currentId) return;
+    if (best?.id === currentId) return;
     if (best) {
       const next = joinSpot(best, data!.lat, data!.lng);
       tx.update(spots().doc(best.id), { ...next, geohash: encodeGeohash(next.lat, next.lng, 9), updated_at: FieldValue.serverTimestamp() });

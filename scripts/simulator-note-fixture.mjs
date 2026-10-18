@@ -200,7 +200,8 @@ const server = createServer(async (request, response) => {
     const result = await actions[action]();
     response.writeHead(200, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(result));
   } catch (error) {
-    console.error('Fixture action failed:', request.url, error.message);
+    // The request path is attacker-controlled; log it only as an escaped JSON string (Sonar S5145).
+    console.error('Fixture action failed:', JSON.stringify(String(request.url ?? '')), error.message);
     response.writeHead(500, { 'Content-Type': 'application/json' }); response.end(JSON.stringify({ error: error.message }));
   }
 });
