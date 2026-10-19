@@ -58,4 +58,6 @@ scheduled job removes up to 200 posts every 15 minutes (the whole world batch wi
 
 Edit `scripts/seed/world_capitals.py` and run it without `--check` to rebuild `world-capitals.json`; CI fails while the two
 disagree. `admin/tests/integration/launch-seed.test.mjs` runs the importer against the emulator (dry run, load, rerun,
-retire). Item ids are load keys: keep them stable for loaded items, or a rerun loads the edited item as a new post.
+retire). Item ids are load keys: a rerun skips an item whose id is already loaded, even if its text changed, and a changed
+id loads as a new post. Edit a loaded seed in the panel; to replace a whole batch, retire it and load the new version under
+a new batch id (retired posts keep their ids, so the old batch id cannot be loaded twice).
