@@ -10,12 +10,18 @@ content account and tagged with a `seed_batch`, so they can be measured and reti
 | Batch | Places | Notes | AR | Source |
 |---|---|---|---|---|
 | `world-capitals-2026-10` | One busy place in 46 capitals | 322 | 46 | `scripts/seed/world_capitals.py` → `world-capitals.json` |
+| `landmark-businesses-2026-10` | 52 well-known businesses in 33 cities (7 in Istanbul) | 52 | 0 | `scripts/seed/landmark_businesses.py` → `landmark-businesses.json` |
 
 Each capital has seven location notes (English, plus one Turkish note for Turkish visitors) and one AR post. One note per
 capital notifies; the rest show on the map only, so a busy street does not turn into a stream of notifications. Seeds of one
 place stand at least 26 m apart, so each forms its own 25 m group.
 
 ## Content rules
+
+Business notes (one per business) state facts only: founding year, history and documented anecdotes, with the business
+name and, where known, its street in the text, so a note still makes sense if its pin is a few metres off. They never
+notify, and the generator refuses review words (taste, price, service, recommendations). Places that closed are left out
+(Antico Caffè Greco, Rome, closed on 8 October 2025), and so are anecdotes about violence or tragedy at a place.
 
 - Never review a business (taste, price, service). Shop-entrance notes speak about the kind of shop only.
 - Every fact carries a source in the seed file. No links (the admin link check also reads `Amstel:` as a `tel:` link).
@@ -50,6 +56,8 @@ place stand at least 26 m apart, so each forms its own 25 m group.
    `saveAdminPost`: text and link checks, permissions, protected zones and one audit receipt. Keys derive from the batch
    and item id, so a rerun skips loaded items. `--only london,paris` limits the run to some places.
 6. Zoom out on the map: every capital should glow.
+7. Business notes: repeat steps 3–5 with `--seed landmark-businesses`. Their approximate pins (38 of 52) come from the
+   street address; check each on the admin map before `--allow-approx`.
 
 To retire a batch, run the same command with `--retire`: every post of the batch gets an end date five minutes out and the
 scheduled job removes up to 200 posts every 15 minutes (the whole world batch within about half an hour).

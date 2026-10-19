@@ -57,6 +57,11 @@ test('the launch seed importer checks first, loads each place once through the a
   assert.match(again.stdout, /8 items: 8 already loaded/);
   assert.match(again.stdout, /Loaded 0 items\./, 'a rerun skips what is loaded');
 
+  // The business batch checks against the same author and zones; it is never written here.
+  const businesses = await importer('--seed', 'landmark-businesses', '--actor', actor);
+  assert.equal(businesses.code, 0, businesses.stderr);
+  assert.match(businesses.stdout, /\b\d+ items: 0 already loaded, 0 with problems,/);
+
   const retire = await run('--retire');
   assert.equal(retire.code, 0, retire.stderr);
   assert.match(retire.stdout, /^8 posts from world-capitals\.json end at /m);
@@ -67,6 +72,6 @@ test('the launch seed importer reads seed files from scripts/seed/ only', async 
   for (const seed of ['../../package', '/etc/passwd', 'world-capitals.json', '../scripts/seed/world-capitals']) {
     const run = await importer('--seed', seed, '--actor', 'anyone');
     assert.equal(run.code, 2, seed);
-    assert.match(run.stderr, /Seeds in scripts\/seed\/: world-capitals$/m);
+    assert.match(run.stderr, /^Seeds in scripts\/seed\/: .*\bworld-capitals\b/m);
   }
 });

@@ -55,7 +55,8 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - **Launch seed content** (owner decision, 19 Oct 2026): the map must not open empty. Seeds are team-written location notes
   and approximate AR posts under the managed account `loci.guide`, loaded only through `admin/scripts/seed-notes.mjs`
   (dry run first, `saveAdminPost`, tagged `seed_batch`). Never review a business, source every fact, never scrape or quote
-  Google Maps/Tripadvisor reviews. One AR per busy street. See `docs/release/LAUNCH_SEED.md`.
+  Google Maps/Tripadvisor reviews. One AR per busy street. Business notes are facts about well-known businesses
+  (`scripts/seed/landmark_businesses.py`), never taste, price or service, and never notify. See `docs/release/LAUNCH_SEED.md`.
 - **Zone campaigns** (owner decision, 12 Oct 2026): multi-step journeys (leaves usual place / enter / stay / leave, circle or street zones, schedules, codes). The usual place is learned and kept on the device only; never upload or label a home location. See `docs/BRAND_CAMPAIGNS.md`; keep `journeyRules.ts` and `CampaignZone.swift` in sync.
 - AR re-localization uses **Google ARCore on top of the ARKit session** (SPM `arcore-ios-sdk`): Cloud Anchors
   (365-day TTL) first, then Geospatial (VPS), then the legacy ARKit world map, then aim-guided reveal.

@@ -75,7 +75,7 @@ if (opts.retire) {
 }
 
 const only = opts.only ? new Set(opts.only.split(',').map(s => s.trim()).filter(Boolean)) : null;
-const items = seed.items.filter(i => !only || only.has(i.id.replace(/-(ar|\d+)$/, '')));
+const items = seed.items.filter(i => !only || only.has(i.id.replace(/-(ar|b?\d+)$/, '')));
 if (!items.length) {
   console.error(`No item of ${seedFile} matches --only.`);
   process.exit(2);
