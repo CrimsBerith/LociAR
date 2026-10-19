@@ -30,6 +30,8 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
   if (![color,background].every(c => /^#[0-9A-Fa-f]{6}$/.test(c))) throw new ValidationError('invalid_color');
   const zoneExceptionReason = typeof body.zoneExceptionReason === 'string' ? body.zoneExceptionReason.trim() : '';
   if (zoneExceptionReason && (zoneExceptionReason.length < 8 || zoneExceptionReason.length > 1000)) throw new ValidationError('zone exception requires 8–1000 characters');
+  const seedBatch = body.seedBatch == null || body.seedBatch === '' ? undefined : scalarText(body.seedBatch);
+  if (seedBatch !== undefined && !/^[a-z0-9-]{3,48}$/.test(seedBatch)) throw new ValidationError('invalid_seed_batch');
   return {
     authorId: uuid(body.authorId,'authorId').toLowerCase(), caption, text, platform, url,
     lat: number(body.lat,'latitude',-90,90), lng: number(body.lng,'longitude',-180,180),
@@ -40,6 +42,7 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
     status: (body.status ?? 'active') as ContentInput['status'], zoneExceptionReason, replacePlacement: body.replacePlacement === true,
     locationNote: body.locationNote === true, notifyRadius: Math.round(number(body.notifyRadius ?? 20,'notification radius',15,100)),
     approveNotifications: body.locationNote === true && body.approveNotifications === true,
+    ...(seedBatch ? { seedBatch } : {}),
   };
 }
 async function requirePermission(tx: Transaction, actorId: string, permission: string) {
@@ -115,6 +118,7 @@ function postChanges(input: ContentInput, id: string, actorId: string, before: F
       ...(before.get('note_kind') === 'location' ? {} : { location_note:{ source:'admin', accuracy_m:null, pin_drag_m:0 } }),
       push_state: input.approveNotifications || before.get('push_state') === 'approved' ? 'approved' : (before.get('push_state') ?? 'none'),
       ...(input.approveNotifications && before.get('push_state') !== 'approved' ? { push_approved_by:actorId, push_approved_at:FieldValue.serverTimestamp() } : {}) } : {}),
+    ...(input.seedBatch ? { seed_batch: input.seedBatch } : {}),
     protected_zone_name:blockedZones.length ? blockedZones.map(z => String(z.get('name'))).join(', ') : null,
     admin_zone_exception:blockedZones.length ? {reason:input.zoneExceptionReason,actor_id:actorId,zone_ids:blockedZones.map(z=>z.id)} : null,
     updated_at:FieldValue.serverTimestamp(),updated_by_admin:actorId,

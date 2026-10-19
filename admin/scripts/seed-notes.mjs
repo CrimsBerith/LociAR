@@ -1,0 +1,133 @@
+#!/usr/bin/env node
+/**
+ * Owner-run launch seed importer (docs/release/LAUNCH_SEED.md). It loads location notes and
+ * approximate AR posts from a seed file through the same audited path as Posts -> Create
+ * (`saveAdminPost`): text and link checks, permissions, protected zones and one audit receipt per
+ * item. Keys derive from the batch and item id, so a rerun skips what is already loaded.
+ *
+ * Dry run by default (reads only). --apply writes. --retire gives every post of the batch an end
+ * date five minutes out; the scheduled job then removes them.
+ *
+ *   cd admin
+ *   GOOGLE_CLOUD_PROJECT=lociar-2f38c node --conditions=react-server --import ./tests/register-typescript.mjs \
+ *     scripts/seed-notes.mjs --file ../scripts/seed/world-capitals.json --actor <admin uid> [--apply] [--allow-approx]
+ */
+import { readFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
+
+const { values: opts } = parseArgs({
+  options: {
+    file: { type: 'string' }, actor: { type: 'string' }, author: { type: 'string' }, reason: { type: 'string' },
+    only: { type: 'string' }, apply: { type: 'boolean', default: false }, retire: { type: 'boolean', default: false },
+    'allow-approx': { type: 'boolean', default: false },
+  },
+});
+if (!opts.file || !opts.actor || (opts.apply && opts.retire)) {
+  console.error('Usage: seed-notes.mjs --file <seed.json> --actor <admin uid> [--author <luid>] [--only city,city] [--apply [--allow-approx] | --retire]');
+  process.exit(2);
+}
+
+const seed = JSON.parse(readFileSync(opts.file, 'utf8'));
+if (!/^[a-z0-9-]{3,48}$/.test(String(seed.batch ?? '')) || !Array.isArray(seed.items)) throw new Error('Seed file needs a batch id and items');
+const { parseContentInput, saveAdminPost } = await import('../lib/content-ops.ts');
+const { operatePlaceNote } = await import('../lib/place-notes.ts');
+const { adminDb } = await import('../lib/firebase-admin.ts');
+const { derivedKey } = await import('../lib/ops.ts');
+const { distanceMeters } = await import('../lib/geo.ts');
+
+const db = adminDb();
+const reason = opts.reason ?? `Launch seed ${seed.batch}`;
+const SEED_GROUP_M = 25, MAX_SEEDS_PER_GROUP = 3;
+
+async function authorId() {
+  if (opts.author) return opts.author.toLowerCase();
+  const handle = String(seed.author_handle ?? '');
+  const reservation = await db.collection('handles').doc(handle).get();
+  if (!reservation.exists) throw new Error(`Create the content user @${handle} first (Users -> Create content user).`);
+  return String(reservation.get('luid'));
+}
+
+if (opts.retire) {
+  const posts = await db.collection('posts').where('seed_batch', '==', seed.batch).get();
+  const live = posts.docs.filter(d => !d.get('deleted_at') && d.get('status') !== 'removed');
+  const endsAt = new Date(Date.now() + 5 * 60_000).toISOString();
+  let ended = 0;
+  for (const post of live) {
+    await operatePlaceNote({ id: post.id, action: 'set_end', endsAt }, opts.actor, reason, derivedKey(`${seed.batch}:${post.id}`, 'retire'));
+    ended++;
+  }
+  console.log(`${ended} posts of ${seed.batch} end at ${endsAt}; the scheduled job removes them within 15 minutes.`);
+  process.exit(0);
+}
+
+const only = opts.only ? new Set(opts.only.split(',').map(s => s.trim()).filter(Boolean)) : null;
+const items = seed.items.filter(i => !only || only.has(i.id.replace(/-(ar|\d+)$/, '')));
+const author = await authorId();
+const profile = await db.collection('profiles').doc(author).get();
+if (!profile.exists || profile.get('deleted_at') || profile.get('suspended')) throw new Error('The seed author is missing, deleted or suspended.');
+if (profile.get('admin_managed') !== true) console.warn('Warning: the seed author is not a managed content user.');
+
+const zones = (await db.collection('protected_zones').where('active', '==', true).get()).docs
+  .filter(z => z.get('policy') === 'hard_block')
+  .map(z => ({ name: String(z.get('name') ?? z.id), lat: Number(z.get('lat')), lng: Number(z.get('lng')), radius: Number(z.get('radius_meters')) }));
+
+const rows = [];
+for (const item of items) {
+  const row = { item, problems: [] };
+  try {
+    row.input = parseContentInput({
+      authorId: author, caption: item.text, text: item.text, lat: item.lat, lng: item.lng,
+      status: 'active', visibility: 'public', ageRating: 'all',
+      locationNote: item.kind === 'note', notifyRadius: item.radius_m ?? 25,
+      approveNotifications: item.kind === 'note' && item.notify === true,
+      // AR bubbles a little larger than the panel default, so they read from a few metres away.
+      ...(item.kind === 'ar' ? { width: 1.2, height: 0.8 } : {}),
+      seedBatch: seed.batch,
+    });
+  } catch (error) { row.problems.push(`invalid: ${error.message}`); }
+  const zone = zones.find(z => distanceMeters(item.lat, item.lng, z.lat, z.lng) <= z.radius);
+  if (zone) row.problems.push(`protected zone: ${zone.name}`);
+  const crowd = items.filter(o => o !== item && distanceMeters(item.lat, item.lng, o.lat, o.lng) <= SEED_GROUP_M).length;
+  if (crowd >= MAX_SEEDS_PER_GROUP) row.problems.push(`${crowd + 1} seeds within ${SEED_GROUP_M} m`);
+  if (item.coord === 'approx' && !opts['allow-approx']) row.held = 'approximate anchor: check on the admin map, then pass --allow-approx';
+  row.key = derivedKey(`${seed.batch}:${item.id}`, 'seed');
+  row.loaded = (await db.collection('posts').doc(derivedKey(row.key, 'post')).get()).exists;
+  rows.push(row);
+}
+
+const byCity = new Map();
+for (const row of rows) {
+  const c = byCity.get(row.item.city) ?? { notes: 0, ar: 0, loaded: 0, problems: [], held: 0 };
+  c[row.item.kind === 'ar' ? 'ar' : 'notes']++;
+  if (row.loaded) c.loaded++;
+  if (row.held) c.held++;
+  c.problems.push(...row.problems.map(p => `${row.item.id}: ${p}`));
+  byCity.set(row.item.city, c);
+}
+for (const [city, c] of byCity) {
+  const flags = [c.loaded ? `${c.loaded} loaded` : '', c.held ? `${c.held} held (approx)` : ''].filter(Boolean).join(', ');
+  console.log(`${city.padEnd(18)} ${String(c.notes).padStart(2)} notes  ${c.ar} AR  ${flags}`);
+  for (const p of c.problems) console.log(`    ! ${p}`);
+}
+const blocked = rows.filter(r => r.problems.length).length, held = rows.filter(r => r.held && !r.problems.length).length;
+console.log(`\n${rows.length} items: ${rows.filter(r => r.loaded).length} already loaded, ${blocked} with problems, ${held} held for an approximate anchor.`);
+
+if (!opts.apply) {
+  console.log('Dry run: nothing was written. Add --apply to load the items without problems.');
+  process.exit(blocked ? 1 : 0);
+}
+
+let created = 0, failed = 0;
+for (const row of rows) {
+  if (row.loaded || row.problems.length || row.held) continue;
+  try {
+    await saveAdminPost(row.input, opts.actor, reason, row.key);
+    created++;
+  } catch (error) {
+    failed++;
+    console.error(`  x ${row.item.id}: ${error.message}`);
+  }
+  await new Promise(resolve => setTimeout(resolve, 120));
+}
+console.log(`Loaded ${created} items${failed ? `, ${failed} failed` : ''}.`);
+process.exit(failed ? 1 : 0);

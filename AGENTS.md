@@ -52,6 +52,10 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   checks in `createPost`; moderation is after the fact (reports, automatic hiding, 24-hour report handling). The trusted-author
   and high-quality auto-publish switches were removed. Keep the App Review notes, terms and store copy saying the same.
 - **Location notes** (owner decision, 12 Oct 2026): written at the author's measured GPS position (no business/POI selection), published at once after the text filter, ordered by likes, never self-expiring (admin end date only). Likes from established accounts approve notifications automatically; reports hide notes. Entry rule `distance ≤ radius + min(accuracy, 20 m)` with 15–100 m radii. See `docs/LOCATION_NOTES.md`; keep `placeNoteRules.ts` and `LocationNotePolicy.swift` in sync.
+- **Launch seed content** (owner decision, 19 Oct 2026): the map must not open empty. Seeds are team-written location notes
+  and approximate AR posts under the managed account `loci.guide`, loaded only through `admin/scripts/seed-notes.mjs`
+  (dry run first, `saveAdminPost`, tagged `seed_batch`). Never review a business, source every fact, never scrape or quote
+  Google Maps/Tripadvisor reviews. One AR per busy street. See `docs/release/LAUNCH_SEED.md`.
 - **Zone campaigns** (owner decision, 12 Oct 2026): multi-step journeys (leaves usual place / enter / stay / leave, circle or street zones, schedules, codes). The usual place is learned and kept on the device only; never upload or label a home location. See `docs/BRAND_CAMPAIGNS.md`; keep `journeyRules.ts` and `CampaignZone.swift` in sync.
 - AR re-localization uses **Google ARCore on top of the ARKit session** (SPM `arcore-ios-sdk`): Cloud Anchors
   (365-day TTL) first, then Geospatial (VPS), then the legacy ARKit world map, then aim-guided reveal.

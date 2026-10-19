@@ -107,3 +107,12 @@ test('avatar removal commits an exact durable deletion job when Storage fails an
  const jobs=await db.collection('avatar_deletions').where('luid','==',author).get();assert.equal(jobs.size,1);assert.equal(jobs.docs[0].get('path'),path);
  assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('action'),'avatar_remove');
 });
+
+test('launch seed batches are validated and stored on the post for measuring and retiring',async()=>{
+ const{actor,author}=await fixture();
+ assert.throws(()=>input(author,{seedBatch:'Bad Batch!'}),/invalid_seed_batch/);
+ assert.equal(input(author).seedBatch,undefined,'panel posts carry no seed batch');
+ const created=await saveAdminPost(input(author,{seedBatch:'world-capitals-test',locationNote:true,lat:-32,lng:112}),actor,reason,randomUUID());
+ const post=(await db.collection('posts').doc(created.id).get()).data();
+ assert.equal(post.seed_batch,'world-capitals-test');assert.equal(post.note_kind,'location');assert.equal(post.creator_id,author);
+});
