@@ -23,6 +23,7 @@ struct MapFeatureView: View {
     @State private var visibleRegion: MKCoordinateRegion?
     @State private var layer: NoteMapLayer = .notes
     @State private var densityCells: [NoteDensityCell] = []
+    @State private var heatBlobs: [NoteHeatBlob] = []
     @State private var densityTask: Task<Void, Never>?
     /// Notes of a tapped 25 m group, listed by likes in the panel.
     @State private var clusterFocus: Set<UUID>?
@@ -39,15 +40,20 @@ struct MapFeatureView: View {
     var body: some View {
         Map(position: $camera, selection: $selection) {
             UserAnnotation()
-            if case .heat(let precision) = layer {
-                NoteHeatContent(cells: densityCells, precision: precision)
+            if layer.isHeat {
+                NoteHeatContent(blobs: heatBlobs) { blob in zoomCloser(to: blob.coordinate) }
             }
             if layer == .counts {
+                let maxCount = densityCells.map(\.count).max() ?? 0
                 ForEach(densityCells) { cell in
                     Annotation("\(cell.count) not", coordinate: cell.coordinate) {
-                        Button { zoom(into: cell.coordinate) } label: { countBubble(cell.count) }
-                            .buttonStyle(.plain)
+                        Button { zoom(into: cell.coordinate) } label: {
+                            countBubble(cell.count, intensity: NoteDensityCell.intensity(cell.count, max: maxCount))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text("\(cell.count) not"))
                     }
+                    .annotationTitles(.hidden)
                 }
             }
             if layer == .notes {
@@ -67,12 +73,16 @@ struct MapFeatureView: View {
                             clusterFocus = Set(cluster.posts.map(\.id))
                         } label: { countBubble(cluster.posts.count) }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(Text("\(cluster.posts.count) post"))
                     }
+                    .annotationTitles(.hidden)
                 }
             }
             }
         }
-        .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .including([.cafe, .museum, .park])))
+        // A quieter base map while zoomed out lets the heat glow carry the view.
+        .mapStyle(.standard(elevation: .realistic, emphasis: layer.isHeat ? .muted : .automatic,
+                            pointsOfInterest: .including([.cafe, .museum, .park])))
         .mapControls { MapCompass(); MapUserLocationButton() }
         .onMapCameraChange(frequency: .onEnd) { context in
             visibleRegion = context.region
@@ -353,36 +363,56 @@ struct MapFeatureView: View {
         } catch { unlockMessage = String(localized: "Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.") }
     }
 
-    private func countBubble(_ count: Int) -> some View {
-        ZStack {
+    /// A candy-like bubble in the heat colours: busier cells lean from mint towards pink.
+    private func countBubble(_ count: Int, intensity: Double = 0) -> some View {
+        let tint = NoteHeatPalette.color(intensity)
+        return ZStack {
             Circle()
-                .fill(LociTheme.surface)
-                .frame(width: 44, height: 44)
-                .overlay(Circle().stroke(LociTheme.accent, lineWidth: 2.5))
-                .shadow(color: .black.opacity(0.35), radius: 4)
+                .fill(RadialGradient(colors: [tint, tint.opacity(0.78)], center: UnitPoint(x: 0.35, y: 0.3), startRadius: 1, endRadius: 30))
+                .overlay(Circle().stroke(Color.white.opacity(0.9), lineWidth: 2))
+                .shadow(color: tint.opacity(0.6), radius: 9)
             Text(count, format: .number)
                 .font(.subheadline.bold())
-                .foregroundStyle(LociTheme.accent)
+                .foregroundStyle(LociTheme.onAccent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, 4)
         }
+        .frame(width: 44, height: 44)
     }
 
     private func zoom(into coordinate: CLLocationCoordinate2D) {
         withAnimation { camera = .camera(MapCamera(centerCoordinate: coordinate, distance: 400)) }
     }
 
+    private static func widthMeters(_ region: MKCoordinateRegion) -> Double {
+        region.span.longitudeDelta * 111_320 * cos(region.center.latitude * .pi / 180)
+    }
+
+    /// A tapped heat spot zooms several steps in, so a few taps go from the globe to a street.
+    private func zoomCloser(to coordinate: CLLocationCoordinate2D) {
+        let width = visibleRegion.map(Self.widthMeters) ?? 20_000
+        withAnimation { camera = .camera(MapCamera(centerCoordinate: coordinate, distance: max(700, width / 5))) }
+    }
+
     /// Picks heat, count bubbles or notes from the visible width and loads density after a short pause.
     private func refreshLayer(for region: MKCoordinateRegion) {
-        let width = region.span.longitudeDelta * 111_320 * cos(region.center.latitude * .pi / 180)
-        let next = NoteMapLayer.forWidth(width)
-        if next != layer { layer = next; densityCells = [] }
+        let next = NoteMapLayer.forWidth(Self.widthMeters(region))
+        if next != layer {
+            // Heat keeps its spots until the new zoom's cells arrive, so zooming does not blink.
+            if !(next.isHeat && layer.isHeat) { densityCells = []; heatBlobs = [] }
+            layer = next
+        }
         densityTask?.cancel()
         guard let precision = next.precision, container.isBackendConfigured, !session.isLocalPreview else { return }
         densityTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
             let cells = try? await NoteDensityClient.shared.cells(in: region, precision: precision)
-            guard !Task.isCancelled, layer == next else { return }
-            densityCells = cells ?? []
+            // A failed read keeps what is on screen rather than emptying the map.
+            guard !Task.isCancelled, layer == next, let cells else { return }
+            densityCells = cells
+            heatBlobs = next.isHeat ? NoteHeatBlob.bin(cells, longitudeSpan: region.span.longitudeDelta) : []
         }
     }
 

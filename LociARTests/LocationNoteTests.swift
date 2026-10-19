@@ -279,13 +279,50 @@ final class LocationNoteRegionTests: XCTestCase {
 
 final class NoteMapLayerTests: XCTestCase {
     func testZoomPicksHeatCountsOrNotes() {
-        XCTAssertEqual(NoteMapLayer.forWidth(120_000), .heat(precision: 4))
-        XCTAssertEqual(NoteMapLayer.forWidth(20_000), .heat(precision: 5))
-        XCTAssertEqual(NoteMapLayer.forWidth(2_000), .heat(precision: 6))
+        XCTAssertEqual(NoteMapLayer.forWidth(2_000_000), .heat(precision: 4))
+        XCTAssertEqual(NoteMapLayer.forWidth(120_000), .heat(precision: 5))
+        XCTAssertEqual(NoteMapLayer.forWidth(20_000), .heat(precision: 6))
+        XCTAssertEqual(NoteMapLayer.forWidth(2_000), .heat(precision: 7))
         XCTAssertEqual(NoteMapLayer.forWidth(600), .counts)
         XCTAssertEqual(NoteMapLayer.forWidth(200), .notes)
         XCTAssertNil(NoteMapLayer.notes.precision)
         XCTAssertEqual(NoteMapLayer.counts.precision, 7)
+        XCTAssertTrue(NoteMapLayer.heat(precision: 5).isHeat)
+        XCTAssertFalse(NoteMapLayer.counts.isHeat)
+    }
+
+    func testHeatSpotsMergeNearbyCellsAtTheirNoteWeightedCentre() {
+        let cells = [
+            NoteDensityCell(cell: "a", lat: 38.030, lng: 27.130, count: 30),
+            NoteDensityCell(cell: "b", lat: 38.034, lng: 27.134, count: 10),
+            NoteDensityCell(cell: "c", lat: 35.660, lng: 139.700, count: 5),
+            NoteDensityCell(cell: "d", lat: 38.031, lng: 27.131, count: 0),
+        ]
+        // A whole-world view: the two nearby cells become one spot, Tokyo stays separate.
+        let blobs = NoteHeatBlob.bin(cells, longitudeSpan: 360)
+        XCTAssertEqual(blobs.map(\.count), [40, 5], "busiest first; empty cells are ignored")
+        XCTAssertEqual(blobs[0].latitude, (38.030 * 30 + 38.034 * 10) / 40, accuracy: 1e-9)
+        XCTAssertEqual(blobs[0].longitude, (27.130 * 30 + 27.134 * 10) / 40, accuracy: 1e-9)
+        // Street-sized bins keep the two cells apart.
+        XCTAssertEqual(NoteHeatBlob.bin(cells, longitudeSpan: 0.004).filter { $0.count >= 10 }.count, 2)
+    }
+
+    func testHeatSpotsStayPutOnSmallZoomChangesAndAreCapped() {
+        let cells = (0..<50).map { NoteDensityCell(cell: "c\($0)", lat: -40 + Double($0), lng: -120 + 4 * Double($0), count: 1 + $0) }
+        XCTAssertEqual(NoteHeatBlob.bin(cells, longitudeSpan: 360), NoteHeatBlob.bin(cells, longitudeSpan: 300),
+                       "the grid snaps to zoom levels, so a small zoom or a pan keeps every spot in place")
+        let capped = NoteHeatBlob.bin(cells, longitudeSpan: 360, columns: 9, limit: 3)
+        XCTAssertEqual(capped.count, 3)
+        XCTAssertEqual(capped.map(\.count), capped.map(\.count).sorted(by: >))
+    }
+
+    func testHeatPaletteRunsFromBrandMintToWarmPink() {
+        let low = NoteHeatPalette.rgb(0), mid = NoteHeatPalette.rgb(0.5), high = NoteHeatPalette.rgb(1)
+        XCTAssertEqual(low.red, 0.22, accuracy: 1e-9); XCTAssertEqual(low.green, 0.88, accuracy: 1e-9); XCTAssertEqual(low.blue, 0.72, accuracy: 1e-9)
+        XCTAssertEqual(mid.red, 0.56, accuracy: 1e-9); XCTAssertEqual(mid.blue, 1.0, accuracy: 1e-9)
+        XCTAssertEqual(high.red, 1.0, accuracy: 1e-9); XCTAssertEqual(high.green, 0.47, accuracy: 1e-9)
+        XCTAssertEqual(NoteHeatPalette.rgb(-1).green, low.green, accuracy: 1e-9, "values are clamped")
+        XCTAssertGreaterThan(NoteHeatPalette.rgb(0.75).red, mid.red)
     }
 
     func testHeatIntensityIsLogScaledAndBounded() {

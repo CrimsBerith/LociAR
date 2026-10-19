@@ -82,7 +82,8 @@ export const reconcileNoteDensity = onSchedule({ schedule: 'every day 05:23', ti
 });
 
 /**
- * Heat cells for the visible map box. Precision 4-6 draw the heat map, 7 the count bubbles.
+ * Heat cells for the visible map box. The app draws heat from precision 4-7 (about one finer than
+ * the view, merged on screen) and the count bubbles from 7.
  * Only non-empty cells are read through a bounded set of prefix range queries.
  */
 export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 30 }, async request => {

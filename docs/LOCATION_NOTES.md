@@ -81,11 +81,14 @@ Opening the map reads the nearest 100 visible posts within a 1 km radius of the 
 
 | Visible width | Layer | Data |
 |---|---|---|
-| > 50 km | Heat | `note_density` precision 4 |
-| 5–50 km | Heat | precision 5 |
-| 1–5 km | Heat | precision 6 |
+| > 500 km | Heat | `note_density` precision 4 |
+| 50–500 km | Heat | precision 5 |
+| 5–50 km | Heat | precision 6 |
+| 1–5 km | Heat | precision 7 |
 | 300 m–1 km | Count bubbles | precision 7 (~150 m) |
 | < 300 m | Notes, grouped within 25 m | `readPublicContent` nearby |
+
+Heat asks for cells about one precision finer than the view needs. The app merges them into screen-sized bins (`NoteHeatBlob.bin`, a power-of-two grid in Mercator space, so panning keeps spots in place) and draws each bin at its note-weighted centre as a glow of constant screen size: brand mint for a few notes, periwinkle in between, warm pink for the busiest, with the base map muted. Cell centres alone would put a 39 km cell's spot far from its notes. Tapping a spot zooms towards it; the busiest spots breathe slowly unless Reduce Motion is on.
 
 `onPostDensityWritten` keeps one server-only counter per geohash cell for every public active post. A per-post member record (`note_density_members`) makes replays and out-of-order events converge; `reconcileNoteDensity` re-checks 500 posts and repairs 100 spot counts per hour. Persistent `note_spot_members` records settle hard deletions exactly once and are removed during account deletion. Legacy spot counts are recalculated from live posts. `readNoteDensity` reads only non-empty cells with at most 12 prefix range queries.
 
