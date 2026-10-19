@@ -15,6 +15,13 @@ function number(value: unknown, field: string, min: number, max: number): number
   if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new ValidationError(`${field} must be ${min}–${max}`);
   return value;
 }
+/** Launch seed batch id (`admin/scripts/seed-notes.mjs`); posts made in the panel carry none. */
+function seedBatchValue(value: unknown): string | undefined {
+  if (value == null || value === '') return undefined;
+  const batch = scalarText(value);
+  if (!/^[a-z0-9-]{3,48}$/.test(batch)) throw new ValidationError('invalid_seed_batch');
+  return batch;
+}
 export function parseContentInput(body: Record<string, unknown>): ContentInput {
   const caption = requiredString(body.caption, 'caption', 1, 220);
   const text = typeof body.text === 'string' ? body.text.trim() : caption;
@@ -30,8 +37,7 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
   if (![color,background].every(c => /^#[0-9A-Fa-f]{6}$/.test(c))) throw new ValidationError('invalid_color');
   const zoneExceptionReason = typeof body.zoneExceptionReason === 'string' ? body.zoneExceptionReason.trim() : '';
   if (zoneExceptionReason && (zoneExceptionReason.length < 8 || zoneExceptionReason.length > 1000)) throw new ValidationError('zone exception requires 8–1000 characters');
-  const seedBatch = body.seedBatch == null || body.seedBatch === '' ? undefined : scalarText(body.seedBatch);
-  if (seedBatch !== undefined && !/^[a-z0-9-]{3,48}$/.test(seedBatch)) throw new ValidationError('invalid_seed_batch');
+  const seedBatch = seedBatchValue(body.seedBatch);
   return {
     authorId: uuid(body.authorId,'authorId').toLowerCase(), caption, text, platform, url,
     lat: number(body.lat,'latitude',-90,90), lng: number(body.lng,'longitude',-180,180),

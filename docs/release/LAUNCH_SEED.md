@@ -36,8 +36,10 @@ place stand at least 26 m apart, so each forms its own 25 m group.
    python3 scripts/seed/world_capitals.py --check
    cd admin
    GOOGLE_CLOUD_PROJECT=lociar-2f38c node --conditions=react-server --import ./tests/register-typescript.mjs \
-     scripts/seed-notes.mjs --file ../scripts/seed/world-capitals.json --actor <admin uid>
+     scripts/seed-notes.mjs --seed world-capitals --actor <admin uid>
    ```
+
+   `--seed` names a file in `scripts/seed/` (without `.json`); the importer reads no other path.
 
    The dry run reads only. It lists each city, items already loaded, items inside a protected zone and anchors marked
    `approx` (taken from general knowledge: Accra, Amsterdam, Belgrade, Bogotá, Hanoi, Jakarta, Lima, Madrid, Manila,
@@ -50,4 +52,10 @@ place stand at least 26 m apart, so each forms its own 25 m group.
 6. Zoom out on the map: every capital should glow.
 
 To retire a batch, run the same command with `--retire`: every post of the batch gets an end date five minutes out and the
-scheduled job removes it.
+scheduled job removes up to 200 posts every 15 minutes (the whole world batch within about half an hour).
+
+## Change a batch
+
+Edit `scripts/seed/world_capitals.py` and run it without `--check` to rebuild `world-capitals.json`; CI fails while the two
+disagree. `admin/tests/integration/launch-seed.test.mjs` runs the importer against the emulator (dry run, load, rerun,
+retire). Item ids are load keys: keep them stable for loaded items, or a rerun loads the edited item as a new post.

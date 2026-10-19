@@ -1,34 +1,43 @@
 #!/usr/bin/env node
 /**
  * Owner-run launch seed importer (docs/release/LAUNCH_SEED.md). It loads location notes and
- * approximate AR posts from a seed file through the same audited path as Posts -> Create
- * (`saveAdminPost`): text and link checks, permissions, protected zones and one audit receipt per
- * item. Keys derive from the batch and item id, so a rerun skips what is already loaded.
+ * approximate AR posts from a seed file in scripts/seed/ through the same audited path as
+ * Posts -> Create (`saveAdminPost`): text and link checks, permissions, protected zones and one audit
+ * receipt per item. Keys derive from the batch and item id, so a rerun skips what is already loaded.
  *
  * Dry run by default (reads only). --apply writes. --retire gives every post of the batch an end
  * date five minutes out; the scheduled job then removes them.
  *
  *   cd admin
  *   GOOGLE_CLOUD_PROJECT=lociar-2f38c node --conditions=react-server --import ./tests/register-typescript.mjs \
- *     scripts/seed-notes.mjs --file ../scripts/seed/world-capitals.json --actor <admin uid> [--apply] [--allow-approx]
+ *     scripts/seed-notes.mjs --seed world-capitals --actor <admin uid> [--apply] [--allow-approx]
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 const { values: opts } = parseArgs({
   options: {
-    file: { type: 'string' }, actor: { type: 'string' }, author: { type: 'string' }, reason: { type: 'string' },
+    seed: { type: 'string' }, actor: { type: 'string' }, author: { type: 'string' }, reason: { type: 'string' },
     only: { type: 'string' }, apply: { type: 'boolean', default: false }, retire: { type: 'boolean', default: false },
     'allow-approx': { type: 'boolean', default: false },
   },
 });
-if (!opts.file || !opts.actor || (opts.apply && opts.retire)) {
-  console.error('Usage: seed-notes.mjs --file <seed.json> --actor <admin uid> [--author <luid>] [--only city,city] [--apply [--allow-approx] | --retire]');
+
+// --seed names a file in scripts/seed/. The path comes from that directory's listing, never from the
+// argument itself, so the importer cannot be pointed at any other file.
+const SEED_DIR = fileURLToPath(new URL('../../scripts/seed/', import.meta.url));
+const seedFiles = readdirSync(SEED_DIR).filter(name => name.endsWith('.json')).sort();
+const seedFile = seedFiles.find(name => name === `${opts.seed}.json`);
+if (!seedFile || !opts.actor || (opts.apply && opts.retire)) {
+  console.error('Usage: seed-notes.mjs --seed <name> --actor <admin uid> [--author <luid>] [--only city,city] [--apply [--allow-approx] | --retire]');
+  console.error(`Seeds in scripts/seed/: ${seedFiles.map(name => name.replace(/\.json$/, '')).join(', ')}`);
   process.exit(2);
 }
 
-const seed = JSON.parse(readFileSync(opts.file, 'utf8'));
-if (!/^[a-z0-9-]{3,48}$/.test(String(seed.batch ?? '')) || !Array.isArray(seed.items)) throw new Error('Seed file needs a batch id and items');
+const seed = JSON.parse(readFileSync(join(SEED_DIR, seedFile), 'utf8'));
+if (!/^[a-z0-9-]{3,48}$/.test(String(seed.batch ?? '')) || !Array.isArray(seed.items)) throw new Error(`${seedFile} needs a batch id and items`);
 const { parseContentInput, saveAdminPost } = await import('../lib/content-ops.ts');
 const { operatePlaceNote } = await import('../lib/place-notes.ts');
 const { adminDb } = await import('../lib/firebase-admin.ts');
@@ -37,7 +46,14 @@ const { distanceMeters } = await import('../lib/geo.ts');
 
 const db = adminDb();
 const reason = opts.reason ?? `Launch seed ${seed.batch}`;
-const SEED_GROUP_M = 25, MAX_SEEDS_PER_GROUP = 3;
+const SEED_GROUP_M = 25, MAX_SEEDS_PER_GROUP = 3, WRITE_GAP_MS = 120, READ_CHUNK = 100;
+
+/** Ordered work, one item at a time (as in functions/src/async.ts): every write is its own audited
+ *  transaction, and the density checks of the next write must see the previous one. */
+function forEachSequential(items, visit) {
+  return items.reduce((previous, item) => previous.then(() => visit(item)), Promise.resolve());
+}
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function authorId() {
   if (opts.author) return opts.author.toLowerCase();
@@ -51,17 +67,19 @@ if (opts.retire) {
   const posts = await db.collection('posts').where('seed_batch', '==', seed.batch).get();
   const live = posts.docs.filter(d => !d.get('deleted_at') && d.get('status') !== 'removed');
   const endsAt = new Date(Date.now() + 5 * 60_000).toISOString();
-  let ended = 0;
-  for (const post of live) {
-    await operatePlaceNote({ id: post.id, action: 'set_end', endsAt }, opts.actor, reason, derivedKey(`${seed.batch}:${post.id}`, 'retire'));
-    ended++;
-  }
-  console.log(`${ended} posts of ${seed.batch} end at ${endsAt}; the scheduled job removes them within 15 minutes.`);
+  // One receipt per post and run: a later retire run may bring an end date forward again.
+  await forEachSequential(live, post => operatePlaceNote({ id: post.id, action: 'set_end', endsAt }, opts.actor, reason,
+    derivedKey(`${seed.batch}:${post.id}:${endsAt}`, 'retire')));
+  console.log(`${live.length} posts from ${seedFile} end at ${endsAt}; the scheduled job removes up to 200 every 15 minutes.`);
   process.exit(0);
 }
 
 const only = opts.only ? new Set(opts.only.split(',').map(s => s.trim()).filter(Boolean)) : null;
 const items = seed.items.filter(i => !only || only.has(i.id.replace(/-(ar|\d+)$/, '')));
+if (!items.length) {
+  console.error(`No item of ${seedFile} matches --only.`);
+  process.exit(2);
+}
 const author = await authorId();
 const profile = await db.collection('profiles').doc(author).get();
 if (!profile.exists || profile.get('deleted_at') || profile.get('suspended')) throw new Error('The seed author is missing, deleted or suspended.');
@@ -71,9 +89,8 @@ const zones = (await db.collection('protected_zones').where('active', '==', true
   .filter(z => z.get('policy') === 'hard_block')
   .map(z => ({ name: String(z.get('name') ?? z.id), lat: Number(z.get('lat')), lng: Number(z.get('lng')), radius: Number(z.get('radius_meters')) }));
 
-const rows = [];
-for (const item of items) {
-  const row = { item, problems: [] };
+function checkItem(item) {
+  const row = { item, problems: [], key: derivedKey(`${seed.batch}:${item.id}`, 'seed') };
   try {
     row.input = parseContentInput({
       authorId: author, caption: item.text, text: item.text, lat: item.lat, lng: item.lng,
@@ -89,11 +106,15 @@ for (const item of items) {
   if (zone) row.problems.push(`protected zone: ${zone.name}`);
   const crowd = items.filter(o => o !== item && distanceMeters(item.lat, item.lng, o.lat, o.lng) <= SEED_GROUP_M).length;
   if (crowd >= MAX_SEEDS_PER_GROUP) row.problems.push(`${crowd + 1} seeds within ${SEED_GROUP_M} m`);
-  if (item.coord === 'approx' && !opts['allow-approx']) row.held = 'approximate anchor: check on the admin map, then pass --allow-approx';
-  row.key = derivedKey(`${seed.batch}:${item.id}`, 'seed');
-  row.loaded = (await db.collection('posts').doc(derivedKey(row.key, 'post')).get()).exists;
-  rows.push(row);
+  row.held = item.coord === 'approx' && !opts['allow-approx'];
+  return row;
 }
+const rows = items.map(checkItem);
+// Already loaded: post ids derive from the item keys, read in a few batched calls.
+const refs = rows.map(row => db.collection('posts').doc(derivedKey(row.key, 'post')));
+const parts = Array.from({ length: Math.ceil(refs.length / READ_CHUNK) }, (_, i) => refs.slice(i * READ_CHUNK, (i + 1) * READ_CHUNK));
+const snapshots = (await Promise.all(parts.map(part => db.getAll(...part)))).flat();
+rows.forEach((row, i) => { row.loaded = snapshots[i].exists; });
 
 const byCity = new Map();
 for (const row of rows) {
@@ -111,6 +132,7 @@ for (const [city, c] of byCity) {
 }
 const blocked = rows.filter(r => r.problems.length).length, held = rows.filter(r => r.held && !r.problems.length).length;
 console.log(`\n${rows.length} items: ${rows.filter(r => r.loaded).length} already loaded, ${blocked} with problems, ${held} held for an approximate anchor.`);
+if (held) console.log('Check the approximate anchors on the admin map, then pass --allow-approx.');
 
 if (!opts.apply) {
   console.log('Dry run: nothing was written. Add --apply to load the items without problems.');
@@ -118,8 +140,8 @@ if (!opts.apply) {
 }
 
 let created = 0, failed = 0;
-for (const row of rows) {
-  if (row.loaded || row.problems.length || row.held) continue;
+const pending = rows.filter(row => !row.loaded && !row.problems.length && !row.held);
+await forEachSequential(pending, async row => {
   try {
     await saveAdminPost(row.input, opts.actor, reason, row.key);
     created++;
@@ -127,7 +149,8 @@ for (const row of rows) {
     failed++;
     console.error(`  x ${row.item.id}: ${error.message}`);
   }
-  await new Promise(resolve => setTimeout(resolve, 120));
-}
-console.log(`Loaded ${created} items${failed ? `, ${failed} failed` : ''}.`);
+  await pause(WRITE_GAP_MS);
+});
+const failures = failed ? `, ${failed} failed` : '';
+console.log(`Loaded ${created} items${failures}.`);
 process.exit(failed ? 1 : 0);
