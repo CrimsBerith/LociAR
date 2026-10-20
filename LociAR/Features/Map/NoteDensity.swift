@@ -182,7 +182,8 @@ struct MapNoteCluster: Identifiable {
             let x = (group.lng - centerLongitude + 540).truncatingRemainder(dividingBy: 360) - 180
             let phi = min(85, max(-85, group.lat)) * .pi / 180
             let y = log(tan(.pi / 4 + phi / 2)) * 180 / .pi
-            let column = Int(floor(x / step)), row = Int(floor(y / step))
+            let column = Int(floor(x / step))
+            let row = Int(floor(y / step))
             let candidates = (-1...1).flatMap { dx in (-1...1).flatMap { dy in buckets["\(column + dx)_\(row + dy)"] ?? [] } }
             let near = candidates.filter { hypot(anchors[$0].x - x, anchors[$0].y - y) < step }
                 .min { hypot(anchors[$0].x - x, anchors[$0].y - y) < hypot(anchors[$1].x - x, anchors[$1].y - y) }
@@ -380,7 +381,9 @@ struct NoteHeatBlob: Identifiable, Hashable, Sendable {
 /// Mint for sparse places, aqua for active ones, warm amber for the busiest places.
 enum NoteHeatPalette {
     static func rgb(_ t: Double) -> (red: Double, green: Double, blue: Double) {
-        let mint = (0.22, 0.88, 0.72), aqua = (0.20, 0.72, 0.82), amber = (0.98, 0.72, 0.36)
+        let mint = (0.22, 0.88, 0.72)
+        let aqua = (0.20, 0.72, 0.82)
+        let amber = (0.98, 0.72, 0.36)
         let x = min(1, max(0, t))
         let (from, to, progress) = x < 0.55 ? (mint, aqua, x / 0.55) : (aqua, amber, (x - 0.55) / 0.45)
         let f = progress * progress * (3 - 2 * progress)
@@ -404,10 +407,12 @@ struct NoteGlassShape: Shape {
                            y: rect.midY + sin(angle) * radius * rect.height)
         }
         var path = Path()
-        let first = points[0], last = points[points.count - 1]
+        let first = points[0]
+        let last = points[points.count - 1]
         path.move(to: CGPoint(x: (last.x + first.x) / 2, y: (last.y + first.y) / 2))
         for index in points.indices {
-            let point = points[index], next = points[(index + 1) % points.count]
+            let point = points[index]
+            let next = points[(index + 1) % points.count]
             path.addQuadCurve(to: CGPoint(x: (point.x + next.x) / 2, y: (point.y + next.y) / 2), control: point)
         }
         path.closeSubpath()

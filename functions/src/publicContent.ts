@@ -195,24 +195,27 @@ async function visibleMapDocuments(docs: FirebaseFirestore.DocumentSnapshot[], l
   return allowed;
 }
 
+async function visibleMapAnchor(id: string, hints: string[], luid: string, blocked: BlockSets) {
+  const anchor = await db.collection('posts').doc(id).get();
+  if ((await visibleMapDocuments([anchor], luid, blocked)).length) return anchor;
+  // Hints choose an eligible replacement only; all membership is still server-derived.
+  const replacements: FirebaseFirestore.DocumentSnapshot[] = [];
+  await forEachSequential(chunks(hints.filter(value => value !== id), 100), async ids => {
+    replacements.push(...await db.getAll(...ids.map(value => db.collection('posts').doc(value))));
+  });
+  const visible = await visibleMapDocuments(replacements, luid, blocked);
+  visible.sort((a, b) => a.id.localeCompare(b.id, 'en'));
+  return visible[0];
+}
+
 async function mapGroupDocuments(groupId: string, hints: string[], luid: string, blocked: BlockSets) {
   const group = MAP_GROUP_ID.exec(groupId)!;
   let canonicalId = groupId;
   let found: FirebaseFirestore.DocumentSnapshot[] = [];
   if (group[1] === 'post') {
-    let anchor = await db.collection('posts').doc(group[2]).get();
-    if (!(await visibleMapDocuments([anchor], luid, blocked)).length) {
-      // A deleted/hidden anchor must not strand the other members of an already visible
-      // badge. Hints choose a replacement only; the new membership is still server-derived.
-      const replacements: FirebaseFirestore.DocumentSnapshot[] = [];
-      await forEachSequential(chunks(hints.filter(id => id !== anchor.id), 100), async ids => {
-        replacements.push(...await db.getAll(...ids.map(id => db.collection('posts').doc(id))));
-      });
-      const visible = await visibleMapDocuments(replacements, luid, blocked);
-      if (!visible.length) return { canonicalId, allowed: [] };
-      anchor = visible.sort((a, b) => a.id.localeCompare(b.id, 'en'))[0];
-      canonicalId = `post:${anchor.id}`;
-    }
+    const anchor = await visibleMapAnchor(group[2], hints, luid, blocked);
+    if (!anchor) return { canonicalId, allowed: [] };
+    canonicalId = `post:${anchor.id}`;
     const spot = anchor.get('spot_id');
     if (typeof spot === 'string' && POST_ID.test(spot)) canonicalId = `spot:${spot}`;
     else {
@@ -234,7 +237,7 @@ async function mapGroupDocuments(groupId: string, hints: string[], luid: string,
   return { canonicalId, allowed };
 }
 
-async function readMapGroup(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
+function mapGroupPageInput(body: Record<string, unknown>) {
   const requestedId = body.groupId;
   const offset = body.offset ?? 0, token = body.pageToken, hints = body.postIds ?? [];
   if (typeof requestedId !== 'string' || !MAP_GROUP_ID.test(requestedId)
@@ -243,16 +246,24 @@ async function readMapGroup(body: Record<string, unknown>, luid: string, blocked
     || !Array.isArray(hints) || hints.length > MAX_NEARBY_SCAN || hints.some(id => typeof id !== 'string' || !POST_ID.test(id))) {
     throw new HttpsError('invalid-argument', 'Invalid map group page');
   }
-  if (MEMORY_LIMITS_ENABLED && !nearbyLimiter.allow(luid)) throw reasonError('resource-exhausted', 'Too many map requests; try again shortly', 'rate_limited');
-  let session: FirebaseFirestore.DocumentSnapshot | undefined;
-  if (typeof token === 'string') {
-    session = await db.collection('map_group_sessions').doc(token).get();
-    if (!session.exists || session.get('owner_luid') !== luid
-      || ![session.get('requested_group_id'), session.get('group_id')].includes(requestedId)
-      || !(session.get('expires_at') instanceof Timestamp) || session.get('expires_at').toMillis() <= Date.now()) {
-      throw new HttpsError('failed-precondition', 'Map group page expired; refresh the group');
-    }
+  return { requestedId, offset: Number(offset), token: typeof token === 'string' ? token : undefined, hints };
+}
+
+async function mapGroupSession(luid: string, requestedId: string, token: string | undefined) {
+  if (!token) return undefined;
+  const session = await db.collection('map_group_sessions').doc(token).get();
+  if (!session.exists || session.get('owner_luid') !== luid
+    || ![session.get('requested_group_id'), session.get('group_id')].includes(requestedId)
+    || !(session.get('expires_at') instanceof Timestamp) || session.get('expires_at').toMillis() <= Date.now()) {
+    throw new HttpsError('failed-precondition', 'Map group page expired; refresh the group');
   }
+  return session;
+}
+
+async function readMapGroup(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
+  const { requestedId, offset, token, hints } = mapGroupPageInput(body);
+  if (MEMORY_LIMITS_ENABLED && !nearbyLimiter.allow(luid)) throw reasonError('resource-exhausted', 'Too many map requests; try again shortly', 'rate_limited');
+  const session = await mapGroupSession(luid, requestedId, token);
   const { canonicalId, allowed } = await mapGroupDocuments(session?.get('group_id') ?? requestedId,
     session?.get('post_ids') ?? [...new Set(hints)], luid, blocked);
   if (session && session.get('group_id') !== canonicalId) await session.ref.update({ group_id: canonicalId });

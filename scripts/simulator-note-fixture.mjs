@@ -1,4 +1,4 @@
-import { pollUntil } from './async.mjs';
+import { pollUntil, forEachSequential } from './async.mjs';
 import { emulatorVerificationURL } from './emulator-verification.mjs';
 // Test-only bridge: real demo callables + simulator location/APNs transport.
 // Run with Node 22, --conditions=react-server and --import ./admin/tests/register-typescript.mjs.
@@ -63,11 +63,11 @@ async function push(message) {
 const actions = {
   async 'prepare-map-group'() {
     const author = await newUser(), ids = [];
-    for (let index = 1; index <= 5; index++) {
+    await forEachSequential([1, 2, 3, 4, 5], async index => {
       const made = await author.call('createPlaceNote', { userId: author.luid, clientMutationId: randomUUID(),
         lat: 41.0082, lng: 28.9784, accuracy: 6, source: 'gps', text: `Glass note ${index}` });
       ids.push(made.post.id);
-    }
+    });
     const first = await eventually(() => adminDb.collection('posts').doc(ids[0]).get(), doc => typeof doc.get('spot_id') === 'string');
     const spotId = first.get('spot_id'), template = first.data(), batch = adminDb.batch();
     for (let index = 1; index <= 10; index++) {

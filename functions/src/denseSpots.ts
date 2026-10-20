@@ -144,23 +144,30 @@ export async function denseLocks(docs: FirebaseFirestore.DocumentSnapshot[], vie
   const open = new Set(dense.filter((_, i) => unlocks[i].exists && unlocks[i].get('expires_at') instanceof Timestamp && unlocks[i].get('expires_at').toMillis() > now).map(s => s.id));
   const byId = new Map(existing.map(s => [s.id, s]));
   const fresh = fix && fixIsFresh(fix, now) && fix.accuracy <= MAX_ENTRY_ACCURACY_M ? fix : undefined;
-  for (const d of candidates) {
-    const s = byId.get(String(d.get('spot_id')));
-    if (d.get('note_kind') === 'location') {
-      const point = { id: d.id, count: 1, lat: d.get('lat'), lng: d.get('lng'), radius: 0 };
-      const place = readArea ?? s ?? point;
-      // Persisted spot circles only grow. They cannot authorize current location-note reads
-      // after members move, are hidden or disappear. Group reads supply their live geometry.
-      if (!fresh || !fixUnlocksSpot(fresh, readArea ?? point, settings.unlockRadius)) {
-        locks.set(d.id, { spot: place.id, count: place.count, lat: place.lat, lng: place.lng, unlockRadius: settings.unlockRadius,
-          groupId: readArea?.groupId ?? `${s ? 'spot' : 'post'}:${place.id}` });
-      }
-    } else if (s && s.count >= settings.denseThreshold && !open.has(s.id)
-      && !(fresh && fixUnlocksSpot(fresh, s, settings.unlockRadius))) {
-      locks.set(d.id, { spot: s.id, count: s.count, lat: s.lat, lng: s.lng, unlockRadius: settings.unlockRadius });
-    }
+  for (const post of candidates) {
+    const spot = byId.get(String(post.get('spot_id')));
+    const lock = post.get('note_kind') === 'location'
+      ? locationNoteLock(post, settings, spot, readArea, fresh)
+      : arPostLock(spot, settings, open, fresh);
+    if (lock) locks.set(post.id, lock);
   }
   return locks;
+}
+
+function locationNoteLock(post: FirebaseFirestore.DocumentSnapshot, settings: SpotSettings,
+  spot: SpotDoc | undefined, readArea: SpotDoc | undefined, fresh: Fix | undefined): SpotLock | undefined {
+  const point = { id: post.id, count: 1, lat: post.get('lat'), lng: post.get('lng'), radius: 0 };
+  const place = readArea ?? spot ?? point;
+  // Historical spot circles never authorize current note bodies; group reads supply live geometry.
+  if (fresh && fixUnlocksSpot(fresh, readArea ?? point, settings.unlockRadius)) return undefined;
+  return { spot: place.id, count: place.count, lat: place.lat, lng: place.lng, unlockRadius: settings.unlockRadius,
+    groupId: readArea?.groupId ?? `${spot ? 'spot' : 'post'}:${place.id}` };
+}
+
+function arPostLock(spot: SpotDoc | undefined, settings: SpotSettings, open: Set<string>, fresh: Fix | undefined): SpotLock | undefined {
+  if (!spot || spot.count < settings.denseThreshold || open.has(spot.id)
+    || (fresh && fixUnlocksSpot(fresh, spot, settings.unlockRadius))) return undefined;
+  return { spot: spot.id, count: spot.count, lat: spot.lat, lng: spot.lng, unlockRadius: settings.unlockRadius };
 }
 
 /** Dense spots whose circle lies within `radius` of the point, most crowded first. */

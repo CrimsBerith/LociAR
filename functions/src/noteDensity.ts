@@ -31,29 +31,43 @@ export async function syncNoteDensity(postId: string) {
     const previous: string[] = Array.isArray(member.get('cells')) ? member.get('cells') : [];
     const previousLat = member.get('lat'), previousLng = member.get('lng');
     const positioned = validCoordinates(previousLat, previousLng);
-    if (desired.length === previous.length && desired.every(c => previous.includes(c))
-      && (!desired.length || positioned && previousLat === data!.lat && previousLng === data!.lng)) return;
+    if (sameDensityMembership(desired, previous, member, data)) return;
     const cells = [...new Set([...previous, ...desired])];
     const snapshots = cells.length ? await tx.getAll(...cells.map(cellRef)) : [];
     for (const [index, cell] of cells.entries()) {
-      const [precision, hash] = cell.split('_'), center = geohashBounds(hash);
-      const was = previous.includes(cell), is = desired.includes(cell);
-      const old = snapshots[index];
-      const count = Number(old.get('count') ?? 0) + Number(is) - Number(was);
-      const coordinateCount = Number(old.get('coordinate_count') ?? 0) + Number(is) - Number(was && positioned);
-      const sumLat = Number(old.get('sum_lat') ?? 0) + (is ? data!.lat : 0) - (was && positioned ? previousLat : 0);
-      const sumLng = Number(old.get('sum_lng') ?? 0) + (is ? data!.lng : 0) - (was && positioned ? previousLng : 0);
-      // Legacy members acquire coordinates on reconciliation. Use their true centroid only
-      // once every member of the cell has been counted in the coordinate sums.
-      const complete = coordinateCount > 0 && coordinateCount === count;
-      tx.set(cellRef(cell), { precision: Number(precision), cell: hash, lat: center.lat, lng: center.lng,
-        count, coordinate_count: coordinateCount, sum_lat: sumLat, sum_lng: sumLng,
-        ...(complete ? { lat: sumLat / coordinateCount, lng: sumLng / coordinateCount } : {}),
-        updated_at: FieldValue.serverTimestamp() }, { merge: true });
+      const was = previous.includes(cell);
+      const prior = was && positioned ? { lat: previousLat, lng: previousLng } : undefined;
+      const current = desired.includes(cell) ? { lat: data!.lat, lng: data!.lng } : undefined;
+      tx.set(cellRef(cell), densityCellChange(cell, snapshots[index], was, prior, current), { merge: true });
     }
     if (desired.length) tx.set(member.ref, { cells: desired, lat: data!.lat, lng: data!.lng, updated_at: FieldValue.serverTimestamp() });
     else tx.delete(member.ref);
   });
+}
+
+function sameDensityMembership(desired: string[], previous: string[], member: FirebaseFirestore.DocumentSnapshot,
+  data: FirebaseFirestore.DocumentData | undefined) {
+  const sameCells = desired.length === previous.length && desired.every(cell => previous.includes(cell));
+  if (!sameCells) return false;
+  return !desired.length || (validCoordinates(member.get('lat'), member.get('lng'))
+    && member.get('lat') === data?.lat && member.get('lng') === data?.lng);
+}
+
+type DensityPoint = { lat: number; lng: number };
+function densityCellChange(cell: string, old: FirebaseFirestore.DocumentSnapshot, was: boolean,
+  prior: DensityPoint | undefined, current: DensityPoint | undefined) {
+  const [precision, hash] = cell.split('_');
+  const center = geohashBounds(hash);
+  const count = Number(old.get('count') ?? 0) + Number(Boolean(current)) - Number(was);
+  const coordinateCount = Number(old.get('coordinate_count') ?? 0) + Number(Boolean(current)) - Number(Boolean(prior));
+  const sumLat = Number(old.get('sum_lat') ?? 0) + (current?.lat ?? 0) - (prior?.lat ?? 0);
+  const sumLng = Number(old.get('sum_lng') ?? 0) + (current?.lng ?? 0) - (prior?.lng ?? 0);
+  // Legacy rows keep a cell centre until all their members have real coordinate sums.
+  const complete = coordinateCount > 0 && coordinateCount === count;
+  return { precision: Number(precision), cell: hash, lat: center.lat, lng: center.lng,
+    count, coordinate_count: coordinateCount, sum_lat: sumLat, sum_lng: sumLng,
+    ...(complete ? { lat: sumLat / coordinateCount, lng: sumLng / coordinateCount } : {}),
+    updated_at: FieldValue.serverTimestamp() };
 }
 
 export const onPostDensityWritten = onDocumentWritten({ document: 'posts/{postId}', retry: true, maxInstances: 10 }, async event => {

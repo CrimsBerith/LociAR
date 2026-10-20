@@ -61,7 +61,7 @@ struct CollectionsView: View {
         .alert("Yeni koleksiyon", isPresented: $showCreate) {
             TextField("Başlık", text: $title)
             Button("Oluştur") { Task { await create() } }.disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Button("Vazgeç", role: .cancel) {}
+            Button("Vazgeç", role: .cancel) { /* SwiftUI dismisses the alert; cancellation performs no write. */ }
         }
         .task { await load() }
     }

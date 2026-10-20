@@ -256,23 +256,29 @@ def nearby_seed_ids(business, items, capital_points):
     return other_businesses + capitals
 
 
+def business_item_problems(b):
+    problems = []
+    if len(b.text) > MAX_TEXT:
+        problems.append(f'{b.id}: {len(b.text)} characters (limit {MAX_TEXT})')
+    if URL.search(b.text):
+        problems.append(f'{b.id}: looks like a link')
+    if REVIEW_WORDS.search(b.text):
+        problems.append(f'{b.id}: reads like a review ({REVIEW_WORDS.search(b.text).group(0)})')
+    if b.type not in TYPES:
+        problems.append(f'{b.id}: unknown type {b.type}')
+    if b.coord not in ('wikipedia', 'marker', 'approx'):
+        problems.append(f'{b.id}: unknown coord {b.coord}')
+    if not b.source.startswith('https://'):
+        problems.append(f'{b.id}: needs a source')
+    if not (-90 <= b.lat <= 90 and -180 <= b.lng <= 180):
+        problems.append(f'{b.id}: bad coordinates')
+    return problems
+
+
 def business_problems(items, capital_points):
     problems = []
     for b in items:
-        if len(b.text) > MAX_TEXT:
-            problems.append(f'{b.id}: {len(b.text)} characters (limit {MAX_TEXT})')
-        if URL.search(b.text):
-            problems.append(f'{b.id}: looks like a link')
-        if REVIEW_WORDS.search(b.text):
-            problems.append(f'{b.id}: reads like a review ({REVIEW_WORDS.search(b.text).group(0)})')
-        if b.type not in TYPES:
-            problems.append(f'{b.id}: unknown type {b.type}')
-        if b.coord not in ('wikipedia', 'marker', 'approx'):
-            problems.append(f'{b.id}: unknown coord {b.coord}')
-        if not b.source.startswith('https://'):
-            problems.append(f'{b.id}: needs a source')
-        if not (-90 <= b.lat <= 90 and -180 <= b.lng <= 180):
-            problems.append(f'{b.id}: bad coordinates')
+        problems += business_item_problems(b)
         near = nearby_seed_ids(b, items, capital_points)
         if near:
             problems.append(f'{b.id}: closer than {MIN_SPACING_M} m to {", ".join(near)}')
