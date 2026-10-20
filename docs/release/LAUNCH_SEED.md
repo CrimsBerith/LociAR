@@ -27,6 +27,10 @@ notify, and the generator refuses review words (taste, price, service, recommend
 - Every fact carries a source in the seed file. No links (the admin link check also reads `Amstel:` as a `tel:` link).
 - No jokes about religion, politics, nations or tragedies. Memorials, places of worship, schools and hospitals belong in
   `protected_zones` before loading.
+- Write like people, not a brochure. Every place mixes a casual note (lowercase, short, like a text message), plain tips,
+  one sourced fact told conversationally and a Turkish note in everyday Turkish. The generators refuse long dashes and any
+  two-word opening used on more than four notes, the usual signs of templated text. Casual never means a made-up personal
+  experience: no 'I ate here' or 'my favourite' about a business.
 - At most 220 characters. Reviews on Google Maps or Tripadvisor may only be read by hand for themes, never scraped, quoted or
   fed to a model (both services' terms forbid it).
 
