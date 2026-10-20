@@ -22,7 +22,12 @@ if grep -Eq '^LOCIAR_EMULATOR_HOST *= *[^ ]+' Config/Local.xcconfig; then
 fi
 
 # The newest available iPhone simulator, booted if needed.
-SIM="${SIM_UDID:-$(xcrun simctl list devices available | sed -n 's/^ *iPhone[^(]*(\([0-9A-F-]\{36\}\)) (\(Booted\|Shutdown\)).*/\1/p' | tail -n 1)}"
+SIM="${SIM_UDID:-$(xcrun simctl list devices available -j | python3 -c '
+import json, sys
+devices = [d for runtime, items in sorted(json.load(sys.stdin)["devices"].items()) if "iOS" in runtime
+           for d in items if d["name"].startswith("iPhone")]
+booted = [d for d in devices if d["state"] == "Booted"]
+print((booted or devices or [{"udid": ""}])[-1]["udid"])')}"
 [ -n "$SIM" ] || { echo "❌ Kullanılabilir iPhone simülatörü yok."; exit 1; }
 echo "Simülatör: $(xcrun simctl list devices | grep "$SIM" | sed 's/^ *//')"
 xcrun simctl boot "$SIM" 2>/dev/null || true
