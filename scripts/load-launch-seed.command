@@ -18,9 +18,32 @@ step() { echo ""; echo "==> $*"; }
 finish() { echo ""; echo "Log: $LOG"; read -r -p "Kapatmak için Enter…" || true; }
 trap finish EXIT
 
-for tool in gcloud git node npm python3; do
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin"
+for tool in gcloud git python3; do
   command -v "$tool" >/dev/null 2>&1 || { echo "❌ $tool bulunamadı."; exit 1; }
 done
+
+# The first Node.js 22+ that actually starts (a Homebrew node can break after a partial upgrade).
+pick_node() {
+  local candidate
+  for candidate in "$(command -v node 2>/dev/null)" /opt/homebrew/opt/node@22/bin/node /opt/homebrew/opt/node@24/bin/node \
+      /usr/local/bin/node /usr/local/opt/node@22/bin/node "$HOME"/.nvm/versions/node/v2*/bin/node \
+      "$HOME/.volta/bin/node" "$HOME"/.local/share/fnm/node-versions/v2*/installation/bin/node; do
+    [ -n "$candidate" ] && [ -x "$candidate" ] || continue
+    if "$candidate" -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)' >/dev/null 2>&1; then
+      echo "$candidate"; return 0
+    fi
+    echo "  (çalışmayan veya eski Node atlandı: $candidate)" >&2
+  done
+  return 1
+}
+if ! NODE="$(pick_node)"; then
+  echo "❌ Çalışan Node.js 22+ bulunamadı. Homebrew Node bozuksa: brew reinstall simdjson node   (veya brew install node@22)"
+  exit 1
+fi
+export PATH="$(dirname "$NODE"):$PATH"
+echo "Node: $NODE ($(node -v))"
+command -v npm >/dev/null 2>&1 || { echo "❌ npm bulunamadı ($NODE yanında)."; exit 1; }
 
 step "En güncel seed dosyaları alınıyor ($BRANCH)"
 git fetch --quiet origin "$BRANCH"
