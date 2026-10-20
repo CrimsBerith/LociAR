@@ -52,6 +52,12 @@ notify, and the generator refuses review words (taste, price, service, recommend
 
 ## Load a batch
 
+One step on a Mac: double-click `scripts/load-launch-seed.command` once Functions and the admin backend are deployed and
+the protected zones are in. It checks out the published branch in `~/.lociar-seed` (local edits stay untouched), signs in
+with `gcloud auth application-default login` if needed, runs `admin/scripts/seed-prepare.mjs` (picks the super admin,
+`SEED_ACTOR_EMAIL` chooses one, and creates `@loci.guide` once), then checks and loads both batches with `--allow-approx`.
+The log goes to `.git/lociar-seed-load.log`. The manual steps:
+
 1. Deploy Functions and the admin backend, then create the content account in the panel: **Users → Create content user**,
    handle `loci.guide`, display name `LociAR Guide`. (`loci` and `lociar` are reserved handles.)
 2. Add protected zones around places of worship and memorials near the seeds.

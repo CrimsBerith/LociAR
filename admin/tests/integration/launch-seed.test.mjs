@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { initializeApp, getApps, deleteApp } from 'firebase-admin/app';
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? '', /^(localhost|127\.0\.0\.1):\d+$/);
 initializeApp({ projectId: 'demo-lociar' });
-const { adminDb } = await import('../../lib/firebase-admin.ts');
+const { adminDb, adminAuth } = await import('../../lib/firebase-admin.ts');
 const db = adminDb();
 after(() => Promise.all(getApps().map(deleteApp)));
 
@@ -16,17 +16,18 @@ const BATCH = 'world-capitals-2026-10';
 const adminRoot = fileURLToPath(new URL('../../', import.meta.url));
 const execute = promisify(execFile);
 
-/** Runs the owner's importer (admin/scripts/seed-notes.mjs) the way the runbook does, against the emulator. */
-async function importer(...args) {
+/** Runs an owner script (admin/scripts/) the way scripts/load-launch-seed.command does, against the emulator. */
+async function script(name, ...args) {
   try {
     const { stdout, stderr } = await execute(process.execPath,
-      ['--conditions=react-server', '--import', './tests/register-typescript.mjs', 'scripts/seed-notes.mjs', ...args],
+      ['--conditions=react-server', '--import', './tests/register-typescript.mjs', `scripts/${name}`, ...args],
       { cwd: adminRoot, env: { ...process.env, GOOGLE_CLOUD_PROJECT: 'demo-lociar' } });
     return { code: 0, stdout, stderr };
   } catch (error) {
     return { code: error.code, stdout: error.stdout ?? '', stderr: error.stderr ?? '' };
   }
 }
+const importer = (...args) => script('seed-notes.mjs', ...args);
 const seedPosts = async () => (await db.collection('posts').where('seed_batch', '==', BATCH).get()).docs;
 
 test('the launch seed importer checks first, loads each place once through the audited path and retires the batch', async () => {
@@ -89,4 +90,31 @@ test('the launch seed importer reads seed files from scripts/seed/ only', async 
     assert.equal(run.code, 2, seed);
     assert.match(run.stderr, /^Seeds in scripts\/seed\/: .*\bworld-capitals\b/m);
   }
+});
+
+test('seed preparation picks the named super admin and creates @loci.guide once', async () => {
+  const email = `seed-actor-${randomUUID()}@example.com`;
+  const { uid } = await adminAuth().createUser({ email });
+  await db.collection('admin_role_assignments').doc(`${uid}_super_admin`).set({ user_id: uid, role_key: 'super_admin', revoked_at: null });
+  await db.collection('handles').doc('loci.guide').delete();
+
+  const unknown = await script('seed-prepare.mjs', '--actor-email', 'nobody@example.com');
+  assert.equal(unknown.code, 1);
+  assert.match(unknown.stderr, /No active super admin with the email nobody@example\.com\./);
+
+  const first = await script('seed-prepare.mjs', '--actor-email', email.toUpperCase());
+  assert.equal(first.code, 0, first.stderr);
+  assert.equal(first.stdout.trim(), uid, 'stdout carries only the actor uid');
+  assert.match(first.stderr, /Created @loci\.guide\./);
+  const luid = (await db.collection('handles').doc('loci.guide').get()).get('luid');
+  const profile = await db.collection('profiles').doc(luid).get();
+  assert.equal(profile.get('admin_managed'), true);
+  assert.equal(profile.get('display_name'), 'LociAR Guide');
+  const user = await adminAuth().getUser((await db.collection('users_private').doc(luid).get()).get('uid'));
+  assert.ok(user.disabled && !user.emailVerified, 'the content identity cannot sign in');
+
+  const again = await script('seed-prepare.mjs', '--actor-email', email);
+  assert.equal(again.code, 0, again.stderr);
+  assert.match(again.stderr, /@loci\.guide exists\./);
+  assert.equal((await db.collection('handles').doc('loci.guide').get()).get('luid'), luid);
 });
