@@ -240,6 +240,10 @@ final class AuthGateUITests: XCTestCase {
             app.buttons["profile-settings"].tap()
             XCTAssertTrue(app.switches["settings-notifications"].waitForExistence(timeout: 10), language)
             XCTAssertTrue(app.switches["settings-promotions"].exists, language)
+            let translation = app.switches["settings-translate-notes"]
+            scrollUntilHittable(translation, in: app, maxSwipes: 6)
+            XCTAssertTrue(translation.exists, language)
+            XCTAssertTrue(translation.isEnabled, language)
             capture(app, name: "notification-settings-\(language)")
             app.terminate()
         }
@@ -308,6 +312,31 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["post-like-button"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["post-report"].exists)
         XCTAssertFalse(app.buttons["post-more-menu"].exists)
+    }
+
+    func testDeviceTranslationKeepsOriginalWhenEngineIsUnavailable() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["note-translation-unavailable"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["note-translation-unavailable"].firstMatch.label, "Translation is unavailable on this device or for this language.")
+        XCTAssertFalse(app.buttons["note-translate"].exists)
+        XCTAssertFalse(app.buttons["note-translation-original"].exists)
+        capture(app, name: "device-translation-original-fallback-en")
+    }
+
+    func testOfficialContentBadgePreservesTheSelectedAuthor() {
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY", "UITEST_OFFICIAL_CONTENT"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["post-official-badge"].firstMatch.waitForExistence(timeout: 8)
+                      || app.descendants(matching: .any)["post-official-badge"].firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["@mekan_kasifi"].firstMatch.exists)
+        XCTAssertLessThan(app.staticTexts["Sabit"].firstMatch.frame.height, 25, "The provenance badge must not wrap the placement status.")
+        capture(app, name: "official-note-badge")
     }
 
     func testAllPrimaryAndProfileRoutesOpen() {

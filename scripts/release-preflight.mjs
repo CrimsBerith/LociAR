@@ -13,6 +13,9 @@ export function releaseSteps(root = REPOSITORY_ROOT) {
     { ...node('Repository script regressions', ['--test', ...scriptTests]), testSummary: 'node' },
     node('Repository secret scan', ['scripts/qa-secret-scan.mjs']),
     node('Release localization', ['scripts/check-localization.mjs', '--release']),
+    ...['world_capitals', 'landmark_businesses', 'turkey_launch'].map(name => ({
+      label: 'Launch seed: ' + name, command: 'python3', args: ['scripts/seed/' + name + '.py', '--check'], cwd: root,
+    })),
     npm('Locked Functions installation', 'functions', ['ci', '--no-audit', '--no-fund']),
     npm('Locked admin installation', 'admin', ['ci', '--no-audit', '--no-fund']),
     npm('Chromium test runtime', 'admin', ['exec', '--no', '--', 'playwright', 'install', 'chromium']),

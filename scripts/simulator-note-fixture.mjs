@@ -25,7 +25,7 @@ const output = resolve(process.env.LOCIAR_TEST_OUTPUT ?? resolve(root, 'build/si
 mkdirSync(output, { recursive: true });
 const requireFunctions = createRequire(resolve(root, 'functions/package.json'));
 const { Timestamp } = requireFunctions('firebase-admin/firestore');
-const { adminAuth, adminDb, newAnonymousUser, closeClients } = await import('../functions/test/integration/_harness.mjs');
+const { adminAuth, adminDb, newAnonymousUser, newUser, closeClients } = await import('../functions/test/integration/_harness.mjs');
 const { queueNotification } = await import('../admin/lib/campaigns.ts');
 const { luidForUid } = requireFunctions('./lib/core.js');
 const { deliverAdminNotification } = requireFunctions('./lib/campaigns.js');
@@ -61,6 +61,29 @@ async function push(message) {
   return { result: 'simulator-transport-accepted' };
 }
 const actions = {
+  async 'prepare-map-group'() {
+    const author = await newUser(), ids = [];
+    for (let index = 1; index <= 5; index++) {
+      const made = await author.call('createPlaceNote', { userId: author.luid, clientMutationId: randomUUID(),
+        lat: 41.0082, lng: 28.9784, accuracy: 6, source: 'gps', text: `Glass note ${index}` });
+      ids.push(made.post.id);
+    }
+    const first = await eventually(() => adminDb.collection('posts').doc(ids[0]).get(), doc => typeof doc.get('spot_id') === 'string');
+    const spotId = first.get('spot_id'), template = first.data(), batch = adminDb.batch();
+    for (let index = 1; index <= 10; index++) {
+      const id = ids[index - 1] ?? randomUUID();
+      if (index > 5) ids.push(id);
+      batch.set(adminDb.collection('posts').doc(id), { ...template, id, client_mutation_id: id,
+        caption: `Glass note ${index}`, likes_count: index, spot_id: spotId });
+    }
+    batch.update(adminDb.collection('note_spots').doc(spotId), { count: 10 });
+    await batch.commit();
+    point = { lat: 41.0074, lng: 28.9784 }; locate();
+    await eventually(() => adminDb.getAll(...ids.map(id => adminDb.collection('note_density_members').doc(id))), docs => docs.every(d => d.exists));
+    return { groupId: `spot:${spotId}` };
+  },
+  async 'enter-map-group'() { point = { lat: 41.0082, lng: 28.9784 }; locate(); return { result: 'near' }; },
+  async 'leave-map-group'() { point = { lat: 41.0074, lng: 28.9784 }; locate(); return { result: 'far' }; },
   async 'verify-published'() {
     const { luid } = await account();
     const notes = await adminDb.collection('posts').where('creator_id', '==', luid).where('note_kind', '==', 'location').get();

@@ -10,6 +10,7 @@ struct AppSettingsView: View {
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var sharing = UserContextService.shared
     @State private var arrivals = CampaignArrivalService.shared
+    @AppStorage(NoteTranslationPreference.key) private var translateNotes = true
 
     var body: some View {
         List {
@@ -115,6 +116,14 @@ struct AppSettingsView: View {
             .disabled(sharing.isBusy)
 
             Section {
+                Toggle(String(localized: "Notları otomatik çevir"), isOn: $translateNotes)
+                    .accessibilityIdentifier("settings-translate-notes")
+                    .disabled(!supportsDeviceTranslation)
+            } header: { Text("Çeviri") } footer: {
+                Text("Çeviri cihazında yapılır. İndirilen ve desteklenen dillerde notları uygulama dilinde gösterir. Dil paketleri için internet gerekebilir. Desteklenmeyen dillerde veya iOS sürümlerinde orijinal metin gösterilir.")
+            }
+
+            Section {
                 Toggle(String(localized: "Çökme raporları"), isOn: $crashReports)
                     .onChange(of: crashReports) { _, enabled in CrashReportingPreference.isEnabled = enabled }
                     .accessibilityIdentifier("settings-crash-reports")
@@ -136,6 +145,11 @@ struct AppSettingsView: View {
         case .denied: String(localized: "Kapalı")
         default: String(localized: "Sorulmadı")
         }
+    }
+
+    private var supportsDeviceTranslation: Bool {
+        if #available(iOS 18.0, *) { return true }
+        return false
     }
 
     private var locationNotificationsReady: Bool {

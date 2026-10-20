@@ -88,6 +88,7 @@ service cloud.firestore {
 
     match /posts/{postId} {
       allow get: if (resource.data.get('is_anonymous', false) != true
+          && resource.data.get('note_kind', '') != 'location'
           && resource.data.status == 'active' && resource.data.visibility == 'public'
           && resource.data.get('age_rating', 'all') != '18_plus' && resource.data.get('deleted_at', null) == null
           && activeAccount(resource.data.creator_id) && (!signedIn() || !blockedBy(resource.data.creator_id)))
@@ -161,10 +162,17 @@ service cloud.firestore {
       allow delete: if mayWrite() && (resource == null || resource.data.blocker_id == me());
     }
 
+    function noteCommentsOpen(postId) {
+      let post = get(/databases/$(database)/documents/posts/$(postId)).data;
+      return post.get('note_kind', '') != 'location' || post.creator_id == me()
+        || (get(/databases/$(database)/documents/dense_spot_unlocks/$(me() + '_note_' + postId)).data.kind == 'note_read'
+          && get(/databases/$(database)/documents/dense_spot_unlocks/$(me() + '_note_' + postId)).data.expires_at > request.time);
+    }
     match /comments/{commentId} {
       // Only comments of public, active posts are readable, and only while signed in.
       allow read: if signedIn()
         && postIsPublicActive(resource.data.post_id)
+        && noteCommentsOpen(resource.data.post_id)
         && !blockedOnPost(resource.data.post_id);
       // `username` is not accepted from clients: onCommentCreated fills it from the profile.
       allow create: if mayWrite()
@@ -177,6 +185,7 @@ service cloud.firestore {
         && verifiedIdentity()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
+        && noteCommentsOpen(request.resource.data.post_id)
         && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;

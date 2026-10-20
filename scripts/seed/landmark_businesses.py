@@ -249,6 +249,13 @@ BUSINESSES = [
 ]
 
 
+def nearby_seed_ids(business, items, capital_points):
+    other_businesses = [item.id for item in items if item is not business
+                        and distance(business.point, item.point) < MIN_SPACING_M]
+    capitals = [name for name, point in capital_points if distance(business.point, point) < MIN_SPACING_M]
+    return other_businesses + capitals
+
+
 def business_problems(items, capital_points):
     problems = []
     for b in items:
@@ -266,8 +273,7 @@ def business_problems(items, capital_points):
             problems.append(f'{b.id}: needs a source')
         if not (-90 <= b.lat <= 90 and -180 <= b.lng <= 180):
             problems.append(f'{b.id}: bad coordinates')
-        near = [o.id for o in items if o is not b and distance(b.point, o.point) < MIN_SPACING_M]
-        near += [c for c, p in capital_points if distance(b.point, p) < MIN_SPACING_M]
+        near = nearby_seed_ids(b, items, capital_points)
         if near:
             problems.append(f'{b.id}: closer than {MIN_SPACING_M} m to {", ".join(near)}')
     ids = [b.id for b in items]

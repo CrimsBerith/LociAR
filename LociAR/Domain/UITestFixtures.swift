@@ -15,6 +15,7 @@ enum UITestFixtures {
     static var editorPreviewEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_EDITOR_PREVIEW") }
     static var openEditorDirectly: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_OPEN_EDITOR_DIRECTLY") }
     static var openPostDirectly: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_OPEN_POST_DIRECTLY") }
+    static var officialContentEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_OFFICIAL_CONTENT") }
     static var cameraPermissionDenied: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_CAMERA_DENIED") }
     static var locationPermissionDenied: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_LOCATION_DENIED") }
     static var attachSampleImageEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_ATTACH_SAMPLE_IMAGE") }
@@ -26,6 +27,7 @@ enum UITestFixtures {
     static let editorPreviewEnabled = false
     static let openEditorDirectly = false
     static let openPostDirectly = false
+    static let officialContentEnabled = false
     static let cameraPermissionDenied = false
     static let locationPermissionDenied = false
     static let attachSampleImageEnabled = false
@@ -139,7 +141,8 @@ enum UITestFixtures {
                 EditLayer(id: UUID(), kind: .text, text: caption, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0)
             ] : layers),
             contentSource: source,
-            counts: PostCounts(views: 128, likes: 24, comments: 2)
+            counts: PostCounts(views: 128, likes: 24, comments: 2),
+            adminManaged: officialContentEnabled ? true : nil
         )
     }
 

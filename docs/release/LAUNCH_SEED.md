@@ -11,6 +11,22 @@ content account and tagged with a `seed_batch`, so they can be measured and reti
 |---|---|---|---|---|
 | `world-capitals-2026-10` | One busy place in 46 capitals | 322 | 46 | `scripts/seed/world_capitals.py` → `world-capitals.json` |
 | `landmark-businesses-2026-10` | 52 well-known businesses in 33 cities (7 in Istanbul) | 52 | 0 | `scripts/seed/landmark_businesses.py` → `landmark-businesses.json` |
+| `istanbul-beta-2026-10` | Kadıköy 150 + İstiklal/Galata/Karaköy 100 | 250 | 12 field-only drafts | `scripts/seed/turkey_launch.py` → `istanbul-beta.json` |
+| `turkey-streets-2026-10` | 11 Turkish streets outside the beta layer | 120 | 11 approximate drafts | `scripts/seed/turkey_launch.py` → `turkey-streets.json` |
+
+The prepared totals are 744 notes and 69 AR drafts, including the extra 52 business notes. The A/B texts are
+original street prompts and fictional talking-street AR lines, not reviews or claims of personal visits. Their
+source links identify OpenStreetMap street geometry; `source_scope` distinguishes geometry from editorial writing.
+Frozen coordinates and ODbL attribution are in `launch-street-points.geojson`. Preliminary buffers exclude known
+worship/monument points within 70 m and school/hospital/kindergarten points within 90 m. These are not a replacement
+for complete server protected zones or on-site checks. Every A/B item remains `coord: approx` for owner map review.
+
+Rebuild/check both batches with `python3 scripts/seed/turkey_launch.py [--check]`. The same importer accepts
+`--seed istanbul-beta` or `--seed turkey-streets`; `--only kadikoy`, `--only beyoglu`, `--only ankara`, or an exact
+item id narrows the run. Only the first note in each area notifies. No batch is loaded by the generator.
+The A layer's 12 AR drafts have `placement_requirement: field_cloud_anchor`: the importer holds them even with
+`--allow-approx`. They need physical Cloud Anchor capture and an authorized publishing workflow; a text draft
+is not proof of a hosted anchor. Do not remove that hold to claim field placement remotely.
 
 Each capital has seven location notes (English, plus one Turkish note for Turkish visitors) and one AR post. One note per
 capital notifies; the rest show on the map only, so a busy street does not turn into a stream of notifications. Seeds of one

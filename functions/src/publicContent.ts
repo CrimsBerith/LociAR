@@ -1,16 +1,18 @@
 import { chunks, forEachSequential, readPages } from './async';
 import { scalarText } from './values';
 import { onCall } from 'firebase-functions/v2/https';
-import { db, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, Timestamp } from './core';
+import { db, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, Timestamp, FieldValue } from './core';
 import { isPublicActive } from './counters';
 import { distanceMeters, geohashCoverPrefixes } from './geo';
 import { info } from 'firebase-functions/logger';
 import { requireActiveAccount } from './profileGuard';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { rankForDiscover } from './discoverRanking';
 import { anonymousGeometry, anonymousIdentity, publicEditData } from './anonymous';
 import { campaignOffer, ownCampaignOffers } from './campaigns';
-import { denseLocks, type SpotLock } from './denseSpots';
+import { denseLocks, spotSettings, type SpotLock } from './denseSpots';
+import { mapGroupSummary, mapNoteGroups } from './mapNoteGroups';
+import { validCoordinates, UNLOCK_TTL_MS, SPOT_JOIN_RADIUS_M, type Fix } from './placeNoteRules';
 import { postHiddenByBlocks, type BlockSets } from './visibility';
 import { MEMORY_LIMITS_ENABLED, WindowLimiter } from './memoryLimits';
 import { reasonError } from './errors';
@@ -48,21 +50,21 @@ function embedded(value:unknown){try{return typeof value==='string'?JSON.parse(v
 /** A dense-spot note shows only its place and the spot count until the viewer unlocks it on site. */
 function row(doc:FirebaseFirestore.DocumentSnapshot, viewerId:string, lock?:SpotLock){
  const p=doc.data()!, anonymous=p.is_anonymous===true;
- if(lock){ return json({...lockedRow(doc,viewerId,p,anonymous),locked:true,dense_spot:{id:lock.spot,count:lock.count,lat:lock.lat,lng:lock.lng,unlock_radius_m:lock.unlockRadius}}); }
+ if(lock){ return json({...lockedRow(doc,viewerId,p,anonymous),locked:true,dense_spot:{id:lock.spot,count:lock.count,lat:lock.lat,lng:lock.lng,unlock_radius_m:lock.unlockRadius,group_id:lock.groupId??`spot:${lock.spot}`}}); }
  const geometry=(value:unknown)=>anonymous?anonymousGeometry(embedded(value),doc.id):embedded(value);
  return json({id:doc.id,...anonymousIdentity(doc.id,p.creator_id,viewerId,anonymous),
  creator_handle:anonymous?null:p.creator_handle??null,created_at:p.created_at,
  pose:geometry(p.pose_json),edit_data:publicEditData(embedded(p.edit_data_json)),content_source:null,
  anchor_bundle:geometry(p.anchor_bundle_json),caption:p.caption??'', status:p.status,visibility:p.visibility,
- age_rating:p.age_rating??'all',views_count:p.views_count??0,likes_count:p.likes_count??0,comments_count:p.comments_count??0,note_kind:p.note_kind??null,notify_radius_m:p.notify_radius_m??null,push_state:p.push_state??null});
+ age_rating:p.age_rating??'all',views_count:p.views_count??0,likes_count:p.likes_count??0,comments_count:p.comments_count??0,note_kind:p.note_kind??null,notify_radius_m:p.notify_radius_m??null,push_state:p.push_state??null,admin_managed:p.admin_managed===true});
 }
 function lockedRow(doc:FirebaseFirestore.DocumentSnapshot,viewerId:string,p:FirebaseFirestore.DocumentData,anonymous:boolean){
  return{id:doc.id,...anonymousIdentity(doc.id,p.creator_id,viewerId,anonymous),creator_handle:anonymous?null:p.creator_handle??null,created_at:p.created_at,
  pose:anonymous?anonymousGeometry(embedded(p.pose_json),doc.id):embedded(p.pose_json),edit_data:{version:1,layers:[]},content_source:null,anchor_bundle:null,caption:'',
  status:p.status,visibility:p.visibility,age_rating:p.age_rating??'all',views_count:p.views_count??0,likes_count:p.likes_count??0,comments_count:p.comments_count??0,
- note_kind:p.note_kind??null,notify_radius_m:p.notify_radius_m??null,push_state:p.push_state??null};
+ note_kind:p.note_kind??null,notify_radius_m:p.notify_radius_m??null,push_state:p.push_state??null,admin_managed:p.admin_managed===true};
 }
-const rows=async(docs:FirebaseFirestore.DocumentSnapshot[],viewerId:string)=>{const locks=await denseLocks(docs,viewerId);return docs.map(d=>row(d,viewerId,locks.get(d.id)));};
+const rows=async(docs:FirebaseFirestore.DocumentSnapshot[],viewerId:string,fix?:Fix,area?:Parameters<typeof denseLocks>[3])=>{const locks=await denseLocks(docs,viewerId,fix,area);return docs.map(d=>row(d,viewerId,locks.get(d.id)));};
 const fingerprint=(scope:unknown)=>createHash('sha256').update(JSON.stringify(scope)).digest('hex');
 function cursor(doc:FirebaseFirestore.QueryDocumentSnapshot,scope:string){const date=doc.get('created_at');if(!(date instanceof Timestamp)){ throw new HttpsError('failed-precondition','Post timestamp unavailable'); }return Buffer.from(JSON.stringify({scope,id:doc.id,seconds:date.seconds,nanos:date.nanoseconds})).toString('base64url');}
 function decode(value:unknown,scope:string):{id:string;date:Timestamp}|null{
@@ -81,6 +83,8 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
  case 'single': return readSinglePost(body, caller.luid, blocked);
  case 'search_profiles': return searchProfiles(body, blocked);
  case 'nearby': return readNearbyPosts(body, caller.luid, blocked);
+ case 'map_groups': return readMapGroups(body, caller.luid, blocked);
+ case 'map_group': return readMapGroup(body, caller.luid, blocked);
  default: return readFeed(body, caller.luid, blocked, mode);
  }
 });
@@ -122,11 +126,11 @@ const term=scalarText(body.term??'').trim().toLowerCase().replace(/^@/,'');if(te
   return{profiles:page.docs.filter(d=>visible.has(d.id)).map(d=>({id:d.id,handle:String(d.get('handle')),avatar_url:d.get('avatar_url')??null,avatar_preset:d.get('avatar_preset')??null}))};
 }
 
-async function readNearbyPosts(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
+async function nearbyDocuments(body: Record<string, unknown>, luid: string, blocked: BlockSets, chargeLimit = true) {
 const started=Date.now();
   const lat=body.latitude,lng=body.longitude,requested=body.radiusMeters;
   if(typeof lat!=='number'||!Number.isFinite(lat)||Math.abs(lat)>90||typeof lng!=='number'||!Number.isFinite(lng)||Math.abs(lng)>180||typeof requested!=='number'||!Number.isFinite(requested)||requested<1||requested>20_000_000){ throw new HttpsError('invalid-argument','Invalid search area'); }
-  if(MEMORY_LIMITS_ENABLED&&!nearbyLimiter.allow(luid)){ throw reasonError('resource-exhausted','Too many map requests; try again shortly','rate_limited'); }
+  if(chargeLimit&&MEMORY_LIMITS_ENABLED&&!nearbyLimiter.allow(luid)){ throw reasonError('resource-exhausted','Too many map requests; try again shortly','rate_limited'); }
   const radius=Math.min(requested,MAX_NEARBY_RADIUS_M);
   // Turned on only after every legacy coordinate has been backfilled and verified.
   // Polar/whole-Earth searches retain the complete latitude-range fallback.
@@ -160,9 +164,129 @@ const started=Date.now();
   });
   // Distance selects the nearby set; popularity orders notes at a place in the native panel.
   matches.sort((a,b)=>distanceMeters(lat,lng,a.get('lat'),a.get('lng'))-distanceMeters(lat,lng,b.get('lat'),b.get('lng'))||Number(b.get('likes_count')??0)-Number(a.get('likes_count')??0)||a.id.localeCompare(b.id));
-  const offers=await ownCampaignOffers(luid,lat,lng,radius);
   info('nearby_query',{strategy:prefixes.length?'geohash':'latitude',scanned,matches:matches.length,elapsedMs:Date.now()-started,complete:true});
-  return{posts:[...await rows(matches.slice(0,100),luid),...offers.map(campaignRow)],next:null,total:matches.length+offers.length};
+  return { matches, lat, lng, radius };
+}
+
+async function readNearbyPosts(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
+  const { matches, lat, lng, radius } = await nearbyDocuments(body, luid, blocked);
+  const offers = await ownCampaignOffers(luid, lat, lng, radius);
+  return { posts: [...await rows(matches.slice(0, 100), luid), ...offers.map(campaignRow)], next: null, total: matches.length + offers.length };
+}
+
+async function readMapGroups(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
+  const { matches } = await nearbyDocuments({ ...body, radiusMeters: Math.min(Number(body.radiusMeters), 2_000) }, luid, blocked);
+  const groups = mapNoteGroups(matches.filter(d => isPublicActive(d.data())).map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), spotId: d.get('spot_id') })));
+  const { unlockRadius } = await spotSettings();
+  // No caption, media, author or likes are returned by the map-summary surface.
+  return { groups, unlockRadius };
+}
+
+const MAP_GROUP_ID = /^(spot|post):([0-9a-f-]{36})$/;
+const POST_ID = /^[0-9a-f-]{36}$/;
+
+/** Resolve a stale small-group identity through its current anchor membership. */
+async function visibleMapDocuments(docs: FirebaseFirestore.DocumentSnapshot[], luid: string, blocked: BlockSets) {
+  const allowed: FirebaseFirestore.DocumentSnapshot[] = [];
+  await forEachSequential(chunks(docs.filter(d => d.exists && isPublicActive(d.data())
+    && validCoordinates(d.get('lat'), d.get('lng'))), 100), async batch => {
+    allowed.push(...await visiblePosts(batch, blocked, luid));
+  });
+  return allowed;
+}
+
+async function mapGroupDocuments(groupId: string, hints: string[], luid: string, blocked: BlockSets) {
+  const group = MAP_GROUP_ID.exec(groupId)!;
+  let canonicalId = groupId;
+  let found: FirebaseFirestore.DocumentSnapshot[] = [];
+  if (group[1] === 'post') {
+    let anchor = await db.collection('posts').doc(group[2]).get();
+    if (!(await visibleMapDocuments([anchor], luid, blocked)).length) {
+      // A deleted/hidden anchor must not strand the other members of an already visible
+      // badge. Hints choose a replacement only; the new membership is still server-derived.
+      const replacements: FirebaseFirestore.DocumentSnapshot[] = [];
+      await forEachSequential(chunks(hints.filter(id => id !== anchor.id), 100), async ids => {
+        replacements.push(...await db.getAll(...ids.map(id => db.collection('posts').doc(id))));
+      });
+      const visible = await visibleMapDocuments(replacements, luid, blocked);
+      if (!visible.length) return { canonicalId, allowed: [] };
+      anchor = visible.sort((a, b) => a.id.localeCompare(b.id, 'en'))[0];
+      canonicalId = `post:${anchor.id}`;
+    }
+    const spot = anchor.get('spot_id');
+    if (typeof spot === 'string' && POST_ID.test(spot)) canonicalId = `spot:${spot}`;
+    else {
+      // Membership is server-derived. A side-panel singleton or an outdated client member
+      // list cannot silently omit the other notes belonging to this real place.
+      const { matches } = await nearbyDocuments({ latitude: anchor.get('lat'), longitude: anchor.get('lng'),
+        radiusMeters: SPOT_JOIN_RADIUS_M }, luid, blocked, false);
+      const assigned = matches.find(d => d.id === anchor.id)?.get('spot_id');
+      if (typeof assigned === 'string' && POST_ID.test(assigned)) canonicalId = `spot:${assigned}`;
+      else found = matches.filter(d => !d.get('spot_id'));
+    }
+  }
+  if (canonicalId.startsWith('spot:')) {
+    const snapshot = await db.collection('posts').where('spot_id', '==', canonicalId.slice(5)).limit(MAX_NEARBY_SCAN + 1).get();
+    if (snapshot.size > MAX_NEARBY_SCAN) throw new HttpsError('resource-exhausted', 'Map group is too large');
+    found = snapshot.docs;
+  }
+  const allowed = await visibleMapDocuments(found, luid, blocked);
+  return { canonicalId, allowed };
+}
+
+async function readMapGroup(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
+  const requestedId = body.groupId;
+  const offset = body.offset ?? 0, token = body.pageToken, hints = body.postIds ?? [];
+  if (typeof requestedId !== 'string' || !MAP_GROUP_ID.test(requestedId)
+    || !Number.isSafeInteger(offset) || Number(offset) < 0 || Number(offset) > MAX_NEARBY_SCAN
+    || (token != null && (typeof token !== 'string' || !POST_ID.test(token))) || (Number(offset) > 0 && !token)
+    || !Array.isArray(hints) || hints.length > MAX_NEARBY_SCAN || hints.some(id => typeof id !== 'string' || !POST_ID.test(id))) {
+    throw new HttpsError('invalid-argument', 'Invalid map group page');
+  }
+  if (MEMORY_LIMITS_ENABLED && !nearbyLimiter.allow(luid)) throw reasonError('resource-exhausted', 'Too many map requests; try again shortly', 'rate_limited');
+  let session: FirebaseFirestore.DocumentSnapshot | undefined;
+  if (typeof token === 'string') {
+    session = await db.collection('map_group_sessions').doc(token).get();
+    if (!session.exists || session.get('owner_luid') !== luid
+      || ![session.get('requested_group_id'), session.get('group_id')].includes(requestedId)
+      || !(session.get('expires_at') instanceof Timestamp) || session.get('expires_at').toMillis() <= Date.now()) {
+      throw new HttpsError('failed-precondition', 'Map group page expired; refresh the group');
+    }
+  }
+  const { canonicalId, allowed } = await mapGroupDocuments(session?.get('group_id') ?? requestedId,
+    session?.get('post_ids') ?? [...new Set(hints)], luid, blocked);
+  if (session && session.get('group_id') !== canonicalId) await session.ref.update({ group_id: canonicalId });
+  allowed.sort((a, b) => Number(b.get('likes_count') ?? 0) - Number(a.get('likes_count') ?? 0)
+    || (b.get('created_at')?.toMillis?.() ?? 0) - (a.get('created_at')?.toMillis?.() ?? 0) || a.id.localeCompare(b.id, 'en'));
+  const group = allowed.length ? mapGroupSummary(canonicalId, allowed.map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng') }))) : null;
+  const area = group ? { ...group, id: canonicalId.slice(5), groupId: canonicalId } : undefined;
+  // Freeze the ordered IDs, never text or an access grant. Later pages recheck current
+  // membership, blocks, account fences and fresh on-site location before serializing bodies.
+  const order: string[] = session ? session.get('post_ids') : allowed.map(d => d.id);
+  const byId = new Map(allowed.map(d => [d.id, d]));
+  const start = Number(offset), end = start + 50;
+  const page = order.slice(start, end).flatMap(id => byId.has(id) ? [byId.get(id)!] : []);
+  const posts = await rows(page, luid, body.location as Fix | undefined, area);
+  const nextOffset = end < order.length ? end : null;
+  let pageToken: string | null = typeof token === 'string' ? token : null;
+  if (nextOffset != null && !pageToken) {
+    pageToken = randomUUID();
+    await db.collection('map_group_sessions').doc(pageToken).set({ owner_luid: luid,
+      requested_group_id: requestedId, group_id: canonicalId, post_ids: order,
+      created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(Date.now() + UNLOCK_TTL_MS) });
+  }
+  // Comments use Firestore rules. This location-free receipt cannot unlock note bodies.
+  const readable = posts as Array<{ id: string; locked?: boolean; note_kind?: string }>;
+  const notes = readable.filter(post => post.note_kind === 'location' && !post.locked);
+  if (notes.length) {
+    const batch = db.batch();
+    for (const post of notes) batch.set(db.collection('dense_spot_unlocks').doc(`${luid}_note_${post.id}`), {
+      owner_luid: luid, post_id: post.id, kind: 'note_read', created_at: FieldValue.serverTimestamp(),
+      expires_at: Timestamp.fromMillis(Date.now() + UNLOCK_TTL_MS),
+    });
+    await batch.commit();
+  }
+  return { posts, nextOffset, pageToken, total: order.filter(id => byId.has(id)).length, group };
 }
 
 async function readFeed(body: Record<string, unknown>, luid: string, blocked: BlockSets, mode: string) {

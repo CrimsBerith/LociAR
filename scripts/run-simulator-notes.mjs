@@ -147,12 +147,27 @@ try {
   const nativeResult = command('xcrun', ['xcresulttool', 'get', 'test-results', 'summary', '--path', join(output, 'native-tests.xcresult')]);
   assert.equal(nativeResult.status, 0);
   const nativeSummary = JSON.parse(nativeResult.stdout);
-  assert.ok(nativeSummary.passedTests > 0 && nativeSummary.failedTests === 0 && nativeSummary.skippedTests <= 1
+  const nativeTree = command('xcrun', ['xcresulttool', 'get', 'test-results', 'tests', '--path', join(output, 'native-tests.xcresult')]);
+  assert.equal(nativeTree.status, 0);
+  const physicalOnly = new Set(['ArrivalRuntimeTests/testPhysicalCameraFramesResumeAcrossNewPinSessions()',
+    'ArrivalRuntimeTests/testPhysicalGPSStreamStopsAndRestartsWithNewMeasurements()']);
+  const skipped = [];
+  function collectSkipped(value) {
+    if (Array.isArray(value)) value.forEach(collectSkipped);
+    else if (value && typeof value === 'object') {
+      if (value.nodeType === 'Test Case' && value.result === 'Skipped') skipped.push(value.nodeIdentifier);
+      Object.values(value).forEach(collectSkipped);
+    }
+  }
+  collectSkipped(JSON.parse(nativeTree.stdout));
+  assert.ok(nativeSummary.passedTests > 0 && nativeSummary.failedTests === 0
+    && skipped.length === nativeSummary.skippedTests && skipped.every(id => physicalOnly.has(id))
     && nativeSummary.totalTestCount === nativeSummary.passedTests + nativeSummary.skippedTests, 'Incomplete native test evidence.');
   writeFileSync(join(output, 'native-summary.json'), JSON.stringify(nativeSummary, null, 2));
   const allTests = ['testEmulator01SignUpVerifyAndSignIn', 'testEmulator02CameraFreeNotePublishesAndAppearsWithoutManualRefresh',
     'testEmulator02bMissingFixDoesNotPublishAndFreshFixAllowsRetry',
     'testEmulator02cFilteredTextIsLocalizedAndRetryPublishes',
+    'testEmulator02dMapGroupRequiresOnSiteFixAndRanksAllNotes',
     'testEmulator03BrowseTabsAndEditProfile', 'testEmulator04NotificationConsentPersistsWithoutMarketingOrLocationSharing',
     'testEmulator05SignOutAndBackIn', 'testEmulator06LocationEntryQueuesOneNotificationAndOpensTheNote',
     'testEmulator07AdminNotificationOpensActivityWithMarketingOff', 'testEmulator07bAdminNotificationColdLaunchOpensActivity',

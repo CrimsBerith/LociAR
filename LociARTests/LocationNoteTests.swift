@@ -316,21 +316,53 @@ final class NoteMapLayerTests: XCTestCase {
         XCTAssertEqual(capped.map(\.count), capped.map(\.count).sorted(by: >))
     }
 
-    func testHeatPaletteRunsFromBrandMintToWarmPink() {
-        let low = NoteHeatPalette.rgb(0), mid = NoteHeatPalette.rgb(0.5), high = NoteHeatPalette.rgb(1)
-        XCTAssertEqual(low.red, 0.22, accuracy: 1e-9); XCTAssertEqual(low.green, 0.88, accuracy: 1e-9); XCTAssertEqual(low.blue, 0.72, accuracy: 1e-9)
-        XCTAssertEqual(mid.red, 0.56, accuracy: 1e-9); XCTAssertEqual(mid.blue, 1.0, accuracy: 1e-9)
-        XCTAssertEqual(high.red, 1.0, accuracy: 1e-9); XCTAssertEqual(high.green, 0.47, accuracy: 1e-9)
-        XCTAssertEqual(NoteHeatPalette.rgb(-1).green, low.green, accuracy: 1e-9, "values are clamped")
-        XCTAssertGreaterThan(NoteHeatPalette.rgb(0.75).red, mid.red)
+    func testGlassDensityPaletteRunsFromMintThroughAquaToAmber() {
+        let low = NoteHeatPalette.rgb(0), mid = NoteHeatPalette.rgb(0.55), high = NoteHeatPalette.rgb(1)
+        XCTAssertEqual(low.red, 0.22, accuracy: 1e-9)
+        XCTAssertEqual(low.green, 0.88, accuracy: 1e-9)
+        XCTAssertGreaterThan(mid.blue, mid.green)
+        XCTAssertGreaterThan(high.red, high.blue)
+        XCTAssertLessThan(high.blue, mid.blue)
+        XCTAssertEqual(NoteHeatPalette.rgb(-1).green, low.green, accuracy: 1e-9)
+        XCTAssertEqual(NoteHeatPalette.rgb(2).red, high.red, accuracy: 1e-9)
     }
 
     func testHeatIntensityIsLogScaledAndBounded() {
-        XCTAssertEqual(NoteDensityCell.intensity(0, max: 10), 0)
-        XCTAssertEqual(NoteDensityCell.intensity(10, max: 10), 1, accuracy: 1e-9)
-        XCTAssertGreaterThan(NoteDensityCell.intensity(1, max: 100), 0.1, "a single note still shows")
-        XCTAssertLessThan(NoteDensityCell.intensity(1, max: 100), NoteDensityCell.intensity(10, max: 100))
+        XCTAssertEqual(NoteDensityCell.intensity(0), 0)
+        XCTAssertEqual(NoteDensityCell.intensity(100), 1, accuracy: 1e-9)
+        XCTAssertEqual(NoteDensityCell.intensity(1_000), NoteDensityCell.intensity(100), "extreme counts remain bounded")
+        XCTAssertGreaterThan(NoteDensityCell.intensity(1), 0.1, "a single note still shows")
+        XCTAssertLessThan(NoteDensityCell.intensity(1), NoteDensityCell.intensity(10))
     }
+    func testMapGroupReadingRequiresPhysicalProximityAndFreshAccurateFix() {
+        let now = Date()
+        let group = MapNoteGroup(id: "post:one", lat: 41, lng: 29, count: 10, radius: 0, postIDs: [])
+        let near = LocationSample(latitude: 41, longitude: 29, accuracy: 6, timestamp: now)
+        XCTAssertTrue(group.isNear(near, unlockRadius: 15, now: now))
+        XCTAssertFalse(group.isNear(nil, unlockRadius: 15, now: now))
+        XCTAssertFalse(group.isNear(near, unlockRadius: 15, now: now.addingTimeInterval(11)))
+        XCTAssertFalse(group.isNear(LocationSample(latitude: 41.001, longitude: 29, accuracy: 6, timestamp: now), unlockRadius: 15, now: now))
+        XCTAssertFalse(group.isNear(LocationSample(latitude: 41, longitude: 29, accuracy: 60, timestamp: now), unlockRadius: 15, now: now))
+        XCTAssertFalse(group.isNear(LocationSample(latitude: 41, longitude: 29, accuracy: 6, timestamp: now, simulated: true), unlockRadius: 15, now: now))
+    }
+
+    func testMapBadgesMergeNearbyPlacesWithoutSplittingTheirActualNotes() {
+        let a = MapNoteGroup(id: "spot:a", lat: 41, lng: 29, count: 10, radius: 0, postIDs: [])
+        let b = MapNoteGroup(id: "spot:b", lat: 41, lng: 29.0003, count: 3, radius: 0, postIDs: [])
+        let c = MapNoteGroup(id: "spot:c", lat: 41, lng: 29.02, count: 2, radius: 0, postIDs: [])
+        let far = MapNoteCluster.cluster([a, b, c], longitudeSpan: 0.01, viewportWidth: 390, centerLongitude: 29)
+        XCTAssertEqual(far.map(\.count), [13, 2])
+        XCTAssertEqual(far[0].groups.map(\.id), ["spot:a", "spot:b"])
+        let near = MapNoteCluster.cluster([a, b], longitudeSpan: 0.0005, viewportWidth: 390, centerLongitude: 29)
+        XCTAssertEqual(near.map(\.count), [10, 3], "zooming reveals each real place; ten notes stay one place")
+    }
+
+    func testSidePanelResolvesSmallGroupByMembershipWhenNearestNoteIsNotItsAnchor() {
+        let group = MapNoteGroup(id: "post:first", lat: 41, lng: 29, count: 2, radius: 12, postIDs: ["first", "nearest"])
+        XCTAssertEqual(MapNoteGroup.containing("nearest", groupID: "post:nearest", in: [group]), group)
+        XCTAssertNil(MapNoteGroup.containing("missing", groupID: "post:missing", in: [group]))
+    }
+
 }
 
 final class DenseSpotTests: XCTestCase {

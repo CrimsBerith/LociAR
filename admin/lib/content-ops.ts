@@ -153,7 +153,8 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
     const anchor = moved && typeof oldCloudId === 'string' ? await tx.get(db.collection('cloud_anchors').doc(oldCloudId)) : null;
     const physical = before.exists && oldPose.anchor?.coordinateSpace !== 'admin_geo_estimate' && oldPose.anchor?.coordinateSpace !== 'camera_free_space';
     if (moved && physical && !input.replacePlacement) throw new ConflictError('confirm_approximate_replacement');
-    const changed = postChanges(input, id, actorId, before, blockedZones, moved);
+    const changed = { ...postChanges(input, id, actorId, before, blockedZones, moved),
+      admin_managed: author.get('admin_managed') === true };
     tx.delete(db.collection('media_purge_queue').doc(id));
     if (anchor?.exists && anchor.get('post_id') === id) {
       tx.update(anchor.ref,{state:'deleting',expires_at:FieldValue.delete()});

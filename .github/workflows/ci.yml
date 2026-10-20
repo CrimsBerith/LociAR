@@ -35,6 +35,7 @@ jobs:
       - run: python3 scripts/store-metadata/build.py --check
       - run: python3 scripts/seed/world_capitals.py --check
       - run: python3 scripts/seed/landmark_businesses.py --check
+      - run: python3 scripts/seed/turkey_launch.py --check
 
   functions:
     name: Functions (typecheck + unit tests)

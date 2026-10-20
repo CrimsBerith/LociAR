@@ -5,6 +5,13 @@
 const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
 const EARTH_RADIUS_M = 6_371_008.8;
 
+/** Mean of nearby longitudes, keeping neighbours across ±180° in the same place. */
+export function meanLongitude(longitudes: number[]): number {
+  const anchor = longitudes[0];
+  const delta = longitudes.reduce((sum, lng) => sum + ((lng - anchor + 540) % 360 - 180), 0) / longitudes.length;
+  return (anchor + delta + 540) % 360 - 180;
+}
+
 export function encodeGeohash(latitude: number, longitude: number, precision = 10): string {
   let latMin = -90, latMax = 90, lngMin = -180, lngMax = 180;
   let hash = '';

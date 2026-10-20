@@ -6076,6 +6076,83 @@
         }
       }
     },
+    "Bu cihazda veya dilde çeviri kullanılamıyor." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu cihazda veya dilde çeviri kullanılamıyor."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation is unavailable on this device or for this language."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät oder für diese Sprache ist keine Übersetzung verfügbar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La traducción no está disponible en este dispositivo o para este idioma."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La traduction n’est pas disponible sur cet appareil ou pour cette langue."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A tradução não está disponível neste dispositivo ou para este idioma."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевод недоступен на этом устройстве или для этого языка."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الترجمة غير متاحة على هذا الجهاز أو لهذه اللغة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस डिवाइस पर या इस भाषा के लिए अनुवाद उपलब्ध नहीं है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই ডিভাইসে বা এই ভাষায় অনুবাদ উপলভ্য নয়।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末または言語では翻訳を利用できません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备或语言暂不支持翻译。"
+          }
+        }
+      }
+    },
     "Bu giriş yöntemi artık desteklenmiyor. E-posta ve şifre ya da Apple ile giriş yap." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7458,83 +7535,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此地点的笔记 · 最多点赞优先"
-          }
-        }
-      }
-    },
-    "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bu not %lld notluk yoğun bir noktada. Okumak için %lld m yaklaş ve haritadan Burada aç’a bas."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This note is in a busy spot with %lld notes. To read it, get within %lld m and tap Open here on the map."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diese Notiz liegt an einem vollen Ort mit %lld Notizen. Um sie zu lesen, komm auf %lld m heran und tippe auf der Karte auf „Hier öffnen“."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esta nota está en un punto concurrido con %lld notas. Para leerla, acércate a %lld m y toca Abrir aquí en el mapa."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cette note se trouve dans un lieu dense de %lld notes. Pour la lire, approche-toi à %lld m et touche Ouvrir ici sur la carte."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esta nota está num ponto movimentado com %lld notas. Para ler, chegue a %lld m e toque em Abrir aqui no mapa."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Эта заметка в месте, где %lld заметок. Чтобы прочитать, подойдите на %lld м и нажмите «Открыть здесь» на карте."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "هذه الملاحظة في مكان مزدحم يضم %lld ملاحظة. لقراءتها اقترب حتى %lld م واضغط افتح هنا على الخريطة."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "यह नोट %lld नोट वाली भीड़ भरी जगह पर है। पढ़ने के लिए %lld मी तक पास आएँ और मानचित्र पर यहाँ खोलें दबाएँ।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "এই নোটটি %lldটি নোটের একটি ভিড়ের জায়গায়। পড়তে %lld মি-এর মধ্যে আসুন এবং মানচিত্রে এখানে খুলুন চাপুন।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このメモは%lld件のメモが集まる場所にあります。読むには%lld m以内に近づき、地図で「ここで開く」をタップしてください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这条笔记位于有 %lld 条笔记的热门地点。要阅读，请走到 %lld 米以内，然后在地图上点击“在这里打开”。"
           }
         }
       }
@@ -9520,6 +9520,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将设备存放在阴凉处。当温度恢复正常时，AR 扫描会自动继续。"
+          }
+        }
+      }
+    },
+    "Cihazında çevrildi" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cihazında çevrildi"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translated on your device"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf deinem Gerät übersetzt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducido en tu dispositivo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduit sur votre appareil"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzido no seu dispositivo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переведено на вашем устройстве"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تُرجمت على جهازك"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपके डिवाइस पर अनुवाद किया गया"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার ডিভাইসে অনুবাদ করা হয়েছে"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端末内で翻訳されました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在你的设备上翻译"
           }
         }
       }
@@ -16989,83 +17066,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "还没有帖子"
-          }
-        }
-      }
-    },
-    "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Henüz yeterince yakın değilsin. Noktaya %lld m kadar yaklaş; dışarıda AR kamerası daha hassastır."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You are not close enough yet. Get within %lld m of the spot; outdoors the AR camera is more precise."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Du bist noch nicht nah genug. Komm bis auf %lld m an den Ort heran; draußen ist die AR-Kamera genauer."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aún no estás lo bastante cerca. Acércate a %lld m del punto; al aire libre la cámara AR es más precisa."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tu n’es pas encore assez près. Approche-toi à %lld m de l’endroit ; dehors, la caméra AR est plus précise."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você ainda não está perto o suficiente. Chegue a %lld m do ponto; ao ar livre a câmera AR é mais precisa."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вы ещё недостаточно близко. Подойдите к месту на %lld м; на улице AR-камера точнее."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "لست قريبًا بما يكفي بعد. اقترب حتى %lld م من المكان؛ في الخارج تكون كاميرا الواقع المعزز أدق."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "आप अभी पर्याप्त पास नहीं हैं। जगह से %lld मी तक पास आएँ; बाहर AR कैमरा अधिक सटीक है।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "আপনি এখনো যথেষ্ট কাছে নেই। জায়গার %lld মি-এর মধ্যে আসুন; বাইরে AR ক্যামেরা বেশি নির্ভুল।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "まだ十分に近くありません。その場所から%lld m以内に近づいてください。屋外ではARカメラの方が正確です。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你还不够近。请走到距该地点 %lld 米以内；在户外 AR 相机更精确。"
           }
         }
       }
@@ -28851,6 +28851,83 @@
         }
       }
     },
+    "Not yoğunluğu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not yoğunluğu"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note density"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizdichte"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Densidad de notas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Densité des notes"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Densidade de notas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Плотность заметок"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كثافة الملاحظات"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट घनत्व"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোটের ঘনত্ব"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノート密度"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "笔记密度"
+          }
+        }
+      }
+    },
     "Notları görmek için yaklaş ve haritada aç." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28924,6 +29001,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "走近并在地图上打开即可阅读这些笔记。"
+          }
+        }
+      }
+    },
+    "Notları otomatik çevir" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notları otomatik çevir"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate notes automatically"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizen automatisch übersetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir notas automáticamente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire les notes automatiquement"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir notas automaticamente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически переводить заметки"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ترجمة الملاحظات تلقائيًا"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट का अपने आप अनुवाद करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট স্বয়ংক্রিয়ভাবে অনুবাদ করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを自動翻訳"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动翻译笔记"
           }
         }
       }
@@ -29232,6 +29386,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "创建"
+          }
+        }
+      }
+    },
+    "Orijinali göster" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orijinali göster"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show original"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher l’original"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar original"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать оригинал"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إظهار النص الأصلي"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मूल दिखाएँ"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মূল লেখা দেখান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原文を表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示原文"
           }
         }
       }
@@ -42942,83 +43173,6 @@
         }
       }
     },
-    "Yoğun nokta: %lld not. Açmak için %lld m yaklaş." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yoğun nokta: %lld not. Açmak için %lld m yaklaş."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Busy spot: %lld notes. Get within %lld m to open them."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Voller Ort: %lld Notizen. Komm auf %lld m heran, um sie zu öffnen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Punto concurrido: %lld notas. Acércate a %lld m para abrirlas."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lieu dense : %lld notes. Approche-toi à %lld m pour les ouvrir."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ponto movimentado: %lld notas. Chegue a %lld m para abri-las."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Популярное место: %lld заметок. Подойдите на %lld м, чтобы открыть."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "مكان مزدحم: %lld ملاحظة. اقترب حتى %lld م لفتحها."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "भीड़ भरी जगह: %lld नोट। खोलने के लिए %lld मी तक पास आएँ।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ভিড়ের জায়গা: %lldটি নোট। খুলতে %lld মি-এর মধ্যে আসুন।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "メモが集まる場所：%lld件。開くには%lld m以内に近づいてください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "热门地点：%lld 条笔记。走到 %lld 米以内即可打开。"
-          }
-        }
-      }
-    },
     "Yön aranıyor" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -46484,6 +46638,468 @@
         }
       }
     },
+    "Çevir" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çevir"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевести"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ترجمة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुवाद करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুবাদ করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译"
+          }
+        }
+      }
+    },
+    "Çeviri" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çeviri"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducción"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduction"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tradução"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевод"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الترجمة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुवाद"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুবাদ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译"
+          }
+        }
+      }
+    },
+    "Çeviri cihazında yapılır. İndirilen ve desteklenen dillerde notları uygulama dilinde gösterir. Dil paketleri için internet gerekebilir. Desteklenmeyen dillerde veya iOS sürümlerinde orijinal metin gösterilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çeviri cihazında yapılır. İndirilen ve desteklenen dillerde notları uygulama dilinde gösterir. Dil paketleri için internet gerekebilir. Desteklenmeyen dillerde veya iOS sürümlerinde orijinal metin gösterilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation happens on your device. Notes appear in the app language when the languages are supported and downloaded. Language packs may require internet. The original text appears for unsupported languages or iOS versions."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Übersetzung erfolgt auf deinem Gerät. Bei unterstützten und heruntergeladenen Sprachen erscheinen Notizen in der App-Sprache. Sprachpakete benötigen möglicherweise Internet. Bei nicht unterstützten Sprachen oder iOS-Versionen wird der Originaltext angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La traducción se realiza en tu dispositivo. Las notas aparecen en el idioma de la app si los idiomas son compatibles y están descargados. Los paquetes de idiomas pueden requerir internet. Se muestra el texto original si el idioma o la versión de iOS no es compatible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La traduction s’effectue sur votre appareil. Les notes s’affichent dans la langue de l’app si les langues sont prises en charge et téléchargées. Les packs de langues peuvent nécessiter Internet. Le texte original s’affiche si la langue ou la version d’iOS n’est pas prise en charge."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A tradução é feita no seu dispositivo. As notas aparecem no idioma do app quando os idiomas são compatíveis e estão baixados. Os pacotes de idiomas podem exigir internet. O texto original é exibido para idiomas ou versões do iOS não compatíveis."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевод выполняется на вашем устройстве. Заметки отображаются на языке приложения, если языки поддерживаются и загружены. Для загрузки языковых пакетов может потребоваться интернет. Для неподдерживаемых языков или версий iOS отображается исходный текст."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تتم الترجمة على جهازك. تظهر الملاحظات بلغة التطبيق عند دعم اللغات وتنزيلها. قد تتطلب حزم اللغات اتصالًا بالإنترنت. يظهر النص الأصلي للغات أو إصدارات iOS غير المدعومة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुवाद आपके डिवाइस पर होता है। समर्थित और डाउनलोड की गई भाषाओं में नोट ऐप की भाषा में दिखते हैं। भाषा पैक के लिए इंटरनेट की ज़रूरत हो सकती है। असमर्थित भाषाओं या iOS संस्करणों पर मूल पाठ दिखता है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুবাদ আপনার ডিভাইসে হয়। সমর্থিত ও ডাউনলোড করা ভাষায় নোট অ্যাপের ভাষায় দেখানো হয়। ভাষার প্যাকের জন্য ইন্টারনেট লাগতে পারে। অসমর্থিত ভাষা বা iOS সংস্করণে মূল লেখা দেখানো হয়।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳は端末内で行われます。対応する言語がダウンロード済みの場合、メモはアプリの言語で表示されます。言語パックのダウンロードにはインターネット接続が必要な場合があります。未対応の言語やiOSバージョンでは原文が表示されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译在你的设备上完成。对于支持且已下载的语言，笔记将以应用语言显示。下载语言包可能需要互联网连接。不支持的语言或 iOS 版本将显示原文。"
+          }
+        }
+      }
+    },
+    "Çeviri için dil paketi indirmen gerekebilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çeviri için dil paketi indirmen gerekebilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You may need to download a language pack to translate."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Übersetzen musst du möglicherweise ein Sprachpaket laden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puede que necesites descargar un paquete de idioma para traducir."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous devrez peut-être télécharger un pack de langue pour traduire."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Talvez seja necessário baixar um pacote de idioma para traduzir."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для перевода может потребоваться загрузить языковой пакет."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قد تحتاج إلى تنزيل حزمة لغة للترجمة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुवाद करने के लिए आपको भाषा पैक डाउनलोड करना पड़ सकता है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুবাদ করতে একটি ভাষার প্যাক ডাউনলোড করতে হতে পারে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳には言語パックのダウンロードが必要な場合があります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译可能需要下载语言包。"
+          }
+        }
+      }
+    },
+    "Çeviri tamamlanamadı. Tekrar deneyebilirsin." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çeviri tamamlanamadı. Tekrar deneyebilirsin."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation couldn't be completed. You can try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Übersetzung konnte nicht abgeschlossen werden. Versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo completar la traducción. Puedes intentarlo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La traduction n’a pas pu être terminée. Vous pouvez réessayer."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível concluir a tradução. Você pode tentar novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось завершить перевод. Попробуйте ещё раз."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر إكمال الترجمة. يمكنك المحاولة مجددًا."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुवाद पूरा नहीं हो सका। दोबारा कोशिश कर सकते हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুবাদ সম্পূর্ণ করা যায়নি। আবার চেষ্টা করতে পারেন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳を完了できませんでした。もう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法完成翻译，请重试。"
+          }
+        }
+      }
+    },
+    "Çeviriyi göster" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çeviriyi göster"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show translation"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzung anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar traducción"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la traduction"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar tradução"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать перевод"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إظهار الترجمة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुवाद दिखाएँ"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুবাদ দেখান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳を表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示译文"
+          }
+        }
+      }
+    },
     "Çevre değişti; post dünya konumunda duruyor." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -47404,6 +48020,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "扫描环境"
+          }
+        }
+      }
+    },
+    "Çevriliyor…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çevriliyor…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translating…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird übersetzt…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduciendo…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduction en cours…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzindo…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевод…"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ الترجمة…"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुवाद हो रहा है…"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুবাদ হচ্ছে…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳中…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在翻译…"
           }
         }
       }

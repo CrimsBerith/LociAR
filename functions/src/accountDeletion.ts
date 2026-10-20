@@ -100,7 +100,8 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       await forEachSequential(posts.docs, async (post) => {
         checkBudget();
         await deleteAnchorOfPost(post.get('cloud_anchor_id'), post.id);
-        await forEachSequential(['likes', 'comments', 'post_saves', 'collection_items', 'filtered_comments', 'activity_events', 'place_note_notification_receipts'], async (collection) => {
+        await deleteQuery(db.collection('map_group_sessions').where('post_ids', 'array-contains', post.id));
+        await forEachSequential(['likes', 'comments', 'post_saves', 'collection_items', 'filtered_comments', 'activity_events', 'place_note_notification_receipts', 'dense_spot_unlocks'], async (collection) => {
           await deleteQuery(db.collection(collection).where('post_id', '==', post.id));
         });
         await db.collection('media_purge_queue').doc(post.id).delete();
@@ -145,7 +146,7 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ['post_view_receipts', 'user_id'], ['analytics_events', 'user_id'],
       ['user_data_preferences', 'owner_luid'], ['user_device_context', 'owner_luid'], ['user_locations', 'owner_luid'],
       ['campaign_targets', 'owner_luid'], ['campaign_departure_regions', 'owner_luid'], ['campaign_view_receipts', 'owner_luid'], ['brand_memberships', 'owner_luid'], ['brand_submission_quota', 'owner_luid'],
-      ['place_note_notification_receipts', 'owner_luid'], ['dense_spot_unlocks', 'owner_luid'], ['campaign_progress', 'owner_luid'], ['campaign_codes', 'owner_luid'], ['dense_spot_receipts', 'owner_luid'],
+      ['place_note_notification_receipts', 'owner_luid'], ['dense_spot_unlocks', 'owner_luid'], ['map_group_sessions', 'owner_luid'], ['campaign_progress', 'owner_luid'], ['campaign_codes', 'owner_luid'], ['dense_spot_receipts', 'owner_luid'],
       ['admin_notification_jobs', 'owner_luid'], ['admin_notification_receipts', 'owner_luid'], ['promotion_push_quota', 'owner_luid'],
       ['brands', 'author_luid'], ['campaigns', 'author_luid'], ['campaigns', 'submitted_by'], ['campaign_locations', 'author_luid'],
       ['post_quota', 'owner_luid'], ['anchor_quota', 'owner_luid'], ['arcore_token_quota', 'owner_luid'], ['gif_search_quota', 'owner_luid'],

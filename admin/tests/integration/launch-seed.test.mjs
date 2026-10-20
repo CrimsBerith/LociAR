@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { readFileSync } from 'node:fs';
 import { initializeApp, getApps, deleteApp } from 'firebase-admin/app';
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? '', /^(localhost|127\.0\.0\.1):\d+$/);
 initializeApp({ projectId: 'demo-lociar' });
@@ -47,6 +48,7 @@ test('the launch seed importer checks first, loads each place once through the a
   assert.match(load.stdout, /Loaded 8 items\./, 'approximate anchors stay held without --allow-approx');
   const posts = (await seedPosts()).map(doc => doc.data());
   assert.equal(posts.length, 8);
+  assert.ok(posts.every(p => p.admin_managed === true), 'only a managed author gives a post the official badge');
   assert.ok(posts.every(p => p.creator_id === author && p.created_by_admin === actor && p.status === 'active' && p.geospatial === false));
   assert.equal(posts.filter(p => p.note_kind === 'location').length, 7);
   assert.equal(posts.filter(p => p.push_state === 'approved').length, 1, 'one note per place notifies');
@@ -61,6 +63,19 @@ test('the launch seed importer checks first, loads each place once through the a
   const businesses = await importer('--seed', 'landmark-businesses', '--actor', actor);
   assert.equal(businesses.code, 0, businesses.stderr);
   assert.match(businesses.stdout, /\b\d+ items: 0 already loaded, 0 with problems,/);
+
+  for (const batch of ['istanbul-beta', 'turkey-streets']) {
+    const drafts = await importer('--seed', batch, '--actor', actor);
+    assert.equal(drafts.code, 0, drafts.stderr);
+    assert.match(drafts.stdout, /0 with problems,/);
+  }
+  const istanbul = JSON.parse(readFileSync(new URL('../../../scripts/seed/istanbul-beta.json', import.meta.url), 'utf8'));
+  const fieldAR = istanbul.items.find(item => item.placement_requirement === 'field_cloud_anchor');
+  const fieldAttempt = await importer('--seed', 'istanbul-beta', '--actor', actor, '--only', fieldAR.id, '--apply', '--allow-approx');
+  assert.equal(fieldAttempt.code, 0, fieldAttempt.stderr);
+  assert.match(fieldAttempt.stdout, /1 AR drafts require an on-site Cloud Anchor/);
+  assert.match(fieldAttempt.stdout, /Loaded 0 items\./);
+  assert.equal((await db.collection('posts').where('seed_batch', '==', istanbul.batch).get()).empty, true);
 
   const retire = await run('--retire');
   assert.equal(retire.code, 0, retire.stderr);

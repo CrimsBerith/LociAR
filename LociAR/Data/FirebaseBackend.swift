@@ -318,6 +318,7 @@ enum FirestorePostMapper {
             "views_count": data["views_count"] ?? 0,
             "likes_count": data["likes_count"] ?? 0,
             "comments_count": data["comments_count"] ?? 0,
+            "admin_managed": data["admin_managed"] as? Bool ?? false,
         ]
         return try FirestoreJSON.decode(BackendPostRow.self, from: object)
     }

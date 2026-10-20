@@ -5,6 +5,7 @@ import UIKit
 
 struct MapFeatureView: View {
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(\.modelContext) private var modelContext
@@ -23,12 +24,16 @@ struct MapFeatureView: View {
     @State private var visibleRegion: MKCoordinateRegion?
     @State private var layer: NoteMapLayer = .notes
     @State private var densityCells: [NoteDensityCell] = []
+    @State private var densityPrecision: Int?
     @State private var heatBlobs: [NoteHeatBlob] = []
+    @State private var mapGroups: [MapNoteGroup] = []
+    @State private var mapUnlockRadius: Double = 15
+    @State private var selectedMapGroup: MapNoteGroup?
+    @State private var selectedMapGroupFix: LocationSample?
+    @State private var mapWidth: Double = 390
     @State private var densityTask: Task<Void, Never>?
     /// Notes of a tapped 25 m group, listed by likes in the panel.
     @State private var clusterFocus: Set<UUID>?
-    @State private var unlocking = false
-    @State private var unlockMessage: String?
     @State private var showCameraUnlock = false
 
     /// Guests browse only; leaving a note needs a verified account (AccountRequiredView).
@@ -37,30 +42,48 @@ struct MapFeatureView: View {
         return false
     }
 
+    private var usesMapGroups: Bool { !layer.isHeat && container.isBackendConfigured && !session.isLocalPreview }
+    private var mapClusters: [MapNoteCluster] {
+        MapNoteCluster.cluster(mapGroups, longitudeSpan: visibleRegion?.span.longitudeDelta ?? 0.01,
+                               viewportWidth: mapWidth, centerLongitude: visibleRegion?.center.longitude ?? 0)
+    }
+    private var unlistedOwnPosts: [LociPost] {
+        guard case let .signedIn(user) = session.phase else { return [] }
+        let listed = Set(mapGroups.flatMap(\.postIDs))
+        return posts.filter { $0.creatorID == user.id && !listed.contains($0.id.uuidString.lowercased()) }
+    }
+
     var body: some View {
         Map(position: $camera, selection: $selection) {
             UserAnnotation()
             if layer.isHeat {
                 NoteHeatContent(blobs: heatBlobs) { blob in zoomCloser(to: blob.coordinate) }
             }
-            if layer == .counts {
-                let maxCount = densityCells.map(\.count).max() ?? 0
-                ForEach(densityCells) { cell in
-                    Annotation("\(cell.count) not", coordinate: cell.coordinate) {
-                        Button { zoom(into: cell.coordinate) } label: {
-                            countBubble(cell.count, intensity: NoteDensityCell.intensity(cell.count, max: maxCount))
+            if usesMapGroups {
+                ForEach(mapClusters) { cluster in
+                    let noteCount = cluster.count
+                    Annotation("\(noteCount) not", coordinate: cluster.coordinate) {
+                        Button {
+                            if cluster.groups.count == 1, let group = cluster.groups.first {
+                                selectedMapGroupFix = nil; selectedMapGroup = group
+                            } else {
+                                zoomCloser(to: cluster.coordinate, minimumDistance: 80)
+                            }
+                        } label: {
+                            countBubble(cluster.count, intensity: NoteDensityCell.intensity(cluster.count))
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(Text("\(cell.count) not"))
+                        .accessibilityLabel(Text("\(noteCount) not"))
+                        .accessibilityIdentifier("map-note-group-\(cluster.id)")
                     }
                     .annotationTitles(.hidden)
                 }
             }
-            if layer == .notes {
+            if layer == .notes && !usesMapGroups {
             ForEach(clusters) { cluster in
                 if cluster.posts.count == 1, let post = cluster.posts.first {
                     Marker(
-                        post.caption.isEmpty ? "LociAR Pin" : post.caption,
+                        postTitle(post),
                         systemImage: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill",
                         coordinate: cluster.coordinate
                     )
@@ -79,14 +102,31 @@ struct MapFeatureView: View {
                 }
             }
             }
+            if layer == .notes && usesMapGroups {
+                ForEach(unlistedOwnPosts) { post in
+                    if let geo = post.anchorBundle.anchor.geoPose {
+                        Marker(postTitle(post), systemImage: "mappin.and.ellipse",
+                               coordinate: CLLocationCoordinate2D(latitude: geo.latitude, longitude: geo.longitude))
+                            .tint(LociTheme.accent).tag(post.id)
+                    }
+                }
+            }
         }
-        // A quieter base map while zoomed out lets the heat glow carry the view.
-        .mapStyle(.standard(elevation: .realistic, emphasis: layer.isHeat ? .muted : .automatic,
-                            pointsOfInterest: .including([.cafe, .museum, .park])))
+        .mapStyle(.standard(elevation: layer.isHeat ? .flat : .realistic,
+                            emphasis: layer.isHeat ? .muted : .automatic,
+                            pointsOfInterest: layer.isHeat ? .excludingAll : .including([.cafe, .museum, .park])))
         .mapControls { MapCompass(); MapUserLocationButton() }
+        .onGeometryChange(for: Double.self) { Double($0.size.width) } action: { mapWidth = $0 }
+        .overlay(alignment: .topLeading) {
+            if layer.isHeat { NoteHeatLegend().padding(12) }
+        }
         .onMapCameraChange(frequency: .onEnd) { context in
             visibleRegion = context.region
             refreshLayer(for: context.region)
+        }
+        .sheet(item: $selectedMapGroup) { group in
+            MapNoteGroupSheet(group: group, unlockRadius: mapUnlockRadius,
+                              initialFix: selectedMapGroupFix ?? DenseSpotClient.bestFix(gps: location.freshLocation(), camera: container.arcore.cameraFix))
         }
         .sheet(isPresented: $showPlaceNote, onDismiss: {
             selection = nil
@@ -189,7 +229,7 @@ struct MapFeatureView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(selectedPost.caption.isEmpty ? String(localized: "Mekânsal post") : selectedPost.caption)
+                            Text(postTitle(selectedPost))
                                 .font(.headline).lineLimit(2)
                             Label(distanceText(for: selectedPost).localizedUI, systemImage: "location.fill")
                                 .font(.caption).foregroundStyle(.secondary)
@@ -204,12 +244,16 @@ struct MapFeatureView: View {
                         .accessibilityLabel("Seçimi kapat")
                         .accessibilityIdentifier("map-clear-selection")
                     }
+                    if let spot = selectedPost.denseSpot {
+                        denseSpotBanner(spot)
+                    } else {
                     NavigationLink(value: selectedPost) {
                         Label("Postu aç", systemImage: "arrow.up.right")
                             .frame(maxWidth: .infinity, minHeight: 34)
                     }
                     .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
                     .accessibilityIdentifier("map-open-selected-post")
+                    }
                 }
             } else {
                 VStack(spacing: 12) {
@@ -258,9 +302,10 @@ struct MapFeatureView: View {
                         if let spot = listedPosts.lazy.compactMap(\.denseSpot).first {
                             denseSpotBanner(spot)
                         }
+                        if listedPosts.contains(where: { !$0.isLocked }) {
                         ScrollView {
                             VStack(spacing: 10) {
-                                ForEach(listedPosts) { post in
+                                ForEach(listedPosts.filter { !$0.isLocked }) { post in
                                     NavigationLink(value: post) {
                                         HStack(spacing: 10) {
                                             Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
@@ -282,14 +327,16 @@ struct MapFeatureView: View {
                                         .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
+                                    .disabled(post.isLocked)
                                     .accessibilityElement(children: .ignore)
-                                    .accessibilityLabel(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
+                                    .accessibilityLabel(postTitle(post))
                                     .accessibilityAddTraits(.isButton)
                                     .accessibilityIdentifier("map-open-\(post.caption)")
                                 }
                             }
                         }
                         .frame(maxHeight: 220)
+                        }
                     }
                 }
             }
@@ -317,21 +364,20 @@ struct MapFeatureView: View {
 
     /// Dense spot: the count is public, the text opens only on site (GPS ~15 m, AR camera 2-5 m).
     private func denseSpotBanner(_ spot: DenseSpotInfo) -> some View {
-        let meters = Int(spot.unlockRadius.rounded())
         let noteCount = spot.count
         return VStack(alignment: .leading, spacing: 6) {
-            Label(String(localized: "Yoğun nokta: \(noteCount) not. Açmak için \(meters) m yaklaş."), systemImage: "lock.fill")
+            Label(String(localized: "\(noteCount) not"), systemImage: "lock.fill")
                 .font(.caption.weight(.semibold))
-            if let unlockMessage { Text(unlockMessage).font(.caption).foregroundStyle(.secondary) }
+            Text("Notları görmek için yaklaş ve haritada aç.").font(.caption).foregroundStyle(.secondary)
             HStack {
                 Button { Task { await unlockHere() } } label: {
-                    Label(unlocking ? String(localized: "Konum doğrulanıyor…") : String(localized: "Burada aç"), systemImage: "lock.open")
+                    Label("Burada aç", systemImage: "lock.open")
                 }
-                .buttonStyle(.bordered).controlSize(.small).disabled(unlocking)
+                .buttonStyle(.bordered).controlSize(.small)
                 .accessibilityIdentifier("map-unlock-dense-spot")
                 if container.arcore.isEnabled, CameraLocationRefineView.isSupported {
                     Button { showCameraUnlock = true } label: { Label("Kamerayla aç", systemImage: "camera.viewfinder") }
-                        .buttonStyle(.bordered).controlSize(.small).disabled(unlocking)
+                        .buttonStyle(.bordered).controlSize(.small)
                         .accessibilityIdentifier("map-unlock-dense-spot-camera")
                 }
             }
@@ -339,50 +385,41 @@ struct MapFeatureView: View {
     }
 
     private func unlockHere(cameraFix: LocationSample? = nil) async {
-        unlocking = true; unlockMessage = nil
-        defer { unlocking = false }
-        location.start()
-        location.requestPreciseAccuracyIfNeeded()
-        var fix = cameraFix
-        if cameraFix == nil {
-            for _ in 0..<20 {
-                fix = DenseSpotClient.bestFix(gps: location.location, camera: container.arcore.cameraFix)
-                if let fix, fix.accuracy <= LocationNotePolicy.maxEntryAccuracy { break }
-                try? await Task.sleep(for: .milliseconds(500))
+        guard let post = selectedPost ?? listedPosts.first(where: { $0.denseSpot != nil }), let spot = post.denseSpot else { return }
+        let id = spot.groupID ?? "spot:\(spot.id)"
+        let postID = post.id.uuidString.lowercased()
+        selectedMapGroupFix = cameraFix
+        if let group = MapNoteGroup.containing(postID, groupID: id, in: mapGroups) {
+            selectedMapGroup = group
+        } else {
+            // The side panel follows GPS while summaries follow the viewport. Resolve the
+            // actual place even when the user has panned elsewhere or is viewing heat.
+            do {
+                let region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: spot.lat, longitude: spot.lng),
+                                                latitudinalMeters: 160, longitudinalMeters: 160)
+                let result = try await NoteDensityClient.shared.groups(in: region)
+                mapUnlockRadius = result.unlockRadius
+                if let group = MapNoteGroup.containing(postID, groupID: id, in: result.groups) {
+                    selectedMapGroup = group
+                    return
+                }
+            } catch {
+                message = String(localized: "Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.")
+                return
             }
+            let members = posts.filter { $0.denseSpot?.id == spot.id }.map { $0.id.uuidString.lowercased() }
+            selectedMapGroup = MapNoteGroup(id: id, lat: spot.lat, lng: spot.lng, count: spot.count, radius: 0, postIDs: members)
         }
-        guard let fix else { unlockMessage = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin."); return }
-        do {
-            let result = try await DenseSpotClient.shared.unlock(at: fix)
-            if result.unlocked.isEmpty {
-                let meters = Int((result.unlockRadius ?? 15).rounded())
-                unlockMessage = String(localized: "Henüz yeterince yakın değilsin. Noktaya \(meters) m kadar yaklaş; dışarıda AR kamerası daha hassastır.")
-            } else {
-                await startAndLoad()
-            }
-        } catch { unlockMessage = String(localized: "Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.") }
     }
 
-    /// A candy-like bubble in the heat colours: busier cells lean from mint towards pink.
     private func countBubble(_ count: Int, intensity: Double = 0) -> some View {
-        let tint = NoteHeatPalette.color(intensity)
-        return ZStack {
-            Circle()
-                .fill(RadialGradient(colors: [tint, tint.opacity(0.78)], center: UnitPoint(x: 0.35, y: 0.3), startRadius: 1, endRadius: 30))
-                .overlay(Circle().stroke(Color.white.opacity(0.9), lineWidth: 2))
-                .shadow(color: tint.opacity(0.6), radius: 9)
-            Text(count, format: .number)
-                .font(.subheadline.bold())
-                .foregroundStyle(LociTheme.onAccent)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .padding(.horizontal, 4)
-        }
-        .frame(width: 44, height: 44)
+        NoteDensityBadge(count: count, intensity: intensity)
     }
 
     private func zoom(into coordinate: CLLocationCoordinate2D) {
-        withAnimation { camera = .camera(MapCamera(centerCoordinate: coordinate, distance: 400)) }
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.5)) {
+            camera = .camera(MapCamera(centerCoordinate: coordinate, distance: 400))
+        }
     }
 
     private static func widthMeters(_ region: MKCoordinateRegion) -> Double {
@@ -390,29 +427,50 @@ struct MapFeatureView: View {
     }
 
     /// A tapped heat spot zooms several steps in, so a few taps go from the globe to a street.
-    private func zoomCloser(to coordinate: CLLocationCoordinate2D) {
+    private func zoomCloser(to coordinate: CLLocationCoordinate2D, minimumDistance: Double = 700) {
         let width = visibleRegion.map(Self.widthMeters) ?? 20_000
-        withAnimation { camera = .camera(MapCamera(centerCoordinate: coordinate, distance: max(700, width / 5))) }
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.5)) {
+            camera = .camera(MapCamera(centerCoordinate: coordinate, distance: max(minimumDistance, width / 5)))
+        }
     }
 
     /// Picks heat, count bubbles or notes from the visible width and loads density after a short pause.
     private func refreshLayer(for region: MKCoordinateRegion) {
         let next = NoteMapLayer.forWidth(Self.widthMeters(region))
         if next != layer {
-            // Heat keeps its spots until the new zoom's cells arrive, so zooming does not blink.
-            if !(next.isHeat && layer.isHeat) { densityCells = []; heatBlobs = [] }
-            layer = next
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+                if let precision = next.precision, precision == densityPrecision {
+                    // Heat and counters share precision 7: reuse their cells while the read refreshes.
+                    heatBlobs = next.isHeat ? NoteHeatBlob.bin(densityCells, longitudeSpan: region.span.longitudeDelta) : []
+                } else if !(next.isHeat && layer.isHeat) {
+                    densityCells = []
+                    densityPrecision = nil
+                    heatBlobs = []
+                }
+                layer = next
+            }
         }
         densityTask?.cancel()
-        guard let precision = next.precision, container.isBackendConfigured, !session.isLocalPreview else { return }
+        guard container.isBackendConfigured, !session.isLocalPreview else { return }
         densityTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            let cells = try? await NoteDensityClient.shared.cells(in: region, precision: precision)
-            // A failed read keeps what is on screen rather than emptying the map.
-            guard !Task.isCancelled, layer == next, let cells else { return }
-            densityCells = cells
-            heatBlobs = next.isHeat ? NoteHeatBlob.bin(cells, longitudeSpan: region.span.longitudeDelta) : []
+            if next.isHeat, let precision = next.precision {
+                let cells = try? await NoteDensityClient.shared.cells(in: region, precision: precision)
+                guard !Task.isCancelled, layer == next, let cells else { return }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+                    densityCells = cells
+                    densityPrecision = precision
+                    heatBlobs = NoteHeatBlob.bin(cells, longitudeSpan: region.span.longitudeDelta)
+                }
+            } else {
+                let result = try? await NoteDensityClient.shared.groups(in: region)
+                guard !Task.isCancelled, layer == next, let result else { return }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+                    mapGroups = result.groups
+                    mapUnlockRadius = result.unlockRadius
+                }
+            }
         }
     }
 

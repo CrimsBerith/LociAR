@@ -182,8 +182,10 @@ struct ARExperienceView: View {
                                 Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                     .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                                        .font(.subheadline.weight(.semibold)).lineLimit(1)
+                                    if post.isLocked { Text("Kilitli not").font(.subheadline.weight(.semibold)) }
+                                    else if post.caption.isEmpty { Text("Mekânsal post").font(.subheadline.weight(.semibold)) }
+                                    else { TranslatedPostText(text: post.caption, lineLimit: 1).font(.subheadline.weight(.semibold)) }
+                                    if post.isOfficialContent { OfficialContentBadge() }
                                     Text(distanceText(for: post).localizedUI)
                                         .font(.caption).foregroundStyle(.secondary)
                                 }

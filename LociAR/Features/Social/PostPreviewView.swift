@@ -28,6 +28,7 @@ enum ReportTarget: Identifiable {
 struct PostPreviewView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
+    @Environment(AppRouter.self) private var router
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
     let post: LociPost
@@ -68,13 +69,17 @@ struct PostPreviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PostCard(post: post, likeCount: likeCount, viewCount: viewCount)
-                if let spot = post.denseSpot {
-                    let meters = Int(spot.unlockRadius.rounded())
-                    let noteCount = spot.count
-                    Label(String(localized: "Bu not \(noteCount) notluk yoğun bir noktada. Okumak için \(meters) m yaklaş ve haritadan Burada aç’a bas."), systemImage: "lock.fill")
+                PostCard(post: post, likeCount: likeCount, viewCount: viewCount, allowsTranslationControls: true, textLineLimit: nil)
+                if post.isLocked {
+                    Label("Notları görmek için yaklaş ve haritada aç.", systemImage: "lock.fill")
                         .font(.callout)
+                    if let spot = post.denseSpot {
+                        Button { router.focusMap(MapFocus(latitude: spot.lat, longitude: spot.lng)); dismiss() } label: {
+                            Label("Konumu gör", systemImage: "map")
+                        }
+                    }
                 }
+
                 if post.isLocationNote, let pose = post.anchorBundle.anchor.geoPose {
                     Label("Konum notu", systemImage: "mappin.and.ellipse")
                     Button {
@@ -167,6 +172,7 @@ struct PostPreviewView: View {
                     }
                 }
 
+                if !post.isLocked {
                 LociSectionLabel(title: "Yorumlar", symbol: "bubble.left.and.bubble.right")
                 Button("Yeni yorumları yenile") { Task { await load() } }
                     .disabled(isLoading || isLoadingOlderComments)
@@ -192,7 +198,7 @@ struct PostPreviewView: View {
                             LociAvatar(handle: comment.username, size: 34)
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack { Text(verbatim: "@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary) }
-                                Text(comment.text).font(.subheadline)
+                                TranslatedPostText(text: comment.text, isReadable: !post.isLocked, allowsControls: true).font(.subheadline)
                             }
                             Spacer(minLength: 0)
                             Menu {
@@ -264,6 +270,7 @@ struct PostPreviewView: View {
                             .font(.caption2)
                             .foregroundStyle(commentText.count > 500 ? .red : .secondary)
                     }
+                }
                 }
                 }
                 }
@@ -373,7 +380,7 @@ struct PostPreviewView: View {
         isLoadingOlderComments = false
         isLoading = true
         defer { if commentsLoadID == requestID { isLoading = false } }
-        await recordViewIfNeeded()
+        if !post.isLocked { await recordViewIfNeeded() }
         if post.sponsorship != nil { return }
         guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
         if UITestFixtures.sampleContentEnabled {
@@ -382,6 +389,7 @@ struct PostPreviewView: View {
             return
         }
         guard container.isBackendConfigured || session.isLocalPreview else { return }
+        if !post.isLocked {
         do {
             let page = try await container.social.commentPage(for: post.id, before: nil)
             guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
@@ -390,6 +398,7 @@ struct PostPreviewView: View {
         } catch {
             guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
             commentsFailed = true
+        }
         }
         if case let .signedIn(user) = session.phase {
             async let savedIDs = container.social.savedPostIDs(for: user.id)

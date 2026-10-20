@@ -8,6 +8,7 @@ import { adminDb, closeClients, newAnonymousUser, newUser, expectFailure } from 
 import { expireDueNotes } from '../../lib/noteDensity.js';
 import { db } from '../../lib/core.js';
 import { readableNoteIds } from '../../lib/placeNoteAccess.js';
+import { repairSpotCount, syncSpotMembership } from '../../lib/denseSpots.js';
 after(closeClients);
 before(async () => {
   for (const collection of ['posts', 'note_density', 'note_density_members', 'note_spots']) {
@@ -253,8 +254,8 @@ test('a visit sends the most-liked unseen note once, then the next one; never th
   await approve(f.n, { likes_count: 2 }); await approve(popular, { likes_count: 9 });
   const first = await f.visit();
   assert.equal(first.postId, popular.created.post.id); assert.equal(first.likes, 9); assert.equal(first.total, 2);
-  assert.equal(first.body, 'Ask for the window table.');
-  assert.equal((await f.visitor.call('readActivity')).items.find(i => i.id === first.activityId).body, 'Ask for the window table.');
+  assert.equal(first.body, 'Ask for the window table.', 'the confirmed on-site notification may show the note');
+  assert.equal((await f.visitor.call('readActivity')).items.find(i => i.id === first.activityId).body, '', 'activity reveals no note text without a fresh on-site read');
   const second = await f.visit();
   assert.equal(second.postId, f.n.created.post.id); assert.equal(second.total, 1);
   assert.equal((await f.visit()).reason, 'nothing_new');
@@ -309,11 +310,20 @@ test('location-note consent requires its own notice and remains independent of m
 test('account deletion removes receipts; author deletion removes retained note text for recipients', async () => {
   const f = await fixture(); await approve(f.n);
   const result = await f.visit(); assert.equal(result.notify, true);
+  const reading = adminDb.collection('dense_spot_unlocks').doc(`${f.visitor.luid}_note_${f.n.created.post.id}`);
+  await reading.set({ owner_luid: f.visitor.luid, post_id: f.n.created.post.id, kind: 'note_read', expires_at: Timestamp.fromMillis(Date.now() + 60_000) });
+  const paging = adminDb.collection('map_group_sessions').doc(randomUUID());
+  await paging.set({ owner_luid: f.visitor.luid, post_ids: [f.n.created.post.id], expires_at: Timestamp.fromMillis(Date.now() + 60_000) });
   await f.author.call('deleteAccount');
+  assert.equal((await paging.get()).exists, false, 'author deletion removes snapshots containing authored notes');
+  assert.equal((await reading.get()).exists, false, 'author deletion also removes other viewers\' note-reading receipts');
   assert.equal((await adminDb.collection('activity_events').doc(result.activityId).get()).exists, false);
   assert.equal((await adminDb.collection('place_note_notification_receipts').where('post_id', '==', f.n.created.post.id).get()).empty, true);
   const g = await fixture(); await approve(g.n); assert.equal((await g.visit()).notify, true);
+  const ownedPage = adminDb.collection('map_group_sessions').doc(randomUUID());
+  await ownedPage.set({ owner_luid: g.visitor.luid, post_ids: [], expires_at: Timestamp.fromMillis(Date.now() + 60_000) });
   await g.visitor.call('deleteAccount');
+  assert.equal((await ownedPage.get()).exists, false);
   assert.equal((await adminDb.collection('place_note_notification_receipts').where('owner_luid', '==', g.visitor.luid).get()).empty, true);
 });
 
@@ -349,6 +359,11 @@ test('map density counts public active notes and follows removal', async t => {
   });
   t.diagnostic(`density activation: ${JSON.stringify(observations)}`);
   assert.equal(await densityCount(f.visitor, f.point, 4) >= 1, true);
+  const member = await adminDb.collection('note_density_members').doc(f.n.ref.id).get();
+  const cellId = member.get('cells').find(id => id.startsWith('7_'));
+  const cell = await adminDb.collection('note_density').doc(cellId).get();
+  assert.ok(Math.abs(cell.get('lat') - f.point.lat) < 1e-8, 'heat sits on the actual note, not a geohash centre');
+  assert.ok(Math.abs(cell.get('lng') - f.point.lng) < 1e-8);
   await f.n.ref.update({ status: 'removed' });
   await eventually(async () => await densityCount(f.visitor, f.point, 7) === 0, 'removed note uncounted');
   assert.equal((await expectFailure(f.visitor.call('readNoteDensity', { box: { minLat: 1, maxLat: 0, minLng: 0, maxLng: 1 }, precision: 7 }))).code, 'functions/invalid-argument');
@@ -389,6 +404,18 @@ test('a response-lost dense-spot alert replays without text and acknowledges the
   await f.visitor.call('recordPlaceNoteVisit', { action: 'acknowledge', deliveryId });
   assert.equal((await f.visitor.call('recordPlaceNoteVisit', payload())).reason, 'already_queued');
 });
+async function actualSpot(count) {
+  const s = await denseSpot(count);
+  const template = (await s.n.ref.get()).data();
+  const batch = adminDb.batch();
+  for (let index = 5; index < count; index++) {
+    const id = randomUUID();
+    batch.set(adminDb.collection('posts').doc(id), { ...template, id, client_mutation_id: id,
+      caption: `Map note ${index}`, likes_count: 0, created_at: Timestamp.now() });
+  }
+  if (count > 5) await batch.commit();
+  return s;
+}
 const single = (user, id) => user.call('readPublicContent', { mode: 'single', postId: id }).then(r => r.posts[0]);
 
 test('notes in a dense spot show only place and count until the visitor unlocks the spot on site', async () => {
@@ -402,12 +429,140 @@ test('notes in a dense spot show only place and count until the visitor unlocks 
   assert.equal((await s.visitor.call('unlockDenseSpot', { location: fix(s.centre.lat, s.centre.lng, 8, Date.now() - 20_000) })).reason, 'stale_fix');
   const near = north(s.centre, 12);
   assert.deepEqual((await s.visitor.call('unlockDenseSpot', { location: fix(near.lat, near.lng, 8) })).unlocked, [s.spotId]);
-  const open = await single(s.visitor, s.n.created.post.id);
+  const open = (await s.visitor.call('readPublicContent', { mode: 'map_group', groupId: `spot:${s.spotId}`,
+    location: fix(near.lat, near.lng, 8) })).posts.find(p => p.id === s.n.created.post.id);
   assert.equal(open.locked, undefined); assert.equal(open.caption, 'Note 0/0');
+  assert.equal((await single(s.visitor, s.n.created.post.id)).locked, true, 'a previous unlock cannot open note text remotely');
   await adminDb.collection('system').doc('place_notes').set({ dense_threshold: 31 }, { merge: true });
   const other = await denseSpot(30);
-  assert.equal((await single(other.visitor, other.n.created.post.id)).locked, undefined, 'below the admin threshold');
+  assert.equal((await single(other.visitor, other.n.created.post.id)).locked, true, 'note access is independent of the dense-alert threshold');
   await adminDb.collection('system').doc('place_notes').set({ dense_threshold: 30 }, { merge: true });
+});
+
+test('ten-note map groups expose only a count remotely and all notes by likes on site', async () => {
+  const s = await actualSpot(10);
+  const groupId = `spot:${s.spotId}`;
+  const summaries = await s.visitor.call('readPublicContent', { mode: 'map_groups', latitude: s.centre.lat, longitude: s.centre.lng, radiusMeters: 150 });
+  const group = summaries.groups.find(g => g.id === groupId);
+  assert.equal(group.count, 10);
+  assert.equal(group.post_ids.length, 10);
+  assert.equal(group.caption, undefined); assert.equal(group.creator_id, undefined);
+  const docs = await adminDb.collection('posts').where('spot_id', '==', s.spotId).get();
+  for (let index = 0; index < docs.size; index++) await docs.docs[index].ref.update({ likes_count: index });
+  const read = location => s.visitor.call('readPublicContent', { mode: 'map_group', groupId, location });
+  const remote = await read(fix(north(s.centre, 100).lat, s.centre.lng));
+  assert.equal(remote.posts.length, 10);
+  assert.ok(remote.posts.every(p => p.locked && p.caption === '' && p.edit_data.layers.length === 0));
+  const near = await read(fix(s.centre.lat, s.centre.lng));
+  assert.equal(near.total, 10); assert.equal(near.nextOffset, null);
+  assert.deepEqual(near.posts.map(p => p.likes_count), [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
+  assert.ok(near.posts.every(p => !p.locked && p.caption));
+  assert.ok((await read(fix(s.centre.lat, s.centre.lng, 6, Date.now() - 20_000))).posts.every(p => p.locked), 'stale fixes never reveal text');
+  assert.ok((await read(fix(s.centre.lat, s.centre.lng, 60))).posts.every(p => p.locked), 'poor GPS never reveals text');
+  assert.ok((await read(undefined)).posts.every(p => p.locked), 'zoom/viewport alone cannot unlock text');
+  const block = adminDb.collection('user_blocks').doc(`${s.visitor.luid}_${s.author.luid}`);
+  await block.set({ blocker_id: s.visitor.luid, blocked_id: s.author.luid });
+  assert.equal((await read(fix(s.centre.lat, s.centre.lng))).posts.length, 10, 'identity blocks must not reveal an anonymous author through map groups');
+  await block.delete();
+  const mute = adminDb.collection('anonymous_blocks').doc(`${s.visitor.luid}_${s.author.luid}`);
+  await mute.set({ blocker_id: s.visitor.luid, blocked_id: s.author.luid });
+  assert.equal((await read(fix(s.centre.lat, s.centre.lng))).posts.length, 0, 'the viewer\'s own anonymous mute hides the group content');
+  await mute.delete();
+});
+
+test('a group larger than the old nearby limit pages every visible note without omissions', async () => {
+  const s = await actualSpot(120);
+  const ids = [];
+  let offset = 0, pageToken;
+  do {
+    const page = await s.visitor.call('readPublicContent', { mode: 'map_group', groupId: `spot:${s.spotId}`,
+      offset, pageToken, location: fix(s.centre.lat, s.centre.lng) });
+    assert.equal(page.total, 120);
+    ids.push(...page.posts.map(p => p.id));
+    offset = page.nextOffset; pageToken = page.pageToken;
+  } while (offset != null);
+  assert.equal(ids.length, 120); assert.equal(new Set(ids).size, 120);
+});
+
+test('group pagination freezes ranking but rechecks access, token ownership and live visibility', async () => {
+  const s = await actualSpot(60), groupId = `spot:${s.spotId}`;
+  const docs = (await adminDb.collection('posts').where('spot_id', '==', s.spotId).get()).docs;
+  for (let index = 0; index < docs.length; index++) await docs[index].ref.update({ likes_count: index });
+  const read = (offset, pageToken, location = fix(s.centre.lat, s.centre.lng), user = s.visitor) =>
+    user.call('readPublicContent', { mode: 'map_group', groupId, offset, pageToken, location });
+  const first = await read(0);
+  assert.ok(first.pageToken); assert.equal(first.posts.length, 50);
+  const promoted = docs[0]; assert.ok(!first.posts.some(post => post.id === promoted.id));
+  await promoted.ref.update({ likes_count: 1000 });
+  const second = await read(first.nextOffset, first.pageToken);
+  const ids = [...first.posts, ...second.posts].map(post => post.id);
+  assert.equal(ids.length, 60); assert.equal(new Set(ids).size, 60); assert.ok(ids.includes(promoted.id));
+  assert.equal(second.nextOffset, null);
+  assert.ok((await read(50, first.pageToken, fix(north(s.centre, 100).lat, s.centre.lng))).posts.every(post => post.locked));
+  const other = await newAnonymousUser();
+  assert.equal((await expectFailure(read(50, first.pageToken, undefined, other))).code, 'functions/failed-precondition');
+  assert.equal((await expectFailure(read(50))).code, 'functions/invalid-argument');
+  const mute = adminDb.collection('anonymous_blocks').doc(`${s.visitor.luid}_${s.author.luid}`);
+  await mute.set({ blocker_id: s.visitor.luid, blocked_id: s.author.luid });
+  assert.equal((await read(50, first.pageToken)).posts.length, 0, 'a snapshot never bypasses a newer anonymous mute');
+  await mute.delete();
+  await promoted.ref.update({ status: 'removed' });
+  assert.ok((await read(50, first.pageToken)).posts.every(post => post.id !== promoted.id), 'removed notes are not retained in a snapshot');
+  await adminDb.collection('map_group_sessions').doc(first.pageToken).update({ expires_at: Timestamp.fromMillis(Date.now() - 1000) });
+  assert.equal((await expectFailure(read(50, first.pageToken))).code, 'functions/failed-precondition');
+});
+
+test('a small summary resolves current members after its anchor joins a persistent spot', async () => {
+  const f = await fixture(), second = await note(f.author, f.point);
+  const summary = await f.visitor.call('readPublicContent', { mode: 'map_groups', latitude: f.point.lat, longitude: f.point.lng, radiusMeters: 100 });
+  const group = summary.groups.find(g => g.post_ids.includes(f.n.ref.id));
+  assert.equal(group.count, 2); assert.ok(group.id.startsWith('post:'));
+  const refs = [f.n.ref, second.ref];
+  for (let index = 0; index < 3; index++) refs.push((await note(f.author, f.point)).ref);
+  await eventually(async () => typeof (await f.n.ref.get()).get('spot_id') === 'string', 'group promoted to persistent spot');
+  const current = await f.visitor.call('readPublicContent', { mode: 'map_group', groupId: group.id, postIds: group.post_ids,
+    location: fix(f.point.lat, f.point.lng) });
+  assert.equal(current.total, 5); assert.equal(current.posts.length, 5);
+  assert.ok(current.group.id.startsWith('spot:')); assert.ok(current.posts.every(post => !post.locked));
+});
+
+test('location-note access uses the current singleton after other spot members are removed', async () => {
+  const f = await fixture(), refs = [f.n.ref];
+  for (let index = 0; index < 4; index++) refs.push((await note(f.author, north(f.point, 24))).ref);
+  await eventually(async () => typeof (await f.n.ref.get()).get('spot_id') === 'string', 'spot formed');
+  const spotId = (await f.n.ref.get()).get('spot_id');
+  for (const ref of refs.slice(1)) { await ref.update({ status: 'removed' }); await syncSpotMembership(ref.id); }
+  await repairSpotCount(spotId);
+  const read = location => f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `spot:${spotId}`, location });
+  const far = await read(fix(north(f.point, 35).lat, f.point.lng, 5));
+  assert.equal(far.group.count, 1); assert.equal(far.group.radius, 0);
+  assert.equal(far.posts[0].locked, true); assert.equal(far.posts[0].caption, '');
+  assert.equal((await read(fix(f.point.lat, f.point.lng, 5))).posts[0].caption, f.n.body.text);
+});
+
+test('a single location note stays closed outside its own radius without waiting for spot membership', async () => {
+  const f = await fixture();
+  const id = f.n.created.post.id;
+  assert.equal((await single(f.visitor, id)).locked, true);
+  const read = location => f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `post:${id}`, postIds: [id], location });
+  assert.equal((await read(fix(f.point.lat, f.point.lng))).posts[0].caption, f.n.body.text);
+  assert.equal((await read(undefined)).posts[0].locked, true);
+});
+
+test('a small real group opens all of its notes on site before it has persistent spot membership', async () => {
+  const f = await fixture(), other = await note(f.author, north(f.point, 24));
+  const ids = [f.n.created.post.id, other.created.post.id];
+  const read = location => f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `post:${ids[0]}`, postIds: ids, location });
+  const near = await read(fix(f.point.lat, f.point.lng));
+  assert.equal(near.posts.length, 2);
+  assert.ok(near.posts.every(p => !p.locked), 'reading applies to the real place, not only the note nearest the visitor');
+  assert.ok((await read(undefined)).posts.every(p => p.locked));
+  const singleHint = await f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `post:${ids[0]}`, postIds: [ids[0]], location: fix(f.point.lat, f.point.lng) });
+  assert.equal(singleHint.total, 2, 'a side-panel singleton must discover the full real group');
+  await f.n.ref.delete();
+  const recovered = await read(fix(north(f.point, 24).lat, f.point.lng));
+  assert.equal(recovered.total, 1); assert.equal(recovered.group.id, `post:${ids[1]}`);
+  assert.equal(recovered.posts[0].locked, undefined, 'a deleted anchor cannot strand the remaining note');
 });
 
 test('entering a dense spot sends one text-free alert, and the region list advertises unalerted spots', async () => {

@@ -102,3 +102,12 @@ test('spots follow the notes: running centre, covering radius, unlock within rad
   assert.match(stableUuid('dense:abc'), /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-a[0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.equal(campaignEntryRadius(undefined), 30); assert.equal(campaignEntryRadius(2.5), 15);
 });
+
+test('persistent spot seeding and growth preserve neighbours across the date line', () => {
+  const seed = spotOf([{ lat: 0, lng: 179.99995 }, { lat: 0, lng: -179.99995 }]);
+  assert.ok(Math.abs(seed.lng) > 179.9999);
+  assert.ok(seed.radius > 5 && seed.radius < 6);
+  const grown = joinSpot(seed, 0, 179.9999);
+  assert.ok(Math.abs(grown.lng) > 179.9999);
+  assert.ok(grown.radius < 15);
+});

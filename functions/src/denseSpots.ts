@@ -31,7 +31,7 @@ const spots = () => db.collection('note_spots');
 const memberRef = (postId: string) => db.collection('note_spot_members').doc(postId);
 const unlockRef = (luid: string, spot: string) => db.collection('dense_spot_unlocks').doc(`${luid}_${spot}`);
 export const spotReceiptRef = (luid: string, spot: string) => db.collection('dense_spot_receipts').doc(`${luid}_${spot}`);
-type SpotDoc = Spot & { id: string; count: number };
+type SpotDoc = Spot & { id: string; count: number; groupId?: string };
 const spotData = (d: FirebaseFirestore.DocumentSnapshot): SpotDoc => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), radius: d.get('radius'), count: Number(d.get('count') ?? 0) });
 
 async function spotsNear(tx: FirebaseFirestore.Transaction, lat: number, lng: number, radius: number): Promise<SpotDoc[]> {
@@ -126,24 +126,39 @@ export async function repairSpotCount(spotId: string) {
   });
 }
 
-export type SpotLock = { spot: string; count: number; lat: number; lng: number; unlockRadius: number };
+export type SpotLock = { spot: string; count: number; lat: number; lng: number; unlockRadius: number; groupId?: string };
 
-/** Posts the viewer may not read yet: in a dense spot, not their own, no live unlock. */
-export async function denseLocks(docs: FirebaseFirestore.DocumentSnapshot[], viewer: string): Promise<Map<string, SpotLock>> {
+/** Every location note needs a fresh on-site fix, including single notes and small groups.
+ * Existing AR dense spots retain their separate, time-limited unlock policy. */
+export async function denseLocks(docs: FirebaseFirestore.DocumentSnapshot[], viewer: string, fix?: Fix, readArea?: SpotDoc): Promise<Map<string, SpotLock>> {
   const locks = new Map<string, SpotLock>();
-  const candidates = docs.filter(d => d.get('creator_id') !== viewer && typeof d.get('spot_id') === 'string');
+  const candidates = docs.filter(d => d.get('creator_id') !== viewer
+    && (typeof d.get('spot_id') === 'string' || d.get('note_kind') === 'location'));
   if (!candidates.length) return locks;
-  const ids = [...new Set(candidates.map(d => String(d.get('spot_id'))))];
+  const ids = [...new Set(candidates.flatMap(d => typeof d.get('spot_id') === 'string' ? [String(d.get('spot_id'))] : []))];
   const settings = await spotSettings();
-  const found = await db.getAll(...ids.map(id => spots().doc(id)));
-  const dense = found.filter(s => s.exists && Number(s.get('count') ?? 0) >= settings.denseThreshold).map(spotData);
-  if (!dense.length) return locks;
-  const unlocks = await db.getAll(...dense.map(s => unlockRef(viewer, s.id))), now = Date.now();
+  const found = ids.length ? await db.getAll(...ids.map(id => spots().doc(id))) : [];
+  const existing = found.filter(s => s.exists).map(spotData);
+  const dense = existing.filter(s => s.count >= settings.denseThreshold);
+  const unlocks = dense.length ? await db.getAll(...dense.map(s => unlockRef(viewer, s.id))) : [], now = Date.now();
   const open = new Set(dense.filter((_, i) => unlocks[i].exists && unlocks[i].get('expires_at') instanceof Timestamp && unlocks[i].get('expires_at').toMillis() > now).map(s => s.id));
-  const byId = new Map(dense.map(s => [s.id, s]));
+  const byId = new Map(existing.map(s => [s.id, s]));
+  const fresh = fix && fixIsFresh(fix, now) && fix.accuracy <= MAX_ENTRY_ACCURACY_M ? fix : undefined;
   for (const d of candidates) {
     const s = byId.get(String(d.get('spot_id')));
-    if (s && !open.has(s.id)) locks.set(d.id, { spot: s.id, count: s.count, lat: s.lat, lng: s.lng, unlockRadius: settings.unlockRadius });
+    if (d.get('note_kind') === 'location') {
+      const point = { id: d.id, count: 1, lat: d.get('lat'), lng: d.get('lng'), radius: 0 };
+      const place = readArea ?? s ?? point;
+      // Persisted spot circles only grow. They cannot authorize current location-note reads
+      // after members move, are hidden or disappear. Group reads supply their live geometry.
+      if (!fresh || !fixUnlocksSpot(fresh, readArea ?? point, settings.unlockRadius)) {
+        locks.set(d.id, { spot: place.id, count: place.count, lat: place.lat, lng: place.lng, unlockRadius: settings.unlockRadius,
+          groupId: readArea?.groupId ?? `${s ? 'spot' : 'post'}:${place.id}` });
+      }
+    } else if (s && s.count >= settings.denseThreshold && !open.has(s.id)
+      && !(fresh && fixUnlocksSpot(fresh, s, settings.unlockRadius))) {
+      locks.set(d.id, { spot: s.id, count: s.count, lat: s.lat, lng: s.lng, unlockRadius: settings.unlockRadius });
+    }
   }
   return locks;
 }

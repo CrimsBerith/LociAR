@@ -16,6 +16,21 @@ after(async () => {
 });
 
 const meter = 1 / 111320;
+test('managed-content badge is server provenance and remains public without unlocking note text', async () => {
+  const f = await fixture();
+  const [ref] = await notes(f, 1, 1, { admin_managed: true });
+  const remote = await f.visitor.call('readPublicContent', { mode: 'nearby', latitude: f.point.lat, longitude: f.point.lng, radiusMeters: 100 });
+  const locked = remote.posts.find(p => p.id === ref.id);
+  assert.equal(locked.admin_managed, true);
+  assert.equal(locked.caption, '');
+  assert.equal(locked.locked, true);
+  const opened = await f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `post:${ref.id}`, location: fix(f.point) });
+  assert.equal(opened.posts[0].admin_managed, true);
+  assert.equal(opened.posts[0].caption, 'Note 0');
+  const forged = await f.author.call('createPost', { ...postBody(), admin_managed: true });
+  const forgedId = forged.id ?? forged.postId ?? forged.post?.id;
+  assert.notEqual((await adminDb.collection('posts').doc(forgedId).get()).get('admin_managed'), true);
+});
 let fixtureIndex = 0;
 const fix = p => ({ ...p, accuracy: 6, measuredAt: Date.now() });
 async function fixture() {
@@ -77,7 +92,7 @@ test('polar and date-line note searches retain complete coverage; exhausted scan
   const f = await fixture(); await notes(f, 3);
   await assert.rejects(db.runTransaction(tx => geoCandidates(tx, db.collection('posts'), f.point.lat, f.point.lng, 120, 2)), e => e.code === 'resource-exhausted');
 });
-test('hard delete settles persistent spot membership once, removes false locks and account deletion cleans remaining members', async () => {
+test('hard delete settles spot counts once without bypassing note locks and account deletion cleans remaining members', async () => {
   const f = await fixture(), refs = await notes(f, 5);
   for (const ref of refs) await syncSpotMembership(ref.id);
   const spotId = (await refs[0].get()).get('spot_id'), spot = adminDb.collection('note_spots').doc(spotId);
@@ -85,7 +100,11 @@ test('hard delete settles persistent spot membership once, removes false locks a
   assert.equal((await spot.get()).get('count'), 5);
   await refs[0].delete(); await syncSpotMembership(refs[0].id); await syncSpotMembership(refs[0].id);
   assert.equal((await spot.get()).get('count'), 4);
-  assert.equal((await denseLocks(await Promise.all(refs.slice(1).map(r => r.get())), f.visitor.luid)).size, 0);
+  const remaining = await Promise.all(refs.slice(1).map(r => r.get()));
+  const remoteLocks = await denseLocks(remaining, f.visitor.luid);
+  assert.equal(remoteLocks.size, 4, 'small groups still require an on-site fix');
+  assert.ok([...remoteLocks.values()].every(lock => lock.count === 4), 'deleted members must not inflate the advertised count');
+  assert.equal((await denseLocks(remaining, f.visitor.luid, fix(f.point))).size, 0, 'the remaining notes open on site');
   await f.author.call('deleteAccount');
   assert.equal((await adminDb.collection('note_spot_members').where('owner_luid', '==', f.author.luid).get()).empty, true);
   assert.equal((await spot.get()).get('count'), 0);
@@ -122,8 +141,12 @@ test('public anonymous projections remove old media paths and preserve drawable 
     const response = await f.visitor.call('readPublicContent', payload);
     assert.equal(JSON.stringify(response).includes(f.author.luid), false);
     const post = response.posts.find(p => p.id === ref.id);
-    if (post) { assert.equal(post.content_source, null); assert.deepEqual(post.edit_data.layers.map(l => l.type), ['drawing']); }
+    if (post) { assert.equal(post.content_source, null); assert.equal(post.locked, true); assert.deepEqual(post.edit_data.layers, []); }
   }
+  const opened = await f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `post:${ref.id}`, postIds: [ref.id], location: fix(f.point) });
+  assert.equal(JSON.stringify(opened).includes(f.author.luid), false);
+  assert.equal(opened.posts[0].content_source, null);
+  assert.deepEqual(opened.posts[0].edit_data.layers.map(l => l.type), ['drawing'], 'legacy drawings remain renderable after on-site access');
 });
 test('AR posts reject URL text at the callable admission boundary', async () => {
   const f = await fixture();

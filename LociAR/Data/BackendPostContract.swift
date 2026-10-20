@@ -32,6 +32,7 @@ struct BackendPostRow: Decodable, Sendable {
     let sponsorship: Sponsorship?
     let noteKind: String?
     let denseSpot: DenseSpotInfo?
+    let adminManaged: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, pose, caption, status, visibility
@@ -49,6 +50,7 @@ struct BackendPostRow: Decodable, Sendable {
         case sponsorship
         case noteKind = "note_kind"
         case denseSpot = "dense_spot"
+        case adminManaged = "admin_managed"
     }
 
     func domainPost() -> LociPost {
@@ -64,7 +66,7 @@ struct BackendPostRow: Decodable, Sendable {
             caption: caption, status: status, visibility: visibility, ageRating: ageRating,
             anchorBundle: bundle, editData: editData, contentSource: contentSource,
             counts: PostCounts(views: viewsCount ?? 0, likes: likesCount ?? 0, comments: commentsCount ?? 0),
-            anonymous: isAnonymous, sponsorship: sponsorship, noteKind: noteKind, denseSpot: denseSpot
+            anonymous: isAnonymous, sponsorship: sponsorship, noteKind: noteKind, denseSpot: denseSpot, adminManaged: adminManaged
         )
     }
 }

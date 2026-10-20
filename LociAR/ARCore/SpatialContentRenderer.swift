@@ -30,9 +30,9 @@ actor SpatialContentRenderer {
         await renderPost(post)?.image
     }
 
-    func renderPost(_ post: LociPost) async -> RenderedPost? {
+    func renderPost(_ post: LociPost, displayedText: String? = nil) async -> RenderedPost? {
         let key = postCacheKey(post)
-        if let cached = renderedPostCache[key] {
+        if displayedText == nil, let cached = renderedPostCache[key] {
             return cached
         }
         let assets = await loadAssets(post.editData)
@@ -46,9 +46,10 @@ actor SpatialContentRenderer {
             sourceImageData = nil
         }
         let rendered = await Task.detached(priority: .userInitiated) {
-            Self.drawPost(post, assets: assets, sourceImageData: sourceImageData)
+            Self.drawPost(post, assets: assets, sourceImageData: sourceImageData, displayedText: displayedText)
         }.value
-        if let rendered {
+        // Translated textures belong to the current viewer only, never the reusable render cache.
+        if let rendered, displayedText == nil {
             recordRenderedImage(rendered, forKey: key)
         }
         return rendered
@@ -157,11 +158,12 @@ actor SpatialContentRenderer {
     nonisolated private static func drawPost(
         _ post: LociPost,
         assets: [UUID: Data],
-        sourceImageData: Data?
+        sourceImageData: Data?,
+        displayedText: String? = nil
     ) -> RenderedPost? {
         if let gif = post.gif {
             return drawMessageBubble(
-                text: post.messageText, handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle, gif: gif,
+                text: displayedText ?? post.messageText, handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle, gif: gif,
                 gifStill: sourceImageData.flatMap(decodedImage)
             )
         }
@@ -171,14 +173,14 @@ actor SpatialContentRenderer {
         }
         if let primaryImageData = orderedImageData.first ?? sourceImageData,
            let primaryImage = decodedImage(primaryImageData) {
-            return drawImagePost(primaryImage, caption: post.caption).map { RenderedPost(image: $0, gifRect: nil) }
+            return drawImagePost(primaryImage, caption: displayedText ?? post.caption).map { RenderedPost(image: $0, gifRect: nil) }
         }
         if post.editData.layers.contains(where: { $0.kind == .drawing }) {
             return trimmedToVisibleContent(draw(post.editData, assets: assets)).map { RenderedPost(image: $0, gifRect: nil) }
         }
 
         let cleanCaption = post.caption.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let text = post.messageText ?? (cleanCaption.isEmpty ? nil : cleanCaption) {
+        if let text = displayedText ?? post.messageText ?? (cleanCaption.isEmpty ? nil : cleanCaption) {
             let handle = post.sponsorship.map { $0.brandName + " · " + String(localized: "Sponsorlu") }
                 ?? (post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle)
             return drawMessageBubble(text: text, handle: handle, gif: nil, gifStill: nil)

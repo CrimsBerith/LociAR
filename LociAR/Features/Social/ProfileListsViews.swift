@@ -134,9 +134,10 @@ struct CollectionDetailView: View {
                             HStack(spacing: 12) {
                                 LociAvatar(handle: String(post.creatorID.uuidString.prefix(6)), size: 36)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                                        .font(.subheadline.bold())
-                                        .lineLimit(2)
+                                    if post.isLocked { Text("Kilitli not").font(.subheadline.bold()) }
+                                    else if post.caption.isEmpty { Text("Mekânsal post").font(.subheadline.bold()) }
+                                    else { TranslatedPostText(text: post.caption, lineLimit: 2).font(.subheadline.bold()) }
+                                    if post.isOfficialContent { OfficialContentBadge() }
                                     Text(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "Fiziksel yüzey") : String(localized: "Yaklaşık"))
                                         .font(.caption2)
                                         .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)

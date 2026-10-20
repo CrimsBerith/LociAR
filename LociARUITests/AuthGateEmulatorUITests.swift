@@ -222,6 +222,63 @@ extension AuthGateUITests {
         return try JSONDecoder().decode([String: String].self, from: data)
     }
 
+    func testEmulator02dMapGroupRequiresOnSiteFixAndRanksAllNotes() async throws {
+        guard !e2eEmail.isEmpty, ProcessInfo.processInfo.environment["E2E_FIXTURE_URL"] != nil else {
+            throw XCTSkip("Yerel simülatör harita grubu testi seçilmedi.")
+        }
+        continueAfterFailure = false
+        let fixture = try await simulatorFixture("prepare-map-group")
+        let groupId = try XCTUnwrap(fixture["groupId"])
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+        app.tabBars.buttons["Harita"].tap()
+        let badge = app.buttons["map-note-group-\(groupId)"]
+        let map = app.maps.firstMatch
+        XCTAssertTrue(map.waitForExistence(timeout: 15))
+        let heat = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "map-heat-")).firstMatch
+        for _ in 0..<3 {
+            if heat.waitForExistence(timeout: 2) { break }
+            map.pinch(withScale: 0.2, velocity: -1)
+        }
+        XCTAssertTrue(heat.waitForExistence(timeout: 15))
+        capture(app, name: "glass-map-wide-density")
+        heat.tap()
+        XCTAssertFalse(app.buttons["map-group-open-here"].exists, "Isı alanına dokunmak yalnız haritayı yakınlaştırmalı.")
+        for _ in 0..<7 {
+            if badge.waitForExistence(timeout: 2) { break }
+            map.pinch(withScale: 2, velocity: 1)
+        }
+        XCTAssertTrue(badge.waitForExistence(timeout: 15), "Aynı noktadaki on not tek sayaçta görünmeli.")
+        XCTAssertEqual(badge.label, "10 not")
+        capture(app, name: "glass-map-ten-note-count")
+        badge.tap()
+        let open = app.buttons["map-group-open-here"]
+        XCTAssertTrue(open.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.staticTexts["Glass note 10"].exists, "Haritada yakınlaşmak içerik açmamalı.")
+        capture(app, name: "glass-map-remote-group-locked")
+        _ = try await simulatorFixture("enter-map-group")
+        open.tap()
+        let first = app.staticTexts["Glass note 10"], second = app.staticTexts["Glass note 9"]
+        XCTAssertTrue(first.waitForExistence(timeout: 20))
+        XCTAssertTrue(second.exists)
+        XCTAssertLessThan(first.frame.minY, second.frame.minY, "En çok beğenilen not önce görünmeli.")
+        capture(app, name: "glass-map-near-group-ranked")
+        first.tap()
+        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["İlk yorumu sen yaz."].waitForExistence(timeout: 15), "Yerinde açılan notun yorum oturumu da yetkilendirilmeli.")
+        capture(app, name: "glass-map-near-note-opened")
+        _ = try await simulatorFixture("leave-map-group")
+        let detailClosed = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.navigationBars["Post"])
+        await fulfillment(of: [detailClosed], timeout: 15)
+        let hidden = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: first)
+        await fulfillment(of: [hidden], timeout: 15)
+        XCTAssertTrue(open.exists)
+        XCTAssertFalse(app.staticTexts["İlk yorumu sen yaz."].exists, "Uzaklaşınca açık detay ve yorumları da kapanmalı.")
+        capture(app, name: "glass-map-group-closes-after-leaving")
+    }
+
     func testEmulator02CameraFreeNotePublishesAndAppearsWithoutManualRefresh() async throws {
         guard !e2eEmail.isEmpty, ProcessInfo.processInfo.environment["E2E_FIXTURE_URL"] != nil else {
             throw XCTSkip("Yerel simülatör yayın testi seçilmedi.")

@@ -67,17 +67,28 @@ The 13 October background hardening also restores SDK/account state for silent p
 
 Physical-device acceptance must separately cover Home/locked screen, an iOS-terminated process, user force-quit, reboot, permission downgrade, disabled Background App Refresh, approximate location and offline arrival. Simulator tests do not prove wake timing or APNs delivery.
 
+## Reading in another language
+
+On iOS 18+, readable note cards and on-site group rows use Apple's on-device Translation framework to display
+the app language when that language pair is already installed. Post detail offers **Translate** for the initial
+model download (Apple asks permission), and an **Original / Translation** toggle after success. Settings can
+disable automatic translation. No Google/cloud translation service, API key or per-character charge is added.
+The stored post and its ranking are unchanged. Model downloads require internet; unsupported language pairs
+or older iOS versions keep the original. Language support is checked at runtime, independently of the 12 UI
+localizations. Translation is view-local: note changes, locking, leaving the screen or backgrounding discard
+the result and reject late completions. Remote locked notes are never passed to the translation framework.
+
 ## Dense spots
 
 A spot is a server-side cluster (`note_spots`): a public note joins the nearest spot whose centre is within 25 m; five unclustered notes within 25 m start a new spot. The centre is the running mean of its notes and the circle grows to cover them, at most 40 m (`syncSpotMembership`, also run by the hourly reconciler). When a spot holds at least `dense_threshold` notes (default 30, 5–1000), it is a dense spot:
 
-- **Locked text.** `readPublicContent` returns only the place, likes and `dense_spot {cell, count, unlock_radius_m}` for other people's notes there; caption, text and GIF are withheld. Authors always read their own notes.
-- **Open on site.** The map banner's **Open here** sends the best fresh fix to `unlockDenseSpot`: the AR camera's Geospatial position when it is localized and better (1–5 m outdoors), otherwise GPS. **Open with camera** starts the AR camera from the banner for this. The spot opens for 30 minutes when the distance to its circle is at most `unlock_radius_m + min(accuracy, 5 m)` (default 15 m, admin range 2–50 m). A 2–5 m setting is reliable only with the AR camera outdoors; phone GPS alone needs about 15 m.
+- **Locked text.** Every location note, including a single note and a ten-note group, is returned without caption/text remotely. Authors retain their own access. `dense_threshold` controls dense alerts, not location-note text access. Existing AR dense spots retain their own unlock policy.
+- **Open on site.** `readPublicContent` mode `map_group` receives a fresh GPS/Geospatial fix (at most 10 s old, accuracy at most 35 m). Text opens when distance to the spot circle is at most `unlock_radius_m + min(accuracy, 5 m)` (default 15 m, admin range 2–50 m). A previous visit or unlock cannot open location-note bodies on a later remote request. Direct Firestore reads of other people's location notes are denied. Successful on-site reads create a location-free 30-minute comment session in the existing TTL-protected `dense_spot_unlocks` collection; comment rules also recheck post status, author access and blocks. The native group sheet hides loaded rows when its fix goes stale, permission is revoked or it leaves the area. Phone GPS cannot guarantee door-level presence.
 - **"Many notes here" alert.** Dense spots also appear in the wake-region list. Entering within 10 m of the spot circle (+ GPS tolerance) sends one text-free alert per 30 days (`dense_spot_receipts`); tapping it opens the map at the spot. An approved note inside a locked spot is also announced without its text, and its activity entry stays closed.
 
 ## Map
 
-Opening the map reads the nearest 100 visible posts within a 1 km radius of the GPS fix. Distance selects the results before popularity; notes at a place remain ordered by likes. Camera and AR world-lock records are not required for a location note. Dense spots can be opened with GPS using **Open here**; camera refinement is optional.
+The nearby side panel retains the nearest 100 posts within 1 km of GPS. The close-zoom map uses the separate text-free `map_groups` projection for the visible region (at most 2 km search radius, bounded 5,000-row scan). It groups by persistent server spot or a fixed 25 m anchor, rather than a broad geohash heat cell. Screen-space collision grouping combines neighbouring badges at wider zooms; tapping a combined badge zooms until the real places separate. A real place with ten co-located notes stays one **10 notes** badge. That badge opens the group sheet; `map_group` returns all currently eligible members in 50-row pages, most likes first, then newest and stable id. Paging freezes the ordered IDs in a server-only, viewer-bound `map_group_sessions` record for at most 30 minutes (`pageToken` + `nextOffset`); each page rechecks live membership, account/block fences and fresh location. Refresh starts a new ranking. Old `post:` identities resolve their anchor’s current `spot:` membership and return current group metadata. The server discovers small-group members itself; client ID lists cannot omit nearby members. Panning to another city reveals only location/count summaries. A map viewport is never used as an access fix. Camera and AR world locks are not required for a normal location note. Summaries and location-note authorization share the live group circle, capped at 40 m; historical spot circles never grant current note access. Longitude means wrap at ±180°. The group’s GPS monitor remains active while a note detail is pushed; leaving, losing fresh location or backgrounding clears both the list and its detail navigation.
 
 | Visible width | Layer | Data |
 |---|---|---|
@@ -85,12 +96,12 @@ Opening the map reads the nearest 100 visible posts within a 1 km radius of the 
 | 50–500 km | Heat | precision 5 |
 | 5–50 km | Heat | precision 6 |
 | 1–5 km | Heat | precision 7 |
-| 300 m–1 km | Count bubbles | precision 7 (~150 m) |
-| < 300 m | Notes, grouped within 25 m | `readPublicContent` nearby |
+| 300 m–1 km | Real group counts | `map_groups`, 25 m grouping |
+| < 300 m | Same real group counts; tap for ranked notes | `map_groups` / `map_group` |
 
-Heat asks for cells about one precision finer than the view needs. The app merges them into screen-sized bins (`NoteHeatBlob.bin`, a power-of-two grid in Mercator space, so panning keeps spots in place) and draws each bin at its note-weighted centre as a glow of constant screen size: brand mint for a few notes, periwinkle in between, warm pink for the busiest, with the base map muted. Cell centres alone would put a 39 km cell's spot far from its notes. Tapping a spot zooms towards it; the busiest spots breathe slowly unless Reduce Motion is on.
+The selected style is **Cam Katman**: smooth irregular glass lenses with a restrained rim, translucent fill and readable map streets. The fixed count scale moves from brand mint to aqua and warm amber; panning never recolours a place merely because another crowded place entered the viewport. There is no perpetual pulse. Reduce Motion and Reduce Transparency are respected. Tapping a lens zooms in; it does not open note text.
 
-`onPostDensityWritten` keeps one server-only counter per geohash cell for every public active post. A per-post member record (`note_density_members`) makes replays and out-of-order events converge; `reconcileNoteDensity` re-checks 500 posts and repairs 100 spot counts per hour. Persistent `note_spot_members` records settle hard deletions exactly once and are removed during account deletion. Legacy spot counts are recalculated from live posts. `readNoteDensity` reads only non-empty cells with at most 12 prefix range queries.
+`onPostDensityWritten` keeps one server-only counter per geohash cell for every public active post. Per-post membership and coordinate sums make retries, moves within a cell and deletion converge without double counting. Completed coordinate sums place cells at their actual note centroid. Existing members acquire coordinates during the daily reconciliation (500 posts and 100 spot repairs per run); until every member of a legacy cell is backfilled, that cell keeps its coarse fallback centre. `NoteHeatBlob.bin` merges cells on a stable Mercator grid. `readNoteDensity` reads only non-empty cells through bounded prefix queries. Persistent `note_spot_members` settle hard deletions exactly once and are removed during account deletion.
 
 ## Administration
 
@@ -98,7 +109,7 @@ Heat asks for cells about one precision finer than the view needs. The app merge
 
 ## Release
 
-Deploy Functions (`createPlaceNote`, `readPlaceNoteRegions`, `recordPlaceNoteVisit`, `readNoteDensity`, `unlockDenseSpot`, `onPostDensityWritten`, `reconcileNoteDensity`, `expireScheduledNotes`), the new indexes (`push_state + geohash`, `status + likes_count`, `note_density precision + cell`), App Hosting and the iOS build. Field checks on physical iPhones: time-to-ready outdoors and indoors, background wake from 300 m, entry at 15/25/50 m radii, continuous 10 s confirmation, gaps/outside restarting confirmation, drive-by suppression, exit ending the window, battery over a 10-minute window, approximate-location prompt, and opt-out.
+Deploy the updated `readPublicContent`, Firestore rules and indexes (including `map_group_sessions.expires_at` TTL), together with the iOS group protocol. Deploy Functions (`createPlaceNote`, `readPlaceNoteRegions`, `recordPlaceNoteVisit`, `readNoteDensity`, `unlockDenseSpot`, `onPostDensityWritten`, `reconcileNoteDensity`, `expireScheduledNotes`), the new indexes (`push_state + geohash`, `status + likes_count`, `note_density precision + cell`), App Hosting and the iOS build. Field checks on physical iPhones: time-to-ready outdoors and indoors, background wake from 300 m, entry at 15/25/50 m radii, continuous 10 s confirmation, gaps/outside restarting confirmation, drive-by suppression, exit ending the window, battery over a 10-minute window, approximate-location prompt, and opt-out.
 
 ## Query and input correctness
 

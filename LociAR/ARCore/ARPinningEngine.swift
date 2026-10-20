@@ -35,6 +35,8 @@ final class ARPinningEngine: NSObject {
     private(set) var meshAnchorCount = 0
 
     private(set) var hasRecentCameraFrame = false
+    private(set) var renderedPostID: UUID?
+    @ObservationIgnored private var contentRenderGeneration = UUID()
 
     @ObservationIgnored private(set) var existingARView: ARView?
     /// RealityKit can compile Metal pipelines synchronously. Keep that work out of app startup.
@@ -280,6 +282,8 @@ final class ARPinningEngine: NSObject {
     }
 
     func stopSession() {
+        contentRenderGeneration = UUID()
+        renderedPostID = nil
         trackedRaycast?.stopTracking()
         trackedRaycast = nil
         videoPlayers.values.forEach { $0.pause() }
@@ -738,11 +742,13 @@ final class ARPinningEngine: NSObject {
         return try encoder.encode(diagnostics)
     }
 
-    func render(post: LociPost) async throws {
+    func render(post: LociPost, displayedText: String? = nil) async throws {
         guard let anchorEntity = anchorEntities[post.anchorBundle.anchor.id],
               let model = anchorEntity.findEntity(named: "surface-content") as? ModelEntity else {
             throw ARPinningError.renderAnchorMissing
         }
+        let generation = UUID()
+        contentRenderGeneration = generation
         if case .video(let url)? = post.contentSource {
             let size = SpatialContentRenderer.physicalSize(for: post)
             model.model?.mesh = MeshResource.generatePlane(
@@ -754,9 +760,12 @@ final class ARPinningEngine: NSObject {
             model.model?.materials = [VideoMaterial(avPlayer: player)]
             videoPlayers[post.id] = player
             player.play()
+            renderedPostID = post.id
             return
         }
-        guard let rendered = await contentRenderer.renderPost(post) else { throw ARPinningError.renderContentUnavailable }
+        guard let rendered = await contentRenderer.renderPost(post, displayedText: displayedText) else { throw ARPinningError.renderContentUnavailable }
+        guard !Task.isCancelled, contentRenderGeneration == generation,
+              anchorEntities[post.anchorBundle.anchor.id] === anchorEntity else { throw CancellationError() }
         let image = rendered.image
         let size = SpatialContentRenderer.physicalSize(
             for: post,
@@ -769,7 +778,7 @@ final class ARPinningEngine: NSObject {
         )
         var options = TextureResource.CreateOptions(semantic: .color)
         options.mipmapsMode = .allocateAndGenerateAll
-        let texture = try TextureResource.generate(from: image, withName: "lociar-\(post.id)", options: options)
+        let texture = try TextureResource.generate(from: image, withName: "lociar-\(post.id)-\(generation)", options: options)
         var material = UnlitMaterial()
         material.color = .init(tint: .white, texture: .init(texture))
         material.blending = .transparent(opacity: .init(floatLiteral: 1.0))
@@ -781,6 +790,7 @@ final class ARPinningEngine: NSObject {
         if let gif = post.gif, let area = rendered.gifRect {
             attachGifVideo(gif, area: area, bubbleSize: size, to: model, postID: post.id)
         }
+        renderedPostID = post.id
     }
 
     private static let gifVideoEntityName = "gif-video"
@@ -1073,6 +1083,8 @@ final class ARPinningEngine: NSObject {
     }
 
     private func clearPlacedAnchors() {
+        contentRenderGeneration = UUID()
+        renderedPostID = nil
         videoPlayers.values.forEach { $0.pause() }
         videoPlayers.removeAll()
         gifLoopers.removeAll()

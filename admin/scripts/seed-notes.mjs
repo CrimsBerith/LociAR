@@ -75,7 +75,7 @@ if (opts.retire) {
 }
 
 const only = opts.only ? new Set(opts.only.split(',').map(s => s.trim()).filter(Boolean)) : null;
-const items = seed.items.filter(i => !only || only.has(i.id.replace(/-(ar|b?\d+)$/, '')));
+const items = seed.items.filter(i => !only || only.has(i.id) || only.has(i.area_id) || only.has(i.id.replace(/-(ar|b?\d+)$/, '')));
 if (!items.length) {
   console.error(`No item of ${seedFile} matches --only.`);
   process.exit(2);
@@ -106,7 +106,8 @@ function checkItem(item) {
   if (zone) row.problems.push(`protected zone: ${zone.name}`);
   const crowd = items.filter(o => o !== item && distanceMeters(item.lat, item.lng, o.lat, o.lng) <= SEED_GROUP_M).length;
   if (crowd >= MAX_SEEDS_PER_GROUP) row.problems.push(`${crowd + 1} seeds within ${SEED_GROUP_M} m`);
-  row.held = item.coord === 'approx' && !opts['allow-approx'];
+  row.fieldHold = item.placement_requirement === 'field_cloud_anchor';
+  row.held = row.fieldHold || (item.coord === 'approx' && !opts['allow-approx']);
   return row;
 }
 const rows = items.map(checkItem);
@@ -130,9 +131,13 @@ for (const [city, c] of byCity) {
   console.log(`${city.padEnd(18)} ${String(c.notes).padStart(2)} notes  ${c.ar} AR  ${flags}`);
   for (const p of c.problems) console.log(`    ! ${p}`);
 }
-const blocked = rows.filter(r => r.problems.length).length, held = rows.filter(r => r.held && !r.problems.length).length;
-console.log(`\n${rows.length} items: ${rows.filter(r => r.loaded).length} already loaded, ${blocked} with problems, ${held} held for an approximate anchor.`);
-if (held) console.log('Check the approximate anchors on the admin map, then pass --allow-approx.');
+const blocked = rows.filter(r => r.problems.length).length;
+const held = rows.filter(r => r.held && !r.problems.length).length;
+const fieldHeld = rows.filter(row => row.fieldHold && !row.problems.length).length;
+const holdReason = fieldHeld ? 'coordinate or field placement review' : 'an approximate anchor';
+console.log(`\n${rows.length} items: ${rows.filter(r => r.loaded).length} already loaded, ${blocked} with problems, ${held} held for ${holdReason}.`);
+if (held > fieldHeld) console.log('Check the approximate anchors on the admin map, then pass --allow-approx.');
+if (fieldHeld) console.log(`${fieldHeld} AR drafts require an on-site Cloud Anchor; --allow-approx cannot release them. Publish these with the native field workflow.`);
 
 if (!opts.apply) {
   console.log('Dry run: nothing was written. Add --apply to load the items without problems.');

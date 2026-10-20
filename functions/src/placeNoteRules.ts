@@ -3,7 +3,7 @@
  * The iOS client mirrors the entry rule and the radius tiers (LocationNotePolicy.swift).
  */
 import { createHash } from 'node:crypto';
-import { distanceMeters, encodeGeohash } from './geo';
+import { distanceMeters, encodeGeohash, meanLongitude } from './geo';
 
 export type FixSource = 'geospatial' | 'gps' | 'manual';
 export type Fix = { lat: number; lng: number; accuracy: number; measuredAt: number };
@@ -114,7 +114,7 @@ export function clusterNotes(notes: RankedNote[]): NoteCluster[] {
   }
   return groups.map(group => {
     const lat = group.reduce((s, n) => s + n.lat, 0) / group.length;
-    const lng = group.reduce((s, n) => s + n.lng, 0) / group.length;
+    const lng = meanLongitude(group.map(n => n.lng));
     const reach = Math.max(...group.map(n => distanceMeters(lat, lng, n.lat, n.lng) + n.radius));
     return {
       id: group[0].id, lat, lng,
@@ -146,14 +146,15 @@ export function fixUnlocksSpot(fix: Fix, spot: Spot, unlockRadius: number): bool
 /** Adds a point to a spot: running centroid, radius grows to cover the point (capped). */
 export function joinSpot(spot: Spot & { count: number }, lat: number, lng: number): Spot & { count: number } {
   const count = spot.count + 1;
-  const c = { lat: spot.lat + (lat - spot.lat) / count, lng: spot.lng + (lng - spot.lng) / count };
+  const deltaLng = (lng - spot.lng + 540) % 360 - 180;
+  const c = { lat: spot.lat + (lat - spot.lat) / count, lng: (spot.lng + deltaLng / count + 540) % 360 - 180 };
   const radius = Math.min(MAX_SPOT_RADIUS_M, Math.max(spot.radius + distanceMeters(spot.lat, spot.lng, c.lat, c.lng), distanceMeters(c.lat, c.lng, lat, lng)));
   return { ...c, radius, count };
 }
 
 /** Smallest centred circle over a group of points (centroid + farthest member, capped). */
 export function spotOf(points: Array<{ lat: number; lng: number }>): Spot & { count: number } {
-  const lat = points.reduce((s, p) => s + p.lat, 0) / points.length, lng = points.reduce((s, p) => s + p.lng, 0) / points.length;
+  const lat = points.reduce((s, p) => s + p.lat, 0) / points.length, lng = meanLongitude(points.map(p => p.lng));
   return { lat, lng, count: points.length, radius: Math.min(MAX_SPOT_RADIUS_M, Math.max(...points.map(p => distanceMeters(lat, lng, p.lat, p.lng)))) };
 }
 

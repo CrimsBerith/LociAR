@@ -1,0 +1,3714 @@
+{
+ "type": "FeatureCollection",
+ "source": "OpenStreetMap contributors, ODbL 1.0",
+ "license": "https://www.openstreetmap.org/copyright",
+ "retrieved": "2026-10-20",
+ "review": "Street-centre candidates, not surveyed placement. All items require map review. Preliminary 70 m worship/monument and 90 m school/hospital/kindergarten buffers do not replace server protected_zones.",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "kadikoy",
+    "points": [
+     {
+      "lat": 40.9862579,
+      "lng": 29.0254396,
+      "place": "Moda Caddesi",
+      "way": 694745766
+     },
+     {
+      "lat": 40.9859782,
+      "lng": 29.0252906,
+      "place": "Moda Caddesi",
+      "way": 694745766
+     },
+     {
+      "lat": 40.9856737,
+      "lng": 29.0251344,
+      "place": "Moda Caddesi",
+      "way": 694745766
+     },
+     {
+      "lat": 40.9854047,
+      "lng": 29.0250091,
+      "place": "Moda Caddesi",
+      "way": 694745766
+     },
+     {
+      "lat": 40.986507,
+      "lng": 29.0256523,
+      "place": "Moda Caddesi",
+      "way": 183616149
+     },
+     {
+      "lat": 40.9868178,
+      "lng": 29.0257136,
+      "place": "Moda Caddesi",
+      "way": 183616149
+     },
+     {
+      "lat": 40.9871083,
+      "lng": 29.0256872,
+      "place": "Moda Caddesi",
+      "way": 237757419
+     },
+     {
+      "lat": 40.9851873,
+      "lng": 29.0266045,
+      "place": "Hacı Şükrü Sokağı",
+      "way": 40786009
+     },
+     {
+      "lat": 40.9854512,
+      "lng": 29.0267424,
+      "place": "Hacı Şükrü Sokağı",
+      "way": 40786009
+     },
+     {
+      "lat": 40.9857151,
+      "lng": 29.0268803,
+      "place": "Hacı Şükrü Sokağı",
+      "way": 40786009
+     },
+     {
+      "lat": 40.9868191,
+      "lng": 29.0274305,
+      "place": "Hacı Şükrü Sokağı",
+      "way": 40786009
+     },
+     {
+      "lat": 40.9870765,
+      "lng": 29.0275553,
+      "place": "Hacı Şükrü Sokağı",
+      "way": 40786009
+     },
+     {
+      "lat": 40.9873692,
+      "lng": 29.0254892,
+      "place": "Moda Caddesi",
+      "way": 712458680
+     },
+     {
+      "lat": 40.9876762,
+      "lng": 29.025336,
+      "place": "Moda Caddesi",
+      "way": 712458680
+     },
+     {
+      "lat": 40.9879403,
+      "lng": 29.0252189,
+      "place": "Moda Caddesi",
+      "way": 712458680
+     },
+     {
+      "lat": 40.9882626,
+      "lng": 29.0250881,
+      "place": "Moda Caddesi",
+      "way": 712458680
+     },
+     {
+      "lat": 40.988585,
+      "lng": 29.0249572,
+      "place": "Moda Caddesi",
+      "way": 712458680
+     },
+     {
+      "lat": 40.9851358,
+      "lng": 29.0248838,
+      "place": "Bademaltı Sokağı",
+      "way": 40784678
+     },
+     {
+      "lat": 40.9850249,
+      "lng": 29.0252097,
+      "place": "Bademaltı Sokağı",
+      "way": 40784678
+     },
+     {
+      "lat": 40.984914,
+      "lng": 29.0255356,
+      "place": "Bademaltı Sokağı",
+      "way": 40784678
+     },
+     {
+      "lat": 40.9847731,
+      "lng": 29.0259265,
+      "place": "Bademaltı Sokağı",
+      "way": 40784678
+     },
+     {
+      "lat": 40.9848784,
+      "lng": 29.0247285,
+      "place": "Moda Caddesi",
+      "way": 1546691369
+     },
+     {
+      "lat": 40.985576,
+      "lng": 29.027739,
+      "place": "General Asım Gündüz Caddesi",
+      "way": 621990109
+     },
+     {
+      "lat": 40.9852503,
+      "lng": 29.0276882,
+      "place": "General Asım Gündüz Caddesi",
+      "way": 621990109
+     },
+     {
+      "lat": 40.9849202,
+      "lng": 29.0276783,
+      "place": "General Asım Gündüz Caddesi",
+      "way": 621990109
+     },
+     {
+      "lat": 40.9851225,
+      "lng": 29.0231477,
+      "place": "Mühürdar Karakolu Sokağı",
+      "way": 1505018263
+     },
+     {
+      "lat": 40.984991,
+      "lng": 29.0234765,
+      "place": "Mühürdar Karakolu Sokağı",
+      "way": 1505018263
+     },
+     {
+      "lat": 40.9848595,
+      "lng": 29.0238054,
+      "place": "Mühürdar Karakolu Sokağı",
+      "way": 1505018263
+     },
+     {
+      "lat": 40.9883257,
+      "lng": 29.0286744,
+      "place": "General Asım Gündüz Caddesi",
+      "way": 695663505
+     },
+     {
+      "lat": 40.9810932,
+      "lng": 29.0233697,
+      "place": "Moda Bostanı Sokağı",
+      "way": 66320572
+     },
+     {
+      "lat": 40.9812996,
+      "lng": 29.0236443,
+      "place": "Moda Bostanı Sokağı",
+      "way": 66320572
+     },
+     {
+      "lat": 40.9815681,
+      "lng": 29.0238689,
+      "place": "Moda Bostanı Sokağı",
+      "way": 66320572
+     },
+     {
+      "lat": 40.9818199,
+      "lng": 29.0240082,
+      "place": "Moda Bostanı Sokağı",
+      "way": 66320572
+     },
+     {
+      "lat": 40.9821294,
+      "lng": 29.0241467,
+      "place": "Moda Bostanı Sokağı",
+      "way": 66320572
+     },
+     {
+      "lat": 40.9823931,
+      "lng": 29.0242762,
+      "place": "Moda Bostanı Sokağı",
+      "way": 66320572
+     },
+     {
+      "lat": 40.9826569,
+      "lng": 29.0244058,
+      "place": "Moda Bostanı Sokağı",
+      "way": 66320572
+     },
+     {
+      "lat": 40.9858446,
+      "lng": 29.0212886,
+      "place": "Mühürdar Karakolu Sokağı",
+      "way": 132474410
+     },
+     {
+      "lat": 40.9857429,
+      "lng": 29.0216221,
+      "place": "Mühürdar Karakolu Sokağı",
+      "way": 132474410
+     },
+     {
+      "lat": 40.9855941,
+      "lng": 29.0219909,
+      "place": "Mühürdar Karakolu Sokağı",
+      "way": 132474410
+     },
+     {
+      "lat": 40.9854404,
+      "lng": 29.0223815,
+      "place": "Mühürdar Karakolu Sokağı",
+      "way": 132474410
+     },
+     {
+      "lat": 40.9852828,
+      "lng": 29.0227665,
+      "place": "Mühürdar Karakolu Sokağı",
+      "way": 132474410
+     },
+     {
+      "lat": 40.9830605,
+      "lng": 29.0236075,
+      "place": "Moda Caddesi",
+      "way": 694745767
+     },
+     {
+      "lat": 40.982802,
+      "lng": 29.0234817,
+      "place": "Moda Caddesi",
+      "way": 694745767
+     },
+     {
+      "lat": 40.9825451,
+      "lng": 29.0233718,
+      "place": "Moda Caddesi",
+      "way": 694745767
+     },
+     {
+      "lat": 40.9822739,
+      "lng": 29.0232701,
+      "place": "Moda Caddesi",
+      "way": 694745767
+     },
+     {
+      "lat": 40.9819687,
+      "lng": 29.0231854,
+      "place": "Moda Caddesi",
+      "way": 694745767
+     },
+     {
+      "lat": 40.9816885,
+      "lng": 29.023105,
+      "place": "Moda Caddesi",
+      "way": 694745767
+     },
+     {
+      "lat": 40.9889476,
+      "lng": 29.0240447,
+      "place": "Güneşlibahçe Sokağı",
+      "way": 694279848
+     },
+     {
+      "lat": 40.9887062,
+      "lng": 29.0238565,
+      "place": "Güneşlibahçe Sokağı",
+      "way": 694279848
+     },
+     {
+      "lat": 40.9884648,
+      "lng": 29.0236683,
+      "place": "Güneşlibahçe Sokağı",
+      "way": 694279848
+     },
+     {
+      "lat": 40.9875902,
+      "lng": 29.0213406,
+      "place": "Mühürdar Caddesi",
+      "way": 40779890
+     },
+     {
+      "lat": 40.9869499,
+      "lng": 29.0216492,
+      "place": "Mühürdar Caddesi",
+      "way": 236409580
+     },
+     {
+      "lat": 40.986667,
+      "lng": 29.0216135,
+      "place": "Mühürdar Caddesi",
+      "way": 236409580
+     },
+     {
+      "lat": 40.9863407,
+      "lng": 29.0215294,
+      "place": "Mühürdar Caddesi",
+      "way": 236409580
+     },
+     {
+      "lat": 40.9893798,
+      "lng": 29.0238125,
+      "place": "Mühürdar Caddesi",
+      "way": 235498054
+     },
+     {
+      "lat": 40.9874518,
+      "lng": 29.0217268,
+      "place": "Mühürdarbağı Sokağı",
+      "way": 1034060983
+     },
+     {
+      "lat": 40.9853724,
+      "lng": 29.0210603,
+      "place": "Mühürdar Caddesi",
+      "way": 236364679
+     },
+     {
+      "lat": 40.9840222,
+      "lng": 29.0211052,
+      "place": "Mühürdar Caddesi",
+      "way": 152447452
+     },
+     {
+      "lat": 40.9843536,
+      "lng": 29.0210283,
+      "place": "Mühürdar Caddesi",
+      "way": 152447452
+     },
+     {
+      "lat": 40.9846751,
+      "lng": 29.0209537,
+      "place": "Mühürdar Caddesi",
+      "way": 152447452
+     },
+     {
+      "lat": 40.9849799,
+      "lng": 29.0209182,
+      "place": "Mühürdar Caddesi",
+      "way": 152447452
+     },
+     {
+      "lat": 40.9838407,
+      "lng": 29.0217471,
+      "place": "Mühürdar Caddesi",
+      "way": 1018486123
+     },
+     {
+      "lat": 40.9853803,
+      "lng": 29.0202872,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9850936,
+      "lng": 29.0203884,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9847879,
+      "lng": 29.0203632,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9844981,
+      "lng": 29.0203801,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9841823,
+      "lng": 29.0204939,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9838936,
+      "lng": 29.0205782,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9835884,
+      "lng": 29.0206137,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9832763,
+      "lng": 29.0205909,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9829415,
+      "lng": 29.0205473,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9826301,
+      "lng": 29.0205109,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9823551,
+      "lng": 29.0204434,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9820327,
+      "lng": 29.0203491,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9817244,
+      "lng": 29.0202482,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.981415,
+      "lng": 29.0200996,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9811443,
+      "lng": 29.0200414,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9808517,
+      "lng": 29.0201284,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9805439,
+      "lng": 29.020282,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9802922,
+      "lng": 29.0204383,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9800232,
+      "lng": 29.0206527,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9797565,
+      "lng": 29.02086,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9794915,
+      "lng": 29.0210867,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 689645023
+     },
+     {
+      "lat": 40.9903908,
+      "lng": 29.0171197,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9900833,
+      "lng": 29.0172575,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.989823,
+      "lng": 29.0173724,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9895124,
+      "lng": 29.0175201,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.989217,
+      "lng": 29.0176861,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9889269,
+      "lng": 29.0178702,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9886372,
+      "lng": 29.0180674,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9883916,
+      "lng": 29.0182411,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9881399,
+      "lng": 29.0184257,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9878882,
+      "lng": 29.0186104,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9876194,
+      "lng": 29.018813,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9874075,
+      "lng": 29.0190862,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9871231,
+      "lng": 29.0192648,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9868244,
+      "lng": 29.0194503,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9865198,
+      "lng": 29.0195605,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.986265,
+      "lng": 29.0197331,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9860175,
+      "lng": 29.0198996,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9857732,
+      "lng": 29.0200661,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1284388959
+     },
+     {
+      "lat": 40.9813883,
+      "lng": 29.023126,
+      "place": "Moda Caddesi",
+      "way": 1185549445
+     },
+     {
+      "lat": 40.980877,
+      "lng": 29.0244999,
+      "place": "Moda Mektebi Sokağı",
+      "way": 66320579
+     },
+     {
+      "lat": 40.9808525,
+      "lng": 29.0248658,
+      "place": "Moda Mektebi Sokağı",
+      "way": 66320579
+     },
+     {
+      "lat": 40.9808279,
+      "lng": 29.0252318,
+      "place": "Moda Mektebi Sokağı",
+      "way": 66320579
+     },
+     {
+      "lat": 40.9808148,
+      "lng": 29.0255919,
+      "place": "Moda Mektebi Sokağı",
+      "way": 66320579
+     },
+     {
+      "lat": 40.9808129,
+      "lng": 29.0260348,
+      "place": "Moda Mektebi Sokağı",
+      "way": 66320579
+     },
+     {
+      "lat": 40.9804893,
+      "lng": 29.0261149,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236464869
+     },
+     {
+      "lat": 40.9805907,
+      "lng": 29.0264852,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236464869
+     },
+     {
+      "lat": 40.9805602,
+      "lng": 29.026841,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236464869
+     },
+     {
+      "lat": 40.9805297,
+      "lng": 29.0271968,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236464869
+     },
+     {
+      "lat": 40.9804715,
+      "lng": 29.0275741,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236662697
+     },
+     {
+      "lat": 40.9804933,
+      "lng": 29.0279846,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236662697
+     },
+     {
+      "lat": 40.9805196,
+      "lng": 29.0283499,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236662697
+     },
+     {
+      "lat": 40.9805459,
+      "lng": 29.0287153,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236662697
+     },
+     {
+      "lat": 40.9806905,
+      "lng": 29.0290333,
+      "place": "Küçük Moda Burnu Sokağı",
+      "way": 236662697
+     },
+     {
+      "lat": 40.9914784,
+      "lng": 29.0238696,
+      "place": "Rıhtım Caddesi",
+      "way": 25549908
+     },
+     {
+      "lat": 40.9916835,
+      "lng": 29.0242099,
+      "place": "Rıhtım Caddesi",
+      "way": 25549908
+     },
+     {
+      "lat": 40.9919001,
+      "lng": 29.0245087,
+      "place": "Rıhtım Caddesi",
+      "way": 25549908
+     },
+     {
+      "lat": 40.991482,
+      "lng": 29.0234899,
+      "place": "Rıhtım Caddesi",
+      "way": 43942177
+     },
+     {
+      "lat": 40.9910632,
+      "lng": 29.0221388,
+      "place": "Rıhtım Caddesi",
+      "way": 1237459845
+     },
+     {
+      "lat": 40.9905937,
+      "lng": 29.0207238,
+      "place": "Rıhtım Caddesi",
+      "way": 1208370833
+     },
+     {
+      "lat": 40.9907284,
+      "lng": 29.0210938,
+      "place": "Rıhtım Caddesi",
+      "way": 1208370833
+     },
+     {
+      "lat": 40.9908533,
+      "lng": 29.0214772,
+      "place": "Rıhtım Caddesi",
+      "way": 1208370833
+     },
+     {
+      "lat": 40.9919123,
+      "lng": 29.0255286,
+      "place": "Mühürdar Fuat Sokağı",
+      "way": 694936852
+     },
+     {
+      "lat": 40.9918977,
+      "lng": 29.0259629,
+      "place": "Mühürdar Fuat Sokağı",
+      "way": 694936852
+     },
+     {
+      "lat": 40.991883,
+      "lng": 29.0263972,
+      "place": "Mühürdar Fuat Sokağı",
+      "way": 694936852
+     },
+     {
+      "lat": 40.9918654,
+      "lng": 29.0268339,
+      "place": "Mühürdar Fuat Sokağı",
+      "way": 694936852
+     },
+     {
+      "lat": 40.9798577,
+      "lng": 29.0254895,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9799083,
+      "lng": 29.025844,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9799685,
+      "lng": 29.0262744,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9800197,
+      "lng": 29.026689,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9799744,
+      "lng": 29.0270737,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9797578,
+      "lng": 29.0273291,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9795191,
+      "lng": 29.0275872,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9795498,
+      "lng": 29.0279481,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9796597,
+      "lng": 29.0283434,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9798161,
+      "lng": 29.0286745,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9798124,
+      "lng": 29.0290751,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9798408,
+      "lng": 29.0295001,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9799844,
+      "lng": 29.0298666,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9801661,
+      "lng": 29.0302171,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9803699,
+      "lng": 29.0305623,
+      "place": "Kadıköy - Moda Bisiklet Yolu",
+      "way": 1188482470
+     },
+     {
+      "lat": 40.9921593,
+      "lng": 29.024691,
+      "place": "Rıhtım Caddesi",
+      "way": 659774207
+     },
+     {
+      "lat": 40.9924261,
+      "lng": 29.024777,
+      "place": "Rıhtım Caddesi",
+      "way": 659774207
+     },
+     {
+      "lat": 40.9927043,
+      "lng": 29.0248289,
+      "place": "Rıhtım Caddesi",
+      "way": 659774207
+     },
+     {
+      "lat": 40.9929745,
+      "lng": 29.024859,
+      "place": "Rıhtım Caddesi",
+      "way": 659774207
+     },
+     {
+      "lat": 40.9901894,
+      "lng": 29.0196642,
+      "place": "Rıhtım Caddesi",
+      "way": 236166980
+     },
+     {
+      "lat": 40.9903334,
+      "lng": 29.0200376,
+      "place": "Rıhtım Caddesi",
+      "way": 236166980
+     },
+     {
+      "lat": 40.9904599,
+      "lng": 29.0203658,
+      "place": "Rıhtım Caddesi",
+      "way": 236166980
+     },
+     {
+      "lat": 40.9935622,
+      "lng": 29.0247302,
+      "place": "Rıhtım Caddesi",
+      "way": 639447518
+     },
+     {
+      "lat": 40.9932804,
+      "lng": 29.024735,
+      "place": "Rıhtım Caddesi",
+      "way": 639447518
+     },
+     {
+      "lat": 40.9808192,
+      "lng": 29.032037,
+      "place": "Moda Sahil Yolu",
+      "way": 1186356700
+     },
+     {
+      "lat": 40.9810035,
+      "lng": 29.0323291,
+      "place": "Moda Sahil Yolu",
+      "way": 1186356700
+     },
+     {
+      "lat": 40.9812258,
+      "lng": 29.0325454,
+      "place": "Moda Sahil Yolu",
+      "way": 1186356700
+     },
+     {
+      "lat": 40.9814846,
+      "lng": 29.0327829,
+      "place": "Moda Sahil Yolu",
+      "way": 1186356700
+     },
+     {
+      "lat": 40.9817454,
+      "lng": 29.0330234,
+      "place": "Moda Sahil Yolu",
+      "way": 1186356700
+     },
+     {
+      "lat": 40.9905693,
+      "lng": 29.0190235,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1192821951
+     },
+     {
+      "lat": 40.9906803,
+      "lng": 29.0186745,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1192821951
+     },
+     {
+      "lat": 40.9907853,
+      "lng": 29.0183346,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1192821951
+     },
+     {
+      "lat": 40.9907075,
+      "lng": 29.0179104,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1192821951
+     },
+     {
+      "lat": 40.9905888,
+      "lng": 29.017585,
+      "place": "Moda Sahil Yürüme Yolu",
+      "way": 1192821951
+     },
+     {
+      "lat": 40.9955505,
+      "lng": 29.0244945,
+      "place": "Rıhtım Caddesi",
+      "way": 661357785
+     },
+     {
+      "lat": 40.9952803,
+      "lng": 29.0245391,
+      "place": "Rıhtım Caddesi",
+      "way": 661357785
+     },
+     {
+      "lat": 40.9950102,
+      "lng": 29.0245837,
+      "place": "Rıhtım Caddesi",
+      "way": 661357785
+     },
+     {
+      "lat": 40.99474,
+      "lng": 29.0246283,
+      "place": "Rıhtım Caddesi",
+      "way": 661357785
+     },
+     {
+      "lat": 40.9944698,
+      "lng": 29.0246729,
+      "place": "Rıhtım Caddesi",
+      "way": 661357785
+     },
+     {
+      "lat": 40.9941565,
+      "lng": 29.0247082,
+      "place": "Rıhtım Caddesi",
+      "way": 661357785
+     },
+     {
+      "lat": 40.9938854,
+      "lng": 29.0247198,
+      "place": "Rıhtım Caddesi",
+      "way": 661357785
+     },
+     {
+      "lat": 40.9958517,
+      "lng": 29.024597,
+      "place": "Rıhtım Caddesi",
+      "way": 237684226
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "beyoglu",
+    "points": [
+     {
+      "lat": 41.0284759,
+      "lng": 28.9798543,
+      "place": "Boğazkesen Caddesi",
+      "way": 229127973
+     },
+     {
+      "lat": 41.0282165,
+      "lng": 28.9800017,
+      "place": "Boğazkesen Caddesi",
+      "way": 229127973
+     },
+     {
+      "lat": 41.027955,
+      "lng": 28.9801517,
+      "place": "Boğazkesen Caddesi",
+      "way": 229127973
+     },
+     {
+      "lat": 41.029564,
+      "lng": 28.9752834,
+      "place": "Kumbaracı Yokuşu",
+      "way": 25569549
+     },
+     {
+      "lat": 41.0293947,
+      "lng": 28.9756152,
+      "place": "Kumbaracı Yokuşu",
+      "way": 25569549
+     },
+     {
+      "lat": 41.027492,
+      "lng": 28.9780027,
+      "place": "Kumbaracı Yokuşu",
+      "way": 25569549
+     },
+     {
+      "lat": 41.0272755,
+      "lng": 28.9782335,
+      "place": "Kumbaracı Yokuşu",
+      "way": 25569549
+     },
+     {
+      "lat": 41.0286507,
+      "lng": 28.9747157,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0284139,
+      "lng": 28.9745388,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0281313,
+      "lng": 28.9744539,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0289535,
+      "lng": 28.9748515,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0292096,
+      "lng": 28.97507,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0298356,
+      "lng": 28.9753508,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0342705,
+      "lng": 28.9789669,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0344221,
+      "lng": 28.9793519,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0345712,
+      "lng": 28.9797281,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0352694,
+      "lng": 28.9814378,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0354166,
+      "lng": 28.9818265,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0355413,
+      "lng": 28.9821557,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0356672,
+      "lng": 28.9824899,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.0358075,
+      "lng": 28.9827984,
+      "place": "İstiklal caddesi",
+      "way": 485068606
+     },
+     {
+      "lat": 41.028617,
+      "lng": 28.9750872,
+      "place": "Şah Kulu Bostan Sokağı",
+      "way": 25569551
+     },
+     {
+      "lat": 41.0284404,
+      "lng": 28.9753768,
+      "place": "Şah Kulu Bostan Sokağı",
+      "way": 25569551
+     },
+     {
+      "lat": 41.0326799,
+      "lng": 28.9751098,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.0323617,
+      "lng": 28.9751203,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.0311464,
+      "lng": 28.9738885,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.0308708,
+      "lng": 28.9736734,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.030629,
+      "lng": 28.9735108,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.0290154,
+      "lng": 28.9730338,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.0287054,
+      "lng": 28.97312,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.0284198,
+      "lng": 28.9732111,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.0281442,
+      "lng": 28.9732943,
+      "place": "Meşrutiyet Caddesi",
+      "way": 24806208
+     },
+     {
+      "lat": 41.027031,
+      "lng": 28.9785272,
+      "place": "Lüleci Hendek Caddesi",
+      "way": 92410040
+     },
+     {
+      "lat": 41.0267279,
+      "lng": 28.9782449,
+      "place": "Lüleci Hendek Caddesi",
+      "way": 977630192
+     },
+     {
+      "lat": 41.0254384,
+      "lng": 28.9751009,
+      "place": "Lüleci Hendek Caddesi",
+      "way": 92410047
+     },
+     {
+      "lat": 41.0266599,
+      "lng": 28.9762008,
+      "place": "Hoca Ali Sokağı",
+      "way": 61011826
+     },
+     {
+      "lat": 41.0266943,
+      "lng": 28.9798807,
+      "place": "Kemeraltı Caddesi",
+      "way": 1528632828
+     },
+     {
+      "lat": 41.0265394,
+      "lng": 28.9795724,
+      "place": "Kemeraltı Caddesi",
+      "way": 1160053324
+     },
+     {
+      "lat": 41.0263609,
+      "lng": 28.9792217,
+      "place": "Kemeraltı Caddesi",
+      "way": 1160053324
+     },
+     {
+      "lat": 41.0257332,
+      "lng": 28.9749471,
+      "place": "Galip Dede Caddesi",
+      "way": 92410041
+     },
+     {
+      "lat": 41.0227061,
+      "lng": 28.9751355,
+      "place": "Kemeraltı Caddesi",
+      "way": 25539025
+     },
+     {
+      "lat": 41.0230273,
+      "lng": 28.9751698,
+      "place": "Kemeraltı Caddesi",
+      "way": 25539025
+     },
+     {
+      "lat": 41.0233261,
+      "lng": 28.9752285,
+      "place": "Kemeraltı Caddesi",
+      "way": 25539025
+     },
+     {
+      "lat": 41.0236035,
+      "lng": 28.9754373,
+      "place": "Kemeraltı Caddesi",
+      "way": 25539025
+     },
+     {
+      "lat": 41.0238301,
+      "lng": 28.9757074,
+      "place": "Kemeraltı Caddesi",
+      "way": 25539025
+     },
+     {
+      "lat": 41.0263068,
+      "lng": 28.9799063,
+      "place": "Necatibey Caddesi",
+      "way": 669715186
+     },
+     {
+      "lat": 41.0337279,
+      "lng": 28.9760709,
+      "place": "Meşrutiyet Caddesi",
+      "way": 977626581
+     },
+     {
+      "lat": 41.0338915,
+      "lng": 28.9764015,
+      "place": "Meşrutiyet Caddesi",
+      "way": 977626581
+     },
+     {
+      "lat": 41.0281093,
+      "lng": 28.9728918,
+      "place": "Meşrutiyet Caddesi",
+      "way": 315553419
+     },
+     {
+      "lat": 41.0279966,
+      "lng": 28.9725555,
+      "place": "Meşrutiyet Caddesi",
+      "way": 315553419
+     },
+     {
+      "lat": 41.0278644,
+      "lng": 28.9721691,
+      "place": "Meşrutiyet Caddesi",
+      "way": 315553419
+     },
+     {
+      "lat": 41.0278315,
+      "lng": 28.9733904,
+      "place": "Meşrutiyet Caddesi",
+      "way": 1030724772
+     },
+     {
+      "lat": 41.025834,
+      "lng": 28.9804105,
+      "place": "Mumhane Caddesi",
+      "way": 229238477
+     },
+     {
+      "lat": 41.0235079,
+      "lng": 28.9775213,
+      "place": "Mumhane Caddesi",
+      "way": 52090097
+     },
+     {
+      "lat": 41.0237242,
+      "lng": 28.977783,
+      "place": "Mumhane Caddesi",
+      "way": 52090097
+     },
+     {
+      "lat": 41.0259862,
+      "lng": 28.974104,
+      "place": "Küçük Hendek Caddesi",
+      "way": 144792569
+     },
+     {
+      "lat": 41.0261875,
+      "lng": 28.973832,
+      "place": "Küçük Hendek Caddesi",
+      "way": 144792569
+     },
+     {
+      "lat": 41.0276522,
+      "lng": 28.971755,
+      "place": "Büyük Hendek Caddesi",
+      "way": 1224796869
+     },
+     {
+      "lat": 41.027548,
+      "lng": 28.9721119,
+      "place": "Büyük Hendek Caddesi",
+      "way": 1224796869
+     },
+     {
+      "lat": 41.0273472,
+      "lng": 28.9724436,
+      "place": "Büyük Hendek Caddesi",
+      "way": 1224796869
+     },
+     {
+      "lat": 41.0256768,
+      "lng": 28.9740462,
+      "place": "Büyük Hendek Caddesi",
+      "way": 41679637
+     },
+     {
+      "lat": 41.0229161,
+      "lng": 28.97553,
+      "place": "Necatibey Caddesi",
+      "way": 42141138
+     },
+     {
+      "lat": 41.0231054,
+      "lng": 28.9758671,
+      "place": "Necatibey Caddesi",
+      "way": 42141138
+     },
+     {
+      "lat": 41.0232688,
+      "lng": 28.97618,
+      "place": "Necatibey Caddesi",
+      "way": 42141138
+     },
+     {
+      "lat": 41.0234553,
+      "lng": 28.9764996,
+      "place": "Necatibey Caddesi",
+      "way": 42141138
+     },
+     {
+      "lat": 41.0236606,
+      "lng": 28.9767614,
+      "place": "Necatibey Caddesi",
+      "way": 42141138
+     },
+     {
+      "lat": 41.0238672,
+      "lng": 28.9770253,
+      "place": "Necatibey Caddesi",
+      "way": 42141138
+     },
+     {
+      "lat": 41.0240716,
+      "lng": 28.9772645,
+      "place": "Necatibey Caddesi",
+      "way": 42141138
+     },
+     {
+      "lat": 41.0242747,
+      "lng": 28.9775021,
+      "place": "Necatibey Caddesi",
+      "way": 42141138
+     },
+     {
+      "lat": 41.0254269,
+      "lng": 28.9822437,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0251968,
+      "lng": 28.9819429,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0249824,
+      "lng": 28.9816071,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0248616,
+      "lng": 28.981221,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0247932,
+      "lng": 28.9807919,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0246927,
+      "lng": 28.980379,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0245096,
+      "lng": 28.9801007,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0243264,
+      "lng": 28.9798223,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0241433,
+      "lng": 28.9795439,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0239602,
+      "lng": 28.9792656,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.023777,
+      "lng": 28.9789872,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0235939,
+      "lng": 28.9787089,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0234143,
+      "lng": 28.9784309,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0232385,
+      "lng": 28.9781532,
+      "place": "Kemankeş Caddesi",
+      "way": 24826715
+     },
+     {
+      "lat": 41.0240978,
+      "lng": 28.9767281,
+      "place": "Maliye Caddesi",
+      "way": 1482929335
+     },
+     {
+      "lat": 41.0232398,
+      "lng": 28.9777711,
+      "place": "Maliye Caddesi",
+      "way": 304100729
+     },
+     {
+      "lat": 41.0232615,
+      "lng": 28.9772538,
+      "place": "Mumhane Caddesi",
+      "way": 52090098
+     },
+     {
+      "lat": 41.0237493,
+      "lng": 28.975136,
+      "place": "Bankalar Caddesi",
+      "way": 1030859817
+     },
+     {
+      "lat": 41.0248441,
+      "lng": 28.9719504,
+      "place": "Bankalar Caddesi",
+      "way": 24806146
+     },
+     {
+      "lat": 41.0229245,
+      "lng": 28.9776907,
+      "place": "Kemankeş Caddesi",
+      "way": 1161143999
+     },
+     {
+      "lat": 41.0226226,
+      "lng": 28.9747824,
+      "place": "Kemeraltı Caddesi",
+      "way": 1150725755
+     },
+     {
+      "lat": 41.0219323,
+      "lng": 28.974686,
+      "place": "Kemeraltı Caddesi",
+      "way": 931813836
+     },
+     {
+      "lat": 41.0221622,
+      "lng": 28.9748902,
+      "place": "Kemeraltı Caddesi",
+      "way": 931813836
+     },
+     {
+      "lat": 41.0224192,
+      "lng": 28.97506,
+      "place": "Kemeraltı Caddesi",
+      "way": 931813836
+     },
+     {
+      "lat": 41.0411392,
+      "lng": 28.9809176,
+      "place": "Küçük Mumhane Sokağı",
+      "way": 1465334203
+     },
+     {
+      "lat": 41.0409553,
+      "lng": 28.9811942,
+      "place": "Küçük Mumhane Sokağı",
+      "way": 1465334203
+     },
+     {
+      "lat": 41.0415307,
+      "lng": 28.9802804,
+      "place": "Küçük Mumhane Sokağı",
+      "way": 1465334204
+     },
+     {
+      "lat": 41.0413329,
+      "lng": 28.9806024,
+      "place": "Küçük Mumhane Sokağı",
+      "way": 1465334204
+     },
+     {
+      "lat": 41.0421314,
+      "lng": 28.9662655,
+      "place": "Piyale Mumhanesi Sokağı",
+      "way": 106702447
+     },
+     {
+      "lat": 41.0422134,
+      "lng": 28.9658881,
+      "place": "Piyale Mumhanesi Sokağı",
+      "way": 106702447
+     },
+     {
+      "lat": 41.042291,
+      "lng": 28.9655346,
+      "place": "Piyale Mumhanesi Sokağı",
+      "way": 106702447
+     },
+     {
+      "lat": 41.0423507,
+      "lng": 28.9651793,
+      "place": "Piyale Mumhanesi Sokağı",
+      "way": 106702447
+     },
+     {
+      "lat": 41.0424104,
+      "lng": 28.964824,
+      "place": "Piyale Mumhanesi Sokağı",
+      "way": 106702447
+     },
+     {
+      "lat": 41.0425198,
+      "lng": 28.9644059,
+      "place": "Piyale Mumhanesi Sokağı",
+      "way": 106702447
+     },
+     {
+      "lat": 41.0426523,
+      "lng": 28.9640053,
+      "place": "Piyale Mumhanesi Sokağı",
+      "way": 106702447
+     },
+     {
+      "lat": 41.0237017,
+      "lng": 28.9773046,
+      "place": "Maliye Caddesi",
+      "way": 25539030
+     },
+     {
+      "lat": 41.0268407,
+      "lng": 28.9759547,
+      "place": "Hoca Ali Sokağı",
+      "way": 61011826
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "ankara",
+    "points": [
+     {
+      "lat": 39.9025191,
+      "lng": 32.8604979,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9027903,
+      "lng": 32.8603705,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9031198,
+      "lng": 32.8603232,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9034114,
+      "lng": 32.8603343,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9037495,
+      "lng": 32.8603685,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9040323,
+      "lng": 32.8604043,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9043151,
+      "lng": 32.8604402,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9045979,
+      "lng": 32.8604761,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9049221,
+      "lng": 32.860506,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9052321,
+      "lng": 32.8605457,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9055315,
+      "lng": 32.8606089,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9057916,
+      "lng": 32.8607069,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9060586,
+      "lng": 32.8608207,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9063256,
+      "lng": 32.8609345,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9065927,
+      "lng": 32.8610483,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9068597,
+      "lng": 32.8611621,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9071296,
+      "lng": 32.8612639,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9074005,
+      "lng": 32.8613616,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9076714,
+      "lng": 32.8614594,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9079391,
+      "lng": 32.8615535,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9082649,
+      "lng": 32.8616545,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9085358,
+      "lng": 32.8617256,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9088067,
+      "lng": 32.8617967,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9090847,
+      "lng": 32.8618697,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9094172,
+      "lng": 32.8619255,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9097399,
+      "lng": 32.8619762,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 509856300
+     },
+     {
+      "lat": 39.9132304,
+      "lng": 32.8624309,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9129472,
+      "lng": 32.8624141,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9126639,
+      "lng": 32.8623972,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9123807,
+      "lng": 32.8623804,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9120974,
+      "lng": 32.8623635,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9118142,
+      "lng": 32.8623467,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9115309,
+      "lng": 32.8623298,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9112544,
+      "lng": 32.8623066,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9109394,
+      "lng": 32.862236,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9106581,
+      "lng": 32.8621421,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 849135766
+     },
+     {
+      "lat": 39.9143319,
+      "lng": 32.8624321,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 16200847
+     },
+     {
+      "lat": 39.9140401,
+      "lng": 32.862456,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 16200847
+     },
+     {
+      "lat": 39.9137702,
+      "lng": 32.862448,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 16200847
+     },
+     {
+      "lat": 39.9135004,
+      "lng": 32.86244,
+      "place": "Tunalı Hilmi Caddesi",
+      "way": 16200847
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "izmir",
+    "points": [
+     {
+      "lat": 38.4346778,
+      "lng": 27.1423883,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4349795,
+      "lng": 27.1424833,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4352867,
+      "lng": 27.1425988,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4356132,
+      "lng": 27.1427018,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4373183,
+      "lng": 27.1432411,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4375983,
+      "lng": 27.1433716,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4379095,
+      "lng": 27.1434815,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4391443,
+      "lng": 27.1437688,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4394215,
+      "lng": 27.1438131,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4396978,
+      "lng": 27.1438588,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620461961
+     },
+     {
+      "lat": 38.4410167,
+      "lng": 27.1440177,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620424706
+     },
+     {
+      "lat": 38.4413491,
+      "lng": 27.1440543,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620424706
+     },
+     {
+      "lat": 38.4416715,
+      "lng": 27.1441007,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 620424706
+     },
+     {
+      "lat": 38.4419872,
+      "lng": 27.1441536,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 1364949444
+     },
+     {
+      "lat": 38.4423066,
+      "lng": 27.1442089,
+      "place": "Kıbrıs Şehitleri Caddesi",
+      "way": 1364949444
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "bursa",
+    "points": [
+     {
+      "lat": 40.1861929,
+      "lng": 29.0597866,
+      "place": "Cumhuriyet Caddesi",
+      "way": 254574426
+     },
+     {
+      "lat": 40.1861619,
+      "lng": 29.0601485,
+      "place": "Cumhuriyet Caddesi",
+      "way": 254574426
+     },
+     {
+      "lat": 40.1861249,
+      "lng": 29.0605015,
+      "place": "Cumhuriyet Caddesi",
+      "way": 254574426
+     },
+     {
+      "lat": 40.1859642,
+      "lng": 29.0621496,
+      "place": "Cumhuriyet Caddesi",
+      "way": 254574426
+     },
+     {
+      "lat": 40.1854594,
+      "lng": 29.0676001,
+      "place": "Cumhuriyet Caddesi",
+      "way": 254574426
+     },
+     {
+      "lat": 40.1853621,
+      "lng": 29.0685591,
+      "place": "Cumhuriyet Caddesi",
+      "way": 254574426
+     },
+     {
+      "lat": 40.1853247,
+      "lng": 29.0689276,
+      "place": "Cumhuriyet Caddesi",
+      "way": 254574426
+     },
+     {
+      "lat": 40.1849872,
+      "lng": 29.0718268,
+      "place": "Cumhuriyet Caddesi",
+      "way": 26434461
+     },
+     {
+      "lat": 40.1852063,
+      "lng": 29.0699376,
+      "place": "Cumhuriyet Caddesi",
+      "way": 26434461
+     },
+     {
+      "lat": 40.1852588,
+      "lng": 29.0695149,
+      "place": "Cumhuriyet Caddesi",
+      "way": 26434461
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "antalya",
+    "points": [
+     {
+      "lat": 36.8791533,
+      "lng": 30.7095928,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.8788875,
+      "lng": 30.7097832,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.8786097,
+      "lng": 30.7099821,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.8783619,
+      "lng": 30.7101595,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.878126,
+      "lng": 30.7103284,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.8778359,
+      "lng": 30.7105361,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.8775458,
+      "lng": 30.7107439,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.8773095,
+      "lng": 30.710913,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.8770718,
+      "lng": 30.7110833,
+      "place": "Işıklar Caddesi",
+      "way": 1329472422
+     },
+     {
+      "lat": 36.8796514,
+      "lng": 30.7092449,
+      "place": "Işıklar Caddesi",
+      "way": 1329472421
+     },
+     {
+      "lat": 36.8794112,
+      "lng": 30.7094127,
+      "place": "Işıklar Caddesi",
+      "way": 1329472421
+     },
+     {
+      "lat": 36.8801107,
+      "lng": 30.7088428,
+      "place": "Işıklar Caddesi",
+      "way": 1329472419
+     },
+     {
+      "lat": 36.8768267,
+      "lng": 30.7112616,
+      "place": "Işıklar Caddesi",
+      "way": 1329472423
+     },
+     {
+      "lat": 36.8765792,
+      "lng": 30.7114427,
+      "place": "Işıklar Caddesi",
+      "way": 1329472423
+     },
+     {
+      "lat": 36.8813332,
+      "lng": 30.7078225,
+      "place": "Işıklar Caddesi",
+      "way": 1329472418
+     },
+     {
+      "lat": 36.8810673,
+      "lng": 30.7080499,
+      "place": "Işıklar Caddesi",
+      "way": 1329472418
+     },
+     {
+      "lat": 36.8808423,
+      "lng": 30.7082495,
+      "place": "Işıklar Caddesi",
+      "way": 1329472418
+     },
+     {
+      "lat": 36.8805733,
+      "lng": 30.708472,
+      "place": "Işıklar Caddesi",
+      "way": 1329472418
+     },
+     {
+      "lat": 36.8803428,
+      "lng": 30.7086599,
+      "place": "Işıklar Caddesi",
+      "way": 1329472418
+     },
+     {
+      "lat": 36.8763348,
+      "lng": 30.7116224,
+      "place": "Işıklar Caddesi",
+      "way": 1329472424
+     },
+     {
+      "lat": 36.8760937,
+      "lng": 30.7118007,
+      "place": "Işıklar Caddesi",
+      "way": 1329472424
+     },
+     {
+      "lat": 36.8758526,
+      "lng": 30.711979,
+      "place": "Işıklar Caddesi",
+      "way": 1329472424
+     },
+     {
+      "lat": 36.8833524,
+      "lng": 30.7091393,
+      "place": "Atatürk Caddesi",
+      "way": 27313959
+     },
+     {
+      "lat": 36.8830733,
+      "lng": 30.7091042,
+      "place": "Atatürk Caddesi",
+      "way": 27313959
+     },
+     {
+      "lat": 36.8824938,
+      "lng": 30.708674,
+      "place": "Atatürk Caddesi",
+      "way": 27313959
+     },
+     {
+      "lat": 36.8822402,
+      "lng": 30.7084481,
+      "place": "Atatürk Caddesi",
+      "way": 27313959
+     },
+     {
+      "lat": 36.881991,
+      "lng": 30.7082239,
+      "place": "Atatürk Caddesi",
+      "way": 27313959
+     },
+     {
+      "lat": 36.8817533,
+      "lng": 30.7080012,
+      "place": "Atatürk Caddesi",
+      "way": 27313959
+     },
+     {
+      "lat": 36.8873371,
+      "lng": 30.707444,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8870717,
+      "lng": 30.7076275,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8868308,
+      "lng": 30.7077995,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8865504,
+      "lng": 30.7079918,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8862994,
+      "lng": 30.708159,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8860484,
+      "lng": 30.7083263,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8847431,
+      "lng": 30.7090948,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8844165,
+      "lng": 30.7091434,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8840761,
+      "lng": 30.7091391,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8838018,
+      "lng": 30.7091337,
+      "place": "Atatürk Caddesi",
+      "way": 27290519
+     },
+     {
+      "lat": 36.8880475,
+      "lng": 30.7070433,
+      "place": "Atatürk Caddesi",
+      "way": 533807357
+     },
+     {
+      "lat": 36.8877361,
+      "lng": 30.7072083,
+      "place": "Atatürk Caddesi",
+      "way": 533807357
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "eskisehir",
+    "points": [
+     {
+      "lat": 39.7760228,
+      "lng": 30.5198978,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 137081316
+     },
+     {
+      "lat": 39.7761813,
+      "lng": 30.5196025,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 137081316
+     },
+     {
+      "lat": 39.7763397,
+      "lng": 30.5193073,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 137081316
+     },
+     {
+      "lat": 39.7764982,
+      "lng": 30.519012,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 137081316
+     },
+     {
+      "lat": 39.7767003,
+      "lng": 30.5187116,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 137081316
+     },
+     {
+      "lat": 39.776933,
+      "lng": 30.518418,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 137081316
+     },
+     {
+      "lat": 39.777619,
+      "lng": 30.516941,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 367047245
+     },
+     {
+      "lat": 39.7774894,
+      "lng": 30.5172586,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 367047245
+     },
+     {
+      "lat": 39.7773599,
+      "lng": 30.5175763,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 367047245
+     },
+     {
+      "lat": 39.7771697,
+      "lng": 30.5179339,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 367047245
+     },
+     {
+      "lat": 39.775858,
+      "lng": 30.5211018,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 460332141
+     },
+     {
+      "lat": 39.7757629,
+      "lng": 30.5207487,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 460332141
+     },
+     {
+      "lat": 39.7758345,
+      "lng": 30.5203692,
+      "place": "İsmet İnönü-1 Bulvarı",
+      "way": 460332141
+     },
+     {
+      "lat": 39.7787717,
+      "lng": 30.5147729,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 137081273
+     },
+     {
+      "lat": 39.7785819,
+      "lng": 30.5150837,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 137081273
+     },
+     {
+      "lat": 39.7784116,
+      "lng": 30.5153801,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 137081273
+     },
+     {
+      "lat": 39.778247,
+      "lng": 30.5156638,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 137081273
+     },
+     {
+      "lat": 39.7780825,
+      "lng": 30.5159475,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 137081273
+     },
+     {
+      "lat": 39.7779218,
+      "lng": 30.5162299,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 137081273
+     },
+     {
+      "lat": 39.7777779,
+      "lng": 30.5165339,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 137081273
+     },
+     {
+      "lat": 39.7789508,
+      "lng": 30.5145024,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 83718160
+     },
+     {
+      "lat": 39.7791593,
+      "lng": 30.5141976,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 83718160
+     },
+     {
+      "lat": 39.779328,
+      "lng": 30.5139229,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 83718160
+     },
+     {
+      "lat": 39.779536,
+      "lng": 30.5135923,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 83718160
+     },
+     {
+      "lat": 39.7797009,
+      "lng": 30.5133107,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 83718160
+     },
+     {
+      "lat": 39.7798659,
+      "lng": 30.513029,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 83718160
+     },
+     {
+      "lat": 39.780017,
+      "lng": 30.5126495,
+      "place": "İsmet İnönü 1 Bulvarı",
+      "way": 83718160
+     },
+     {
+      "lat": 39.779972,
+      "lng": 30.5113538,
+      "place": "İsmet İnönü Caddesi",
+      "way": 462617289
+     },
+     {
+      "lat": 39.7809448,
+      "lng": 30.5106545,
+      "place": "İsmet İnönü Caddesi",
+      "way": 276210251
+     },
+     {
+      "lat": 39.7810917,
+      "lng": 30.5103218,
+      "place": "İsmet İnönü Caddesi",
+      "way": 276210251
+     },
+     {
+      "lat": 39.781257,
+      "lng": 30.5099556,
+      "place": "İsmet İnönü Caddesi",
+      "way": 276210251
+     },
+     {
+      "lat": 39.7818201,
+      "lng": 30.508583,
+      "place": "İsmet İnönü Caddesi",
+      "way": 276210251
+     },
+     {
+      "lat": 39.7819495,
+      "lng": 30.5082594,
+      "place": "İsmet İnönü Caddesi",
+      "way": 276210251
+     },
+     {
+      "lat": 39.7820682,
+      "lng": 30.5079431,
+      "place": "İsmet İnönü Caddesi",
+      "way": 462620919
+     },
+     {
+      "lat": 39.7824341,
+      "lng": 30.5071979,
+      "place": "İsmet İnönü Caddesi",
+      "way": 1512302985
+     },
+     {
+      "lat": 39.7822779,
+      "lng": 30.5075295,
+      "place": "İsmet İnönü Caddesi",
+      "way": 1512302985
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "konya",
+    "points": [
+     {
+      "lat": 37.8706999,
+      "lng": 32.4885509,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1346933216
+     },
+     {
+      "lat": 37.8707507,
+      "lng": 32.4899249,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1346933216
+     },
+     {
+      "lat": 37.870653,
+      "lng": 32.4845943,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 147851934
+     },
+     {
+      "lat": 37.8706382,
+      "lng": 32.4849371,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 147851934
+     },
+     {
+      "lat": 37.8706233,
+      "lng": 32.4852799,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 147851934
+     },
+     {
+      "lat": 37.8705831,
+      "lng": 32.4868377,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 147851934
+     },
+     {
+      "lat": 37.8706072,
+      "lng": 32.4872509,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 147851934
+     },
+     {
+      "lat": 37.8706343,
+      "lng": 32.4876059,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 147851934
+     },
+     {
+      "lat": 37.8706595,
+      "lng": 32.487954,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 147851934
+     },
+     {
+      "lat": 37.8706603,
+      "lng": 32.4842029,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8706442,
+      "lng": 32.4837768,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8706268,
+      "lng": 32.4834203,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8706055,
+      "lng": 32.4830731,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8705829,
+      "lng": 32.4827289,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8705602,
+      "lng": 32.4823847,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8705387,
+      "lng": 32.4820334,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8705173,
+      "lng": 32.4816821,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8704958,
+      "lng": 32.4813309,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8704707,
+      "lng": 32.4809188,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8704493,
+      "lng": 32.4805534,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 54781711
+     },
+     {
+      "lat": 37.8703045,
+      "lng": 32.4799442,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1190640181
+     },
+     {
+      "lat": 37.8703846,
+      "lng": 32.4795978,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1122902437
+     },
+     {
+      "lat": 37.8703724,
+      "lng": 32.4792358,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1122902437
+     },
+     {
+      "lat": 37.8703603,
+      "lng": 32.4788739,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1122902437
+     },
+     {
+      "lat": 37.8703481,
+      "lng": 32.4785119,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1122902437
+     },
+     {
+      "lat": 37.8703359,
+      "lng": 32.4781499,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1122902437
+     },
+     {
+      "lat": 37.8703237,
+      "lng": 32.477788,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1122902437
+     },
+     {
+      "lat": 37.870312,
+      "lng": 32.47744,
+      "place": "Kazım Karabekir Caddesi",
+      "way": 1122902437
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "gaziantep",
+    "points": [
+     {
+      "lat": 37.0608988,
+      "lng": 37.3813913,
+      "place": "Gaziler Caddesi",
+      "way": 210716391
+     },
+     {
+      "lat": 37.0609347,
+      "lng": 37.381786,
+      "place": "Gaziler Caddesi",
+      "way": 210716391
+     },
+     {
+      "lat": 37.0609773,
+      "lng": 37.3822028,
+      "place": "Gaziler Caddesi",
+      "way": 210716391
+     },
+     {
+      "lat": 37.061081,
+      "lng": 37.3838413,
+      "place": "Gaziler Caddesi",
+      "way": 210716391
+     },
+     {
+      "lat": 37.0610844,
+      "lng": 37.3842605,
+      "place": "Gaziler Caddesi",
+      "way": 210716391
+     },
+     {
+      "lat": 37.061071,
+      "lng": 37.3855859,
+      "place": "Gaziler Caddesi",
+      "way": 210716391
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "izmit",
+    "points": [
+     {
+      "lat": 40.764918,
+      "lng": 29.9332876,
+      "place": "İstiklal Caddesi",
+      "way": 875594916
+     },
+     {
+      "lat": 40.7649417,
+      "lng": 29.9336505,
+      "place": "İstiklal Caddesi",
+      "way": 875594916
+     },
+     {
+      "lat": 40.764967,
+      "lng": 29.9340767,
+      "place": "İstiklal Caddesi",
+      "way": 875594916
+     },
+     {
+      "lat": 40.764726,
+      "lng": 29.931269,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7646566,
+      "lng": 29.9308931,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7645785,
+      "lng": 29.9304863,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7645206,
+      "lng": 29.9300956,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7644852,
+      "lng": 29.9297185,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7644473,
+      "lng": 29.9293197,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7643825,
+      "lng": 29.9289143,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7643067,
+      "lng": 29.9285182,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.76423,
+      "lng": 29.9281236,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7638048,
+      "lng": 29.9259188,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7636828,
+      "lng": 29.9255779,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7635608,
+      "lng": 29.925237,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7634471,
+      "lng": 29.9249105,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.763339,
+      "lng": 29.9245705,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7632388,
+      "lng": 29.9242147,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7631239,
+      "lng": 29.9238312,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.7630006,
+      "lng": 29.9234337,
+      "place": "İstiklal Caddesi",
+      "way": 227656458
+     },
+     {
+      "lat": 40.765497,
+      "lng": 29.9257525,
+      "place": "Fethiye Caddesi",
+      "way": 587860946
+     },
+     {
+      "lat": 40.7651828,
+      "lng": 29.925851,
+      "place": "Fethiye Caddesi",
+      "way": 587860946
+     },
+     {
+      "lat": 40.7648713,
+      "lng": 29.9259164,
+      "place": "Fethiye Caddesi",
+      "way": 587860946
+     },
+     {
+      "lat": 40.764561,
+      "lng": 29.9260076,
+      "place": "Fethiye Caddesi",
+      "way": 587860946
+     },
+     {
+      "lat": 40.7634367,
+      "lng": 29.9262196,
+      "place": "Fethiye Caddesi",
+      "way": 587860946
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "samsun",
+    "points": [
+     {
+      "lat": 41.2869425,
+      "lng": 36.3327173,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2866795,
+      "lng": 36.332912,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2864018,
+      "lng": 36.3331283,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2861418,
+      "lng": 36.3333258,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2858889,
+      "lng": 36.3335443,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2856487,
+      "lng": 36.3337591,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2853962,
+      "lng": 36.3340562,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2851924,
+      "lng": 36.3343075,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2849589,
+      "lng": 36.3345955,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2847364,
+      "lng": 36.3349106,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.284509,
+      "lng": 36.3352157,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2842828,
+      "lng": 36.3355201,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2840537,
+      "lng": 36.3358459,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2838555,
+      "lng": 36.3361136,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2836666,
+      "lng": 36.336375,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2834469,
+      "lng": 36.3366794,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2832418,
+      "lng": 36.3369624,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2830223,
+      "lng": 36.3372626,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2828241,
+      "lng": 36.3375171,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.282626,
+      "lng": 36.3377717,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2824507,
+      "lng": 36.3380643,
+      "place": "İstiklal Caddesi",
+      "way": 299204053
+     },
+     {
+      "lat": 41.2813613,
+      "lng": 36.3396346,
+      "place": "İstiklal Caddesi",
+      "way": 299204052
+     },
+     {
+      "lat": 41.2811981,
+      "lng": 36.3399397,
+      "place": "İstiklal Caddesi",
+      "way": 299204052
+     },
+     {
+      "lat": 41.2810348,
+      "lng": 36.3402449,
+      "place": "İstiklal Caddesi",
+      "way": 299204052
+     },
+     {
+      "lat": 41.2801809,
+      "lng": 36.3419502,
+      "place": "İstiklal Caddesi",
+      "way": 299204052
+     },
+     {
+      "lat": 41.2800216,
+      "lng": 36.3422425,
+      "place": "İstiklal Caddesi",
+      "way": 299204052
+     },
+     {
+      "lat": 41.2798227,
+      "lng": 36.3426005,
+      "place": "İstiklal Caddesi",
+      "way": 299204052
+     },
+     {
+      "lat": 41.2796239,
+      "lng": 36.3429585,
+      "place": "İstiklal Caddesi",
+      "way": 299204052
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "trabzon",
+    "points": [
+     {
+      "lat": 41.0054532,
+      "lng": 39.7269528,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0053427,
+      "lng": 39.7273003,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0052527,
+      "lng": 39.7276825,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0051731,
+      "lng": 39.7280277,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0050902,
+      "lng": 39.7283868,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0050113,
+      "lng": 39.7287293,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0049994,
+      "lng": 39.7291219,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0050055,
+      "lng": 39.7295588,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0050108,
+      "lng": 39.7300019,
+      "place": "Uzun Sokak",
+      "way": 238249950
+     },
+     {
+      "lat": 41.0055589,
+      "lng": 39.7263728,
+      "place": "Uzun Sokak",
+      "way": 780533044
+     },
+     {
+      "lat": 41.0052165,
+      "lng": 39.7235694,
+      "place": "Uzun Sokak",
+      "way": 157076048
+     },
+     {
+      "lat": 41.005285,
+      "lng": 39.7239423,
+      "place": "Uzun Sokak",
+      "way": 157076048
+     },
+     {
+      "lat": 41.0053564,
+      "lng": 39.724318,
+      "place": "Uzun Sokak",
+      "way": 157076048
+     }
+    ]
+   },
+   "geometry": null
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "kayseri",
+    "points": [
+     {
+      "lat": 38.724588,
+      "lng": 35.4974713,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.724493,
+      "lng": 35.4971282,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7243981,
+      "lng": 35.496785,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7243031,
+      "lng": 35.4964419,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7242081,
+      "lng": 35.4960987,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7241132,
+      "lng": 35.4957556,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7240182,
+      "lng": 35.4954124,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7233814,
+      "lng": 35.4930959,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7232805,
+      "lng": 35.4927517,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7231796,
+      "lng": 35.4924075,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7230787,
+      "lng": 35.4920634,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7229779,
+      "lng": 35.4917192,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.722877,
+      "lng": 35.491375,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7227828,
+      "lng": 35.4910333,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7226907,
+      "lng": 35.4906923,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7225987,
+      "lng": 35.4903512,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7225115,
+      "lng": 35.4899777,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7224466,
+      "lng": 35.4896292,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7223818,
+      "lng": 35.4892806,
+      "place": "Sivas Bulvarı",
+      "way": 155213926
+     },
+     {
+      "lat": 38.7248358,
+      "lng": 35.4978771,
+      "place": "Sivas Bulvarı",
+      "way": 788112301
+     },
+     {
+      "lat": 38.7244253,
+      "lng": 35.497781,
+      "place": "Sivas Bulvarı",
+      "way": 788112907
+     },
+     {
+      "lat": 38.7243182,
+      "lng": 35.4981068,
+      "place": "Sivas Bulvarı",
+      "way": 788112907
+     },
+     {
+      "lat": 38.7221779,
+      "lng": 35.4895176,
+      "place": "Sivas Bulvarı",
+      "way": 849473589
+     },
+     {
+      "lat": 38.7226707,
+      "lng": 35.4879117,
+      "place": "Sivas Bulvarı",
+      "way": 788113991
+     },
+     {
+      "lat": 38.722791,
+      "lng": 35.4875238,
+      "place": "Sivas Bulvarı",
+      "way": 788113991
+     },
+     {
+      "lat": 38.722851,
+      "lng": 35.487116,
+      "place": "Sivas Bulvarı",
+      "way": 788113991
+     },
+     {
+      "lat": 38.7256705,
+      "lng": 35.5014934,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7255761,
+      "lng": 35.5010848,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7254936,
+      "lng": 35.5007386,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7254112,
+      "lng": 35.5003924,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7253287,
+      "lng": 35.5000462,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7252463,
+      "lng": 35.4997,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7251638,
+      "lng": 35.4993538,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7250707,
+      "lng": 35.498969,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7249807,
+      "lng": 35.4986096,
+      "place": "Sivas Bulvarı",
+      "way": 533592531
+     },
+     {
+      "lat": 38.7246893,
+      "lng": 35.4985169,
+      "place": "Sivas Bulvarı",
+      "way": 155213937
+     },
+     {
+      "lat": 38.7247819,
+      "lng": 35.4988643,
+      "place": "Sivas Bulvarı",
+      "way": 155213937
+     },
+     {
+      "lat": 38.7248746,
+      "lng": 35.4992118,
+      "place": "Sivas Bulvarı",
+      "way": 155213937
+     },
+     {
+      "lat": 38.7255892,
+      "lng": 35.5018868,
+      "place": "Sivas Bulvarı",
+      "way": 155213937
+     },
+     {
+      "lat": 38.7256784,
+      "lng": 35.5022168,
+      "place": "Sivas Bulvarı",
+      "way": 155213937
+     },
+     {
+      "lat": 38.7257677,
+      "lng": 35.5025467,
+      "place": "Sivas Bulvarı",
+      "way": 155213937
+     },
+     {
+      "lat": 38.725878,
+      "lng": 35.5028941,
+      "place": "Sivas Bulvarı",
+      "way": 155213937
+     },
+     {
+      "lat": 38.7249062,
+      "lng": 35.4996344,
+      "place": "Sivas Bulvarı",
+      "way": 788112302
+     },
+     {
+      "lat": 38.725002,
+      "lng": 35.4999705,
+      "place": "Sivas Bulvarı",
+      "way": 788112302
+     },
+     {
+      "lat": 38.7250979,
+      "lng": 35.5003065,
+      "place": "Sivas Bulvarı",
+      "way": 788112302
+     },
+     {
+      "lat": 38.7251938,
+      "lng": 35.5006426,
+      "place": "Sivas Bulvarı",
+      "way": 788112302
+     },
+     {
+      "lat": 38.7252896,
+      "lng": 35.5009787,
+      "place": "Sivas Bulvarı",
+      "way": 788112302
+     },
+     {
+      "lat": 38.7262422,
+      "lng": 35.5034457,
+      "place": "Sivas Bulvarı",
+      "way": 258915156
+     },
+     {
+      "lat": 38.7261514,
+      "lng": 35.503116,
+      "place": "Sivas Bulvarı",
+      "way": 258915156
+     },
+     {
+      "lat": 38.7261044,
+      "lng": 35.5037894,
+      "place": "Sivas Bulvarı",
+      "way": 705203168
+     },
+     {
+      "lat": 38.7262418,
+      "lng": 35.5043114,
+      "place": "Sivas Bulvarı",
+      "way": 705203168
+     },
+     {
+      "lat": 38.7263397,
+      "lng": 35.5046569,
+      "place": "Sivas Bulvarı",
+      "way": 705203168
+     },
+     {
+      "lat": 38.7264376,
+      "lng": 35.5050024,
+      "place": "Sivas Bulvarı",
+      "way": 705203168
+     },
+     {
+      "lat": 38.7265355,
+      "lng": 35.5053479,
+      "place": "Sivas Bulvarı",
+      "way": 705203168
+     },
+     {
+      "lat": 38.7266334,
+      "lng": 35.5056934,
+      "place": "Sivas Bulvarı",
+      "way": 705203168
+     },
+     {
+      "lat": 38.7267313,
+      "lng": 35.5060389,
+      "place": "Sivas Bulvarı",
+      "way": 705203168
+     },
+     {
+      "lat": 38.7268292,
+      "lng": 35.5063844,
+      "place": "Sivas Bulvarı",
+      "way": 705203168
+     },
+     {
+      "lat": 38.7271973,
+      "lng": 35.5065863,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7271014,
+      "lng": 35.5062473,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7270056,
+      "lng": 35.5059082,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7269097,
+      "lng": 35.5055692,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7268138,
+      "lng": 35.5052301,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7267179,
+      "lng": 35.5048911,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7266221,
+      "lng": 35.504552,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7265262,
+      "lng": 35.504213,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7263842,
+      "lng": 35.5038294,
+      "place": "Sivas Bulvarı",
+      "way": 705198267
+     },
+     {
+      "lat": 38.7282674,
+      "lng": 35.5103862,
+      "place": "Sivas Bulvarı",
+      "way": 353363473
+     },
+     {
+      "lat": 38.7281833,
+      "lng": 35.5100484,
+      "place": "Sivas Bulvarı",
+      "way": 353363473
+     },
+     {
+      "lat": 38.7280992,
+      "lng": 35.5097107,
+      "place": "Sivas Bulvarı",
+      "way": 353363473
+     },
+     {
+      "lat": 38.7280094,
+      "lng": 35.509373,
+      "place": "Sivas Bulvarı",
+      "way": 353363473
+     },
+     {
+      "lat": 38.7279137,
+      "lng": 35.5090355,
+      "place": "Sivas Bulvarı",
+      "way": 353363473
+     },
+     {
+      "lat": 38.727818,
+      "lng": 35.5086979,
+      "place": "Sivas Bulvarı",
+      "way": 353363473
+     },
+     {
+      "lat": 38.7276027,
+      "lng": 35.5079384,
+      "place": "Sivas Bulvarı",
+      "way": 353363473
+     },
+     {
+      "lat": 38.7273434,
+      "lng": 35.508089,
+      "place": "Sivas Bulvarı",
+      "way": 353363470
+     },
+     {
+      "lat": 38.7274425,
+      "lng": 35.5084288,
+      "place": "Sivas Bulvarı",
+      "way": 353363470
+     },
+     {
+      "lat": 38.7275416,
+      "lng": 35.5087686,
+      "place": "Sivas Bulvarı",
+      "way": 353363470
+     },
+     {
+      "lat": 38.7276407,
+      "lng": 35.5091084,
+      "place": "Sivas Bulvarı",
+      "way": 353363470
+     },
+     {
+      "lat": 38.7277399,
+      "lng": 35.509443,
+      "place": "Sivas Bulvarı",
+      "way": 353363470
+     },
+     {
+      "lat": 38.7285819,
+      "lng": 35.5114742,
+      "place": "Sivas Bulvarı",
+      "way": 854190358
+     },
+     {
+      "lat": 38.7284851,
+      "lng": 35.5111394,
+      "place": "Sivas Bulvarı",
+      "way": 854190358
+     },
+     {
+      "lat": 38.7283884,
+      "lng": 35.5108047,
+      "place": "Sivas Bulvarı",
+      "way": 854190358
+     }
+    ]
+   },
+   "geometry": null
+  }
+ ]
+}

@@ -23,6 +23,7 @@ struct ARPostViewerView: View {
     /// Location and proximity passed for this attempt; the approximate shortcut must never skip that check.
     @State private var proximityVerified = false
     @State private var isApproximateView = false
+    @State private var displayedTranslation: String?
     /// How long exact resolving may run before the "Yaklaşık göster" shortcut appears.
     private static let approximateOfferDelay: Duration = .seconds(8)
     @State private var guidance = ViewAimGuidance(
@@ -63,6 +64,16 @@ struct ARPostViewerView: View {
                     }
                 }
                 Spacer()
+                if proximityVerified, !accessBlocked, !post.isLocked, engine.renderedPostID == post.id,
+                   engine.state == .resolved, post.isOfficialContent || offersTranslation {
+                    LociCard {
+                        VStack(alignment: .leading, spacing: 6) {
+                            if post.isOfficialContent { OfficialContentBadge() }
+                            TranslatedPostText(text: post.messageText ?? post.caption, allowsControls: true, showsText: false,
+                                               onDisplayTextChange: { displayedTranslation = $0 })
+                        }
+                    }
+                }
                 if accessBlocked {
                     VStack(spacing: 10) {
                         LociInlineNotice(
@@ -95,6 +106,11 @@ struct ARPostViewerView: View {
         .background(LociTheme.background)
         .accessibilityIdentifier("ar-post-viewer")
         .arcoreDisclosure()
+        .task(id: displayedTranslation) {
+            guard !Task.isCancelled, proximityVerified, !accessBlocked, !post.isLocked,
+                  engine.renderedPostID == post.id, engine.state == .resolved else { return }
+            try? await engine.render(post: post, displayedText: displayedTranslation)
+        }
         .onAppear { startResolving() }
         .onChange(of: engine.state) { _, state in
             if state == .resolved {
@@ -123,6 +139,15 @@ struct ARPostViewerView: View {
             location.stop()
             engine.stopSession()
         }
+    }
+
+    private var offersTranslation: Bool {
+        guard #available(iOS 18.0, *), !post.editData.layers.contains(where: { $0.kind == .drawing }) else { return false }
+        if case .video? = post.contentSource { return false }
+        guard post.gif == nil || post.messageText != nil,
+              let request = NoteTranslationRequest(text: post.messageText ?? post.caption,
+                  targetLanguage: NoteTranslationRequest.appLanguage(), isReadable: !post.isLocked) else { return false }
+        return !request.isAlreadyInTargetLanguage
     }
 
     private var aimingReticle: some View {

@@ -29,16 +29,29 @@ export async function syncNoteDensity(postId: string) {
     const data = post.data();
     const desired = data && isPublicActive(data) && validCoordinates(data.lat, data.lng) ? densityCells(data.lat, data.lng) : [];
     const previous: string[] = Array.isArray(member.get('cells')) ? member.get('cells') : [];
-    if (desired.length === previous.length && desired.every(c => previous.includes(c))) return;
-    for (const cell of previous.filter(c => !desired.includes(c))) {
-      tx.set(cellRef(cell), { count: FieldValue.increment(-1), updated_at: FieldValue.serverTimestamp() }, { merge: true });
-    }
-    for (const cell of desired.filter(c => !previous.includes(c))) {
+    const previousLat = member.get('lat'), previousLng = member.get('lng');
+    const positioned = validCoordinates(previousLat, previousLng);
+    if (desired.length === previous.length && desired.every(c => previous.includes(c))
+      && (!desired.length || positioned && previousLat === data!.lat && previousLng === data!.lng)) return;
+    const cells = [...new Set([...previous, ...desired])];
+    const snapshots = cells.length ? await tx.getAll(...cells.map(cellRef)) : [];
+    for (const [index, cell] of cells.entries()) {
       const [precision, hash] = cell.split('_'), center = geohashBounds(hash);
+      const was = previous.includes(cell), is = desired.includes(cell);
+      const old = snapshots[index];
+      const count = Number(old.get('count') ?? 0) + Number(is) - Number(was);
+      const coordinateCount = Number(old.get('coordinate_count') ?? 0) + Number(is) - Number(was && positioned);
+      const sumLat = Number(old.get('sum_lat') ?? 0) + (is ? data!.lat : 0) - (was && positioned ? previousLat : 0);
+      const sumLng = Number(old.get('sum_lng') ?? 0) + (is ? data!.lng : 0) - (was && positioned ? previousLng : 0);
+      // Legacy members acquire coordinates on reconciliation. Use their true centroid only
+      // once every member of the cell has been counted in the coordinate sums.
+      const complete = coordinateCount > 0 && coordinateCount === count;
       tx.set(cellRef(cell), { precision: Number(precision), cell: hash, lat: center.lat, lng: center.lng,
-        count: FieldValue.increment(1), updated_at: FieldValue.serverTimestamp() }, { merge: true });
+        count, coordinate_count: coordinateCount, sum_lat: sumLat, sum_lng: sumLng,
+        ...(complete ? { lat: sumLat / coordinateCount, lng: sumLng / coordinateCount } : {}),
+        updated_at: FieldValue.serverTimestamp() }, { merge: true });
     }
-    if (desired.length) tx.set(member.ref, { cells: desired, updated_at: FieldValue.serverTimestamp() });
+    if (desired.length) tx.set(member.ref, { cells: desired, lat: data!.lat, lng: data!.lng, updated_at: FieldValue.serverTimestamp() });
     else tx.delete(member.ref);
   });
 }

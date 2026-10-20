@@ -642,6 +642,12 @@
       "indexes": []
     },
     {
+      "collectionGroup": "map_group_sessions",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "dense_spot_receipts",
       "fieldPath": "expires_at",
       "ttl": true,

@@ -521,6 +521,7 @@ struct Sponsorship: Codable, Hashable, Sendable {
 
 /// A crowded spot (notes within ~25 m, at most 40 m wide). Its notes stay closed until the viewer unlocks it on site.
 struct DenseSpotInfo: Codable, Hashable, Sendable {
+    var groupID: String? = nil
     let id: String
     let count: Int
     let lat: Double
@@ -529,6 +530,7 @@ struct DenseSpotInfo: Codable, Hashable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case id, count, lat, lng
+        case groupID = "group_id"
         case unlockRadius = "unlock_radius_m"
     }
 }
@@ -552,6 +554,9 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var noteKind: String? = nil
     /// Set while the note is locked in a dense spot; text and media are withheld by the server.
     var denseSpot: DenseSpotInfo? = nil
+    /// Server-only content provenance; never inferred from the anonymous author's profile.
+    var adminManaged: Bool? = nil
+    var isOfficialContent: Bool { adminManaged == true }
     var isAnonymous: Bool { anonymous == true }
     var isLocationNote: Bool { noteKind == "location" }
     var isLocked: Bool { denseSpot != nil }
