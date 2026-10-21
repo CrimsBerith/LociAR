@@ -10,8 +10,9 @@ after(closeClients);
 const runs = name => adminDb.collection('maintenance_runs').doc(name);
 const settings = adminDb.collection('system').doc('maintenance');
 
+// After the other suites the emulator may still be draining their trigger backlog, so allow up to 90 s.
 async function until(read, done, label) {
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 450; i++) {
     const value = await read();
     if (done(value)) return value;
     await sleep(200);
