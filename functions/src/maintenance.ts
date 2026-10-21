@@ -4,6 +4,7 @@ import { retryPendingAccountDeletions } from './accountDeletion';
 import { drainAvatarDeletions } from './avatar';
 import { cleanupPostMedia, purgeDueRemovedMedia, reconcilePostCounters } from './cleanup';
 import { expireDueNotes, reconcileNoteDensity } from './noteDensity';
+import { reconcileMapCells } from './mapCells';
 
 /**
  * Periodic maintenance, run by the three Scheduler jobs (schedules.ts) and on demand from the admin panel
@@ -40,6 +41,8 @@ export const MAINTENANCE_TASKS: readonly MaintenanceTask[] = [
   { name: 'post_media_cleanup', job: 'nightly_maintenance', leaseMs: 9 * MINUTE, pausable: true, run: () => cleanupPostMedia() },
   { name: 'post_counters', job: 'nightly_maintenance', leaseMs: 9 * MINUTE, pausable: true, run: () => reconcilePostCounters() },
   { name: 'note_density', job: 'nightly_maintenance', leaseMs: 9 * MINUTE, pausable: true, run: () => reconcileNoteDensity() },
+  // Map cell index repair; its first complete pass switches map reads to the index (mapCells.ts).
+  { name: 'map_cells', job: 'nightly_maintenance', leaseMs: 15 * MINUTE, pausable: true, run: () => reconcileMapCells() },
 ];
 
 export const maintenanceTask = (name: unknown) => MAINTENANCE_TASKS.find(task => task.name === name);

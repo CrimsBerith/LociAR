@@ -16,6 +16,7 @@ import { validCoordinates, UNLOCK_TTL_MS, SPOT_JOIN_RADIUS_M, type Fix } from '.
 import { postHiddenByBlocks, type BlockSets } from './visibility';
 import { MEMORY_LIMITS_ENABLED, WindowLimiter } from './memoryLimits';
 import { reasonError } from './errors';
+import { mapCellCandidates, mapCellsEnabled, MAP_CELL_MAX_RADIUS_M } from './mapCells';
 
 /**
  * The app asks for 120 m (AR) and 1 km (map). Larger areas are clamped and each request scans a
@@ -126,12 +127,23 @@ const term=scalarText(body.term??'').trim().toLowerCase().replace(/^@/,'');if(te
   return{profiles:page.docs.filter(d=>visible.has(d.id)).map(d=>({id:d.id,handle:String(d.get('handle')),avatar_url:d.get('avatar_url')??null,avatar_preset:d.get('avatar_preset')??null}))};
 }
 
-async function nearbyDocuments(body: Record<string, unknown>, luid: string, blocked: BlockSets, chargeLimit = true) {
-const started=Date.now();
+type SearchArea = { lat: number; lng: number; radius: number };
+
+/** Validates the requested circle and charges the per-user map limit. */
+function searchArea(body: Record<string, unknown>, luid: string, chargeLimit = true): SearchArea {
   const lat=body.latitude,lng=body.longitude,requested=body.radiusMeters;
   if(typeof lat!=='number'||!Number.isFinite(lat)||Math.abs(lat)>90||typeof lng!=='number'||!Number.isFinite(lng)||Math.abs(lng)>180||typeof requested!=='number'||!Number.isFinite(requested)||requested<1||requested>20_000_000){ throw new HttpsError('invalid-argument','Invalid search area'); }
   if(chargeLimit&&MEMORY_LIMITS_ENABLED&&!nearbyLimiter.allow(luid)){ throw reasonError('resource-exhausted','Too many map requests; try again shortly','rate_limited'); }
-  const radius=Math.min(requested,MAX_NEARBY_RADIUS_M);
+  return { lat, lng, radius: Math.min(requested, MAX_NEARBY_RADIUS_M) };
+}
+
+async function nearbyDocuments(body: Record<string, unknown>, luid: string, blocked: BlockSets, chargeLimit = true) {
+  return scanNearby(searchArea(body, luid, chargeLimit), luid, blocked);
+}
+
+/** Bounded range scan over posts: areas the map index does not serve, and the fallback until it is complete. */
+async function scanNearby({ lat, lng, radius }: SearchArea, luid: string, blocked: BlockSets) {
+const started=Date.now();
   // Turned on only after every legacy coordinate has been backfilled and verified.
   // Polar/whole-Earth searches retain the complete latitude-range fallback.
   const migrated=(await db.collection('system').doc('geo_queries').get()).get('geohash_index_version')===1;
@@ -168,15 +180,98 @@ const started=Date.now();
   return { matches, lat, lng, radius };
 }
 
+/**
+ * Map-surface author fence: profile present, not deleted or suspended, no deletion job. Cached for a
+ * minute per instance so a busy map does not re-read the same authors on every pan; rows that return a
+ * body are re-checked uncached (visiblePosts).
+ */
+const AUTHOR_CACHE_MS = process.env.FUNCTIONS_EMULATOR === 'true' ? 0 : 60_000;
+const authorCache = new Map<string, { visible: boolean; until: number }>();
+async function cachedVisibleAuthors(ids: string[], now = Date.now()) {
+  const unique = [...new Set(ids)];
+  const stale = unique.filter(id => !((authorCache.get(id)?.until ?? 0) > now));
+  if (stale.length) {
+    if (authorCache.size > 10_000) authorCache.clear();
+    const fresh = new Set<string>();
+    await forEachSequential(chunks(stale, 100), async batch => { for (const id of await visibleAuthors(batch, new Set())) fresh.add(id); });
+    for (const id of stale) authorCache.set(id, { visible: fresh.has(id), until: now + AUTHOR_CACHE_MS });
+  }
+  return new Set(unique.filter(id => authorCache.get(id)?.visible));
+}
+
+/**
+ * Public posts in the circle from the map cell index (mapCells.ts), after account fences and the block
+ * rule for each post's kind. Null when the index is not complete yet, the area is too large or a cell
+ * overflowed; the caller then scans posts.
+ */
+async function indexedNearby({ lat, lng, radius }: SearchArea, luid: string, blocked: BlockSets) {
+  if (!(await mapCellsEnabled())) return null;
+  const found = await mapCellCandidates(lat, lng, radius);
+  if (!found || found.overflow.length) return null;
+  const authors = await cachedVisibleAuthors(found.candidates.map(c => c.creatorId));
+  const visible = found.candidates.filter(c => authors.has(c.creatorId) && !postHiddenByBlocks(luid, c.creatorId, c.anonymous, blocked));
+  info('nearby_query', { strategy: 'map_cells', candidates: found.candidates.length, matches: visible.length });
+  return visible;
+}
+
+/** The viewer's own posts that are not public and active (in review, flagged, friends-only, private). */
+async function ownUnlistedNearby({ lat, lng, radius }: SearchArea, luid: string) {
+  const posts = db.collection('posts').where('creator_id', '==', luid);
+  const [review, unlisted] = await Promise.all([
+    posts.where('status', 'in', ['pending_review', 'flagged']).orderBy('created_at', 'desc').limit(500).get(),
+    posts.where('status', '==', 'active').where('visibility', 'in', ['friends', 'private']).orderBy('created_at', 'desc').limit(500).get()]);
+  return [...review.docs, ...unlisted.docs].filter(doc => nearbyCandidate(doc, luid, lat, lng, radius));
+}
+
+const byDistanceThenLikes = (lat: number, lng: number) => (a: FirebaseFirestore.DocumentSnapshot, b: FirebaseFirestore.DocumentSnapshot) =>
+  distanceMeters(lat, lng, a.get('lat'), a.get('lng')) - distanceMeters(lat, lng, b.get('lat'), b.get('lng'))
+  || Number(b.get('likes_count') ?? 0) - Number(a.get('likes_count') ?? 0) || a.id.localeCompare(b.id);
+
+const NEARBY_PAGE = 100;
+
+/**
+ * The nearest 100 posts. With the index only those rows (and posts tied with the 100th on distance,
+ * which popularity then orders) are read, then re-checked live before their bodies are returned.
+ */
+async function nearbyPage(area: SearchArea, luid: string, blocked: BlockSets) {
+  const indexed = await indexedNearby(area, luid, blocked);
+  if (!indexed) {
+    const { matches } = await scanNearby(area, luid, blocked);
+    return { page: matches.slice(0, NEARBY_PAGE), total: matches.length };
+  }
+  const own = await ownUnlistedNearby(area, luid);
+  const ownIds = new Set(own.map(doc => doc.id));
+  type Ranked = { id: string; distance: number; doc?: FirebaseFirestore.QueryDocumentSnapshot };
+  const ranked: Ranked[] = [...indexed.filter(c => !ownIds.has(c.id)).map(c => ({ id: c.id, distance: distanceMeters(area.lat, area.lng, c.lat, c.lng) })),
+    ...own.map(doc => ({ id: doc.id, distance: distanceMeters(area.lat, area.lng, doc.get('lat'), doc.get('lng')), doc }))]
+    .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id));
+  const cutoff = ranked[NEARBY_PAGE - 1]?.distance ?? Infinity;
+  const chosen = ranked.filter((entry, index) => index < NEARBY_PAGE || entry.distance === cutoff);
+  const fetched: FirebaseFirestore.DocumentSnapshot[] = [];
+  await forEachSequential(chunks(chosen.filter(entry => !entry.doc), 100), async batch => {
+    fetched.push(...await db.getAll(...batch.map(entry => db.collection('posts').doc(entry.id))));
+  });
+  const live = [...fetched.filter(doc => doc.exists && isPublicActive(doc.data()) && validCoordinates(doc.get('lat'), doc.get('lng'))
+    && distanceMeters(area.lat, area.lng, doc.get('lat'), doc.get('lng')) <= area.radius),
+    ...chosen.flatMap(entry => entry.doc ? [entry.doc] : [])];
+  const page = (await visiblePosts(live, blocked, luid)).sort(byDistanceThenLikes(area.lat, area.lng)).slice(0, NEARBY_PAGE);
+  return { page, total: ranked.length };
+}
+
 async function readNearbyPosts(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
-  const { matches, lat, lng, radius } = await nearbyDocuments(body, luid, blocked);
-  const offers = await ownCampaignOffers(luid, lat, lng, radius);
-  return { posts: [...await rows(matches.slice(0, 100), luid), ...offers.map(campaignRow)], next: null, total: matches.length + offers.length };
+  const area = searchArea(body, luid);
+  const { page, total } = await nearbyPage(area, luid, blocked);
+  const offers = await ownCampaignOffers(luid, area.lat, area.lng, area.radius);
+  return { posts: [...await rows(page, luid), ...offers.map(campaignRow)], next: null, total: total + offers.length };
 }
 
 async function readMapGroups(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
-  const { matches } = await nearbyDocuments({ ...body, radiusMeters: Math.min(Number(body.radiusMeters), 2_000) }, luid, blocked);
-  const groups = mapNoteGroups(matches.filter(d => isPublicActive(d.data())).map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), spotId: d.get('spot_id') })));
+  const area = searchArea({ ...body, radiusMeters: Math.min(Number(body.radiusMeters), MAP_CELL_MAX_RADIUS_M) }, luid);
+  // The index answers from a few cell documents; the scan fallback reads every post in range.
+  const indexed = await indexedNearby(area, luid, blocked);
+  const points = indexed ? indexed.map(c => ({ id: c.id, lat: c.lat, lng: c.lng, spotId: c.spotId ?? undefined }))
+    : (await scanNearby(area, luid, blocked)).matches.filter(d => isPublicActive(d.data())).map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), spotId: d.get('spot_id') }));
+  const groups = mapNoteGroups(points);
   const { unlockRadius } = await spotSettings();
   // No caption, media, author or likes are returned by the map-summary surface.
   return { groups, unlockRadius };

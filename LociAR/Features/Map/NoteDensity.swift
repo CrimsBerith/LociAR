@@ -96,13 +96,20 @@ final class NoteDensityClient {
 
     struct GroupsResponse: Decodable { let groups: [MapNoteGroup]; let unlockRadius: Double }
     private struct GroupsPayload: Encodable { let mode = "map_groups"; let latitude: Double; let longitude: Double; let radiusMeters: Double }
-    func groups(in region: MKCoordinateRegion) async throws -> GroupsResponse {
+    private var groupsCache = MapGroupsCache()
+    func groups(in region: MKCoordinateRegion, now: Date = Date()) async throws -> GroupsResponse {
         guard let callables else { return GroupsResponse(groups: [], unlockRadius: 15) }
-        let height = region.span.latitudeDelta * 111_320
-        let width = region.span.longitudeDelta * 111_320 * cos(region.center.latitude * .pi / 180)
-        return try await callables.call("readPublicContent", payload: GroupsPayload(latitude: region.center.latitude,
-            longitude: region.center.longitude, radiusMeters: min(2_000, max(50, hypot(height, width) / 2 + 80))), timeout: 30)
+        let needed = MapGroupsCache.radius(for: region)
+        if let cached = groupsCache.response(covering: region.center, radius: needed, now: now) { return cached }
+        // Ask for a padded circle so small pans and zooms are answered from this reply.
+        let radius = MapGroupsCache.paddedRadius(needed)
+        let response: GroupsResponse = try await callables.call("readPublicContent", payload: GroupsPayload(latitude: region.center.latitude,
+            longitude: region.center.longitude, radiusMeters: radius), timeout: 30)
+        groupsCache.store(response, center: region.center, radius: radius, at: now)
+        return response
     }
+    /// After the user publishes or refreshes, the next map read goes to the server.
+    func invalidateGroups() { groupsCache = MapGroupsCache() }
 
     struct GroupPage: Decodable {
         let posts: [BackendPostRow]
@@ -140,6 +147,33 @@ final class NoteDensityClient {
         let lng: Double
         let accuracy: Double
         let measuredAt: Double
+    }
+}
+
+/// Last map-group reply, reused for a minute while the visible circle stays inside the circle it covered.
+/// Map summaries carry only places and counts; note text is never cached here.
+struct MapGroupsCache {
+    static let lifetime: TimeInterval = 60
+    static let maxRadius: Double = 2_000
+    private var entry: (center: CLLocationCoordinate2D, radius: Double, fetched: Date, response: NoteDensityClient.GroupsResponse)?
+
+    static func radius(for region: MKCoordinateRegion) -> Double {
+        let height = region.span.latitudeDelta * 111_320
+        let width = region.span.longitudeDelta * 111_320 * cos(region.center.latitude * .pi / 180)
+        return min(maxRadius, max(50, hypot(height, width) / 2 + 80))
+    }
+
+    static func paddedRadius(_ needed: Double) -> Double { min(maxRadius, needed * 1.5) }
+
+    func response(covering center: CLLocationCoordinate2D, radius: Double, now: Date) -> NoteDensityClient.GroupsResponse? {
+        guard let entry, now.timeIntervalSince(entry.fetched) < Self.lifetime, now >= entry.fetched else { return nil }
+        let distance = CLLocation(latitude: center.latitude, longitude: center.longitude)
+            .distance(from: CLLocation(latitude: entry.center.latitude, longitude: entry.center.longitude))
+        return distance + radius <= entry.radius ? entry.response : nil
+    }
+
+    mutating func store(_ response: NoteDensityClient.GroupsResponse, center: CLLocationCoordinate2D, radius: Double, at date: Date) {
+        entry = (center, radius, date, response)
     }
 }
 

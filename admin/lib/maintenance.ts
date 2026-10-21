@@ -26,6 +26,8 @@ export const MAINTENANCE_TASKS = [
     description: 'Repairs like, comment, save and follower counts on posts and profiles.' },
   { name: 'note_density', label: 'Map density repair', schedule: 'Every night 03:17', pausable: true,
     description: 'Recounts the map heat layer and note spots, 500 posts per night.' },
+  { name: 'map_cells', label: 'Map index repair', schedule: 'Every night 03:17', pausable: true,
+    description: 'Checks the map index, 1,000 posts per night. Its first full pass switches map opening to the index; run it now after a deploy.' },
 ] as const;
 
 export type MaintenanceTaskName = (typeof MAINTENANCE_TASKS)[number]['name'];

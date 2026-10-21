@@ -10,6 +10,7 @@ import { requireActiveAccount } from './profileGuard';
 import { densityCells, densityQueryPrefixes, geohashBounds, validBox, validCoordinates, DENSITY_PRECISIONS } from './placeNoteRules';
 import { MEMORY_LIMITS_ENABLED, WindowLimiter } from './memoryLimits';
 import { reasonError } from './errors';
+import { mapCellChanged, syncMapCell } from './mapCells';
 
 /** Map pans call readNoteDensity; this bounds a scripted client without writing a quota document. */
 const densityLimiter = new WindowLimiter(60, 60_000);
@@ -78,6 +79,8 @@ export const onPostDensityWritten = onDocumentWritten({ document: 'posts/{postId
     // Old posts may predate the persistent member record. Recounting is redelivery-safe.
     if (typeof before?.spot_id === 'string') await repairSpotCount(before.spot_id);
   }
+  // The map index holds public posts' positions; map opening reads it instead of scanning posts.
+  if (mapCellChanged(before, after)) await syncMapCell(event.params.postId);
   // Phones nearby refresh their regions when a note starts notifying.
   if (after?.push_state === 'approved' && before?.push_state !== 'approved' && typeof after.lat === 'number') await refreshArea(after.lat, after.lng, 3_000);
   // Likes make a user location note notification-worthy without manual approval.

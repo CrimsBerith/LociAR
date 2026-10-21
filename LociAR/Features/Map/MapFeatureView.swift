@@ -131,7 +131,7 @@ struct MapFeatureView: View {
         .sheet(isPresented: $showPlaceNote, onDismiss: {
             selection = nil
             clusterFocus = nil
-            Task { await startAndLoad() }
+            Task { await reloadAfterChange() }
         }) {
             if isGuest {
                 NavigationStack {
@@ -150,7 +150,7 @@ struct MapFeatureView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button { Task { await startAndLoad() } } label: {
+                Button { Task { await reloadAfterChange() } } label: {
                     Label("Yenile", systemImage: "arrow.clockwise")
                 }
                 .accessibilityIdentifier("map-refresh")
@@ -169,7 +169,7 @@ struct MapFeatureView: View {
         .onChange(of: showCreate) { _, presented in
             if !presented {
                 selection = nil
-                Task { await startAndLoad() }
+                Task { await reloadAfterChange() }
             }
         }
         .onDisappear { location.stop() }
@@ -472,6 +472,13 @@ struct MapFeatureView: View {
                 }
             }
         }
+    }
+
+    /// A new note or an explicit refresh must not be answered from the map-group cache.
+    private func reloadAfterChange() async {
+        NoteDensityClient.shared.invalidateGroups()
+        if let visibleRegion { refreshLayer(for: visibleRegion) }
+        await startAndLoad()
     }
 
     private func startAndLoad() async {

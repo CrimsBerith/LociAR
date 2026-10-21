@@ -909,6 +909,8 @@ const TR: Record<string, string> = {
   "Repairs like, comment, save and follower counts on posts and profiles.": "Gönderi ve profillerdeki beğeni, yorum, kaydetme ve takipçi sayılarını onarır.",
   "Map density repair": "Harita yoğunluğu onarımı",
   "Recounts the map heat layer and note spots, 500 posts per night.": "Haritadaki ısı katmanını ve not noktalarını her gece 500 gönderi olmak üzere yeniden sayar.",
+  "Map index repair": "Harita dizini onarımı",
+  "Checks the map index, 1,000 posts per night. Its first full pass switches map opening to the index; run it now after a deploy.": "Harita dizinini her gece 1.000 gönderi olmak üzere denetler. İlk tam tur harita açılışını dizine geçirir; dağıtımdan sonra hemen çalıştır.",
   "Every 5 minutes": "5 dakikada bir",
   "Every 15 minutes": "15 dakikada bir",
   "Every night 03:17": "Her gece 03:17",

@@ -1,4 +1,5 @@
 import CoreLocation
+import MapKit
 import XCTest
 @testable import LociAR
 
@@ -334,6 +335,26 @@ final class NoteMapLayerTests: XCTestCase {
         XCTAssertGreaterThan(NoteDensityCell.intensity(1), 0.1, "a single note still shows")
         XCTAssertLessThan(NoteDensityCell.intensity(1), NoteDensityCell.intensity(10))
     }
+    func testMapGroupCacheAnswersPansInsideTheFetchedCircleForOneMinuteOnly() {
+        let now = Date(), centre = CLLocationCoordinate2D(latitude: 41, longitude: 29)
+        let view = MKCoordinateRegion(center: centre, latitudinalMeters: 800, longitudinalMeters: 800)
+        let needed = MapGroupsCache.radius(for: view)
+        XCTAssertEqual(needed, hypot(800, 800) / 2 + 80, accuracy: 10)
+        XCTAssertEqual(MapGroupsCache.paddedRadius(needed), needed * 1.5, accuracy: 1e-9)
+        XCTAssertEqual(MapGroupsCache.paddedRadius(1_900), 2_000, "the server never reads more than 2 km")
+        var cache = MapGroupsCache()
+        XCTAssertNil(cache.response(covering: centre, radius: needed, now: now))
+        let group = MapNoteGroup(id: "post:one", lat: 41, lng: 29, count: 2, radius: 0, postIDs: ["one", "two"])
+        cache.store(.init(groups: [group], unlockRadius: 15), center: centre, radius: MapGroupsCache.paddedRadius(needed), at: now)
+        let smallPan = CLLocationCoordinate2D(latitude: 41 + 100 / 111_320, longitude: 29)
+        XCTAssertEqual(cache.response(covering: smallPan, radius: needed, now: now.addingTimeInterval(30))?.groups, [group])
+        let farPan = CLLocationCoordinate2D(latitude: 41 + 1_000 / 111_320, longitude: 29)
+        XCTAssertNil(cache.response(covering: farPan, radius: needed, now: now), "a view outside the fetched circle asks the server")
+        XCTAssertNil(cache.response(covering: centre, radius: needed * 2, now: now), "zooming out asks the server")
+        XCTAssertNil(cache.response(covering: centre, radius: needed, now: now.addingTimeInterval(61)), "a minute later the server answers again")
+        XCTAssertNil(cache.response(covering: centre, radius: needed, now: now.addingTimeInterval(-1)), "a clock change never keeps stale groups")
+    }
+
     func testMapGroupReadingRequiresPhysicalProximityAndFreshAccurateFix() {
         let now = Date()
         let group = MapNoteGroup(id: "post:one", lat: 41, lng: 29, count: 10, radius: 0, postIDs: [])

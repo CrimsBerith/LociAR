@@ -52,5 +52,5 @@ test('every periodic task runs from at most three Cloud Scheduler jobs (the free
     'cleanupPostMedia', 'reconcilePostCounters', 'reconcileNoteDensity']) assert.equal(functions[name], undefined, `${name} is a task now`);
   const names = [...FREQUENT_TASKS, ...QUARTER_HOUR_TASKS, ...NIGHTLY_TASKS].map(task => task.name);
   assert.deepEqual(names, ['avatar_deletions', 'account_deletions', 'removed_media', 'scheduled_note_ends',
-    'post_media_cleanup', 'post_counters', 'note_density']);
+    'post_media_cleanup', 'post_counters', 'note_density', 'map_cells']);
 });
