@@ -1,6 +1,5 @@
 import { forEachSequential } from './async';
 import { reconcileCounters, reconcileProfileCounters } from './reconciliation';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { randomUUID } from 'node:crypto';
 import { db, deleteStoragePrefix, FieldValue, isUUID, Timestamp, logger, safeErrorCode } from './core';
 
@@ -115,10 +114,6 @@ export async function purgeDueRemovedMedia(now = Date.now(), maxJobs = BATCH): P
   return completed;
 }
 
-/** Resume partial/abandoned purges without waiting for the nightly orphan scan. */
-export const retryRemovedMedia = onSchedule({ schedule: 'every 15 minutes', timeZone: 'Europe/Istanbul',
-  timeoutSeconds: 540, maxInstances: 1 }, async () => { await purgeDueRemovedMedia(Date.now(), 20); });
-
 /**
  * Orphan grace period: an anchor is hosted before the post is published, and the iOS offline
  * publish queue retries with no maximum age, so the grace must be generous. Posts older than
@@ -179,7 +174,8 @@ export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5, de
   return removed;
 }
 
-export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
+/** Nightly media pass (dailyMaintenance in schedules.ts): every step is caught, so one failure never skips the rest. */
+export async function cleanupPostMedia() {
   let removed = 0, orphans = 0;
   await forEachSequential([async () => { removed = await purgeDueRemovedMedia(); }, async () => { orphans = await purgeOrphanUploads(); }, async () => { await drainAvatarDeletions(); }], async (task) => {
     try { await task(); } catch (error) { logger.error('media_cleanup_deferred', { code: safeErrorCode(error) }); }
@@ -203,16 +199,13 @@ export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZo
     logger.error('cloud_anchor_cleanup_failed', { code: safeErrorCode(error) });
   }
   logger.info('cleanup_post_media', { removed, orphans, pendingAvatars, orphanAnchors, retried });
-});
+}
 
 /** Nightly cursor-based repair reaches posts and profiles over successive runs. */
 export { reconcileCounters, reconcileProfileCounters } from './reconciliation';
 
-export const reconcilePostCounters = onSchedule({ schedule: 'every day 04:11', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
+export async function reconcilePostCounters() {
   const repaired = await reconcileCounters();
   const profilesRepaired = await reconcileProfileCounters();
   logger.info('reconcile_counters', { repaired, profilesRepaired });
-});
-
-/** Short, bounded retry worker for immutable avatar deletion jobs. */
-export const retryAvatarDeletions = onSchedule({schedule: 'every 5 minutes', timeoutSeconds: 120, maxInstances: 1}, async () => { await drainAvatarDeletions(); });
+}

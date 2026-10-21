@@ -1,12 +1,11 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 import { appleConfigFromEnv, revokeAppleAuthorization } from './apple';
 import { reasonError, withContentionGuard } from './errors';
 import { isRecentAuth } from './limits';
 import { auth, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, HttpsError, logger, requireCaller, safeErrorCode } from './core';
 import { accountDeletionRef } from './profileGuard';
-import { acceptAccountDeletion, retryPendingAccountDeletions, runAccountDeletion } from './accountDeletion';
+import { acceptAccountDeletion, runAccountDeletion } from './accountDeletion';
 
 /** .p8 contents; Secret Manager. No deletion state is accepted before Apple revocation succeeds. */
 const APPLE_PRIVATE_KEY = defineSecret('APPLE_PRIVATE_KEY');
@@ -37,11 +36,6 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
     console.error('account_deletion_deferred');
     throw reasonError('unavailable', 'Account deletion is accepted and will resume automatically', 'deletion_pending');
   }
-});
-
-/** Runs independently of the deleted user's login/profile, including after worker termination. */
-export const retryAccountDeletions = onSchedule({ schedule: 'every 5 minutes', timeoutSeconds: 540, memory: '512MiB' }, async () => {
-  await retryPendingAccountDeletions(Date.now(), 2);
 });
 
 async function revokeAppleAccount(data: unknown) {

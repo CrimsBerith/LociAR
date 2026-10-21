@@ -90,8 +90,8 @@ Google anchor silme hataları mevcut kalıcı anchor kuyruğuna aktarılır.
 
 Tek worker 10 dakikalık bir lease alır; ikinci worker aynı işi yürütmez. İş
 240 saniyelik bütçeye ulaştığında lease'i bırakıp devam etmek üzere kaydeder.
-Çökme durumunda lease süresi dolduktan sonra alınabilir. `retryAccountDeletions`
-beş dakikada bir, oturum gerektirmeden, en fazla iki işi çalıştırır; geçici
+Çökme durumunda lease süresi dolduktan sonra alınabilir. `everyFiveMinutes`
+(`functions/src/schedules.ts`) beş dakikada bir, oturum gerektirmeden, en fazla iki işi çalıştırır; geçici
 hatalar 2–60 dakika aralığında geri çekilir. Storage temizlenmeden Auth
 kaldırılmaz ve Auth kaldırıldıktan sonra Storage ikinci kez taranır.
 
@@ -116,7 +116,7 @@ Kalıcı LUID belge kimliği eski token'ın profil oluşturmasını engeller; is
 iki koleksiyonu da okuyamaz veya değiştiremez. Bu operasyonel engellerde TTL
 kullanılmaz; silinen kamu/özel profil veya Auth kaydı tutulmaz.
 
-Bu davranışın canlıya geçmesi için `deleteAccount`, `retryAccountDeletions`,
+Bu davranışın canlıya geçmesi için `deleteAccount`, `everyFiveMinutes`,
 `onDeletedAccountObjectFinalized`, diğer guard kullanan Functions ve iki güvenlik
 kuralı birlikte dağıtılmalıdır.
 Scheduler oluşturma/çalıştırma IAM ve Blaze gereksinimleri yayında doğrulanır;

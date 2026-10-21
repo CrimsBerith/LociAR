@@ -1,7 +1,6 @@
 import { forEachSequential } from './async';
 import { onCall } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { db, FieldValue, Timestamp, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, logger } from './core';
 import { isPublicActive } from './counters';
 import { autoApproveNote } from './noteAutomation';
@@ -90,9 +89,10 @@ export const onPostDensityWritten = onDocumentWritten({ document: 'posts/{postId
 /**
  * Self-healing pass over every post; also seeds counters for posts older than this feature. Triggers
  * keep counts current, so a daily pass of 500 posts is enough and keeps reads well inside the free
- * daily quota (an hourly pass alone could read more than 50,000 documents a day).
+ * daily quota (an hourly pass alone could read more than 50,000 documents a day). Runs from
+ * dailyMaintenance (schedules.ts).
  */
-export const reconcileNoteDensity = onSchedule({ schedule: 'every day 05:23', timeZone: 'Europe/Istanbul', timeoutSeconds: 540, memory: '512MiB' }, async () => {
+export async function reconcileNoteDensity() {
   const state = db.collection('system').doc('note_density_reconcile');
   const cursor = (await state.get()).get('cursor');
   let query = db.collection('posts').orderBy('__name__').limit(500);
@@ -106,7 +106,7 @@ export const reconcileNoteDensity = onSchedule({ schedule: 'every day 05:23', ti
   await state.set({ cursor: page.size === 500 ? page.docs.at(-1)!.id : null,
     spot_cursor: spotPage.size === 100 ? spotPage.docs.at(-1)!.id : null, updated_at: FieldValue.serverTimestamp() });
   logger.info('note density reconcile', { checked: page.size });
-});
+}
 
 /**
  * Heat cells for the visible map box. The app draws heat from precision 4-7 (about one finer than
@@ -156,5 +156,3 @@ export async function expireDueNotes() {
   });
   return due.size;
 }
-
-export const expireScheduledNotes = onSchedule({ schedule: 'every 15 minutes', timeoutSeconds: 300 }, async () => { await expireDueNotes(); });
