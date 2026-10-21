@@ -50,7 +50,8 @@ async function both(viewer, payload) {
 }
 const nearby = { mode: 'nearby', latitude: centre.lat, longitude: centre.lng, radiusMeters: 1_000 };
 const groups = { mode: 'map_groups', latitude: centre.lat, longitude: centre.lng, radiusMeters: 2_000 };
-const groupView = response => response.groups.map(g => `${g.id}:${g.count}:${[...g.post_ids].sort().join(',')}`).sort();
+const byText = (a, b) => a.localeCompare(b, 'en');
+const groupView = response => response.groups.map(g => `${g.id}:${g.count}:${[...g.post_ids].sort(byText).join(',')}`).sort(byText);
 const ids = response => response.posts.map(p => p.id);
 
 test('map opening reads the cell index with the same results, blocks and account fences as the post scan', async () => {

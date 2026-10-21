@@ -74,7 +74,7 @@ export function geohashGrid(box: NonNullable<ReturnType<typeof circleBox>>, prec
       cells.add(encodeGeohash(-90 + (row + 0.5) * cellLat, ((lng + 180) % 360 + 360) % 360 - 180, precision));
     }
   }
-  return [...cells].sort();
+  return [...cells].sort((a, b) => a.localeCompare(b, 'en'));
 }
 
 /**
