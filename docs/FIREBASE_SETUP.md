@@ -42,11 +42,12 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | create_post / delete_account | Callable Cloud Functions | `functions/src/posts.ts`, `account.ts`, `profile.ts` |
 | Sayaçlar, aktivite | Firestore tetikleyicileri | `functions/src/triggers.ts` |
 | Aktivite okundu durumu | Auth + App Check callable; doğrudan istemci yazması yok | `functions/src/activity.ts` |
-| Admin panel + yasal sayfalar | Next.js, Firebase App Hosting (`lociar-admin`), Admin SDK, session cookie, TOTP MFA | `admin/lib/admin.ts`, `admin/lib/ops.ts`, `admin/apphosting.yaml` |
+| Admin panel + yasal sayfalar | Next.js, Firebase App Hosting (`lociar-admin`), Admin SDK, session cookie, e-posta kodu (eski TOTP alternatif) | `admin/lib/admin.ts`, `admin/lib/ops.ts`, `admin/apphosting.yaml` |
 
 Önemli davranışlar:
-- Her yeni post `pending_review` olarak açılır; yüksek kaliteli AR kilidinin otomatik yayını
-  varsayılan olarak kapalı (`LOCIAR_AUTO_PUBLISH_HIGH_QUALITY=true` ile açılabilir). App Review notlarıyla uyumlu.
+- Yeni postlar `createPost` içindeki otomatik kontrollerden (metin filtresi, bağlantı yasağı, korumalı bölge, 18+, hız ve
+  yoğunluk sınırları) geçince doğrudan `active` olur; ön onay yok (sahip kararı, 18 Ekim 2026). Acil durumda Firestore'da
+  `system/flags.post_review_required = true` yeni postları yeniden `pending_review` kuyruğuna alır; `false` yapınca biter.
 - Şifreli hesaplarda e-posta doğrulanmadan uygulamaya girilemez; Apple hesapları doğrulanmış sayılır.
 - "Giriş bağlantısı gönder" (magic link) iOS'ta kaldırıldı; Firebase e-posta bağlantısı Universal Link gerektirir.
 - Hesap silme: iOS Apple veya mevcut parola ile Firebase yeniden doğrulaması yapar
@@ -179,7 +180,7 @@ Connect URL'leri birlikte güncellenir.
 Yerel geliştirme: `admin/.env.local` (`admin/.env.example`), `npm run dev`. Yerelde Admin SDK için
 `FIREBASE_SERVICE_ACCOUNT_JSON` yalnız geliştirici makinesinde tutulur; repo'ya ve App Hosting'e girmez.
 
-Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yeniden giriş → kod → panel.
+Admin girişi (16 Ekim 2026 ürün kararı): e-posta → 6 haneli tek kullanımlık kod → panel; QR zorunlu değil. Gönderici kurulumu ve canlı kabul şartları: [ADMIN_EMAIL_CODE.md](ADMIN_EMAIL_CODE.md). Önceki Firebase bağlantı/TOTP yöntemi alternatif olarak korunur. Yeni akışın canlıda hazır olması Resend anahtarının Secret Manager'a kaydı ve dağıtım gerektirir.
 
 ## 6. Bilinen farklar / sonraki adımlar
 
@@ -233,7 +234,7 @@ Crashlytics çökme uyarıları ayrıca Firebase Console → Crashlytics → ⋮
   3. `firebase deploy --only functions,firestore:indexes` (`searchGifs` callable'ı ve `gif_search_quota` TTL'i). Secret yoksa deploy durur; `scripts/qa-live-firebase.py` `giphy_secret_unavailable` bildirir.
   Arama kullanıcı başına saatte 120 istekle sınırlıdır (`gif_search_quota`, hesap silmede silinir). `createPost` her GIF id'sini GIPHY'den yeniden okur: bilinmeyen ya da `pg-13` üstü GIF `gif_invalid`, GIPHY'ye ulaşılamazsa `gif_unavailable` (uygulama postu kuyrukta tutar ve yeniden dener). Admin post sayfası GIF'i `media.giphy.com` üzerinden gösterir (yalnızca admin CSP'si buna izin verir).
 - **Davet kodu (beta).** `createInvites` (kullanıcı başına 3 kod) ve `redeemInvite` (tek kullanım, saatte en fazla 10 hatalı deneme) `functions/src/invites.ts` içinde; durum `users_private/{luid}` (`invite_redeemed_at`, `invited_by`, `invites_created`, `invite_exempt`). `LOCIAR_INVITE_REQUIRED=true` iken kod kullanmamış hesap post yayınlayamaz (`invite_required`); gezmek serbest. Açmadan önce App Review demo hesabına `invite_exempt: true` yaz ve inceleme notlarını güncelle (`docs/release/APP_STORE_SUBMISSION_GUIDE.md` 6.1). Uygulamada Profil > Davet kodu ekranı vardır. Hesap silme `invites` ve `invite_attempts` kayıtlarını da siler.
-- **Güvenilir yazar otomatik yayını.** `LOCIAR_TRUSTED_AUTO_PUBLISH=true` (varsayılan kapalı). Kural `functions/src/trust.ts`: hesap 7 günden eski, en az 5 herkese açık post (`public_post_count`), `flagged` post yok, `users_private.trust_revoked` değil; ayrıca AR kilidi yüksek kaliteli olmalı. Çizim içeren postlar hiçbir zaman otomatik yayınlanmaz (bu kural `LOCIAR_AUTO_PUBLISH_HIGH_QUALITY` için de geçerli). Moderatör `removed` kararları algılanmaz: tekrar eden ihlalde admin `trust_revoked: true` yazmalı.
+- **Doğrudan yayın.** Güvenilir yazar ve yüksek kaliteli AR kilidi otomatik yayın anahtarları (`LOCIAR_TRUSTED_AUTO_PUBLISH`, `LOCIAR_AUTO_PUBLISH_HIGH_QUALITY`) 18 Ekim 2026'da kaldırıldı; tüm postlar otomatik kontrollerden sonra doğrudan yayınlanır. Ön onayı geri açmak için yalnız `system/flags.post_review_required` kullanılır.
 - **Mekan katmanı.** `places/{id}` (`name`, `city`, `lat`, `lng`, `radius_meters`, `active`) herkese açık okunur, yalnızca betikle yazılır. `createPost` konum bir mekanın yarıçapına düşüyorsa sunucuda `place_id` yazar (en yakın merkez kazanır; istemciye güvenilmez; okunamazsa `null`). Yükleme: `cd functions && FIREBASE_PROJECT_ID=lociar-2f38c node scripts/import-places.mjs scripts/places.sample.json` (kuru çalıştırma), sonra `--apply`. Betik korumalı bölgeyle çakışan mekanı reddeder. `places.sample.json` koordinatları yaklaşıktır; yüklemeden önce haritadan ve ARCore VPS kapsamından doğrula. iOS mekan haritası/sayfası henüz yok. `firebase deploy --only firestore:rules` gerekir.
 - **Çizim katmanı sınırları.** `createPost` en fazla 20 katman, katman metni en fazla 1000 karakter, `#RRGGBB` renk, çizim başına 2000 (toplam 4000) nokta kabul eder.
 - **Keşfet sıralaması.** `readPublicContent` (`mode: discover`) ilk sayfadaki en yeni 50 postu `(1 + engagement_score) / (yaş saat + 2)^1.5` ile sıralar (`functions/src/discoverRanking.ts`); imleç yine `created_at` sırasıyla ilerler, sonraki sayfalar kronolojiktir ve hiçbir post atlanmaz. iOS sunucu sırasını korur.

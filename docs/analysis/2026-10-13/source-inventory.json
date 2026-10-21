@@ -1,0 +1,639 @@
+{
+  "date": "2026-10-13T13:29:23.614861+03:00",
+  "commit": "6052dcddc2ea59b9016d71b8ed66b70c3fb2f5e2",
+  "functions": [
+    {
+      "name": "ensureProfile",
+      "module": "functions/src/profile.ts",
+      "kind": "onCall",
+      "line": 42
+    },
+    {
+      "name": "updateHandle",
+      "module": "functions/src/profile.ts",
+      "kind": "onCall",
+      "line": 142
+    },
+    {
+      "name": "readDataPreferences",
+      "module": "functions/src/userContext.ts",
+      "kind": "onCall",
+      "line": 20
+    },
+    {
+      "name": "setDataPreferences",
+      "module": "functions/src/userContext.ts",
+      "kind": "onCall",
+      "line": 29
+    },
+    {
+      "name": "recordUserContext",
+      "module": "functions/src/userContext.ts",
+      "kind": "onCall",
+      "line": 83
+    },
+    {
+      "name": "onAdminNotificationQueued",
+      "module": "functions/src/campaigns.ts",
+      "kind": "onDocumentCreated",
+      "line": 135
+    },
+    {
+      "name": "submitBrandCampaign",
+      "module": "functions/src/campaigns.ts",
+      "kind": "onCall",
+      "line": 142
+    },
+    {
+      "name": "readCampaignRegions",
+      "module": "functions/src/campaignArrivals.ts",
+      "kind": "onCall",
+      "line": 12
+    },
+    {
+      "name": "recordCampaignArrival",
+      "module": "functions/src/campaignArrivals.ts",
+      "kind": "onCall",
+      "line": 41
+    },
+    {
+      "name": "createPlaceNote",
+      "module": "functions/src/placeNotes.ts",
+      "kind": "onCall",
+      "line": 32
+    },
+    {
+      "name": "readPlaceNoteRegions",
+      "module": "functions/src/placeNotes.ts",
+      "kind": "onCall",
+      "line": 104
+    },
+    {
+      "name": "recordPlaceNoteVisit",
+      "module": "functions/src/placeNotes.ts",
+      "kind": "onCall",
+      "line": 142
+    },
+    {
+      "name": "onPostDensityWritten",
+      "module": "functions/src/noteDensity.ts",
+      "kind": "onDocumentWritten",
+      "line": 40
+    },
+    {
+      "name": "reconcileNoteDensity",
+      "module": "functions/src/noteDensity.ts",
+      "kind": "onSchedule",
+      "line": 56
+    },
+    {
+      "name": "readNoteDensity",
+      "module": "functions/src/noteDensity.ts",
+      "kind": "onCall",
+      "line": 71
+    },
+    {
+      "name": "expireScheduledNotes",
+      "module": "functions/src/noteDensity.ts",
+      "kind": "onSchedule",
+      "line": 114
+    },
+    {
+      "name": "unlockDenseSpot",
+      "module": "functions/src/denseSpots.ts",
+      "kind": "onCall",
+      "line": 110
+    },
+    {
+      "name": "onReportCreated",
+      "module": "functions/src/noteAutomation.ts",
+      "kind": "onDocumentCreated",
+      "line": 59
+    },
+    {
+      "name": "readCampaignZones",
+      "module": "functions/src/campaignJourneys.ts",
+      "kind": "onCall",
+      "line": 42
+    },
+    {
+      "name": "recordCampaignStep",
+      "module": "functions/src/campaignJourneys.ts",
+      "kind": "onCall",
+      "line": 77
+    },
+    {
+      "name": "onCampaignZoneChanged",
+      "module": "functions/src/campaignJourneys.ts",
+      "kind": "onDocumentWritten",
+      "line": 164
+    },
+    {
+      "name": "readActivity",
+      "module": "functions/src/anonymousAccess.ts",
+      "kind": "onCall",
+      "line": 85
+    },
+    {
+      "name": "readLikeCount",
+      "module": "functions/src/anonymousAccess.ts",
+      "kind": "onCall",
+      "line": 35
+    },
+    {
+      "name": "blockPostAuthor",
+      "module": "functions/src/anonymousAccess.ts",
+      "kind": "onCall",
+      "line": 43
+    },
+    {
+      "name": "readAnonymousWorldMap",
+      "module": "functions/src/anonymousAccess.ts",
+      "kind": "onCall",
+      "line": 60
+    },
+    {
+      "name": "beginWorldMapUpload",
+      "module": "functions/src/posts.ts",
+      "kind": "onCall",
+      "line": 267
+    },
+    {
+      "name": "createPost",
+      "module": "functions/src/posts.ts",
+      "kind": "onCall",
+      "line": 197
+    },
+    {
+      "name": "deleteOwnPost",
+      "module": "functions/src/posts.ts",
+      "kind": "onCall",
+      "line": 199
+    },
+    {
+      "name": "recordPostView",
+      "module": "functions/src/posts.ts",
+      "kind": "onCall",
+      "line": 224
+    },
+    {
+      "name": "deleteAccount",
+      "module": "functions/src/account.ts",
+      "kind": "onCall",
+      "line": 14
+    },
+    {
+      "name": "retryAccountDeletions",
+      "module": "functions/src/account.ts",
+      "kind": "onSchedule",
+      "line": 56
+    },
+    {
+      "name": "onDeletedAccountObjectFinalized",
+      "module": "functions/src/accountStorageFinalize.ts",
+      "kind": "onMessagePublished",
+      "line": 52
+    },
+    {
+      "name": "onLikeCreated",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentCreated",
+      "line": 51
+    },
+    {
+      "name": "onLikeDeleted",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentDeleted",
+      "line": 59
+    },
+    {
+      "name": "onCommentCreated",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentCreated",
+      "line": 65
+    },
+    {
+      "name": "onCommentDeleted",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentDeleted",
+      "line": 112
+    },
+    {
+      "name": "onSaveCreated",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentCreated",
+      "line": 119
+    },
+    {
+      "name": "onSaveDeleted",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentDeleted",
+      "line": 124
+    },
+    {
+      "name": "onFollowCreated",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentCreated",
+      "line": 129
+    },
+    {
+      "name": "onFollowDeleted",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentDeleted",
+      "line": 139
+    },
+    {
+      "name": "onPostWritten",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentWritten",
+      "line": 148
+    },
+    {
+      "name": "onProfileUpdated",
+      "module": "functions/src/triggers.ts",
+      "kind": "onDocumentUpdated",
+      "line": 205
+    },
+    {
+      "name": "beginAvatarUpload",
+      "module": "functions/src/avatar.ts",
+      "kind": "onCall",
+      "line": 42
+    },
+    {
+      "name": "screenAvatar",
+      "module": "functions/src/avatar.ts",
+      "kind": "onCall",
+      "line": 71
+    },
+    {
+      "name": "cleanupPostMedia",
+      "module": "functions/src/cleanup.ts",
+      "kind": "onSchedule",
+      "line": 144
+    },
+    {
+      "name": "reconcilePostCounters",
+      "module": "functions/src/cleanup.ts",
+      "kind": "onSchedule",
+      "line": 173
+    },
+    {
+      "name": "retryAvatarDeletions",
+      "module": "functions/src/cleanup.ts",
+      "kind": "onSchedule",
+      "line": 180
+    },
+    {
+      "name": "getArcoreToken",
+      "module": "functions/src/arcore.ts",
+      "kind": "onCall",
+      "line": 30
+    },
+    {
+      "name": "registerCloudAnchor",
+      "module": "functions/src/anchors.ts",
+      "kind": "onCall",
+      "line": 22
+    },
+    {
+      "name": "registerPushToken",
+      "module": "functions/src/push.ts",
+      "kind": "onCall",
+      "line": 20
+    },
+    {
+      "name": "unregisterPushToken",
+      "module": "functions/src/push.ts",
+      "kind": "onCall",
+      "line": 52
+    },
+    {
+      "name": "onActivityCreated",
+      "module": "functions/src/push.ts",
+      "kind": "onDocumentCreated",
+      "line": 199
+    },
+    {
+      "name": "markActivityRead",
+      "module": "functions/src/activity.ts",
+      "kind": "onCall",
+      "line": 6
+    },
+    {
+      "name": "createInvites",
+      "module": "functions/src/invites.ts",
+      "kind": "onCall",
+      "line": 59
+    },
+    {
+      "name": "redeemInvite",
+      "module": "functions/src/invites.ts",
+      "kind": "onCall",
+      "line": 91
+    },
+    {
+      "name": "searchGifs",
+      "module": "functions/src/giphy.ts",
+      "kind": "onCall",
+      "line": 116
+    },
+    {
+      "name": "readPublicContent",
+      "module": "functions/src/publicContent.ts",
+      "kind": "onCall",
+      "line": 52
+    },
+    {
+      "name": "onWorldMapFinalized",
+      "module": "functions/src/mapStorageFinalize.ts",
+      "kind": "onMessagePublished",
+      "line": 33
+    }
+  ],
+  "routes": [
+    {
+      "path": "/api/admin/v1/approvals/[approvalId]/decision",
+      "source": "admin/app/api/admin/v1/approvals/[approvalId]/decision/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "posts.metrics.write"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/approvals",
+      "source": "admin/app/api/admin/v1/approvals/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "posts.metrics.write"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/avatars/[luid]/decision",
+      "source": "admin/app/api/admin/v1/avatars/[luid]/decision/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "users.suspend"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/avatars/[luid]/image",
+      "source": "admin/app/api/admin/v1/avatars/[luid]/image/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "permissions": [
+        "users.suspend"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/campaigns",
+      "source": "admin/app/api/admin/v1/campaigns/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": []
+    },
+    {
+      "path": "/api/admin/v1/moderation/[flagId]/decision",
+      "source": "admin/app/api/admin/v1/moderation/[flagId]/decision/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "posts.moderate"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/place-notes",
+      "source": "admin/app/api/admin/v1/place-notes/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": []
+    },
+    {
+      "path": "/api/admin/v1/posts/[postId]/comments",
+      "source": "admin/app/api/admin/v1/posts/[postId]/comments/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "comments.write"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/posts/[postId]/edit",
+      "source": "admin/app/api/admin/v1/posts/[postId]/edit/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "posts.edit"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/posts/[postId]/metrics",
+      "source": "admin/app/api/admin/v1/posts/[postId]/metrics/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "posts.metrics.write"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/posts/[postId]/moderate",
+      "source": "admin/app/api/admin/v1/posts/[postId]/moderate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "posts.moderate"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/posts",
+      "source": "admin/app/api/admin/v1/posts/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "posts.create"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/roles/[assignmentId]/revoke",
+      "source": "admin/app/api/admin/v1/roles/[assignmentId]/revoke/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "admin_users.write"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/system/kill-switch",
+      "source": "admin/app/api/admin/v1/system/kill-switch/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "system.kill_switch"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/users/[luid]/context",
+      "source": "admin/app/api/admin/v1/users/[luid]/context/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": []
+    },
+    {
+      "path": "/api/admin/v1/users/[luid]/suspend",
+      "source": "admin/app/api/admin/v1/users/[luid]/suspend/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "users.suspend"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/users/create",
+      "source": "admin/app/api/admin/v1/users/create/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "users.create"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/users/invite",
+      "source": "admin/app/api/admin/v1/users/invite/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "users.invite"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/users/lookup",
+      "source": "admin/app/api/admin/v1/users/lookup/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "permissions": [
+        "users.read"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/zones/[zoneId]/active",
+      "source": "admin/app/api/admin/v1/zones/[zoneId]/active/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "zones.write"
+      ]
+    },
+    {
+      "path": "/api/admin/v1/zones",
+      "source": "admin/app/api/admin/v1/zones/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": [
+        "zones.write"
+      ]
+    },
+    {
+      "path": "/api/auth/invite",
+      "source": "admin/app/api/auth/invite/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": []
+    },
+    {
+      "path": "/api/auth/session",
+      "source": "admin/app/api/auth/session/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": []
+    },
+    {
+      "path": "/api/auth/signout",
+      "source": "admin/app/api/auth/signout/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "permissions": []
+    }
+  ],
+  "ttl_collections": [
+    "admin_rate_limits",
+    "analytics_events",
+    "arcore_token_quota",
+    "gif_search_quota",
+    "post_view_receipts",
+    "activity_events",
+    "filtered_comments",
+    "trigger_receipts",
+    "post_quota",
+    "cloud_anchors",
+    "anchor_quota",
+    "avatar_uploads",
+    "push_tokens",
+    "push_delivery_receipts",
+    "push_quota",
+    "post_density_locks",
+    "moderation_originals",
+    "avatar_screenings",
+    "admin_audit_log",
+    "user_locations",
+    "user_device_context",
+    "admin_notification_jobs",
+    "admin_notification_receipts",
+    "promotion_push_quota",
+    "campaign_targets",
+    "campaign_view_receipts",
+    "brand_submission_quota",
+    "campaign_departure_regions",
+    "dense_spot_unlocks",
+    "dense_spot_receipts",
+    "campaign_progress",
+    "campaign_codes"
+  ],
+  "indexes": 23,
+  "live_snapshot_at": "2026-10-12T23:26:46.673263+00:00",
+  "live_ready": {
+    "ready": true,
+    "findings": []
+  },
+  "test_evidence": {
+    "native": 156,
+    "functions_unit": 122,
+    "functions_integration": 146,
+    "rules": 82,
+    "admin_unit": 35,
+    "admin_integration": 87,
+    "public_live_browser": 24,
+    "repository": 46
+  },
+  "limitations": [
+    "Physical iPhone acceptance deferred by user",
+    "No production APNs delivery proof",
+    "No TestFlight or App Store submission"
+  ]
+}

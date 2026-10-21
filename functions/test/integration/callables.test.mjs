@@ -68,18 +68,33 @@ test('usernames are unique: a taken handle is refused with a machine-readable re
   assert.equal(bad.code, 'functions/invalid-argument');
 });
 
-test('createPost: text post is created pending review and replays idempotently', async () => {
+test('createPost: text post goes live directly and replays idempotently', async () => {
   const user = await newUser();
   const body = postBody();
   const first = await user.call('createPost', body);
-  assert.equal(first.publishStatus, 'pending_review');
+  assert.equal(first.publishStatus, 'active');
   assert.equal(first.idempotentReplay, false);
   const replay = await user.call('createPost', body);
   assert.equal(replay.idempotentReplay, true);
   const stored = (await adminDb.collection('posts').doc(body.clientMutationId).get()).data();
   assert.equal(stored.creator_id, user.luid);
-  assert.equal(stored.status, 'pending_review');
+  assert.equal(stored.status, 'active');
   assert.equal(stored.likes_count, 0);
+});
+
+test('createPost: system/flags.post_review_required holds new posts for moderator review', async () => {
+  const user = await newUser();
+  // Own spot: the shared default pose is close to the per-area density limit for later tests.
+  const pose = { latitude: -44.701, longitude: 169.132, heading: 0, accuracy: 5 };
+  const flags = adminDb.collection('system').doc('flags');
+  await flags.set({ post_review_required: true }, { merge: true });
+  try {
+    const held = await user.call('createPost', postBody({ pose }));
+    assert.equal(held.publishStatus, 'pending_review');
+  } finally {
+    await flags.set({ post_review_required: false }, { merge: true });
+  }
+  assert.equal((await user.call('createPost', postBody({ pose }))).publishStatus, 'active');
 });
 
 test('createPost: only text is accepted, no photos and no links', async () => {
@@ -95,7 +110,7 @@ test('createPost: only text is accepted, no photos and no links', async () => {
   })));
   assert.match(photo.message, /Only text and GIF posts/);
   const ok = await user.call('createPost', postBody());
-  assert.equal(ok.publishStatus, 'pending_review');
+  assert.equal(ok.publishStatus, 'active');
 });
 
 test('createPost: a GIPHY GIF is stored by id with the size GIPHY reports', async () => {
@@ -164,9 +179,15 @@ test('createPost quota is race-safe: parallel calls never exceed the hourly limi
     pose: { latitude: 41.0 + i * 0.01, longitude: 28.0, heading: 10, accuracy: 8 },
   }))));
   const ok = results.filter((r) => r.status === 'fulfilled').length;
-  assert.ok(ok <= 10, `expected at most 10 successes, got ${ok}`);
+  const quotas = await adminDb.collection('post_quota').where('owner_luid', '==', user.luid).get();
+  const hours = quotas.docs.filter(doc => doc.id.startsWith(`${user.luid}_h`));
+  // Requests may cross a real UTC hour boundary while transactions contend. Each bucket must
+  // remain capped; summing two different hours is not a race-safety assertion.
+  assert.ok(hours.length > 0);
+  for (const bucket of hours) assert.ok(bucket.get('count') <= 10, `hourly bucket exceeded cap: ${bucket.get('count')}`);
+  assert.equal(hours.reduce((sum, bucket) => sum + bucket.get('count'), 0), ok);
   const flags = await adminDb.collection('moderation_flags').where('user_id', '==', user.luid).get();
-  assert.ok(flags.size <= 1, `expected at most 1 flag, got ${flags.size}`);
+  assert.ok(flags.size <= hours.length, `expected at most one flag per hour, got ${flags.size}`);
 });
 
 test('createPost with an unregistered cloud anchor is rejected; a registered one binds once', async () => {

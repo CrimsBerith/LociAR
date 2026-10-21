@@ -37,31 +37,35 @@ def specs(text):
     return sorted(SPEC.findall(text))
 
 
+def localized_value(key, language, value, forms, expected, problems):
+    if specs(value) != expected:
+        problems.append(f'format specifiers differ in {language}: {key!r} -> {value!r}')
+    if not forms:
+        return unit(value)
+    for form, text in forms.items():
+        if specs(text) != expected:
+            problems.append(f'plural {form} specifiers differ in {language}: {key!r}')
+    return {'variations': {'plural': {form: unit(text) for form, text in forms.items()}}}
+
+
+def key_localizations(key, tables, plurals, problems):
+    result = {}
+    expected = specs(key) if not key.startswith('push.') else ['%@']
+    for language in LANGS:
+        value = tables[language].get(key, key if language == 'tr' else None)
+        if value is None:
+            problems.append(f'missing {language}: {key!r}')
+            continue
+        result[language] = localized_value(key, language, value, plurals.get(key, {}).get(language), expected, problems)
+    return result
+
+
 def build():
     keys = json.loads(subprocess.check_output([sys.executable, os.path.join(HERE, 'extract.py')]))
     tables = {lang: load(f'translations/{lang}.json') for lang in LANGS}
     plurals = load('plurals.json')
     problems = []
-    strings = {}
-    for key in sorted(keys):
-        localizations = {}
-        for lang in LANGS:
-            value = tables[lang].get(key, key if lang == 'tr' else None)
-            if value is None:
-                problems.append(f'missing {lang}: {key!r}')
-                continue
-            expected = specs(key) if not key.startswith('push.') else ['%@']
-            if specs(value) != expected:
-                problems.append(f'format specifiers differ in {lang}: {key!r} -> {value!r}')
-            forms = plurals.get(key, {}).get(lang)
-            if forms:
-                for form, text in forms.items():
-                    if specs(text) != expected:
-                        problems.append(f'plural {form} specifiers differ in {lang}: {key!r}')
-                localizations[lang] = {'variations': {'plural': {form: unit(text) for form, text in forms.items()}}}
-            else:
-                localizations[lang] = unit(value)
-        strings[key] = {'extractionState': 'manual', 'localizations': localizations}
+    strings = {key: {'extractionState': 'manual', 'localizations': key_localizations(key, tables, plurals, problems)} for key in sorted(keys)}
     for lang in LANGS:
         for stale in sorted(set(tables[lang]) - set(keys)):
             if lang != 'tr':
@@ -87,6 +91,16 @@ def dump(obj):
     return json.dumps(obj, ensure_ascii=False, indent=2, separators=(',', ' : ')) + '\n'
 
 
+def catalog_matches(path, expected):
+    # Xcode sorts languages and rewrites whitespace when updating catalogs in the IDE.
+    # Validate all keys, values and translation states without depending on its formatting.
+    try:
+        with open(path, encoding='utf-8') as f:
+            return json.load(f) == expected
+    except (OSError, ValueError):
+        return False
+
+
 def main():
     check = '--check' in sys.argv
     catalog, info_catalog, problems, count = build()
@@ -94,18 +108,17 @@ def main():
         print('\n'.join(problems[:50]))
         print(f'{len(problems)} localization problem(s)')
         sys.exit(1)
-    outputs = {CATALOG: dump(catalog), INFOPLIST_CATALOG: dump(info_catalog)}
+    outputs = {CATALOG: catalog, INFOPLIST_CATALOG: info_catalog}
     if check:
-        stale = [path for path, text in outputs.items()
-                 if not os.path.exists(path) or open(path, encoding='utf-8').read() != text]
+        stale = [path for path, expected in outputs.items() if not catalog_matches(path, expected)]
         if stale:
             print('Out of date (run python3 scripts/l10n/build_catalog.py):', *stale, sep='\n  ')
             sys.exit(1)
         print(f'OK: {count} keys × {len(LANGS)} languages, catalogs up to date')
         return
-    for path, text in outputs.items():
+    for path, generated in outputs.items():
         with open(path, 'w', encoding='utf-8') as f:
-            f.write(text)
+            f.write(dump(generated))
     print(f'Wrote {count} keys × {len(LANGS)} languages')
 
 

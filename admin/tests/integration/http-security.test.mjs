@@ -21,6 +21,7 @@ assert.ok(existsSync('.next/BUILD_ID'), 'Run npm run build:ci before admin integ
 initializeApp({ projectId: 'demo-lociar', storageBucket: 'demo-lociar.firebasestorage.app' });
 const auth = getAuth();
 const db = getFirestore();
+const { requestAdminEmailCode } = await import('../../lib/admin-email-auth.ts');
 let server, origin, output = '';
 
 before(async () => {
@@ -74,6 +75,51 @@ async function session(user) {
 }
 function actionPath(id) { return `/api/admin/v1/posts/${id}/moderate`; }
 const reason = 'Integration security verification';
+
+async function emailSession(role = 'super_admin') {
+  const user = await identity(role, false); let code;
+  const challenge = await requestAdminEmailCode(`ci-${user.uid}@example.test`, randomUUID(), async (_, value) => { code = value; });
+  const response = await post('/api/auth/email-code', { action: 'verify', code }, `__admin_email_challenge=${challenge}`);
+  assert.equal(response.status, 200, JSON.stringify(await response.clone().json()));
+  assert.equal((await response.clone().json()).redirect, '/admin/dashboard');
+  return { user, cookie: response.headers.get('set-cookie').split(';')[0], response, challenge, code };
+}
+
+test('email-code HTTP session is secure, opens the panel without QR and authorizes only the actual role', async () => {
+  const admin = await emailSession();
+  for (const flag of ['HttpOnly', 'Secure', 'SameSite=strict', 'Path=/']) assert.ok(admin.response.headers.get('set-cookie').toLowerCase().includes(flag.toLowerCase()));
+  assert.match(admin.response.headers.get('cache-control'), /no-store/);
+  const page = await fetch(origin + '/admin/dashboard', { headers: { cookie: admin.cookie }, redirect: 'manual' });
+  assert.equal(page.status, 200); assert.match(await page.text(), /Email code verified/);
+  const recipient = randomUUID();
+  await db.collection('profiles').doc(recipient).set({ handle: 'synthetic-recipient' });
+  await db.collection('user_data_preferences').doc(recipient).set({ notifications: true, revision: randomUUID() });
+  const dispatch = await post('/api/admin/v1/campaigns', { action: 'notify', recipientId: recipient, title: 'Test', message: 'Synthetic administrator notice', reason }, admin.cookie, { 'idempotency-key': randomUUID() });
+  assert.equal(dispatch.status, 200, JSON.stringify(await dispatch.clone().json()));
+  const job = await db.collection('admin_notification_jobs').doc((await dispatch.json()).result.id).get();
+  assert.equal(job.get('actor_uid'), admin.user.uid); assert.equal(job.get('status'), 'queued');
+  const observer = await emailSession('engineering_observer');
+  assert.equal((await post('/api/admin/v1/campaigns', { action: 'notify', recipientId: recipient, title: 'Test', message: 'Denied', reason }, observer.cookie)).status, 403);
+});
+
+test('email-code endpoint rejects CSRF, replay, forged cookies and a missing sender configuration', async () => {
+  assert.equal((await post('/api/auth/email-code', { action: 'request', email: 'somebody@example.test' }, null, { origin: 'https://attacker.invalid' })).status, 403);
+  const unavailable = await post('/api/auth/email-code', { action: 'request', email: 'somebody@example.test' });
+  assert.equal(unavailable.status, 503); assert.match(unavailable.headers.get('cache-control'), /no-store/);
+  const admin = await emailSession();
+  assert.equal((await post('/api/auth/email-code', { action: 'verify', code: admin.code }, `__admin_email_challenge=${admin.challenge}`)).status, 401);
+  assert.equal((await fetch(origin + '/admin/dashboard', { headers: { cookie: '__session=email1.' + 'a'.repeat(64) }, redirect: 'manual' })).status, 307);
+});
+
+test('email-code sessions stop after role revocation and signout invalidates the captured cookie', async () => {
+  const admin = await emailSession();
+  const out = await post('/api/auth/signout', {}, admin.cookie);
+  assert.equal(out.status, 200); assert.match(out.headers.get('set-cookie'), /Max-Age=0/i);
+  assert.equal((await post(actionPath(randomUUID()), { action: 'approve', reason }, admin.cookie)).status, 401);
+  const second = await emailSession();
+  await db.collection('admin_role_assignments').doc(`${second.user.uid}_super_admin`).update({ revoked_at: Timestamp.now() });
+  assert.equal((await post(actionPath(randomUUID()), { action: 'approve', reason }, second.cookie)).status, 401);
+});
 
 test('session creation rejects malformed JSON, stale sign-in and users without an active known role', async () => {
   for (const body of [null, [], 42]) assert.equal((await post('/api/auth/session', body)).status, 400);
@@ -184,6 +230,18 @@ test('rate-limited HTTP actions return 429 with no post mutation', async () => {
   const response = await post(actionPath(id), { action: 'approve', reason }, cookie, { 'idempotency-key': randomUUID() });
   assert.equal(response.status, 429); assert.equal(response.headers.get('retry-after'), '60');
   assert.equal((await ref.get()).get('status'), 'pending_review');
+});
+
+test('rate-limited place-note HTTP actions cannot mutate or create an audit receipt', async () => {
+  const admin = await identity('super_admin'); const { cookie } = await session(admin);
+  const id = randomUUID(), key = randomUUID(), ref = db.collection('posts').doc(id);
+  await ref.set({ status: 'active', note_kind: 'location', push_state: 'none', notify_radius_m: 20, age_rating: 'all', deleted_at: null });
+  const before = (await ref.get()).data(), bucket = Math.floor(Date.now() / 60_000);
+  for (const window of [bucket, bucket + 1]) await db.collection('admin_rate_limits').doc(`${admin.uid}_place_note_ops_${window}`).set({ count: 30 });
+  const response = await post('/api/admin/v1/place-notes', { action: 'remove', id, reason }, cookie, { 'idempotency-key': key });
+  assert.equal(response.status, 429); assert.equal(response.headers.get('retry-after'), '60');
+  assert.deepEqual((await ref.get()).data(), before);
+  assert.equal((await db.collection('admin_audit_log').doc(key).get()).exists, false);
 });
 
 async function regularInvite(user, roleKey = null) {
@@ -304,6 +362,46 @@ test('protected page permissions apply before streaming across content, people a
       assert.equal(new URL(response.headers.get('location'), origin).pathname, '/admin/unauthorized', path);
       assert.match(response.headers.get('cache-control'), /private, no-store/);
       assert.doesNotMatch(await response.text(), /adminContent|dataRow|Production controls/);
+    }
+  }
+});
+
+test('all ten administrator roles enforce the protected-page access matrix over real HTTP', { timeout: 120_000 }, async () => {
+  const common = ['dashboard', 'analytics', 'search', 'system'];
+  const pages = [...common, 'users', 'posts', 'posts/new', 'moderation', 'avatars', 'anchors', 'places', 'place-notes', 'campaigns', 'zones', 'approvals', 'audit'];
+  const allowed = {
+    super_admin: pages,
+    trust_safety_admin: [...common, 'users', 'posts', 'moderation', 'avatars', 'place-notes', 'audit'],
+    ar_operations_admin: [...common, 'posts', 'moderation', 'anchors', 'places', 'place-notes', 'zones', 'audit'],
+    product_operations: [...common, 'audit'],
+    engineering_observer: [...common, 'anchors', 'places', 'zones', 'audit'],
+    analyst: [...common, 'anchors', 'places', 'zones', 'audit'],
+    support_agent: [...common, 'users'],
+    legal_privacy_admin: [...common, 'users', 'audit'],
+    ad_operations_admin: [...common, 'campaigns'],
+    finance_admin: common,
+  };
+  for (const [role, accessible] of Object.entries(allowed)) {
+    const { cookie } = await session(await identity(role));
+    if (role !== 'super_admin') {
+      const notification = await post('/api/admin/v1/campaigns', {
+        action: 'notify', recipientId: randomUUID(), title: 'Unauthorized test', message: 'Must never queue', reason,
+      }, cookie, { 'idempotency-key': randomUUID() });
+      assert.equal(notification.status, 403, `${role}: administrator notification authority`);
+    }
+    for (const path of pages) {
+      const response = await fetch(`${origin}/admin/${path}`, { headers: { cookie }, redirect: 'manual' });
+      const body = await response.text();
+      const label = `${role}: ${path}`;
+      if (accessible.includes(path)) {
+        assert.equal(response.status, 200, label);
+        assert.match(body, /MFA verified/, label);
+      } else {
+        assert.equal(response.status, 307, label);
+        assert.equal(new URL(response.headers.get('location'), origin).pathname, '/admin/unauthorized', label);
+        assert.match(response.headers.get('cache-control'), /private, no-store/, label);
+        assert.doesNotMatch(body, /adminContent|dataRow|Production controls/, label);
+      }
     }
   }
 });

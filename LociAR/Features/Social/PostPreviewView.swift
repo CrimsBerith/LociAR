@@ -1,4 +1,5 @@
 import AVFoundation
+import MapKit
 import SwiftUI
 import SwiftData
 import UIKit
@@ -27,6 +28,7 @@ enum ReportTarget: Identifiable {
 struct PostPreviewView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
+    @Environment(AppRouter.self) private var router
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
     let post: LociPost
@@ -51,6 +53,8 @@ struct PostPreviewView: View {
     @State private var isReporting = false
     @State private var reportTarget: ReportTarget?
     @State private var confirmBlock = false
+    @State private var confirmOwnAnonymousComment = false
+    @State private var showAccountCreation = false
     // Bumped on user actions only, so loading server state never fires a haptic.
     @State private var likeTaps = 0
     @State private var saveTaps = 0
@@ -65,14 +69,45 @@ struct PostPreviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PostCard(post: post, likeCount: likeCount, viewCount: viewCount)
+                PostCard(post: post, likeCount: likeCount, viewCount: viewCount, allowsTranslationControls: true, textLineLimit: nil)
+                if post.isLocked {
+                    Label("Notları görmek için yaklaş ve haritada aç.", systemImage: "lock.fill")
+                        .font(.callout)
+                    if let spot = post.denseSpot {
+                        Button { router.focusMap(MapFocus(latitude: spot.lat, longitude: spot.lng)); dismiss() } label: {
+                            Label("Konumu gör", systemImage: "map")
+                        }
+                    }
+                }
+
+                if post.isLocationNote, let pose = post.anchorBundle.anchor.geoPose {
+                    Label("Konum notu", systemImage: "mappin.and.ellipse")
+                    Button {
+                        MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: pose.latitude, longitude: pose.longitude)))
+                            .openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
+                    } label: { Label("Konumu gör", systemImage: "map") }
+                }
+                if let sponsorship = post.sponsorship {
+                    Text(sponsorship.terms).font(.body)
+                    ForEach(sponsorship.codes ?? [], id: \.self) { code in
+                        Label(code, systemImage: "ticket.fill").font(.title3.monospaced().bold()).textSelection(.enabled)
+                    }
+                    Text(sponsorship.expiresAt, style: .date).font(.caption).foregroundStyle(.secondary)
+                    Button {
+                        if let pose = post.anchorBundle.anchor.geoPose,
+                           let url = URL(string: "https://maps.apple.com/?daddr=\(pose.latitude),\(pose.longitude)&dirflg=w") { openURL(url) }
+                    } label: {
+                        Label("Konumu gör", systemImage: "map")
+                    }
+                }
+                if !post.isAnonymous {
                 NavigationLink {
                     PublicProfileView(user: creatorUser)
                 } label: {
                     HStack(spacing: 10) {
                         LociAvatar(handle: creatorUser.handle, size: 36)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("@\(creatorUser.handle)").font(.subheadline.weight(.semibold))
+                            Text(verbatim: "@\(creatorUser.handle)").font(.subheadline.weight(.semibold))
                             Text("Profili görüntüle").font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -82,6 +117,7 @@ struct PostPreviewView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("post-open-profile")
+                }
                 LociInlineNotice(
                     title: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "Konuma bağlı AR") : String(localized: "Yaklaşık yerleştirme"),
                     message: post.anchorBundle.anchor.pinQuality.isPhysicalSurface
@@ -90,6 +126,7 @@ struct PostPreviewView: View {
                     symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "location.fill.viewfinder" : "exclamationmark.triangle.fill",
                     color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
                 )
+                if post.sponsorship == nil {
                 HStack(spacing: 10) {
                     Button { Task { await toggleLike() } } label: {
                         PostActionLabel(title: liked ? String(localized: "Beğenildi") : String(localized: "Beğen"), symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white, effectValue: liked)
@@ -103,26 +140,31 @@ struct PostPreviewView: View {
                     .buttonStyle(.plain)
                     .disabled(isSaveMutating)
                     .accessibilityIdentifier("post-save-button")
-                    Button { reportTarget = .post } label: {
-                        PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: .white)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isReporting)
-                    .accessibilityIdentifier("post-report")
-                    Menu {
-                        Button(role: .destructive) { confirmBlock = true } label: {
-                            Label("Kullanıcıyı engelle", systemImage: "person.crop.circle.badge.xmark")
+                    if !ownsPost {
+                        Button { reportTarget = .post } label: {
+                            PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: .white)
                         }
-                        .accessibilityIdentifier("post-block-user")
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        .disabled(isReporting)
+                        .accessibilityIdentifier("post-report")
+                        Menu {
+                            Button(role: .destructive) { confirmBlock = true } label: {
+                                // An anonymous note offers a mute that hides only this author's anonymous
+                                // notes and never names them (functions/src/visibility.ts).
+                                Label(post.isAnonymous ? String(localized: "Bu yazarın notlarını gizle") : String(localized: "Kullanıcıyı engelle"),
+                                      systemImage: "person.crop.circle.badge.xmark")
+                            }
+                            .accessibilityIdentifier("post-block-user")
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .accessibilityLabel("Diğer seçenekler")
+                        .accessibilityIdentifier("post-more-menu")
                     }
-                    .accessibilityLabel("Diğer seçenekler")
-                    .accessibilityIdentifier("post-more-menu")
                     if !collections.isEmpty {
                         Menu(String(localized: "Koleksiyona ekle")) {
                             ForEach(collections) { collection in Button(collection.title) { Task { await add(to: collection) } } }
@@ -130,6 +172,7 @@ struct PostPreviewView: View {
                     }
                 }
 
+                if !post.isLocked {
                 LociSectionLabel(title: "Yorumlar", symbol: "bubble.left.and.bubble.right")
                 Button("Yeni yorumları yenile") { Task { await load() } }
                     .disabled(isLoading || isLoadingOlderComments)
@@ -154,8 +197,8 @@ struct PostPreviewView: View {
                         HStack(alignment: .top, spacing: 10) {
                             LociAvatar(handle: comment.username, size: 34)
                             VStack(alignment: .leading, spacing: 4) {
-                                HStack { Text("@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary) }
-                                Text(comment.text).font(.subheadline)
+                                HStack { Text(verbatim: "@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary) }
+                                TranslatedPostText(text: comment.text, isReadable: !post.isLocked, allowsControls: true).font(.subheadline)
                             }
                             Spacer(minLength: 0)
                             Menu {
@@ -182,6 +225,22 @@ struct PostPreviewView: View {
                         .accessibilityElement(children: .contain)
                     }
                 }
+                if isGuest {
+                    // Comments need a verified account (firestore.rules verifiedIdentity()).
+                    Button { showAccountCreation = true } label: {
+                        Label("Yorum yazmak için hesap oluştur", systemImage: "person.crop.circle.badge.plus")
+                    }
+                    .accessibilityIdentifier("comment-account-required")
+                } else {
+                if commentRevealsAuthor {
+                    LociInlineNotice(
+                        title: String(localized: "Bu not anonim"),
+                        message: String(localized: "Buraya yazacağın yorum @\(ownHandle) adınla görünür ve notun sana ait olduğunu belli eder."),
+                        symbol: "eye.trianglebadge.exclamationmark",
+                        color: .orange
+                    )
+                    .accessibilityIdentifier("comment-reveals-author")
+                }
                 VStack(alignment: .trailing, spacing: 6) {
                     HStack(spacing: 10) {
                         TextField("Yorum yaz…", text: $commentText, axis: .vertical)
@@ -190,7 +249,7 @@ struct PostPreviewView: View {
                             .padding(.vertical, 10)
                             .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 14))
                         Button {
-                            Task { await addComment() }
+                            if commentRevealsAuthor { confirmOwnAnonymousComment = true } else { Task { await addComment() } }
                         } label: {
                             if isCommentSending {
                                 ProgressView().tint(LociTheme.accent)
@@ -207,10 +266,13 @@ struct PostPreviewView: View {
                         .accessibilityIdentifier("comment-submit")
                     }
                     if commentText.count > 400 {
-                        Text("\(commentText.count)/500")
+                        Text(verbatim: "\(commentText.count.formatted())/500")
                             .font(.caption2)
                             .foregroundStyle(commentText.count > 500 ? .red : .secondary)
                     }
+                }
+                }
+                }
                 }
                 if let message { Text(message.localizedUI).font(.caption).foregroundStyle(.secondary) }
             }.padding()
@@ -244,12 +306,43 @@ struct PostPreviewView: View {
         } message: { _ in
             Text("Bildirimler 24 saat içinde incelenir. İçeriği görmek istemiyorsan kullanıcıyı engelleyebilirsin.")
         }
-        .confirmationDialog("@\(creatorUser.handle) engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
-            Button("Engelle", role: .destructive) { Task { await blockCreator() } }
+        .confirmationDialog(
+            post.isAnonymous ? String(localized: "Bu yazarın notları gizlensin mi?") : String(localized: "@\(creatorUser.handle) engellensin mi?"),
+            isPresented: $confirmBlock, titleVisibility: .visible
+        ) {
+            Button(post.isAnonymous ? String(localized: "Gizle") : String(localized: "Engelle"), role: .destructive) { Task { await blockCreator() } }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: {
-            Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
+            Text(post.isAnonymous
+                 ? String(localized: "Bu yazarın anonim notlarını artık görmezsin. Yazarın kim olduğu sana gösterilmez.")
+                 : String(localized: "Bu kullanıcının adıyla paylaşılanları ve yorumlarını görmezsin, seni takip edemez. Anonim notlar kimseye yazarını göstermediği için bu engelden etkilenmez."))
         }
+        .confirmationDialog("Yorumun adınla görünecek", isPresented: $confirmOwnAnonymousComment, titleVisibility: .visible) {
+            Button("Yine de gönder") { Task { await addComment() } }
+            Button("Vazgeç", role: .cancel) { /* Keeps the draft; nothing is sent. */ }
+        } message: {
+            Text("Bu yorum, anonim notun sana ait olduğunu diğer kullanıcılara gösterir.")
+        }
+        .sheet(isPresented: $showAccountCreation) { AuthView() }
+        .onChange(of: isGuest) { _, guest in if !guest { showAccountCreation = false } }
+    }
+
+    private var ownsPost: Bool {
+        guard case let .signedIn(user) = session.phase else { return false }
+        return post.creatorID == user.id
+    }
+
+    private var isGuest: Bool {
+        guard case let .signedIn(user) = session.phase else { return false }
+        return user.isAnonymousAccount
+    }
+
+    /// The author's own comment shows their handle and so reveals who wrote an anonymous note.
+    private var commentRevealsAuthor: Bool { post.isAnonymous && ownsPost }
+
+    private var ownHandle: String {
+        guard case let .signedIn(user) = session.phase else { return "" }
+        return user.handle
     }
 
     private func isMine(_ comment: LociComment) -> Bool {
@@ -287,7 +380,8 @@ struct PostPreviewView: View {
         isLoadingOlderComments = false
         isLoading = true
         defer { if commentsLoadID == requestID { isLoading = false } }
-        await recordViewIfNeeded()
+        if !post.isLocked { await recordViewIfNeeded() }
+        if post.sponsorship != nil { return }
         guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
         if UITestFixtures.sampleContentEnabled {
             comments = UITestFixtures.comments
@@ -295,6 +389,7 @@ struct PostPreviewView: View {
             return
         }
         guard container.isBackendConfigured || session.isLocalPreview else { return }
+        if !post.isLocked {
         do {
             let page = try await container.social.commentPage(for: post.id, before: nil)
             guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
@@ -303,6 +398,7 @@ struct PostPreviewView: View {
         } catch {
             guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
             commentsFailed = true
+        }
         }
         if case let .signedIn(user) = session.phase {
             async let savedIDs = container.social.savedPostIDs(for: user.id)
@@ -424,6 +520,8 @@ struct PostPreviewView: View {
                 withAnimation { comments.removeAll { $0.id == comment.id } }
             }
             message = String(localized: "Bildirimin incelemeye gönderildi. Teşekkürler.")
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
+            message = String(localized: "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.")
         } catch {
             message = String(localized: "Bildirim gönderilemedi.")
         }
@@ -434,7 +532,11 @@ struct PostPreviewView: View {
         isReporting = true
         defer { isReporting = false }
         do {
-            try await container.social.setBlocked(true, targetID: post.creatorID, userID: user.id)
+            if post.isAnonymous {
+                try await container.social.blockAnonymousAuthor(postID: post.id, userID: user.id)
+            } else {
+                try await container.social.setBlocked(true, targetID: post.creatorID, userID: user.id)
+            }
             // The creator's content must disappear right away, including this screen.
             dismiss()
         } catch {
@@ -448,6 +550,6 @@ struct PostPreviewView: View {
     }
 
     private var creatorUser: LociUser {
-        LociUser(id: post.creatorID, handle: post.creatorHandle ?? "loci")
+        LociUser(id: post.creatorID, handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle ?? "loci")
     }
 }

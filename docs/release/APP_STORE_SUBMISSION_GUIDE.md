@@ -93,49 +93,15 @@ App Store Connect'te **App Review Information** bölümüne girilecek metin:
 Daha önce depoda bulunan parola canlı hesapta değiştirilmeli ve App Store Connect güncellenmelidir. Güvenli oluşturma/yenileme adımları: [CREDENTIALS.md](../CREDENTIALS.md).
 
 ### İnceleme Notları (Notes for Reviewer - İngilizce)
-```text
-Dear Apple Review Team,
 
-Thank you for reviewing LociAR.
-
-1. ABOUT THE APP:
-LociAR is a spatial augmented reality social application that allows users to discover and pin short text notes onto physical surfaces in the real world. Posts are a short text message and/or one GIF from GIPHY (rating at most PG-13, verified on our server; every post is reviewed before it goes public): no photos, videos, drawings or links.
-
-2. DEMO ACCOUNT & PRE-SEEDED CONTENT:
-- Sign-in credentials are provided in the App Review Information sign-in fields.
-- A pre-seeded sample post is located directly at Apple Park, Cupertino (Lat: 37.3318, Lng: -122.0312): "LociAR demo note · Cupertino".
-- You can immediately see and interact with this post on the Map tab or Discover tab upon signing in.
-
-3. HOW TO TEST AR CREATION (A PHYSICAL ARKIT IPHONE IS REQUIRED; NO LIDAR NEEDED):
-- Step 1: Sign in using the demo account credentials in the App Review Information sign-in fields (or use Sign in with Apple).
-- Step 1b: Tick the privacy policy / community rules checkbox on the sign-in screen (explicit consent).
-- Step 2: Grant Camera and Location permissions when prompted, and acknowledge the Google AR notice (Google processes sensor data for AR positioning).
-- Step 3: Tap the 'Share' ('Paylaş') tab to open the AR camera.
-- Step 4: Aim the center reticle at any well-lit surface (floor, table, or wall). When the reticle detects plane geometry, tap 'Pin to Surface' ('Yüzeye sabitle'). You can also tap 'Place in front of me (0.8m)' ('Önüme yerleştir') for immediate placement.
-- Step 5: Tap 'Add content', type a caption, then tap 'Publish on surface' ('Yüzeyde yayınla').
-- After the first publish the app asks for notification permission (likes, comments and follows are sent as push notifications).
-
-4. USER-GENERATED CONTENT (UGC) & SAFETY (GUIDELINE 1.2 COMPLIANCE):
-- Zero tolerance for objectionable content: 18+ content and sensitive protected zones (schools, hospitals, places of worship) are hard-blocked at the server level.
-- Moderation & Approval: Newly created posts are held in 'pending_review' until moderation approval before public discovery. The demo account already has approved sample posts visible immediately.
-- Reporting: Posts, comments and user profiles can be reported with a reason (post 'Report' button, the '...' menu on each comment, 'Report user' on profiles). Reports are reviewed within 24 hours.
-- Filtering: Comments are screened against an objectionable-language filter; profile photos are screened automatically (Google Cloud Vision SafeSearch) before anyone can see them.
-- Blocking: Users can block abusive creators via the ellipsis (...) menu on posts or from the creator's profile. Blocked users' posts, comments and profile are hidden immediately, and they can no longer comment on, like or follow the blocker.
-- Comment removal: Authors can delete their own comments; post owners can delete comments on their posts.
-- Account Deletion: Users can permanently delete their account and all associated data at any time via Profile -> 'Delete account permanently' (Guideline 5.1.1(v)); the app re-authenticates first (Sign in with Apple again, or the password).
-- Emergency stop: the operator can pause publishing for everyone (kill switch); the app then shows 'LociAR is temporarily paused'.
-- Support: Direct support contact is available via support@lociar.app and https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support.
-
-If you have any questions or require additional details, please reach out to us at support@lociar.app.
-```
-
+Tek ve güncel metin: [APP_REVIEW_NOTES.md](APP_REVIEW_NOTES.md) §1. AR paylaşımı, konum notları, iki konum izni (Kullanırken / Her Zaman), arka plan modları, pazarlama onayı (4.5.4) ve güvenlik (1.2) tek metinde; 4.000 karakter sınırının altında. Eski ayrı metin kaldırıldı, çünkü ikisi birlikte sınırı aşıyordu.
 
 ### 6.1 Büyüme kapıları açılmadan önce (inceleme notlarına etkisi)
 
-Aşağıdaki ortam değişkenleri varsayılan olarak **kapalıdır**; kapalıyken yukarıdaki inceleme metni doğrudur. Açmadan önce notları güncelle:
+Aşağıdaki anahtarlar varsayılan olarak **kapalıdır**; kapalıyken yukarıdaki inceleme metni doğrudur. Açmadan önce notları güncelle:
 
 * `LOCIAR_INVITE_REQUIRED=true` (davet kodu kapısı): inceleme hesabına `users_private/{luid}.invite_exempt = true` yaz, aksi halde reviewer post yayınlayamaz. Notlara ekle: "Browsing is open to everyone; publishing requires an invite code (Profile > Invite code). The demo account is exempt."
-* `LOCIAR_TRUSTED_AUTO_PUBLISH=true` (güvenilir yazar): 4. maddedeki "Newly created posts are held in 'pending_review'" cümlesi artık her yazar için doğru değildir. Şöyle değiştir: "New posts from new accounts are held in 'pending_review'. Established accounts with a clean history may publish immediately. All posts remain reportable and removable."
+* `system/flags.post_review_required = true` (acil durum ön onayı): açıkken yeni postlar moderatör onayı bekler. SAFETY paragrafının ilk cümlesini şöyle değiştir: "Every new post is held for moderator review before it goes public; an automatic text filter (no links, blocked terms) runs first." Anahtar kapanınca eski metne dön.
 
 ---
 

@@ -1,8 +1,40 @@
 # Native iOS / Firebase yayın hazırlığı
 
-Güncelleme: **10 Ekim 2026**. Bu belge kapsamı ve açık yayın kapılarını tutar.
+Güncelleme: **17 Ekim 2026**. Bu belge kapsamı ve açık yayın kapılarını tutar.
 Yayın adayı henüz onaylı değildir. Aşağıdaki 5 Ekim test kayıtları tarihseldir;
 güncel kaynak, CI ve canlı metadata kanıtı ayrıca değerlendirilir.
+
+## 17 Ekim düzeltme paketi
+
+Kaynak: bağımsız derin tarama (Claude) ve aynı günkü `DEEP_SCAN_2026-10-17.md`.
+
+- **Anonimlik:** profil engeli (`user_blocks`) yalnız adıyla paylaşılan içeriği, yorumları ve profilleri;
+  anonim nottaki "bu yazarın notlarını gizle" (`anonymous_blocks`) yalnız o yazarın anonim notlarını ve yalnız
+  gizleyen kişi için etkiler (`functions/src/visibility.ts`). Kurallar, okuma callable'ları, not bildirimleri
+  ve push aynı kuralı uygular; `blockPostAuthor` dakikada 5, günde 30 ile sınırlı. Yazar kendi anonim notuna
+  yorum yazarken adının görüneceği uyarısını görür.
+- **Yayın kimliği (App Store 1.2):** misafirler gezer, beğenir, şikâyet eder ve engeller; post, konum notu ve
+  yorum doğrulanmış Apple/e-posta hesabı ister. Profiller oturum ister, takip kayıtlarını yalnız ilgili iki
+  hesap okur. App Review notları "anonymous" ile başlamıyor; hesap sorumluluğu ve sohbet olmadığı yazıyor.
+- **Maliyet:** `nearby` en çok 5 km ve 5.000 satır, kullanıcı başına hız sınırı; yoğunluk okuması hız sınırlı;
+  `reconcileNoteDensity` günlük; GIPHY bellek içi önbellek; otomatik gizlemede yalnız doğrulanmış şikâyetçiler,
+  popüler veya 30 günden eski postlarda iki kat eşik.
+- **Admin:** konum, cihaz/IP, rol değişikliği ve denetim dışa aktarımı Authenticator (TOTP) oturumu ister
+  (`STEP_UP_PERMISSIONS`); e-posta kodu kotası adres+ağ başına, istemci adresi `x-fah-client-ip`.
+- **CI kapıları:** gizli tarama fixture'ı, katalog çıkarıcısı ve public giriş testi düzeltildi.
+- **Depo:** GitHub deposu herkese açık; `LICENSE` Expo şablonunun MIT metni yerine "tüm hakları saklıdır"
+  oldu. Daha önce MIT metniyle yayımlanmış kopyalar o metne tabi kalabilir (hukuki değerlendirme önerilir).
+
+### 17 Ekim'de eklenen sahip kapıları
+
+| Kapı | Neden | Kapanma kanıtı |
+|---|---|---|
+| GIPHY production anahtarı | Beta anahtarı tüm uygulama için saatte ~100 çağrı | [Başvuru adımları](GIPHY_PRODUCTION_KEY.md); production anahtarıyla arama ve GIF'li yayın |
+| App Check debug token'ları | Canlı projede "Codex Mac simulator 2026-10-16" ve "Simulator LociAR Notes Max" kayıtlı; token'ı bilen App Check'i atlar | Yayından hemen önce Firebase Console → App Check → Manage debug tokens listesinin boş olması |
+| Destek adresi ve alan adı | `support@lociar.app` KVKK iletişimi, destek sayfası ve review notlarında; `lociar.app` işi ertelenmişti | Alan adı sahipliği, MX kaydı ve bu adrese gönderilen test e-postasının ulaşması; Resend'de doğrulanmış gönderici alan adı |
+| Authenticator (TOTP) | Konum/IP okuma, rol ve denetim dışa aktarımı artık TOTP ister | Sahibin eski bağlantı + Authenticator yoluyla giriş yapıp bir kullanıcı bağlamını okuyabilmesi |
+| ABD/Texas yaş doğrulama (SB 2420) | 4 Haziran 2026'dan beri yürürlükte; uygulama "Global" | Hukuki karar: ABD'yi ilk sürümde dışarıda bırakmak ya da Declared Age Range API uyarlaması |
+| KVKK m.9 yurt dışı aktarım | Veriler ABD'de; gizlilik sayfası "uygun güvenceler" diyor | Standart sözleşmenin imzalanıp Kurum'a bildirildiğinin hukuki teyidi |
 
 ## 10 Ekim düzeltme paketi
 
@@ -30,6 +62,33 @@ güncel kaynak, CI ve canlı metadata kanıtı ayrıca değerlendirilir.
 Canlı Functions/rules/index/TTL/Scheduler kabulü, aday dağıtımından sonra
 `qa-live-firebase.py` ile yeniden doğrulanır. Fiziksel AR, gerçek Apple/APNs/TOTP,
 TestFlight ve App Store gönderimi bu otomatik sonuçlarla onaylanmaz.
+
+## 12 Ekim konum notu paketi (`feat/location-notes`)
+
+- İşletme seçimi kaldırıldı; not, yazarın ölçülen konumuna yazılır. GPS ekran açılınca ölçülür; ≤ 10 m ve kararlıysa
+  hemen, değilse en fazla 10 sn beklenir; 15–50 m elle pin (en fazla 50 m), > 50 m red. Ayrıntı: [LOCATION_NOTES.md](../LOCATION_NOTES.md).
+- Giriş kuralı `mesafe ≤ yarıçap + min(hata, 20 m)`, hata ≤ 35 m, 5 sn arayla iki ölçüm, yürüme hızı; 15–100 m yarıçap.
+  Eski `mesafe + hata ≤ 2,5 m` kuralı gerçek telefon GPS'iyle neredeyse hiç tetiklenmiyordu.
+- Bildirim yalnız yönetici onaylı notlar için; en çok beğenilen görülmemiş not, kişi başına bir kez. Günlük kota ve 30 gün sınırı kalktı.
+- Harita: uzakta ısı katmanı, orta zoom'da sayı balonları, yakında beğeni sırasıyla notlar (`note_density`).
+- Admin: Location notes sayfası (aday kuyruğu, onay/geri alma, kaldırma, yarıçap, bitiş tarihi, beğeni eşiği).
+- Doğrulama (yerel): Functions 118 birim + 82 rules + 9 konum notu entegrasyonu, admin 32 birim + 16 entegrasyon,
+  native birim testleri, 626 anahtar × 12 dil. Tam preflight ve CI aday commit'te ayrıca koşulmalı.
+- Açık: canlı Functions/indeks dağıtımı, fiziksel iPhone saha ölçümü (hazır olma süresi, arka plan uyanma, 15/25/50 m giriş,
+  araçla geçiş, pil), App Store konum gerekçesi ve gizlilik etiketleri.
+- Yoğun nokta (≈38 × 19 m'de 30+ not): metin yalnız yerinde açılır (`unlockDenseSpot`, varsayılan 15 m, AR kamerada 2–5 m),
+  girişte 30 günde bir metinsiz "burada çok not var" bildirimi. Kampanya varışı da 15–100 m GPS toleranslı kurala geçti;
+  harita/varış kitlesi son 24 saatteki paylaşılan konumu kullanabilir.
+
+## 12 Ekim akşam paketi: kampanya senaryoları ve otomatik notlar
+
+- Kullanıcı konum notları hemen yayınlanır; bir günlük hesaplardan 3 beğeni otomatik bildirime alır, 3 farklı şikayet gizler.
+  App Review notlarındaki "her post önce incelenir" ifadesi konum notları için güncellenmeli.
+- Yoğun nokta artık sunucu kümesi (25 m, en fazla 40 m); kilitli noktadaki not bildirimi metinsiz; bildirim haritayı noktada açar.
+- Kampanya senaryoları: sık kalınan yerden çıkış (yalnız cihazda öğrenilir) / giriş / kalma / çıkış adımları, sokak koridoru, takvim,
+  kanal, kod, sıklık, bütçe; admin kurucu, huni, kod kullanımı. Sessiz bölge bildirimi + sınır bölgesi + arka plan görevi.
+- Açık: `remote-notification`/`fetch` arka plan modları ve "Her zaman" konum için App Review gerekçesi; FCM topic ve APNs
+  arka plan push kabulü; fiziksel iPhone'da ev çıkışı gecikmesi, sokak koridoru, kalma süresi ve pil ölçümü.
 
 ## Kapsam
 

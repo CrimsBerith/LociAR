@@ -104,6 +104,78 @@ async function postFixture(caption) {
 }
 function postRow(page, ref) { return page.locator('.dataRow.post').filter({ hasText: ref.id }); }
 
+for (const mobile of [false, true]) {
+  test(`Chromium ${mobile ? 'mobile' : 'desktop'} opens every protected page with an MFA administrator`, { timeout: 120_000 }, async t => {
+    const admin = await administrator();
+    const post = await postFixture(`browser-page-matrix-${randomUUID()}`);
+    const pages = [
+      ['dashboard', 'Dashboard'], ['users', 'Users'], ['posts', 'Posts & media'],
+      ['posts/new', 'Create post'], [`posts/${post.id}`, (await post.get()).get('caption')],
+      ['moderation', 'Moderation queue'], ['avatars', 'Profile photos'], ['anchors', 'AR anchors'],
+      ['places', 'Map & places'], ['place-notes', 'Location notes'], ['campaigns', 'Campaigns'],
+      ['zones', 'Restricted zones'], ['analytics', 'Analytics'], ['system', 'System health'],
+      ['approvals', 'Pending approvals'], ['audit', 'Audit logs'], ['search?q=browser', 'Search'],
+    ];
+    await browserFlow(t, admin, async page => {
+      const errors = [];
+      page.on('pageerror', error => errors.push(error.message));
+      for (const [path, heading] of pages) {
+        const response = await page.goto(`${origin}/admin/${path}`);
+        assert.equal(response.status(), 200, path);
+        await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible();
+        const mfa = page.getByText('MFA verified', { exact: true });
+        if (mobile) await expect(mfa).toBeAttached(); // The compact layout hides the sidebar footer.
+        else await expect(mfa).toBeVisible();
+        await expect(page.locator('body')).not.toContainText('FIREBASE_SERVICE_ACCOUNT_JSON');
+      }
+      assert.deepEqual(errors, [], 'Protected pages must hydrate without browser exceptions');
+    }, mobile);
+  });
+}
+
+test('Chromium administrator notification retries a lost committed response once and respects revoked consent', { timeout: 120_000 }, async t => {
+  const admin = await administrator(); const recipient = randomUUID();
+  const handle = 'notify_' + randomUUID().slice(0, 8);
+  await db.collection('profiles').doc(recipient).set({ handle, suspended: false, created_at: Timestamp.now() });
+  const pref = db.collection('user_data_preferences').doc(recipient);
+  await pref.set({ notifications: true, promotions: false, location: false, telemetry: false, revision: randomUUID() });
+  await browserFlow(t, admin, async page => {
+    await page.goto(`${origin}/admin/users?q=${handle}`);
+    const row = page.locator('.dataRow.user').filter({ hasText: recipient });
+    await row.getByText('Private data', { exact: true }).click();
+    await row.getByText('Send this user a notification', { exact: true }).click();
+    const form = row.locator('form.decisionForm');
+    await form.getByLabel('Title', { exact: true }).fill('Administrator test');
+    await form.getByLabel('Message', { exact: true }).fill('Non-marketing administrator message');
+    await form.getByLabel('Reason', { exact: true }).fill(reason);
+    const keys = []; let interrupted = false;
+    await page.route('**/api/admin/v1/campaigns', async route => {
+      keys.push(route.request().headers()['idempotency-key']);
+      if (!interrupted) { interrupted = true; const response = await route.fetch(); assert.equal(response.status(), 200); await route.abort('failed'); }
+      else await route.continue();
+    });
+    const submit = form.getByRole('button', { name: 'Queue notification', exact: true });
+    await submit.click();
+    await expect(form.getByRole('status')).toContainText('connection was interrupted');
+    await expect(submit).toBeEnabled();
+    await submit.click();
+    await expect(form.getByRole('status')).toContainText('Queued.');
+    assert.equal(keys.length, 2); assert.ok(keys[0]); assert.equal(keys[0], keys[1]);
+    const jobs = await db.collection('admin_notification_jobs').where('recipient_id', '==', recipient).get();
+    assert.equal(jobs.size, 1);
+    assert.equal((await db.collection('activity_events').where('recipient_id', '==', recipient).get()).size, 1);
+    assert.equal((await db.collection('admin_audit_log').where('resource_id', '==', jobs.docs[0].id).get()).size, 1);
+    assert.equal((await db.collection('promotion_push_quota').doc(`${recipient}_${new Date().toISOString().slice(0, 10)}`).get()).get('count'), 1);
+    await pref.update({ notifications: false, revision: randomUUID() });
+    await form.getByLabel('Message', { exact: true }).fill('Must be rejected after consent revocation');
+    await submit.click();
+    await expect(form.getByRole('status')).toContainText('recipient_has_not_opted_in');
+    await expect(submit).toBeEnabled();
+    assert.notEqual(keys[2], keys[0]);
+    assert.equal((await db.collection('admin_notification_jobs').where('recipient_id', '==', recipient).get()).size, 1);
+  }, true);
+});
+
 test('Chromium moderation retries an interrupted committed request with one audit and resets the buttons', { timeout: 120_000 }, async t => {
   const admin = await administrator('trust_safety_admin'); const ref = await postFixture(`browser-moderation-${randomUUID()}`);
   await browserFlow(t, admin, async page => {
@@ -209,7 +281,8 @@ test('mobile Chromium regular-user invitation completes email ownership, app pas
   const admin = await administrator(); const email = `invited-browser-${randomUUID()}@example.test`; let invitation;
   await browserFlow(t, admin, async page => {
     await page.goto(origin + '/admin/users'); await page.getByRole('button', { name: 'Invite user', exact: true }).click();
-    await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Reason', { exact: true }).fill(reason);
+    const invitationPanel = page.locator('section.actionPanel').filter({ has: page.getByRole('heading', { name: 'Invite a user or administrator' }) });
+    await invitationPanel.getByLabel('Email', { exact: true }).fill(email); await invitationPanel.getByLabel('Reason', { exact: true }).fill(reason);
     let interrupted = false; const keys = [];
     await page.route('**/api/admin/v1/users/invite', async route => {
       keys.push(route.request().headers()['idempotency-key']);
@@ -315,4 +388,47 @@ test('Chromium creates a managed author, publishes a styled post at chosen coord
   await editor.getByRole('button',{name:'Delete comment',exact:true}).click();await expect.poll(async()=> (await comment.ref.get()).exists).toBe(false);
   assert.equal((await db.collection('admin_audit_log').where('actor_id','==',admin.uid).where('action','==','comment_delete').get()).size,1);
  });
+});
+
+test('Chromium switches the panel between Turkish and English and every page renders in Turkish', { timeout: 150_000 }, async t => {
+  const admin = await administrator();
+  const pages = [
+    ['dashboard', 'Gösterge paneli'], ['users', 'Kullanıcılar'], ['posts', 'Gönderiler ve medya'], ['posts/new', 'Gönderi oluştur'],
+    ['moderation', 'Moderasyon kuyruğu'], ['avatars', 'Profil fotoğrafları'], ['anchors', 'AR çapaları'], ['places', 'Harita ve yerler'],
+    ['place-notes', 'Konum notları'], ['campaigns', 'Kampanyalar'], ['zones', 'Yasaklı bölgeler'], ['analytics', 'Analitik'],
+    ['system', 'Sistem durumu'], ['approvals', 'Bekleyen onaylar'], ['audit', 'Denetim kayıtları'], ['search?q=browser', 'Ara'],
+  ];
+  await browserFlow(t, admin, async page => {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto(`${origin}/admin/dashboard`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'TR', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Gösterge paneli', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'TR', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    for (const [path, heading] of pages) {
+      const response = await page.goto(`${origin}/admin/${path}`);
+      assert.equal(response.status(), 200, path);
+      await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible();
+      await expect(page.locator('.sidebar nav a[aria-current="page"]')).toHaveCount(path.startsWith('search') ? 0 : 1);
+      if (process.env.ADMIN_I18N_SCREENSHOTS) {
+        await page.screenshot({ path: `${process.env.ADMIN_I18N_SCREENSHOTS}/tr-${path.replace(/[^a-z]+/g, '-')}.png`, fullPage: true });
+      }
+    }
+    await page.getByRole('button', { name: 'EN', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Search', exact: true })).toBeVisible();
+    assert.deepEqual(errors, []);
+  });
+});
+
+test('Chromium sign-in page follows the browser language until a language is chosen', { timeout: 60_000 }, async () => {
+  for (const [locale, heading] of [['tr-TR', 'Yönetici girişi'], ['en-US', 'Administrator sign-in']]) {
+    const context = await browser.newContext({ locale });
+    try {
+      const page = await context.newPage();
+      await page.goto(`${origin}/admin/login`);
+      await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible();
+      if (process.env.ADMIN_I18N_SCREENSHOTS) await page.screenshot({ path: `${process.env.ADMIN_I18N_SCREENSHOTS}/login-${locale}.png` });
+    } finally { await context.close(); }
+  }
 });

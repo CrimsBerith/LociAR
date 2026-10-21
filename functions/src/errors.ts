@@ -28,6 +28,10 @@ export const REASONS = [
   'invite_invalid',
   'gif_invalid',
   'gif_unavailable',
+  'location_inaccurate',
+  'invalid_caption',
+  'content_not_allowed',
+  'links_not_allowed',
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

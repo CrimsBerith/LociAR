@@ -2,7 +2,7 @@
 // The emulator suite sets FIRESTORE_EMULATOR_HOST / FIREBASE_AUTH_EMULATOR_HOST for us.
 import { randomUUID } from 'node:crypto';
 import { initializeApp as initClient, deleteApp } from 'firebase/app';
-import { getAuth as getClientAuth, connectAuthEmulator, createUserWithEmailAndPassword, OAuthProvider, signInWithCredential } from 'firebase/auth';
+import { getAuth as getClientAuth, connectAuthEmulator, createUserWithEmailAndPassword, OAuthProvider, signInWithCredential, signInAnonymously } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 import { initializeApp as initAdmin, getApps } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
@@ -41,6 +41,18 @@ export async function newUser(handle) {
   await adminAuth.updateUser(user.uid, { emailVerified: true });
   await user.getIdToken(true);
   return withProfile(user, fns, handle);
+}
+
+export async function newAnonymousUser() {
+  const { auth, fns } = clientApp();
+  const { user } = await signInAnonymously(auth);
+  const luid = (await import('../../lib/core.js')).luidForUid(user.uid);
+  const call = async (name, data = {}) => (await httpsCallable(fns, name)({ userId: luid, ...data })).data;
+  const refused = await expectFailure(call('ensureProfile'));
+  if (refused.code !== 'functions/failed-precondition') throw refused;
+  await call('ensureProfile', { termsVersion: '2026-10-04' });
+  await user.getIdToken(true);
+  return { uid: user.uid, luid, user, call };
 }
 
 /** Creates a Sign in with Apple user (the Auth emulator accepts an unsigned JSON id token). */

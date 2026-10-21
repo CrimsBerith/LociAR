@@ -20,7 +20,7 @@ Des notes sur des lieux réels
 Laissez de courts messages et des GIF sur de vraies surfaces et découvrez en AR ce que d'autres ont laissé près de vous, à l'endroit exact.
 ```
 
-## Description (1278/4000)
+## Description (1820/4000)
 
 ```text
 Laissez des notes dans des lieux réels.
@@ -30,12 +30,13 @@ LociAR vous permet d'épingler de courts messages et des GIF sur de vraies surfa
 FONCTIONNALITÉS
 • Épinglez sur de vraies surfaces : le réticule central se cale sur les surfaces détectées par ARKit ; Google ARCore Cloud Anchors et Geospatial réaffichent votre publication au même endroit.
 • Découvrez autour de vous : voyez les publications proches sur la carte et ouvrez-les en AR.
-• Social : aimez, commentez, enregistrez dans des collections, suivez des créateurs et soyez notifié des j'aime, commentaires et abonnements.
-• Communauté sûre : les nouvelles publications sont vérifiées avant d'être publiques, les lieux protégés et le contenu 18+ sont bloqués, et vous pouvez signaler ou bloquer n'importe qui.
+• Notes de lieu : laissez un conseil exactement là où vous êtes (« Le mot de passe Wi-Fi est à la caisse ») ; les notes les plus aimées apparaissent en premier et, avec l'accès à la position « Toujours », une note aimée peut vous prévenir à votre arrivée.
+• Social : aimez, commentez, enregistrez dans des collections et soyez notifié des j'aime et des commentaires.
+• Communauté sûre : chaque publication passe un filtre automatique avant d'être publiée, les lieux protégés et le contenu 18+ sont bloqués, le contenu signalé par plusieurs personnes est masqué automatiquement, les signalements sont examinés sous 24 heures, et vous pouvez signaler ou bloquer n'importe qui.
 • Vos données, votre choix : supprimez définitivement votre compte et toutes ses données depuis votre profil à tout moment.
 
 CONFIDENTIALITÉ
-La caméra et la position ne servent qu'à l'expérience AR. Pour le positionnement AR, Google ARCore traite des données de capteurs (p. ex. caméra et position). Aucun suivi, aucune publicité.
+La position sert à afficher et placer les notes et, seulement si vous l'autorisez, à vous prévenir d'une note aimée quand vous arrivez à son emplacement ; votre historique de positions n'est pas conservé. Les offres de marques sont facultatives et désactivées par défaut. Pour le positionnement AR, Google ARCore traite des données de capteurs (p. ex. caméra et position). Aucun suivi.
 
 Nécessite un iPhone compatible ARKit.
 ```
@@ -46,8 +47,8 @@ Nécessite un iPhone compatible ARKit.
 réalité augmentée,carte,caméra,social,note,surface,découvrir,lieu,position,gif
 ```
 
-## What's New in This Version (215/4000)
+## What's New in This Version (238/4000)
 
 ```text
-Première version : épinglez de courts messages et des GIF sur de vraies surfaces, découvrez les publications proches sur la carte, avec j'aime, commentaires, collections, abonnements et notifications. En 12 langues.
+Première version : épinglez de courts messages et des GIF sur de vraies surfaces, laissez des notes de lieu là où vous êtes, découvrez les notes proches sur la carte, avec j'aime, commentaires, collections et notifications. En 12 langues.
 ```

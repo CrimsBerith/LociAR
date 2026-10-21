@@ -1,3 +1,4 @@
+import { forEachSequential } from './async';
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { createHash, randomUUID } from 'node:crypto';
 import { analyticsEventDoc, db, FieldValue, Timestamp } from './core';
@@ -31,6 +32,7 @@ async function emitActivity(kind: 'like' | 'comment' | 'follow', actorId: string
       id,
       kind,
       actor_id: actorId,
+      anonymous: kind === 'like',
       recipient_id: recipientId,
       post_id: postId,
       body,
@@ -51,7 +53,8 @@ export const onLikeCreated = onDocumentCreated({ document: 'likes/{id}', retry: 
   const like = event.data?.data();
   if (!like) return;
   await applyCountersOnce(event.id, [{ path: `posts/${like.post_id}`, fields: ['likes_count'] }]);
-  await emitActivity('like', like.user_id, await postCreator(like.post_id), like.post_id, 'Postunu beğendi.', `like_${like.post_id}_${like.user_id}`);
+  const activityId = createHash('sha256').update(`like_${like.post_id}_${like.user_id}`).digest('hex');
+  await emitActivity('like', like.user_id, await postCreator(like.post_id), like.post_id, 'Postunu beğendi.', activityId);
 });
 
 export const onLikeDeleted = onDocumentDeleted({ document: 'likes/{id}', retry: true }, async (event) => {
@@ -163,7 +166,7 @@ export const onPostWritten = onDocumentWritten({ document: 'posts/{postId}', ret
       const data = current.data();
       if (!data || typeof data.creator_id !== 'string' || await isAccountDeleting(tx, data.creator_id)) return;
       tx.set(db.collection('storage_reclamations').doc(current.id), { post_id: current.id, creator_id: data.creator_id, state: data.deleted_at ? 'removed' : 'committed',
-        world_map_path: data.world_map_path ?? null, public_readable: isPublicActive(data) }, { merge: true });
+        world_map_path: data.world_map_path ?? null, is_anonymous: data.is_anonymous === true, public_readable: isPublicActive(data) }, { merge: true });
     });
   }
   if (before?.status !== after?.status) await schedulePurgeOnStatusChange(event.params.postId, before, after);
@@ -210,12 +213,13 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
       tx.get(db.collection('profiles').doc(luid)), tx.get(db.collection('account_access').doc(luid)), isAccountDeleting(tx, luid),
     ]);
     if (deleting || !profile.exists) return false;
-    const state = profile.get('deleted_at') ? 'deleting' : profile.get('suspended') === true ? 'suspended' : 'active';
+    let state = profile.get('suspended') === true ? 'suspended' : 'active';
+    if (profile.get('deleted_at')) state = 'deleting';
     if (access.get('state') !== state) tx.set(access.ref, { state });
     return true;
   });
   if (!active) return;
-  for (const field of ['bio', 'display_name'] as const) {
+  await forEachSequential(['bio', 'display_name'] as const, async (field) => {
     if (before[field] !== after[field] && anyBlocked([after[field]]) && after.moderation_approved_text?.[field] !== after[field]) {
       await db.runTransaction(async (tx) => {
         if (await isAccountDeleting(tx, luid)) return;
@@ -233,7 +237,7 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
         tx.update(current.ref, { [field]: null, updated_at: FieldValue.serverTimestamp() });
       });
     }
-  }
+  });
   if (before.handle === after.handle) return;
   const currentProfile = await db.collection('profiles').doc(luid).get();
   if (!currentProfile.exists || currentProfile.get('deleted_at')) return;

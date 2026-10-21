@@ -39,7 +39,7 @@ service firebase.storage {
       return access.state == 'active' && claim.creator_id == luid
         && (claim.state == 'draft' && owner(luid)
           || claim.state == 'committed' && claim.get('world_map_path', null) == 'post-world-maps/' + luid + '/' + postId + '/' + file
-            && (owner(luid) || claim.get('public_readable', false)));
+            && (owner(luid) || claim.get('public_readable', false) && claim.get('is_anonymous', false) != true));
     }
     match /post-world-maps/{luid}/{postId}/{file} {
       allow read: if signedIn() && uuid(postId) && mapAccess(postId, luid, file);
@@ -54,8 +54,8 @@ service firebase.storage {
       allow delete: if activeOwner(luid);
     }
     match /post-surface-textures/{luid}/{rest=**} {
-      // Closed: surface textures were an unmoderated image channel. Owners may delete leftovers.
-      allow read: if signedIn();
+      // Retired media cannot expose anonymous post IDs through owner-folder reads or listing.
+      allow read: if false;
       allow create, update: if false;
       allow delete: if activeOwner(luid);
     }

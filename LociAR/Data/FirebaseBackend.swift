@@ -302,6 +302,10 @@ enum FirestorePostMapper {
             "id": id,
             "creator_id": data["creator_id"] ?? NSNull(),
             "creator_handle": data["creator_handle"] ?? NSNull(),
+            "is_anonymous": data["is_anonymous"] ?? false,
+            "sponsorship": data["sponsorship"] ?? NSNull(),
+            "note_kind": data["note_kind"] ?? NSNull(),
+            "dense_spot": data["dense_spot"] ?? NSNull(),
             "created_at": FirestoreJSON.isoString(createdAt),
             "pose": FirestoreJSON.parseEmbedded(data["pose_json"]),
             "edit_data": FirestoreJSON.parseEmbedded(data["edit_data_json"]),
@@ -314,6 +318,7 @@ enum FirestorePostMapper {
             "views_count": data["views_count"] ?? 0,
             "likes_count": data["likes_count"] ?? 0,
             "comments_count": data["comments_count"] ?? 0,
+            "admin_managed": data["admin_managed"] as? Bool ?? false,
         ]
         return try FirestoreJSON.decode(BackendPostRow.self, from: object)
     }

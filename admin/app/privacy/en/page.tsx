@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPageEn() {
   return (
-    <LegalLayout title="Privacy policy" updated={E.updatedEn} lang="en">
+    <LegalLayout title="Privacy policy" updated="October 11, 2026" lang="en">
       <p>
         LociAR is an iOS app for sharing short text notes anchored to real-world surfaces. This
         policy explains which personal data we process. <Link href="/privacy">Türkçe sürüm</Link>
@@ -37,21 +37,32 @@ export default function PrivacyPageEn() {
           processed by our infrastructure provider, and abuse-prevention records.</li>
       </ul>
 
+      <h2>Optional administrator data sharing</h2>
+      <p>Two separate options in Profile → Settings are off by default. Technical sharing sends device type,
+        iOS and app version, language, time zone, a random installation ID, connection IP address and app usage times
+        to authorized administrators. Separate location sharing sends your last coordinates, accuracy and measurement time
+        while the app is in the foreground. Anonymous posts can be associated with your account on the server.
+        This administrator location snapshot is not updated in the background; iOS location permission and a post&apos;s location are separate.</p>
+      <p>Administrator access requires a specific permission, MFA and a reason; reads are audited.
+        Location reports become inaccessible after 24 hours and device reports after 30 days, then enter automatic deletion.
+        Usage events are kept for at most {E.analyticsRetentionDays} days. Turning an option off deletes its last location/device report;
+        if offline, deletion completes when connectivity returns. Account deletion also removes these records and usage events.</p>
+
       <h2>Purposes and legal bases</h2>
       <ul>
         <li>Account creation, sign-in, publishing and displaying content — performance of our contract with you.</li>
-        <li>Like, comment and follow notifications — performance of the contract while you allow them; turn them off in iOS Settings.</li>
+        <li>Social notifications, location-note reminders and administrator messages — enabled with your consent in Profile → Settings → Notifications; brand campaigns and offers need a separate, off-by-default “Campaigns and offers” consent. iOS notification permission is also required.</li>
         <li>Moderation, protected-zone and 18+ blocks, profile photo screening, spam and abuse prevention, security — legitimate
           interests and legal obligations.</li>
         <li>Crash reports to keep the app stable — legitimate interests; you can turn them off in Profile → Settings.</li>
         <li>Handling legal claims — establishing, exercising or defending legal rights.</li>
       </ul>
-      <p>We do not sell your data, use it for advertising, or track you across other companies&apos; apps and websites.</p>
+      <p>We do not sell your data or track you across other companies&apos; apps and websites. With Notifications enabled, your voluntarily shared last location and approved-post performance may help select suitable brand discounts. Brands cannot access your personal location or recipient lists.</p>
 
       <h2>Service providers and international transfers</h2>
       <p>
         Our infrastructure is provided by Google Firebase (Google Cloud); data is stored in Google data centers in the
-        <strong> United States</strong> under Google&apos;s data processing terms and appropriate safeguards. Google services we use:
+        {' '}<strong>United States</strong> under Google&apos;s data processing terms and appropriate safeguards. Google services we use:
       </p>
       <ul>
         <li><strong>Firebase Authentication, Cloud Firestore, Cloud Storage, Cloud Functions, App Check:</strong> accounts, content and security.</li>
@@ -62,7 +73,7 @@ export default function PrivacyPageEn() {
         <li><strong>Google ARCore:</strong> AR positioning (below).</li>
         <li><strong>GIPHY:</strong> GIF search and GIF display (below).</li>
       </ul>
-      <p>Public posts and usernames are visible to other users. We may disclose data in response to lawful requests.</p>
+      <p>Public posts are visible to other users; anonymous posts hide the author&apos;s name and profile. We may disclose data in response to lawful requests.</p>
 
       <h2>Google ARCore (AR positioning)</h2>
       <p>
@@ -83,7 +94,54 @@ export default function PrivacyPageEn() {
         GIPHY ID of the GIF you chose. Learn more: <a href="https://giphy.com/privacy">GIPHY Privacy Policy</a>.
       </p>
 
+      <h2>Notifications and location reminders</h2>
+      <p>The off-by-default Notifications switch in Profile → Settings covers likes, comments, follows, location notes and
+        administrator messages. Brand campaigns and offers need a separate, also off-by-default “Campaigns and offers” switch,
+        which you can turn off at any time. Each notice explains its scope before you enable it.
+        Administrator location and technical sharing remain separate. You also need iOS notification permission;
+        approved text may appear on your lock screen. Disabling Notifications stops monitoring on this device,
+        token registration and new notification admission. Existing in-app activities can remain.</p>
+      <p>Offers contain text, discount terms and expiry and are labelled sponsored. Targeted offers are visible only
+        to assigned recipients. Your voluntarily shared recent location and approved-post performance may help select offers.
+        Brands cannot read your personal location or recipient lists. Send attempts record FCM acceptance, which
+        does not guarantee device delivery or reading. Custom administrator text is not automatically translated.</p>
+      <p>For nearby reminders, iOS monitors up to 20 areas: approved location-note clusters (at most 15) and assigned-offer
+        areas. The list is synchronized with a coarse location while the app is open and, in the background, after you move
+        about 500 m. A larger GPS area wakes a precise location check: for location notes until a reminder is sent, you
+        leave the area, or at most 10 minutes; for offer arrivals at most two minutes. Lower accuracy is used while notes
+        are still far away. Location-note entry uses a 15–100 m radius: your reported uncertainty may touch the area (at most
+        20 m tolerance; fixes worse than 35 m are ignored), at walking speed, with two agreeing fixes at least five seconds apart.
+        Offer arrivals use the same rule with a 15–100 m radius; walking or driving past the shop counts. Offer selection may use
+        your last voluntarily shared location up to the campaign&apos;s age limit (at most 24 hours); no place is labelled home. Background use requires Always location
+        permission and Precise Location and displays the iOS location indicator. Internet and current server approval are
+        required. Phone GPS is usually 5–30 m off; it cannot guarantee doorway entry and visits may be missed. Wake-ups can
+        be delayed or suppressed, especially after force-quitting.</p>
+      <p>Foreground discovery and entry/exit fixes are transient and do not update the administrator location snapshot.
+        A leaving-area campaign can retain your voluntarily shared starting coordinates privately for no more than 24 hours
+        or campaign expiry. We do not infer or label this area home. Revocation immediately invalidates these areas;
+        account deletion removes them. The phone must synchronize and observe itself inside before an exit reminder is armed.</p>
+      <p>Brand campaigns can run in steps: for example an invitation when you leave the place where you usually stay, then a discount
+        code when you enter or stay in the campaign area. Your phone learns where you usually spend the night from iOS visit records,
+        on the device only; that place is never sent to us and never labelled home. When you leave it, the phone itself checks whether
+        the campaign area covers it; only your current position is sent once to verify the step and is not stored. Campaign progress and
+        codes issued to you are deleted 30 days after the campaign ends. When a campaign or note goes live in your area, a silent
+        notification on an area channel of about 39 × 20 km tells the phone to refresh its list.</p>
+      <p>You can leave an anonymous location note where you are; it passes an automatic content filter and is published at once. The note is saved at the
+        position your phone measured, or at a pin you place by hand within 50 m of it; the measured accuracy and the pin
+        distance are stored too. Attendance is not verified. Authorized administrators see the note and author association
+        privately. Notes are ordered by likes. A note liked by enough accounts older than a day is sent as a reminder to people
+        who come there; each note reaches each person at most once. Notes reported by enough different people are hidden automatically. Notes do not expire on their own; administrators
+        can set an end date or remove a note. Where more than 30 notes share a spot of about 38 × 19 m (administrator setting),
+        their text opens only when you are nearby; the map shows just the count, and entering the spot sends at most one
+        text-free “many notes here” reminder per 30 days. Opening checks your phone or AR-camera position once on the server and stays open for 30 minutes.
+        Campaigns share a separate three-per-day promotional limit and at most one
+        reminder per assigned campaign.</p>
+
       <h2>Retention</h2>
+      <p>Targeted offer assignments become inaccessible at campaign expiry and enter automatic deletion. Notification attempt
+        and campaign-view receipts are kept for 30 days. A record that a location note was sent to you is kept until you
+        delete your account, so the same note is never sent twice. Account deletion removes these personal records. Deleting
+        a note author&apos;s account also removes retained note text in other recipients&apos; activity records.</p>
       <ul>
         <li>Account data and content: until you delete your account.</li>
         <li>On account deletion your profile, posts, comments, likes, follows, collections, notification tokens, AR files, profile

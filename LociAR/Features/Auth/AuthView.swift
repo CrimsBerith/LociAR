@@ -44,6 +44,23 @@ struct AuthView: View {
                         )
                     }
                     legalNotice
+                    Button {
+                        Task {
+                            isWorking = true
+                            defer { isWorking = false }
+                            do { try await session.continueAnonymously() }
+                            catch { message = error.localizedDescription }
+                        }
+                    } label: {
+                        Label("Hesapsız devam et", systemImage: "person.crop.circle.badge.questionmark")
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!termsAccepted || isWorking)
+                    .accessibilityIdentifier("auth-anonymous")
+                    // Guests browse only; posting needs a verified identity (App Store 1.2, functions/src/anonymous.ts).
+                    Text("Hesap açmadan notları görebilir ve beğenebilirsin. Not bırakmak ve yorum yazmak için Apple ile giriş yap ya da e-postanla kaydol.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(24)
             }
@@ -473,17 +490,17 @@ private struct ConsentAppleSignInButton: UIViewRepresentable {
             controller.performRequests()
         }
 
-        func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        func presentationAnchor(for _: ASAuthorizationController) -> ASPresentationAnchor {
             window ?? ASPresentationAnchor()
         }
 
-        func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        func authorizationController(controller _: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
             self.controller = nil
             window = nil
             parent.onCompletion(.success(authorization))
         }
 
-        func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        func authorizationController(controller _: ASAuthorizationController, didCompleteWithError error: Error) {
             self.controller = nil
             window = nil
             parent.onCompletion(.failure(error))

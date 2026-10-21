@@ -27,7 +27,7 @@ struct PublicProfileView: View {
                 VStack(spacing: 14) {
                     LociAvatar(handle: profile?.handle ?? user.handle, avatarURL: isBlocked ? nil : profile?.avatarURL, size: 78)
                     VStack(spacing: 5) {
-                        Text("@\(profile?.handle ?? user.handle)").font(.title2.bold())
+                        Text(verbatim: "@\(profile?.handle ?? user.handle)").font(.title2.bold())
                         if let bio = profile?.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center) }
                     }
                     HStack(spacing: 22) {
@@ -81,7 +81,7 @@ struct PublicProfileView: View {
             Button("Engelle", role: .destructive) { Task { await block() } }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: {
-            Text("Bu kullanıcının postlarını ve yorumlarını görmezsin; seni takip edemez, postlarına yorum yapamaz.")
+            Text("Bu kullanıcının adıyla paylaşılanları ve yorumlarını görmezsin, seni takip edemez. Anonim notlar kimseye yazarını göstermediği için bu engelden etkilenmez.")
         }
         .confirmationDialog("Neden bildiriyorsun?", isPresented: $reportingUser, titleVisibility: .visible) {
             ForEach(ReportReason.allCases) { reason in
@@ -96,6 +96,8 @@ struct PublicProfileView: View {
         do {
             try await container.social.reportUser(targetID: user.id, userID: viewer.id, reason: reason.rawValue)
             message = String(localized: "Bildirimin incelemeye gönderildi. Teşekkürler.")
+        } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
+            message = String(localized: "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.")
         } catch {
             message = String(localized: "Bildirim gönderilemedi.")
         }
@@ -167,7 +169,7 @@ struct PublicProfileView: View {
     }
 
     private func profileMetric(value: Int, label: String) -> some View {
-        VStack(spacing: 2) { Text("\(value)").font(.headline); Text(label.localizedUI).font(.caption).foregroundStyle(.secondary) }
+        VStack(spacing: 2) { Text(value, format: .number).font(.headline); Text(label.localizedUI).font(.caption).foregroundStyle(.secondary) }
     }
 }
 

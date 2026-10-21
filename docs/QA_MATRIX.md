@@ -13,6 +13,7 @@ Node 22, Java 21 ve iki Node projesinde `npm ci` gerekir.
 | Functions | `cd functions && npm run typecheck && npm test` | Hata yok |
 | Rules | `cd functions && npm run test:rules` | Firestore + Storage rules testleri geçer (Java 21) |
 | Callable entegrasyon | `cd functions && npm run test:emulator` | Emulator entegrasyon testleri geçer |
+| Konum notları ve asenkron yoğunluk | `cd functions && npm run test:notes` | Ayrı, temiz emülatörde not/yoğunluk/spot/bildirim testleri geçer; ana entegrasyon paketinin toplu fixture kuyruğu taşınmaz. CI ve release preflight için zorunludur. |
 | Kesintiden sonra silme / atomik yayın | Aynı Functions + rules komutları | Silme aşamaları yeniden denenir; Storage/Auth arızasında kilit kalır; ters sıralı sayaçlar, eşzamanlı yoğunluk/kota/anchor, 5000 üzeri korumalı bölge ve yetim dosya devamı geçer |
 | Push sunucu sözleşmesi | `cd functions && npm run test:emulator && npm run test:rules` | Token sahipliği/rotasyonu, çıkış/silme, eşzamanlı cihaz sınırı, tek gönderim girişimi ve token/teslimat belgelerine default-deny geçer; gerçek FCM çağrılmaz |
 | Aktivite okundu / silme reauth | Aynı Functions emulator + rules komutları; Mac'te `BackendAndPolicyTests` | Gerçek belge kimliği/ilk okuma zamanı korunur, başka alıcı/oturum reddedilir; parola ve Apple reauth `auth_time` yeniler; yeni Apple code eski Firebase oturumunu tek başına geçirmez |
@@ -26,7 +27,7 @@ Node 22, Java 21 ve iki Node projesinde `npm ci` gerekir.
 | Üretim bağımlılıkları | `cd functions && npm audit --omit=dev --audit-level=moderate`; `cd admin && npm audit --omit=dev --audit-level=moderate` | Orta ve üzeri açıklar CI'ı durdurur |
 | Tam bağımlılık ağacı | `node scripts/check-dependency-audit.mjs functions`; `node scripts/check-dependency-audit.mjs admin` | İki ağaçta da istisna yok; üretim veya geliştirme fark etmeksizin her bulgu CI'ı durdurur |
 | Tüm Linux yayın kontrolleri | `bash scripts/firebase-deploy.command --dry-run` | Kilitli kurulum, tip/birim/audit, rules/callable/admin HTTP+Chromium, public tarayıcı, secret ve dil kapıları; başarı kodu yanında tam test özeti ve sıfır fail/skip/cancel zorunlu. Eksik özet/boş koşu da deploy'u durdurur. Dry-run canlı kimlik veya proje kullanmaz |
-| Firebase metadata kabulü | `python3 scripts/qa-live-firebase.py --from-report /private/metadata.json` | [Kaydedilmiş rapor şeması](release/FIREBASE_METADATA_READINESS.md); beklenen kaynakların durumları geçer; canlı sorgu yapılmaz |
+| Firebase metadata kabulü | `python3 scripts/qa-live-firebase.py --from-report metadata.json` | `build/firebase-readiness/metadata.json` altındaki [kaydedilmiş rapor](release/FIREBASE_METADATA_READINESS.md) doğrulanır; yalnızca dosya adı kabul edilir, canlı sorgu yapılmaz |
 | Saha kanıtı | `node scripts/qa-field-evidence.mjs /absolute/private/field-evidence.json` | İki cihaz/23 koşu, ölçüm, resolver, zaman, log/video yapısı; içerikler QA tarafından ayrıca incelenir |
 
 CI `ios` işi macOS 26 / Xcode 26.6 kullanır; Linux'taki sonuçlar bu işin geçtiğini göstermez.
@@ -34,7 +35,7 @@ Admin emülatöründeki MFA claim fixture'ı gerçek TOTP challenge/üretim JWT 
 Public tarayıcı testi ayrıcalıklı canlı oturumun kanıtı değildir; bu iki canlı kapı yayın planında açık tutulur.
 Xcode betiklerinin mock testleri native derleme veya fiziksel cihaz testi olarak sayılmaz.
 
-Katalog 583 UI + 3 izin anahtarı içerir. Yeni otomatik taslaklar İngilizce anlam ve AR/sosyal bağlamı ile incelenip
+Güncel anahtar/dil sayısı `python3 scripts/l10n/build_catalog.py --check` ile doğrulanır. Yeni otomatik taslaklar İngilizce anlam ve AR/sosyal bağlamı ile incelenip
 düzeltilmiştir; runtime çeviri servisi kullanılmaz. Anahtarlar Türkçe, mevcut proje development region ve
 katalog source language `en` olarak korunur. Çeviriler `scripts/l10n/translations/*.json` tablolarındadır;
 `python3 scripts/l10n/build_catalog.py` katalogları bu tablolardan üretir (elle düzenleme yok). `translated` durumu native ekran/a11y kabulünün yerine geçmez.

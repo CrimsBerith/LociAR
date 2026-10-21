@@ -16,8 +16,10 @@ final class AppSession {
             guard backendConfigured else { return }
             if !isLocalPreview, case let .signedIn(user) = phase {
                 NotificationService.shared.setUser(user.id)
+                UserContextService.shared.setUser(user.id)
             } else {
                 NotificationService.shared.setUser(nil)
+                UserContextService.shared.setUser(nil)
             }
         }
     }
@@ -43,7 +45,7 @@ final class AppSession {
         }
         if UITestFixtures.authenticatedSessionEnabled {
             isLocalPreview = true
-            phase = .signedIn(UITestFixtures.creator)
+            phase = .signedIn(UITestFixtures.authenticatedUser)
             return
         }
 #endif
@@ -76,6 +78,15 @@ final class AppSession {
         operationGeneration += 1
         let generation = operationGeneration
         let result = try await authRepository.signIn(email: email, password: password)
+        guard !Task.isCancelled, generation == operationGeneration else { return }
+        phase = .signedIn(result)
+        backendMessage = nil
+    }
+
+    func continueAnonymously() async throws {
+        operationGeneration += 1
+        let generation = operationGeneration
+        let result = try await authRepository.signInAnonymously()
         guard !Task.isCancelled, generation == operationGeneration else { return }
         phase = .signedIn(result)
         backendMessage = nil

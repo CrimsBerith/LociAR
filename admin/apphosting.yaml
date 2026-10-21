@@ -11,6 +11,14 @@ runConfig:
   memoryMiB: 512
 
 env:
+  - variable: ADMIN_EMAIL_API_KEY
+    secret: ADMIN_EMAIL_API_KEY
+    availability:
+      - RUNTIME
+  - variable: ADMIN_EMAIL_FROM
+    value: LociAR <onboarding@resend.dev>
+    availability:
+      - RUNTIME
   - variable: ADMIN_ORIGIN
     value: https://lociar-admin--lociar-2f38c.us-central1.hosted.app
     availability:

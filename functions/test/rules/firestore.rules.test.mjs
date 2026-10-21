@@ -37,7 +37,99 @@ beforeEach(async () => {
   });
 });
 
-const as = (luid) => env.authenticatedContext(`uid-${luid}`, { luid }).firestore();
+// Verified email identity by default; `guest` is a Firebase anonymous-auth installation.
+const as = (luid, claims = {}) => env.authenticatedContext(`uid-${luid}`, { luid, email_verified: true, ...claims }).firestore();
+const guest = (luid) => env.authenticatedContext(`guest-${luid}`, { luid, firebase: { sign_in_provider: 'anonymous', identities: {} } }).firestore();
+
+test('email login challenges, sessions and rate limits are denied to every client, including claimed admins', async () => {
+  for (const name of ['admin_email_challenges', 'admin_email_sessions', 'admin_email_limits']) {
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), name, 'private'), { owner_uid: `uid-${ALICE}` }));
+    for (const db of [env.unauthenticatedContext().firestore(), as(ALICE), env.authenticatedContext('claimed-admin', { luid: ALICE, admin: true, role: 'super_admin' }).firestore()]) {
+      await assertFails(getDoc(doc(db, name, 'private')));
+      await assertFails(setDoc(doc(db, name, 'forged'), { owner_uid: `uid-${ALICE}` }));
+    }
+  }
+});
+
+test('location notes keep likes available while content and comments require on-site access', async () => {
+  const db = as(ALICE);
+  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { note_kind: 'location', notify_radius_m: 20, push_state: 'approved' }));
+  await assertFails(getDoc(doc(db, 'posts', POST)), 'direct reads cannot bypass the proximity callable');
+  await assertSucceeds(getDoc(doc(as(BOB), 'posts', POST)), 'the author retains access');
+  await assertFails(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))), 'comments remain closed before on-site access');
+  await assertFails(setDoc(doc(db, 'dense_spot_unlocks', `${ALICE}_note_${POST}`), { expires_at: new Date(Date.now() + 60_000) }));
+  await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'map_group_sessions', 'private'), { owner_luid: ALICE, post_ids: [POST] }));
+  await assertFails(getDoc(doc(db, 'map_group_sessions', 'private')));
+  await assertFails(setDoc(doc(db, 'map_group_sessions', 'forged'), { owner_luid: ALICE, post_ids: [POST] }));
+  await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'dense_spot_unlocks', `${ALICE}_note_${POST}`), { owner_luid: ALICE, kind: 'note_read', expires_at: new Date(Date.now() + 60_000) }));
+  await assertSucceeds(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))));
+  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'dense_spot_unlocks', `${ALICE}_note_${POST}`), { expires_at: new Date(Date.now() - 60_000) }));
+  await assertFails(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))), 'expired reading sessions do not expose comments');
+  const like = () => setDoc(doc(db, 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() });
+  await assertSucceeds(like());
+  await assertSucceeds(deleteDoc(doc(db, 'likes', `${POST}_${ALICE}`)));
+  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { note_kind: null, notify_radius_m: null, push_state: null }));
+});
+
+test('anonymous author and liker identities cannot be fetched directly, even by the post owner', async () => {
+  await env.withSecurityRulesDisabled(async ctx => {
+    await updateDoc(doc(ctx.firestore(), 'posts', POST), { is_anonymous: true });
+    await setDoc(doc(ctx.firestore(), 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE });
+    await setDoc(doc(ctx.firestore(), 'activity_events', 'opaque-like'), { recipient_id: BOB, actor_id: ALICE, anonymous: true });
+  });
+  await assertFails(getDoc(doc(as(ALICE), 'posts', POST)), 'only the server projection may expose an anonymous note');
+  await assertSucceeds(getDoc(doc(as(BOB), 'posts', POST)), 'the author retains ownership');
+  await assertFails(getDoc(doc(as(BOB), 'likes', `${POST}_${ALICE}`)));
+  await assertSucceeds(getDocs(query(collection(as(ALICE), 'likes'), where('user_id', '==', ALICE))));
+  await assertFails(getDocs(query(collection(as(BOB), 'likes'), where('post_id', '==', POST))));
+  await assertFails(getDoc(doc(as(BOB), 'activity_events', 'opaque-like')));
+});
+
+test('anonymous mutes stay private and never change what rules allow', async () => {
+  await env.withSecurityRulesDisabled(async ctx => {
+    await setDoc(doc(ctx.firestore(), 'anonymous_blocks', `${ALICE}_${BOB}`), { blocker_id: ALICE, blocked_id: BOB });
+  });
+  await assertFails(getDoc(doc(as(ALICE), 'anonymous_blocks', `${ALICE}_${BOB}`)));
+  await assertFails(setDoc(doc(as(BOB), 'anonymous_blocks', `${ALICE}_${BOB}`), { blocker_id: BOB, blocked_id: ALICE }));
+  // Any denial here would let ALICE test candidate accounts against the note she muted.
+  await assertSucceeds(setDoc(doc(as(ALICE), 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(as(ALICE), 'follows', `${ALICE}_${BOB}`), { follower_id: ALICE, following_id: BOB, created_at: serverTimestamp() }));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'profiles', BOB)));
+});
+
+test('identity blocks do not change interactions with anonymous notes', async () => {
+  await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { is_anonymous: true }));
+  // BOB blocked DAVE (beforeEach). Treating BOB's anonymous note differently would name its author.
+  const db = as(DAVE);
+  await assertSucceeds(setDoc(doc(db, 'likes', `${POST}_${DAVE}`), { post_id: POST, user_id: DAVE, created_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db, 'post_saves', `${DAVE}_${POST}`), { post_id: POST, user_id: DAVE, created_at: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db, 'comments', 'c-anon'), { id: 'c-anon', post_id: POST, user_id: DAVE, text: 'selam', created_at: serverTimestamp() }));
+  await assertSucceeds(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))));
+  await assertFails(setDoc(doc(db, 'follows', `${DAVE}_${BOB}`), { follower_id: DAVE, following_id: BOB, created_at: serverTimestamp() }), 'the account block itself still applies');
+});
+
+test('guests may like but only verified Apple or email identities may comment', async () => {
+  const comment = id => ({ id, post_id: POST, user_id: ALICE, text: 'selam', created_at: serverTimestamp() });
+  await assertSucceeds(setDoc(doc(guest(ALICE), 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() }));
+  await assertFails(setDoc(doc(guest(ALICE), 'comments', 'c-guest'), comment('c-guest')));
+  const unverified = env.authenticatedContext('uid-unverified', { luid: ALICE, email_verified: false, firebase: { sign_in_provider: 'password', identities: { email: ['alice@example.test'] } } }).firestore();
+  await assertFails(setDoc(doc(unverified, 'comments', 'c-unverified'), comment('c-unverified')));
+  const apple = env.authenticatedContext('uid-apple', { luid: ALICE, firebase: { sign_in_provider: 'apple.com', identities: { 'apple.com': ['apple-alice'] } } }).firestore();
+  await assertSucceeds(setDoc(doc(apple, 'comments', 'c-apple'), comment('c-apple')));
+  await assertSucceeds(setDoc(doc(as(ALICE), 'comments', 'c-email'), comment('c-email')));
+});
+
+test('profiles need a session and follow edges are readable only by the people they involve', async () => {
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'profiles', BOB)));
+  await assertFails(getDocs(collection(env.unauthenticatedContext().firestore(), 'profiles')));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'profiles', BOB)));
+  await assertSucceeds(getDoc(doc(guest(ALICE), 'profiles', BOB)));
+  await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'follows', `${ALICE}_${BOB}`), { follower_id: ALICE, following_id: BOB }));
+  await assertSucceeds(getDoc(doc(as(BOB), 'follows', `${ALICE}_${BOB}`)));
+  await assertSucceeds(getDocs(query(collection(as(BOB), 'follows'), where('following_id', '==', BOB))));
+  await assertFails(getDoc(doc(as(DAVE), 'follows', `${ALICE}_${BOB}`)));
+  await assertFails(getDocs(query(collection(as(DAVE), 'follows'), where('following_id', '==', BOB))));
+});
 
 test('anyone reads active public posts; pending only by creator', async () => {
   const anon = env.unauthenticatedContext().firestore();
@@ -103,13 +195,13 @@ test('profile: an over-long legacy display_name does not block other edits', asy
   await assertFails(updateDoc(doc(db, 'profiles', BOB), { display_name: 'y'.repeat(61), updated_at: serverTimestamp() }));
 });
 
-test('suspended accounts cannot interact but can still report', async () => {
+test('suspended accounts cannot interact or bypass the server report path', async () => {
   const db = as(CAROL);
   const c = { id: 'c-s', post_id: POST, user_id: CAROL, text: 'selam', created_at: serverTimestamp() };
   await assertFails(setDoc(doc(db, 'comments', 'c-s'), c));
   await assertFails(setDoc(doc(db, 'likes', `${POST}_${CAROL}`), { post_id: POST, user_id: CAROL, created_at: serverTimestamp() }));
   await assertFails(setDoc(doc(db, 'follows', `${CAROL}_${BOB}`), { follower_id: CAROL, following_id: BOB, created_at: serverTimestamp() }));
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'r-s'), { post_id: POST, user_id: CAROL, reason: 'spam', status: 'open', metadata: {}, created_at: serverTimestamp() }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'r-s'), { post_id: POST, user_id: CAROL, reason: 'spam', status: 'open', metadata: {}, created_at: serverTimestamp() }));
 });
 
 test('blocked users cannot comment, like or follow the blocker', async () => {
@@ -129,10 +221,10 @@ test('comments: not on private posts; author or post owner may delete', async ()
   await assertSucceeds(deleteDoc(doc(as(BOB), 'comments', 'bob-own')));
 });
 
-test('collection items only in own collections; reports create-only', async () => {
+test('collection items only in own collections; reports server-only', async () => {
   const db = as(ALICE);
   await assertFails(setDoc(doc(db, 'collection_items', `c1_${POST}`), { collection_id: 'c1', post_id: POST, owner_id: ALICE, sort_order: 1, created_at: serverTimestamp() }));
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'r1'), { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', metadata: { source: 'native_ios' }, created_at: serverTimestamp() }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'r1'), { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', metadata: { source: 'native_ios' }, created_at: serverTimestamp() }));
   await assertFails(getDoc(doc(db, 'moderation_flags', 'r1')));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'r2'), { post_id: POST, user_id: ALICE, reason: 'spam', status: 'resolved', metadata: {}, created_at: serverTimestamp() }));
 });
@@ -195,21 +287,21 @@ test('collections: validated create and update, owner-only CRUD', async () => {
   await assertSucceeds(deleteDoc(doc(db, 'collections', 'c-ok')));
 });
 
-test('moderation_flags: bounded metadata and typed post_id', async () => {
+test('moderation_flags: all client writes are denied regardless of payload', async () => {
   const db = as(ALICE);
   const flag = { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', metadata: {}, created_at: serverTimestamp() };
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'f-ok'), flag));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'f-ok'), flag));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'f-meta'), { ...flag, metadata: Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`k${i}`, i])) }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'f-type'), { ...flag, post_id: 12345 }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'f-user'), { ...flag, user_id: BOB }));
 });
 
-test('moderation_flags: metadata keys are known and every value is a string of at most 500 characters', async () => {
+test('moderation_flags: metadata cannot bypass server-only writes', async () => {
   const db = as(ALICE);
   const flag = { post_id: POST, user_id: ALICE, reason: 'spam', status: 'open', created_at: serverTimestamp() };
   const comment = { source: 'native_ios', target: 'comment', comment_id: 'c', author_id: BOB, text: 'x'.repeat(500) };
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'm-ok'), { ...flag, metadata: comment }));
-  await assertSucceeds(setDoc(doc(db, 'moderation_flags', 'm-user'), { ...flag, post_id: null, metadata: { source: 'native_ios', target: 'user', reported_user_id: BOB } }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'm-ok'), { ...flag, metadata: comment }));
+  await assertFails(setDoc(doc(db, 'moderation_flags', 'm-user'), { ...flag, post_id: null, metadata: { source: 'native_ios', target: 'user', reported_user_id: BOB } }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'm-long'), { ...flag, metadata: { ...comment, text: 'x'.repeat(501) } }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'm-huge'), { ...flag, metadata: { source: 'y'.repeat(900_000) } }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'm-key'), { ...flag, metadata: { payload: 'x' } }));
@@ -311,14 +403,16 @@ test('places are public read-only', async () => {
 });
 
 test('server-only collections stay closed for clients (reads and writes)', async () => {
-  for (const name of ['invites', 'invite_attempts', 'gif_search_quota', 'handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota']) {
+  await assertFails(getDoc(doc(as(ALICE), 'note_spot_members', POST)));
+  await assertFails(setDoc(doc(as(ALICE), 'note_spot_members', POST), { post_id: POST, owner_luid: ALICE, spot_id: 'hidden' }));
+  for (const name of ['brands', 'brand_memberships', 'campaigns', 'campaign_targets', 'campaign_departure_regions', 'note_density', 'note_density_members', 'dense_spot_unlocks', 'dense_spot_receipts', 'note_spots', 'campaign_progress', 'campaign_step_stats', 'campaign_codes', 'place_note_notification_receipts', 'campaign_locations', 'admin_notification_jobs', 'admin_notification_receipts', 'campaign_view_receipts', 'promotion_push_quota', 'brand_submission_quota', 'user_locations', 'user_device_context', 'user_data_preferences', 'invites', 'invite_attempts', 'gif_search_quota', 'handles', 'arcore_token_quota', 'media_purge_queue', 'post_view_receipts', 'avatar_reviews', 'cloud_anchors', 'cloud_anchor_deletions', 'post_quota', 'trigger_receipts', 'system', 'avatar_uploads', 'anchor_quota', 'filtered_comments', 'account_deletions', 'admin_audit', 'admin_invites', 'push_devices', 'push_quota', 'maintenance_runs', 'maintenance_requests', 'avatar_deletions', 'map_cells', 'map_cell_members']) {
     await assertFails(getDoc(doc(as(ALICE), name, 'x')));
     await assertFails(setDoc(doc(as(ALICE), name, 'x'), { owner_luid: ALICE }));
   }
 });
 test('client reports cannot enter trusted filter namespaces or supply system provenance',async()=>{
  const report={user_id:ALICE,post_id:POST,reason:'spam',status:'open',metadata:{target:'comment',comment_id:'c1',author_id:BOB,text:'untrusted'},created_at:serverTimestamp()};
- await assertSucceeds(setDoc(doc(as(ALICE),'moderation_flags','normal-report'),report));
+ await assertFails(setDoc(doc(as(ALICE),'moderation_flags','normal-report'),report));
  for(const reason of['comment_filtered','profile_text_filtered'])await assertFails(setDoc(doc(as(ALICE),'moderation_flags','fake-'+reason),{...report,reason}));
  await assertFails(setDoc(doc(as(ALICE),'moderation_flags','comment_c1'),report));await assertFails(setDoc(doc(as(ALICE),'moderation_flags','forged-source'),{...report,server_origin:'comment_filter'}));
 });
@@ -330,4 +424,11 @@ test('outgoing blocks deny interactions just like incoming blocks without exposi
  await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),'user_blocks',`${ALICE}_${BOB}`),{blocker_id:ALICE,blocked_id:BOB}));
  await assertFails(setDoc(doc(as(ALICE),'comments','blocked-comment'),{id:'blocked-comment',post_id:POST,user_id:ALICE,text:'x',created_at:serverTimestamp()}));
  await assertFails(setDoc(doc(as(ALICE),'likes',`${POST}_${ALICE}`),{post_id:POST,user_id:ALICE,created_at:serverTimestamp()}));await assertFails(getDoc(doc(as(ALICE),'posts',POST)));
+});
+
+test('report receipts and quotas are server-only even for their owner', async () => {
+  for (const collection of ['report_receipts', 'report_quota']) {
+    await assertFails(setDoc(doc(as(ALICE), collection, ALICE), { owner_luid: ALICE }));
+    await assertFails(getDoc(doc(as(ALICE), collection, ALICE)));
+  }
 });

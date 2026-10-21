@@ -1,1 +1,20 @@
-{}
+{
+ "Anonim": "Anonim",
+ "Teknik ve kullanım verilerini paylaş": "Teknik ve kullanım verilerini paylaş",
+ "Paylaşılanlar: cihaz türü, iOS ve uygulama sürümü, dil, saat dilimi, rastgele kurulum kimliği, bağlantı IP adresi ve kullanım zamanları. Yetkili yöneticiler görebilir.": "Paylaşılanlar: cihaz türü, iOS ve uygulama sürümü, dil, saat dilimi, rastgele kurulum kimliği, bağlantı IP adresi ve kullanım zamanları. Yetkili yöneticiler görebilir.",
+ "Konumumu yöneticilerle paylaş": "Konumumu yöneticilerle paylaş",
+ "Uygulama açıkken son konumun, doğruluğu ve zamanı yöneticilere gönderilir; anonim postların hesabınla ilişkilendirilebilir. Arka planda paylaşılmaz. Kapatınca son konum silinir. Post konumu ve iOS izni ayrı kalır.": "Uygulama açıkken son konumun, doğruluğu ve zamanı yöneticilere gönderilir; anonim postların hesabınla ilişkilendirilebilir. Arka planda paylaşılmaz. Kapatınca son konum silinir. Post konumu ve iOS izni ayrı kalır.",
+ "Veri paylaşımı": "Veri paylaşımı",
+ "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene.": "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene.",
+ "Sponsorlu": "Sponsorlu",
+ "Konumu gör": "Konumu gör",
+ "Sana özel bir kampanya var.": "Sana özel bir kampanya var.",
+ "Arka planda varış bildirimi için konum iznini Her zaman olarak ayarla.": "Arka planda varış bildirimi için konum iznini Her zaman olarak ayarla.",
+ "En fazla 220 karakter.": "En fazla 220 karakter.",
+ "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.": "Konuma bağlı bildirimler için iOS Ayarları’nda Arka Planda Uygulama Yenile’yi aç.",
+ "Konum bildirimleri hazır": "Konum bildirimleri hazır",
+ "Konum bildirimleri için ayarları kontrol et": "Konum bildirimleri için ayarları kontrol et",
+ "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.": "iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.",
+ "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.": "Konum alanları iOS’a kaydedilemedi. Bildirimler gecikebilir; tekrar dene.",
+ "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene.": "Şikâyet sınırına ulaştın. Biraz sonra tekrar dene."
+}

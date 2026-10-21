@@ -2,6 +2,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createMutationClient } from '../lib/client-mutation.ts';
 
+test('confirming a different recipient preserves the unconfirmed notification operation key', async () => {
+  const original = globalThis.fetch, calls = [];
+  globalThis.fetch = async (_path, options) => {
+    calls.push(options);
+    if (calls.length === 1) throw new Error('lost response after commit');
+    return Response.json({ ok: true });
+  };
+  try {
+    const client = createMutationClient(), path = '/campaigns', first = { recipient: 'A' }, second = { recipient: 'B' };
+    await assert.rejects(client.post(path, first));
+    await client.post(path, second); client.clear(path, second);
+    await client.post(path, first);
+    assert.equal(calls[0].headers['idempotency-key'], calls[2].headers['idempotency-key']);
+    await client.post(path, second);
+    assert.notEqual(calls[1].headers['idempotency-key'], calls[3].headers['idempotency-key']);
+  } finally { globalThis.fetch = original; }
+});
+
 test('interrupted requests retain their key and changed input creates a distinct operation', async () => {
   const original = globalThis.fetch; const calls = [];
   globalThis.fetch = async (_path, options) => {

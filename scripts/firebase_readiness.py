@@ -210,6 +210,10 @@ def _check_scheduler(clean: dict, expected: dict, project_ids: set[str], fail) -
             fail('scheduler_missing', name, 'Firebase Scheduler job is missing from us-central1.')
         elif job.get('state') != 'ENABLED' or not _schedule_equivalent(job.get('schedule'), options['schedule']) or ('timeZone' in options and job.get('timeZone') != options['timeZone']):
             fail('scheduler_configuration', name, 'Scheduler job must be ENABLED with the repository schedule and explicit timezone.')
+    # A job left behind by a retired function keeps running and is billed: three jobs per billing account are free.
+    wanted = {f'firebase-schedule-{name}-{REGION}' for name in expected['schedules']}
+    for job_id in sorted(job_id for job_id in jobs if job_id and job_id not in wanted):
+        fail('scheduler_unexpected', job_id, 'Scheduler job is not defined in functions/src; delete it (scripts/firebase-deploy.mjs removes retired functions).')
 
 
 def _check_storage(clean: dict, expected: dict, project_ids: set[str], fail) -> None:

@@ -18,7 +18,7 @@ function input(author,extra={}){return parseContentInput({...emptyContent,author
 
 test('selected-author post creation is atomic, idempotent and produces an explicit native approximate placement',async()=>{
  const{actor,author}=await fixture(),key=randomUUID(),body=input(author);const[first,retry]=await Promise.all([saveAdminPost(body,actor,reason,key),saveAdminPost(body,actor,reason,key)]);assert.deepEqual(first,retry);
- const p=(await db.collection('posts').doc(first.id).get()).data();assert.equal(p.creator_id,author);assert.equal(p.created_by_admin,actor);assert.equal(p.multi_user_ready,false);assert.equal(p.status,'active');
+ const p=(await db.collection('posts').doc(first.id).get()).data();assert.equal(p.creator_id,author);assert.equal(p.created_by_admin,actor);assert.equal(p.multi_user_ready,false);assert.equal(p.status,'active');assert.equal(p.admin_managed,false);
  const anchor=JSON.parse(p.anchor_bundle_json);assert.equal(anchor.coordinateSpace,'admin_geo_estimate');assert.equal(anchor.anchor.pinQuality,'freeSpaceApproximate');assert.equal(anchor.anchor.surfaceAlignment,'free_space','iOS SurfaceAlignment raw value');assert.equal(anchor.anchor.transform.length,16);assert.ok(!anchor.anchor.persistence);
  assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('actor_id'),actor);
  await assert.rejects(saveAdminPost({...body,caption:'Changed request'},actor,reason,key),/idempotency_key_reused/);
@@ -28,6 +28,10 @@ test('18+, any link and non-finite placement are refused before a write',()=>{
  // Posts are text only since 9 Oct 2026: even a well-formed social link is refused.
  assert.throws(()=>input(randomUUID(),{platform:'spotify',url:'https://open.spotify.com/track/123'}),/links_not_allowed/);
  assert.equal(input(randomUUID()).platform,'text');
+ for (const text of ['https://example.com/p', 'example.com', 'mailto:a@example.com']) {
+  assert.throws(()=>input(randomUUID(),{caption:text}),/links_not_allowed/);
+  assert.throws(()=>input(randomUUID(),{text}),/links_not_allowed/);
+ }
 });
 test('protected zones require separately authorized, reasoned exceptions and 18+ remains blocked',async()=>{
  const{actor,author}=await fixture(),zone=db.collection('protected_zones').doc(randomUUID());await zone.set({name:'Protected test site',lat:-31,lng:111,radius_meters:100,policy:'hard_block',active:true});
@@ -102,4 +106,13 @@ test('avatar removal commits an exact durable deletion job when Storage fails an
  assert.equal(attempts,1);assert.equal((await db.collection('profiles').doc(author).get()).get('avatar_url'),null);
  const jobs=await db.collection('avatar_deletions').where('luid','==',author).get();assert.equal(jobs.size,1);assert.equal(jobs.docs[0].get('path'),path);
  assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('action'),'avatar_remove');
+});
+
+test('launch seed batches are validated and stored on the post for measuring and retiring',async()=>{
+ const{actor,author}=await fixture();
+ assert.throws(()=>input(author,{seedBatch:'Bad Batch!'}),/invalid_seed_batch/);
+ assert.equal(input(author).seedBatch,undefined,'panel posts carry no seed batch');
+ const created=await saveAdminPost(input(author,{seedBatch:'world-capitals-test',locationNote:true,lat:-32,lng:112}),actor,reason,randomUUID());
+ const post=(await db.collection('posts').doc(created.id).get()).data();
+ assert.equal(post.seed_batch,'world-capitals-test');assert.equal(post.note_kind,'location');assert.equal(post.creator_id,author);
 });

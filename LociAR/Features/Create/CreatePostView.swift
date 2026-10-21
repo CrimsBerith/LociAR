@@ -358,7 +358,7 @@ struct CreatePostView: View {
                             Text("Harita, Keşfet, arama ve VoiceOver’da kullanılır.")
                                 .font(.caption2).foregroundStyle(.secondary)
                             Spacer(minLength: 8)
-                            Text("\(captionLength)/220").font(.caption.monospacedDigit())
+                            Text(verbatim: "\(captionLength.formatted())/220").font(.caption.monospacedDigit())
                                 .foregroundStyle(captionLength <= 220 ? Color.secondary : Color.red)
                         }
                         if captionLength > 220 {
@@ -516,7 +516,7 @@ struct CreatePostView: View {
             id: postID, creatorID: user.id, creatorHandle: user.handle, createdAt: Date(), caption: finalCaption,
             status: .pendingReview, visibility: .public, ageRating: .all,
             anchorBundle: AnchorBundle(anchor: anchor), editData: EditData(layers: layers), contentSource: nil,
-            counts: PostCounts()
+            counts: PostCounts(), anonymous: true
         )
         do {
             let outcome = try await container.publisher.submit(

@@ -83,7 +83,8 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         return PostPage(posts: await withoutHidden(posts), next: response.next)
     }
     func nearby(latitude: Double, longitude: Double, radiusMeters: Double) async throws -> [LociPost] {
-        try await projected(PublicRequest(mode: "nearby", latitude: latitude, longitude: longitude, radiusMeters: max(1,min(radiusMeters,20_000_000)))).posts
+        // The server clamps to 5 km as well (MAX_NEARBY_RADIUS_M in functions/src/publicContent.ts).
+        try await projected(PublicRequest(mode: "nearby", latitude: latitude, longitude: longitude, radiusMeters: max(1, min(radiusMeters, 5_000)))).posts
     }
     func discover() async throws -> [LociPost] { try await discoverPage(cursor: nil).posts }
     func discoverPage(cursor: String?) async throws -> PostPage { try await projected(PublicRequest(mode: "discover", cursor: cursor)) }
@@ -165,13 +166,31 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         Array(try await publicPostsPage(creatorID: creatorID, cursor: nil).posts.prefix(limit))
     }
     func publicProfile(creatorID: UUID) async throws -> PublicProfileProjection? {
-        struct Profile: Decodable { let id: UUID; let handle: String; let avatar_url: String?; let avatar_preset: String?; let bio: String?; let public_post_count: Int; let follower_count: Int; let following_count: Int }
+        struct Profile: Decodable {
+            let id: UUID
+            let handle: String
+            let avatarURL: String?
+            let avatarPreset: String?
+            let bio: String?
+            let publicPostCount: Int
+            let followerCount: Int
+            let followingCount: Int
+
+            enum CodingKeys: String, CodingKey {
+                case id, handle, bio
+                case avatarURL = "avatar_url"
+                case avatarPreset = "avatar_preset"
+                case publicPostCount = "public_post_count"
+                case followerCount = "follower_count"
+                case followingCount = "following_count"
+            }
+        }
         struct Response: Decodable { let profile: Profile? }
         let response: Response = try await callables.call("readPublicContent", payload: PublicRequest(mode: "profile", creatorId: FirebaseIdentity.key(creatorID)))
         guard let p = response.profile else { return nil }
-        let avatar = await AvatarReference.resolve(avatarURL: p.avatar_url, preset: p.avatar_preset)
+        let avatar = await AvatarReference.resolve(avatarURL: p.avatarURL, preset: p.avatarPreset)
         return PublicProfileProjection(id: p.id, handle: p.handle, avatarURL: avatar, bio: p.bio,
-            publicPostCount: p.public_post_count, followerCount: p.follower_count, followingCount: p.following_count)
+            publicPostCount: p.publicPostCount, followerCount: p.followerCount, followingCount: p.followingCount)
     }
     func publicPost(id: UUID) async throws -> LociPost? {
         try await projected(PublicRequest(mode: "single", postId: FirebaseIdentity.key(id))).posts.first
@@ -209,6 +228,10 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         // Prefer the server's machine-readable reason; the English-text checks below stay as the
         // fallback for older server versions and for errors that carry no reason.
         switch reason {
+        case "invalid_caption": return String(localized: "Caption boş olamaz ve 220 karakteri geçemez.")
+        case "content_not_allowed": return String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene.")
+        case "links_not_allowed": return String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
+        case "location_inaccurate": return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         case "identity_unverified": return String(localized: "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor.")
         case "account_suspended": return String(localized: "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin.")
         case "protected_zone": return String(localized: "Bu korumalı bölgede post yayınlanamaz.")
@@ -227,7 +250,8 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         }
         if raw.contains("protected zone") { return String(localized: "Bu korumalı bölgede post yayınlanamaz.") }
-        if raw.contains("Only text") || raw.contains("Links are not allowed") || raw.contains("social media link") {
+        if raw.contains("Only text") || raw.contains("Links are not allowed") || raw.contains("social media link")
+            || raw.contains("Only moderated text without links is allowed") {
             return String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
         }
         if raw.contains("Only one GIF") || raw.contains("Invalid GIF") { return String(localized: "Bir posta en fazla bir GIF eklenebilir.") }

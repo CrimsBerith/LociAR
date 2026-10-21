@@ -52,6 +52,7 @@ struct ActivityView: View {
                         .padding(.vertical, 5)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
+                        .onTapGesture { if let postID = item.postID { container.router.selectPost(id: postID) } }
                     }
                 }
                 .lociListStyle()
@@ -119,6 +120,9 @@ struct ActivityView: View {
         case "like": String(localized: "Postun beğenildi.")
         case "comment": String(localized: "Postuna yorum yapıldı.")
         case "follow": String(localized: "Yeni bir takipçin var.")
+        case "promotion": item.body.isEmpty || item.body == String(localized: "Sana özel bir kampanya var.", locale: Locale(identifier: "tr"))
+            ? String(localized: "Sana özel bir kampanya var.") : item.body
+        case "place_note": item.body.isEmpty ? String(localized: "Kilitli not") : item.body
         default: item.body
         }
     }

@@ -46,9 +46,11 @@ class FirebaseReadinessTests(unittest.TestCase):
         return {finding['code'] for finding in checked['readiness']['findings']}
 
     def test_repository_exports_ttl_schedules_and_fcm_are_derived(self):
-        self.assertIn('retryAccountDeletions', EXPECTED['functions'])
-        self.assertEqual(EXPECTED['schedules']['retryAccountDeletions']['schedule'], 'every 5 minutes')
+        self.assertIn('everyFiveMinutes', EXPECTED['functions'])
+        self.assertEqual(EXPECTED['schedules']['everyFiveMinutes']['schedule'], 'every 5 minutes')
         self.assertIn(('push_tokens', 'expires_at'), EXPECTED['ttl'])
+        self.assertNotIn(('place_note_notification_receipts', 'expires_at'), EXPECTED['ttl'],
+                         'A location note is delivered once per person for its lifetime; its receipt must not expire.')
         self.assertIn('fcm.googleapis.com', EXPECTED['services'])
 
     def test_complete_metadata_passes_and_accepts_project_number_resource_names(self):
@@ -92,6 +94,23 @@ class FirebaseReadinessTests(unittest.TestCase):
         self.assertIn('scheduler_missing', self.codes(report))
         report = ready_report(); report['resources']['scheduler'][0]['schedule'] = 'every 30 minutes'
         self.assertIn('scheduler_configuration', self.codes(report))
+
+    def test_periodic_work_fits_the_three_free_scheduler_jobs(self):
+        # Cloud Scheduler bills every job beyond three per billing account; seven jobs tripped the spend cap (20 Oct 2026).
+        self.assertLessEqual(len(EXPECTED['schedules']), 3, sorted(EXPECTED['schedules']))
+        self.assertEqual(set(EXPECTED['schedules']), {'everyFiveMinutes', 'everyFifteenMinutes', 'nightlyMaintenance'})
+
+    def test_a_job_left_by_a_retired_function_fails(self):
+        report = ready_report()
+        report['resources']['scheduler'].append({'name': f'projects/{PROJECT}/locations/{REGION}/jobs/firebase-schedule-retryAccountDeletions-{REGION}',
+                                                 'state': 'ENABLED', 'schedule': 'every 5 minutes'})
+        checked = validate_report(report)
+        self.assertFalse(checked['readiness']['ready'])
+        self.assertEqual({f['code'] for f in checked['readiness']['findings']}, {'scheduler_unexpected'})
+        # Other projects' or regions' jobs are not ours to judge.
+        report = ready_report()
+        report['resources']['scheduler'].append({'name': 'projects/other/locations/us-central1/jobs/firebase-schedule-x-us-central1', 'state': 'ENABLED'})
+        self.assertTrue(validate_report(report)['readiness']['ready'])
 
     def test_equivalent_cron_schedules_and_explicit_timezone(self):
         report = ready_report()

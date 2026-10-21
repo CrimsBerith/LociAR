@@ -3,6 +3,232 @@ import XCTest
 
 /// Physical-device suites (skipped on the simulator). Run with scripts/run-device-e2e*.command.
 extension AuthGateUITests {
+    /// Observes an actual remote message sent separately through the authorized admin UI.
+    func testPhysicalAdminPushDeliveryAndTap() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek APNs teslimi için fiziksel iPhone gerekir.")
+#else
+        guard let title = ProcessInfo.processInfo.environment["E2E_LIVE_PUSH_TITLE"], !title.isEmpty else {
+            throw XCTSkip("Canlı yönetici bildirimi gözlemi seçilmedi.")
+        }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+        XCUIDevice.shared.press(.home)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let notification = springboard.staticTexts[title].firstMatch
+        print("[PHONE] Waiting for the explicitly requested remote admin notification")
+        XCTAssertTrue(notification.waitForExistence(timeout: 90), "Gerçek yönetici bildirimi iOS'ta görülmedi.")
+        let evidence = XCTAttachment(screenshot: notification.screenshot())
+        evidence.name = "physical-remote-admin-notification"
+        evidence.lifetime = .keepAlways
+        add(evidence)
+        notification.tap()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        XCTAssertTrue(app.navigationBars["Aktivite"].waitForExistence(timeout: 20), "Bildirim Aktivite ekranını açmalı.")
+        capture(app, name: "physical-remote-admin-notification-opened")
+#endif
+    }
+
+    /// Explicitly selected live-device setup; never changes consent during ordinary test runs.
+    func testPhysicalEnableNotificationsForRequestedAdminTest() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek iPhone gerekir.")
+#else
+        guard ProcessInfo.processInfo.environment["E2E_ENABLE_PHYSICAL_NOTIFICATIONS"] == "1" else {
+            throw XCTSkip("Canlı bildirim kurulumu açıkça seçilmedi.")
+        }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addUIInterruptionMonitor(withDescription: "İstenen bildirim testi izni") { alert in
+            let text = alert.label.lowercased() + " " + alert.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " ").lowercased()
+            if text.contains("bildirim") || text.contains("notification") {
+                for title in ["İzin Ver", "Allow"] where alert.buttons[title].exists {
+                    alert.buttons[title].tap(); return true
+                }
+            }
+            // APNs testing needs no new background location permission.
+            for title in ["Yalnızca Kullanırken Koru", "Keep Only While Using", "İzin Verme", "Don't Allow"] where alert.buttons[title].exists {
+                alert.buttons[title].tap(); return true
+            }
+            return false
+        }
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20), "Telefonda gerçek hesap oturumu gerekli.")
+        app.tabBars.buttons["Profil"].tap()
+        let settings = app.buttons["profile-settings"]
+        scrollUntilHittable(settings, in: app)
+        settings.tap()
+        let notifications = app.switches["settings-notifications"]
+        XCTAssertTrue(notifications.waitForExistence(timeout: 10))
+        func waitForPreference(_ value: String) {
+            let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@ AND enabled == true", value), object: notifications)
+            XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 65), .completed, "Sunucu tercih işlemi tamamlanmalı.")
+        }
+        func acceptRequestedNotificationAlert() {
+            let alert = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
+            guard alert.waitForExistence(timeout: 8) else { return }
+            let text = alert.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " ").lowercased()
+            guard text.contains("lociar"), text.contains("bildirim") || text.contains("notification") else { return }
+            for title in ["İzin Ver", "Allow"] where alert.buttons[title].exists {
+                alert.buttons[title].tap(); return
+            }
+        }
+        // Re-enter the explicitly requested permission flow if a previous run stopped
+        // after the server write but before iOS could display its permission dialog.
+        if notifications.value as? String == "1" {
+            notifications.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            waitForPreference("0")
+        }
+        notifications.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.tap()
+        waitForPreference("1")
+        acceptRequestedNotificationAlert()
+        // Trigger the interruption monitor after the asynchronous server round trip.
+        app.tap()
+        capture(app, name: "physical-live-notifications-enabled")
+        let marketing = app.switches["settings-promotions"]
+        XCTAssertEqual(marketing.value as? String, "0", "Pazarlama rızası ayrı kalmalı.")
+        app.terminate()
+        app.launch()
+        acceptRequestedNotificationAlert()
+        app.tabBars.buttons["Profil"].tap()
+        scrollUntilHittable(settings, in: app)
+        settings.tap()
+        XCTAssertTrue(notifications.waitForExistence(timeout: 10))
+        XCTAssertEqual(notifications.value as? String, "1", "Bildirim tercihi gerçek hesapta kalıcı olmalı.")
+        capture(app, name: "physical-live-notifications-persisted")
+#endif
+    }
+
+    func testPhysicalCurrentAccountNotificationState() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Fiziksel iPhone gerekir.")
+#else
+        let app = XCUIApplication()
+        app.launch()
+        capture(app, name: "physical-current-account-start")
+        guard app.tabBars.firstMatch.waitForExistence(timeout: 15) else {
+            XCTFail("Telefondaki canlı hesap giriş yapmış değil.")
+            return
+        }
+        app.tabBars.buttons["Profil"].tap()
+        capture(app, name: "physical-current-account-profile")
+        let settings = app.buttons["profile-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 8))
+        settings.tap()
+        capture(app, name: "physical-current-notification-settings")
+        for id in ["settings-notifications", "settings-promotions"] {
+            let toggle = app.switches[id]
+            print("[PHONE] \(id): \(toggle.exists ? String(describing: toggle.value) : "not-visible")")
+        }
+        let state = XCTAttachment(string: app.debugDescription)
+        state.name = "physical-current-settings-state"
+        state.lifetime = .keepAlways
+        add(state)
+#endif
+    }
+
+    func testPhysicalNormalAccountPublishesLocationNoteWithoutCamera() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek GPS ve fiziksel iPhone gerekir.")
+#else
+        guard let caption = ProcessInfo.processInfo.environment["E2E_TEST_NOTE_TEXT"], !caption.isEmpty else {
+            throw XCTSkip("Konum notu yayın testi açıkça seçilmedi.")
+        }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15), "Gerçek hesap oturumu gerekli.")
+        app.tabBars.buttons["Harita"].tap()
+        app.buttons["map-location-note"].tap()
+        let field = app.descendants(matching: .any)["place-note-text"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8))
+        field.tap()
+        field.typeText(caption)
+        dismissKeyboard(app)
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        XCTAssertFalse(app.buttons["ar-pin-surface"].exists)
+        let measured = app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "Konum hazır · ±", "Konum hassaslaşıyor · ±"
+        )).firstMatch
+        XCTAssertTrue(measured.waitForExistence(timeout: 60), "Gerçek konum ölçümü alınamadı.")
+        capture(app, name: "physical-camera-free-note-before-publish")
+        app.buttons["place-note-publish"].tap()
+        let success = app.staticTexts["Notun yayınlandı. Haritada görünüyor."]
+        let manual = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "tekrar Burada yayınla")).firstMatch
+        let deadline = Date().addingTimeInterval(90)
+        while !success.exists && !manual.exists && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        }
+        if manual.exists {
+            capture(app, name: "physical-camera-free-note-manual-pin")
+            app.buttons["place-note-publish"].tap()
+        }
+        capture(app, name: "physical-camera-free-note-publish-result")
+        XCTAssertTrue(success.waitForExistence(timeout: 65), "Konum notu sunucuda yayınlanamadı.")
+        app.buttons["Kapat"].tap()
+        app.buttons["map-refresh"].tap()
+        let row = app.buttons["map-open-\(caption)"]
+        XCTAssertTrue(row.waitForExistence(timeout: 30), "Yayınlanan konum notu haritada kamera açmadan listelenmedi.")
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        capture(app, name: "physical-camera-free-note-on-map")
+        row.tap()
+        XCTAssertTrue(app.staticTexts[caption].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        capture(app, name: "physical-camera-free-note-opened")
+#endif
+    }
+
+    func testPhysicalLocationNoteReceivesGPSWithoutCamera() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek GPS ölçümü fiziksel iPhone gerektirir.")
+#else
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_AUTHENTICATED")
+        addPrivacyAlertMonitor()
+        app.launch()
+        XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+        app.buttons["map-location-note"].tap()
+        app.tap() // Let XCTest handle a pending Core Location permission alert.
+        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 10))
+        let measured = app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@ OR label BEGINSWITH %@",
+            "Konum hazır · ±", "Konum hassaslaşıyor · ±"
+        )).firstMatch
+        guard measured.waitForExistence(timeout: 60) else {
+            capture(app, name: "physical-gps-no-fix")
+            XCTFail("Kamera açmadan gerçek GPS ölçümü alınamadı; konum izni ve açık alan koşullarını kontrol edin.")
+            return
+        }
+        let first = XCTAttachment(string: measured.label)
+        first.name = "physical-gps-first-accuracy"
+        first.lifetime = .keepAlways
+        add(first)
+        capture(app, name: "physical-gps-without-camera")
+        XCTAssertFalse(app.buttons["ar-pin-surface"].exists)
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        XCTAssertFalse(app.buttons["place-note-publish"].isEnabled, "Boş not yayınlanmamalı.")
+
+        XCUIDevice.shared.press(.home)
+        RunLoop.current.run(until: Date().addingTimeInterval(10))
+        app.activate()
+        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 10))
+        app.buttons["Kapat"].tap()
+        XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+        app.buttons["map-location-note"].tap()
+        XCTAssertTrue(measured.waitForExistence(timeout: 60), "Arka plandan sonra yeni ölçüm oturumu konum alamadı.")
+        let resumed = XCTAttachment(string: measured.label)
+        resumed.name = "physical-gps-resumed-accuracy"
+        resumed.lifetime = .keepAlways
+        add(resumed)
+        capture(app, name: "physical-gps-new-session-after-background")
+        app.buttons["Kapat"].tap()
+#endif
+    }
+
     func testPhysicalNormalAccountARTabReceivesCameraFrame() throws {
 #if targetEnvironment(simulator)
         throw XCTSkip("Gerçek hesap ve kamera durumu fiziksel iPhone gerektirir.")
@@ -508,10 +734,12 @@ extension AuthGateUITests {
         app.tabBars.buttons["Paylaş"].tap()
         app.tap()
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 12))
-        XCTAssertTrue(
-            waitForPhysicalSurfaceCandidate(app, timeout: 45),
-            "Paylaş sekmesinde düzlem bulunamadı; telefonu dokulu zemin veya duvara tutun."
-        )
+        guard waitForPhysicalSurfaceCandidate(app, timeout: 45) else {
+            capture(app, name: "physical-paylas-no-surface")
+            let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
+            XCTFail("Paylaş sekmesinde gerçek yüzey bulunamadı; nişangâhı tamamen dokulu zemin veya duvara yöneltin. Tanı: \(diagnostic)")
+            return
+        }
         app.buttons["ar-pin-surface"].tap()
         XCTAssertTrue(app.buttons["ar-add-content"].waitForExistence(timeout: 12), "Yüzey kilitlenmedi.")
         XCTAssertTrue(

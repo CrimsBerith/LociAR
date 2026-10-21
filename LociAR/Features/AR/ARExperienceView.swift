@@ -156,7 +156,7 @@ struct ARExperienceView: View {
                 )
                 .accessibilityIdentifier("ar-camera-status")
                 VStack(spacing: 6) {
-                    Text(isDiscovering ? String(localized: "Yayınlar aranıyor") : nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar"))
+                    Text(discoveryHeading)
                         .font(.title3.bold())
                     Text(discoveryMessage.localizedUI)
                         .font(.footnote)
@@ -182,8 +182,10 @@ struct ARExperienceView: View {
                                 Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                     .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                                        .font(.subheadline.weight(.semibold)).lineLimit(1)
+                                    if post.isLocked { Text("Kilitli not").font(.subheadline.weight(.semibold)) }
+                                    else if post.caption.isEmpty { Text("Mekânsal post").font(.subheadline.weight(.semibold)) }
+                                    else { TranslatedPostText(text: post.caption, lineLimit: 1).font(.subheadline.weight(.semibold)) }
+                                    if post.isOfficialContent { OfficialContentBadge() }
                                     Text(distanceText(for: post).localizedUI)
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
@@ -429,6 +431,11 @@ struct ARExperienceView: View {
         return status == .denied || status == .restricted
     }
 
+    private var discoveryHeading: String {
+        if isDiscovering { return String(localized: "Yayınlar aranıyor") }
+        return nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar")
+    }
+
     private var discoveryCameraTitle: String {
         if cameraPermissionDenied { return String(localized: "Kamera izni gerekli") }
         if engine.state == .failed { return String(localized: "Kamera başlatılamadı") }
@@ -491,10 +498,12 @@ struct ARExperienceView: View {
         }
         location.start()
 
-        for _ in 0..<30 where location.location == nil && location.errorMessage == nil {
-            try? await Task.sleep(for: .milliseconds(200))
+        for _ in 0..<30 where location.freshLocation() == nil && location.errorMessage == nil {
+            guard !Task.isCancelled else { isDiscovering = false; return }
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { isDiscovering = false; return }
         }
-        guard let currentLocation = location.location else {
+        guard !Task.isCancelled else { isDiscovering = false; return }
+        guard let currentLocation = location.freshLocation() else {
             isDiscovering = false
             discoveryMessage = location.errorMessage ?? String(localized: "Konum alınamadı. Yeni pin oluşturabilir veya tekrar deneyebilirsin.")
             return
@@ -513,7 +522,7 @@ struct ARExperienceView: View {
             var networkError: Error?
             do { collected.append(contentsOf: try await nearbyRequest) } catch { networkError = error }
             do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
-            if collected.isEmpty, let networkError {
+            if collected.isEmpty, networkError != nil {
                 isDiscovering = false
                 discoveryMessage = String(localized: "Bağlantı kurulamadı. Biraz sonra tekrar dene.")
                 return

@@ -1,17 +1,23 @@
-import { requireAdmin } from '../../../../lib/admin';
+import { scalarText } from '../../../../lib/values';
+import { needsStepUp, requireAdmin } from '../../../../lib/admin';
 import { recordPersonalDataRead } from '../../../../lib/ops';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
+import { getI18n } from '../../../../lib/i18n-server';
 import InviteUserForm from './InviteUserForm';
 import CreateUserForm from './CreateUserForm';
 import AdminDecision from '../AdminDecision';
+import UserContextPanel from '../UserContextPanel';
 import PageNavigation from '../PageNavigation';
 import { InvalidCursorError, pageCursors, readDocumentPage, textParameter, type DocumentPage, type SearchParameters } from '../../../../lib/pagination';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UsersPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function UsersPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const admin = await requireAdmin({ permission: 'users.read' });
+  const { t, locale } = await getI18n();
   const canManageAdmins = admin.permissions.has('admin_users.write');
+  const contextStepUp = needsStepUp(admin, 'users.location.read') || needsStepUp(admin, 'users.telemetry.read');
+  const rolesStepUp = needsStepUp(admin, 'admin_users.write');
   const canSuspend = admin.permissions.has('users.suspend');
   const params = await searchParams;
   const q = textParameter(params.q, 40);
@@ -22,50 +28,39 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   let failed = false;
   let invalid = false;
   try {
-    const query = term ? db.collection('profiles').where('handle', '>=', term).where('handle', '<=', term + '\uf8ff') : db.collection('profiles');
-    page = await readDocumentPage(query, { field: term ? 'handle' : 'created_at', direction: term ? 'asc' : 'desc', scope: JSON.stringify(['users', term]), cursors: pageCursors(params), size: 50 });
-    users = page.documents.map(d => ({ ...d.data(), id: d.id }));
-    const privateDocs = users.length ? await db.getAll(...users.map(u => db.collection('users_private').doc(u.id))) : [];
-    const byId = new Map(privateDocs.map(d => [d.id, d.data() ?? {}]));
-    users = users.map(u => ({ ...u, ...(byId.get(u.id) ?? {}), id: u.id }));
-    await recordPersonalDataRead(admin.user.id, 'users', users.length);
+    ({ page, users } = await loadUsers(db, term, params, admin.user.id));
   } catch (error) {
     failed = true;
     invalid = error instanceof InvalidCursorError;
   }
 
-  let rolesPage: DocumentPage = { documents: [], next: null, previous: null };
-  let rolesFailed = false;
-  if (canManageAdmins) {
-    try {
-      rolesPage = await readDocumentPage(db.collection('admin_role_assignments').where('revoked_at', '==', null),
-        { field: 'role_key', direction: 'asc', scope: 'active-admin-roles', cursors: pageCursors(params, 'roles'), size: 50 });
-    } catch { rolesFailed = true; }
-  }
+  const { rolesPage, rolesFailed } = await loadAdminRoles(db, params, canManageAdmins);
 
   return (
     <section className="page">
       <div className="pageHeading">
-        <div><p className="eyebrow">Identity & enforcement</p><h1>Users</h1></div>
+        <div><p className="eyebrow">{t('Identity & enforcement')}</p><h1>{t('Users')}</h1></div>
         <InviteUserForm />
       </div>
       {admin.permissions.has('users.create') ? <CreateUserForm /> : null}
-      <section className="panel" aria-label="User profiles">
+      <section className="panel" aria-label={t('User profiles')}>
         <div className="panelHeader">
           <form method="get" className="inlineSearch">
-            <input name="q" defaultValue={q} placeholder="Search by handle prefix" aria-label="Search users by handle" />
-            <button>Search</button>
+            <input name="q" defaultValue={q} placeholder={t('Search by handle prefix')} aria-label={t('Search users by handle')} />
+            <button type="submit">{t('Search')}</button>
           </form>
         </div>
-        {failed ? <p className="emptyState">{invalid ? <>Invalid page link. <a href={`/admin/users?${new URLSearchParams({ q })}`}>Return to the first page.</a></> : 'User data could not be loaded.'}</p> : (
+        {failed ? <p className="emptyState">{invalid ? <>{t('Invalid page link.')} <a href={`/admin/users?${new URLSearchParams({ q })}`}>{t('Return to the first page.')}</a></> : t('User data could not be loaded.')}</p> : (
           <div className="dataTable">
-            <div className="dataRow user header"><span>User</span><span>Identity</span><span>Provider</span><span>Created</span><span>Enforcement</span></div>
-            {users.length === 0 ? <p className="emptyState">No matching users.</p> : users.map(user => (
+            <div className="dataRow user header"><span>{t('User')}</span><span>{t('Identity')}</span><span>{t('Provider')}</span><span>{t('Created')}</span><span>{t('Enforcement')}</span></div>
+            {users.length === 0 ? <p className="emptyState">{t('No matching users.')}</p> : users.map(user => (
               <div className="dataRow user" key={user.id}>
-                <span><b>@{String(user.handle)}</b><small>{user.id}</small></span>
-                <span>{user.suspended ? 'Suspended' : user.identity_verified ? 'Verified' : 'Unverified'}</span>
-                <span>{String(user.auth_provider ?? 'unknown')}</span>
-                <span>{new Date(iso(user.created_at)).toLocaleDateString('en-US')}</span>
+                <span><b>@{String(user.handle)}</b><small>{user.id}</small>
+                  {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') || contextStepUp ? <details><summary>{t('Private data')}</summary><UserContextPanel luid={user.id} stepUp={contextStepUp} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
+                </span>
+                <span>{identityStatus(user, t)}</span>
+                <span>{scalarText(user.auth_provider ?? t('unknown'))}</span>
+                <span>{new Date(iso(user.created_at)).toLocaleDateString(locale)}</span>
                 <span>{canSuspend ? (
                   <AdminDecision
                     endpoint={`/api/admin/v1/users/${user.id}/suspend`}
@@ -80,15 +75,16 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         )}
         {!failed ? <PageNavigation path="/admin/users" parameters={{ q }} next={page.next} previous={page.previous} /> : null}
       </section>
-      {canManageAdmins ? <section className="panel" aria-label="Administrator roles">
-        <div className="panelHeader"><h2>Admin roles</h2></div>
-        {rolesFailed ? <p className="emptyState">Admin roles could not be loaded. <a href="/admin/users">Return to the first page.</a></p> : <>
-          {rolesPage.documents.length === 0 ? <p className="emptyState">No active admin roles.</p> : rolesPage.documents.map(doc => {
+      {rolesStepUp ? <p className="muted">{t('Changing administrator roles needs an authenticator (TOTP) sign-in.')}</p> : null}
+      {canManageAdmins ? <section className="panel" aria-label={t('Administrator roles')}>
+        <div className="panelHeader"><h2>{t('Admin roles')}</h2></div>
+        {rolesFailed ? <p className="emptyState">{t('Admin roles could not be loaded.')} <a href="/admin/users">{t('Return to the first page.')}</a></p> : <>
+          {rolesPage.documents.length === 0 ? <p className="emptyState">{t('No active admin roles.')}</p> : rolesPage.documents.map(doc => {
             const role = doc.data();
             return <div className="dataRow user" key={doc.id}>
               <span><b>{String(role.email ?? role.user_id)}</b><small>{String(role.user_id)}</small></span>
               <span>{String(role.role_key)}</span>
-              <span>{new Date(iso(role.created_at ?? role.granted_at)).toLocaleDateString('en-US')}</span><span />
+              <span>{new Date(iso(role.created_at ?? role.granted_at)).toLocaleDateString(locale)}</span><span />
               <AdminDecision endpoint={`/api/admin/v1/roles/${doc.id}/revoke`} actions={[{ label: 'Revoke', body: {}, className: 'dangerButton' }]} />
             </div>;
           })}
@@ -97,4 +93,31 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       </section> : null}
     </section>
   );
+}
+
+async function loadUsers(db: ReturnType<typeof adminDb>, term: string, params: SearchParameters, actor: string) {
+  const query = term ? db.collection('profiles').where('handle', '>=', term).where('handle', '<=', term + '\uf8ff') : db.collection('profiles');
+  const page = await readDocumentPage(query, { field: term ? 'handle' : 'created_at', direction: term ? 'asc' : 'desc', scope: JSON.stringify(['users', term]), cursors: pageCursors(params), size: 50 });
+  let users = page.documents.map(d => ({ ...d.data(), id: d.id }));
+  const privateDocs = users.length ? await db.getAll(...users.map(u => db.collection('users_private').doc(u.id))) : [];
+  const byId = new Map(privateDocs.map(d => [d.id, d.data() ?? {}]));
+  users = users.map(u => ({ ...u, ...byId.get(u.id), id: u.id }));
+  await recordPersonalDataRead(actor, 'users', users.length);
+  return { page, users };
+}
+function identityStatus(user: Record<string, unknown>, t: Awaited<ReturnType<typeof getI18n>>['t']): string {
+  if (user.suspended) return t('Suspended');
+  return user.identity_verified ? t('Verified') : t('Unverified');
+}
+
+async function loadAdminRoles(db: ReturnType<typeof adminDb>, params: SearchParameters, allowed: boolean) {
+  let rolesPage: DocumentPage = { documents: [], next: null, previous: null };
+  let rolesFailed = false;
+  if (allowed) {
+    try {
+      rolesPage = await readDocumentPage(db.collection('admin_role_assignments').where('revoked_at', '==', null),
+        { field: 'role_key', direction: 'asc', scope: 'active-admin-roles', cursors: pageCursors(params, 'roles'), size: 50 });
+    } catch { rolesFailed = true; }
+  }
+  return { rolesPage, rolesFailed };
 }

@@ -103,7 +103,7 @@ struct ProfileEditView: View {
             }
             .shadow(color: LociTheme.accent.opacity(0.2), radius: 12)
 
-            Text("@\(cleanHandle.isEmpty ? String(localized: "kullanıcı") : cleanHandle)")
+            Text(verbatim: "@\(cleanHandle.isEmpty ? String(localized: "kullanıcı") : cleanHandle)")
                 .font(.headline)
                 .foregroundStyle(.white)
         }
@@ -117,7 +117,7 @@ struct ProfileEditView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(LociTheme.secondaryText)
                 HStack {
-                    Text("@")
+                    Text(verbatim: "@")
                         .foregroundStyle(LociTheme.accent)
                         .font(.headline)
                     TextField("kullanıcı_adı", text: $handle)

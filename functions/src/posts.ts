@@ -1,26 +1,22 @@
 import { randomUUID } from 'node:crypto';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import {
-  analyticsEventDoc, bucket, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID,
-  requireCaller, Timestamp, assertServiceEnabled,
+  analyticsEventDoc, bucket, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID,
+  requireCaller, Timestamp, assertServiceEnabled, postReviewRequired,
 } from './core';
 import { encodeGeohash } from './geo';
 import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
 import { reasonError, withContentionGuard } from './errors';
-import { admitPost, anchorBindError, deleteAnchorOfPost } from './anchors';
+import { admitPost, anchorBindError, deleteAnchorOfPost, MAX_NOTES_NEARBY, MAX_POSTS_NEARBY } from './anchors';
 import { activeDensity, readDensityLocks, updateDensityLock } from './postAdmission';
 import { protectedZoneAt } from './protectedZones';
 import { assertAccountNotDeleting, requireActiveAccount } from './profileGuard';
 import { INVITE_REQUIRED, inviteGate } from './invites';
-import { TRUSTED_AUTO_PUBLISH, authorIsTrusted, hasDrawingLayer } from './trust';
 import { placeAt } from './places';
 import { GIPHY_API_KEY, resolveGifLayers } from './giphy';
-
-/**
- * High-quality world locks used to go live without review in the Supabase build. App Review
- * notes promise that every post is reviewed first, so this defaults to off.
- */
-const AUTO_PUBLISH_HIGH_QUALITY = process.env.LOCIAR_AUTO_PUBLISH_HIGH_QUALITY === 'true';
+import { mayPublishAnonymously } from './anonymous';
+import { contentBlocked } from './anonymousAccess';
+import { campaignOffer } from './campaigns';
 
 async function storageObjectExists(path: string | null): Promise<boolean> {
   if (!path) return false;
@@ -32,21 +28,43 @@ function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
   return { id, placement_state: data.placement_state ?? null, status: data.status };
 }
 
-export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [GIPHY_API_KEY] }, async (request) => {
-  const caller = requireCaller(request);
-  await assertServiceEnabled('create_post');
-  const body = request.data as CreatePostBody;
+/** How a location note's position was measured; see placeNoteRules.ts. */
+export type LocationNoteMetadata = { source: 'geospatial' | 'gps' | 'manual'; accuracy_m: number; pin_drag_m: number; notify_radius_m: number };
+
+function assertPublishingRequest(body: CreatePostBody, caller: ReturnType<typeof requireCaller>) {
   if (body?.userId !== caller.luid) throw reasonError('permission-denied', 'Publishing session changed', 'session_changed');
   const validationError = validateCreatePostBody(body, caller.luid);
   if (validationError) throw new HttpsError('invalid-argument', validationError);
-  if (!identityVerified(caller)) {
+  if (!mayPublishAnonymously(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
   }
-  // Closed-beta gate (growth plan 2.1): browsing stays open, publishing needs a redeemed invite.
-  if (INVITE_REQUIRED) {
-    const priv = await db.collection('users_private').doc(caller.luid).get();
-    if (inviteGate(priv.data(), true)) throw reasonError('permission-denied', 'An invite code is required to publish', 'invite_required');
-  }
+}
+
+async function requirePublishInvite(luid: string) {
+  // Closed-beta gate: browsing stays open, publishing needs a redeemed invite.
+  if (!INVITE_REQUIRED) return;
+  const priv = await db.collection('users_private').doc(luid).get();
+  if (inviteGate(priv.data(), true)) throw reasonError('permission-denied', 'An invite code is required to publish', 'invite_required');
+}
+
+function replayPost(existing: FirebaseFirestore.DocumentSnapshot, luid: string, body: CreatePostBody, locationNote?: LocationNoteMetadata) {
+  const data = existing.data()!;
+  if (data.creator_id !== luid) throw new HttpsError('already-exists', 'Post ID is already in use');
+  if (locationNote && (data.note_kind !== 'location' || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
+  return { post: serializePost(existing.id, data), publishStatus: data.status };
+}
+
+function worldMapPathFor(body: CreatePostBody): string | null {
+  const mapURI = body.pose.anchor?.persistence?.kind === 'arkit_world_map' ? body.pose.anchor.persistence.assetURI ?? body.pose.anchor.persistence.assetUri ?? body.pose.anchor.persistence.storagePath : null;
+  return typeof mapURI === 'string' && mapURI.startsWith('storage://') ? mapURI.slice(10) : null;
+}
+
+export async function createPostHandler(request: CallableRequest<CreatePostBody>, locationNote?: LocationNoteMetadata) {
+  const caller = requireCaller(request);
+  await assertServiceEnabled('create_post');
+  const body = request.data as CreatePostBody;
+  assertPublishingRequest(body, caller);
+  await requirePublishInvite(caller.luid);
 
   const postId = body.clientMutationId!.toLowerCase();
   const postRef = db.collection('posts').doc(postId);
@@ -58,9 +76,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
       await requireActiveAccount(tx, caller.luid);
       const existing = await tx.get(postRef);
       if (!existing.exists) return null;
-      const data = existing.data()!;
-      if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
-      return { post: serializePost(postId, data), publishStatus: data.status, idempotentReplay: true };
+      return { ...replayPost(existing, caller.luid, body, locationNote), idempotentReplay: true };
     });
     if (replay) return replay;
   }
@@ -69,27 +85,25 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
   // A GIF layer keeps only the GIPHY id; its size comes from GIPHY, never from the client.
   await resolveGifLayers(body.editData as { layers?: unknown[] });
-  // Drawings always go to review. Trusted authors (growth plan 3.3, off by default) may skip it.
-  const trusted = async () => {
-    const profile = (await db.collection('profiles').doc(caller.luid).get()).data();
-    return profile ? authorIsTrusted(caller.luid, profile, Date.now()) : false;
-  };
-  const autoPublish = placement.autoPublishEligible && !hasDrawingLayer(body.editData)
-    && (AUTO_PUBLISH_HIGH_QUALITY || (TRUSTED_AUTO_PUBLISH && await trusted().catch(() => false)));
-  const publishStatus = autoPublish ? 'active' : 'pending_review';
+  // Direct publishing (owner decision, 18 Oct 2026; location notes since 12 Oct): a post that passed the
+  // text filter, link ban and placement checks above, and the protected-zone, 18+ and rate/density checks
+  // below, goes live at once; reports hide it. `system/flags.post_review_required` restores review.
+  const publishStatus = await postReviewRequired() ? 'pending_review' : 'active';
   // Landmark layer (growth plan 2.5): computed here, never trusted from the client; null on failure.
   const place = await placeAt(lat, lng);
-  const mapURI = body.pose.anchor?.persistence?.kind === 'arkit_world_map' ? body.pose.anchor.persistence.assetURI ?? body.pose.anchor.persistence.assetUri ?? body.pose.anchor.persistence.storagePath : null;
-  const worldMapPath = typeof mapURI === 'string' && mapURI.startsWith('storage://') ? mapURI.slice(10) : null;
+  const worldMapPath = worldMapPathFor(body);
   const document = {
     world_map_path: worldMapPath,
     id: postId,
     creator_id: caller.luid,
     creator_handle: '',
+    is_anonymous: true,
     lat,
     lng,
     geohash: encodeGeohash(lat, lng, 10),
     place_id: place?.id ?? null,
+    ...(locationNote ? { note_kind: 'location', location_note: { source: locationNote.source, accuracy_m: locationNote.accuracy_m, pin_drag_m: locationNote.pin_drag_m },
+      notify_radius_m: locationNote.notify_radius_m, push_state: 'none' } : {}),
     pose_json: JSON.stringify(body.pose),
     ref_image_url: body.refImageUri,
     edit_data_json: JSON.stringify(body.editData),
@@ -124,9 +138,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
       tx.get(db.collection('storage_reclamations').doc(postId)),
     ]);
     if (existing.exists) {
-      const data = existing.data()!;
-      if (data.creator_id !== caller.luid) throw new HttpsError('already-exists', 'Post ID is already in use');
-      return { kind: 'replay' as const, post: serializePost(postId, data), publishStatus: data.status };
+      return { kind: 'replay' as const, ...replayPost(existing, caller.luid, body, locationNote) };
     }
     if (reclamation.exists && reclamation.get('state') !== 'draft') throw reasonError('failed-precondition', 'World map draft expired; create a new draft', 'draft_expired');
 
@@ -147,7 +159,8 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
       if (bindError) throw new HttpsError('invalid-argument', bindError);
     }
     const densityLock = await readDensityLocks(tx, lat, lng);
-    const admission = await admitPost(tx, caller.luid, Date.now(), () => activeDensity(lat, lng, tx));
+    const nearbyLimit = locationNote ? MAX_NOTES_NEARBY : MAX_POSTS_NEARBY;
+    const admission = await admitPost(tx, caller.luid, Date.now(), () => activeDensity(lat, lng, tx, nearbyLimit), nearbyLimit);
     if (!admission.ok) {
       if (admission.flag) tx.create(db.collection('moderation_flags').doc(randomUUID()), {
         post_id: null, user_id: caller.luid, reason: 'rate_or_density_limit', status: 'open',
@@ -158,7 +171,7 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
     }
     updateDensityLock(tx, densityLock, Date.now());
     if (anchorRef) tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp(), expires_at: FieldValue.delete() });
-    tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
+    tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', is_anonymous: true, world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
     tx.create(postRef, { ...document, creator_handle: String(profile.handle ?? '') });
     tx.create(db.collection('analytics_events').doc(randomUUID()), analyticsEventDoc({
       userId: caller.luid, postId,
@@ -179,7 +192,9 @@ export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforce
   if (outcome.kind === 'limited') throw reasonError('resource-exhausted', 'Creation limit reached for this area or account', 'rate_limited');
 
   return { post: serializePost(postId, document), publishStatus, idempotentReplay: false };
-});
+}
+
+export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [GIPHY_API_KEY] }, request => createPostHandler(request));
 
 export const deleteOwnPost = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
@@ -218,17 +233,23 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
   return db.runTransaction(async (tx) => {
     await assertAccountNotDeleting(tx, caller.luid);
     const snap = await tx.get(postRef);
-    if (!snap.exists) throw new HttpsError('permission-denied', 'post_not_viewable');
+    if (!snap.exists) {
+      const offer = await campaignOffer(tx, caller.luid, id);
+      if (!offer) throw new HttpsError('permission-denied', 'post_not_viewable');
+      const campaign = await tx.get(db.collection('campaigns').doc(id));
+      const campaignReceipt = await tx.get(db.collection('campaign_view_receipts').doc(`${id}_${caller.luid}_${day}`));
+      const views = Number(campaign.get('views_count') ?? 0);
+      if (campaignReceipt.exists) return { views };
+      tx.create(campaignReceipt.ref, { owner_luid: caller.luid, campaign_id: id, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(Date.now() + 30 * 86_400_000) });
+      tx.update(campaign.ref, { views_count: FieldValue.increment(1) });
+      return { views: views + 1 };
+    }
     const post = snap.data()!;
     await assertAccountNotDeleting(tx, String(post.creator_id));
     const viewable = post.creator_id === caller.luid
       || (post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
     if (!viewable) throw new HttpsError('permission-denied', 'post_not_viewable');
-    const [blockA, blockB] = await Promise.all([
-      tx.get(db.collection('user_blocks').doc(`${caller.luid}_${post.creator_id}`)),
-      tx.get(db.collection('user_blocks').doc(`${post.creator_id}_${caller.luid}`)),
-    ]);
-    if (blockA.exists || blockB.exists) throw new HttpsError('permission-denied', 'post_not_viewable');
+    if (await contentBlocked(caller.luid, post, tx)) throw new HttpsError('permission-denied', 'post_not_viewable');
     const receipt = await tx.get(receiptRef);
     const current = Number(post.views_count ?? 0);
     if (receipt.exists) return { views: current };

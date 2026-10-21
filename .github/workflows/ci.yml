@@ -33,6 +33,11 @@ jobs:
       - run: node scripts/check-localization.mjs --release
       - run: python3 scripts/l10n/build_catalog.py --check
       - run: python3 scripts/store-metadata/build.py --check
+      - run: python3 scripts/seed/world_capitals.py --check
+      - run: python3 scripts/seed/landmark_businesses.py --check
+      - run: python3 scripts/seed/turkey_launch.py --check
+      # Live-readiness rules derived from the repository, incl. the three free Scheduler jobs.
+      - run: python3 -m unittest discover -s scripts/test -p '*_test.py'
 
   functions:
     name: Functions (typecheck + unit tests)
@@ -83,6 +88,9 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run test:rules
       - run: npm run test:emulator
+      # A fresh emulator prevents bulk-fixture trigger backlogs from delaying
+      # location-note density, spot and notification assertions.
+      - run: npm run test:notes
       - run: npm ci --prefix ../admin --ignore-scripts --no-audit --no-fund
       - run: npx --no-install playwright install --with-deps chromium
         working-directory: admin
@@ -155,7 +163,8 @@ jobs:
     runs-on: macos-26
     permissions:
       contents: read
-    timeout-minutes: 35
+    # A green run takes ~31 minutes on a hosted macOS runner; slower runners exceeded 35.
+    timeout-minutes: 50
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
