@@ -199,6 +199,7 @@ export async function cleanupPostMedia() {
     logger.error('cloud_anchor_cleanup_failed', { code: safeErrorCode(error) });
   }
   logger.info('cleanup_post_media', { removed, orphans, pendingAvatars, orphanAnchors, retried });
+  return { removed, orphans, pendingAvatars, orphanAnchors, retried };
 }
 
 /** Nightly cursor-based repair reaches posts and profiles over successive runs. */
@@ -208,4 +209,5 @@ export async function reconcilePostCounters() {
   const repaired = await reconcileCounters();
   const profilesRepaired = await reconcileProfileCounters();
   logger.info('reconcile_counters', { repaired, profilesRepaired });
+  return { repaired, profilesRepaired };
 }

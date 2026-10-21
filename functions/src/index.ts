@@ -19,6 +19,7 @@ export {
 export { beginAvatarUpload, screenAvatar } from './avatar';
 // The only scheduled functions: three Cloud Scheduler jobs, the free tier (schedules.ts).
 export { everyFiveMinutes, everyFifteenMinutes, nightlyMaintenance } from './schedules';
+export { onMaintenanceRequested } from './maintenance';
 export { getArcoreToken } from './arcore';
 export { registerCloudAnchor } from './anchors';
 export { registerPushToken, unregisterPushToken, onActivityCreated } from './push';

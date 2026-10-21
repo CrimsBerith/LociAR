@@ -1,17 +1,15 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { forEachSequential } from './async';
 import { logger, safeErrorCode } from './core';
-import { retryPendingAccountDeletions } from './accountDeletion';
-import { drainAvatarDeletions } from './avatar';
-import { cleanupPostMedia, purgeDueRemovedMedia, reconcilePostCounters } from './cleanup';
-import { expireDueNotes, reconcileNoteDensity } from './noteDensity';
+import { MAINTENANCE_TASKS, runMaintenanceTask, type MaintenanceJob } from './maintenance';
 
 /**
  * All periodic work runs from these three Cloud Scheduler jobs: each billing account gets three jobs
  * free, every further job costs $0.10 per 31 days (https://cloud.google.com/scheduler/pricing). With
  * seven jobs, the cost alone tripped a ₺10 spend cap on 20 Oct 2026 and paused every function.
- * Add new periodic work as a task of one of these jobs, never as a new onSchedule export
- * (scripts/test/firebase_readiness_test.py fails on a fourth schedule).
+ * Add new periodic work as a task in maintenance.ts, never as a new onSchedule export
+ * (scripts/test/firebase_readiness_test.py fails on a fourth schedule). The admin panel shows each
+ * task's last run, can run it now and can pause its automatic runs.
  */
 export const MAX_SCHEDULER_JOBS = 3;
 
@@ -37,25 +35,15 @@ export async function runScheduledTasks(job: string, tasks: readonly ScheduledTa
   if (failed.length) throw new Error(`${job}: ${failed.sort((a, b) => a.localeCompare(b)).join(', ')} failed`);
 }
 
-export const FREQUENT_TASKS: readonly ScheduledTask[] = [
-  // Bounded avatar object deletions (at most 100 jobs per run).
-  { name: 'avatar_deletions', run: () => drainAvatarDeletions() },
-  // Accepted account deletions resume independently of the deleted user's session (240 s budget per job).
-  { name: 'account_deletions', run: () => retryPendingAccountDeletions(Date.now(), 2) },
-];
+/** A job's tasks, each recorded in maintenance_runs and skipped while paused or already running. */
+function scheduledTasks(job: MaintenanceJob): readonly ScheduledTask[] {
+  return MAINTENANCE_TASKS.filter(task => task.job === job)
+    .map(task => ({ name: task.name, run: () => runMaintenanceTask(task, { trigger: 'schedule' }) }));
+}
 
-export const QUARTER_HOUR_TASKS: readonly ScheduledTask[] = [
-  // Resume partial or abandoned media purges without waiting for the nightly pass.
-  { name: 'removed_media', run: () => purgeDueRemovedMedia(Date.now(), 20) },
-  // Notes with an administrator end date (launch seed retirement removes up to 200 per run).
-  { name: 'scheduled_note_ends', run: () => expireDueNotes() },
-];
-
-export const NIGHTLY_TASKS: readonly ScheduledTask[] = [
-  { name: 'post_media_cleanup', run: () => cleanupPostMedia() },
-  { name: 'post_counters', run: () => reconcilePostCounters() },
-  { name: 'note_density', run: () => reconcileNoteDensity() },
-];
+export const FREQUENT_TASKS = scheduledTasks('every_five_minutes');
+export const QUARTER_HOUR_TASKS = scheduledTasks('every_fifteen_minutes');
+export const NIGHTLY_TASKS = scheduledTasks('nightly_maintenance');
 
 export const everyFiveMinutes = onSchedule({ schedule: 'every 5 minutes', timeoutSeconds: 540, memory: '512MiB' }, async () => {
   await runScheduledTasks('every_five_minutes', FREQUENT_TASKS, 'parallel');

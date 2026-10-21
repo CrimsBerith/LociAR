@@ -30,9 +30,13 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - Blaze plan is required (Storage + Functions). Never weaken rules to work around Spark limits.
 - **Three scheduled functions at most** (owner decision, 21 Oct 2026): Cloud Scheduler gives each billing account three
   jobs free and bills every further job; seven jobs tripped the ₺10 spend cap on 20 Oct 2026 and paused every function.
-  All periodic work is a task of `everyFiveMinutes`, `everyFifteenMinutes` or `nightlyMaintenance`
-  (`functions/src/schedules.ts`); never add another `onSchedule` export. `scripts/firebase-deploy.mjs` deletes retired
-  functions (`RETIRED_FUNCTIONS`) with their jobs after the new code is live.
+  All periodic work is a task in `functions/src/maintenance.ts`, run by `everyFiveMinutes`, `everyFifteenMinutes` or
+  `nightlyMaintenance` (`schedules.ts`); never add another `onSchedule` export. `scripts/firebase-deploy.mjs` deletes
+  retired functions (`RETIRED_FUNCTIONS`) with their jobs after the new code is live. The admin **Maintenance tasks** page
+  (`/admin/maintenance`, permission `system.maintenance`) shows each task's last run and backlog, runs a task now
+  (`maintenance_requests` → `onMaintenanceRequested`) and pauses its automatic runs (`system/maintenance.paused`), all
+  audited; account deletion retries cannot be paused. Keep the task lists in `admin/lib/maintenance.ts` and
+  `functions/src/maintenance.ts` equal (`admin/tests/maintenance.test.mjs`).
 - Service-account keys and Admin SDK credentials never ship in the iOS app or in `NEXT_PUBLIC_*`.
 - Posts are a **message: text and/or one GIPHY GIF** (owner decision, 9 Oct 2026), shown as a chat-style bubble in AR. Device photo/video uploads were removed on 29 Sep 2026; social media links (Spotify, YouTube, TikTok, Instagram, X, Facebook) and new drawings on 9 Oct 2026: `createPost` accepts only `text` and `gif` layers and rejects image layers, drawings, own video and any URL (`functions/src/placement.ts`); the admin content editor creates text posts only (`admin/lib/content-ops.ts`); Storage denies uploads to `post-layer-assets` and `post-video-assets`. Old posts may still carry a drawing (still rendered) or a link in `content_source_json`; clients must decode it without crashing and never show the link. Do not re-add media or links without a product decision.
 - **GIFs come from GIPHY** (Tenor's public API shut down on 30 Jun 2026). The key is the `GIPHY_API_KEY` secret, used only by the `searchGifs` callable and `createPost` (`functions/src/giphy.ts`); never ship it in the app. A GIF layer stores only the GIPHY id (`gifId`, letters and digits); `createPost` re-reads it from GIPHY (rating at most `pg-13`) and writes the size GIPHY reports. The app builds media URLs from the id on `media.giphy.com` only and shows "Powered by GIPHY" wherever search results appear.

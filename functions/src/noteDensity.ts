@@ -106,6 +106,7 @@ export async function reconcileNoteDensity() {
   await state.set({ cursor: page.size === 500 ? page.docs.at(-1)!.id : null,
     spot_cursor: spotPage.size === 100 ? spotPage.docs.at(-1)!.id : null, updated_at: FieldValue.serverTimestamp() });
   logger.info('note density reconcile', { checked: page.size });
+  return { posts: page.size, spots: spotPage.size };
 }
 
 /**
