@@ -1130,7 +1130,7 @@
 			repositoryURL = "https://github.com/google-ar/arcore-ios-sdk.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.56.0;
+				minimumVersion = 1.57.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
