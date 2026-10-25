@@ -75,7 +75,7 @@ test('location notes keep likes available while content and comments require on-
   await assertFails(getDoc(doc(db, 'map_group_sessions', 'private')));
   await assertFails(setDoc(doc(db, 'map_group_sessions', 'forged'), { owner_luid: ALICE, post_ids: [POST] }));
   await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'dense_spot_unlocks', `${ALICE}_note_${POST}`), { owner_luid: ALICE, kind: 'note_read', expires_at: new Date(Date.now() + 60_000) }));
-  await assertSucceeds(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))));
+  await assertSucceeds(getDoc(doc(db, 'comments', 'bob-own')));
   await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'dense_spot_unlocks', `${ALICE}_note_${POST}`), { expires_at: new Date(Date.now() - 60_000) }));
   await assertFails(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))), 'expired reading sessions do not expose comments');
   const like = () => setDoc(doc(db, 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() });
@@ -145,7 +145,7 @@ test('identity blocks do not change interactions with anonymous notes', async ()
   await assertSucceeds(setDoc(doc(db, 'likes', `${POST}_${DAVE}`), { post_id: POST, user_id: DAVE, created_at: serverTimestamp() }));
   await assertSucceeds(setDoc(doc(db, 'post_saves', `${DAVE}_${POST}`), { post_id: POST, user_id: DAVE, created_at: serverTimestamp() }));
   await assertSucceeds(setDoc(doc(db, 'comments', 'c-anon'), { id: 'c-anon', post_id: POST, user_id: DAVE, text: 'selam', created_at: serverTimestamp() }));
-  await assertSucceeds(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))));
+  await assertSucceeds(getDoc(doc(db, 'comments', 'bob-own')));
   await assertFails(setDoc(doc(db, 'follows', `${DAVE}_${BOB}`), { follower_id: DAVE, following_id: BOB, created_at: serverTimestamp() }), 'the account block itself still applies');
 });
 
@@ -300,7 +300,9 @@ test('comments/likes/follows are not readable without signing in; removed posts 
   await assertFails(getDocs(query(collection(anon, 'comments'), where('post_id', '==', POST))));
   await assertFails(getDoc(doc(anon, 'likes', `${POST}_${ALICE}`)));
   await assertFails(getDoc(doc(anon, 'follows', `${ALICE}_${BOB}`)));
-  await assertSucceeds(getDocs(query(collection(as(ALICE), 'comments'), where('post_id', '==', POST))));
+  await assertFails(getDocs(query(collection(as(ALICE), 'comments'), where('post_id', '==', POST))));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'comments', 'bob-own')));
+  await assertFails(getDoc(doc(as(ALICE), 'comments', 'c-removed')));
   await assertFails(getDocs(query(collection(as(ALICE), 'comments'), where('post_id', '==', 'removed-post'))));
   await assertSucceeds(getDoc(doc(as(ALICE), 'likes', `${POST}_${ALICE}`)));
   await assertSucceeds(getDoc(doc(as(ALICE), 'follows', `${ALICE}_${BOB}`)));
@@ -500,4 +502,25 @@ test('report receipts and quotas are server-only even for their owner', async ()
     await assertFails(setDoc(doc(as(ALICE), collection, ALICE), { owner_luid: ALICE }));
     await assertFails(getDoc(doc(as(ALICE), collection, ALICE)));
   }
+});
+
+
+test('identity blocks fence comment authors and profiles while raw comment lists stay server-only', async () => {
+  const id = 'third-party-comment';
+  await env.withSecurityRulesDisabled(async ctx => {
+    await updateDoc(doc(ctx.firestore(), 'posts', POST), { creator_id: ALICE });
+    await setDoc(doc(ctx.firestore(), 'comments', id), { post_id: POST, user_id: BOB, text: 'blocked body' });
+  });
+  await assertSucceeds(getDoc(doc(as(ALICE), 'comments', id)));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'profiles', BOB)));
+  await assertFails(getDocs(query(collection(as(ALICE), 'comments'), where('post_id', '==', POST))));
+  for (const [from, to] of [[ALICE, BOB], [BOB, ALICE]]) {
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'user_blocks', `${from}_${to}`), { blocker_id: from, blocked_id: to }));
+    await assertFails(getDoc(doc(as(ALICE), 'comments', id)));
+    await assertFails(getDoc(doc(as(ALICE), 'profiles', BOB)));
+    await env.withSecurityRulesDisabled(ctx => deleteDoc(doc(ctx.firestore(), 'user_blocks', `${from}_${to}`)));
+  }
+  await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'anonymous_blocks', `${ALICE}_${BOB}`), { blocker_id: ALICE, blocked_id: BOB }));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'comments', id)));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'profiles', BOB)));
 });

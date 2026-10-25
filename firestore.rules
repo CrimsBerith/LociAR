@@ -61,7 +61,7 @@ service cloud.firestore {
 
     match /profiles/{luid} {
       // Signed-in (guest or account) reads only: no anonymous bulk scraping of every profile.
-      allow read: if signedIn();
+      allow read: if signedIn() && !blockedBy(luid);
       allow create, delete: if false;
       // Handles change only through the updateHandle callable (uniqueness); photo avatars are set
       // only by the moderation function. The owner may pick a preset or remove the photo.
@@ -179,10 +179,13 @@ service cloud.firestore {
     }
     match /comments/{commentId} {
       // Only comments of public, active posts are readable, and only while signed in.
-      allow read: if signedIn()
+      allow get: if signedIn()
         && postIsPublicActive(resource.data.post_id)
         && noteCommentsOpen(resource.data.post_id)
-        && !blockedOnPost(resource.data.post_id);
+        && !blockedOnPost(resource.data.post_id)
+        && !blockedBy(resource.data.user_id);
+      // readPublicContent filters blocked commenters before returning a page.
+      allow list: if false;
       // `username` is not accepted from clients: onCommentCreated fills it from the profile.
       allow create: if mayWrite()
         && onlyKeys(['id', 'post_id', 'user_id', 'text', 'created_at'])

@@ -102,6 +102,12 @@ struct CommentPageCursor: Equatable, Sendable {
     let documentID: String
     let seconds: Int64
     let nanoseconds: Int32
+    let serverToken: String?
+
+    init(postID: UUID, documentID: String, seconds: Int64, nanoseconds: Int32, serverToken: String? = nil) {
+        self.postID = postID; self.documentID = documentID
+        self.seconds = seconds; self.nanoseconds = nanoseconds; self.serverToken = serverToken
+    }
 
     func isValid(for requestedPostID: UUID) -> Bool {
         postID == requestedPostID && !documentID.isEmpty && !documentID.contains("/")
@@ -421,44 +427,13 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
 
     func commentPage(for postID: UUID, before cursor: CommentPageCursor?) async throws -> LociCommentPage {
         guard let viewerID = FirebaseIdentity.currentLUID() else { throw AuthFlowError.notSignedIn }
-        if let cursor, !cursor.isValid(for: postID) { throw BackendCallError.invalidResponse }
-        var query = db.collection("comments")
-            .whereField("post_id", isEqualTo: key(postID))
-            .order(by: "created_at", descending: true)
-            .order(by: FieldPath.documentID(), descending: true)
-        if let cursor {
-            query = query.start(after: [Timestamp(seconds: cursor.seconds, nanoseconds: cursor.nanoseconds), cursor.documentID])
-        }
-        // Read one lookahead row; cursors use raw rows so blocked authors cannot stop pagination.
-        let pageSize = 15
-        let snapshot = try await query.limit(to: pageSize + 1).getDocuments()
-        let rows = Array(snapshot.documents.prefix(pageSize))
-        struct EligibilityRequest: Encodable { let mode = "eligible_authors"; let authorIds: [String] }
-        struct EligibilityResponse: Decodable { let authorIds: [String] }
-        let eligibility: EligibilityResponse = try await callables.call("readPublicContent", payload: EligibilityRequest(authorIds: Array(Set(rows.compactMap { $0.data()["user_id"] as? String }))))
-        let eligible = Set(eligibility.authorIds)
+        if let cursor, !cursor.isValid(for: postID) || cursor.serverToken == nil { throw BackendCallError.invalidResponse }
+        struct Request: Encodable { let mode = "comments"; let postId: String; let cursor: String? }
+        struct Response: Decodable { let comments: [LociComment]; let next: String? }
+        let page: Response = try await callables.call("readPublicContent", payload: Request(postId: key(postID), cursor: cursor?.serverToken))
         guard !Task.isCancelled, FirebaseIdentity.currentLUID() == viewerID else { throw AuthFlowError.notSignedIn }
-        let comments = rows.compactMap { document -> LociComment? in
-            let data = document.data()
-            guard let commentID = UUID(uuidString: document.documentID), let user = uuid(data["user_id"]),
-                  eligible.contains(key(user)) else { return nil }
-            return LociComment(
-                id: commentID,
-                postID: postID,
-                userID: user,
-                username: data["username"] as? String ?? "loci",
-                text: data["text"] as? String ?? "",
-                createdAt: FirestoreJSON.date(data["created_at"]) ?? Date()
-            )
-        }
-        let olderCursor: CommentPageCursor?
-        if snapshot.documents.count > pageSize {
-            guard let last = rows.last, let timestamp = last.data()["created_at"] as? Timestamp else { throw BackendCallError.invalidResponse }
-            olderCursor = CommentPageCursor(postID: postID, documentID: last.documentID, seconds: timestamp.seconds, nanoseconds: timestamp.nanoseconds)
-        } else {
-            olderCursor = nil
-        }
-        return LociCommentPage(comments: LociComment.merging([], with: comments), olderCursor: olderCursor)
+        let next = page.next.map { CommentPageCursor(postID: postID, documentID: $0, seconds: 0, nanoseconds: 0, serverToken: $0) }
+        return LociCommentPage(comments: LociComment.merging([], with: page.comments), olderCursor: next)
     }
 
     func addComment(postID: UUID, user: LociUser, text: String) async throws -> LociComment {

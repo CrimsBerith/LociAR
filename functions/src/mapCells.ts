@@ -9,7 +9,7 @@ import { validCoordinates } from './placeNoteRules';
  * A map view reads the few cells it covers instead of scanning every post of a 5–40 km geohash range,
  * so its cost no longer grows with how many posts the city has. Bodies are read only for the rows a
  * reply returns. The trigger keeps cells current (onPostDensityWritten → syncMapCell); the nightly
- * `map_cells` maintenance task repairs drift and, after its first full pass, switches readers on
+ * `map_cells` maintenance task repairs drift and, after its first full post/member passes, switches readers on
  * (`system/geo_queries.map_cells_version = 1`). Clients can never read these collections.
  */
 export const MAP_CELL_PRECISION = 6;
@@ -71,22 +71,34 @@ const CELL_STATE = () => db.collection('system').doc('map_cells_reconcile');
 const GEO_FLAGS = () => db.collection('system').doc('geo_queries');
 
 /**
- * Nightly repair (maintenance task `map_cells`): walks every post with a cursor, 1,000 per run. When a
- * pass reaches the end for the first time the index is complete and readers switch to it.
+ * Nightly repair (maintenance task `map_cells`): walks posts and members with separate cursors,
+ * at most 1,000 of each per run. Readers switch on after both scans have completed a full pass.
  */
 export async function reconcileMapCells(pageSize = 1_000) {
-  const cursor = (await CELL_STATE().get()).get('cursor');
+  const state = await CELL_STATE().get();
+  const cursor = state.get('cursor');
   let query = db.collection('posts').orderBy('__name__').select().limit(pageSize);
   if (typeof cursor === 'string' && cursor) query = query.startAfter(cursor);
   const page = await query.get();
   for (const post of page.docs) await syncMapCell(post.id); // sequential: each is its own transaction
   const finished = page.size < pageSize;
+  // Deleted posts no longer occur in the post scan. Walk persistent members too,
+  // so a missed deletion event cannot leave a permanent locator/count behind.
+  let membersQuery = db.collection('map_cell_members').orderBy('__name__').select().limit(pageSize);
+  const memberCursor = state.get('member_cursor');
+  if (typeof memberCursor === 'string' && memberCursor) membersQuery = membersQuery.startAfter(memberCursor);
+  const members = await membersQuery.get();
+  for (const member of members.docs) await syncMapCell(member.id);
+  const membersFinished = members.size < pageSize;
   await CELL_STATE().set({ cursor: finished ? null : page.docs.at(-1)!.id, updated_at: FieldValue.serverTimestamp(),
-    ...(finished ? { last_full_pass_at: FieldValue.serverTimestamp() } : {}) }, { merge: true });
-  if (finished && (await GEO_FLAGS().get()).get('map_cells_version') !== 1) {
+    member_cursor: membersFinished ? null : members.docs.at(-1)!.id,
+    ...(finished ? { last_full_pass_at: FieldValue.serverTimestamp() } : {}),
+    ...(membersFinished ? { last_member_pass_at: FieldValue.serverTimestamp() } : {}) }, { merge: true });
+  if ((finished || state.get('last_full_pass_at')) && (membersFinished || state.get('last_member_pass_at'))
+    && (await GEO_FLAGS().get()).get('map_cells_version') !== 1) {
     await GEO_FLAGS().set({ map_cells_version: 1, map_cells_enabled_at: FieldValue.serverTimestamp() }, { merge: true });
   }
-  return { checked: page.size, finished: finished ? 1 : 0 };
+  return { checked: page.size, finished: finished ? 1 : 0, membersChecked: members.size };
 }
 
 let flagCache: { enabled: boolean; until: number } | null = null;

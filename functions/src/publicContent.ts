@@ -84,7 +84,7 @@ function decode(value:unknown,scope:string):{id:string;date:Timestamp}|null{
 export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInstances:CALLABLE_MAX_INSTANCES,timeoutSeconds:60},async request=>{
  const caller=requireCaller(request);const body=(request.data??{})as Record<string,unknown>,mode=scalarText(body.mode??'discover');
  if (mode === 'own_receipt') return readOwnReceipt(body, caller.luid);
- if (!['eligible_authors', 'profile', 'single', 'search_profiles', 'nearby', 'map_groups', 'map_group', 'saved', 'collection', 'discover', 'creator'].includes(mode)) {
+ if (!['eligible_authors', 'profile', 'single', 'search_profiles', 'nearby', 'map_groups', 'map_group', 'saved', 'collection', 'comments', 'discover', 'creator'].includes(mode)) {
    throw new HttpsError('invalid-argument', 'Invalid content mode');
  }
  await db.runTransaction(tx=>requireActiveAccount(tx,caller.luid));
@@ -93,6 +93,7 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
  switch (mode) {
  case 'eligible_authors': return readEligibleAuthors(body, blocked);
  case 'profile': return readProfile(body, blocked);
+ case 'comments': return readComments(body, caller.luid, blocked);
  case 'single': return readSinglePost(body, caller.luid, blocked);
  case 'search_profiles': return searchProfiles(body, blocked);
  case 'nearby': return readNearbyPosts(body, caller.luid, blocked);
@@ -124,6 +125,63 @@ const ids=body.authorIds;if(!Array.isArray(ids)||ids.length>100||ids.some(id=>ty
 async function readProfile(body: Record<string, unknown>, blocked: BlockSets) {
 const id=scalarText(body.creatorId??'');if(!(await visibleAuthors([id],blocked.identity)).has(id)){ return{profile:null}; }const p=(await db.collection('profiles').doc(id).get()).data()!;
   return{profile:json({id,handle:p.handle,avatar_url:p.avatar_url??null,avatar_preset:p.avatar_preset??null,bio:p.bio??null,public_post_count:p.public_post_count??0,follower_count:p.follower_count??0,following_count:p.following_count??0})};
+}
+
+/** Comment bodies are filtered before crossing the network. Identity blocks apply to
+ * commenters; anonymous mutes never change this attributed-comment surface.
+ */
+async function readComments(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
+  if (MEMORY_LIMITS_ENABLED && !edgePageLimiter.allow(luid)) throw reasonError('resource-exhausted', 'Too many list requests', 'rate_limited');
+  const postId = scalarText(body.postId ?? '');
+  if (!isUUID(postId)) throw new HttpsError('invalid-argument', 'Invalid post ID');
+  await requireCommentPostAccess(postId, luid, blocked.identity);
+  const query = await commentPageQuery(postId, luid, body.cursor);
+  const page = await query.limit(16).get(), raw = page.docs.slice(0, 15);
+  const eligible = await visibleAuthors(raw.map(doc => String(doc.get('user_id'))), blocked.identity);
+  const comments = raw.filter(doc => isUUID(doc.id) && eligible.has(String(doc.get('user_id')))
+    && typeof doc.get('text') === 'string' && doc.get('created_at') instanceof Timestamp).map(doc => ({
+    id: doc.id, post_id: postId, user_id: doc.get('user_id'), username: doc.get('username') ?? 'loci',
+    text: doc.get('text'), created_at: doc.get('created_at').toDate().toISOString(),
+  }));
+  let next: string | null = null;
+  const last = raw.at(-1);
+  if (page.size > 15 && last) {
+    // A random server-side cursor advances even through fully hidden pages without
+    // exposing a blocked comment's ID/text in a decodable client cursor.
+    next = randomUUID();
+    await db.collection('dense_spot_unlocks').doc(`${luid}_comments_${next}`).set({
+      kind: 'comment_page', owner_luid: luid, post_id: postId, comment_id: last.id,
+      created_at_cursor: last.get('created_at'), expires_at: Timestamp.fromMillis(Date.now() + 30 * 60_000),
+    });
+  }
+  return { comments, next };
+}
+
+async function requireCommentPostAccess(postId: string, luid: string, blocked: ReadonlySet<string>) {
+  const post = await db.collection('posts').doc(postId).get();
+  const author = post.get('creator_id');
+  if (!post.exists || !isPublicActive(post.data()) || !(await visibleAuthors([author], new Set())).has(author)
+    || post.get('is_anonymous') !== true && blocked.has(author)) throw new HttpsError('permission-denied', 'Comments unavailable');
+  if (post.get('note_kind') === 'location' && author !== luid) {
+    const grant = await db.collection('dense_spot_unlocks').doc(`${luid}_note_${postId}`).get();
+    if (grant.get('kind') !== 'note_read' || !(grant.get('expires_at') instanceof Timestamp)
+      || grant.get('expires_at').toMillis() <= Date.now()) throw new HttpsError('permission-denied', 'Comments unavailable');
+  }
+}
+
+async function commentPageQuery(postId: string, luid: string, cursor: unknown) {
+  let query = db.collection('comments').where('post_id', '==', postId).orderBy('created_at', 'desc').orderBy('__name__', 'desc');
+  if (cursor != null) {
+    if (!isUUID(cursor)) throw new HttpsError('invalid-argument', 'Invalid comment cursor');
+    const position = await db.collection('dense_spot_unlocks').doc(`${luid}_comments_${cursor}`).get();
+    if (position.get('kind') !== 'comment_page' || position.get('owner_luid') !== luid || position.get('post_id') !== postId
+      || !(position.get('expires_at') instanceof Timestamp) || position.get('expires_at').toMillis() <= Date.now()
+      || !(position.get('created_at_cursor') instanceof Timestamp) || typeof position.get('comment_id') !== 'string') {
+      throw new HttpsError('invalid-argument', 'Invalid comment cursor');
+    }
+    query = query.startAfter(position.get('created_at_cursor'), position.get('comment_id'));
+  }
+  return query;
 }
 
 async function readSinglePost(body: Record<string, unknown>, luid: string, blocked: BlockSets) {

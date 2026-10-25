@@ -650,6 +650,35 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(cache.read(b)?.count, 1_000)
     }
 
+    func testDeletedWorldMapCacheRejectsCapturedAndNewDownloadHandles() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("wm-delete-\(UUID().uuidString)")
+        let other = FileManager.default.temporaryDirectory.appendingPathComponent("wm-other-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir); try? FileManager.default.removeItem(at: other) }
+        let cache = WorldMapDownloadCache(directory: dir), unrelated = WorldMapDownloadCache(directory: other)
+        let locator = "storage://post-world-maps/u/p/a.lociarmap", data = Data(repeating: 1, count: 128)
+        XCTAssertTrue(cache.write(data, for: locator))
+        try WorldMapDownloadCache(directory: dir).removeAll()
+        XCTAssertFalse(cache.write(data, for: locator), "late completion must not recreate deleted geometry")
+        XCTAssertFalse(WorldMapDownloadCache(directory: dir).write(data, for: locator))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path))
+        XCTAssertTrue(unrelated.write(data, for: locator))
+        XCTAssertEqual(unrelated.read(locator), data)
+    }
+
+    func testCancelledWorldMapDownloadCannotCommitAfterItsAwait() async {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("wm-cancel-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let cache = WorldMapDownloadCache(directory: dir)
+        let task = Task {
+            try? await Task.sleep(for: .seconds(30))
+            return cache.write(Data(repeating: 1, count: 128), for: "storage://post-world-maps/u/p/a.lociarmap")
+        }
+        task.cancel()
+        let committed = await task.value
+        XCTAssertFalse(committed)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path))
+    }
+
     @MainActor
     func testSDKRegistrationIsSingleFlightAndDrainWaitsForCompletion() async throws {
         let gate = PushSDKRegistrationFlight()

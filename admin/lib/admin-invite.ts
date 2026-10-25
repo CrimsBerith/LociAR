@@ -2,7 +2,7 @@ import 'server-only';
 import { FieldValue, Timestamp, type DocumentData } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from './firebase-admin';
 import { ConflictError, writeAudit } from './ops';
-import { isKnownRole } from './rbac';
+import { isKnownRole, permissionsFor } from './rbac';
 import { INVITE_TTL_MS, inviteAcceptError } from './policy';
 import { accountDeletionStarted } from './account-lifecycle';
 
@@ -101,11 +101,18 @@ export async function acceptUserInvitation(uid: string, identity: Identity, invi
         }
       } else if (rejection) return rejection;
       if (roleKey && data.status !== 'accepted') {
-        if (data.invited_by) {
-          const grantorRoles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', data.invited_by));
-          const active = grantorRoles.docs.some(role => !role.get('revoked_at'));
-          if (!grantorRoles.empty && !active) return 'invite_grantor_revoked';
+        const grantor = data.invited_by;
+        if (typeof grantor !== 'string' || !grantor || await accountDeletionStarted(grantor, tx)) return 'invite_grantor_revoked';
+        try {
+          if ((await adminAuth().getUser(grantor)).disabled) return 'invite_grantor_revoked';
+        } catch (error) {
+          if ((error as { code?: string }).code === 'auth/user-not-found') return 'invite_grantor_revoked';
+          throw error;
         }
+        const grantorRoles = await tx.get(db.collection('admin_role_assignments')
+          .where('user_id', '==', grantor).where('revoked_at', '==', null));
+        const roles = grantorRoles.docs.map(role => String(role.get('role_key'))).filter(isKnownRole);
+        if (!permissionsFor(roles).has('admin_users.write')) return 'invite_grantor_revoked';
         tx.set(db.collection('admin_role_assignments').doc(`${uid}_${roleKey}`), {
           user_id: uid, role_key: roleKey, granted_by: data.invited_by ?? null,
           revoked_at: null, created_at: FieldValue.serverTimestamp(),

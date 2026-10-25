@@ -58,6 +58,7 @@ final class PreferenceRecord {
 enum LocalAccountDeletion {
     private static let key = "lociar.acceptedAccountDeletions"
     static func markAccepted(_ owner: UUID) {
+        WorldMapDownloadCache.block(owner: owner)
         var ids = Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
         ids.insert(owner.uuidString.lowercased())
         UserDefaults.standard.set(Array(ids), forKey: key)
@@ -73,6 +74,7 @@ enum LocalAccountDeletion {
         decoder.dateDecodingStrategy = .iso8601
         for raw in UserDefaults.standard.stringArray(forKey: key) ?? [] {
             guard let owner = UUID(uuidString: raw) else { continue }
+            WorldMapDownloadCache.block(owner: owner)
             do {
                 let drafts = try context.fetch(FetchDescriptor<DraftRecord>())
                 let queues = try context.fetch(FetchDescriptor<SyncQueueRecord>())
@@ -110,7 +112,7 @@ enum LocalAccountDeletion {
                 ClientReadCaches.clear()
                 if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
                     let accountCache = caches.appendingPathComponent("LociARWorldMaps", isDirectory: true).appendingPathComponent(raw, isDirectory: true)
-                    if FileManager.default.fileExists(atPath: accountCache.path) { try FileManager.default.removeItem(at: accountCache) }
+                    try WorldMapDownloadCache(directory: accountCache, owner: owner).removeAll()
                     // Retired cache used unscoped filenames. It is a disposable download cache;
                     // staged drafts belonging to other accounts are never removed here.
                     let old = caches.appendingPathComponent("LociARWorldMaps", isDirectory: true)

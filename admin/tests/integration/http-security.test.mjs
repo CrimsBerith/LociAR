@@ -265,7 +265,8 @@ test('rate-limited place-note HTTP actions cannot mutate or create an audit rece
 
 async function regularInvite(user, roleKey = null) {
   const ref = db.collection('admin_user_invites').doc(randomUUID());
-  await ref.set({ email: `ci-${user.uid}@example.test`, invited_user_id: user.uid, invited_by: randomUUID(),
+  const grantor = await identity('super_admin');
+  await ref.set({ email: `ci-${user.uid}@example.test`, invited_user_id: user.uid, invited_by: grantor.uid,
     requested_role_key: roleKey, status: 'sent', created_at: Timestamp.now(), expires_at: Timestamp.fromMillis(Date.now() + 3_600_000) });
   return ref;
 }

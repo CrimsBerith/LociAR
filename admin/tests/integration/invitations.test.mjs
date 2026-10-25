@@ -17,11 +17,15 @@ function input(roleKey = 'analyst') {
     actorId: randomUUID(), reason: 'Emulator invitation verification' };
 }
 async function fixture(roleKey = 'analyst') {
-  const request = input(roleKey); await createUserInvitation(request);
+  const request = input(roleKey);
+  await adminAuth().createUser({ uid: request.actorId, email: `grantor-${request.actorId}@example.test`, emailVerified: true });
+  const grantorRole = adminDb().collection('admin_role_assignments').doc(`${request.actorId}_super_admin`);
+  await grantorRole.set({ user_id: request.actorId, role_key: 'super_admin', revoked_at: null });
+  await createUserInvitation(request);
   const invite = adminDb().collection('admin_user_invites').doc(request.key);
   const uid = (await invite.get()).get('invited_user_id');
   await adminAuth().updateUser(uid, { emailVerified: true });
-  return { request, invite, uid, identity: { email: request.email, emailVerified: true },
+  return { request, invite, uid, grantorRole, identity: { email: request.email, emailVerified: true },
     role: adminDb().collection('admin_role_assignments').doc(`${uid}_${roleKey}`),
     audit: adminDb().collection('admin_audit_log').doc(`invite-accept-${request.key}`) };
 }
@@ -97,12 +101,58 @@ test('legacy acceptance audit repair preserves a revoked role and never recreate
 
 test('a revoked inviter cannot still grant the pending role', async () => {
   const f = await fixture();
+  await f.grantorRole.update({ revoked_at: Timestamp.now() });
   await adminDb().collection('admin_role_assignments').doc(`${f.request.actorId}_analyst`).set({
     user_id: f.request.actorId, role_key: 'analyst', revoked_at: Timestamp.now(),
   });
   assert.equal(await acceptUserInvitation(f.uid, f.identity, f.request.key), 'invite_grantor_revoked');
   assert.equal((await f.role.get()).exists, false);
   assert.equal((await f.invite.get()).get('status'), 'sent');
+});
+
+test('role invitations require the grantor to retain role-management permission at acceptance', async () => {
+  for (const state of ['downgraded', 'missing', 'unknown_role', 'no_grantor', 'deleting_grantor', 'disabled_grantor', 'deleted_auth_grantor']) {
+    const f = await fixture('trust_safety_admin');
+    if (state === 'downgraded') {
+      await f.grantorRole.update({ revoked_at: Timestamp.now() });
+      await adminDb().collection('admin_role_assignments').doc(`${f.request.actorId}_analyst`).set({
+        user_id: f.request.actorId, role_key: 'analyst', revoked_at: null,
+      });
+    }
+    if (state === 'missing') await f.grantorRole.delete();
+    if (state === 'unknown_role') await f.grantorRole.update({ role_key: 'retired_admin_role' });
+    if (state === 'no_grantor') await f.invite.update({ invited_by: null });
+    if (state === 'deleting_grantor') {
+      await adminDb().collection('account_deletion_jobs').doc(luidForUid(f.request.actorId)).set({ status: 'done' });
+    }
+    if (state === 'disabled_grantor') await adminAuth().updateUser(f.request.actorId, { disabled: true });
+    if (state === 'deleted_auth_grantor') await adminAuth().deleteUser(f.request.actorId);
+    assert.equal(await acceptUserInvitation(f.uid, f.identity, f.request.key), 'invite_grantor_revoked', state);
+    assert.equal((await f.role.get()).exists, false, state);
+    assert.equal((await f.audit.get()).exists, false, state);
+    assert.equal((await f.invite.get()).get('status'), 'sent', state);
+  }
+});
+
+test('accepted replay and legacy audit repair do not require a new role grant after the grantor loses access', async () => {
+  const f = await fixture();
+  assert.equal(await acceptUserInvitation(f.uid, f.identity, f.request.key), null);
+  await f.grantorRole.delete();
+  await f.role.update({ revoked_at: Timestamp.now() });
+  const revoked = (await f.role.get()).data();
+  assert.equal(await acceptUserInvitation(f.uid, f.identity, f.request.key), null);
+  await f.audit.delete();
+  assert.equal(await acceptUserInvitation(f.uid, f.identity, f.request.key), null);
+  assert.deepEqual((await f.role.get()).data(), revoked);
+  assert.equal((await f.audit.get()).get('action'), 'admin_invite_accepted');
+});
+
+test('ordinary invitations remain acceptable when the inviter no longer has an admin role', async () => {
+  const f = await fixture(null);
+  await f.grantorRole.delete();
+  assert.equal(await acceptUserInvitation(f.uid, f.identity, f.request.key, true), null);
+  assert.equal((await f.audit.get()).get('action'), 'user_invite_accepted');
+  assert.equal((await adminDb().collection('admin_role_assignments').where('user_id', '==', f.uid).get()).empty, true);
 });
 
 test('deletion tombstones block invite creation and role grants using the canonical Firebase UID mapping', async () => {

@@ -38,6 +38,7 @@ actor LocalWorldMapStore: WorldMapRepository {
     }
 
     func download(_ persistence: WorldLockPersistence) async throws -> Data {
+        try Task.checkCancellation()
         guard let raw = persistence.assetURI,
               let url = URL(string: raw) else { throw LocalStoreError.invalidLocalURL }
         return try await read(
@@ -197,13 +198,18 @@ final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
         let ref = MediaAssetStore.storageReference(reference)
         // Even a cache hit needs current authorization; removed/private posts cannot reopen
         // geometry downloaded in an earlier session. Cache directories are scoped per account.
-        let metadata = try await ref.getMetadata()
-        guard metadata.size > 0, metadata.size <= Int64(WorldMapCodec.maximumUploadBytes) else { throw StoreError.invalidSize }
+        let viewer = FirebaseIdentity.currentLUID()
         let cache = WorldMapDownloadCache.standard
+        let metadata = try await ref.getMetadata()
+        try Task.checkCancellation()
+        guard FirebaseIdentity.currentLUID() == viewer, cache?.isCurrent != false else { throw CancellationError() }
+        guard metadata.size > 0, metadata.size <= Int64(WorldMapCodec.maximumUploadBytes) else { throw StoreError.invalidSize }
         if let cached = cache?.read(path) { return try WorldMapCodec.decode(cached) }
         let data = try await ref.data(maxSize: Int64(WorldMapCodec.maximumUploadBytes))
+        try Task.checkCancellation()
+        guard FirebaseIdentity.currentLUID() == viewer, cache?.isCurrent != false else { throw CancellationError() }
         let raw = try WorldMapCodec.decode(data)
-        cache?.write(data, for: path)
+        if let cache, !cache.write(data, for: path) { throw CancellationError() }
         return raw
     }
 
