@@ -47,6 +47,7 @@
     },
     "firebase-tools": {
       "chokidar": "^4.0.3"
-    }
+    },
+    "fast-uri": "^3.1.9"
   }
 }
