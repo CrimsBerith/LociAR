@@ -152,6 +152,26 @@ class FirebaseReadinessTests(unittest.TestCase):
         report = ready_report(); del report['commands']['ttl']
         self.assertIn('command_failed', self.codes(report))
 
+    def test_failed_collection_does_not_report_unobserved_resources_as_missing(self):
+        report = ready_report()
+        report['resources'] = {}
+        report['commands'] = {key: {'status': 'error', 'return_code': 1} for key in RESOURCE_KEYS}
+        findings = validate_report(report)['readiness']['findings']
+        self.assertEqual(len(findings), len(RESOURCE_KEYS))
+        self.assertEqual({item['code'] for item in findings}, {'command_failed'})
+        self.assertEqual({item['resource'] for item in findings}, set(RESOURCE_KEYS))
+
+    def test_partial_collection_failure_keeps_unknown_separate_from_successful_reads(self):
+        for key in RESOURCE_KEYS:
+            with self.subTest(resource=key):
+                report = ready_report()
+                report['commands'][key] = {'status': 'error', 'return_code': 1}
+                report['resources'][key] = {} if isinstance(report['resources'][key], dict) else []
+                checked = validate_report(report)
+                self.assertFalse(checked['readiness']['ready'])
+                self.assertEqual([(item['code'], item['resource']) for item in checked['readiness']['findings']],
+                                 [('command_failed', key)])
+
     def test_sanitization_discards_secret_fields_and_raw_diagnostics(self):
         report = ready_report(); report['credentials'] = 'NEVER-ECHO-SECRET'
         report['resources']['functions'][0]['serviceConfig'] = {'environmentVariables': {'KEY': 'NEVER-ECHO-SECRET'}}
