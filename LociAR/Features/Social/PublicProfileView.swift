@@ -20,6 +20,7 @@ struct PublicProfileView: View {
     @State private var isLoadingMore = false
     @State private var isLoading = true
     @State private var isFollowMutating = false
+    @State private var followMutationRevision = 0
     @State private var isBlockMutating = false
     @State private var isBlocked = false
     @State private var confirmBlock = false
@@ -123,6 +124,7 @@ struct PublicProfileView: View {
 
     private func load(force: Bool = true, automatic: Bool = false) async {
         let revision = ContentUpdates.shared.revision, scope = refreshScope
+        let followRevision = followMutationRevision
         if refreshGate.prepare(scope: refreshScope, revision: revision) { posts = []; nextCursor = nil; profile = nil }
         guard !isLoadingMore, !isBlockMutating, !isFollowMutating,
               !(automatic && hasLoadedMore && loadedRevision == revision),
@@ -154,12 +156,15 @@ struct PublicProfileView: View {
             guard !Task.isCancelled, scope == refreshScope, revision == ContentUpdates.shared.revision,
                   refreshGate.isCurrent(ticket, scope: scope, revision: revision) else { return }
             let loadedFollowing: Bool
-            if newProfile != nil, case let .signedIn(viewer) = session.phase {
+            if newProfile == nil { loadedFollowing = false }
+            else if automatic { loadedFollowing = following }
+            else if case let .signedIn(viewer) = session.phase {
                 loadedFollowing = try await container.social.isFollowing(targetID: user.id, userID: viewer.id)
             } else { loadedFollowing = false }
             guard !Task.isCancelled, scope == refreshScope, revision == ContentUpdates.shared.revision,
                   refreshGate.isCurrent(ticket, scope: scope, revision: revision) else { return }
-            profile = newProfile; posts = page.posts; nextCursor = page.next; following = loadedFollowing
+            profile = newProfile; posts = page.posts; nextCursor = page.next
+            if followRevision == followMutationRevision { following = loadedFollowing }
             loadedRevision = revision; hasLoadedMore = false; succeeded = true
         } catch {
             guard !Task.isCancelled, scope == refreshScope, revision == ContentUpdates.shared.revision,
@@ -174,7 +179,8 @@ struct PublicProfileView: View {
         guard !isFollowMutating, !isBlockMutating else { return }
         guard case let .signedIn(viewer) = session.phase, container.isBackendConfigured else { return }
         isFollowMutating = true
-        defer { isFollowMutating = false }
+        followMutationRevision += 1
+        defer { isFollowMutating = false; followMutationRevision += 1 }
         do { try await container.social.setFollowing(!following, targetID: user.id, userID: viewer.id); following.toggle() }
         catch { message = String(localized: "Takip durumu güncellenemedi.") }
     }

@@ -15,7 +15,7 @@ struct ArrivalRegionQueryPolicy {
         return fix.distance(from: previous) >= movement
     }
 
-    mutating func recordSuccess(scope: String, fix: CLLocation?, now: TimeInterval) {
+    mutating func record(scope: String, fix: CLLocation?, now: TimeInterval) {
         self.scope = scope; self.fix = fix; refreshedAt = now
     }
 }
@@ -54,8 +54,10 @@ final class ArrivalRegionRefreshCoordinator {
     private(set) var revision = 0
     private var flight: (id: UUID, task: Task<Bool, Never>)?
 
-    func refresh(_ operation: @escaping @MainActor () async -> Bool) async -> Bool {
-        revision += 1
+    var isInFlight: Bool { flight != nil }
+
+    func refresh(invalidating: Bool = true, _ operation: @escaping @MainActor () async -> Bool) async -> Bool {
+        if invalidating || flight == nil { revision += 1 }
         if let flight { return await flight.task.value }
         let id = UUID()
         let task = Task { @MainActor in

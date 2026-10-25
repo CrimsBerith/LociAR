@@ -7,6 +7,7 @@ struct MapFeatureView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.contentRefreshAllowed) private var presentationAllowed
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(\.modelContext) private var modelContext
@@ -44,7 +45,7 @@ struct MapFeatureView: View {
     }
 
     private var mayFetchMap: Bool {
-        isVisible && scenePhase == .active && router.selectedTab == .map
+        isVisible && scenePhase == .active && router.selectedTab == .map && presentationAllowed
             && !showCreate && !showPlaceNote && selectedMapGroup == nil && !showCameraUnlock
     }
 

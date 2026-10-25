@@ -56,10 +56,12 @@ struct MainTabView: View {
                 .tag(AppRouter.Tab.profile)
                 .accessibilityIdentifier("tab-profile")
         }
+        .environment(\.contentRefreshAllowed, !createPresented.wrappedValue && deepLinkedPost == nil && !UITestFixtures.openPostDirectly)
         .tint(LociTheme.accent)
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .sheet(isPresented: createPresented) {
+            Group {
             if user.isAnonymousAccount {
                 NavigationStack {
                     AccountRequiredView()
@@ -68,6 +70,8 @@ struct MainTabView: View {
             } else {
                 CreatePostView(anchor: UITestFixtures.editorPreviewEnabled ? UITestFixtures.anchor : nil)
             }
+            }
+            .environment(\.contentRefreshAllowed, true)
         }
         .sheet(isPresented: Binding(
             get: { UITestFixtures.openPostDirectly },
@@ -76,11 +80,13 @@ struct MainTabView: View {
             NavigationStack {
                 PostPreviewView(post: UITestFixtures.post)
             }
+            .environment(\.contentRefreshAllowed, true)
         }
         .sheet(item: $deepLinkedPost) { post in
             NavigationStack {
                 PostPreviewView(post: post)
             }
+            .environment(\.contentRefreshAllowed, true)
         }
         .onChange(of: router.pendingPostID, initial: true) { _, postID in
             guard let postID else { return }

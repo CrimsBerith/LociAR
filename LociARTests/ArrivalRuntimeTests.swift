@@ -362,7 +362,7 @@ final class ArrivalRefreshConcurrencyTests: XCTestCase {
         for minute in 0..<60 {
             let time = Double(minute * 60)
             if policy.needsRefresh(scope: "user|notes", fix: fix, now: time) {
-                calls += 1; policy.recordSuccess(scope: "user|notes", fix: fix, now: time)
+                calls += 1; policy.record(scope: "user|notes", fix: fix, now: time)
             }
         }
         XCTAssertEqual(calls, 12, "60 identical minute ticks need 12 discovery batches, not 60")
@@ -374,14 +374,14 @@ final class ArrivalRefreshConcurrencyTests: XCTestCase {
         let nearby = CLLocation(coordinate: .init(latitude: 41.0001, longitude: 29), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: Date())
         let moved = CLLocation(coordinate: .init(latitude: 41.003, longitude: 29), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: Date())
         XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: here, now: 0))
-        policy.recordSuccess(scope: "user|notes", fix: here, now: 0)
+        policy.record(scope: "user|notes", fix: here, now: 0)
         XCTAssertFalse(policy.needsRefresh(scope: "user|notes", fix: nearby, now: 299))
         XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: nearby, now: 300))
         XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: moved, now: 60))
         XCTAssertTrue(policy.needsRefresh(scope: "other-user|notes", fix: here, now: 60))
         XCTAssertTrue(policy.needsRefresh(scope: "user|promotions", fix: here, now: 60))
         XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: here, now: -1))
-        policy.recordSuccess(scope: "user|notes", fix: nil, now: 0)
+        policy.record(scope: "user|notes", fix: nil, now: 0)
         XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: here, now: 60))
     }
 
@@ -389,11 +389,56 @@ final class ArrivalRefreshConcurrencyTests: XCTestCase {
         var policy = ArrivalRegionQueryPolicy()
         let here = CLLocation(coordinate: .init(latitude: 41, longitude: 29), altitude: 0, horizontalAccuracy: 500, verticalAccuracy: 5, timestamp: Date())
         let noisy = CLLocation(coordinate: .init(latitude: 41.003, longitude: 29), altitude: 0, horizontalAccuracy: 500, verticalAccuracy: 5, timestamp: Date())
-        policy.recordSuccess(scope: "same", fix: here, now: 0)
+        policy.record(scope: "same", fix: here, now: 0)
         XCTAssertFalse(policy.needsRefresh(scope: "same", fix: noisy, now: 60))
         XCTAssertTrue(policy.needsRefresh(scope: "same", fix: here, now: 300))
         // An unsuccessful fetch must not call recordSuccess.
         XCTAssertTrue(policy.needsRefresh(scope: "same", fix: here, now: 301))
+    }
+
+
+    @MainActor
+    func testSixIdenticalRoutineRefreshesJoinOneNetworkRound() async {
+        let coordinator = ArrivalRegionRefreshCoordinator(), gate = ArrivalTestGate()
+        var calls = 0
+        let first = Task { @MainActor in await coordinator.refresh(invalidating: false) {
+            calls += 1; await gate.pause(); return true
+        } }
+        await gate.waitUntilPaused()
+        let revision = coordinator.revision
+        var waiting = 0
+        let others = (0..<5).map { _ in Task { @MainActor in
+            waiting += 1
+            return await coordinator.refresh(invalidating: false) { XCTFail("must join the existing request"); return false }
+        } }
+        while waiting < 5 { await Task.yield() }
+        XCTAssertEqual(coordinator.revision, revision)
+        gate.release()
+        let result = await first.value
+        XCTAssertTrue(result)
+        for task in others { let joined = await task.value; XCTAssertTrue(joined) }
+        XCTAssertEqual(calls, 1)
+    }
+
+    @MainActor
+    func testForcedPushDuringRoutineRefreshStillRequestsAndPublishesANewRound() async {
+        let coordinator = ArrivalRegionRefreshCoordinator(), gate = ArrivalTestGate()
+        var calls = 0, published: [Int] = []
+        let first = Task { @MainActor in await coordinator.refresh(invalidating: false) {
+            calls += 1
+            let revision = coordinator.revision
+            if calls == 1 { await gate.pause() }
+            if revision == coordinator.revision { published.append(calls) }
+            return true
+        } }
+        await gate.waitUntilPaused()
+        let revision = coordinator.revision
+        let push = Task { @MainActor in await coordinator.refresh { XCTFail("must reuse the queued operation"); return false } }
+        while coordinator.revision == revision { await Task.yield() }
+        gate.release()
+        let a = await first.value, b = await push.value
+        XCTAssertTrue(a); XCTAssertTrue(b)
+        XCTAssertEqual(calls, 2); XCTAssertEqual(published, [2])
     }
 
 }

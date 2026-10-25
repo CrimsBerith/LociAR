@@ -41,6 +41,7 @@ struct PostPreviewView: View {
     @State private var isLoadingOlderComments = false
     @State private var commentsFailed = false
     @State private var commentsLoadID = UUID()
+    @State private var commentMutationRevision = 0
     @State private var commentText = ""
     @State private var saved = false
     @State private var liked = false
@@ -304,7 +305,8 @@ struct PostPreviewView: View {
         .onChange(of: ContentUpdates.shared.revision) { _, value in
             if loadedRevision != value { comments = []; olderCommentsCursor = nil }
         }
-        .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.revision) { opening in
+        .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.revision,
+                               enabled: !showAR && !showCollectionPicker && !showAccountCreation && !showPostSupport) { opening in
             await load(force: false, automatic: !opening)
         }
         .refreshable { await load() }
@@ -404,6 +406,8 @@ struct PostPreviewView: View {
     private func deleteComment(_ comment: LociComment) async {
         guard container.isBackendConfigured || session.isLocalPreview else { return }
         let viewerID = commentViewerID
+        commentMutationRevision += 1
+        defer { commentMutationRevision += 1 }
         do {
             try await container.social.deleteComment(id: comment.id)
             guard !Task.isCancelled, commentViewerID == viewerID else { return }
@@ -427,6 +431,8 @@ struct PostPreviewView: View {
               let ticket = refreshGate.begin(scope: refreshScope, revision: revision, force: force) else { return }
         let requestID = ticket.id
         let viewerID = commentViewerID
+        let mutationRevision = commentMutationRevision
+        let likeRevision = likeTaps, saveRevision = saveTaps
         commentsLoadID = requestID
         if loadedRevision != nil && loadedRevision != revision { comments = []; olderCommentsCursor = nil }
         var succeeded = false
@@ -441,7 +447,8 @@ struct PostPreviewView: View {
         }
         if !post.isLocked { await recordViewIfNeeded() }
         if post.sponsorship != nil { succeeded = true; return }
-        guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+        guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision,
+              mutationRevision == commentMutationRevision else { return }
         if UITestFixtures.sampleContentEnabled {
             comments = UITestFixtures.comments
             collections = []; loadedRevision = revision; succeeded = true
@@ -451,21 +458,25 @@ struct PostPreviewView: View {
         if !post.isLocked {
         do {
             let page = try await container.social.commentPage(for: post.id, before: nil)
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision,
+                  mutationRevision == commentMutationRevision else { return }
             comments = LociComment.merging([], with: page.comments)
             olderCommentsCursor = page.olderCursor
         } catch {
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision,
+                  mutationRevision == commentMutationRevision else { return }
             commentsFailed = true; failure = error
             if let backend = error as? BackendCallError, case .rejected = backend { comments = []; olderCommentsCursor = nil }
         }
         }
-        if case let .signedIn(user) = session.phase {
+        if !automatic, case let .signedIn(user) = session.phase {
             async let membership = container.social.membership(postID: post.id, userID: user.id)
             let membershipResult = try? await membership
             guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
-            saved = membershipResult?.saved ?? false
-            liked = membershipResult?.liked ?? false
+            if let membershipResult {
+                if saveTaps == saveRevision { saved = membershipResult.saved }
+                if likeTaps == likeRevision { liked = membershipResult.liked }
+            }
         }
         loadedRevision = revision; hasLoadedOlder = false; succeeded = !commentsFailed
     }
@@ -502,18 +513,21 @@ struct PostPreviewView: View {
         defer { paginationGate.finish(pageTicket, succeeded: pageSucceeded, error: pageFailure) }
         let requestID = commentsLoadID
         let viewerID = commentViewerID
+        let mutationRevision = commentMutationRevision
         isLoadingOlderComments = true
         message = nil
         defer { if commentsLoadID == requestID { isLoadingOlderComments = false } }
         do {
             let page = try await container.social.commentPage(for: post.id, before: cursor)
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision,
+                  mutationRevision == commentMutationRevision else { return }
             pageSucceeded = true
             hasLoadedOlder = true
             comments = LociComment.merging(comments, with: page.comments)
             olderCommentsCursor = page.olderCursor
         } catch {
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision,
+                  mutationRevision == commentMutationRevision else { return }
             pageFailure = error
             message = String(localized: "Yorumlar şu anda yüklenemiyor. Tekrar dene.")
         }
@@ -567,7 +581,8 @@ struct PostPreviewView: View {
         let cleanText = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanText.isEmpty, cleanText.count <= 500 else { message = String(localized: "Yorum en fazla 500 karakter olabilir."); return }
         isCommentSending = true
-        defer { isCommentSending = false }
+        commentMutationRevision += 1
+        defer { isCommentSending = false; commentMutationRevision += 1 }
         do {
             let comment = try await container.social.addComment(postID: post.id, user: user, text: cleanText)
             guard !Task.isCancelled, commentViewerID == user.id else { return }

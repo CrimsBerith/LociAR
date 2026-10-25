@@ -334,8 +334,20 @@ extension View {
     }
 }
 
+private struct ContentRefreshAllowedKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var contentRefreshAllowed: Bool {
+        get { self[ContentRefreshAllowedKey.self] }
+        set { self[ContentRefreshAllowedKey.self] = newValue }
+    }
+}
+
 private struct VisibleContentRefresh: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.contentRefreshAllowed) private var presentationAllowed
     @Environment(AppContainer.self) private var container
     @State private var visible = false
     @State private var connectionWake = UUID()
@@ -347,7 +359,8 @@ private struct VisibleContentRefresh: ViewModifier {
 
     private struct Activation: Equatable { let active: Bool; let scope: String; let revision: UUID; let connection: UUID }
     func body(content: Content) -> some View {
-        let activation = Activation(active: visible && scenePhase == .active && enabled, scope: scope, revision: revision, connection: connectionWake)
+        let activation = Activation(active: visible && scenePhase == .active && enabled && presentationAllowed,
+                                    scope: scope, revision: revision, connection: connectionWake)
         content
             .onAppear { visible = true }
             .onDisappear { visible = false }

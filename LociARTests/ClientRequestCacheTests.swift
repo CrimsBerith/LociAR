@@ -237,4 +237,14 @@ final class ClientRequestCacheTests: XCTestCase {
         XCTAssertNil(gate.begin(scope: "viewer", revision: revision, force: true))
     }
 
+
+    func testLatePermissionErrorCannotBlockANewerContentRevision() throws {
+        let clock = Clock(), gate = ScreenRefreshGate(now: { clock.time }), oldRevision = UUID(), latest = UUID()
+        let old = try XCTUnwrap(gate.begin(scope: "viewer|comments", revision: oldRevision))
+        gate.prepare(scope: "viewer|comments", revision: latest)
+        gate.finish(old, succeeded: false, error: BackendCallError.rejected(code: 7, message: "Old denial", reason: nil))
+        clock.time = 5
+        XCTAssertNotNil(gate.begin(scope: "viewer|comments", revision: latest))
+    }
+
 }
