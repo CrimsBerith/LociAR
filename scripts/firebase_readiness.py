@@ -242,7 +242,7 @@ def _check_storage(clean: dict, expected: dict, project_ids: set[str], fail) -> 
         fail('lifecycle_missing', prefix, 'Legacy prefix must have a Delete lifecycle rule at age 30 with no extra conditions.')
 
 
-def _check_secrets(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+def _check_secrets(clean: dict, project_ids: set[str], fail) -> None:
     resources = clean['resources']
     for key, (secret, code, message) in REQUIRED_SECRETS.items():
         if not _collected(clean, key):
@@ -270,6 +270,6 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
         for resource, check in checks:
             if _collected(clean, resource):
                 check(clean, expected, project_ids, fail)
-        _check_secrets(clean, expected, project_ids, fail)
+        _check_secrets(clean, project_ids, fail)
     clean['readiness'] = {'ready': not findings, 'findings': findings}
     return clean
