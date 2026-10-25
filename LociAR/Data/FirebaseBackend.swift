@@ -212,7 +212,11 @@ struct CallableClient: Sendable {
                 try Task.checkCancellation()
                 guard Auth.auth().currentUser?.uid == expectedUID else { throw AuthFlowError.notSignedIn }
                 guard JSONSerialization.isValidJSONObject(result.data) else { throw BackendCallError.invalidResponse }
-                return try JSONSerialization.data(withJSONObject: result.data)
+                let response = try JSONSerialization.data(withJSONObject: result.data)
+                if ["createPost", "createPlaceNote", "deleteOwnPost", "blockPostAuthor", "submitReport"].contains(name) {
+                    await MapRequestCoordinator.shared.invalidate()
+                }
+                return response
             } catch let error as NSError where error.domain == FunctionsErrorDomain {
                 // An expired ID token surfaces as `unauthenticated`; refresh once and retry.
                 if FunctionsErrorCode(rawValue: error.code) == .unauthenticated,

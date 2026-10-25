@@ -124,7 +124,7 @@ struct PushNotificationTarget: Equatable, Sendable {
     init?(recipient: String?, post: String?, activity: String? = nil, focusLat: Double? = nil, focusLng: Double? = nil) {
         guard let recipient, let id = UUID(uuidString: recipient) else { return nil }
         if let post, !post.isEmpty, UUID(uuidString: post) == nil { return nil }
-        if let activity, activity.range(of: "^[A-Za-z0-9_-]{1,200}$", options: .regularExpression) != (activity.startIndex..<activity.endIndex) { return nil }
+        if let activity, !SocialActivity.isValidID(activity) { return nil }
         recipientID = id
         postID = post.flatMap(UUID.init(uuidString:))
         activityID = activity

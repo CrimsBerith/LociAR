@@ -94,7 +94,7 @@ struct ActivityView: View {
             guard isCurrentLoad(requestID, userID: user.id) else { return }
             items = loaded
             isLoading = false
-            let unread = loaded.filter { $0.readAt == nil }.map(\.id)
+            let unread = SocialActivity.unreadIDs(in: loaded)
             guard !unread.isEmpty else { return }
             do {
                 let acknowledged = try await container.social.markActivityRead(ids: unread, for: user.id)
@@ -140,7 +140,7 @@ struct ActivityView: View {
             guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
             var unique = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest }); for item in page.items { unique[item.id] = item }; items = unique.values.sorted { $0.createdAt > $1.createdAt }
             nextCursor = page.next
-            let unread = page.items.filter { $0.readAt == nil }.map(\.id)
+            let unread = SocialActivity.unreadIDs(in: page.items)
             if !unread.isEmpty {
                 do {
                     let acknowledged = try await container.social.markActivityRead(ids: unread, for: viewer.id)

@@ -40,7 +40,8 @@ test('anonymous likes expose a count and an anonymous activity, never a liker or
   const activity = (await owner.call('readActivity')).items.find(item => item.post_id === postId);
   assert.equal(activity.actor_id, null);
   assert.equal(JSON.stringify(activity).includes(liker.luid), false);
-  assert.match(activity.id, /^[a-f0-9]{64}$/);
+  assert.match(activity.id, /^act_[0-9a-f-]{36}$/);
+  assert.equal(activity.id.includes(liker.luid), false);
   await owner.call('markActivityRead', { activityIds: [activity.id] });
   assert.ok((await owner.call('readActivity')).items.find(item => item.id === activity.id).read_at);
   assert.equal((await expectFailure(liker.call('readActivity', { cursor: activity.id }))).code, 'functions/invalid-argument');

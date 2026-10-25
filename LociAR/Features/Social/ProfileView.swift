@@ -55,7 +55,14 @@ struct ProfileView: View {
                 }
                 .accessibilityIdentifier("profile-activity")
                 NavigationLink { CollectionsView() } label: { ProfileLinkRow(title: String(localized: "Koleksiyonlar"), symbol: "square.stack.3d.up.fill", color: .purple) }
+                    .accessibilityIdentifier("profile-collections")
                 NavigationLink { SavedPostsView() } label: { ProfileLinkRow(title: String(localized: "Kaydedilenler"), symbol: "bookmark.fill", color: .blue) }
+                    .accessibilityIdentifier("profile-saved")
+                if !user.isAnonymousAccount {
+                    NavigationLink { SupportEarningsView() } label: {
+                        ProfileLinkRow(title: String(localized: "Kazançlarım"), symbol: "heart.circle", color: LociTheme.accent)
+                    }.accessibilityIdentifier("profile-support-earnings")
+                }
             } header: {
                 profileSectionText("İçerik")
             }

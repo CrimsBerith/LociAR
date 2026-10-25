@@ -125,7 +125,7 @@ struct PublicProfileView: View {
             let (newProfile, page) = try await (loadedProfile, loadedPage)
             profile = newProfile; posts = page.posts; nextCursor = page.next
             if case let .signedIn(viewer) = session.phase {
-                following = (try await container.social.followingIDs(for: viewer.id)).contains(user.id)
+                following = try await container.social.isFollowing(targetID: user.id, userID: viewer.id)
             }
         } catch { message = String(localized: "Profil şu anda yüklenemiyor.") }
     }

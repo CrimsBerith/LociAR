@@ -13,6 +13,13 @@ final class AppSession {
 
     private(set) var phase: Phase = .loading {
         didSet {
+            if !isLocalPreview, case let .signedIn(user) = phase {
+                ClientReadCaches.setViewer(user.id)
+                MapRequestCoordinator.shared.setViewer(user.id)
+            } else {
+                ClientReadCaches.setViewer(nil)
+                MapRequestCoordinator.shared.setViewer(nil)
+            }
             guard backendConfigured else { return }
             if !isLocalPreview, case let .signedIn(user) = phase {
                 NotificationService.shared.setUser(user.id)
@@ -221,10 +228,13 @@ final class AppSession {
 
     func signOut() async {
         operationGeneration += 1
+        ClientReadCaches.setViewer(nil)
+        MapRequestCoordinator.shared.setViewer(nil)
         let shouldSignOutRemotely = !isLocalPreview
         if shouldSignOutRemotely { await NotificationService.shared.prepareForSignOut() }
         isLocalPreview = false
         if shouldSignOutRemotely { await authRepository.signOut() }
+        ClientReadCaches.clear() // Also discard work started while push/Auth sign-out was draining.
         await AvatarURLCache.shared.clear()
         phase = .signedOut
     }

@@ -234,6 +234,7 @@ extension LociEmptyState {
 }
 
 struct LociAvatar: View {
+    @Environment(\.displayScale) private var displayScale
     let handle: String
     var avatarURL: URL? = nil
     var size: CGFloat = 44
@@ -271,10 +272,13 @@ struct LociAvatar: View {
         .accessibilityHidden(true)
         .task(id: avatarURL) {
             storageAvatar = nil
+            let generation = ClientReadCaches.generation
             guard let avatarURL, avatarURL.scheme == "storage" else { return }
             let data = await AvatarURLCache.shared.data(for: avatarURL)
-            guard !Task.isCancelled else { return }
-            storageAvatar = data.flatMap { UIImage(data: $0) }
+            guard !Task.isCancelled, ClientReadCaches.generation == generation else { return }
+            let image = if let data { await AvatarReference.thumbnail(from: data, maxPixelSize: Int((size * displayScale).rounded(.up))) } else { nil as UIImage? }
+            guard !Task.isCancelled, ClientReadCaches.generation == generation else { return }
+            storageAvatar = image
         }
     }
 

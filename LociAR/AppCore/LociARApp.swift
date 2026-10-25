@@ -25,6 +25,7 @@ struct LociARApp: App {
                         container.router.focusMap(focus)
                     }
                     await container.session.bootstrap()
+                    await PostSupportClient.shared.resumeUnfinishedPurchases()
                 }
                 .onOpenURL { url in
                     if AppSession.isAllowedAuthCallback(url) {
@@ -35,6 +36,12 @@ struct LociARApp: App {
                 }
                 .onChange(of: scenePhase, initial: true) { _, phase in
                     UserContextService.shared.setForeground(phase == .active)
+                }
+                .onChange(of: container.session.phase) { _, phase in
+                    if case .signedIn = phase { Task { await PostSupportClient.shared.resumeUnfinishedPurchases() } }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+                    ClientReadCaches.clear()
                 }
         }
         .modelContainer(for: [DraftRecord.self, SyncQueueRecord.self, PreferenceRecord.self])

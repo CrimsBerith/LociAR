@@ -518,10 +518,8 @@ struct ARExperienceView: View {
                 longitude: currentLocation.coordinate.longitude,
                 radiusMeters: 120
             )
-            async let ownRequest = container.posts.myPosts(limit: 50)
             var networkError: Error?
             do { collected.append(contentsOf: try await nearbyRequest) } catch { networkError = error }
-            do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
             if collected.isEmpty, networkError != nil {
                 isDiscovering = false
                 discoveryMessage = String(localized: "Bağlantı kurulamadı. Biraz sonra tekrar dene.")

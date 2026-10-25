@@ -50,6 +50,7 @@ struct RootView: View {
         .preferredColorScheme(.dark)
         .task {
             try? LegacyMigrationCoordinator.run(modelContext: modelContext)
+            try? SyncQueueProcessor.migrateLegacyOwners(in: modelContext)
             await LocalAccountDeletion.resume(in: modelContext)
         }
         .onChange(of: session.phase) { previous, phase in

@@ -87,10 +87,11 @@ final class PinStateMachineTests: XCTestCase {
         XCTAssertFalse(viewerSource?.contains("Yüzeye bağla") == true)
         XCTAssertFalse(viewerSource?.contains("Bu yüzeye bağla") == true)
         // Multi-user world-map relocalization is attempted first, but a failed or timed-out
-        // relocalization must always fall back to aim-assisted reveal, never block the post.
+        // relocalization falls back to aim-assisted reveal while location access remains valid.
         // (Each stage first checks for cancellation, so closing the viewer stops the chain.)
-        let fallback = viewerSource?.range(of: "if await relocalizeFromWorldMap() { return }")
-        let reveal = viewerSource?.range(of: "guard !Task.isCancelled else { return }\n                await revealWithAimGuidance()")
+        let openingSource = viewerSource?.components(separatedBy: "private func verifyAndOpen()").last
+        let fallback = openingSource?.range(of: "if await relocalizeFromWorldMap() { return }")
+        let reveal = openingSource?.range(of: "await revealWithAimGuidance()")
         XCTAssertNotNil(fallback)
         XCTAssertNotNil(reveal)
         if let fallback, let reveal { XCTAssertLessThan(fallback.lowerBound, reveal.lowerBound) }

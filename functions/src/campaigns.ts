@@ -19,11 +19,18 @@ export function campaignLive(c: FirebaseFirestore.DocumentData | undefined, now 
 export async function campaignOffer(tx: FirebaseFirestore.Transaction, luid: string, id: string, now = Date.now()) {
   if (!isUUID(id)) return null;
   const [c, target, pref] = await tx.getAll(db.collection('campaigns').doc(id), db.collection('campaign_targets').doc(`${id}_${luid}`), db.collection('user_data_preferences').doc(luid));
-  if (!campaignLive(c.data(), now) || target.get('state') !== 'assigned' || pref.get('promotions') !== true || !c.get('post_projection')
+  if (pref.get('promotions') !== true) return null;
+  return await offerFromSnapshots(tx, luid, c, target, now, false);
+}
+
+/** Only snapshots from this transaction may be shared; never reuse authorization across calls. */
+async function offerFromSnapshots(tx: FirebaseFirestore.Transaction, luid: string,
+  c: FirebaseFirestore.DocumentSnapshot, target: FirebaseFirestore.DocumentSnapshot, now: number, callerChecked: boolean) {
+  if (!campaignLive(c.data(), now) || target.get('state') !== 'assigned' || !c.get('post_projection')
       || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now) return null;
   const brand = await tx.get(db.collection('brands').doc(c.get('brand_id')));
   if (brand.get('status') !== 'active') return null;
-  await requireActiveAccount(tx, luid);
+  if (!callerChecked) await requireActiveAccount(tx, luid);
   const [author, deletion] = await tx.getAll(db.collection('profiles').doc(brand.get('author_luid')), accountDeletionRef(brand.get('author_luid')));
   if (profileBlock(author.data()) || deletion.exists) return null;
   if (await identityBlocked(luid, brand.get('author_luid'), tx)) return null;
@@ -36,10 +43,15 @@ export async function campaignOffer(tx: FirebaseFirestore.Transaction, luid: str
 export async function ownCampaignOffers(luid: string, lat: number, lng: number, radius: number) {
   return await db.runTransaction(async tx => {
     await requireActiveAccount(tx, luid);
+    if ((await tx.get(db.collection('user_data_preferences').doc(luid))).get('promotions') !== true) return [];
     const assignments = await tx.get(db.collection('campaign_targets').where('owner_luid', '==', luid).where('expires_at', '>', Timestamp.now()).limit(50));
     const offers: Array<NonNullable<Awaited<ReturnType<typeof campaignOffer>>>> = [];
     await forEachSequential(assignments.docs, async (assignment) => {
-      const offer = await campaignOffer(tx, luid, assignment.get('campaign_id'));
+      const id = assignment.get('campaign_id');
+      if (!isUUID(id)) return;
+      const offer = assignment.id === `${id}_${luid}`
+        ? await offerFromSnapshots(tx, luid, await tx.get(db.collection('campaigns').doc(id)), assignment, Date.now(), true)
+        : await campaignOffer(tx, luid, id);
       if (offer) {
         const pose = JSON.parse(offer.pose_json);
         if (distanceMeters(lat, lng, pose.latitude, pose.longitude) <= radius) offers.push(offer);

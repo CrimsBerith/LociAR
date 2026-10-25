@@ -100,15 +100,20 @@ final class AuthGateUITests: XCTestCase {
         app.launchArguments += [
             "UITEST_AUTHENTICATED",
             "-UIPreferredContentSizeCategoryName",
-            "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge"
+            UIContentSizeCategory.accessibilityExtraExtraExtraLarge.rawValue
         ]
         app.launch()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5))
         app.tabBars.buttons["Profil"].tap()
-        XCTAssertTrue(app.staticTexts["Kaydedilenler"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Gizlilik ve güvenlik"].exists)
-        app.swipeUp()
-        XCTAssertTrue(app.staticTexts["Hesap silme işlemi geri alınamaz."].waitForExistence(timeout: 3))
+        let saved = app.staticTexts["Kaydedilenler"]
+        scrollUntilHittable(saved, in: app, maxSwipes: 10)
+        XCTAssertTrue(saved.waitForExistence(timeout: 3))
+        let privacy = app.staticTexts["Gizlilik ve güvenlik"]
+        scrollUntilHittable(privacy, in: app, maxSwipes: 10)
+        XCTAssertTrue(privacy.exists)
+        let deletionWarning = app.staticTexts["Hesap silme işlemi geri alınamaz."]
+        scrollUntilHittable(deletionWarning, in: app, maxSwipes: 10)
+        XCTAssertTrue(deletionWarning.waitForExistence(timeout: 3))
     }
 
     func testAuthenticatedProfilePassesAutomatedAccessibilityAudit() throws {
@@ -312,6 +317,264 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.buttons["post-like-button"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["post-report"].exists)
         XCTAssertFalse(app.buttons["post-more-menu"].exists)
+        XCTAssertFalse(app.buttons["post-support-button"].exists)
+    }
+
+    func testSupportOpensFromRightmostPostActionWithoutShowingAnAuthorOrFakePayment() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY"]
+        app.launch()
+        let support = app.buttons["post-support-button"]
+        scrollUntilHittable(support, in: app)
+        XCTAssertTrue(support.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(support.frame.midX, app.buttons["post-like-button"].frame.midX)
+        XCTAssertGreaterThan(support.frame.midX, app.buttons["post-save-button"].frame.midX)
+        XCTAssertGreaterThanOrEqual(support.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(support.frame.height, 44)
+        capture(app, name: "support-rightmost-action")
+        support.tap()
+        XCTAssertTrue(app.navigationBars["Yazara destek ol"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Destek ödemeleri henüz kullanıma açık değil."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Desteğinin %72’si yazara ayrılır. Kalan tutar ödeme ve platform masraflarını karşılar."].exists)
+        XCTAssertTrue(app.staticTexts["Yazarın kimliği ve ödeme hesabı paylaşılmaz."].exists)
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        capture(app, name: "support-unconfigured-state")
+        app.buttons["Tekrar dene"].tap()
+        XCTAssertTrue(app.staticTexts["Destek ödemeleri henüz kullanıma açık değil."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        app.buttons["Kapat"].tap()
+        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+    }
+
+    func testSupportUnavailableStateRemainsUsableAtAccessibilityXXXL() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT",
+                               "UITEST_OPEN_POST_DIRECTLY", "-UIPreferredContentSizeCategoryName",
+                               UIContentSizeCategory.accessibilityExtraExtraExtraLarge.rawValue]
+        app.launch()
+        let support = app.buttons["post-support-button"]
+        scrollUntilHittable(support, in: app, maxSwipes: 10)
+        XCTAssertTrue(support.isHittable)
+        support.tap()
+        XCTAssertTrue(app.navigationBars["Yazara destek ol"].waitForExistence(timeout: 5))
+        let retry = app.buttons["Tekrar dene"]
+        scrollUntilHittable(retry, in: app, maxSwipes: 10)
+        XCTAssertTrue(retry.isHittable)
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        capture(app, name: "support-accessibility-xxxl")
+        app.buttons["Kapat"].tap()
+        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+    }
+
+    func testSupportEarningsShowsUnavailableInsteadOfAnInventedBalance() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED"]
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5))
+        app.tabBars.buttons["Profil"].tap()
+        let earnings = app.buttons["profile-support-earnings"]
+        scrollUntilHittable(earnings, in: app)
+        XCTAssertTrue(earnings.isHittable)
+        earnings.tap()
+        XCTAssertTrue(app.navigationBars["Kazançlarım"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Destek tutarının %72’si yazar kazancı olarak kaydedilir."].exists)
+        XCTAssertTrue(app.staticTexts["Destek ödemeleri henüz kullanıma açık değil."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Henüz destek kazancın yok."].exists)
+        XCTAssertFalse(app.staticTexts["Bekleyen kazanç"].exists)
+        capture(app, name: "support-earnings-unavailable")
+    }
+
+    func testSupportRestoresPendingAfterRelaunchWithoutNeedingThePriceCatalog() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
+                               "UITEST_SUPPORT_PENDING", "UITEST_SUPPORT_CATALOG_UNAVAILABLE"]
+        for launch in 0..<2 {
+            app.launch()
+            let support = app.buttons["post-support-button"]
+            scrollUntilHittable(support, in: app)
+            support.tap()
+            XCTAssertTrue(app.buttons["support-check-status"].waitForExistence(timeout: 5))
+            XCTAssertFalse(app.buttons["support-pay"].exists)
+            app.buttons["support-check-status"].tap()
+            XCTAssertFalse(app.buttons["support-pay"].exists)
+            capture(app, name: "support-recovered-pending-\(launch)")
+            app.terminate()
+        }
+    }
+
+    func testSupportAllowsANewAttemptOnlyAfterProviderConfirmedExpiry() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
+                               "UITEST_SUPPORT_PENDING", "UITEST_SUPPORT_EXPIRED"]
+        app.launch()
+        let support = app.buttons["post-support-button"]
+        scrollUntilHittable(support, in: app)
+        support.tap()
+        XCTAssertTrue(app.staticTexts["Ödeme süresi doldu. Yeniden destek gönderebilirsin."].waitForExistence(timeout: 5))
+        let pay = app.buttons["support-pay"]
+        scrollUntilHittable(pay, in: app)
+        XCTAssertTrue(pay.isEnabled)
+        XCTAssertFalse(app.buttons["support-check-status"].exists)
+        capture(app, name: "support-provider-confirmed-expiry")
+    }
+
+    func testPendingSupportCannotResumeExternalCheckoutOutsideTheAllowedStorefront() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
+                               "UITEST_SUPPORT_PENDING", "UITEST_SUPPORT_FOREIGN_STOREFRONT"]
+        app.launch()
+        let support = app.buttons["post-support-button"]
+        scrollUntilHittable(support, in: app)
+        support.tap()
+        XCTAssertTrue(app.buttons["support-check-status"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["support-resume"].exists)
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        capture(app, name: "support-pending-outside-us-storefront")
+    }
+
+    func testSupportStripeTimeoutRecoversWithoutAnotherPayButton() {
+        assertSupportTimeoutRecovers(scenario: "checkout_timeout_stripe")
+    }
+
+    func testSupportCryptoTimeoutRecoversWithoutAnotherInvoice() {
+        assertSupportTimeoutRecovers(scenario: "checkout_timeout_crypto")
+    }
+
+    private func assertSupportTimeoutRecovers(scenario: String) {
+        continueAfterFailure = false
+        let app = openSupport(scenario: scenario)
+        let pay = app.buttons["support-pay"]
+        XCTAssertTrue(pay.waitForExistence(timeout: 5))
+        scrollUntilHittable(pay, in: app)
+        XCTAssertTrue(pay.isEnabled)
+        pay.tap()
+        XCTAssertTrue(app.buttons["support-check-status"].waitForExistence(timeout: 5))
+        XCTAssertFalse(pay.exists)
+        XCTAssertFalse(app.staticTexts["Desteğin kaydedildi"].exists)
+        app.buttons["support-check-status"].tap()
+        XCTAssertTrue(app.buttons["support-check-status"].isEnabled)
+        XCTAssertFalse(pay.exists)
+        capture(app, name: scenario)
+        app.buttons["Kapat"].tap()
+        app.buttons["post-support-button"].tap()
+        XCTAssertTrue(app.buttons["support-check-status"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+    }
+
+    func testSupportTimeoutWithFailedRecoveryRequiresReadBeforeNewPayment() {
+        continueAfterFailure = false
+        let app = openSupport(scenario: "checkout_timeout_recovery_unavailable")
+        let pay = app.buttons["support-pay"]
+        XCTAssertTrue(pay.waitForExistence(timeout: 5))
+        scrollUntilHittable(pay, in: app)
+        pay.tap()
+        let retry = app.buttons["Tekrar dene"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertFalse(pay.exists)
+        XCTAssertFalse(app.staticTexts["Desteğin kaydedildi"].exists)
+        retry.tap()
+        XCTAssertTrue(app.buttons["support-check-status"].waitForExistence(timeout: 5))
+        XCTAssertFalse(pay.exists)
+        capture(app, name: "support-timeout-recovery-unavailable")
+    }
+
+    func testSupportShowsSuccessOnlyAfterVerifiedReceipt() {
+        continueAfterFailure = false
+        let app = openSupport(scenario: "confirmed")
+        let check = app.buttons["support-check-status"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Desteğin kaydedildi"].exists)
+        check.tap()
+        XCTAssertTrue(app.staticTexts["Desteğin kaydedildi"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Test ödemesi · gerçek para değildir."].exists)
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        XCTAssertFalse(check.exists)
+        capture(app, name: "support-verified-sandbox-receipt")
+        app.buttons["Nota dön"].tap()
+        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+    }
+
+    func testSupportRestoresCompletedPaymentAndRequiresAnExplicitRepeat() {
+        continueAfterFailure = false
+        let app = openSupport(scenario: "settled_before_launch")
+        XCTAssertTrue(app.staticTexts["Desteğin kaydedildi"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        capture(app, name: "support-completed-before-relaunch")
+        app.terminate()
+        app.launch()
+        let support = app.buttons["post-support-button"]
+        scrollUntilHittable(support, in: app)
+        support.tap()
+        XCTAssertTrue(app.staticTexts["Desteğin kaydedildi"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        app.buttons["support-send-again"].tap()
+        XCTAssertTrue(app.buttons["support-pay"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Desteğin kaydedildi"].exists)
+        capture(app, name: "support-deliberate-repeat")
+        let pay = app.buttons["support-pay"]
+        scrollUntilHittable(pay, in: app)
+        pay.tap()
+        XCTAssertTrue(app.buttons["support-check-status"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        XCTAssertFalse(app.staticTexts["Desteğin kaydedildi"].exists)
+    }
+
+    func testSupportRefundDoesNotShowPaymentSuccessOrAnotherPayButton() {
+        continueAfterFailure = false
+        let app = openSupport(scenario: "refunded")
+        let check = app.buttons["support-check-status"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5))
+        check.tap()
+        XCTAssertTrue(app.staticTexts["Bu destek ödemesi iade edildi."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Desteğin kaydedildi"].exists)
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        XCTAssertFalse(check.exists)
+        capture(app, name: "support-refunded-receipt")
+    }
+
+    func testSupportStatusFailureKeepsTheUnsettledPaymentAndAllowsDismissal() {
+        continueAfterFailure = false
+        let app = openSupport(scenario: "refresh_unavailable")
+        let check = app.buttons["support-check-status"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5))
+        check.tap()
+        XCTAssertTrue(app.staticTexts["Ödeme henüz doğrulanamadı. Tekrar ödeme yapmadan durumunu kontrol et."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        XCTAssertTrue(check.isEnabled)
+        capture(app, name: "support-status-unavailable")
+        app.buttons["Kapat"].tap()
+        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+    }
+
+    func testSupportPendingArabicLocalizationRemainsUsable() {
+        continueAfterFailure = false
+        let app = openSupport(scenario: "refresh_unavailable", language: "ar")
+        let check = app.buttons["support-check-status"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5))
+        scrollUntilHittable(check, in: app)
+        XCTAssertTrue(check.isHittable)
+        XCTAssertNotEqual(check.label, "Ödeme durumunu kontrol et")
+        XCTAssertFalse(app.buttons["support-pay"].exists)
+        capture(app, name: "support-pending-arabic")
+    }
+
+    private func openSupport(scenario: String, language: String = "tr") -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
+                               "-AppleLanguages", "(\(language))", "-AppleLocale", language == "ar" ? "ar_SA" : "tr_TR"]
+        app.launchEnvironment["UITEST_SUPPORT_SCENARIO"] = scenario
+        app.launch()
+        let support = app.buttons["post-support-button"]
+        scrollUntilHittable(support, in: app)
+        XCTAssertTrue(support.waitForExistence(timeout: 5))
+        support.tap()
+        return app
     }
 
     func testDeviceTranslationKeepsOriginalWhenEngineIsUnavailable() {

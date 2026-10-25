@@ -95,6 +95,16 @@ test('legacy acceptance audit repair preserves a revoked role and never recreate
   assert.equal((await f.role.get()).exists, false);
 });
 
+test('a revoked inviter cannot still grant the pending role', async () => {
+  const f = await fixture();
+  await adminDb().collection('admin_role_assignments').doc(`${f.request.actorId}_analyst`).set({
+    user_id: f.request.actorId, role_key: 'analyst', revoked_at: Timestamp.now(),
+  });
+  assert.equal(await acceptUserInvitation(f.uid, f.identity, f.request.key), 'invite_grantor_revoked');
+  assert.equal((await f.role.get()).exists, false);
+  assert.equal((await f.invite.get()).get('status'), 'sent');
+});
+
 test('deletion tombstones block invite creation and role grants using the canonical Firebase UID mapping', async () => {
   assert.equal(luidForUid('firebase-test-user'), 'd97e1d29-8aa5-5432-8727-a0e4757e92a6');
   const f = await fixture();

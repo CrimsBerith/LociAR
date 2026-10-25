@@ -13,18 +13,19 @@ import { idempotencyKey, parseJson, requiredString } from '../../../../../../lib
 export async function POST(request: Request) {
   const originError = requireSameOrigin(request);
   if (originError) return originError;
-  const access = await requireAdminApi('users.invite');
-  if (!access.ok) return unauthorized(access);
   try {
-    const rateLimitError = await enforceRateLimit(access.context.user.id, 'users.invite', 5, 600);
-    if (rateLimitError) return rateLimitError;
     const body = await parseJson(request);
+    const roleKey = body.roleKey == null ? null : requiredString(body.roleKey, 'roleKey', 3, 80);
+    const permission = roleKey ? 'admin_users.write' : 'users.invite';
+    const access = await requireAdminApi(permission);
+    if (!access.ok) return unauthorized(access);
+    const rateLimitError = await enforceRateLimit(access.context.user.id, permission, 5, 600);
+    if (rateLimitError) return rateLimitError;
     const email = requiredString(body.email, 'email', 3, 320).toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'A valid email is required' }, { status: 400 });
     }
     const handle = body.handle == null ? null : requiredString(body.handle, 'handle', 3, 40);
-    const roleKey = body.roleKey == null ? null : requiredString(body.roleKey, 'roleKey', 3, 80);
     const reason = requiredString(body.reason, 'reason', 8, 1000);
     const key = idempotencyKey(request);
     if (roleKey && (!isKnownRole(roleKey) || roleKey === 'super_admin')) {

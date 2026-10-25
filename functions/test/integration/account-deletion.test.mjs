@@ -45,7 +45,7 @@ test('account deletion propagates a rejected Firestore batch and retries without
   await absentAuth(user);
 });
 
-test('storage failure keeps a durable fence after profile removal and rejects callable resurrection', async () => {
+test('storage failure keeps a durable fence and resumes without repeating the completed Firestore phase', async t => {
   const user = await newUser();
   const file = object(user);
   await file.save(Buffer.from('synthetic-world-map'));
@@ -68,7 +68,12 @@ test('storage failure keeps a durable fence after profile removal and rejects ca
   }
   assert.equal((await adminDb.collection('profiles').doc(user.luid).get()).exists, false);
   assert.equal((await adminDb.collection('users_private').doc(user.luid).get()).exists, false);
+  const collection = adminDb.collection.bind(adminDb);
+  let repeatedPostQueries = 0;
+  t.mock.method(adminDb, 'collection', name => { if (name === 'posts') repeatedPostQueries++; return collection(name); });
   assert.equal(await runAccountDeletion(user.luid), 'done');
+  t.mock.restoreAll();
+  assert.equal(repeatedPostQueries, 0);
   assert.equal((await file.exists())[0], false);
   await absentAuth(user);
   const done = (await jobRef(user).get()).data();

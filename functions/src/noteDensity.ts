@@ -4,7 +4,6 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { db, FieldValue, Timestamp, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, logger } from './core';
 import { isPublicActive } from './counters';
-import { autoApproveNote } from './noteAutomation';
 import { repairSpotCount, syncSpotMembership } from './denseSpots';
 import { refreshArea } from './campaignJourneys';
 import { requireActiveAccount } from './profileGuard';
@@ -81,10 +80,8 @@ export const onPostDensityWritten = onDocumentWritten({ document: 'posts/{postId
   }
   // Phones nearby refresh their regions when a note starts notifying.
   if (after?.push_state === 'approved' && before?.push_state !== 'approved' && typeof after.lat === 'number') await refreshArea(after.lat, after.lng, 3_000);
-  // Likes make a user location note notification-worthy without manual approval.
-  if (after?.note_kind === 'location' && (after.push_state ?? 'none') === 'none' && Number(after.likes_count ?? 0) > Number(before?.likes_count ?? 0)) {
-    await autoApproveNote(event.params.postId);
-  }
+  // Like creation indexes its current edge before checking notification approval. A post
+  // counter event has no edge identity and can race the final concurrent index update.
 });
 
 /**
@@ -114,6 +111,7 @@ export const reconcileNoteDensity = onSchedule({ schedule: 'every day 05:23', ti
  * Only non-empty cells are read through a bounded set of prefix range queries.
  */
 export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 30 }, async request => {
+  const started = Date.now();
   const caller = requireCaller(request), b = request.data as Record<string, unknown>;
   const box = b?.box, precision = b?.precision;
   if (!validBox(box) || typeof precision !== 'number' || !(DENSITY_PRECISIONS as readonly number[]).includes(precision)) throw new HttpsError('invalid-argument', 'Invalid map area');
@@ -129,8 +127,20 @@ export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxI
       const b = geohashBounds(c.cell);
       return b.latMax >= box.minLat && b.latMin <= box.maxLat && b.lngMax >= box.minLng && b.lngMin <= box.maxLng;
     })
-    .map(c => ({ cell: String(c.cell), lat: Number(c.lat), lng: Number(c.lng), count: Number(c.count) }));
-  return { precision, cells: cells.slice(0, 1500), truncated: cells.length > 1500 || pages.some(page => page.size === 500) };
+    .map(c => {
+      // Public coarse heat must never disclose the mean coordinate: one member would expose
+      // its exact location. Keep fine on-map positioning separate from shared heat metadata.
+      const center = precision <= 6 ? geohashBounds(String(c.cell)) : { lat: Number(c.lat), lng: Number(c.lng) };
+      return { cell: String(c.cell), lat: center.lat, lng: center.lng, count: Number(c.count) };
+    });
+  const returned = cells.slice(0, 1500), truncated = cells.length > 1500 || pages.some(page => page.size === 500);
+  // Counts only: never log a viewport, cell ID, fix, author or note content.
+  // Query minima exclude account checks and any billable index-entry reads.
+  logger.info('map_density_query', { precision, queries: pages.length,
+    sourceDocuments: pages.reduce((sum, page) => sum + page.size, 0),
+    minimumQueryReadOperations: pages.reduce((sum, page) => sum + Math.max(1, page.size), 0),
+    returnedCells: returned.length, truncated, elapsedMs: Date.now() - started });
+  return { precision, summaryVersion: 1, cells: returned, truncated };
 });
 
 /**

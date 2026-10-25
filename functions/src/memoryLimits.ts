@@ -1,7 +1,7 @@
 /**
- * Per-instance helpers that cost no Firestore reads or writes (unit-tested). Callables are capped
- * at CALLABLE_MAX_INSTANCES instances, so an effective limit is at most that multiple of the value
- * configured here. Entries are bounded so a burst of distinct keys cannot grow memory without limit.
+ * Per-instance helpers that cost no Firestore reads or writes (unit-tested). These are cheap
+ * local load guards, not a project-wide budget: restarts/scaling replace their state. Entries
+ * are bounded so a burst of distinct keys cannot grow memory without limit.
  */
 
 /**
@@ -13,6 +13,7 @@ export const MEMORY_LIMITS_ENABLED = process.env.FUNCTIONS_EMULATOR !== 'true';
 /** Fixed-window counter per key, for cheap read paths that must not write a quota document. */
 export class WindowLimiter {
   private readonly hits = new Map<string, { window: number; count: number }>();
+  private prunedWindow: number | undefined;
   constructor(private readonly limit: number, private readonly windowMs: number, private readonly maxKeys = 20_000) {}
 
   allow(key: string, now = Date.now()): boolean {
@@ -24,8 +25,13 @@ export class WindowLimiter {
       return true;
     }
     if (!entry && this.hits.size >= this.maxKeys) {
-      for (const [stale, value] of this.hits) if (value.window !== window) this.hits.delete(stale);
-      if (this.hits.size >= this.maxKeys) this.hits.clear();
+      if (this.prunedWindow !== window) {
+        for (const [stale, value] of this.hits) if (value.window !== window) this.hits.delete(stale);
+        this.prunedWindow = window;
+      }
+      // Do not erase active budgets when distinct keys fill memory. Existing keys retain their
+      // own allowance; new keys can retry in the next window, when stale entries make room.
+      if (this.hits.size >= this.maxKeys) return false;
     }
     this.hits.set(key, { window, count: 1 });
     return true;

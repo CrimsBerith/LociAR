@@ -6,6 +6,7 @@ import { requireActiveAccount } from './profileGuard';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
 export const USER_CONTEXT_NOTICE = '2026-10-11';
+export const DEVICE_CONTEXT_HEARTBEAT_MS = 15 * 60_000;
 const preferences = (luid: string) => db.collection('user_data_preferences').doc(luid);
 function summary(data: FirebaseFirestore.DocumentData | undefined) {
   return { ok: true, telemetry: data?.telemetry === true, location: data?.location === true,
@@ -103,25 +104,38 @@ export const recordUserContext = onCall(options, async request => {
     }
     const deviceRef = db.collection('user_device_context').doc(caller.luid);
     const locationRef = db.collection('user_locations').doc(caller.luid);
-    const [oldDevice, oldLocation] = await tx.getAll(deviceRef, locationRef);
+    const [oldDevice, oldLocation] = await Promise.all([
+      device ? tx.get(deviceRef) : undefined, location ? tx.get(locationRef) : undefined,
+    ]);
     const common = { owner_luid: caller.luid, installation_id: body.installationId.toLowerCase(),
       consent_revision: pref.revision, received_at: Timestamp.fromMillis(now) };
     let storedDevice = false, storedLocation = false;
-    if (device && now - (oldDevice.get('received_at')?.toMillis?.() ?? 0) >= 60_000) {
-      const ip = request.rawRequest.ip;
-      tx.set(deviceRef, { ...common, ...device, observed_ip: typeof ip === 'string' && isIP(ip) ? ip : null,
+    const ip = request.rawRequest.ip;
+    const observedIP = typeof ip === 'string' && isIP(ip) ? ip : null;
+    const sameDevice = Boolean(device && oldDevice?.exists && oldDevice.get('installation_id') === common.installation_id
+      && oldDevice.get('consent_revision') === pref.revision && oldDevice.get('observed_ip') === observedIP
+      && Object.entries(device).every(([key, value]) => oldDevice.get(key) === value));
+    const deviceAge = now - (oldDevice?.get('received_at')?.toMillis?.() ?? 0);
+    if (device && deviceAge >= 60_000 && (!sameDevice || deviceAge >= DEVICE_CONTEXT_HEARTBEAT_MS)) {
+      tx.set(deviceRef, { ...common, ...device, observed_ip: observedIP,
         expires_at: Timestamp.fromMillis(now + 30 * 86_400_000) });
-      tx.create(db.collection('analytics_events').doc(randomUUID()), analyticsEventDoc({
-        userId: caller.luid, name: 'app_foreground_context', properties: { installation_id: common.installation_id, app_version: device.app_version },
-      }));
+      // A heartbeat is not a new foreground event. Keep an event for a new consent/session
+      // device or app version instead of writing another analytics row every minute.
+      if (!oldDevice?.exists || oldDevice.get('installation_id') !== common.installation_id
+        || oldDevice.get('consent_revision') !== pref.revision || oldDevice.get('app_version') !== device.app_version
+        || oldDevice.get('app_build') !== device.app_build) {
+        tx.create(db.collection('analytics_events').doc(randomUUID()), analyticsEventDoc({
+          userId: caller.luid, name: 'app_foreground_context', properties: { installation_id: common.installation_id, app_version: device.app_version },
+        }));
+      }
       storedDevice = true;
     }
-    if (location && now - (oldLocation.get('received_at')?.toMillis?.() ?? 0) >= 30_000
-        && location.measuredAt > (oldLocation.get('measured_at')?.toMillis?.() ?? 0)) {
+    if (location && now - (oldLocation?.get('received_at')?.toMillis?.() ?? 0) >= 30_000
+        && location.measuredAt > (oldLocation?.get('measured_at')?.toMillis?.() ?? 0)) {
       tx.set(locationRef, { ...common, lat: location.lat, lng: location.lng, accuracy: location.accuracy,
         measured_at: Timestamp.fromMillis(location.measuredAt), expires_at: Timestamp.fromMillis(now + 86_400_000) });
       storedLocation = true;
     }
-    return { ok: true, storedDevice, storedLocation };
+    return { ok: true, storedDevice, storedLocation, deviceCurrent: Boolean(device && (sameDevice || storedDevice)) };
   });
 });

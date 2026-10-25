@@ -643,143 +643,6 @@
         }
       }
     },
-    "%lld post şu anda yüklenemedi. Yenilemek için aşağı çek." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld post şu anda yüklenemedi. Yenilemek için aşağı çek."
-          }
-        },
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld post can’t be loaded right now. Pull down to refresh."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld posts can’t be loaded right now. Pull down to refresh."
-                }
-              }
-            }
-          }
-        },
-        "de" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Post kann gerade nicht geladen werden. Zum Aktualisieren nach unten ziehen."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Posts können gerade nicht geladen werden. Zum Aktualisieren nach unten ziehen."
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld publicación no se puede cargar ahora. Desliza hacia abajo para actualizar."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld publicaciones no se pueden cargar ahora. Desliza hacia abajo para actualizar."
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld publication ne peut pas être chargée pour le moment. Tirez vers le bas pour actualiser."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld publications ne peuvent pas être chargées pour le moment. Tirez vers le bas pour actualiser."
-                }
-              }
-            }
-          }
-        },
-        "pt" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Não é possível carregar %lld publicação agora. Puxe para baixo para atualizar."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Não é possível carregar %lld publicações agora. Puxe para baixo para atualizar."
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось загрузить публикаций: %lld. Потяните вниз, чтобы обновить."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذر تحميل %lld منشورات. اسحب للأسفل للتحديث."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld पोस्ट लोड नहीं की जा सकीं. ताज़ा करने के लिए नीचे खींचें."
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld পোস্ট লোড করা যায়নি। রিফ্রেশ করতে নিচে টানুন।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 投稿を読み込めませんでした。プルダウンして更新します。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法加载 %lld 个帖子。请下拉刷新。"
-          }
-        }
-      }
-    },
     "%lld yayın var. Birine dokun, sonra nokta atışı yönlendirme başlar." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3073,6 +2936,83 @@
         }
       }
     },
+    "App Store" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store"
+          }
+        }
+      }
+    },
     "Apple ile doğrula ve sil" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3766,6 +3706,83 @@
         }
       }
     },
+    "Banka aktarımı, ödeme hesabı ve mutabakat kurulumu tamamlandığında açılacak." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banka aktarımı, ödeme hesabı ve mutabakat kurulumu tamamlandığında açılacak."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bank transfers will be available once payout account setup and reconciliation are complete."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banküberweisungen sind nach Einrichtung des Auszahlungskontos und Abschluss der Abrechnung verfügbar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las transferencias bancarias estarán disponibles tras configurar la cuenta de cobro y completar la conciliación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les virements seront disponibles après la configuration du compte de versement et le rapprochement des paiements."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As transferências bancárias estarão disponíveis após a configuração da conta de recebimento e a conciliação."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Банковские переводы станут доступны после настройки счёта для выплат и сверки платежей."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ستتاح التحويلات البنكية بعد إعداد حساب استلام الأموال وإتمام المطابقة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भुगतान खाता सेटअप और मिलान पूरा होने के बाद बैंक ट्रांसफ़र उपलब्ध होंगे।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পেমেন্ট গ্রহণের অ্যাকাউন্ট সেটআপ ও হিসাব মেলানো শেষ হলে ব্যাংক ট্রান্সফার চালু হবে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "振込先口座の設定と決済の照合が完了すると、銀行振込が利用可能になります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成收款账户设置和对账后，将开放银行转账。"
+          }
+        }
+      }
+    },
     "Bazı postlar gösterilemiyor" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4378,6 +4395,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标题"
+          }
+        }
+      }
+    },
+    "Bekleyen kazanç" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bekleyen kazanç"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pending earnings"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausstehende Einnahmen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingresos pendientes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revenus en attente"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganhos pendentes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидающие доходы"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأرباح المعلقة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लंबित कमाई"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অপেক্ষমাণ আয়"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留中の収益"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待结算收益"
           }
         }
       }
@@ -6149,6 +6243,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此设备或语言暂不支持翻译。"
+          }
+        }
+      }
+    },
+    "Bu destek ödemesi iade edildi." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu destek ödemesi iade edildi."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This support payment was refunded."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Unterstützungszahlung wurde erstattet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este pago de apoyo se ha reembolsado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce paiement de soutien a été remboursé."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este pagamento de apoio foi reembolsado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот платёж поддержки возвращён."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم رد مبلغ هذا الدعم."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह सहयोग भुगतान वापस कर दिया गया है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই সহায়তার অর্থ ফেরত দেওয়া হয়েছে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この応援の支払いは返金されました。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这笔支持款项已退款。"
           }
         }
       }
@@ -10367,6 +10538,391 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "支持"
+          }
+        }
+      }
+    },
+    "Destek tutarının %72’si yazar kazancı olarak kaydedilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destek tutarının %72’si yazar kazancı olarak kaydedilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% of the support amount is recorded as writer earnings."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% des Unterstützungsbetrags werden als Einnahmen des Verfassers verbucht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El 72% del apoyo se registra como ingresos del autor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% du soutien sont comptabilisés comme revenus de l’auteur."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% do valor do apoio é registrado como ganho do autor."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% суммы поддержки учитывается как доход автора."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يُسجّل 72% من مبلغ الدعم كأرباح للكاتب."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सहायता राशि का 72% लेखक की कमाई के रूप में दर्ज होता है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সহায়তার পরিমাণের 72% লেখকের আয় হিসেবে নথিভুক্ত হয়।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支援額の72%が作者の収益として記録されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持金额的72%计入作者收益。"
+          }
+        }
+      }
+    },
+    "Destek ödemeleri henüz kullanıma açık değil." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destek ödemeleri henüz kullanıma açık değil."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support payments are not available yet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterstützungszahlungen sind noch nicht verfügbar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los pagos de apoyo aún no están disponibles."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les paiements de soutien ne sont pas encore disponibles."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os pagamentos de apoio ainda não estão disponíveis."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Платежи в поддержку авторов пока недоступны."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مدفوعات الدعم غير متاحة بعد."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सहायता भुगतान अभी उपलब्ध नहीं हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সহায়তার পেমেন্ট এখনও চালু হয়নি।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支援の支払いはまだ利用できません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持付款尚未开放。"
+          }
+        }
+      }
+    },
+    "Desteği gönder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desteği gönder"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send support"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterstützung senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar apoyo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer un soutien"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar apoio"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправить поддержку"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إرسال الدعم"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सहायता भेजें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সহায়তা পাঠান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支援を送る"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送支持"
+          }
+        }
+      }
+    },
+    "Desteğin kaydedildi" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desteğin kaydedildi"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your support was recorded"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Unterstützung wurde erfasst"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu apoyo se ha registrado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre soutien a été enregistré"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu apoio foi registrado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваша поддержка учтена"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم تسجيل دعمك"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपकी सहायता दर्ज हो गई"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার সহায়তা নথিভুক্ত হয়েছে"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支援が記録されました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的支持已记录"
+          }
+        }
+      }
+    },
+    "Desteğinin %72’si yazara ayrılır. Kalan tutar ödeme ve platform masraflarını karşılar." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desteğinin %72’si yazara ayrılır. Kalan tutar ödeme ve platform masraflarını karşılar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% of your support goes to the writer. The remainder covers payment and platform costs."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% deiner Unterstützung gehen an den Verfasser. Der Rest deckt Zahlungs- und Plattformkosten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El 72% de tu apoyo corresponde al autor. El resto cubre los costes de pago y de la plataforma."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% de votre soutien reviennent à l’auteur. Le reste couvre les frais de paiement et de plateforme."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% do seu apoio vai para o autor. O restante cobre os custos de pagamento e da plataforma."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "72% вашей поддержки получает автор. Остаток покрывает расходы на платежи и платформу."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يُخصّص 72% من دعمك للكاتب. ويغطي الباقي تكاليف الدفع والمنصة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपकी सहायता का 72% लेखक को मिलता है। शेष राशि भुगतान और प्लेटफ़ॉर्म के खर्चों के लिए है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার সহায়তার 72% লেখক পান। বাকি অংশ পেমেন্ট ও প্ল্যাটফর্মের খরচ মেটায়।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支援額の72%が作者に割り当てられます。残りは決済とプラットフォームの費用に充てられます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持金额的72%分配给作者，其余用于支付和平台费用。"
           }
         }
       }
@@ -16762,6 +17318,83 @@
         }
       }
     },
+    "Henüz destek kazancın yok." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Henüz destek kazancın yok."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have no support earnings yet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast noch keine Einnahmen aus Unterstützung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no tienes ingresos por apoyos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous n’avez pas encore de revenus de soutien."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você ainda não tem ganhos de apoio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас пока нет доходов от поддержки."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ليست لديك أرباح من الدعم بعد."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपको अभी सहायता से कोई कमाई नहीं हुई है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সহায়তা থেকে এখনও আপনার কোনো আয় হয়নি।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支援による収益はまだありません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你还没有收到支持收益。"
+          }
+        }
+      }
+    },
     "Henüz içerik yok" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20381,6 +21014,83 @@
         }
       }
     },
+    "Kartlar, Apple Pay ve diğer uygun yöntemler ödeme sayfasında gösterilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartlar, Apple Pay ve diğer uygun yöntemler ödeme sayfasında gösterilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards, Apple Pay and other eligible methods are shown at checkout."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karten, Apple Pay und weitere verfügbare Methoden werden beim Bezahlen angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las tarjetas, Apple Pay y otros métodos disponibles se muestran al pagar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les cartes, Apple Pay et les autres moyens disponibles sont proposés lors du paiement."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartões, Apple Pay e outros métodos disponíveis são exibidos no pagamento."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Карты, Apple Pay и другие доступные способы будут показаны при оплате."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تظهر البطاقات وApple Pay وطرق الدفع الأخرى المتاحة عند الدفع."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कार्ड, Apple Pay और अन्य उपलब्ध तरीके भुगतान पेज पर दिखेंगे।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কার্ড, Apple Pay ও অন্যান্য উপলব্ধ পদ্ধতি পেমেন্ট পৃষ্ঠায় দেখানো হবে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カード、Apple Payなど利用可能な方法が決済ページに表示されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "银行卡、Apple Pay和其他可用方式将在结账页面显示。"
+          }
+        }
+      }
+    },
     "Kartı açmak için kamerayı dokulu bir duvar, masa veya zemin üzerinde yavaşça gezdir." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20685,83 +21395,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目前无法加载已保存的帖子。"
-          }
-        }
-      }
-    },
-    "Kaydedilen postların bir kısmı yüklenemedi. Yenilemek için aşağı çek." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kaydedilen postların bir kısmı yüklenemedi. Yenilemek için aşağı çek."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Some saved posts couldn’t be loaded. Pull down to refresh."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einige gespeicherte Posts konnten nicht geladen werden. Zum Aktualisieren nach unten ziehen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Algunas publicaciones guardadas no se pudieron cargar. Desliza hacia abajo para actualizar."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Certaines publications enregistrées n’ont pas pu être chargées. Tirez vers le bas pour actualiser."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Algumas publicações salvas não puderam ser carregadas. Puxe para baixo para atualizar."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Некоторые сохранённые посты не загрузились. Потяните вниз, чтобы обновить."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذّر تحميل بعض المنشورات المحفوظة. اسحب لأسفل للتحديث."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "कुछ सहेजी गई पोस्ट लोड नहीं हो सकीं। रीफ़्रेश करने के लिए नीचे खींचें।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "কিছু সংরক্ষিত পোস্ট লোড করা যায়নি। রিফ্রেশ করতে নিচে টানুন।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "一部の保存した投稿を読み込めませんでした。下に引っ張って更新してください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "部分收藏的帖子无法加载。下拉以刷新。"
           }
         }
       }
@@ -21917,6 +22550,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "注册后，请使用发送到您电子邮箱的链接验证账户。"
+          }
+        }
+      }
+    },
+    "Kazançlarım" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kazançlarım"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My earnings"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Einnahmen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mis ingresos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mes revenus"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meus ganhos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мои доходы"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أرباحي"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मेरी कमाई"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আমার আয়"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "収益"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的收益"
           }
         }
       }
@@ -26387,6 +27097,83 @@
         }
       }
     },
+    "Kripto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kripto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crypto"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krypto"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cripto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crypto"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cripto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Криптовалюта"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "العملات المشفرة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रिप्टो"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্রিপ্টো"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暗号資産"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加密货币"
+          }
+        }
+      }
+    },
     "Kullanıcı Adı" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28924,6 +29711,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "笔记密度"
+          }
+        }
+      }
+    },
+    "Nota dön" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota dön"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to note"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zur Notiz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a la nota"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retour à la note"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voltar à nota"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуться к заметке"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "العودة إلى الملاحظة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट पर लौटें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোটে ফিরুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートに戻る"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回笔记"
+          }
+        }
+      }
+    },
+    "Notlar ücretsizdir. Destek göndermek görünürlüğü veya sıralamayı değiştirmez." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notlar ücretsizdir. Destek göndermek görünürlüğü veya sıralamayı değiştirmez."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are free. Sending support does not change visibility or ranking."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizen sind kostenlos. Unterstützung verändert weder Sichtbarkeit noch Rangfolge."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las notas son gratuitas. El apoyo no cambia la visibilidad ni la clasificación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les notes sont gratuites. Le soutien ne modifie ni la visibilité ni le classement."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As notas são gratuitas. O apoio não altera a visibilidade nem a classificação."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметки бесплатны. Поддержка не влияет на видимость или рейтинг."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الملاحظات مجانية. إرسال الدعم لا يغيّر الظهور أو الترتيب."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट मुफ़्त हैं। सहायता भेजने से दृश्यता या रैंकिंग नहीं बदलती।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট বিনামূল্যে পড়া যায়। সহায়তা পাঠালে দৃশ্যমানতা বা ক্রম বদলায় না।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートは無料です。支援しても表示範囲や順位は変わりません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "笔记免费阅读。发送支持不会改变可见范围或排名。"
           }
         }
       }
@@ -35242,6 +36183,83 @@
         }
       }
     },
+    "Stripe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stripe"
+          }
+        }
+      }
+    },
     "Sunucu bağlantısı henüz hazır değil." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37163,6 +38181,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在表面上缓慢移动手机..."
+          }
+        }
+      }
+    },
+    "Test ödemesi · gerçek para değildir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test ödemesi · gerçek para değildir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test payment · not real money."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testzahlung · kein echtes Geld."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pago de prueba · no es dinero real."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paiement de test · aucun argent réel."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagamento de teste · não é dinheiro real."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тестовый платёж · не настоящие деньги."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دفعة تجريبية · ليست أموالاً حقيقية."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "परीक्षण भुगतान · असली पैसे नहीं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরীক্ষামূলক পেমেন্ট · আসল টাকা নয়।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テスト決済 · 実際のお金ではありません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试付款 · 不是真实资金。"
           }
         }
       }
@@ -40016,6 +41111,83 @@
         }
       }
     },
+    "Yalnızca sen görebilirsin." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca sen görebilirsin."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you can see this."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur du kannst dies sehen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo tú puedes verlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous seul pouvez voir ces informations."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Somente você pode ver isto."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это видно только вам."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يمكنك أنت فقط رؤية ذلك."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इसे केवल आप देख सकते हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শুধু আপনিই এটি দেখতে পারবেন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分だけが閲覧できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅你可见。"
+          }
+        }
+      }
+    },
     "Yasal" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -40859,6 +42031,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索帖子"
+          }
+        }
+      }
+    },
+    "Yazara destek ol" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yazara destek ol"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support the writer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfasser unterstützen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apoyar al autor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soutenir l’auteur"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apoiar o autor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поддержать автора"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دعم الكاتب"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लेखक को सहायता दें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেখককে সহায়তা করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作者を支援する"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持作者"
+          }
+        }
+      }
+    },
+    "Yazarın kimliği ve ödeme hesabı paylaşılmaz." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yazarın kimliği ve ödeme hesabı paylaşılmaz."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The writer’s identity and payout account are not shared."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Identität und das Auszahlungskonto des Verfassers werden nicht geteilt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se comparte la identidad ni la cuenta de cobro del autor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’identité et le compte de versement de l’auteur ne sont pas partagés."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A identidade e a conta de recebimento do autor não são compartilhadas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Личность автора и его счёт для выплат не раскрываются."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تتم مشاركة هوية الكاتب أو حساب استلام أمواله."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लेखक की पहचान और भुगतान खाता साझा नहीं किए जाते।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেখকের পরিচয় ও পেমেন্ট গ্রহণের অ্যাকাউন্ট প্রকাশ করা হয় না।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作者の身元と振込先口座は共有されません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作者身份和收款账户不会被公开。"
           }
         }
       }
@@ -48559,6 +49885,468 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出登录"
+          }
+        }
+      }
+    },
+    "Ödeme durumunu kontrol et" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ödeme durumunu kontrol et"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check payment status"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahlungsstatus prüfen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consultar estado del pago"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier le statut du paiement"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consultar status do pagamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить статус платежа"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التحقق من حالة الدفع"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भुगतान की स्थिति देखें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পেমেন্টের অবস্থা দেখুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支払い状況を確認"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看付款状态"
+          }
+        }
+      }
+    },
+    "Ödeme henüz doğrulanamadı. Tekrar ödeme yapmadan durumunu kontrol et." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ödeme henüz doğrulanamadı. Tekrar ödeme yapmadan durumunu kontrol et."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your payment has not been verified yet. Check its status before paying again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Zahlung wurde noch nicht bestätigt. Prüfe den Status, bevor du erneut zahlst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El pago aún no se ha verificado. Consulta su estado antes de volver a pagar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le paiement n’a pas encore été vérifié. Vérifiez son statut avant de payer à nouveau."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O pagamento ainda não foi verificado. Consulte o status antes de pagar novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Платёж ещё не подтверждён. Проверьте статус перед повторной оплатой."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يتم التحقق من الدفع بعد. تحقّق من حالته قبل الدفع مجددًا."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भुगतान अभी सत्यापित नहीं हुआ है। दोबारा भुगतान करने से पहले उसकी स्थिति देखें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পেমেন্ট এখনও যাচাই করা হয়নি। আবার পেমেন্ট করার আগে অবস্থা দেখুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支払いはまだ確認されていません。再度支払う前に状況を確認してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "付款尚未验证。再次付款前请先查看状态。"
+          }
+        }
+      }
+    },
+    "Ödeme süresi doldu. Yeniden destek gönderebilirsin." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ödeme süresi doldu. Yeniden destek gönderebilirsin."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The payment session expired. You can send support again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Zahlungssitzung ist abgelaufen. Du kannst erneut unterstützen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sesión de pago ha caducado. Puedes volver a enviar apoyo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La session de paiement a expiré. Tu peux renouveler ton soutien."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sessão de pagamento expirou. Podes enviar apoio novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Срок действия платёжной сессии истёк. Можно отправить поддержку снова."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انتهت صلاحية جلسة الدفع. يمكنك إرسال الدعم مجددًا."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भुगतान सत्र की समयसीमा समाप्त हो गई है। आप फिर से सहयोग कर सकते हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পেমেন্ট সেশনের মেয়াদ শেষ হয়েছে। আপনি আবার সহায়তা পাঠাতে পারেন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "決済セッションの有効期限が切れました。もう一度応援できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支付会话已过期。你可以重新支持作者。"
+          }
+        }
+      }
+    },
+    "Ödeme yöntemi" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ödeme yöntemi"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment method"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahlungsmethode"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Método de pago"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moyen de paiement"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forma de pagamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Способ оплаты"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "طريقة الدفع"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भुगतान का तरीका"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পেমেন্ট পদ্ধতি"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支払い方法"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "付款方式"
+          }
+        }
+      }
+    },
+    "Ödemenin onayı bekleniyor. Tekrar ödeme yapmana gerek yok." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ödemenin onayı bekleniyor. Tekrar ödeme yapmana gerek yok."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your payment is awaiting confirmation. You do not need to pay again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Zahlung wartet auf Bestätigung. Du musst nicht erneut zahlen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El pago está pendiente de confirmación. No tienes que volver a pagar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le paiement attend une confirmation. Vous n’avez pas besoin de payer à nouveau."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O pagamento aguarda confirmação. Você não precisa pagar novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Платёж ожидает подтверждения. Повторно платить не нужно."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دفعتك بانتظار التأكيد. لا تحتاج إلى الدفع مجددًا."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपके भुगतान की पुष्टि का इंतज़ार है। दोबारा भुगतान करने की ज़रूरत नहीं है।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার পেমেন্ট নিশ্চিত হওয়ার অপেক্ষায় আছে। আবার পেমেন্ট করতে হবে না।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支払いの確認を待っています。再度支払う必要はありません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "付款正在等待确认，无需再次付款。"
+          }
+        }
+      }
+    },
+    "Ödemeye devam et" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ödemeye devam et"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue payment"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahlung fortsetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar con el pago"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer le paiement"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar pagamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить оплату"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متابعة الدفع"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भुगतान जारी रखें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পেমেন্ট চালিয়ে যান"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支払いを続ける"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续付款"
           }
         }
       }

@@ -23,6 +23,16 @@ enum NoteMapLayer: Equatable {
         }
     }
 
+    static func stable(forWidth width: Double, previous: Self?) -> Self {
+        guard let previous else { return forWidth(width) }
+        let layers: [Self] = [.notes, .counts, .heat(precision: 7), .heat(precision: 6), .heat(precision: 5), .heat(precision: 4)]
+        let boundaries = [300.0, 1_000, 5_000, 50_000, 500_000]
+        guard let index = layers.firstIndex(of: previous) else { return forWidth(width) }
+        let lower = index == 0 ? 0 : boundaries[index - 1] * 0.88
+        let upper = index == boundaries.count ? Double.infinity : boundaries[index] * 1.12
+        return width >= lower && width <= upper ? previous : forWidth(width)
+    }
+
     var precision: Int? {
         switch self {
         case .heat(let p): p
@@ -81,7 +91,31 @@ final class NoteDensityClient {
     func configure(callables: CallableClient) { self.callables = callables }
 
     private struct Payload: Encodable { let box: NoteDensityBounds; let precision: Int }
-    private struct Response: Decodable { let cells: [NoteDensityCell] }
+    private struct Response: Decodable {
+        let cells: [NoteDensityCell]
+        let truncated: Bool?
+        let summaryVersion: Int?
+    }
+
+    func summary(for request: MapSummaryRequest) async throws -> MapSummary {
+        guard let callables else { throw BackendCallError.invalidResponse }
+        switch request.kind {
+        case .heat(let precision):
+            var cells: [String: NoteDensityCell] = [:]
+            var complete = true
+            for box in request.viewport.boxes {
+                let response: Response = try await callables.call("readNoteDensity", payload: Payload(box: box, precision: precision), timeout: 20)
+                complete = complete && response.truncated == false && response.summaryVersion == 1
+                for cell in response.cells { cells[cell.id] = cell }
+            }
+            return .init(request: request, content: .heat(cells.values.sorted { $0.id < $1.id }), complete: complete, groupCoverageRadius: nil)
+        case .groups:
+            let result = try await groups(in: request.viewport.region)
+            return .init(request: request, content: .groups(result.groups, unlockRadius: result.unlockRadius),
+                         complete: result.summaryVersion == 1 && result.complete == true,
+                         groupCoverageRadius: result.coverage?.radiusMeters)
+        }
+    }
 
     func cells(in region: MKCoordinateRegion, precision: Int) async throws -> [NoteDensityCell] {
         guard let callables else { return [] }
@@ -94,7 +128,14 @@ final class NoteDensityClient {
         return cells.values.sorted { $0.id < $1.id }
     }
 
-    struct GroupsResponse: Decodable { let groups: [MapNoteGroup]; let unlockRadius: Double }
+    struct GroupsResponse: Decodable {
+        struct Coverage: Decodable { let latitude: Double; let longitude: Double; let radiusMeters: Double }
+        let groups: [MapNoteGroup]
+        let unlockRadius: Double
+        var summaryVersion: Int? = nil
+        var complete: Bool? = nil
+        var coverage: Coverage? = nil
+    }
     private struct GroupsPayload: Encodable { let mode = "map_groups"; let latitude: Double; let longitude: Double; let radiusMeters: Double }
     func groups(in region: MKCoordinateRegion) async throws -> GroupsResponse {
         guard let callables else { return GroupsResponse(groups: [], unlockRadius: 15) }
@@ -122,6 +163,7 @@ final class NoteDensityClient {
     }
     private struct GroupPayload: Encodable {
         let mode = "map_group"
+        let pageSize: Int
         let groupId: String
         let postIds: [String]
         let offset: Int
@@ -131,7 +173,10 @@ final class NoteDensityClient {
     func posts(in group: MapNoteGroup, offset: Int = 0, pageToken: String? = nil, fix: LocationSample?) async throws -> GroupPage {
         guard let callables else { throw BackendCallError.invalidResponse }
         let location = fix.map { Fix(lat: $0.latitude, lng: $0.longitude, accuracy: $0.accuracy, measuredAt: $0.timestamp.timeIntervalSince1970 * 1000) }
-        return try await callables.call("readPublicContent", payload: GroupPayload(groupId: group.id, postIds: group.postIDs,
+        // First paint stays small. Further pages amortize the server's live membership scan.
+        // A continuation already owns its hints on the server; do not re-upload every member ID.
+        return try await callables.call("readPublicContent", payload: GroupPayload(pageSize: offset == 0 ? 15 : 50,
+            groupId: group.id, postIds: pageToken == nil ? group.postIDs : [],
             offset: offset, pageToken: pageToken, location: location), timeout: 30)
     }
 
@@ -223,6 +268,9 @@ struct MapNoteGroupSheet: View {
     @State private var isLoading = false
     @State private var message: String?
     @State private var clock = Date()
+    @State private var readGeneration = 0
+    @State private var reloadAfterCurrentRead = false
+    @State private var isVisible = true
 
     private var noteCount: Int { totalCount ?? group.count }
     private var bestFix: LocationSample? {
@@ -300,15 +348,29 @@ struct MapNoteGroupSheet: View {
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { revokeReads() }
         }
-        .onDisappear { location.stop(); revokeReads() }
+        .onChange(of: container.mapRequests.accessRevision) { _, _ in
+            revokeReads()
+            if scenePhase == .active, isNear {
+                if isLoading { reloadAfterCurrentRead = true }
+                else { Task { await load(reset: true) } }
+            }
+        }
+        .onAppear { isVisible = true }
+        .onDisappear { isVisible = false; location.stop(); revokeReads() }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
 
     @MainActor private func load(reset: Bool, waitForFix: Bool = false) async {
-        guard !isLoading else { return }
+        guard !isLoading, isVisible, !Task.isCancelled else { return }
         isLoading = true; message = nil
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            if reloadAfterCurrentRead {
+                reloadAfterCurrentRead = false
+                if isVisible, scenePhase == .active, isNear { Task { await load(reset: true) } }
+            }
+        }
         if waitForFix {
             for _ in 0..<6 {
                 clock = Date()
@@ -316,6 +378,7 @@ struct MapNoteGroupSheet: View {
                 do { try await Task.sleep(for: .milliseconds(500)) } catch { return }
             }
         }
+        let generation = readGeneration
         do {
             clock = Date()
             let fix = bestFix
@@ -323,9 +386,13 @@ struct MapNoteGroupSheet: View {
             else if fix.map({ $0.accuracy > LocationNotePolicy.maxEntryAccuracy }) ?? true {
                 message = String(localized: "Konum henüz netleşmedi. İç mekânda biraz bekleyip tekrar dene veya Ayarlar’dan konum iznini kontrol et.")
             }
+            guard isVisible, isNear, scenePhase == .active,
+                  case let .signedIn(viewer) = container.session.phase else { return }
             let page = try await NoteDensityClient.shared.posts(in: resolvedGroup, offset: reset ? 0 : nextOffset ?? 0,
                                                                pageToken: reset ? nil : pageToken, fix: fix)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, generation == readGeneration,
+                  case let .signedIn(currentViewer) = container.session.phase,
+                  currentViewer.id == viewer.id else { return }
             clock = Date()
             currentGroup = page.group ?? currentGroup
             let received = page.posts.map { $0.domainPost() }
@@ -339,11 +406,14 @@ struct MapNoteGroupSheet: View {
         } catch is CancellationError {
             return
         } catch {
+            guard isVisible, generation == readGeneration, scenePhase == .active else { return }
             message = String(localized: "Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.")
         }
     }
 
     private func revokeReads() {
+        readGeneration += 1
+        reloadAfterCurrentRead = false
         path = []; posts = []; nextOffset = nil; pageToken = nil
     }
 }

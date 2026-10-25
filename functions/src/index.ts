@@ -26,3 +26,8 @@ export { createInvites, redeemInvite } from './invites';
 export { searchGifs } from './giphy';
 export { readPublicContent } from './publicContent';
 export { onWorldMapFinalized } from './mapStorageFinalize';
+export { beginApplePostSupport, confirmApplePostSupport, supportAppleNotifications } from './supportApple';
+export { readSupportCatalog, beginExternalPostSupport, supportStripeWebhook, refreshStripePostSupport } from './supportStripe';
+export { supportCheckoutReturn } from './supportReturn';
+export { readMyPostSupport, readMySupportEarnings } from './supportReads';
+export { beginCryptoPostSupport, supportCryptoWebhook } from './supportCrypto';

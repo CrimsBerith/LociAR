@@ -25,9 +25,10 @@ const output = resolve(process.env.LOCIAR_TEST_OUTPUT ?? resolve(root, 'build/si
 mkdirSync(output, { recursive: true });
 const requireFunctions = createRequire(resolve(root, 'functions/package.json'));
 const { Timestamp } = requireFunctions('firebase-admin/firestore');
-const { adminAuth, adminDb, newAnonymousUser, newUser, closeClients } = await import('../functions/test/integration/_harness.mjs');
+const { adminAuth, adminDb, newUser, closeClients } = await import('../functions/test/integration/_harness.mjs');
 const { queueNotification } = await import('../admin/lib/campaigns.ts');
 const { luidForUid } = requireFunctions('./lib/core.js');
+const { encodeGeohash } = requireFunctions('./lib/geo.js');
 const { deliverAdminNotification } = requireFunctions('./lib/campaigns.js');
 const bundle = 'com.khankartal.lociar';
 const device = JSON.parse(execFileSync('/usr/bin/xcrun', ['simctl', 'list', 'devices', '-j'], { encoding: 'utf8' }));
@@ -61,6 +62,30 @@ async function push(message) {
   return { result: 'simulator-transport-accepted' };
 }
 const actions = {
+  async 'prepare-paged-lists'() {
+    const { luid } = await account();
+    const own = await adminDb.collection('posts').where('creator_id', '==', luid).where('note_kind', '==', 'location').limit(1).get();
+    assert.equal(own.empty, false, 'Publish the camera-free note before the paging scenario.');
+    const template = own.docs[0].data(), collectionId = randomUUID(), title = 'Cost paging collection';
+    const entries = [], batch = adminDb.batch();
+    batch.set(adminDb.collection('collections').doc(collectionId), { owner_id: luid, title, description: null,
+      visibility: 'private', created_at: Timestamp.now(), updated_at: Timestamp.now() });
+    for (let i = 1; i <= 20; i++) {
+      const id = randomUUID(), caption = `Cost paging note ${String(i).padStart(2, '0')}`;
+      const lat = 45 + i * 0.01;
+      const clone = { ...template, id, client_mutation_id: id, caption, lat, lng: 35, geohash: encodeGeohash(lat, 35), created_at: Timestamp.now() };
+      delete clone.spot_id; // Keep synthetic paging data out of the on-site map test's spot.
+      batch.set(adminDb.collection('posts').doc(id), clone);
+      batch.set(adminDb.collection('post_saves').doc(`${luid}_${id}`), { user_id: luid, post_id: id, created_at: Timestamp.now() });
+      batch.set(adminDb.collection('collection_items').doc(`${collectionId}_${id}`), {
+        owner_id: luid, collection_id: collectionId, post_id: id, sort_order: i, created_at: Timestamp.now() });
+      entries.push({ id, caption });
+    }
+    await batch.commit();
+    const saved = entries.toSorted((a, b) => a.id.localeCompare(b.id));
+    return { collectionTitle: title, firstSaved: saved[0].caption, lastSaved: saved.at(-1).caption,
+      firstCollection: entries[0].caption, lastCollection: entries.at(-1).caption };
+  },
   async 'prepare-map-group'() {
     const author = await newUser(), ids = [];
     await forEachSequential([1, 2, 3, 4, 5], async index => {
@@ -80,7 +105,11 @@ const actions = {
     await batch.commit();
     point = { lat: 41.0074, lng: 28.9784 }; locate();
     await eventually(() => adminDb.getAll(...ids.map(id => adminDb.collection('note_density_members').doc(id))), docs => docs.every(d => d.exists));
-    return { groupId: `spot:${spotId}` };
+    const members = await adminDb.collection('posts').where('spot_id', '==', spotId)
+      .where('status', '==', 'active').where('visibility', '==', 'public').get();
+    // Earlier scenarios may have published at this same measured position. Those notes are
+    // real members too; the map must count them instead of silently hiding the viewer's note.
+    return { groupId: `spot:${spotId}`, expectedCount: String(members.size) };
   },
   async 'enter-map-group'() { point = { lat: 41.0082, lng: 28.9784 }; locate(); return { result: 'near' }; },
   async 'leave-map-group'() { point = { lat: 41.0074, lng: 28.9784 }; locate(); return { result: 'far' }; },
@@ -93,7 +122,8 @@ const actions = {
     assert.ok(Math.abs(note.lat - 41.0082) < 0.0001 && Math.abs(note.lng - 28.9784) < 0.0001);
     assert.equal(note.business_id, undefined);
     await eventually(() => adminDb.collection('note_density_members').doc(notes.docs[0].id).get(), s => s.get('cells')?.length === 4);
-    return { caption: note.caption, count: String(notes.size), anonymous: String(note.is_anonymous), source: note.location_note.source };
+    return { caption: note.caption, count: String(notes.size), anonymous: String(note.is_anonymous), source: note.location_note.source,
+      postId: notes.docs[0].id, groupId: note.spot_id ? `spot:${note.spot_id}` : `post:${notes.docs[0].id}` };
   },
   async 'verify-consent'() {
     const p = await eventually(preferences, p => p?.notifications === true);
@@ -119,7 +149,7 @@ const actions = {
     return { count: String(notes.size) };
   },
   async 'prepare-arrival'() {
-    arrivalAuthor ??= await newAnonymousUser();
+    arrivalAuthor ??= await newUser();
     const body = 'Simulator nearby approved note';
     const created = await arrivalAuthor.call('createPlaceNote', {
       clientMutationId: randomUUID(), lat: 41.0112, lng: 28.9784, accuracy: 6, source: 'gps', text: body,

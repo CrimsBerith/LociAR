@@ -245,7 +245,7 @@ test('concurrent social-trigger redelivery creates one activity and preserves it
   const initial = await activities();
   assert.equal(initial.size, 1, 'concurrent redeliveries produce one activity');
   const ref = initial.docs[0].ref;
-  assert.match(ref.id, /^[a-f0-9]{64}$/, 'activity ids must not expose a reusable liker identity');
+  assert.match(ref.id, /^act_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/, 'new activity ids use the opaque server UUID contract');
   assert.equal((await ref.get()).get('recipient_id'), owner.luid);
   const readAt = Timestamp.now(); await ref.update({ read_at: readAt });
   await onLikeCreated.run(event);

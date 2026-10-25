@@ -180,7 +180,8 @@ final class BackendAndPolicyTests: XCTestCase {
     }
 
     func testProximityWorldMapIgnoresHeadingButApproximateDoesNot() {
-        let viewer = CLLocation(latitude: 41.0, longitude: 29.0)
+        let viewer = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29),
+                                altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: Date())
         let physical = makePost(quality: .planeGeometry, heading: 180)
         let approximate = makePost(quality: .freeSpaceApproximate, heading: 180)
         XCTAssertTrue(ProximityPolicy.evaluate(post: physical, viewer: viewer, viewerHeading: 0, targeted: false).allowed)
@@ -188,7 +189,8 @@ final class BackendAndPolicyTests: XCTestCase {
     }
 
     func testNearbyARDiscoveryReturnsOnlyViewablePostsNearestFirst() {
-        let viewer = CLLocation(latitude: 41.0, longitude: 29.0)
+        let viewer = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29),
+                                altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: Date())
         var near = makePost(quality: .planeGeometry, heading: 0)
         near.anchorBundle.anchor.geoPose = GeoPose(latitude: 41.00005, longitude: 29.0, heading: 0)
         var farther = makePost(quality: .planeGeometry, heading: 0)
@@ -199,6 +201,67 @@ final class BackendAndPolicyTests: XCTestCase {
         let results = ProximityPolicy.viewablePosts([outside, farther, near], viewer: viewer, viewerHeading: 0)
 
         XCTAssertEqual(results.map(\.id), [near.id, farther.id])
+    }
+
+    func testARAccessRejectsStaleCoarseFutureSimulatedAndBoundaryFixes() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let post = makePost(quality: .planeGeometry, heading: 0)
+        func fix(age: Double = 0, accuracy: Double = 4, latitude: Double = 41, simulated: Bool = false) -> CLLocation {
+            CLLocation(coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: 29), altitude: 0,
+                       horizontalAccuracy: accuracy, verticalAccuracy: -1, course: -1, courseAccuracy: -1,
+                       speed: -1, speedAccuracy: -1, timestamp: now.addingTimeInterval(-age),
+                       sourceInfo: CLLocationSourceInformation(softwareSimulationState: simulated, andExternalAccessoryState: false))
+        }
+        func allowed(_ location: CLLocation) -> Bool {
+            ProximityPolicy.evaluate(post: post, viewer: location, viewerHeading: 0, targeted: true, at: now).allowed
+        }
+        XCTAssertTrue(allowed(fix()))
+        XCTAssertTrue(allowed(fix(age: 9.999, accuracy: 34.999)))
+        XCTAssertFalse(allowed(fix(age: 3_600)))
+        XCTAssertFalse(allowed(fix(age: 10)), "exact age boundary fails closed")
+        XCTAssertFalse(allowed(fix(age: -0.001)), "future fix")
+        XCTAssertFalse(allowed(fix(accuracy: 3_000)))
+        XCTAssertFalse(allowed(fix(accuracy: 35)), "exact accuracy boundary fails closed")
+        XCTAssertFalse(allowed(fix(accuracy: -1)))
+        XCTAssertFalse(allowed(fix(accuracy: .nan)))
+        XCTAssertFalse(allowed(fix(accuracy: .infinity)))
+        XCTAssertFalse(allowed(fix(latitude: .nan)))
+        XCTAssertFalse(allowed(fix(simulated: true)))
+        XCTAssertFalse(allowed(fix(latitude: 41.0006)), "targeting cannot widen 60 m access")
+        XCTAssertTrue(allowed(fix(latitude: 41.0005)))
+
+        let metersPerStep = fix().distance(from: fix(latitude: 41.001))
+        XCTAssertTrue(allowed(fix(latitude: 41 + 0.001 * 59.9 / metersPerStep)))
+        XCTAssertFalse(allowed(fix(latitude: 41 + 0.001 * 60.1 / metersPerStep)))
+        XCTAssertFalse(ProximityPolicy.evaluate(post: post, viewer: fix(), viewerHeading: 0,
+                                               targeted: true, at: now.addingTimeInterval(10)).allowed,
+                       "resolver completion must re-evaluate the retained fix")
+    }
+
+    @MainActor
+    func testPlaceNotePendingIntentSurvivesRetryAndReopenWithoutTextOrDigestOnDisk() throws {
+        let suite = "PlaceNotePendingIntentTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = PlaceNotePendingIntentStore(defaults: defaults)
+        let owner = UUID(), other = UUID(), first = UUID(), next = UUID()
+        XCTAssertNil(store.pending(for: owner))
+        store.save(first, for: owner)
+        XCTAssertEqual(store.pending(for: owner), first, "lost response retries the same mutation")
+        let reopened = PlaceNotePendingIntentStore(defaults: try XCTUnwrap(UserDefaults(suiteName: suite)))
+        XCTAssertEqual(reopened.pending(for: owner), first)
+        XCTAssertNil(store.pending(for: other), "a different account must not reuse this intent")
+        store.save(next, for: owner)
+        store.clear(first, for: owner)
+        XCTAssertEqual(store.pending(for: owner), next, "late receipt cannot clear the replacement intent")
+        let disk = try XCTUnwrap(defaults.persistentDomain(forName: suite))
+        XCTAssertTrue(disk.values.allSatisfy { ($0 as? String).flatMap(UUID.init(uuidString:)) != nil },
+                      "only an opaque UUID is persisted; no note, translation, caption or text hash")
+        XCTAssertEqual(Set(disk.keys), ["place-note.pending-intent.\(owner.uuidString.lowercased())"])
+        XCTAssertEqual(disk.values.compactMap { $0 as? String }, [next.uuidString.lowercased()])
+        store.clear(next, for: owner)
+        XCTAssertNil(store.pending(for: owner))
+        XCTAssertTrue(defaults.persistentDomain(forName: suite)?.isEmpty ?? true)
     }
 
     func testRetryPolicyCapsAndDeadLetters() {
@@ -725,28 +788,61 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(PushNotificationTarget(recipient: recipient.uuidString, post: post.uuidString)?.postID, post)
         XCTAssertNil(PushNotificationTarget(recipient: recipient.uuidString, post: "")?.postID)
         XCTAssertEqual(PushNotificationTarget(recipient: recipient.uuidString, post: nil)?.recipientID, recipient)
-        let activity = "like_\(post.uuidString.lowercased())_\(recipient.uuidString.lowercased())"
+        let activity = "act_123e4567-e89b-12d3-a456-426614174000"
         XCTAssertEqual(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: activity)?.activityID, activity)
         XCTAssertNil(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: "a/b"))
         XCTAssertNil(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: "a\n"))
     }
 
-    func testActivityKeepsCompositeDocumentIdentityThroughDecoding() throws {
+    func testActivityDecodesServerOpaqueAndLegacyIDsWithoutActorAttribution() throws {
         let recipient = UUID()
-        let id = "follow_\(UUID().uuidString.lowercased())_\(recipient.uuidString.lowercased())"
-        let fixture: [String: Any] = ["id": id, "kind": "follow", "recipient_id": recipient.uuidString,
-                                    "body": "fixture", "created_at": "2026-10-04T12:00:00.000Z"]
-        let item = try FirestoreJSON.decoder().decode(SocialActivity.self, from: JSONSerialization.data(withJSONObject: fixture))
-        XCTAssertEqual(item.id, id)
-        XCTAssertEqual(item.recipientID, recipient)
-        XCTAssertNil(item.readAt)
+        for id in ["act_123e4567-e89b-12d3-a456-426614174000", String(repeating: "a", count: 64),
+                   "legacy_opaque-123", "comment_existing-id", "A", String(repeating: "Z", count: 200)] {
+            let fixture: [String: Any] = ["id": id, "kind": "follow", "actor_id": NSNull(),
+                                        "recipient_id": recipient.uuidString, "body": "fixture",
+                                        "created_at": "2026-10-04T12:00:00.000Z"]
+            let item = try FirestoreJSON.decoder().decode(SocialActivity.self, from: JSONSerialization.data(withJSONObject: fixture))
+            XCTAssertEqual(item.id, id)
+            XCTAssertEqual(item.recipientID, recipient)
+            XCTAssertNil(item.actorID)
+            XCTAssertNil(item.readAt)
+            XCTAssertEqual(SocialActivity.unreadIDs(in: [item]), [id])
+            XCTAssertEqual(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: id)?.activityID, id)
+        }
+    }
+
+    func testMalformedActivityIDsRejectDecodingAndPushWithoutCrashing() throws {
+        let recipient = UUID()
+        for id in ["", "a/b", "a.b", " a", "a ", "a\n", "a\r\n", "é", "💬", String(repeating: "a", count: 201)] {
+            let fixture: [String: Any] = ["id": id, "kind": "follow", "recipient_id": recipient.uuidString,
+                                        "body": "fixture", "created_at": "2026-10-04T12:00:00.000Z"]
+            XCTAssertThrowsError(try FirestoreJSON.decoder().decode(SocialActivity.self, from: JSONSerialization.data(withJSONObject: fixture)))
+            XCTAssertNil(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: id))
+            XCTAssertFalse(SocialActivity.isValidID(id))
+        }
+        for id: Any in [NSNull(), 42, ["act_invalid-type"]] {
+            let fixture: [String: Any] = ["id": id, "kind": "follow", "recipient_id": recipient.uuidString,
+                                        "body": "fixture", "created_at": "2026-10-04T12:00:00.000Z"]
+            XCTAssertThrowsError(try FirestoreJSON.decoder().decode(SocialActivity.self, from: JSONSerialization.data(withJSONObject: fixture)))
+        }
+    }
+
+    func testActivityReadIDsComeFromUnreadRowsAndSkipMalformedIDs() {
+        let now = Date(timeIntervalSince1970: 10)
+        let item = SocialActivity(id: "act_123e4567-e89b-12d3-a456-426614174000", kind: "like", actorID: nil,
+                                  recipientID: UUID(), postID: UUID(), body: "", createdAt: now, readAt: nil)
+        let invalid = SocialActivity(id: "a/b", kind: "like", actorID: nil, recipientID: item.recipientID,
+                                     postID: item.postID, body: "", createdAt: now, readAt: nil)
+        XCTAssertEqual(SocialActivity.unreadIDs(in: [item, invalid, item]), [item.id])
+        XCTAssertTrue(SocialActivity.unreadIDs(in: [item.markingRead(at: now), invalid]).isEmpty)
     }
 
     func testActivityReadAcknowledgementPreservesIdentityAndFirstReadTime() {
-        let item = SocialActivity(id: "like_composite", kind: "like", actorID: nil, recipientID: UUID(), postID: nil,
+        let item = SocialActivity(id: "act_123e4567-e89b-12d3-a456-426614174000", kind: "like", actorID: nil, recipientID: UUID(), postID: nil,
                                   body: "fixture", createdAt: Date(timeIntervalSince1970: 10), readAt: nil)
         let first = item.markingRead(at: Date(timeIntervalSince1970: 20))
         XCTAssertEqual(first.id, item.id)
+        XCTAssertNil(first.actorID)
         XCTAssertEqual(first.readAt, Date(timeIntervalSince1970: 20))
         XCTAssertEqual(first.markingRead(at: Date(timeIntervalSince1970: 30)), first)
     }

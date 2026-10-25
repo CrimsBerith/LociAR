@@ -63,3 +63,28 @@ test('resolveGifLayers keeps only the id and GIPHY size; unknown or unreachable 
   assert.deepEqual(down.layers[0], { id: 'g', type: 'gif', gifId: 'abc' }, 'a failed lookup leaves nothing half-resolved');
   delete process.env.GIPHY_API_KEY;
 });
+
+test('the default publication fetch rechecks a previously accepted GIF after rating, removal or size changes', async (t) => {
+  const previousKey = process.env.GIPHY_API_KEY;
+  process.env.GIPHY_API_KEY = 'fake-api-key';
+  let calls = 0, status = 200, rating = 'g', width = '480';
+  t.mock.method(globalThis, 'fetch', async () => {
+    calls++;
+    return response(status, { data: raw({ rating, images: { original: { width, height: '270' } } }) });
+  });
+  const layers = () => ({ layers: [{ type: 'gif', gifId: 'l0MYt5jPR6QX5pnqM' }] });
+  try {
+    await resolveGifLayers(layers());
+    rating = 'r';
+    await assert.rejects(resolveGifLayers(layers()), error => error.details?.reason === 'gif_invalid');
+    rating = 'g'; status = 404;
+    await assert.rejects(resolveGifLayers(layers()), error => error.details?.reason === 'gif_invalid');
+    status = 200; width = '320';
+    const changed = layers(); await resolveGifLayers(changed);
+    assert.equal(changed.layers[0].width, 320);
+    assert.equal(calls, 4, 'each new publication reads the provider, including the default fetch path');
+  } finally {
+    if (previousKey === undefined) delete process.env.GIPHY_API_KEY;
+    else process.env.GIPHY_API_KEY = previousKey;
+  }
+});

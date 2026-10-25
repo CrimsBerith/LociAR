@@ -158,9 +158,14 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
       const bindError = anchorBindError(anchor.data(), caller.luid);
       if (bindError) throw new HttpsError('invalid-argument', bindError);
     }
-    const densityLock = await readDensityLocks(tx, lat, lng);
+    let densityLock: FirebaseFirestore.DocumentReference | undefined;
     const nearbyLimit = locationNote ? MAX_NOTES_NEARBY : MAX_POSTS_NEARBY;
-    const admission = await admitPost(tx, caller.luid, Date.now(), () => activeDensity(lat, lng, tx, nearbyLimit), nearbyLimit);
+    const admission = await admitPost(tx, caller.luid, Date.now(), async () => {
+      // The hour/day rejection is cheaper than reading 27 spatial fences. Allowed admissions
+      // still acquire every fence before the exact density query and any quota/post write.
+      densityLock = await readDensityLocks(tx, lat, lng);
+      return await activeDensity(lat, lng, tx, nearbyLimit);
+    }, nearbyLimit);
     if (!admission.ok) {
       if (admission.flag) tx.create(db.collection('moderation_flags').doc(randomUUID()), {
         post_id: null, user_id: caller.luid, reason: 'rate_or_density_limit', status: 'open',
@@ -169,6 +174,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
       });
       return { kind: 'limited' as const };
     }
+    if (!densityLock) throw new Error('Missing density admission fence');
     updateDensityLock(tx, densityLock, Date.now());
     if (anchorRef) tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp(), expires_at: FieldValue.delete() });
     tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', is_anonymous: true, world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });

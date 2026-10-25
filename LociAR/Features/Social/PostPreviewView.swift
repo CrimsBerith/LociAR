@@ -44,6 +44,9 @@ struct PostPreviewView: View {
     @State private var viewCount: Int
     @State private var didCountView = false
     @State private var collections: [LociCollection] = []
+    @State private var showCollectionPicker = false
+    @State private var collectionsLoading = false
+    @State private var collectionsMessage: String?
     @State private var message: String?
     @State private var showAR = false
     @State private var isLoading = true
@@ -55,6 +58,7 @@ struct PostPreviewView: View {
     @State private var confirmBlock = false
     @State private var confirmOwnAnonymousComment = false
     @State private var showAccountCreation = false
+    @State private var showPostSupport = false
     // Bumped on user actions only, so loading server state never fires a haptic.
     @State private var likeTaps = 0
     @State private var saveTaps = 0
@@ -165,10 +169,17 @@ struct PostPreviewView: View {
                         .accessibilityLabel("Diğer seçenekler")
                         .accessibilityIdentifier("post-more-menu")
                     }
-                    if !collections.isEmpty {
-                        Menu(String(localized: "Koleksiyona ekle")) {
-                            ForEach(collections) { collection in Button(collection.title) { Task { await add(to: collection) } } }
+                    if !post.isLocked {
+                        Button("Koleksiyona ekle") { showCollectionPicker = true }
+                    }
+                    if !ownsPost && !post.isLocked {
+                        Button { showPostSupport = true } label: {
+                            PostSupportIcon().foregroundStyle(LociTheme.accent)
+                                .frame(minWidth: 44, minHeight: 58).contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Yazara destek ol")
+                        .accessibilityIdentifier("post-support-button")
                     }
                 }
 
@@ -324,6 +335,29 @@ struct PostPreviewView: View {
             Text("Bu yorum, anonim notun sana ait olduğunu diğer kullanıcılara gösterir.")
         }
         .sheet(isPresented: $showAccountCreation) { AuthView() }
+        .sheet(isPresented: $showCollectionPicker) {
+            NavigationStack {
+                Group {
+                    if collectionsLoading { ProgressView() }
+                    else if let collectionsMessage { Text(collectionsMessage.localizedUI) }
+                    else if collections.isEmpty { Text("Henüz koleksiyon yok") }
+                    else {
+                        List(collections) { collection in
+                            Button(collection.title) {
+                                Task { await add(to: collection); showCollectionPicker = false }
+                            }
+                        }
+                    }
+                }
+                .navigationTitle("Koleksiyonlar")
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { showCollectionPicker = false } } }
+                .task { await loadCollections() }
+            }
+        }
+        .sheet(isPresented: $showPostSupport) {
+            if isGuest { NavigationStack { AccountRequiredView() } }
+            else { PostSupportView(post: post) }
+        }
         .onChange(of: isGuest) { _, guest in if !guest { showAccountCreation = false } }
     }
 
@@ -401,19 +435,25 @@ struct PostPreviewView: View {
         }
         }
         if case let .signedIn(user) = session.phase {
-            async let savedIDs = container.social.savedPostIDs(for: user.id)
-            async let likedIDs = container.social.likedPostIDs(for: user.id)
-            async let loadedLikeCount = container.social.likeCount(for: post.id)
-            async let loadedCollections = container.social.collections(for: user.id)
-            let savedResult = (try? await savedIDs) ?? []
-            let likedResult = (try? await likedIDs) ?? []
-            let countResult = (try? await loadedLikeCount) ?? likeCount
-            let collectionsResult = (try? await loadedCollections) ?? []
+            async let membership = container.social.membership(postID: post.id, userID: user.id)
+            let membershipResult = try? await membership
             guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
-            saved = savedResult.contains(post.id)
-            liked = likedResult.contains(post.id)
-            likeCount = countResult
-            collections = collectionsResult
+            saved = membershipResult?.saved ?? false
+            liked = membershipResult?.liked ?? false
+        }
+    }
+
+    private func loadCollections() async {
+        guard !collectionsLoading, case let .signedIn(user) = session.phase else { return }
+        collectionsLoading = true; collectionsMessage = nil; collections = []
+        defer { collectionsLoading = false }
+        do {
+            let result = try await container.social.collections(for: user.id)
+            guard !Task.isCancelled, commentViewerID == user.id else { return }
+            collections = result
+        } catch {
+            guard !Task.isCancelled, commentViewerID == user.id else { return }
+            collectionsMessage = String(localized: "Koleksiyonlar şu anda yüklenemiyor.")
         }
     }
 
@@ -466,11 +506,16 @@ struct PostPreviewView: View {
 
     private func recordViewIfNeeded() async {
         guard !didCountView else { return }
-        didCountView = true
-        if session.isLocalPreview { viewCount += 1; return }
+        if session.isLocalPreview { didCountView = true; viewCount += 1; return }
         guard case let .signedIn(user) = session.phase else { return }
-        if let authoritativeCount = try? await container.social.recordView(postID: post.id, userID: user.id) {
-            viewCount = authoritativeCount
+        didCountView = true
+        do {
+            let count = try await container.social.recordView(postID: post.id, userID: user.id)
+            guard !Task.isCancelled, commentViewerID == user.id else { return }
+            if let count { viewCount = count }
+        } catch {
+            // A failed mutation is not remembered as a successful daily receipt.
+            didCountView = false
         }
     }
     private func toggleSaved() async {

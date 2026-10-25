@@ -6,14 +6,26 @@ import UIKit
 actor GifDataCache {
     static let shared = GifDataCache()
     private let cache = NSCache<NSURL, NSData>()
+    private var inFlight = [URL: Task<Data?, Never>]()
 
     init() { cache.totalCostLimit = 24 * 1_024 * 1_024 }
 
     func data(for url: URL) async -> Data? {
         if let cached = cache.object(forKey: url as NSURL) { return cached as Data }
-        guard let (data, response) = try? await URLSession.shared.data(from: url),
-              (response as? HTTPURLResponse).map({ (200...299).contains($0.statusCode) }) == true else { return nil }
-        cache.setObject(data as NSData, forKey: url as NSURL, cost: data.count)
+        if let existing = inFlight[url] {
+            return await existing.value
+        }
+        let task = Task<Data?, Never> {
+            guard let (data, response) = try? await URLSession.shared.data(from: url),
+                  (response as? HTTPURLResponse).map({ (200...299).contains($0.statusCode) }) == true else { return nil }
+            return data
+        }
+        inFlight[url] = task
+        let data = await task.value
+        inFlight.removeValue(forKey: url)
+        if let data {
+            cache.setObject(data as NSData, forKey: url as NSURL, cost: data.count)
+        }
         return data
     }
 }

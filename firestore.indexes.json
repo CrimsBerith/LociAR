@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "likes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "post_id", "order": "ASCENDING" },
+        { "fieldPath": "notification_eligible_at", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "posts",
       "queryScope": "COLLECTION",
       "fields": [
@@ -62,6 +70,18 @@
           "fieldPath": "created_at",
           "order": "DESCENDING"
         }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "visibility", "order": "ASCENDING" },
+        { "fieldPath": "creator_id", "order": "ASCENDING" },
+        { "fieldPath": "is_anonymous", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
       ]
     },
     {
@@ -394,6 +414,11 @@
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "likes",
+      "fieldPath": "notification_eligible_at",
+      "indexes": []
+    },
     {
       "collectionGroup": "admin_email_challenges",
       "fieldPath": "expires_at",

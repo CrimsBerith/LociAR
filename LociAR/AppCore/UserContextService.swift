@@ -28,6 +28,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
     @ObservationIgnored private var preferencesRevision = ""
     @ObservationIgnored private var latestLocation: CLLocation?
     @ObservationIgnored private var lastDeviceUpload = Date.distantPast
+    @ObservationIgnored private var lastDeviceSnapshot: Device?
     @ObservationIgnored private var lastLocationUpload = Date.distantPast
     @ObservationIgnored private var installationID: String
     private static let noticeVersion = "2026-10-11"
@@ -49,7 +50,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
         let placeNotes: Bool; let placeNotesNoticeVersion: String
         let notifications: Bool; let notificationsNoticeVersion: String
     }
-    private struct Device: Encodable {
+    private struct Device: Encodable, Equatable {
         let model: String; let osVersion: String; let appVersion: String; let appBuild: String
         let locale: String; let timeZone: String
     }
@@ -57,7 +58,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
     private struct Context: Encodable {
         let userId: String; let installationId: String; let revision: String; let device: Device?; let location: Fix?
     }
-    private struct Response: Decodable { let ok: Bool }
+    private struct Response: Decodable { let ok: Bool; let storedDevice: Bool?; let deviceCurrent: Bool? }
 
     private override init() {
         let defaults = UserDefaults.standard
@@ -96,6 +97,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
         }
         locationPermissionDenied = false
         lastDeviceUpload = .distantPast; lastLocationUpload = .distantPast
+        lastDeviceSnapshot = nil
         startLoop()
     }
 
@@ -159,6 +161,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
             CampaignArrivalService.shared.setPlaceNotesEnabled(placeNotesEnabled)
             CampaignArrivalService.shared.setPromotionsEnabled(promotionsEnabled && notificationsEnabled)
             CampaignArrivalService.shared.setEnabled(notificationsEnabled)
+            if preferencesRevision != response.revision { lastDeviceUpload = .distantPast; lastDeviceSnapshot = nil }
             preferencesRevision = response.revision
             updateLocationService()
             await CampaignArrivalService.shared.synchronize()
@@ -211,6 +214,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
             guard valid(id, epoch), response.ok else { throw AuthFlowError.notSignedIn }
             UserDefaults.standard.removeObject(forKey: pendingKey(id))
             preferencesRevision = response.revision
+            lastDeviceUpload = .distantPast; lastDeviceSnapshot = nil
             promotionsEnabled = response.promotions == true
             arrivalsEnabled = response.arrivals == true
             departuresEnabled = response.departures == true
@@ -244,11 +248,12 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
               UserDefaults.standard.object(forKey: pendingKey(id)) == nil, !isBusy else { return }
         let now = Date()
         var device: Device?
-        if telemetryEnabled, now.timeIntervalSince(lastDeviceUpload) >= 60 {
-            device = Device(model: UIDevice.current.model, osVersion: UIDevice.current.systemVersion,
+        if telemetryEnabled {
+            let current = Device(model: UIDevice.current.model, osVersion: UIDevice.current.systemVersion,
                 appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown",
                 appBuild: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown",
                 locale: Locale.current.identifier, timeZone: TimeZone.current.identifier)
+            if current != lastDeviceSnapshot || now.timeIntervalSince(lastDeviceUpload) >= 15 * 60 { device = current }
         }
         var fix: Fix?
         if locationEnabled, let location = latestLocation, location.horizontalAccuracy >= 0,
@@ -262,7 +267,9 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
             let response: Response = try await callables.call("recordUserContext", payload: Context(
                 userId: FirebaseIdentity.key(id), installationId: installationID, revision: preferencesRevision, device: device, location: fix))
             guard valid(id, epoch), response.ok else { return }
-            if device != nil { lastDeviceUpload = now }
+            if let device, response.deviceCurrent == true || response.storedDevice == true {
+                lastDeviceUpload = now; lastDeviceSnapshot = device
+            }
             if fix != nil { lastLocationUpload = now }
         } catch {
             guard valid(id, epoch) else { return }

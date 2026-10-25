@@ -77,21 +77,26 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
     const receiptRef = db.collection('push_delivery_receipts').doc(pushDeliveryId(activityId, device.id));
     const quotaRef = db.collection('push_quota').doc(pushQuotaId(initial.recipient_id, now));
     const claimed = await db.runTransaction(async tx => {
-      const refs = [activityRef, device.ref, receiptRef,
+      const [receipt, preferences, quota] = await tx.getAll(receiptRef,
+        db.collection('user_data_preferences').doc(initial.recipient_id), quotaRef);
+      const quotaDecision = pushQuotaDecision(quota.data(), activityId);
+      if (receipt.exists || preferences.get('notifications') !== true || !quotaDecision.allow) return null;
+      // Rejections need no account/post/device hydration. Allowed sends still validate every
+      // live fence in this same transaction, before the quota/receipt claim is committed.
+      const refs = [activityRef, device.ref,
         db.collection('profiles').doc(initial.recipient_id), db.collection('profiles').doc(initial.actor_id),
         db.collection('user_blocks').doc(`${initial.recipient_id}_${initial.actor_id}`),
         db.collection('user_blocks').doc(`${initial.actor_id}_${initial.recipient_id}`),
-        accountDeletionRef(initial.recipient_id), accountDeletionRef(initial.actor_id), quotaRef];
+        accountDeletionRef(initial.recipient_id), accountDeletionRef(initial.actor_id)];
       if (isUUID(initial.post_id)) refs.push(db.collection('posts').doc(initial.post_id));
-      const [activitySnap, target, receipt, recipient, actor, blockA, blockB, recipientDeletion, actorDeletion, quota, post] = await tx.getAll(...refs);
-      if ((await tx.get(db.collection('user_data_preferences').doc(initial.recipient_id))).get('notifications') !== true) return null;
+      const [activitySnap, target, recipient, actor, blockA, blockB, recipientDeletion, actorDeletion, post] = await tx.getAll(...refs);
       const activity = activitySnap.data();
       const body = pushBody(String(activity?.kind), target.get('locale'));
       const address = pushAddress(target.data());
       if (!activity || activity.recipient_id !== initial.recipient_id || activity.actor_id !== initial.actor_id
         || activity.post_id !== initial.post_id || activity.kind !== initial.kind
         || (activity.expires_at instanceof Timestamp && activity.expires_at.toMillis() <= now)
-        || activity.read_at || !body || receipt.exists || !target.exists
+        || activity.read_at || !body || !target.exists
         || target.get('owner_luid') !== initial.recipient_id || !address
         || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now
         || profileBlock(recipient.data()) || profileBlock(actor.data()) || blockA.exists || blockB.exists
@@ -99,8 +104,6 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
       if (activity.kind !== 'follow' && (!post?.exists || post.get('creator_id') !== initial.recipient_id
         || post.get('status') !== 'active' || post.get('deleted_at'))) return null;
       // At most PUSH_DAILY_LIMIT engagement pushes per recipient and UTC day; the feed still shows the rest.
-      const quotaDecision = pushQuotaDecision(quota.data(), activityId);
-      if (!quotaDecision.allow) return null;
       if (quotaDecision.next) {
         tx.set(quotaRef, {
           owner_luid: initial.recipient_id, day: utcDay(now), ...quotaDecision.next,
@@ -157,12 +160,14 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
   await forEachSequential(devices.docs, async (device) => {
     const receiptRef = db.collection('push_delivery_receipts').doc(pushDeliveryId(deliveryKey, device.id));
     const claimed = await db.runTransaction(async tx => {
-      const [post, target, receipt, recipient, recipientDeletion] = await tx.getAll(
-        postRef, device.ref, receiptRef, db.collection('profiles').doc(recipientId), accountDeletionRef(recipientId));
-      if ((await tx.get(db.collection('user_data_preferences').doc(recipientId))).get('notifications') !== true) return null;
+      const [receipt, preferences] = await tx.getAll(receiptRef,
+        db.collection('user_data_preferences').doc(recipientId));
+      if (receipt.exists || preferences.get('notifications') !== true) return null;
+      const [post, target, recipient, recipientDeletion] = await tx.getAll(
+        postRef, device.ref, db.collection('profiles').doc(recipientId), accountDeletionRef(recipientId));
       const address = pushAddress(target.data());
       if (!post.exists || post.get('creator_id') !== recipientId || post.get('status') !== 'active' || post.get('deleted_at')
-        || receipt.exists || !target.exists || target.get('owner_luid') !== recipientId || !address
+        || !target.exists || target.get('owner_luid') !== recipientId || !address
         || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now
         || profileBlock(recipient.data()) || recipientDeletion.exists) return null;
       tx.create(receiptRef, {

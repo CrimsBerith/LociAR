@@ -222,6 +222,39 @@ extension AuthGateUITests {
         return try JSONDecoder().decode([String: String].self, from: data)
     }
 
+    func testEmulator03bSavedAndCollectionListsPageWithoutFanout() async throws {
+        guard !e2eEmail.isEmpty, ProcessInfo.processInfo.environment["E2E_FIXTURE_URL"] != nil else {
+            throw XCTSkip("Yerel simülatör fixture servisi seçilmedi.")
+        }
+        continueAfterFailure = false
+        let fixture = try await simulatorFixture("prepare-paged-lists")
+        let firstSaved = try XCTUnwrap(fixture["firstSaved"]), lastSaved = try XCTUnwrap(fixture["lastSaved"])
+        let firstCollection = try XCTUnwrap(fixture["firstCollection"]), lastCollection = try XCTUnwrap(fixture["lastCollection"])
+        let title = try XCTUnwrap(fixture["collectionTitle"])
+        let app = XCUIApplication(); app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
+        app.tabBars.buttons["Profil"].tap()
+        let saved = e2eField(app, "profile-saved")
+        scrollUntilHittable(saved, in: app, maxSwipes: 6); saved.tap()
+        XCTAssertTrue(app.staticTexts[firstSaved].waitForExistence(timeout: 20))
+        XCTAssertFalse(app.staticTexts[lastSaved].exists, "İlk sayfa bütün kaydedilenleri yüklememeli.")
+        let more = app.buttons["Daha fazla göster"]
+        scrollUntilHittable(more, in: app, maxSwipes: 10); more.tap()
+        scrollUntilHittable(app.staticTexts[lastSaved], in: app, maxSwipes: 8)
+        XCTAssertTrue(app.staticTexts[lastSaved].exists)
+        capture(app, name: "cost-saved-second-page")
+        app.navigationBars.buttons.firstMatch.tap()
+        let collections = e2eField(app, "profile-collections")
+        scrollUntilHittable(collections, in: app, maxSwipes: 6); collections.tap()
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 15)); app.staticTexts[title].tap()
+        XCTAssertTrue(app.staticTexts[firstCollection].waitForExistence(timeout: 20))
+        XCTAssertFalse(app.staticTexts[lastCollection].exists, "İlk sayfa bütün koleksiyonu yüklememeli.")
+        scrollUntilHittable(more, in: app, maxSwipes: 10); more.tap()
+        scrollUntilHittable(app.staticTexts[lastCollection], in: app, maxSwipes: 8)
+        XCTAssertTrue(app.staticTexts[lastCollection].exists)
+        capture(app, name: "cost-collection-second-page")
+    }
+
     func testEmulator02dMapGroupRequiresOnSiteFixAndRanksAllNotes() async throws {
         guard !e2eEmail.isEmpty, ProcessInfo.processInfo.environment["E2E_FIXTURE_URL"] != nil else {
             throw XCTSkip("Yerel simülatör harita grubu testi seçilmedi.")
@@ -229,6 +262,7 @@ extension AuthGateUITests {
         continueAfterFailure = false
         let fixture = try await simulatorFixture("prepare-map-group")
         let groupId = try XCTUnwrap(fixture["groupId"])
+        let expectedCount = try XCTUnwrap(fixture["expectedCount"])
         let app = XCUIApplication()
         addPrivacyAlertMonitor()
         app.launch()
@@ -251,7 +285,7 @@ extension AuthGateUITests {
             map.pinch(withScale: 2, velocity: 1)
         }
         XCTAssertTrue(badge.waitForExistence(timeout: 15), "Aynı noktadaki on not tek sayaçta görünmeli.")
-        XCTAssertEqual(badge.label, "10 not")
+        XCTAssertEqual(badge.label, "\(expectedCount) not")
         capture(app, name: "glass-map-ten-note-count")
         badge.tap()
         let open = app.buttons["map-group-open-here"]
@@ -332,11 +366,15 @@ extension AuthGateUITests {
         XCTAssertEqual(verified["anonymous"], "true")
         XCTAssertEqual(verified["source"], "gps")
         app.buttons["Kapat"].tap()
-        let row = app.descendants(matching: .any).matching(identifier: "map-open-\(caption)").firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 20), "Yeni not, elle Yenile gerektirmeden haritada görünmeli.")
+        let groupId = try XCTUnwrap(verified["groupId"])
+        let row = app.buttons["map-summary-group-\(groupId)"]
+        XCTAssertTrue(row.waitForExistence(timeout: 20), "Yeni notun grup özeti, elle Yenile gerektirmeden görünmeli.")
+        XCTAssertFalse(app.staticTexts[caption].exists, "Harita özeti not gövdesini önceden yüklememeli.")
         capture(app, name: "simulator-note-on-map")
         row.tap()
         XCTAssertTrue(app.staticTexts[caption].waitForExistence(timeout: 10))
+        app.staticTexts[caption].tap()
+        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["ar-pin-surface"].exists)
         XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
         capture(app, name: "simulator-camera-free-note-opened")
@@ -480,7 +518,9 @@ extension AuthGateUITests {
         capture(springboard, name: "simulator-location-entry-notification")
         notification.tap()
         XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts[prepared["body"]!].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["Notları görmek için yaklaş ve haritada aç."].waitForExistence(timeout: 20))
+        XCTAssertFalse(app.staticTexts[prepared["body"]!].exists, "Bildirim yönlendirmesi konumsuz not gövdesini açmamalı.")
+        XCTAssertTrue(app.buttons["Konumu gör"].firstMatch.exists)
         XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
         let verified = try await simulatorFixture("verify-arrival")
         XCTAssertEqual(verified["deliveries"], "1")

@@ -105,12 +105,15 @@ struct CollectionDetailView: View {
     @State private var posts: [LociPost] = []
     @State private var isLoading = true
     @State private var message: String?
+    @State private var nextCursor: String?
+    @State private var isLoadingMore = false
+    @State private var loadID = UUID()
 
     var body: some View {
         Group {
             if isLoading {
                 LociLoadingView(title: String(localized: "Koleksiyon yükleniyor…"))
-            } else if posts.isEmpty {
+            } else if posts.isEmpty && nextCursor == nil {
                 if let message {
                     // A failed load must not read as an empty collection.
                     LociEmptyState.failure(message: message, retry: { Task { await load() } })
@@ -153,6 +156,12 @@ struct CollectionDetailView: View {
                             }
                         }
                     }
+                    if nextCursor != nil {
+                        Button("Daha fazla göster") { Task { await loadMore() } }
+                            .disabled(isLoadingMore)
+                            .overlay { if isLoadingMore { ProgressView() } }
+                            .listRowBackground(Color.clear)
+                    }
                 }
                 .lociListStyle()
                 .refreshable { await load() }
@@ -164,26 +173,37 @@ struct CollectionDetailView: View {
     }
 
     private func load() async {
+        let requestID = UUID(); loadID = requestID
         isLoading = posts.isEmpty
+        isLoadingMore = false; nextCursor = nil
         message = nil
-        defer { isLoading = false }
+        defer { if loadID == requestID { isLoading = false } }
+        guard case let .signedIn(user) = session.phase, user.id == collection.ownerID, container.isBackendConfigured else {
+            message = String(localized: "Postlar yüklenemedi."); return
+        }
         do {
-            let postIDs = try await container.social.postIDs(in: collection.id)
-            var loadedPosts: [LociPost] = []
-            var failedCount = 0
-            for id in postIDs {
-                do {
-                    // nil = removed, hidden or blocked: intentionally skipped. A throw is a real failure.
-                    if let post = try await container.posts.publicPost(id: id) { loadedPosts.append(post) }
-                } catch {
-                    failedCount += 1
-                }
-            }
-            posts = loadedPosts
-            if failedCount > 0 {
-                message = loadedPosts.isEmpty ? String(localized: "Postlar yüklenemedi.") : String(localized: "\(failedCount) post şu anda yüklenemedi. Yenilemek için aşağı çek.")
-            }
+            let page = try await container.social.collectionPostsPage(in: collection.id, userID: user.id, cursor: nil)
+            guard !Task.isCancelled, loadID == requestID, case let .signedIn(current) = session.phase, current.id == user.id else { return }
+            posts = page.posts; nextCursor = page.next
         } catch {
+            guard !Task.isCancelled, loadID == requestID else { return }
+            message = String(localized: "Postlar yüklenemedi.")
+        }
+    }
+
+    private func loadMore() async {
+        guard !isLoading, !isLoadingMore, let cursor = nextCursor,
+              case let .signedIn(user) = session.phase, user.id == collection.ownerID else { return }
+        let requestID = loadID
+        isLoadingMore = true; message = nil
+        defer { if loadID == requestID { isLoadingMore = false } }
+        do {
+            let page = try await container.social.collectionPostsPage(in: collection.id, userID: user.id, cursor: cursor)
+            guard !Task.isCancelled, loadID == requestID, case let .signedIn(current) = session.phase, current.id == user.id else { return }
+            let known = Set(posts.map(\.id)); posts += page.posts.filter { !known.contains($0.id) }
+            nextCursor = page.next
+        } catch {
+            guard !Task.isCancelled, loadID == requestID else { return }
             message = String(localized: "Postlar yüklenemedi.")
         }
     }
@@ -191,6 +211,7 @@ struct CollectionDetailView: View {
     private func remove(post: LociPost) async {
         do {
             try await container.social.remove(postID: post.id, from: collection.id)
+            loadID = UUID(); isLoadingMore = false
             withAnimation {
                 posts.removeAll { $0.id == post.id }
             }
@@ -206,15 +227,30 @@ struct SavedPostsView: View {
     @State private var posts: [LociPost] = []
     @State private var message: String?
     @State private var isLoading = true
+    @State private var nextCursor: String?
+    @State private var isLoadingMore = false
+    @State private var loadID = UUID()
     var body: some View {
         Group {
             if isLoading { LociLoadingView(title: String(localized: "Kaydedilenler yükleniyor…")) }
-            else if posts.isEmpty {
+            else if posts.isEmpty && nextCursor == nil {
                 LociEmptyState(title: String(localized: "Kaydedilen post yok"), message: message ?? String(localized: "Kaydettiğin postlar burada görünür."), symbol: "bookmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
             } else {
-                List(posts) { post in
-                    NavigationLink(value: post) { PostCard(post: post) }
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                List {
+                    if let message {
+                        LociInlineNotice(title: String(localized: "Bazı postlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                            .listRowBackground(Color.clear)
+                    }
+                    ForEach(posts) { post in
+                        NavigationLink(value: post) { PostCard(post: post) }
+                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    }
+                    if nextCursor != nil {
+                        Button("Daha fazla göster") { Task { await loadMore() } }
+                            .disabled(isLoadingMore)
+                            .overlay { if isLoadingMore { ProgressView() } }
+                            .listRowBackground(Color.clear)
+                    }
                 }
                 .lociListStyle().refreshable { await load() }
             }
@@ -225,40 +261,39 @@ struct SavedPostsView: View {
         .task { await load() }
     }
     private func load() async {
+        let requestID = UUID(); loadID = requestID
         isLoading = posts.isEmpty
+        isLoadingMore = false; nextCursor = nil
         message = nil
-        defer { isLoading = false }
+        defer { if loadID == requestID { isLoading = false } }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
             message = String(localized: "Kaydedilenler için sunucu bağlantısı gerekiyor.")
             return
         }
         do {
-            let ids = try await container.social.savedPostIDs(for: user.id)
-            guard !ids.isEmpty else {
-                posts = []
-                return
-            }
-            // nil post = removed or hidden (skipped); a thrown error = could not load (reported).
-            let loaded = await withTaskGroup(of: (Int, LociPost?, Bool).self) { group in
-                for (index, id) in ids.enumerated() {
-                    group.addTask {
-                        do { return (index, try await container.posts.publicPost(id: id), false) }
-                        catch { return (index, nil, true) }
-                    }
-                }
-                var results: [(Int, LociPost)] = []
-                var failures = 0
-                for await (index, post, failed) in group {
-                    if let post { results.append((index, post)) }
-                    if failed { failures += 1 }
-                }
-                return (results.sorted { $0.0 < $1.0 }.map(\.1), failures)
-            }
-            posts = loaded.0
-            if loaded.1 > 0 {
-                message = String(localized: "Kaydedilen postların bir kısmı yüklenemedi. Yenilemek için aşağı çek.")
-            }
-        } catch { message = String(localized: "Kaydedilen postlar şu anda yüklenemiyor.") }
+            let page = try await container.social.savedPostsPage(for: user.id, cursor: nil)
+            guard !Task.isCancelled, loadID == requestID, case let .signedIn(current) = session.phase, current.id == user.id else { return }
+            posts = page.posts; nextCursor = page.next
+        } catch {
+            guard !Task.isCancelled, loadID == requestID else { return }
+            message = String(localized: "Kaydedilen postlar şu anda yüklenemiyor.")
+        }
+    }
+
+    private func loadMore() async {
+        guard !isLoading, !isLoadingMore, let cursor = nextCursor, case let .signedIn(user) = session.phase else { return }
+        let requestID = loadID
+        isLoadingMore = true; message = nil
+        defer { if loadID == requestID { isLoadingMore = false } }
+        do {
+            let page = try await container.social.savedPostsPage(for: user.id, cursor: cursor)
+            guard !Task.isCancelled, loadID == requestID, case let .signedIn(current) = session.phase, current.id == user.id else { return }
+            let known = Set(posts.map(\.id)); posts += page.posts.filter { !known.contains($0.id) }
+            nextCursor = page.next
+        } catch {
+            guard !Task.isCancelled, loadID == requestID else { return }
+            message = String(localized: "Kaydedilen postlar şu anda yüklenemiyor.")
+        }
     }
 }
 

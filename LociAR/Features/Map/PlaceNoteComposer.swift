@@ -26,6 +26,16 @@ final class PlaceNoteClient {
         }
     }
 
+    func receipt(mutation: UUID, user: UUID) async throws -> Response? {
+        guard let callables, FirebaseIdentity.currentLUID() == user else { throw AuthFlowError.notSignedIn }
+        struct Request: Encodable { let mode = "own_receipt"; let postId: String }
+        struct Existing: Decodable { let receipt: PostPublishReceipt? }
+        let result: Existing = try await callables.call("readPublicContent", payload: Request(postId: FirebaseIdentity.key(mutation)), timeout: 15)
+        guard !Task.isCancelled, FirebaseIdentity.currentLUID() == user else { throw AuthFlowError.notSignedIn }
+        guard let receipt = result.receipt, receipt.postID == mutation else { return nil }
+        return Response(publishStatus: receipt.status)
+    }
+
     func create(at pin: CLLocationCoordinate2D, source: Source, measured: LocationEstimate, text: String, mutation: UUID, user: UUID) async throws -> Response {
         guard let callables, FirebaseIdentity.currentLUID() == user else { throw AuthFlowError.notSignedIn }
         do {
@@ -37,6 +47,29 @@ final class PlaceNoteClient {
         } catch BackendCallError.rejected(_, let message, let reason) {
             throw PostPublishError.rejected(FirestorePostRepository.serverMessage(message, reason: reason))
         }
+    }
+}
+
+/// Only an opaque, account-scoped intent UUID reaches disk. Never store note text or a text digest.
+@MainActor
+struct PlaceNotePendingIntentStore {
+    var defaults: UserDefaults = .standard
+
+    private func key(for user: UUID) -> String { "place-note.pending-intent.\(user.uuidString.lowercased())" }
+
+    func pending(for user: UUID) -> UUID? {
+        defaults.string(forKey: key(for: user)).flatMap(UUID.init(uuidString:))
+    }
+
+    func save(_ mutation: UUID, for user: UUID) {
+        defaults.set(mutation.uuidString.lowercased(), forKey: key(for: user))
+        // Flush the opaque id before the network write can commit and its response can be lost.
+        defaults.synchronize()
+    }
+
+    func clear(_ mutation: UUID, for user: UUID) {
+        guard pending(for: user) == mutation else { return }
+        defaults.removeObject(forKey: key(for: user))
     }
 }
 
@@ -67,9 +100,11 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
         running = true; requestedPreciseAccuracy = false
         // Seeded fixes count as warm-up time already spent on the map.
         let now = Date()
-        let oldest = seed.map(\.timestamp).min()
+        // Check raw Core Location provenance before LocationSample's simulator fixture conversion.
+        let genuineSeed = seed.filter { $0.sourceInformation?.isSimulatedBySoftware != true && $0.timestamp <= now }
+        let oldest = genuineSeed.map(\.timestamp).min()
         estimator = LocationFixEstimator(startedAt: oldest.map { min(now, $0) } ?? now)
-        estimator.seed(seed.map(LocationSample.init), now: now)
+        estimator.seed(genuineSeed.map(LocationSample.init), now: now)
         estimate = estimator.estimate; ready = estimator.isReady(now: now); readyLogged = false
         switch manager.authorizationStatus {
         case .notDetermined: manager.requestWhenInUseAuthorization()
@@ -122,7 +157,9 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
     func locationManager(_ _: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard running else { return }
         let now = Date()
-        for location in locations { estimator.add(LocationSample(location), now: now) }
+        for location in locations where location.sourceInformation?.isSimulatedBySoftware != true && location.timestamp <= now {
+            estimator.add(LocationSample(location), now: now)
+        }
         estimate = estimator.estimate
         ready = estimator.isReady(now: now)
         if ready, !readyLogged, let estimate {
@@ -153,6 +190,13 @@ struct PlaceNoteComposer: View {
     @State private var manualPin: CLLocationCoordinate2D?
     @State private var text = ""
     @State private var mutation = UUID()
+    @State private var mutationOwner: UUID?
+    @State private var hasPendingIntent = false
+    // Re-entered text after reopening belongs to the recovered intent. Once submitted in this
+    // screen, editing explicitly starts a new intent. No draft text survives process termination.
+    @State private var submittedTextInThisScreen = false
+    @State private var submittedPin: CLLocationCoordinate2D?
+    private let pendingIntents = PlaceNotePendingIntentStore()
     @State private var busy = false
     @State private var waiting = false
     @State private var message: String?
@@ -189,7 +233,9 @@ struct PlaceNoteComposer: View {
                     TextField("Bu konum için notun", text: $text, axis: .vertical).lineLimit(3...6)
                         .focused($isTextFocused)
                         .accessibilityIdentifier("place-note-text")
-                        .onChange(of: text) { _, _ in mutation = UUID() }
+                        .onChange(of: text) { _, _ in
+                            if !hasPendingIntent || submittedTextInThisScreen { startNewIntent(restartMeasurement: false) }
+                        }
                     Text("En fazla 220 karakter.").font(.caption).foregroundStyle(.secondary)
                     Text("Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir.")
                         .font(.caption).foregroundStyle(.secondary)
@@ -201,6 +247,11 @@ struct PlaceNoteComposer: View {
                     .accessibilityIdentifier("place-note-publish")
                 }
                 .disabled(busy || submitted)
+                if hasPendingIntent || submitted {
+                    Button("Yeni", systemImage: "plus") { startNewIntent(clearText: true) }
+                        .disabled(busy)
+                        .accessibilityIdentifier("place-note-new-intent")
+                }
                 if busy && !waiting { ProgressView() }
             }
             .scrollDismissesKeyboard(.interactively)
@@ -231,8 +282,70 @@ struct PlaceNoteComposer: View {
             }
         }
         .task { measurement.start(seed: seed) }
+        .task(id: currentOwner) { await restorePendingIntent() }
         .onDisappear { measurement.stop() }
         .onChange(of: measurement.estimate) { _, estimate in if manualPin == nil, cameraFix == nil { follow(estimate) } }
+    }
+
+    private var currentOwner: UUID? {
+        guard case let .signedIn(user) = session.phase, !session.isLocalPreview, !user.isAnonymousAccount else { return nil }
+        return user.id
+    }
+
+    private func ownsIntent(_ id: UUID, user: UUID) -> Bool {
+        !Task.isCancelled && currentOwner == user && mutationOwner == user && mutation == id
+    }
+
+    private func startNewIntent(clearText: Bool = false, restartMeasurement: Bool = true) {
+        if let owner = mutationOwner { pendingIntents.clear(mutation, for: owner) }
+        mutation = UUID()
+        hasPendingIntent = false
+        submittedTextInThisScreen = false
+        submitted = false
+        submittedPin = nil
+        message = nil
+        if clearText { text = "" }
+        if restartMeasurement { measurement.start(seed: seed) }
+    }
+
+    private func restorePendingIntent() async {
+        guard let owner = currentOwner else {
+            mutationOwner = nil; text = ""; submitted = false; hasPendingIntent = false; busy = false
+            return
+        }
+        if mutationOwner != owner {
+            busy = false
+            text = ""; submitted = false; submittedTextInThisScreen = false; submittedPin = nil
+            mutationOwner = owner
+            mutation = pendingIntents.pending(for: owner) ?? UUID()
+        }
+        hasPendingIntent = pendingIntents.pending(for: owner) == mutation
+        guard hasPendingIntent else { return }
+        busy = true
+        defer { if currentOwner == owner { busy = false } }
+        do { _ = try await reconcile(mutation, user: owner) }
+        catch { if ownsIntent(mutation, user: owner) { message = error.localizedDescription } }
+    }
+
+    /// Reconciliation never returns note text. An absent or uncertain receipt preserves the id.
+    private func reconcile(_ id: UUID, user: UUID) async throws -> Bool {
+        let response = try await PlaceNoteClient.shared.receipt(mutation: id, user: user)
+        guard ownsIntent(id, user: user) else { return false }
+        guard let response else { return false }
+        complete(response, mutation: id, user: user, pin: submittedPin ?? measurement.estimate?.coordinate)
+        return true
+    }
+
+    private func complete(_ response: PlaceNoteClient.Response, mutation id: UUID, user: UUID, pin: CLLocationCoordinate2D?) {
+        guard ownsIntent(id, user: user) else { return }
+        pendingIntents.clear(id, for: user)
+        hasPendingIntent = false
+        submitted = true
+        measurement.stop()
+        message = response.confirmationMessage
+        if response.publishStatus == .active, let pin {
+            container.router.focusMap(.init(latitude: pin.latitude, longitude: pin.longitude))
+        }
     }
 
     private var map: some View {
@@ -312,10 +425,20 @@ struct PlaceNoteComposer: View {
 
     private func publish() async {
         guard !busy, !submitted, !trimmed.isEmpty, textLength <= 220, !measurement.denied else { return }
-        guard case let .signedIn(user) = session.phase, !session.isLocalPreview else { return }
+        guard case let .signedIn(user) = session.phase, currentOwner == user.id else { return }
+        if mutationOwner != user.id { await restorePendingIntent() }
+        guard mutationOwner == user.id, !submitted else { return }
         isTextFocused = false
+        let publishIntent = mutation
         busy = true; message = nil
-        defer { busy = false; waiting = false }
+        defer {
+            if mutationOwner == user.id, mutation == publishIntent { busy = false; waiting = false }
+        }
+        if hasPendingIntent {
+            do { if try await reconcile(mutation, user: user.id) { return } }
+            catch { message = error.localizedDescription; return }
+        }
+        guard currentOwner == user.id, !Task.isCancelled else { return }
         measurement.refreshEstimate()
         if let pin = manualPin {
             guard let measured = measurement.estimate else {
@@ -359,11 +482,34 @@ struct PlaceNoteComposer: View {
     }
 
     private func submit(pin: CLLocationCoordinate2D, source: PlaceNoteClient.Source, measured: LocationEstimate, user: UUID) async {
+        let id = mutation
+        guard ownsIntent(id, user: user) else { return }
+        let age = Date().timeIntervalSince(measured.timestamp)
+        guard measured.accuracy.isFinite, measured.accuracy >= 0 else {
+            message = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin.")
+            return
+        }
+        guard measured.accuracy < ProximityPolicy.maxHorizontalAccuracy else {
+            message = Self.tooUncertain(min(measured.accuracy, 1_000_000))
+            return
+        }
+        guard age.isFinite, age >= 0, age < ProximityPolicy.maxFixAge, !measurement.denied else {
+            message = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin.")
+            return
+        }
+        pendingIntents.save(id, for: user)
+        hasPendingIntent = true
+        submittedTextInThisScreen = true
+        submittedPin = pin
         do {
-            let response = try await PlaceNoteClient.shared.create(at: pin, source: source, measured: measured, text: trimmed, mutation: mutation, user: user)
-            submitted = true
-            measurement.stop()
-            message = response.confirmationMessage
-        } catch { message = error.localizedDescription }
+            let response = try await PlaceNoteClient.shared.create(at: pin, source: source, measured: measured, text: trimmed, mutation: id, user: user)
+            complete(response, mutation: id, user: user, pin: pin)
+        } catch {
+            guard ownsIntent(id, user: user) else { return }
+            let publishError = error
+            do { if try await reconcile(id, user: user) { return } }
+            catch { /* Keep the original failure and the opaque pending id for a later retry. */ }
+            if ownsIntent(id, user: user) { message = publishError.localizedDescription }
+        }
     }
 }

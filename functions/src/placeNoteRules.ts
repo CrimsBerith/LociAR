@@ -132,30 +132,35 @@ export function campaignEntryRadius(value: unknown): number {
 
 export type Spot = { lat: number; lng: number; radius: number };
 
-/** Metres from a point to the edge of a spot circle; 0 inside. */
+/** Membership is measured from the fixed centre, never from the circle's edge. */
 export function distanceToSpot(lat: number, lng: number, spot: Spot): number {
-  return Math.max(0, distanceMeters(lat, lng, spot.lat, spot.lng) - spot.radius);
+  return distanceMeters(lat, lng, spot.lat, spot.lng);
 }
 
 /** Unlock a dense spot: within the unlock radius of its circle, GPS tolerance capped at 5 m. */
 export function fixUnlocksSpot(fix: Fix, spot: Spot, unlockRadius: number): boolean {
   if (!Number.isFinite(fix.accuracy) || fix.accuracy < 0 || fix.accuracy > MAX_ENTRY_ACCURACY_M) return false;
-  return distanceToSpot(fix.lat, fix.lng, spot) <= unlockRadius + Math.min(fix.accuracy, UNLOCK_TOLERANCE_CAP_M);
+  return Math.max(0, distanceToSpot(fix.lat, fix.lng, spot) - spot.radius) <= unlockRadius + Math.min(fix.accuracy, UNLOCK_TOLERANCE_CAP_M);
 }
 
-/** Adds a point to a spot: running centroid, radius grows to cover the point (capped). */
+/** A fixed centre prevents later joins from pushing existing members outside 25 m. */
 export function joinSpot(spot: Spot & { count: number }, lat: number, lng: number): Spot & { count: number } {
-  const count = spot.count + 1;
-  const deltaLng = (lng - spot.lng + 540) % 360 - 180;
-  const c = { lat: spot.lat + (lat - spot.lat) / count, lng: (spot.lng + deltaLng / count + 540) % 360 - 180 };
-  const radius = Math.min(MAX_SPOT_RADIUS_M, Math.max(spot.radius + distanceMeters(spot.lat, spot.lng, c.lat, c.lng), distanceMeters(c.lat, c.lng, lat, lng)));
-  return { ...c, radius, count };
+  const distance = distanceToSpot(lat, lng, spot);
+  if (distance > SPOT_JOIN_RADIUS_M) throw new RangeError('Spot member is outside 25 m');
+  return { lat: spot.lat, lng: spot.lng, radius: Math.min(SPOT_JOIN_RADIUS_M, Math.max(spot.radius, distance)), count: spot.count + 1 };
 }
 
-/** Smallest centred circle over a group of points (centroid + farthest member, capped). */
+/** Prefer the date-line-safe mean; fall back to the seed if that mean moves a member out. */
 export function spotOf(points: Array<{ lat: number; lng: number }>): Spot & { count: number } {
-  const lat = points.reduce((s, p) => s + p.lat, 0) / points.length, lng = meanLongitude(points.map(p => p.lng));
-  return { lat, lng, count: points.length, radius: Math.min(MAX_SPOT_RADIUS_M, Math.max(...points.map(p => distanceMeters(lat, lng, p.lat, p.lng)))) };
+  if (!points.length) throw new RangeError('A spot needs a member');
+  let lat = points.reduce((s, p) => s + p.lat, 0) / points.length, lng = meanLongitude(points.map(p => p.lng));
+  let radius = Math.max(...points.map(p => distanceMeters(lat, lng, p.lat, p.lng)));
+  if (radius > SPOT_JOIN_RADIUS_M) {
+    ({ lat, lng } = points[0]);
+    radius = Math.max(...points.map(p => distanceMeters(lat, lng, p.lat, p.lng)));
+  }
+  if (radius > SPOT_JOIN_RADIUS_M) throw new RangeError('Spot members need separate 25 m groups');
+  return { lat, lng, count: points.length, radius };
 }
 
 /** Deterministic RFC 4122-shaped id for a non-post region such as a dense spot. */

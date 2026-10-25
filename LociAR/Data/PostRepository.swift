@@ -76,6 +76,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         var latitude: Double? = nil
         var longitude: Double? = nil
         var radiusMeters: Double? = nil
+        var includeOwnNearby: Bool? = nil
     }
     private func projected(_ request: PublicRequest) async throws -> PostPage {
         let response: PublicResponse = try await callables.call("readPublicContent", payload: request, timeout: 60)
@@ -84,7 +85,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
     }
     func nearby(latitude: Double, longitude: Double, radiusMeters: Double) async throws -> [LociPost] {
         // The server clamps to 5 km as well (MAX_NEARBY_RADIUS_M in functions/src/publicContent.ts).
-        try await projected(PublicRequest(mode: "nearby", latitude: latitude, longitude: longitude, radiusMeters: max(1, min(radiusMeters, 5_000)))).posts
+        try await projected(PublicRequest(mode: "nearby", latitude: latitude, longitude: longitude, radiusMeters: max(1, min(radiusMeters, 5_000)), includeOwnNearby: true)).posts
     }
     func discover() async throws -> [LociPost] { try await discoverPage(cursor: nil).posts }
     func discoverPage(cursor: String?) async throws -> PostPage { try await projected(PublicRequest(mode: "discover", cursor: cursor)) }

@@ -6,6 +6,54 @@ import XCTest
 
 @MainActor
 final class ArchitectureAndPublishTests: XCTestCase {
+    func testSupportCatalogRejectsInvalidOrAmbiguousAmounts() throws {
+        let product = PostSupportClient.productIDs[0]
+        func catalog(_ offers: [PostSupportCatalog.Offer], crypto: Bool = false) -> PostSupportCatalog {
+            PostSupportCatalog(writerShareBps: 7200, appleEnabled: false, stripeEnabled: !crypto, cryptoEnabled: crypto,
+                externalIOSAllowed: true, environment: "sandbox", cryptoProvider: "nowpayments",
+                offers: crypto ? [] : offers, cryptoOffers: crypto ? offers : [])
+        }
+        let valid = PostSupportCatalog.Offer(productId: product, currency: "GBP", grossMilliunits: 1990)
+        XCTAssertEqual(try PostSupportClient.validate(catalog([valid])).offers.first?.grossMilliunits, 1990)
+        for crypto in [false, true] {
+            XCTAssertThrowsError(try PostSupportClient.validate(catalog([valid, valid], crypto: crypto)))
+            for invalid in [PostSupportCatalog.Offer(productId: product, currency: "GBP", grossMilliunits: -1),
+                            .init(productId: product, currency: "GBP", grossMilliunits: 0),
+                            .init(productId: product, currency: "GBP", grossMilliunits: 1_000_000_001),
+                            .init(productId: product, currency: "gbp", grossMilliunits: 1990),
+                            .init(productId: "another.product", currency: "GBP", grossMilliunits: 1990)] {
+                XCTAssertThrowsError(try PostSupportClient.validate(catalog([invalid], crypto: crypto)))
+            }
+        }
+    }
+
+    func testSupportCheckoutURLsRejectCredentialsLookalikesAndUnexpectedPorts() throws {
+        for value in ["https://checkout.stripe.com/c/pay/session", "https://checkout.stripe.com:443/c/pay/session"] {
+            XCTAssertTrue(PostSupportClient.validCheckoutURL(try XCTUnwrap(URL(string: value)), processor: "stripe"))
+        }
+        for value in ["http://checkout.stripe.com/c/pay/session", "https://checkout.stripe.com.evil.example/session",
+                      "https://user:password@checkout.stripe.com/session", "https://checkout.stripe.com:4444/session",
+                      "https://evil.example/session"] {
+            XCTAssertFalse(PostSupportClient.validCheckoutURL(try XCTUnwrap(URL(string: value)), processor: "stripe"))
+        }
+        XCTAssertTrue(PostSupportClient.validCheckoutURL(try XCTUnwrap(URL(string: "https://nowpayments.io/payment/?iid=123")), processor: "nowpayments"))
+        XCTAssertFalse(PostSupportClient.validCheckoutURL(try XCTUnwrap(URL(string: "https://checkout.stripe.com/session")), processor: "unrecognized"))
+    }
+
+    func testSupportReceiptRequiresTheAgreedShareAndItsOriginalIntent() throws {
+        let id = UUID()
+        let pending = PostSupportReceipt(status: .awaitingPayment, writerShareBps: 7200, intentId: id, processor: "stripe", environment: "sandbox")
+        XCTAssertFalse(try PostSupportClient.validate(pending, expectedID: id).recorded)
+        XCTAssertThrowsError(try PostSupportClient.validate(pending, expectedID: UUID()))
+        XCTAssertThrowsError(try PostSupportClient.validate(.init(status: .pending, writerShareBps: 7000)))
+        XCTAssertThrowsError(try PostSupportClient.validate(.init(status: .awaitingPayment, writerShareBps: 7200)))
+        XCTAssertFalse(PostSupportReceipt(status: .refunded, writerShareBps: 7200).recorded)
+        XCTAssertTrue(PostSupportReceipt(status: .pending, writerShareBps: 7200, environment: "sandbox").recorded)
+        XCTAssertFalse(PostSupportReceipt(status: .pending, writerShareBps: 7200).recorded)
+        XCTAssertThrowsError(try JSONDecoder().decode(PostSupportReceipt.self,
+            from: Data(#"{"status":"unverified_success","writerShareBps":7200}"#.utf8)))
+    }
+
     func testFeatureLayerDoesNotConstructInfrastructureAdapters() throws {
         let root = try sourceCheckoutRoot()
         let featureRoot = root.appendingPathComponent("LociAR/Features")
@@ -253,6 +301,36 @@ final class ArchitectureAndPublishTests: XCTestCase {
         let publishedCount = await repository.publishedCount
         XCTAssertEqual(publishedCount, 0)
         XCTAssertEqual(try context.fetch(FetchDescriptor<SyncQueueRecord>()).count, 1)
+    }
+
+    func testQueueFetchLimitsOwnDueRowsBeforeLoadingAnotherAccountsBacklog() async throws {
+        let context = try makeContext(), owner = UITestFixtures.post.creatorID, other = UUID()
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let payload = try encoder.encode(UITestFixtures.post)
+        for _ in 0..<30 { context.insert(SyncQueueRecord(ownerID: other, operation: "publish_post", payload: payload, nextAttemptAt: .distantPast)) }
+        for _ in 0..<12 { context.insert(SyncQueueRecord(ownerID: owner, operation: "publish_post", payload: payload)) }
+        context.insert(SyncQueueRecord(ownerID: owner, operation: "publish_post", payload: payload, nextAttemptAt: .distantFuture))
+        try context.save()
+        let repository = PublishRepositoryStub(shouldFail: false)
+        await SyncQueueProcessor.process(modelContext: context, repository: repository, authenticatedUserID: owner)
+        let published = await repository.publishedCount
+        XCTAssertEqual(published, 10)
+        let remaining = try context.fetch(FetchDescriptor<SyncQueueRecord>())
+        XCTAssertEqual(remaining.filter { $0.ownerID == other }.count, 30)
+        XCTAssertEqual(remaining.filter { $0.ownerID == owner }.count, 3)
+    }
+
+    func testLegacyQueueOwnerMigrationPreservesActualPayloadOwner() async throws {
+        let context = try makeContext()
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let record = SyncQueueRecord(operation: "publish_post", payload: try encoder.encode(UITestFixtures.post))
+        context.insert(record); try context.save()
+        try SyncQueueProcessor.migrateLegacyOwners(in: context)
+        XCTAssertEqual(record.ownerID, UITestFixtures.post.creatorID)
+        let repository = PublishRepositoryStub(shouldFail: false)
+        await SyncQueueProcessor.process(modelContext: context, repository: repository, authenticatedUserID: UUID(), force: true)
+        let published = await repository.publishedCount
+        XCTAssertEqual(published, 0)
     }
 
     func testDeadLetterNeedsExplicitManualRetry() async throws {

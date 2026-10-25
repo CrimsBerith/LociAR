@@ -6,6 +6,7 @@ import UIKit
 struct MapFeatureView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(\.modelContext) private var modelContext
@@ -31,7 +32,7 @@ struct MapFeatureView: View {
     @State private var selectedMapGroup: MapNoteGroup?
     @State private var selectedMapGroupFix: LocationSample?
     @State private var mapWidth: Double = 390
-    @State private var densityTask: Task<Void, Never>?
+    @State private var isVisible = false
     /// Notes of a tapped 25 m group, listed by likes in the panel.
     @State private var clusterFocus: Set<UUID>?
     @State private var showCameraUnlock = false
@@ -120,10 +121,14 @@ struct MapFeatureView: View {
         .overlay(alignment: .topLeading) {
             if layer.isHeat { NoteHeatLegend().padding(12) }
         }
-        .onMapCameraChange(frequency: .onEnd) { context in
-            visibleRegion = context.region
-            refreshLayer(for: context.region)
+        .onMapCameraChange(frequency: .continuous) { context in
+            guard container.isBackendConfigured, !session.isLocalPreview else {
+                visibleRegion = context.region
+                return
+            }
+            container.mapRequests.cameraChanged(context.region, byUser: camera.positionedByUser)
         }
+        .onChange(of: container.mapRequests.presentationRevision) { _, _ in applyMapPresentation() }
         .sheet(item: $selectedMapGroup) { group in
             MapNoteGroupSheet(group: group, unlockRadius: mapUnlockRadius,
                               initialFix: selectedMapGroupFix ?? DenseSpotClient.bestFix(gps: location.freshLocation(), camera: container.arcore.cameraFix))
@@ -150,7 +155,7 @@ struct MapFeatureView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button { Task { await startAndLoad() } } label: {
+                Button { Task { await startAndLoad(force: true) } } label: {
                     Label("Yenile", systemImage: "arrow.clockwise")
                 }
                 .accessibilityIdentifier("map-refresh")
@@ -166,13 +171,21 @@ struct MapFeatureView: View {
         }
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
         .task { await startAndLoad() }
+        .onAppear { isVisible = true }
         .onChange(of: showCreate) { _, presented in
             if !presented {
                 selection = nil
                 Task { await startAndLoad() }
             }
         }
-        .onDisappear { location.stop() }
+        .onDisappear { isVisible = false; location.stop(); container.mapRequests.suspend() }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+            container.mapRequests.trimMemory()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, isVisible { container.mapRequests.resume() }
+            else { container.mapRequests.suspend() }
+        }
         .onChange(of: router.pendingMapFocus, initial: true) { _, focus in
             guard let focus else { return }
             router.pendingMapFocus = nil
@@ -225,7 +238,9 @@ struct MapFeatureView: View {
 
     @ViewBuilder private var mapPanel: some View {
         LociCard {
-            if let selectedPost {
+            if container.isBackendConfigured, !session.isLocalPreview, selectedPost == nil {
+                summaryPanel
+            } else if let selectedPost {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -304,7 +319,7 @@ struct MapFeatureView: View {
                         }
                         if listedPosts.contains(where: { !$0.isLocked }) {
                         ScrollView {
-                            VStack(spacing: 10) {
+                            LazyVStack(spacing: 10) {
                                 ForEach(listedPosts.filter { !$0.isLocked }) { post in
                                     NavigationLink(value: post) {
                                         HStack(spacing: 10) {
@@ -336,6 +351,41 @@ struct MapFeatureView: View {
                             }
                         }
                         .frame(maxHeight: 220)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var summaryPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                if container.mapRequests.isLoading { ProgressView().tint(LociTheme.accent) }
+                Label("Yakındaki postlar", systemImage: "map")
+                    .font(.headline)
+                Spacer()
+                if !mapGroups.isEmpty {
+                    let noteCount = mapGroups.reduce(0) { $0 + $1.count }
+                    Text("\(noteCount) not").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if container.mapRequests.failed {
+                Text("Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else if !layer.isHeat, !mapGroups.isEmpty {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 10) {
+                        ForEach(mapGroups.prefix(15)) { group in
+                            Button {
+                                selectedMapGroupFix = nil
+                                selectedMapGroup = group
+                            } label: {
+                                let noteCount = group.count
+                                Label("\(noteCount) not", systemImage: "mappin.and.ellipse")
+                            }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("map-summary-group-\(group.id)")
                         }
                     }
                 }
@@ -434,47 +484,33 @@ struct MapFeatureView: View {
         }
     }
 
-    /// Picks heat, count bubbles or notes from the visible width and loads density after a short pause.
-    private func refreshLayer(for region: MKCoordinateRegion) {
-        let next = NoteMapLayer.forWidth(Self.widthMeters(region))
-        if next != layer {
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
-                if let precision = next.precision, precision == densityPrecision {
-                    // Heat and counters share precision 7: reuse their cells while the read refreshes.
-                    heatBlobs = next.isHeat ? NoteHeatBlob.bin(densityCells, longitudeSpan: region.span.longitudeDelta) : []
-                } else if !(next.isHeat && layer.isHeat) {
-                    densityCells = []
-                    densityPrecision = nil
-                    heatBlobs = []
-                }
-                layer = next
-            }
+    private func applyMapPresentation() {
+        guard let value = container.mapRequests.presentation else {
+            mapGroups = []; densityCells = []; heatBlobs = []
+            return
         }
-        densityTask?.cancel()
-        guard container.isBackendConfigured, !session.isLocalPreview else { return }
-        densityTask = Task {
-            try? await Task.sleep(for: .milliseconds(300))
-            guard !Task.isCancelled else { return }
-            if next.isHeat, let precision = next.precision {
-                let cells = try? await NoteDensityClient.shared.cells(in: region, precision: precision)
-                guard !Task.isCancelled, layer == next, let cells else { return }
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
-                    densityCells = cells
-                    densityPrecision = precision
-                    heatBlobs = NoteHeatBlob.bin(cells, longitudeSpan: region.span.longitudeDelta)
-                }
-            } else {
-                let result = try? await NoteDensityClient.shared.groups(in: region)
-                guard !Task.isCancelled, layer == next, let result else { return }
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
-                    mapGroups = result.groups
-                    mapUnlockRadius = result.unlockRadius
-                }
-            }
+        visibleRegion = value.viewport.region
+        layer = value.layer
+        switch value.summary.content {
+        case .heat(let cells):
+            densityCells = cells
+            densityPrecision = value.layer.precision
+            heatBlobs = NoteHeatBlob.bin(cells, longitudeSpan: value.viewport.longitudeDelta)
+            mapGroups = []
+        case .groups(let groups, let unlockRadius):
+            mapGroups = groups; mapUnlockRadius = unlockRadius
+            densityCells = []; heatBlobs = []
         }
     }
 
-    private func startAndLoad() async {
+    private func startAndLoad(force: Bool = false) async {
+        if container.isBackendConfigured, !session.isLocalPreview {
+            posts = localDraftsForCurrentUser()
+            container.mapRequests.resume()
+            if force { container.mapRequests.refresh() }
+            if container.mapRequests.presentation != nil { applyMapPresentation() }
+            return
+        }
         guard !isLoading else { reloadRequested = true; return }
         isLoading = true
         defer { isLoading = false }

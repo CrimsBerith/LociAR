@@ -2,7 +2,7 @@ import test, { before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, deleteDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, updateDoc, collection, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 const ALICE = '11111111-1111-5111-8111-111111111111';
 const BOB = '22222222-2222-5222-8222-222222222222';
@@ -12,6 +12,19 @@ const PRIVATE = '55555555-5555-4555-8555-555555555555';
 const CAROL = '66666666-6666-5666-8666-666666666666'; // suspended
 const DAVE = '77777777-7777-5777-8777-777777777777'; // blocked by BOB
 let env;
+
+test('support purchase intents, identities and balances remain server-only even for their owner', async () => {
+  for (const name of ['support_intents', 'support_payments', 'support_balances', 'support_reversals', 'support_quota',
+    'support_checkout_locks', 'support_refresh_quota']) {
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), name, ALICE), { owner_luid: ALICE, buyer_luid: ALICE, author_luid: BOB }));
+    for (const db of [as(ALICE), as(BOB)]) {
+      await assertFails(getDoc(doc(db, name, ALICE)));
+      await assertFails(getDocs(collection(db, name)));
+      await assertFails(setDoc(doc(db, name, ALICE), { writer_share_bps: 10000 }));
+      await assertFails(deleteDoc(doc(db, name, ALICE)));
+    }
+  }
+});
 
 before(async () => {
   env = await initializeTestEnvironment({
@@ -85,6 +98,34 @@ test('anonymous author and liker identities cannot be fetched directly, even by 
   await assertFails(getDoc(doc(as(BOB), 'activity_events', 'opaque-like')));
 });
 
+// Foreign existence must not be an oracle through a successful missing-document read.
+for (const name of ['likes', 'post_saves', 'follows', 'user_blocks', 'activity_events']) {
+  test(`${name}: a foreign existing row and absent row both deny; own missing-edge controls remain usable`, async () => {
+    const existingId = name === 'likes' ? `${POST}_${BOB}`
+      : name === 'post_saves' ? `${BOB}_${POST}`
+      : ['follows', 'user_blocks'].includes(name) ? `${BOB}_${DAVE}` : 'foreign-activity';
+    const missingId = name === 'likes' ? `${PRIVATE}_${BOB}`
+      : name === 'post_saves' ? `${BOB}_${PRIVATE}`
+      : ['follows', 'user_blocks'].includes(name) ? `${BOB}_${CAROL}` : 'missing-foreign-activity';
+    const row = name === 'follows' ? { follower_id: BOB, following_id: DAVE }
+      : name === 'user_blocks' ? { blocker_id: BOB, blocked_id: DAVE }
+      : name === 'activity_events' ? { recipient_id: BOB, actor_id: DAVE, anonymous: false }
+      : { post_id: POST, user_id: BOB };
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), name, existingId), row));
+    async function denied(id) {
+      try { await getDoc(doc(as(ALICE), name, id)); assert.fail('foreign read succeeded'); }
+      catch (error) { assert.equal(error.code, 'permission-denied'); return error.code; }
+    }
+    assert.equal(await denied(existingId), await denied(missingId));
+    await assertSucceeds(getDoc(doc(as(BOB), name, existingId)), 'an authorized owner can read its existing row');
+    if (name !== 'activity_events') {
+      const ownMissing = name === 'likes' ? `${PRIVATE}_${ALICE}` : `${ALICE}_${PRIVATE}`;
+      const absent = await assertSucceeds(getDoc(doc(as(ALICE), name, ownMissing)));
+      assert.equal(absent.exists(), false, 'own nonexistent edges retain the needed toggle check');
+    }
+  });
+}
+
 test('anonymous mutes stay private and never change what rules allow', async () => {
   await env.withSecurityRulesDisabled(async ctx => {
     await setDoc(doc(ctx.firestore(), 'anonymous_blocks', `${ALICE}_${BOB}`), { blocker_id: ALICE, blocked_id: BOB });
@@ -154,6 +195,18 @@ test('likes: only own identity, correct id, existing post', async () => {
   await assertFails(setDoc(doc(db, 'likes', `x_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() }));
   await assertFails(deleteDoc(doc(as(BOB), 'likes', `${POST}_${ALICE}`)));
   await assertSucceeds(deleteDoc(doc(db, 'likes', `${POST}_${ALICE}`)));
+});
+
+test('notification eligibility hints on likes are server-only and do not prevent an owner unlike', async () => {
+  const ref = doc(as(ALICE), 'likes', `${POST}_${ALICE}`);
+  const edge = { post_id: POST, user_id: ALICE, created_at: serverTimestamp() };
+  await assertFails(setDoc(ref, { ...edge, notification_eligible_at: Timestamp.fromMillis(1) }));
+  await assertSucceeds(setDoc(ref, edge));
+  await assertFails(updateDoc(ref, { notification_eligible_at: Timestamp.fromMillis(1) }));
+  await env.withSecurityRulesDisabled(async ctx => {
+    await updateDoc(doc(ctx.firestore(), 'likes', `${POST}_${ALICE}`), { notification_eligible_at: Timestamp.fromMillis(1) });
+  });
+  await assertSucceeds(deleteDoc(ref));
 });
 
 test('comments only on active posts, with caller identity', async () => {
@@ -251,6 +304,22 @@ test('comments/likes/follows are not readable without signing in; removed posts 
   await assertFails(getDocs(query(collection(as(ALICE), 'comments'), where('post_id', '==', 'removed-post'))));
   await assertSucceeds(getDoc(doc(as(ALICE), 'likes', `${POST}_${ALICE}`)));
   await assertSucceeds(getDoc(doc(as(ALICE), 'follows', `${ALICE}_${BOB}`)));
+});
+
+test('missing likes, saves, follows and blocks do not reveal a foreign edge', async () => {
+  const like = `99999999-9999-4999-8999-999999999999_${ALICE}`;
+  const foreignLike = `99999999-9999-4999-8999-999999999999_${BOB}`;
+  await assertSucceeds(getDoc(doc(as(ALICE), 'likes', like)));
+  await assertFails(getDoc(doc(as(BOB), 'likes', like)));
+  await assertFails(getDoc(doc(as(ALICE), 'likes', foreignLike)));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'post_saves', `${ALICE}_${POST}`)));
+  await assertFails(getDoc(doc(as(BOB), 'post_saves', `${ALICE}_${POST}`)));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'follows', `${ALICE}_${BOB}`)));
+  await assertFails(getDoc(doc(as(BOB), 'follows', `${DAVE}_${BOB}`)));
+  await assertSucceeds(getDoc(doc(as(ALICE), 'user_blocks', `${ALICE}_${BOB}`)));
+  await assertFails(getDoc(doc(as(BOB), 'user_blocks', `${ALICE}_${BOB}`)));
+  await assertSucceeds(deleteDoc(doc(as(ALICE), 'likes', like)));
+  await assertFails(deleteDoc(doc(as(BOB), 'likes', like)));
 });
 
 test('comments cannot carry a client-written username', async () => {

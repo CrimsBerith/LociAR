@@ -122,6 +122,8 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     private let callables: CallableClient
     private let userCacheLock = NSLock()
     private var hydratedUsers: [String: LociUser] = [:]
+    private var hydratedAt: [String: TimeInterval] = [:]
+    private var hydratedTerms: [String: String] = [:]
 
     init(functionsRegion: String) {
         callables = CallableClient(region: functionsRegion)
@@ -181,7 +183,11 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             try? await change.commitChanges()
         }
         let hydrated = Self.domainUser(user, handle: response.handle, avatarURL: avatar)
-        userCacheLock.withLock { hydratedUsers[user.uid] = hydrated }
+        userCacheLock.withLock {
+            hydratedUsers[user.uid] = hydrated
+            hydratedAt[user.uid] = ProcessInfo.processInfo.systemUptime
+            hydratedTerms[user.uid] = TermsConsent.acceptedVersion ?? ""
+        }
         return hydrated
     }
 
@@ -222,6 +228,19 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
 
     private func userStateTask(_ user: User, continuation: AsyncStream<LociUser?>.Continuation) -> Task<Void, Never> {
         Task {
+            // bootstrap() has just established this user before installing the listener.
+            // Its initial callback need not repeat the callable and its server writes.
+            let recent = userCacheLock.withLock { () -> LociUser? in
+                guard let cached = hydratedUsers[user.uid], let at = hydratedAt[user.uid],
+                      ProcessInfo.processInfo.systemUptime - at < 30 * 60,
+                      hydratedTerms[user.uid] == (TermsConsent.acceptedVersion ?? ""),
+                      cached.isAnonymousAccount == user.isAnonymous else { return nil }
+                return cached
+            }
+            if let recent, !Task.isCancelled, Auth.auth().currentUser?.uid == user.uid {
+                continuation.yield(recent)
+                return
+            }
             let hydrated = try? await establish(user)
             guard !Task.isCancelled, Auth.auth().currentUser?.uid == user.uid else { return }
             continuation.yield(hydrated ?? userCacheLock.withLock { hydratedUsers[user.uid] } ?? Self.domainUser(user))
@@ -356,7 +375,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     }
 
     func signOut() async {
-        userCacheLock.withLock { hydratedUsers.removeAll() }
+        userCacheLock.withLock { hydratedUsers.removeAll(); hydratedAt.removeAll(); hydratedTerms.removeAll() }
         try? Auth.auth().signOut()
     }
 

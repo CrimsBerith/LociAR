@@ -102,6 +102,25 @@ test('email-code HTTP session is secure, opens the panel without QR and authoriz
   assert.equal((await post('/api/admin/v1/campaigns', { action: 'notify', recipientId: recipient, title: 'Test', message: 'Denied', reason }, observer.cookie)).status, 403);
 });
 
+test('role invitations require AAL2 while email-code sessions retain ordinary invitations', async () => {
+  const emailOnly = await emailSession('super_admin');
+  const email = `ci-invite-${randomUUID()}@example.test`;
+  const denied = await post('/api/admin/v1/users/invite',
+    { email, roleKey: 'trust_safety_admin', reason }, emailOnly.cookie, { 'idempotency-key': randomUUID() });
+  assert.equal(denied.status, 403, JSON.stringify(await denied.clone().json()));
+  await assert.rejects(auth.getUserByEmail(email), error => error.code === 'auth/user-not-found');
+
+  const ordinary = await post('/api/admin/v1/users/invite',
+    { email, reason }, emailOnly.cookie, { 'idempotency-key': randomUUID() });
+  assert.equal(ordinary.status, 201, JSON.stringify(await ordinary.clone().json()));
+
+  const authenticator = await session(await identity('super_admin'));
+  const allowed = await post('/api/admin/v1/users/invite',
+    { email: `ci-role-${randomUUID()}@example.test`, roleKey: 'trust_safety_admin', reason },
+    authenticator.cookie, { 'idempotency-key': randomUUID() });
+  assert.equal(allowed.status, 201, JSON.stringify(await allowed.clone().json()));
+});
+
 test('email-code endpoint rejects CSRF, replay, forged cookies and a missing sender configuration', async () => {
   assert.equal((await post('/api/auth/email-code', { action: 'request', email: 'somebody@example.test' }, null, { origin: 'https://attacker.invalid' })).status, 403);
   const unavailable = await post('/api/auth/email-code', { action: 'request', email: 'somebody@example.test' });

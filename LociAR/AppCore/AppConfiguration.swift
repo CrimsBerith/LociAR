@@ -141,18 +141,28 @@ struct AppConfiguration: Sendable {
     /// firebase.json's "emulators" block. Debug-only: never compiled into release builds.
     private func connectEmulatorsIfConfigured(functionsRegion: String) {
         guard let host = emulatorHost, !host.isEmpty else { return }
+        let permitsDemoHTTP = Self.permitsDemoEmulatorHTTP(
+            settings: firebase, host: host,
+            optedIn: ProcessInfo.processInfo.environment["LOCIAR_DEMO_EMULATOR_HTTP"] == "1"
+        )
         Auth.auth().useEmulator(withHost: host, port: 9099)
-        Firestore.firestore().useEmulator(withHost: host, port: 8080)
+        let firestore = Firestore.firestore()
+        firestore.useEmulator(withHost: host, port: 8080)
+        if permitsDemoHTTP {
+            // useEmulator changes only the host in Firebase 12.19. The local suite
+            // serves plaintext; keep this opt-in limited to synthetic demo credentials.
+            let settings = firestore.settings
+            settings.isSSLEnabled = false
+            settings.cacheSettings = MemoryCacheSettings()
+            firestore.settings = settings
+        }
         Storage.storage().useEmulator(withHost: host, port: 9199)
         let functions = Functions.functions(region: functionsRegion)
         functions.useEmulator(withHost: host, port: 5001)
         // Firebase 12.19 blocks credentialed HTTP to a LAN host. Its DEBUG-only emulator
         // opt-in is allowed solely for our disposable demo project and synthetic identifiers.
         // No production Auth/App Check/FCM credentials may use this test transport.
-        functions.allowInsecureTokenAttachment = Self.permitsDemoEmulatorHTTP(
-            settings: firebase, host: host,
-            optedIn: ProcessInfo.processInfo.environment["LOCIAR_DEMO_EMULATOR_HTTP"] == "1"
-        )
+        functions.allowInsecureTokenAttachment = permitsDemoHTTP
     }
 
     nonisolated static func permitsDemoEmulatorHTTP(settings: FirebaseSettings?, host: String?, optedIn: Bool) -> Bool {

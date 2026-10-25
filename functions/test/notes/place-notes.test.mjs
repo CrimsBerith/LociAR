@@ -9,6 +9,7 @@ import { expireDueNotes } from '../../lib/noteDensity.js';
 import { db } from '../../lib/core.js';
 import { readableNoteIds } from '../../lib/placeNoteAccess.js';
 import { repairSpotCount, syncSpotMembership } from '../../lib/denseSpots.js';
+import { geohashBounds } from '../../lib/placeNoteRules.js';
 after(closeClients);
 before(async () => {
   for (const collection of ['posts', 'note_density', 'note_density_members', 'note_spots']) {
@@ -359,6 +360,15 @@ test('map density counts public active notes and follows removal', async t => {
   });
   t.diagnostic(`density activation: ${JSON.stringify(observations)}`);
   assert.equal(await densityCount(f.visitor, f.point, 4) >= 1, true);
+  const coarse = await f.visitor.call('readNoteDensity', { precision: 6,
+    box: { minLat: f.point.lat - 0.002, maxLat: f.point.lat + 0.002, minLng: f.point.lng - 0.002, maxLng: f.point.lng + 0.002 } });
+  assert.equal(coarse.summaryVersion, 1);
+  assert.ok(coarse.cells.length > 0);
+  for (const cell of coarse.cells) {
+    const center = geohashBounds(cell.cell);
+    assert.equal(cell.lat, center.lat, 'coarse heat never discloses a singleton mean latitude');
+    assert.equal(cell.lng, center.lng, 'coarse heat never discloses a singleton mean longitude');
+  }
   const member = await adminDb.collection('note_density_members').doc(f.n.ref.id).get();
   const cellId = member.get('cells').find(id => id.startsWith('7_'));
   const cell = await adminDb.collection('note_density').doc(cellId).get();
@@ -443,6 +453,9 @@ test('ten-note map groups expose only a count remotely and all notes by likes on
   const s = await actualSpot(10);
   const groupId = `spot:${s.spotId}`;
   const summaries = await s.visitor.call('readPublicContent', { mode: 'map_groups', latitude: s.centre.lat, longitude: s.centre.lng, radiusMeters: 150 });
+  assert.equal(summaries.summaryVersion, 1);
+  assert.equal(summaries.complete, true);
+  assert.deepEqual(summaries.coverage, { latitude: s.centre.lat, longitude: s.centre.lng, radiusMeters: 150 });
   const group = summaries.groups.find(g => g.id === groupId);
   assert.equal(group.count, 10);
   assert.equal(group.post_ids.length, 10);
@@ -475,9 +488,11 @@ test('a group larger than the old nearby limit pages every visible note without 
   const ids = [];
   let offset = 0, pageToken;
   do {
+    const pageSize = offset === 0 ? 15 : 50;
     const page = await s.visitor.call('readPublicContent', { mode: 'map_group', groupId: `spot:${s.spotId}`,
-      offset, pageToken, location: fix(s.centre.lat, s.centre.lng) });
+      offset, pageToken, pageSize, location: fix(s.centre.lat, s.centre.lng) });
     assert.equal(page.total, 120);
+    assert.equal(page.posts.length, Math.min(pageSize, 120 - offset));
     ids.push(...page.posts.map(p => p.id));
     offset = page.nextOffset; pageToken = page.pageToken;
   } while (offset != null);

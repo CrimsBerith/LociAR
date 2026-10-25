@@ -83,14 +83,16 @@ test('density cells cover precisions 4 to 7 and box enumeration finds every inte
   assert.equal(validBox({ ...box, minLat: 42 }), false);
 });
 
-test('spots follow the notes: running centre, covering radius, unlock within radius + 5 m GPS tolerance', () => {
+test('spot joins preserve the fixed centre, reject members beyond 25 m and cap GPS tolerance', () => {
   const p = (north, east = 0) => ({ lat: 41 + north * METER, lng: 29 + east * METER / Math.cos(41 * Math.PI / 180) });
   const seed = spotOf([p(0), p(4), p(-4), p(0, 4), p(0, -4)]);
   assert.equal(seed.count, 5); assert.ok(Math.abs(seed.lat - 41) < 1e-7); assert.ok(seed.radius > 3.9 && seed.radius < 4.1);
   const grown = joinSpot(seed, p(20).lat, p(20).lng);
-  assert.equal(grown.count, 6); assert.ok(grown.lat > seed.lat); assert.ok(grown.radius >= 16 && grown.radius <= 40);
-  const far = joinSpot({ ...seed, radius: 39 }, p(80).lat, p(80).lng);
-  assert.equal(far.radius, 40, 'capped at 40 m');
+  assert.equal(grown.count, 6);
+  assert.equal(grown.lat, seed.lat); assert.equal(grown.lng, seed.lng);
+  assert.ok(grown.radius >= 19 && grown.radius <= 25);
+  assert.throws(() => joinSpot(seed, p(26).lat, p(26).lng), /outside 25 m/);
+  assert.throws(() => joinSpot({ ...seed, radius: 39 }, p(80).lat, p(80).lng), /outside 25 m/);
   const spot = { lat: 41, lng: 29, radius: 10 };
   assert.equal(distanceToSpot(41, 29, spot), 0);
   const fix = (north, accuracy) => ({ ...p(north), accuracy, measuredAt: Date.now() });

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { onCall } from 'firebase-functions/v2/https';
 import { hasPostReport } from './postReports';
 import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID, Timestamp, requireCaller } from './core';
@@ -128,31 +129,93 @@ export const readActivity = onCall(options, async request => {
   const cursor = (request.data as { cursor?: unknown } | null)?.cursor;
   if (cursor != null) {
     if (typeof cursor !== 'string' || cursor.length > 512 || cursor.includes('/')) throw new HttpsError('invalid-argument', 'Invalid cursor');
-    const last = await db.collection('activity_events').doc(cursor).get();
-    if (!last.exists || last.get('recipient_id') !== caller.luid) throw new HttpsError('invalid-argument', 'Invalid cursor');
+    const last = await activityCursorDoc(cursor);
+    if (!last?.exists || last.get('recipient_id') !== caller.luid) throw new HttpsError('invalid-argument', 'Invalid cursor');
     query = query.startAfter(last);
   }
-  const page = await query.limit(51).get(), docs = page.docs.slice(0, 50);
-  const items = await Promise.all(docs.map(async doc => {
+  const requestedSize = request.data?.pageSize;
+  const size = requestedSize === undefined ? 50 : requestedSize;
+  if (!Number.isInteger(size) || size < 15 || size > 50) throw new HttpsError('invalid-argument', 'Invalid activity page size');
+  const page = await query.limit(size + 1).get(), docs = page.docs.slice(0, size);
+  const noteIds = [...new Set(docs.filter(doc => doc.get('kind') === 'place_note').map(doc => doc.get('post_id')).filter(isUUID))];
+  const readable = new Map<string, FirebaseFirestore.DocumentSnapshot>();
+  if (noteIds.length) {
+    const permitted = await db.runTransaction(async tx => {
+      await requireActiveAccount(tx, caller.luid);
+      const posts = (await tx.getAll(...noteIds.map(id => db.collection('posts').doc(id))))
+        .filter(post => post.exists && isPublicActive(post.data()) && isUUID(post.get('creator_id')));
+      const authors = [...new Set(posts.map(post => String(post.get('creator_id'))))];
+      const records = authors.length ? await tx.getAll(...authors.flatMap(author => [db.collection('profiles').doc(author), accountDeletionRef(author)])) : [];
+      const active = new Set(authors.filter((_, i) => !profileBlock(records[i * 2].data()) && !records[i * 2 + 1].exists));
+      const refs = new Map<string, FirebaseFirestore.DocumentReference>();
+      for (const post of posts) {
+        const author = String(post.get('creator_id'));
+        if (!active.has(author) || author === caller.luid) continue;
+        const required = post.get('is_anonymous') === true ? [anonymousMuteRef(caller.luid, author)] : identityBlockRefs(caller.luid, author);
+        required.forEach(ref => refs.set(ref.path, ref));
+      }
+      const blocked = new Set((refs.size ? await tx.getAll(...refs.values()) : []).filter(doc => doc.exists).map(doc => doc.ref.path));
+      const visible = posts.filter(post => {
+        const author = String(post.get('creator_id'));
+        if (!active.has(author)) return false;
+        if (author === caller.luid) return true;
+        return post.get('is_anonymous') === true ? !blocked.has(anonymousMuteRef(caller.luid, author).path)
+          : !identityBlockRefs(caller.luid, author).some(ref => blocked.has(ref.path));
+      });
+      const reports = await Promise.all(visible.map(post => hasPostReport(tx, caller.luid, post.id)));
+      return visible.filter((_, i) => !reports[i]);
+    });
+    permitted.forEach(post => readable.set(post.id, post));
+  }
+  const published = await publishActivityIds(docs);
+  const locks = await denseLocks([...readable.values()], caller.luid);
+  const items = docs.map(doc => {
     const data = doc.data();
     let body = data.body;
     if (data.kind === 'place_note') {
-      body = await db.runTransaction(async tx => {
-        await requireActiveAccount(tx, caller.luid);
-        if (!isUUID(data.post_id)) return null;
-        const post = await tx.get(db.collection('posts').doc(data.post_id));
-        if (!post.exists || !isPublicActive(post.data())) return null;
-        const [author, deletion] = await tx.getAll(db.collection('profiles').doc(post.get('creator_id')), accountDeletionRef(post.get('creator_id')));
-        if (profileBlock(author.data()) || deletion.exists || await contentBlocked(caller.luid, post.data()!, tx)) return null;
-        return await hasPostReport(tx, caller.luid, post.id) ? null : post.get('caption');
-      });
+      const post = readable.get(data.post_id);
+      if (!post) return null;
+      if (post.get('caption') == null) return null;
+      body = locks.has(post.id) ? '' : post.get('caption');
       if (body == null) return null;
-      // A note in a dense spot stays closed in the activity list too until the viewer unlocks it on site.
-      if ((await denseLocks([await db.collection('posts').doc(data.post_id).get()], caller.luid)).size) body = '';
     }
-    return { id: doc.id, kind: data.kind, actor_id: data.anonymous === true ? null : data.actor_id ?? null,
+    return { id: published.get(doc.id) ?? doc.id, kind: data.kind, actor_id: data.anonymous === true ? null : data.actor_id ?? null,
       recipient_id: caller.luid, post_id: data.post_id ?? null, body,
       created_at: data.created_at.toDate().toISOString(), read_at: data.read_at?.toDate().toISOString() ?? null };
-  }));
-  return { items: items.filter(item => item !== null), next: page.size > 50 ? docs.at(-1)!.id : null };
+  });
+  const last = docs.at(-1);
+  return { items: items.filter(item => item !== null), next: page.size > size && last ? published.get(last.id) ?? last.id : null };
 });
+
+const predictableActivityId = (id: string) => /^[0-9a-f]{64}$/.test(id) || id.startsWith('follow_');
+
+async function activityCursorDoc(id: string) {
+  const direct = await db.collection('activity_events').doc(id).get();
+  if (direct.exists || !id.startsWith('act_')) return direct;
+  const found = await db.collection('activity_events').where('public_ref', '==', id).limit(1).get();
+  return found.docs[0];
+}
+
+/** Old like hashes and follow_${a}_${b} ids are not returned. One public_ref is stored. */
+async function publishActivityIds(docs: FirebaseFirestore.QueryDocumentSnapshot[]) {
+  const ids = new Map<string, string>();
+  const stale = docs.filter(doc => predictableActivityId(doc.id) && typeof doc.get('public_ref') !== 'string');
+  const assigned = new Map<string, string>();
+  if (stale.length) {
+    await db.runTransaction(async tx => {
+      const snaps = await tx.getAll(...stale.map(doc => doc.ref));
+      for (const snap of snaps) {
+        const existing = snap.get('public_ref');
+        if (typeof existing === 'string' && existing.startsWith('act_')) { assigned.set(snap.id, existing); continue; }
+        const publicRef = `act_${randomUUID()}`;
+        tx.update(snap.ref, { public_ref: publicRef });
+        assigned.set(snap.id, publicRef);
+      }
+    });
+  }
+  for (const doc of docs) {
+    const existing = doc.get('public_ref');
+    ids.set(doc.id, typeof existing === 'string' && existing.startsWith('act_') ? existing : assigned.get(doc.id) ?? doc.id);
+  }
+  return ids;
+}

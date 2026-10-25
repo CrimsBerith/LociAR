@@ -138,9 +138,11 @@ export default function PrivacyPage() {
         mesafe de saklanır. Ziyaret doğrulanmaz. Yetkili yöneticiler not ve yazar bağlantısını özel panelde görür.
         Notlar beğeniye göre sıralanır. Bir gününü doldurmuş hesaplardan yeterli beğeni alan not, oraya gelen kişilere bildirim
         olarak gider; her kişiye her not en fazla bir kez gönderilir. Farklı kişilerden yeterli şikayet alan not otomatik gizlenir. Notlar kendiliğinden eskimez; yönetici bitiş tarihi koyabilir veya
-        notu kaldırabilir. Yaklaşık 38 × 19 m&apos;lik bir noktada 30&apos;dan fazla not varsa (yönetici ayarı) bu notların metni yalnız
-        oraya yaklaştığınızda açılır; haritada sadece sayı görünür ve bu noktaya girince 30 günde en fazla bir kez metinsiz bir
-        “burada çok not var” bildirimi gelir. Açma için telefonun konumu veya AR kamerası konumu bir kez sunucuda kontrol edilir; kilit 30 dakika açık kalır.
+        notu kaldırabilir. Başkalarının konum notlarının metni, tek bir not olsa da uzaktayken sunucu tarafından gizlenir.
+        Haritadaki bir grubun not metinlerini okumak için bulunduğunuz yerde alınmış taze bir GPS veya Geospatial konum
+        ölçümü sunucuda doğrulanır; haritayı yakınlaştırmak erişim sağlamaz. Yoğun bir noktada 30&apos;dan fazla not bulunması
+        eşiği (yönetici ayarı) yalnız yoğunluk bildirimini belirler: bu noktaya girince 30 günde en fazla bir kez metinsiz bir
+        “burada çok not var” bildirimi gelir. Bu eşik, not metnini okuma iznini belirlemez.
         Kampanyaların ayrı, ortak günlük üç bildirim sınırı ve kullanıcı/kampanya başına tek hatırlatma sınırı vardır.</p>
 
       <h2>Saklama süreleri</h2>

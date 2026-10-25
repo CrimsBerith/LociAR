@@ -21,36 +21,40 @@ enum SyncQueueProcessor {
     private static var isProcessing = false
     private static let logger = Logger(subsystem: "com.khankartal.lociar", category: "sync")
 
+    /// Compatibility work happens once at launch, not in every 15-second queue poll.
+    static func migrateLegacyOwners(in context: ModelContext) throws {
+        let descriptor = FetchDescriptor<SyncQueueRecord>(predicate: #Predicate { $0.ownerID == nil })
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        for record in try context.fetch(descriptor) {
+            let post = (try? decoder.decode(LociPost.self, from: record.payload))
+                ?? (try? FirestoreJSON.decoder().decode(BackendPostRow.self, from: record.payload))?.domainPost()
+            if let post { record.ownerID = post.creatorID }
+        }
+        try context.save()
+    }
+
     static func process(
         modelContext: ModelContext,
         repository: any PostRepository,
         authenticatedUserID: UUID? = nil,
         force: Bool = false
     ) async {
-        guard !isProcessing else { return }
+        guard !isProcessing, let authenticatedUserID else { return }
         isProcessing = true
         defer { isProcessing = false }
         let now = Date()
-        let descriptor = force
-            ? FetchDescriptor<SyncQueueRecord>(sortBy: [SortDescriptor(\.nextAttemptAt)])
+        let owner: UUID? = authenticatedUserID
+        var descriptor = force
+            ? FetchDescriptor<SyncQueueRecord>(predicate: #Predicate { $0.ownerID == owner }, sortBy: [SortDescriptor(\.nextAttemptAt)])
             : FetchDescriptor<SyncQueueRecord>(
-                predicate: #Predicate { $0.deadLetterReason == nil && $0.nextAttemptAt <= now },
+                predicate: #Predicate { $0.ownerID == owner && $0.deadLetterReason == nil && $0.nextAttemptAt <= now },
                 sortBy: [SortDescriptor(\.nextAttemptAt)]
             )
+        descriptor.fetchLimit = 10
         guard let records = try? modelContext.fetch(descriptor) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        for record in records where record.ownerID == nil {
-            if let post = try? decoder.decode(LociPost.self, from: record.payload) {
-                record.ownerID = post.creatorID
-            }
-        }
-        try? modelContext.save()
-        let ownedRecords = records.filter { record in
-            guard let authenticatedUserID else { return false }
-            return record.ownerID == authenticatedUserID
-        }
-        for record in ownedRecords.prefix(10) {
+        for record in records {
             guard !Task.isCancelled else { return }
             do {
                 if force {

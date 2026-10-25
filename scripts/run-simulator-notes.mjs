@@ -168,7 +168,7 @@ try {
     'testEmulator02bMissingFixDoesNotPublishAndFreshFixAllowsRetry',
     'testEmulator02cFilteredTextIsLocalizedAndRetryPublishes',
     'testEmulator02dMapGroupRequiresOnSiteFixAndRanksAllNotes',
-    'testEmulator03BrowseTabsAndEditProfile', 'testEmulator04NotificationConsentPersistsWithoutMarketingOrLocationSharing',
+    'testEmulator03BrowseTabsAndEditProfile', 'testEmulator03bSavedAndCollectionListsPageWithoutFanout', 'testEmulator04NotificationConsentPersistsWithoutMarketingOrLocationSharing',
     'testEmulator05SignOutAndBackIn', 'testEmulator06LocationEntryQueuesOneNotificationAndOpensTheNote',
     'testEmulator07AdminNotificationOpensActivityWithMarketingOff', 'testEmulator07bAdminNotificationColdLaunchOpensActivity',
     'testEmulator07cForeignRecipientCannotPresentOrNavigate', 'testEmulator07dForegroundAdminNotificationOpensActivity',

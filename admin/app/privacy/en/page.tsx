@@ -131,9 +131,11 @@ export default function PrivacyPageEn() {
         distance are stored too. Attendance is not verified. Authorized administrators see the note and author association
         privately. Notes are ordered by likes. A note liked by enough accounts older than a day is sent as a reminder to people
         who come there; each note reaches each person at most once. Notes reported by enough different people are hidden automatically. Notes do not expire on their own; administrators
-        can set an end date or remove a note. Where more than 30 notes share a spot of about 38 × 19 m (administrator setting),
-        their text opens only when you are nearby; the map shows just the count, and entering the spot sends at most one
-        text-free “many notes here” reminder per 30 days. Opening checks your phone or AR-camera position once on the server and stays open for 30 minutes.
+        can set an end date or remove a note. Other people&apos;s location-note text is hidden by the server while you are remote,
+        even when there is only one note. Reading a map group&apos;s note text requires server verification of a fresh GPS or
+        Geospatial location fix taken on site; zooming the map does not grant access. The threshold of more than 30 notes
+        in a crowded spot (administrator setting) controls only the density reminder: entering the spot sends at most one
+        text-free “many notes here” reminder per 30 days. This threshold does not determine permission to read note text.
         Campaigns share a separate three-per-day promotional limit and at most one
         reminder per assigned campaign.</p>
 

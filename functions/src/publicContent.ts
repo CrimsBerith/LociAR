@@ -1,7 +1,7 @@
 import { chunks, forEachSequential, readPages } from './async';
 import { scalarText } from './values';
 import { onCall } from 'firebase-functions/v2/https';
-import { db, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, Timestamp, FieldValue } from './core';
+import { db, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, Timestamp, FieldValue, isUUID } from './core';
 import { isPublicActive } from './counters';
 import { distanceMeters, geohashCoverPrefixes } from './geo';
 import { info } from 'firebase-functions/logger';
@@ -11,7 +11,7 @@ import { rankForDiscover } from './discoverRanking';
 import { anonymousGeometry, anonymousIdentity, publicEditData } from './anonymous';
 import { campaignOffer, ownCampaignOffers } from './campaigns';
 import { denseLocks, spotSettings, type SpotLock } from './denseSpots';
-import { mapGroupSummary, mapNoteGroups } from './mapNoteGroups';
+import { mapNoteGroups } from './mapNoteGroups';
 import { validCoordinates, UNLOCK_TTL_MS, SPOT_JOIN_RADIUS_M, type Fix } from './placeNoteRules';
 import { postHiddenByBlocks, type BlockSets } from './visibility';
 import { MEMORY_LIMITS_ENABLED, WindowLimiter } from './memoryLimits';
@@ -24,6 +24,7 @@ import { reasonError } from './errors';
 export const MAX_NEARBY_RADIUS_M = 5_000;
 export const MAX_NEARBY_SCAN = 5_000;
 const nearbyLimiter = new WindowLimiter(30, 60_000);
+const edgePageLimiter = new WindowLimiter(60, 60_000);
 
 /** Identity blocks work in both directions; an anonymous mute only for the viewer who set it. */
 async function exclusions(luid:string):Promise<BlockSets>{
@@ -34,8 +35,14 @@ async function exclusions(luid:string):Promise<BlockSets>{
 }
 async function visibleAuthors(ids:string[],blocked:ReadonlySet<string>){
   const unique=[...new Set(ids)].filter(id=>/^[0-9a-f-]{36}$/.test(id)&&!blocked.has(id));if(!unique.length){ return new Set<string>(); }
-  const docs=await db.getAll(...unique.flatMap(id=>[db.collection('profiles').doc(id),db.collection('account_deletion_jobs').doc(id)]));
-  return new Set(unique.filter((_,i)=>docs[i*2].exists&&!docs[i*2].get('deleted_at')&&!docs[i*2].get('suspended')&&!docs[i*2+1].exists));
+  const visible = new Set<string>();
+  // Deduplicate across the entire request, then bound RPC batches by unique authors.
+  // No authorization result survives this request or hides a later suspension/deletion.
+  await forEachSequential(chunks(unique, 100), async batch => {
+    const docs=await db.getAll(...batch.flatMap(id=>[db.collection('profiles').doc(id),db.collection('account_deletion_jobs').doc(id)]));
+    batch.forEach((id,i)=>{if(docs[i*2].exists&&!docs[i*2].get('deleted_at')&&!docs[i*2].get('suspended')&&!docs[i*2+1].exists) visible.add(id);});
+  });
+  return visible;
 }
 /** Account fences for every post, then the block rule that matches the post's kind (visibility.ts). */
 async function visiblePosts<T extends FirebaseFirestore.DocumentSnapshot>(docs:T[],blocks:BlockSets,viewer:string):Promise<T[]>{
@@ -74,8 +81,13 @@ function decode(value:unknown,scope:string):{id:string;date:Timestamp}|null{
 /** Public projections apply both block directions, legacy age checks and permanent deletion
  * fences. Incoming block records themselves never become readable by another client. */
 export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInstances:CALLABLE_MAX_INSTANCES,timeoutSeconds:60},async request=>{
- const caller=requireCaller(request);await db.runTransaction(tx=>requireActiveAccount(tx,caller.luid));const body=(request.data??{})as Record<string,unknown>,mode=scalarText(body.mode??'discover');
+ const caller=requireCaller(request);const body=(request.data??{})as Record<string,unknown>,mode=scalarText(body.mode??'discover');
  if (mode === 'own_receipt') return readOwnReceipt(body, caller.luid);
+ if (!['eligible_authors', 'profile', 'single', 'search_profiles', 'nearby', 'map_groups', 'map_group', 'saved', 'collection', 'discover', 'creator'].includes(mode)) {
+   throw new HttpsError('invalid-argument', 'Invalid content mode');
+ }
+ await db.runTransaction(tx=>requireActiveAccount(tx,caller.luid));
+ if (mode === 'saved' || mode === 'collection') return readEdgePage(body, caller.luid, mode === 'collection');
  const blocked = await exclusions(caller.luid);
  switch (mode) {
  case 'eligible_authors': return readEligibleAuthors(body, blocked);
@@ -120,6 +132,44 @@ const id=scalarText(body.postId??'');if(!/^[0-9a-f-]{36}$/.test(id)){ throw new 
   return{posts:await rows([p],luid),next:null};
 }
 
+/** Page the raw owned edges, then batch the same public projection used by single-post reads.
+ * Cursors advance even when every row was removed/blocked/locked; no N-callable fan-out.
+ */
+async function readEdgePage(body: Record<string, unknown>, luid: string, collection: boolean) {
+  if (MEMORY_LIMITS_ENABLED && !edgePageLimiter.allow(luid)) throw reasonError('resource-exhausted', 'Too many list requests', 'rate_limited');
+  const collectionId = collection ? scalarText(body.collectionId ?? '') : null;
+  if (collection && !isUUID(collectionId)) throw new HttpsError('invalid-argument', 'Invalid collection ID');
+  const empty = { posts: [], next: null, edgePageVersion: 1 };
+  if (collection) {
+    const owned = await db.collection('collections').doc(collectionId!).get();
+    if (!owned.exists || owned.get('owner_id') !== luid) return empty;
+  }
+  const scope = fingerprint({ version: 1, luid, collectionId, mode: collection ? 'collection' : 'saved' });
+  let position: { id: string; sort?: number } | null = null;
+  if (body.cursor != null) {
+    try {
+      if (typeof body.cursor !== 'string' || body.cursor.length > 2048 || !/^[\w-]+$/.test(body.cursor)) throw new Error();
+      const decoded = JSON.parse(Buffer.from(body.cursor, 'base64url').toString());
+      if (decoded.scope !== scope || typeof decoded.id !== 'string' || !decoded.id || decoded.id.includes('/')
+        || collection && !Number.isFinite(decoded.sort)) throw new Error();
+      position = decoded;
+    } catch { throw new HttpsError('invalid-argument', 'Invalid edge cursor'); }
+  }
+  let query = collection
+    ? db.collection('collection_items').where('collection_id', '==', collectionId).where('owner_id', '==', luid).orderBy('sort_order').orderBy('__name__')
+    : db.collection('post_saves').where('user_id', '==', luid).orderBy('__name__');
+  if (position) query = collection ? query.startAfter(position.sort, position.id) : query.startAfter(position.id);
+  const page = await query.limit(16).get(), edges = page.docs.slice(0, 15);
+  const ids = [...new Set(edges.map(edge => edge.get('post_id')).filter((id): id is string => isUUID(id)))];
+  const documents = ids.length ? await db.getAll(...ids.map(id => db.collection('posts').doc(id))) : [];
+  const active = documents.filter(doc => doc.exists && isPublicActive(doc.data()));
+  const readable = active.length ? await visiblePosts(active, await exclusions(luid), luid) : [];
+  const last = edges.at(-1);
+  const next = page.size > 15 && last ? Buffer.from(JSON.stringify({ scope, id: last.id,
+    ...(collection ? { sort: last.get('sort_order') } : {}) })).toString('base64url') : null;
+  return { posts: await rows(readable, luid), next, edgePageVersion: 1 };
+}
+
 async function searchProfiles(body: Record<string, unknown>, blocked: BlockSets) {
 const term=scalarText(body.term??'').trim().toLowerCase().replace(/^@/,'');if(term.length<2||term.length>40){ throw new HttpsError('invalid-argument','Invalid handle prefix'); }
   const page=await db.collection('profiles').where('handle','>=',term).where('handle','<=',term+'\uf8ff').orderBy('handle').limit(50).get(),visible=await visibleAuthors(page.docs.map(d=>d.id),blocked.identity);
@@ -157,47 +207,53 @@ const started=Date.now();
     }
    }
   });
-  const matches:FirebaseFirestore.QueryDocumentSnapshot[]=[];
   const found=[...candidates.values()];
-  await forEachSequential(chunks(found, 100), async batch => {
-   matches.push(...await visiblePosts(batch, blocked, luid));
-  });
+  const matches=await visiblePosts(found, blocked, luid);
   // Distance selects the nearby set; popularity orders notes at a place in the native panel.
   matches.sort((a,b)=>distanceMeters(lat,lng,a.get('lat'),a.get('lng'))-distanceMeters(lat,lng,b.get('lat'),b.get('lng'))||Number(b.get('likes_count')??0)-Number(a.get('likes_count')??0)||a.id.localeCompare(b.id));
   info('nearby_query',{strategy:prefixes.length?'geohash':'latitude',scanned,matches:matches.length,elapsedMs:Date.now()-started,complete:true});
-  return { matches, lat, lng, radius };
+  return { matches, physical: found, lat, lng, radius };
 }
 
 async function readNearbyPosts(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
   const { matches, lat, lng, radius } = await nearbyDocuments(body, luid, blocked);
   const offers = await ownCampaignOffers(luid, lat, lng, radius);
-  return { posts: [...await rows(matches.slice(0, 100), luid), ...offers.map(campaignRow)], next: null, total: matches.length + offers.length };
+  const selected = new Map(matches.slice(0, 100).map(post => [post.id, post]));
+  if (body.includeOwnNearby === true) {
+    // Already in the complete, distance-filtered candidate set. Preserve up to 50 nearby own
+    // drafts/posts even when 100 closer public rows fill the page, without a second own feed.
+    const own = matches.filter(post => post.get('creator_id') === luid).sort((a, b) =>
+      Number(b.get('created_at')?.toMillis?.() ?? 0) - Number(a.get('created_at')?.toMillis?.() ?? 0) || a.id.localeCompare(b.id));
+    own.slice(0, 50).forEach(post => selected.set(post.id, post));
+  }
+  return { posts: [...await rows([...selected.values()], luid), ...offers.map(campaignRow)], next: null, total: matches.length + offers.length };
 }
 
 async function readMapGroups(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
-  const { matches } = await nearbyDocuments({ ...body, radiusMeters: Math.min(Number(body.radiusMeters), 2_000) }, luid, blocked);
+  const radiusMeters = Math.min(Number(body.radiusMeters), 2_000);
+  const { matches, lat, lng } = await nearbyDocuments({ ...body, radiusMeters }, luid, blocked);
   const groups = mapNoteGroups(matches.filter(d => isPublicActive(d.data())).map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), spotId: d.get('spot_id') })));
   const { unlockRadius } = await spotSettings();
   // No caption, media, author or likes are returned by the map-summary surface.
-  return { groups, unlockRadius };
+  return { groups, unlockRadius, summaryVersion: 1, complete: true,
+    coverage: { latitude: lat, longitude: lng, radiusMeters } };
 }
 
 const MAP_GROUP_ID = /^(spot|post):([0-9a-f-]{36})$/;
 const POST_ID = /^[0-9a-f-]{36}$/;
+const MAP_GROUP_MEMBERSHIP_VERSION = 2;
 
 /** Resolve a stale small-group identity through its current anchor membership. */
-async function visibleMapDocuments(docs: FirebaseFirestore.DocumentSnapshot[], luid: string, blocked: BlockSets) {
-  const allowed: FirebaseFirestore.DocumentSnapshot[] = [];
-  await forEachSequential(chunks(docs.filter(d => d.exists && isPublicActive(d.data())
-    && validCoordinates(d.get('lat'), d.get('lng'))), 100), async batch => {
-    allowed.push(...await visiblePosts(batch, blocked, luid));
-  });
-  return allowed;
+export async function visibleMapDocuments(docs: FirebaseFirestore.DocumentSnapshot[], luid: string, blocked: BlockSets) {
+  return visiblePosts(docs.filter(d => d.exists && isPublicActive(d.data())
+    && validCoordinates(d.get('lat'), d.get('lng'))), blocked, luid);
 }
 
 async function visibleMapAnchor(id: string, hints: string[], luid: string, blocked: BlockSets) {
   const anchor = await db.collection('posts').doc(id).get();
-  if ((await visibleMapDocuments([anchor], luid, blocked)).length) return anchor;
+  // Geometry is physical, not viewer-dependent. A block may remove a returned row, never
+  // choose a new centre that grants access to someone else's anonymous note.
+  if (anchor.exists && isPublicActive(anchor.data()) && validCoordinates(anchor.get('lat'), anchor.get('lng'))) return anchor;
   // Hints choose an eligible replacement only; all membership is still server-derived.
   const replacements: FirebaseFirestore.DocumentSnapshot[] = [];
   await forEachSequential(chunks(hints.filter(value => value !== id), 100), async ids => {
@@ -211,21 +267,23 @@ async function visibleMapAnchor(id: string, hints: string[], luid: string, block
 async function mapGroupDocuments(groupId: string, hints: string[], luid: string, blocked: BlockSets) {
   const group = MAP_GROUP_ID.exec(groupId)!;
   let canonicalId = groupId;
+  let anchorId: string | undefined;
   let found: FirebaseFirestore.DocumentSnapshot[] = [];
   if (group[1] === 'post') {
     const anchor = await visibleMapAnchor(group[2], hints, luid, blocked);
-    if (!anchor) return { canonicalId, allowed: [] };
+    if (!anchor) return { canonicalId, allowed: [], candidateCount: 0, summary: null };
+    anchorId = anchor.id;
     canonicalId = `post:${anchor.id}`;
     const spot = anchor.get('spot_id');
     if (typeof spot === 'string' && POST_ID.test(spot)) canonicalId = `spot:${spot}`;
     else {
       // Membership is server-derived. A side-panel singleton or an outdated client member
       // list cannot silently omit the other notes belonging to this real place.
-      const { matches } = await nearbyDocuments({ latitude: anchor.get('lat'), longitude: anchor.get('lng'),
+      const { physical } = await nearbyDocuments({ latitude: anchor.get('lat'), longitude: anchor.get('lng'),
         radiusMeters: SPOT_JOIN_RADIUS_M }, luid, blocked, false);
-      const assigned = matches.find(d => d.id === anchor.id)?.get('spot_id');
+      const assigned = physical.find(d => d.id === anchor.id)?.get('spot_id');
       if (typeof assigned === 'string' && POST_ID.test(assigned)) canonicalId = `spot:${assigned}`;
-      else found = matches.filter(d => !d.get('spot_id'));
+      else found = physical.filter(d => !d.get('spot_id'));
     }
   }
   if (canonicalId.startsWith('spot:')) {
@@ -233,26 +291,36 @@ async function mapGroupDocuments(groupId: string, hints: string[], luid: string,
     if (snapshot.size > MAX_NEARBY_SCAN) throw new HttpsError('resource-exhausted', 'Map group is too large');
     found = snapshot.docs;
   }
-  const allowed = await visibleMapDocuments(found, luid, blocked);
-  return { canonicalId, allowed };
+  // Split old broad spots in memory only. Reading a map never migrates persisted membership.
+  // Partition before visibility: profile blocks cannot move an anonymous group's access circle.
+  const physical = found.filter(d => d.exists && isPublicActive(d.data()) && validCoordinates(d.get('lat'), d.get('lng')));
+  const groups = mapNoteGroups(physical.map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), spotId: d.get('spot_id') })));
+  const canonical = groups.find(g => anchorId ? g.post_ids.includes(anchorId) : g.id === canonicalId) ?? null;
+  canonicalId = canonical?.id ?? canonicalId;
+  const members = new Set(canonical?.post_ids ?? []);
+  const allowed = await visibleMapDocuments(physical.filter(d => members.has(d.id)), luid, blocked);
+  const summary = canonical && allowed.length ? { ...canonical, count: allowed.length, post_ids: allowed.map(d => d.id) } : null;
+  return { canonicalId, allowed, candidateCount: found.length, summary };
 }
 
 function mapGroupPageInput(body: Record<string, unknown>) {
   const requestedId = body.groupId;
-  const offset = body.offset ?? 0, token = body.pageToken, hints = body.postIds ?? [];
+  const offset = body.offset ?? 0, token = body.pageToken, hints = body.postIds ?? [], pageSize = body.pageSize ?? 50;
   if (typeof requestedId !== 'string' || !MAP_GROUP_ID.test(requestedId)
     || !Number.isSafeInteger(offset) || Number(offset) < 0 || Number(offset) > MAX_NEARBY_SCAN
     || (token != null && (typeof token !== 'string' || !POST_ID.test(token))) || (Number(offset) > 0 && !token)
+    || !Number.isSafeInteger(pageSize) || Number(pageSize) < 1 || Number(pageSize) > 50
     || !Array.isArray(hints) || hints.length > MAX_NEARBY_SCAN || hints.some(id => typeof id !== 'string' || !POST_ID.test(id))) {
     throw new HttpsError('invalid-argument', 'Invalid map group page');
   }
-  return { requestedId, offset: Number(offset), token: typeof token === 'string' ? token : undefined, hints };
+  return { requestedId, offset: Number(offset), token: typeof token === 'string' ? token : undefined, hints, pageSize: Number(pageSize) };
 }
 
 async function mapGroupSession(luid: string, requestedId: string, token: string | undefined) {
   if (!token) return undefined;
   const session = await db.collection('map_group_sessions').doc(token).get();
   if (!session.exists || session.get('owner_luid') !== luid
+    || session.get('membership_version') !== MAP_GROUP_MEMBERSHIP_VERSION
     || ![session.get('requested_group_id'), session.get('group_id')].includes(requestedId)
     || !(session.get('expires_at') instanceof Timestamp) || session.get('expires_at').toMillis() <= Date.now()) {
     throw new HttpsError('failed-precondition', 'Map group page expired; refresh the group');
@@ -261,21 +329,21 @@ async function mapGroupSession(luid: string, requestedId: string, token: string 
 }
 
 async function readMapGroup(body: Record<string, unknown>, luid: string, blocked: BlockSets) {
-  const { requestedId, offset, token, hints } = mapGroupPageInput(body);
+  const started = Date.now();
+  const { requestedId, offset, token, hints, pageSize } = mapGroupPageInput(body);
   if (MEMORY_LIMITS_ENABLED && !nearbyLimiter.allow(luid)) throw reasonError('resource-exhausted', 'Too many map requests; try again shortly', 'rate_limited');
   const session = await mapGroupSession(luid, requestedId, token);
-  const { canonicalId, allowed } = await mapGroupDocuments(session?.get('group_id') ?? requestedId,
+  const { canonicalId, allowed, candidateCount, summary: group } = await mapGroupDocuments(session?.get('group_id') ?? requestedId,
     session?.get('post_ids') ?? [...new Set(hints)], luid, blocked);
   if (session && session.get('group_id') !== canonicalId) await session.ref.update({ group_id: canonicalId });
   allowed.sort((a, b) => Number(b.get('likes_count') ?? 0) - Number(a.get('likes_count') ?? 0)
     || (b.get('created_at')?.toMillis?.() ?? 0) - (a.get('created_at')?.toMillis?.() ?? 0) || a.id.localeCompare(b.id, 'en'));
-  const group = allowed.length ? mapGroupSummary(canonicalId, allowed.map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng') }))) : null;
   const area = group ? { ...group, id: canonicalId.slice(5), groupId: canonicalId } : undefined;
   // Freeze the ordered IDs, never text or an access grant. Later pages recheck current
   // membership, blocks, account fences and fresh on-site location before serializing bodies.
   const order: string[] = session ? session.get('post_ids') : allowed.map(d => d.id);
   const byId = new Map(allowed.map(d => [d.id, d]));
-  const start = Number(offset), end = start + 50;
+  const start = Number(offset), end = start + pageSize;
   const page = order.slice(start, end).flatMap(id => byId.has(id) ? [byId.get(id)!] : []);
   const posts = await rows(page, luid, body.location as Fix | undefined, area);
   const nextOffset = end < order.length ? end : null;
@@ -283,6 +351,7 @@ async function readMapGroup(body: Record<string, unknown>, luid: string, blocked
   if (nextOffset != null && !pageToken) {
     pageToken = randomUUID();
     await db.collection('map_group_sessions').doc(pageToken).set({ owner_luid: luid,
+      membership_version: MAP_GROUP_MEMBERSHIP_VERSION,
       requested_group_id: requestedId, group_id: canonicalId, post_ids: order,
       created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(Date.now() + UNLOCK_TTL_MS) });
   }
@@ -297,18 +366,23 @@ async function readMapGroup(body: Record<string, unknown>, luid: string, blocked
     });
     await batch.commit();
   }
+  info('map_group_page', { candidatePosts: candidateCount, visiblePosts: allowed.length,
+    pagePosts: page.length, pageSize, continuation: !!session, elapsedMs: Date.now() - started });
   return { posts, nextOffset, pageToken, total: order.filter(id => byId.has(id)).length, group };
 }
 
 async function readFeed(body: Record<string, unknown>, luid: string, blocked: BlockSets, mode: string) {
 if(!['discover','creator'].includes(mode)){ throw new HttpsError('invalid-argument','Invalid content mode'); }const creator=mode==='creator'?scalarText(body.creatorId??''):null;
  if(creator&&!(await visibleAuthors([creator],blocked.identity)).has(creator)){ return{posts:[],next:null}; }const scope=fingerprint([luid,mode,creator]),continuation=decode(body.cursor,scope);
+ const otherCreator=creator!=null&&creator!==luid;
  let query=db.collection('posts').where('status','==','active').where('visibility','==','public');if(creator){ query=query.where('creator_id','==',creator); }
+ if(otherCreator){ query=query.where('is_anonymous','==',false); }
  let ordered=query.orderBy('created_at','desc').orderBy('__name__','desc');if(continuation){ ordered=ordered.startAfter(continuation.date,continuation.id); }
  const page=await ordered.limit(51).get(),documents=page.docs.slice(0,50),allowed=new Set((await visiblePosts(documents,blocked,luid)).map(d=>d.id));
- // The cursor is taken from the chronological page; only the first discover page is re-ordered.
- const next=page.size>50?cursor(documents.at(-1)!,scope):null;
- const visible=documents.filter(d=>isPublicActive(d.data())&&allowed.has(d.id)&&(!creator||creator===luid||d.get('is_anonymous')!==true));
+ const visible=documents.filter(d=>isPublicActive(d.data())&&allowed.has(d.id)&&(!otherCreator||d.get('is_anonymous')!==true));
+ const raw=documents.at(-1);
+ const anchor=visible.at(-1)??(page.size>50&&raw&&(!otherCreator||raw.get('is_anonymous')!==true)?raw:undefined);
+ const next=page.size>50&&anchor?cursor(anchor,scope):null;
  const ordering=mode==='discover'&&!continuation?rankForDiscover(visible,d=>({engagement:d.get('engagement_score'),createdAtMs:d.get('created_at') instanceof Timestamp?d.get('created_at').toMillis():null}),Date.now()):visible;
  return{posts:await rows(ordering,luid),next};
 }

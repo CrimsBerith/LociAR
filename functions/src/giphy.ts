@@ -28,15 +28,14 @@ const MAX_QUERY = 50;
 const REQUEST_TIMEOUT_MS = 5_000;
 /**
  * GIPHY's beta key allows about 100 calls per hour for the whole app. Identical searches and GIF
- * lookups are served from this instance's memory for a while; a production key still has to be
+ * searches are served from this instance's memory for a while; a production key still has to be
  * requested before launch (docs/release/GIPHY_PRODUCTION_KEY.md).
  */
 const SEARCH_CACHE_MS = 30 * 60_000;
 const TRENDING_CACHE_MS = 10 * 60_000;
-const GIF_CACHE_MS = 6 * 3_600_000;
 const searchCache = new TtlCache<{ gifs: GifSummary[]; nextOffset: number | null }>(500);
-// Only accepted GIFs are cached: a missing or over-rated id is asked again next time.
-const gifCache = new TtlCache<GifSummary>(2_000);
+const pendingSearches = new Map<string, Promise<{ gifs: GifSummary[]; nextOffset: number | null }>>();
+const MAX_PENDING_SEARCHES = 500;
 /** GIPHY language codes for the app's 12 languages (GIPHY uses zh-CN for Simplified Chinese). */
 const LANGS: Record<string, string> = {
   tr: 'tr', en: 'en', 'zh-hans': 'zh-CN', hi: 'hi', es: 'es', fr: 'fr', ar: 'ar', bn: 'bn', pt: 'pt', ru: 'ru', de: 'de', ja: 'ja',
@@ -106,14 +105,11 @@ function apiKey(): string {
  * back to the client's values).
  */
 async function verifiedLayerGif(id: string, fetcher: Fetcher): Promise<GifSummary> {
-  // Injected fetchers always perform their own lookup; only real GIPHY results enter the cache.
-  const useCache = fetcher === fetch;
-  let gif: GifSummary | null | undefined = useCache ? gifCache.get(id) : undefined;
+  let gif: GifSummary | null;
   try {
-    if (gif === undefined) {
-      gif = await fetchGif(id, apiKey(), fetcher);
-      if (gif && useCache) gifCache.set(id, gif, GIF_CACHE_MS);
-    }
+    // A search result is a presentation cache, never a publication decision. Re-read every new
+    // publication so a removed GIF or changed rating/dimensions cannot reuse an old acceptance.
+    gif = await fetchGif(id, apiKey(), fetcher);
   } catch (error) {
     if (error instanceof HttpsError) throw error;
     logger.warn('giphy_lookup_failed', { code: safeErrorCode(error) });
@@ -159,18 +155,29 @@ export const searchGifs = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstan
   const cacheKey = `${query.toLowerCase()}|${offset}|${query ? lang : ''}`;
   const cached = searchCache.get(cacheKey);
   if (cached) return cached;
-  let body: unknown;
-  try {
-    body = await giphyJSON(searchURL(apiKey(), query, offset, lang), fetch);
-  } catch (error) {
-    if (error instanceof HttpsError) throw error;
-    logger.warn('giphy_search_failed', { code: safeErrorCode(error) });
-    throw reasonError('unavailable', 'GIF service is unavailable', 'gif_unavailable');
+  const pending = pendingSearches.get(cacheKey);
+  if (pending) return await pending;
+  if (pendingSearches.size >= MAX_PENDING_SEARCHES) {
+    throw reasonError('unavailable', 'GIF service is busy', 'gif_unavailable');
   }
-  const raw = Array.isArray((body as { data?: unknown } | null)?.data) ? (body as { data: unknown[] }).data : [];
-  const gifs = raw.map(summarizeGif).filter((gif): gif is GifSummary => gif !== null);
-  const nextOffset = raw.length === PAGE_SIZE && offset + PAGE_SIZE <= MAX_OFFSET ? offset + PAGE_SIZE : null;
-  const result = { gifs, nextOffset };
-  searchCache.set(cacheKey, result, query ? SEARCH_CACHE_MS : TRENDING_CACHE_MS);
-  return result;
+  const lookup = (async () => {
+    let body: unknown;
+    try {
+      body = await giphyJSON(searchURL(apiKey(), query, offset, lang), fetch);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      logger.warn('giphy_search_failed', { code: safeErrorCode(error) });
+      throw reasonError('unavailable', 'GIF service is unavailable', 'gif_unavailable');
+    }
+    const raw = Array.isArray((body as { data?: unknown } | null)?.data) ? (body as { data: unknown[] }).data : [];
+    const gifs = raw.map(summarizeGif).filter((gif): gif is GifSummary => gif !== null);
+    const nextOffset = raw.length === PAGE_SIZE && offset + PAGE_SIZE <= MAX_OFFSET ? offset + PAGE_SIZE : null;
+    const result = { gifs, nextOffset };
+    searchCache.set(cacheKey, result, query ? SEARCH_CACHE_MS : TRENDING_CACHE_MS);
+    return result;
+  })();
+  // Each caller has already passed its own fresh account/quota transaction above.
+  pendingSearches.set(cacheKey, lookup);
+  try { return await lookup; }
+  finally { if (pendingSearches.get(cacheKey) === lookup) pendingSearches.delete(cacheKey); }
 });

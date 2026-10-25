@@ -107,6 +107,7 @@ enum LocalAccountDeletion {
                 await HiddenPostStore.shared.clear(owner: raw)
                 await BlockListCache.shared.invalidate()
                 await AvatarURLCache.shared.clear()
+                ClientReadCaches.clear()
                 if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
                     let accountCache = caches.appendingPathComponent("LociARWorldMaps", isDirectory: true).appendingPathComponent(raw, isDirectory: true)
                     if FileManager.default.fileExists(atPath: accountCache.path) { try FileManager.default.removeItem(at: accountCache) }

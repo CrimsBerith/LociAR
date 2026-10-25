@@ -13,6 +13,8 @@ enum ArrivalLocationMode: Equatable {
 
 /// Location-note thresholds. Mirrors `functions/src/placeNoteRules.ts`; keep the numbers in sync.
 enum LocationNotePolicy {
+    /// Fixed-centre spot membership; mirrors SPOT_JOIN_RADIUS_M on the server.
+    static let spotJoinRadius: CLLocationDistance = 25
     /// A GPS estimate this good and stable can be published without waiting.
     static let readyAccuracy: CLLocationAccuracy = 10
     /// Best GPS accuracy accepted without asking the author to place the pin.

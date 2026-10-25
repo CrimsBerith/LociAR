@@ -12,10 +12,13 @@ test('window limiter allows a fixed number of calls per key and window', () => {
   assert.equal(limiter.allow('a', 60_000), true, 'a new window starts over');
 });
 
-test('window limiter stays bounded when many distinct keys arrive', () => {
+test('window limiter refuses new keys at capacity without erasing active budgets', () => {
   const limiter = new WindowLimiter(1, 60_000, 3);
-  for (const key of ['a', 'b', 'c', 'd', 'e']) assert.equal(limiter.allow(key, 0), true);
-  assert.equal(limiter.allow('e', 1), false, 'the newest key keeps its count');
+  for (const key of ['a', 'b', 'c']) assert.equal(limiter.allow(key, 0), true);
+  assert.equal(limiter.allow('d', 0), false, 'capacity pressure does not reset existing counters');
+  assert.equal(limiter.allow('a', 1), false, 'same-window budget is preserved');
+  assert.equal(limiter.allow('d', 60_000), true, 'stale windows free capacity');
+  assert.equal(limiter.allow('d', 60_001), false);
 });
 
 test('ttl cache expires entries and evicts the oldest when full', () => {

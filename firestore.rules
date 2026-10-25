@@ -100,7 +100,8 @@ service cloud.firestore {
     }
 
     match /likes/{likeId} {
-      allow get: if signedIn() && (resource == null || resource.data.user_id == me());
+      allow get: if signedIn() && ((resource == null && likeId.matches('.*_' + me()))
+        || (resource != null && resource.data.user_id == me()));
       allow list: if signedIn() && resource.data.user_id == me();
       allow create: if mayWrite()
         && likeId == request.resource.data.post_id + '_' + me()
@@ -111,11 +112,13 @@ service cloud.firestore {
         && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if mayWrite() && (resource == null || resource.data.user_id == me());
+      allow delete: if mayWrite() && ((resource == null && likeId.matches('.*_' + me()))
+        || (resource != null && resource.data.user_id == me()));
     }
 
     match /post_saves/{saveId} {
-      allow get: if signedIn() && (resource == null || resource.data.user_id == me());
+      allow get: if signedIn() && ((resource == null && saveId.matches(me() + '_.*'))
+        || (resource != null && resource.data.user_id == me()));
       allow list: if signedIn() && resource.data.user_id == me();
       allow create: if mayWrite()
         && saveId == me() + '_' + request.resource.data.post_id
@@ -126,12 +129,15 @@ service cloud.firestore {
         && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if mayWrite() && (resource == null || resource.data.user_id == me());
+      allow delete: if mayWrite() && ((resource == null && saveId.matches(me() + '_.*'))
+        || (resource != null && resource.data.user_id == me()));
     }
 
     match /follows/{followId} {
       // Only edges that involve the caller; counts come from server-maintained profile fields.
-      allow get: if signedIn() && (resource == null || resource.data.follower_id == me() || resource.data.following_id == me());
+      // A missing id is readable only when it is the caller's own outbound edge.
+      allow get: if signedIn() && ((resource == null && followId.matches(me() + '_.*'))
+        || (resource != null && (resource.data.follower_id == me() || resource.data.following_id == me())));
       allow list: if signedIn() && (resource.data.follower_id == me() || resource.data.following_id == me());
       allow create: if mayWrite()
         && onlyKeys(['follower_id', 'following_id', 'created_at'])
@@ -144,11 +150,13 @@ service cloud.firestore {
         && !blockedBy(request.resource.data.following_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if mayWrite() && (resource == null || resource.data.follower_id == me());
+      allow delete: if mayWrite() && ((resource == null && followId.matches(me() + '_.*'))
+        || (resource != null && resource.data.follower_id == me()));
     }
 
     match /user_blocks/{blockId} {
-      allow get: if signedIn() && (resource == null || resource.data.blocker_id == me());
+      allow get: if signedIn() && ((resource == null && blockId.matches(me() + '_.*'))
+        || (resource != null && resource.data.blocker_id == me()));
       allow list: if signedIn() && resource.data.blocker_id == me();
       allow create: if mayWrite()
         && onlyKeys(['blocker_id', 'blocked_id', 'created_at'])
@@ -159,7 +167,8 @@ service cloud.firestore {
         && blockId == me() + '_' + request.resource.data.blocked_id
         && createdNow();
       allow update: if false;
-      allow delete: if mayWrite() && (resource == null || resource.data.blocker_id == me());
+      allow delete: if mayWrite() && ((resource == null && blockId.matches(me() + '_.*'))
+        || (resource != null && resource.data.blocker_id == me()));
     }
 
     function noteCommentsOpen(postId) {

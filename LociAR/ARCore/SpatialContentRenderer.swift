@@ -14,6 +14,7 @@ struct RenderedPost: @unchecked Sendable {
 actor SpatialContentRenderer {
 
     private var assetDataCache: [URL: Data] = [:]
+    private var inFlightAssetTasks: [URL: Task<Data?, Never>] = [:]
     private var renderedPostCache: [String: RenderedPost] = [:]
     private var renderedCacheOrder: [String] = []
     private static let maximumRenderCacheCount = 30
@@ -59,6 +60,7 @@ actor SpatialContentRenderer {
         renderedPostCache.removeAll()
         renderedCacheOrder.removeAll()
         assetDataCache.removeAll()
+        inFlightAssetTasks.removeAll()
     }
 
     private func postCacheKey(_ post: LociPost) -> String {
@@ -137,15 +139,20 @@ actor SpatialContentRenderer {
 
     private func loadAsset(_ url: URL) async -> Data? {
         if let cached = assetDataCache[url] { return cached }
-        let data: Data?
-        if url.isFileURL {
-            data = try? Data(contentsOf: url)
-        } else if let (networkData, response) = try? await URLSession.shared.data(from: url),
-                  (response as? HTTPURLResponse).map({ (200...299).contains($0.statusCode) }) == true {
-            data = networkData
-        } else {
-            data = nil
+        if let existing = inFlightAssetTasks[url] { return await existing.value }
+        let task = Task<Data?, Never> {
+            if url.isFileURL {
+                return try? Data(contentsOf: url)
+            } else if let (networkData, response) = try? await URLSession.shared.data(from: url),
+                      (response as? HTTPURLResponse).map({ (200...299).contains($0.statusCode) }) == true {
+                return networkData
+            } else {
+                return nil
+            }
         }
+        inFlightAssetTasks[url] = task
+        let data = await task.value
+        inFlightAssetTasks.removeValue(forKey: url)
         if let data {
             if assetDataCache.count >= Self.maximumAssetCacheCount {
                 assetDataCache.remove(at: assetDataCache.startIndex)

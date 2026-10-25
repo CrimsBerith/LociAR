@@ -101,6 +101,11 @@ export async function acceptUserInvitation(uid: string, identity: Identity, invi
         }
       } else if (rejection) return rejection;
       if (roleKey && data.status !== 'accepted') {
+        if (data.invited_by) {
+          const grantorRoles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', data.invited_by));
+          const active = grantorRoles.docs.some(role => !role.get('revoked_at'));
+          if (!grantorRoles.empty && !active) return 'invite_grantor_revoked';
+        }
         tx.set(db.collection('admin_role_assignments').doc(`${uid}_${roleKey}`), {
           user_id: uid, role_key: roleKey, granted_by: data.invited_by ?? null,
           revoked_at: null, created_at: FieldValue.serverTimestamp(),
