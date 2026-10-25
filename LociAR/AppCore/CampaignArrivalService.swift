@@ -536,6 +536,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
               manager.authorizationStatus == .authorizedAlways || foreground && manager.authorizationStatus == .authorizedWhenInUse else { return false }
         if lastRegionRefresh != .distantPast, !needsMonitoringRecovery,
            !regionQueryPolicy.needsRefresh(scope: regionQueryScope, fix: regionSearchFix, now: ProcessInfo.processInfo.systemUptime) { return true }
+        guard regionQueryPolicy.mayAttempt(scope: regionQueryScope, now: ProcessInfo.processInfo.systemUptime) else { return false }
         let unchangedFlight = refreshCoordinator.isInFlight
             && !regionQueryInFlight.needsRefresh(scope: regionQueryScope, fix: regionSearchFix, now: ProcessInfo.processInfo.systemUptime)
         return await refreshCoordinator.refresh(invalidating: !unchangedFlight) { [weak self] in await self?.synchronizeOnce() ?? false }
@@ -547,19 +548,20 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
               manager.authorizationStatus == .authorizedAlways || foreground && manager.authorizationStatus == .authorizedWhenInUse else { return false }
         let epoch = generation
         let revision = refreshCoordinator.revision
+        let queryScope = regionQueryScope
         do {
             pruneNoteDeliveries()
             scheduleNoteAcknowledgements(account: id, epoch: epoch)
             let fix = regionSearchFix
             // Joining routine callbacks compare this request's inputs, not its unfinished response.
-            regionQueryInFlight.record(scope: regionQueryScope, fix: fix, now: ProcessInfo.processInfo.systemUptime)
+            regionQueryInFlight.record(scope: queryScope, fix: fix, now: ProcessInfo.processInfo.systemUptime)
             // A failed campaign request cannot suppress the user's independently enabled notes.
             async let campaigns = fetchCampaignRegions(callables, account: id, enabled: promotionsEnabled)
             async let steps = fetchNearbyRegions("readCampaignZones", client: callables, account: id, fix: fix, enabled: promotionsEnabled)
             async let notes = fetchNearbyRegions("readPlaceNoteRegions", client: callables, account: id, fix: fix, enabled: placeNotesEnabled)
             let (campaignResult, stepResult, noteResult) = await (campaigns, steps, notes)
             guard !Task.isCancelled, enabled, epoch == generation, userID == id, FirebaseIdentity.currentLUID() == id,
-                  revision == refreshCoordinator.revision else { return false }
+                  queryScope == regionQueryScope, revision == refreshCoordinator.revision else { return false }
             var all: [CampaignRegion] = []
             if promotionsEnabled {
                 all += campaignResult ?? regions.values.filter { !$0.isPlaceNote && !$0.isCampaignStep }
@@ -605,10 +607,15 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             Self.scheduleBackgroundRefresh()
             let complete = (!promotionsEnabled || campaignResult != nil && (fix == nil || stepResult != nil))
                 && (!placeNotesEnabled || noteResult != nil)
-            if complete { regionQueryPolicy.record(scope: regionQueryScope, fix: fix, now: ProcessInfo.processInfo.systemUptime) }
+            if complete { regionQueryPolicy.record(scope: queryScope, fix: fix, now: ProcessInfo.processInfo.systemUptime) }
+            else { regionQueryPolicy.recordFailure(scope: queryScope, now: ProcessInfo.processInfo.systemUptime) }
             return complete
         } catch {
             // Keep cached regions for a later event, but every arrival must pass live server checks.
+            if !Task.isCancelled, enabled, epoch == generation, userID == id,
+               queryScope == regionQueryScope, revision == refreshCoordinator.revision {
+                regionQueryPolicy.recordFailure(scope: queryScope, now: ProcessInfo.processInfo.systemUptime)
+            }
             return false
         }
     }

@@ -6,6 +6,13 @@ struct ArrivalRegionQueryPolicy {
     private var scope: String?
     private var fix: CLLocation?
     private var refreshedAt: TimeInterval?
+    private var failedScope: String?
+    private var failures = 0
+    private var retryAt: TimeInterval = 0
+
+    func mayAttempt(scope: String, now: TimeInterval) -> Bool {
+        failedScope != scope || now >= retryAt
+    }
 
     func needsRefresh(scope: String, fix: CLLocation?, now: TimeInterval) -> Bool {
         guard self.scope == scope, let refreshedAt, now >= refreshedAt, now - refreshedAt < 300 else { return true }
@@ -17,6 +24,13 @@ struct ArrivalRegionQueryPolicy {
 
     mutating func record(scope: String, fix: CLLocation?, now: TimeInterval) {
         self.scope = scope; self.fix = fix; refreshedAt = now
+        failedScope = nil; failures = 0; retryAt = 0
+    }
+
+    mutating func recordFailure(scope: String, now: TimeInterval) {
+        failures = failedScope == scope ? min(failures + 1, 4) : 1
+        failedScope = scope; refreshedAt = nil
+        retryAt = now + min(120, 15 * pow(2, Double(failures - 1)))
     }
 }
 

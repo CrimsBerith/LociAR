@@ -441,4 +441,31 @@ final class ArrivalRefreshConcurrencyTests: XCTestCase {
         XCTAssertEqual(calls, 2); XCTAssertEqual(published, [2])
     }
 
+
+    func testFastRegionFailuresCannotTurnEveryGPSFixIntoARequest() {
+        var policy = ArrivalRegionQueryPolicy(), calls = 0
+        let fix = CLLocation(latitude: 41, longitude: 29)
+        for second in 0..<180 {
+            let now = Double(second)
+            if policy.needsRefresh(scope: "viewer", fix: fix, now: now), policy.mayAttempt(scope: "viewer", now: now) {
+                calls += 1; policy.recordFailure(scope: "viewer", now: now)
+            }
+        }
+        XCTAssertEqual(calls, 4, "180 failed GPS callbacks must not launch 180 query batches")
+        XCTAssertTrue(policy.mayAttempt(scope: "new-viewer", now: 179))
+    }
+
+    func testFailedForcedRegionReadInvalidatesFreshnessAndSuccessClearsTheCooldown() {
+        var policy = ArrivalRegionQueryPolicy()
+        let fix = CLLocation(latitude: 41, longitude: 29)
+        policy.record(scope: "same", fix: fix, now: 0)
+        policy.recordFailure(scope: "same", now: 10)
+        XCTAssertTrue(policy.needsRefresh(scope: "same", fix: fix, now: 11))
+        XCTAssertFalse(policy.mayAttempt(scope: "same", now: 24))
+        XCTAssertTrue(policy.mayAttempt(scope: "same", now: 25))
+        policy.record(scope: "same", fix: fix, now: 25)
+        XCTAssertTrue(policy.mayAttempt(scope: "same", now: 26))
+        XCTAssertFalse(policy.needsRefresh(scope: "same", fix: fix, now: 26))
+    }
+
 }

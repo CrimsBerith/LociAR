@@ -21,6 +21,8 @@ Scope: native iOS request dispatch and presentation freshness on `codex/fix-anon
 
 Region discovery reuse is metadata reuse. Account/preferences scope changes, fresh-fix requests and monitoring recovery bypass it. Explicit silent pushes, refresh-boundary events, background refresh and other existing `synchronize()` callers retain their forced path. Actual arrival delivery still checks current consent, account state and measured location on the server. The foreground preference/consent refresh was not slowed down.
 
+Failed routine region reads have a separate 15/30/60/120-second cooldown, so fast failures cannot turn every GPS callback into a request. A failed forced refresh invalidates the successful-discovery freshness stamp; routine retries resume after cooldown instead of treating the old result as newly fresh. A changed account/preferences scope can retry immediately. Forced event paths remain independent of this routine cooldown.
+
 Matching in-flight region-discovery inputs join without invalidating the first response. A meaningful location/scope change or explicit forced refresh still invalidates the old result and queues the required new round.
 
 ## Safety and acceptance boundaries
@@ -33,10 +35,11 @@ A logical screen refresh may contain several required backend calls, such as com
 
 Logs and result bundles: `build/request-efficiency-20261026/`.
 
-- Final native tests: 262 total, 260 passed, 2 physical-device-only skips, 0 failures.
-- Twenty additional behavioral tests cover dispatch coalescing/cooldown, expiry, late revisions/viewers/errors, cancellation, network and rate-limit recovery, notification isolation, normalized GIF identity, stationary/moving/concurrent region discovery and map timer preemption/recovery.
+- Final native tests: 264 total, 262 passed, 2 physical-device-only skips, 0 failures.
+- Twenty-two additional behavioral tests cover dispatch coalescing/cooldown, expiry, late revisions/viewers/errors, cancellation, network and rate-limit recovery, notification isolation, normalized GIF identity, stationary/moving/concurrent/failing region discovery and map timer preemption/recovery.
 - The stationary successful-region scenario performs **12 discovery batches for 60 one-minute callbacks**, versus the previous unconditional 60. This is an **80% reduction in that scenario's discovery batches**, not an invoice or whole-app savings claim.
 - A separate macOS Swift probe executes the coordinator extracted from the previous commit and the changed source: six identical callbacks produce two network rounds before, one after. A forced push/movement still requires and publishes the newer round.
+- In the fast-failure scenario, 180 one-second GPS callbacks produce four attempted discovery batches, not 180. Failed attempts do not become successful cached data.
 - Existing first-page, pagination, privacy, account, proximity and world-map tests remain in the full native run.
 - Full simulator UI suite: 39 passed. After the final modal and interaction-state changes, the three affected navigation/post/profile routes were rerun and passed. Localization, generated catalogs, compiler-extracted strings, secret scan and whitespace checks passed.
 - GitHub checks validate the final pushed head separately; their current status is attached to PR #58.
