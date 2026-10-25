@@ -5,7 +5,7 @@ export const PERMISSIONS = [
   'brands.write', 'campaigns.read', 'campaigns.write', 'campaigns.audience', 'notifications.send',
   'posts.read', 'posts.create', 'posts.edit', 'comments.write', 'users.create', 'zones.override', 'posts.moderate', 'posts.purge', 'posts.metrics.write',
   'anchors.read', 'anchors.disable', 'anchors.retire', 'places.write', 'zones.write',
-  'flags.production.write', 'system.kill_switch', 'ads.approve', 'finance.refund',
+  'flags.production.write', 'system.kill_switch', 'system.maintenance', 'ads.approve', 'finance.refund',
   'audit.read', 'audit.export', 'admin_users.write',
 ] as const;
 

@@ -28,6 +28,15 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   aborts deletion (App Store guideline 5.1.1(v)).
 - `firestore.rules` / `storage.rules` are default-deny; changes must keep `functions/test/rules/*` passing.
 - Blaze plan is required (Storage + Functions). Never weaken rules to work around Spark limits.
+- **Three scheduled functions at most** (owner decision, 21 Oct 2026): Cloud Scheduler gives each billing account three
+  jobs free and bills every further job; seven jobs tripped the ₺10 spend cap on 20 Oct 2026 and paused every function.
+  All periodic work is a task in `functions/src/maintenance.ts`, run by `everyFiveMinutes`, `everyFifteenMinutes` or
+  `nightlyMaintenance` (`schedules.ts`); never add another `onSchedule` export. `scripts/firebase-deploy.mjs` deletes
+  retired functions (`RETIRED_FUNCTIONS`) with their jobs after the new code is live. The admin **Maintenance tasks** page
+  (`/admin/maintenance`, permission `system.maintenance`) shows each task's last run and backlog, runs a task now
+  (`maintenance_requests` → `onMaintenanceRequested`) and pauses its automatic runs (`system/maintenance.paused`), all
+  audited; account deletion retries cannot be paused. Keep the task lists in `admin/lib/maintenance.ts` and
+  `functions/src/maintenance.ts` equal (`admin/tests/maintenance.test.mjs`).
 - Service-account keys and Admin SDK credentials never ship in the iOS app or in `NEXT_PUBLIC_*`.
 - Posts are a **message: text and/or one GIPHY GIF** (owner decision, 9 Oct 2026), shown as a chat-style bubble in AR. Device photo/video uploads were removed on 29 Sep 2026; social media links (Spotify, YouTube, TikTok, Instagram, X, Facebook) and new drawings on 9 Oct 2026: `createPost` accepts only `text` and `gif` layers and rejects image layers, drawings, own video and any URL (`functions/src/placement.ts`); the admin content editor creates text posts only (`admin/lib/content-ops.ts`); Storage denies uploads to `post-layer-assets` and `post-video-assets`. Old posts may still carry a drawing (still rendered) or a link in `content_source_json`; clients must decode it without crashing and never show the link. Do not re-add media or links without a product decision.
 - **GIFs come from GIPHY** (Tenor's public API shut down on 30 Jun 2026). The key is the `GIPHY_API_KEY` secret, used only by the `searchGifs` callable and `createPost` (`functions/src/giphy.ts`); never ship it in the app. A GIF layer stores only the GIPHY id (`gifId`, letters and digits); `createPost` re-reads it from GIPHY (rating at most `pg-13`) and writes the size GIPHY reports. The app builds media URLs from the id on `media.giphy.com` only and shows "Powered by GIPHY" wherever search results appear.
@@ -53,6 +62,9 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   and high-quality auto-publish switches were removed. Keep the App Review notes, terms and store copy saying the same.
 - **Location notes** (owner decision, 12 Oct 2026): written at the author's measured GPS position (no business/POI selection), published at once after the text filter, ordered by likes, never self-expiring (admin end date only). Likes from established accounts approve notifications automatically; reports hide notes. Entry rule `distance ≤ radius + min(accuracy, 20 m)` with 15–100 m radii. See `docs/LOCATION_NOTES.md`; keep `placeNoteRules.ts` and `LocationNotePolicy.swift` in sync.
 - **Map and note reading** (owner decision, 19 Oct 2026): use the Cam Katman glass heat style, with stable density colours and real 25 m groups at close zoom (`10 not`, including multiple notes at the same coordinate). Tapping a group lists every readable note by likes, with pagination. Other people's location-note text stays server-redacted remotely, even for a single note; `readPublicContent` map-group reads require a fresh on-site GPS/Geospatial fix. Zooming the map never grants access. Keep direct Firestore note reads closed, comment access server-granted, and anonymous/profile blocks independent. The dense threshold controls crowded-spot alerts, not location-note reading access.
+  Map opening reads the server-only **map cell index** (`map_cells`, `functions/src/mapCells.ts`, owner request 22 Oct 2026),
+  never a scan of every post in range: keep `map_groups`/`nearby` on it, keep the scan only as the fallback (index not
+  complete, area over 2 km, overflowing cell), and apply the same account fences and block rules to index entries.
 - **Launch seed content** (owner decision, 19 Oct 2026): the map must not open empty. Seeds are team-written location notes
   and approximate AR posts under the managed account `loci.guide`, loaded only through `admin/scripts/seed-notes.mjs`
   (dry run first, `saveAdminPost`, tagged `seed_batch`). Never review a business, source every fact, never scrape or quote

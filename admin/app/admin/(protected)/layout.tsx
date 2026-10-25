@@ -27,6 +27,7 @@ const navigation: NavGroup[] = [
   ] },
   { label: 'System', items: [
     { href: '/admin/system', label: 'System health' },
+    { href: '/admin/maintenance', label: 'Maintenance tasks' },
     { href: '/admin/audit', label: 'Audit logs' },
   ] },
 ];

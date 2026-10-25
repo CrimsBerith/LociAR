@@ -413,6 +413,8 @@ p[role=alert] { border-color: rgba(255, 100, 124, .35); background: var(--danger
 .statusDot.removed, .statusDot.flagged { background: var(--danger); }
 
 .dataRow.audit { grid-template-columns: minmax(220px, 1.4fr) .7fr .7fr .7fr; }
+.dataRow.maintenance { grid-template-columns: minmax(220px, 1.4fr) .75fr .9fr .45fr minmax(260px, 1.1fr); align-items: start; }
+.dataRow.maintenance .decisionForm + .decisionForm { margin-top: 10px; }
 .dataRow.user { grid-template-columns: minmax(200px, 1.3fr) .6fr .6fr .6fr minmax(240px, 1fr); }
 .dataRow.post { grid-template-columns: minmax(220px, 1.4fr) .65fr .65fr .85fr minmax(110px, .55fr); }
 .dataRow.moderation { grid-template-columns: minmax(220px, 1.3fr) .8fr .7fr minmax(260px, 1fr); }
@@ -623,7 +625,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, [tabindex]:not(mai
   .pageHeading { display: grid; }
   .pageHeading > .muted { text-align: left; }
   .dataRow { grid-template-columns: 1fr 1fr; padding: 13px 16px; }
-  .dataRow.moderation, .dataRow.anchor, .dataRow.place, .dataRow.analytics, .dataRow.user, .dataRow.post, .dataRow.audit { grid-template-columns: 1fr; gap: 6px; }
+  .dataRow.moderation, .dataRow.anchor, .dataRow.place, .dataRow.analytics, .dataRow.user, .dataRow.post, .dataRow.audit, .dataRow.maintenance { grid-template-columns: 1fr; gap: 6px; }
   .dataRow.header { display: none; }
   .panelHeader { padding: 14px 16px; }
   .actionForm, .metricForm { grid-template-columns: 1fr 1fr; }

@@ -136,7 +136,7 @@ struct MapFeatureView: View {
         .sheet(isPresented: $showPlaceNote, onDismiss: {
             selection = nil
             clusterFocus = nil
-            Task { await startAndLoad() }
+            Task { await startAndLoad(force: true) }
         }) {
             if isGuest {
                 NavigationStack {
@@ -175,7 +175,7 @@ struct MapFeatureView: View {
         .onChange(of: showCreate) { _, presented in
             if !presented {
                 selection = nil
-                Task { await startAndLoad() }
+                Task { await startAndLoad(force: true) }
             }
         }
         .onDisappear { isVisible = false; location.stop(); container.mapRequests.suspend() }

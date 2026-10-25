@@ -36,6 +36,8 @@ jobs:
       - run: python3 scripts/seed/world_capitals.py --check
       - run: python3 scripts/seed/landmark_businesses.py --check
       - run: python3 scripts/seed/turkey_launch.py --check
+      # Live-readiness rules derived from the repository, incl. the three free Scheduler jobs.
+      - run: python3 -m unittest discover -s scripts/test -p '*_test.py'
 
   functions:
     name: Functions (typecheck + unit tests)

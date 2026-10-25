@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { deleteApp, getApp } from 'firebase-admin/app';
 process.env.GCLOUD_PROJECT = 'demo-lociar';
+process.env.FUNCTIONS_EMULATOR = 'true';
 const { db, Timestamp, luidForUid } = await import('../../lib/core.js');
 const { readPublicContent } = await import('../../lib/publicContent.js');
+const { syncMapCell } = await import('../../lib/mapCells.js');
 after(async () => { await deleteApp(getApp()); });
 
 async function viewer() {
@@ -69,13 +71,27 @@ test('saved projections preserve independent anonymous blocks and remote note re
 
 test('AR includes nearby own pending content beyond the public page and excludes distant own posts', async () => {
   const v = await viewer(), author = await viewer(), lat = -41, lng = 37;
-  for (let i = 0; i < 101; i++) await post(author.luid, { lat, lng });
+  const indexedPosts = [];
+  for (let i = 0; i < 101; i++) indexedPosts.push(await post(author.luid, { lat, lng }));
   const own = await post(v.luid, { lat: lat + 0.0009, lng, status: 'pending_review' });
+  const ownPublic = await post(v.luid, { lat: lat + 0.001, lng });
   const far = await post(v.luid, { lat: lat + 0.1, lng });
   const base = { mode: 'nearby', latitude: lat, longitude: lng, radiusMeters: 120 };
-  const legacy = await v.call(base);
-  assert.equal(legacy.posts.length, 100); assert.equal(legacy.posts.some(p => p.id === own), false);
-  const ar = await v.call({ ...base, includeOwnNearby: true });
-  assert.equal(ar.posts.some(p => p.id === own), true); assert.equal(ar.posts.some(p => p.id === far), false);
-  assert.equal(ar.posts.length, 101);
+  for (const id of [...indexedPosts, own, ownPublic, far]) await syncMapCell(id);
+  const flags = db.collection('system').doc('geo_queries');
+  const prior = (await flags.get()).get('map_cells_version');
+  try {
+    for (const version of [0, 1]) {
+      await flags.set({ map_cells_version: version }, { merge: true });
+      const legacy = await v.call(base);
+      assert.equal(legacy.posts.length, 100); assert.equal(legacy.posts.some(p => p.id === own), false);
+      const ar = await v.call({ ...base, includeOwnNearby: true });
+      assert.equal(ar.posts.some(p => p.id === own), true);
+      assert.equal(ar.posts.some(p => p.id === ownPublic), true);
+      assert.equal(ar.posts.some(p => p.id === far), false);
+      assert.equal(ar.posts.length, 102, `scan/index ${version} retains both nearby own posts`);
+    }
+  } finally {
+    await flags.set({ map_cells_version: prior ?? 0 }, { merge: true });
+  }
 });
