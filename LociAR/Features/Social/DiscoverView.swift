@@ -7,6 +7,10 @@ struct DiscoverView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(\.modelContext) private var modelContext
+    @State private var refreshGate = ScreenRefreshGate()
+    @State private var paginationGate = ScreenRefreshGate()
+    @State private var loadedRevision: UUID?
+    @State private var hasLoadedMore = false
     @State private var posts: [LociPost] = []
     @State private var query = ""
     @State private var message: String?
@@ -43,7 +47,15 @@ struct DiscoverView: View {
         .background(LociScreenBackground())
         .navigationTitle("Keşfet")
         .searchable(text: $query, prompt: String(localized: "Kişi, yer veya içerik"))
-        .task { await load() }
+        .onChange(of: refreshScope) { _, scope in
+            if refreshGate.prepare(scope: scope, revision: ContentUpdates.shared.revision) { posts = []; nextCursor = nil }
+        }
+        .onChange(of: ContentUpdates.shared.revision) { _, value in
+            if loadedRevision != value { posts = []; nextCursor = nil }
+        }
+        .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.revision) { opening in
+            await load(force: false, automatic: !opening)
+        }
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
                 Button("Daha fazla göster") { Task { await loadMore() } }
@@ -62,26 +74,50 @@ struct DiscoverView: View {
         }
     }
 
-    private func load() async {
+    private var refreshScope: String {
+        if case let .signedIn(user) = session.phase { return user.id.uuidString }
+        return "signed-out"
+    }
+
+    private func load(force: Bool = true, automatic: Bool = false) async {
+        let revision = ContentUpdates.shared.revision
+        if refreshGate.prepare(scope: refreshScope, revision: revision) { posts = []; nextCursor = nil }
+        guard !isLoadingMore, !(automatic && hasLoadedMore && loadedRevision == revision),
+              let ticket = refreshGate.begin(scope: refreshScope, revision: revision, force: force) else { return }
+        let scope = refreshScope
+        if loadedRevision != nil && loadedRevision != revision { posts = []; nextCursor = nil }
         pageGeneration += 1
-        nextCursor = nil
         isLoading = posts.isEmpty
         message = nil
-        defer { isLoading = false }
+        var succeeded = false
+        var failure: Error?
+        defer {
+            if refreshGate.isCurrent(ticket, scope: refreshScope, revision: ContentUpdates.shared.revision) { isLoading = false }
+            refreshGate.finish(ticket, succeeded: succeeded, error: failure)
+        }
         let local = localDiscoverDrafts()
         if UITestFixtures.sampleContentEnabled || session.isLocalPreview {
-            posts = mergedDiscoverPosts(local + [UITestFixtures.post])
+            posts = mergedDiscoverPosts(local + [UITestFixtures.post]); succeeded = true; loadedRevision = revision
             return
         }
         guard container.isBackendConfigured else {
             posts = local
             message = posts.isEmpty ? String(localized: "Bağlantı ayarları tamamlandığında içerikler burada görünecek.") : nil
+            succeeded = true
             return
         }
-        do { let page = try await container.posts.discoverPage(cursor: nil); posts = mergedDiscoverPosts(local + page.posts); nextCursor = page.next }
-        catch {
-            posts = local
-            message = posts.isEmpty ? String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") : nil
+        do {
+            let page = try await container.posts.discoverPage(cursor: nil)
+            guard !Task.isCancelled, scope == refreshScope, revision == ContentUpdates.shared.revision,
+                  refreshGate.isCurrent(ticket, scope: scope, revision: revision) else { return }
+            posts = mergedDiscoverPosts(local + page.posts); nextCursor = page.next
+            hasLoadedMore = false; loadedRevision = revision; succeeded = true
+        } catch {
+            guard !Task.isCancelled, scope == refreshScope, revision == ContentUpdates.shared.revision,
+                  refreshGate.isCurrent(ticket, scope: scope, revision: revision) else { return }
+            failure = error
+            if let backend = error as? BackendCallError, case .rejected = backend { posts = local; nextCursor = nil }
+            message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
         }
     }
 
@@ -112,16 +148,27 @@ struct DiscoverView: View {
         return order.compactMap { latest[$0] }
     }
     private func loadMore() async {
-        guard let cursor = nextCursor, !isLoadingMore, case let .signedIn(viewer) = session.phase else { return }
+        guard let cursor = nextCursor, !isLoadingMore, !refreshGate.isInFlight, case let .signedIn(viewer) = session.phase else { return }
+        let revision = ContentUpdates.shared.revision
+        guard let pageTicket = paginationGate.begin(scope: "\(refreshScope)|\(cursor)", revision: revision, force: true) else { return }
+        var pageSucceeded = false
+        var pageFailure: Error?
+        defer { paginationGate.finish(pageTicket, succeeded: pageSucceeded, error: pageFailure) }
         let generation = pageGeneration
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
             let page = try await container.posts.discoverPage(cursor: cursor)
-            guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            guard !Task.isCancelled, revision == ContentUpdates.shared.revision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            pageSucceeded = true
+            hasLoadedMore = true
             posts = mergedDiscoverPosts(posts + page.posts)
             nextCursor = page.next
-        } catch { message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") }
+        } catch {
+            guard !Task.isCancelled, revision == ContentUpdates.shared.revision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            pageFailure = error
+            message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
+        }
     }
 
 }

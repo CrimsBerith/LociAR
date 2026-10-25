@@ -164,7 +164,7 @@ final class UserContextService: NSObject, @preconcurrency CLLocationManagerDeleg
             if preferencesRevision != response.revision { lastDeviceUpload = .distantPast; lastDeviceSnapshot = nil }
             preferencesRevision = response.revision
             updateLocationService()
-            await CampaignArrivalService.shared.synchronize()
+            await CampaignArrivalService.shared.synchronizeIfNeeded()
             guard valid(id, epoch), !Task.isCancelled else { return }
             errorMessage = nil
         } catch {

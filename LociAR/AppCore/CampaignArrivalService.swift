@@ -151,6 +151,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     @ObservationIgnored private var foreground = false
     @ObservationIgnored private var lastFixRequest = Date.distantPast
     @ObservationIgnored private var lastRegionRefresh = Date.distantPast
+    @ObservationIgnored private var regionQueryPolicy = ArrivalRegionQueryPolicy()
     @ObservationIgnored private var precisionTargets = Set<UUID>()
     @ObservationIgnored private var firstGood: [UUID: Date] = [:]
     @ObservationIgnored private var noteConfirmations: [UUID: LocationNoteEntryConfirmation] = [:]
@@ -521,6 +522,22 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         await refreshCoordinator.refresh { [weak self] in await self?.synchronizeOnce() ?? false }
     }
 
+    private var regionQueryScope: String {
+        "\(userID?.uuidString ?? "none")|\(generation)|\(placeNotesEnabled)|\(promotionsEnabled)"
+    }
+
+    /// Repeated preference/GPS callbacks reuse an unchanged discovery result for at most five minutes.
+    /// Explicit pushes, refresh-boundary events and background refresh still call synchronize().
+    @discardableResult
+    func synchronizeIfNeeded() async -> Bool {
+        guard enabled, isSupported, placeNotesEnabled || promotionsEnabled, let id = userID,
+              FirebaseIdentity.currentLUID() == id,
+              manager.authorizationStatus == .authorizedAlways || foreground && manager.authorizationStatus == .authorizedWhenInUse else { return false }
+        if lastRegionRefresh != .distantPast, !needsMonitoringRecovery,
+           !regionQueryPolicy.needsRefresh(scope: regionQueryScope, fix: regionSearchFix, now: ProcessInfo.processInfo.systemUptime) { return true }
+        return await synchronize()
+    }
+
     private func synchronizeOnce() async -> Bool {
         guard enabled, isSupported, placeNotesEnabled || promotionsEnabled, let id = userID, let callables, !Task.isCancelled,
               FirebaseIdentity.currentLUID() == id,
@@ -581,8 +598,10 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                 setAreaTopic("area_" + Geohash.encode(latitude: fix.coordinate.latitude, longitude: fix.coordinate.longitude, precision: 4))
             }
             Self.scheduleBackgroundRefresh()
-            return (!promotionsEnabled || campaignResult != nil && (fix == nil || stepResult != nil))
+            let complete = (!promotionsEnabled || campaignResult != nil && (fix == nil || stepResult != nil))
                 && (!placeNotesEnabled || noteResult != nil)
+            if complete { regionQueryPolicy.recordSuccess(scope: regionQueryScope, fix: fix, now: ProcessInfo.processInfo.systemUptime) }
+            return complete
         } catch {
             // Keep cached regions for a later event, but every arrival must pass live server checks.
             return false
@@ -1217,7 +1236,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         if let location = ArrivalFixSelection.latest(locations, at: now, maxAge: LocationNotePolicy.maxFixAge) {
             checkPreciseEntries(location)
             if handling, location.horizontalAccuracy <= 200 { Task { await process(location) } }
-            else if foreground, placeNotesEnabled || promotionsEnabled, Date().timeIntervalSince(lastRegionRefresh) >= 60 { Task { await synchronize() } }
+            else if foreground, placeNotesEnabled || promotionsEnabled, Date().timeIntervalSince(lastRegionRefresh) >= 60 { Task { await synchronizeIfNeeded() } }
             // Significant-change wake in the background: move the monitored regions with the user.
             else if !foreground, preciseWindow == nil, placeNotesEnabled || promotionsEnabled, Date().timeIntervalSince(lastRegionRefresh) >= 120 { synchronizeInBackground() }
         }

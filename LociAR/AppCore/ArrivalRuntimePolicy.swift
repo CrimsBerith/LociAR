@@ -1,6 +1,25 @@
 import CoreLocation
 import Foundation
 
+/// Region discovery metadata only. Delivery, consent and on-site access still use live checks.
+struct ArrivalRegionQueryPolicy {
+    private var scope: String?
+    private var fix: CLLocation?
+    private var refreshedAt: TimeInterval?
+
+    func needsRefresh(scope: String, fix: CLLocation?, now: TimeInterval) -> Bool {
+        guard self.scope == scope, let refreshedAt, now >= refreshedAt, now - refreshedAt < 300 else { return true }
+        guard let fix else { return false }
+        guard let previous = self.fix else { return true }
+        let movement = max(250, min(1_000, previous.horizontalAccuracy) + min(1_000, fix.horizontalAccuracy))
+        return fix.distance(from: previous) >= movement
+    }
+
+    mutating func recordSuccess(scope: String, fix: CLLocation?, now: TimeInterval) {
+        self.scope = scope; self.fix = fix; refreshedAt = now
+    }
+}
+
 /// Only an explicit user action may chain When In Use to Always; never a background restore.
 struct ArrivalPermissionUpgrade {
     private(set) var pending = false

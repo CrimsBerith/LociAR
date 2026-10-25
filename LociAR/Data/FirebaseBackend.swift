@@ -215,6 +215,7 @@ struct CallableClient: Sendable {
                 let response = try JSONSerialization.data(withJSONObject: result.data)
                 if ["createPost", "createPlaceNote", "deleteOwnPost", "blockPostAuthor", "submitReport"].contains(name) {
                     await MapRequestCoordinator.shared.invalidate()
+                    await ContentUpdates.shared.changed()
                 }
                 return response
             } catch let error as NSError where error.domain == FunctionsErrorDomain {

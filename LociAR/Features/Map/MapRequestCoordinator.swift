@@ -110,8 +110,12 @@ final class MapRequestCoordinator {
     @ObservationIgnored private var pending = false
     @ObservationIgnored private var deadline: TimeInterval = 0
     @ObservationIgnored private var lastStart: TimeInterval = -.infinity
+    @ObservationIgnored private var lastExplicitRefresh: TimeInterval = -.infinity
+    @ObservationIgnored private var refreshAt: TimeInterval?
+    @ObservationIgnored private var wakeDeadline: TimeInterval = .infinity
     @ObservationIgnored private var retryAt: TimeInterval = 0
     @ObservationIgnored private var failures = 0
+    @ObservationIgnored private var restartAfterCooldown = false
     @ObservationIgnored private var wakeTask: Task<Void, Never>?
     @ObservationIgnored private var wakeGeneration = 0
     @ObservationIgnored private var fetchTask: Task<Void, Never>?
@@ -134,26 +138,34 @@ final class MapRequestCoordinator {
         invalidate()
     }
 
-    func resume() { active = true; if latest != nil { pending = true; scheduleWake() } }
+    func resume() {
+        active = true
+        if failures > 3 {
+            restartAfterCooldown = true
+            deadline = max(now(), retryAt)
+        }
+        if latest != nil { pending = true; scheduleWake() }
+    }
     func suspend() {
-        active = false; wakeGeneration += 1; wakeTask?.cancel(); wakeTask = nil
+        active = false; wakeGeneration += 1; wakeTask?.cancel(); wakeTask = nil; wakeDeadline = .infinity
         // Already dispatched calls may still be billed. Let them fill only the current scope.
         isLoading = false
     }
 
     func invalidate() {
-        epoch += 1; entries = []; presentation = nil; presentationRevision += 1; accessRevision += 1
-        failed = false; failures = 0; retryAt = 0
+        epoch += 1; entries = []; refreshAt = nil; presentation = nil; presentationRevision += 1; accessRevision += 1
+        failed = false; failures = 0; retryAt = 0; restartAfterCooldown = false
         pending = latest != nil
         deadline = now()
         scheduleWake()
     }
 
     func refresh() {
-        guard latest != nil else { return }
+        guard latest != nil, fetchTask == nil, now() >= lastExplicitRefresh + 10 else { return }
+        lastExplicitRefresh = now()
         if failures > 3, now() >= retryAt { failures = 0 }
         // Repeated refresh taps share the running call rather than invalidating it repeatedly.
-        if fetchTask == nil { entries = [] }
+        entries = []; refreshAt = nil
         pending = true; deadline = now(); scheduleWake()
     }
 
@@ -178,7 +190,17 @@ final class MapRequestCoordinator {
     }
 
     private func scheduleWake() {
-        guard automaticScheduling, active, viewer != nil, pending, wakeTask == nil else { return }
+        guard automaticScheduling, active, viewer != nil, fetchTask == nil else { return }
+        if !pending {
+            guard let refreshAt else { return }
+            pending = true; deadline = max(refreshAt, retryAt)
+            if failures > 3 { restartAfterCooldown = true }
+        }
+        if wakeTask != nil {
+            guard deadline < wakeDeadline else { return }
+            wakeGeneration += 1; wakeTask?.cancel(); wakeTask = nil
+        }
+        wakeDeadline = deadline
         wakeGeneration += 1
         let generation = wakeGeneration
         wakeTask = Task { [weak self] in
@@ -189,6 +211,7 @@ final class MapRequestCoordinator {
                     continue
                 }
                 self.wakeTask = nil
+                self.wakeDeadline = .infinity
                 self.processPending()
                 return
             }
@@ -198,6 +221,10 @@ final class MapRequestCoordinator {
 
     /// Internal synchronous seam for deterministic clock/network tests; no real sleeps needed.
     func processPending() {
+        if active, !pending, let refreshAt, now() >= refreshAt {
+            pending = true; deadline = max(refreshAt, retryAt)
+            if failures > 3 { restartAfterCooldown = true }
+        }
         guard active, viewer != nil, pending, now() >= deadline, let target, let latest else { return }
         entries.removeAll { $0.expires <= now() }
         if let index = entries.lastIndex(where: { $0.summary.covers(target) }) {
@@ -206,10 +233,16 @@ final class MapRequestCoordinator {
             entries.append(hit)
             metrics.cacheHits += 1
             publish(hit.summary, viewport: latest.viewport, layer: latest.layer)
+            refreshAt = hit.expires
             pending = false; failed = false; isLoading = false
+            scheduleWake()
             return
         }
         guard fetchTask == nil else { return }
+        if failures > 3, restartAfterCooldown {
+            guard now() >= retryAt else { deadline = retryAt; scheduleWake(); return }
+            failures = 0; retryAt = 0; restartAfterCooldown = false
+        }
         guard failures <= 3 else { pending = false; return }
         let eligible = max(lastStart + 2, retryAt)
         if now() < eligible { deadline = eligible; scheduleWake(); return }
@@ -227,8 +260,8 @@ final class MapRequestCoordinator {
                     self.isLoading = false; self.scheduleWake(); return
                 }
                 self.failures = 0; self.retryAt = 0
+                let ttl: TimeInterval = if case .heat(let precision) = request.kind, precision <= 6 { 300 } else { 60 }
                 if result.estimatedBytes <= 2 * 1_024 * 1_024 {
-                    let ttl: TimeInterval = if case .heat(let precision) = request.kind, precision <= 6 { 300 } else { 60 }
                     self.entries.append((result, self.now() + ttl))
                     while self.entries.count > 32 || self.entries.reduce(0, { $0 + $1.summary.estimatedBytes }) > 2 * 1_024 * 1_024 {
                         self.entries.removeFirst()
@@ -238,6 +271,7 @@ final class MapRequestCoordinator {
                 if self.active, let current = self.target, result.covers(current),
                    let latest = self.latest, self.now() >= self.deadline {
                     self.publish(result, viewport: latest.viewport, layer: latest.layer)
+                    self.refreshAt = self.now() + ttl
                     self.pending = false
                 } else if self.active {
                     self.pending = true
@@ -248,6 +282,7 @@ final class MapRequestCoordinator {
                 self.fetchTask = nil; self.isLoading = false
                 guard self.epoch == startedEpoch else { self.scheduleWake(); return }
                 self.failed = true
+                self.refreshAt = nil
                 self.failures += 1
                 let retryable = Self.canRetry(error)
                 if retryable, self.failures <= 3, self.active {

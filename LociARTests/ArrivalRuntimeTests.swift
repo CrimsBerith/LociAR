@@ -355,4 +355,45 @@ final class ArrivalRefreshConcurrencyTests: XCTestCase {
         let a = await current.value, b = await joined.value
         XCTAssertTrue(a); XCTAssertTrue(b); XCTAssertEqual(calls, 2)
     }
+
+    func testStationaryRegionPreferenceTicksReuseOneDiscoveryForFiveMinutes() {
+        var policy = ArrivalRegionQueryPolicy(), calls = 0
+        let fix = CLLocation(latitude: 41, longitude: 29)
+        for minute in 0..<60 {
+            let time = Double(minute * 60)
+            if policy.needsRefresh(scope: "user|notes", fix: fix, now: time) {
+                calls += 1; policy.recordSuccess(scope: "user|notes", fix: fix, now: time)
+            }
+        }
+        XCTAssertEqual(calls, 12, "60 identical minute ticks need 12 discovery batches, not 60")
+    }
+
+    func testRegionDiscoveryRefreshesForMovementNewFixScopeAndExpiryWithoutExtendingTheOldDeadline() {
+        var policy = ArrivalRegionQueryPolicy()
+        let here = CLLocation(coordinate: .init(latitude: 41, longitude: 29), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: Date())
+        let nearby = CLLocation(coordinate: .init(latitude: 41.0001, longitude: 29), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: Date())
+        let moved = CLLocation(coordinate: .init(latitude: 41.003, longitude: 29), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: Date())
+        XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: here, now: 0))
+        policy.recordSuccess(scope: "user|notes", fix: here, now: 0)
+        XCTAssertFalse(policy.needsRefresh(scope: "user|notes", fix: nearby, now: 299))
+        XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: nearby, now: 300))
+        XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: moved, now: 60))
+        XCTAssertTrue(policy.needsRefresh(scope: "other-user|notes", fix: here, now: 60))
+        XCTAssertTrue(policy.needsRefresh(scope: "user|promotions", fix: here, now: 60))
+        XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: here, now: -1))
+        policy.recordSuccess(scope: "user|notes", fix: nil, now: 0)
+        XCTAssertTrue(policy.needsRefresh(scope: "user|notes", fix: here, now: 60))
+    }
+
+    func testCoarseGPSJitterDoesNotSpendARegionQueryAndFailureDoesNotAdvanceFreshness() {
+        var policy = ArrivalRegionQueryPolicy()
+        let here = CLLocation(coordinate: .init(latitude: 41, longitude: 29), altitude: 0, horizontalAccuracy: 500, verticalAccuracy: 5, timestamp: Date())
+        let noisy = CLLocation(coordinate: .init(latitude: 41.003, longitude: 29), altitude: 0, horizontalAccuracy: 500, verticalAccuracy: 5, timestamp: Date())
+        policy.recordSuccess(scope: "same", fix: here, now: 0)
+        XCTAssertFalse(policy.needsRefresh(scope: "same", fix: noisy, now: 60))
+        XCTAssertTrue(policy.needsRefresh(scope: "same", fix: here, now: 300))
+        // An unsuccessful fetch must not call recordSuccess.
+        XCTAssertTrue(policy.needsRefresh(scope: "same", fix: here, now: 301))
+    }
+
 }

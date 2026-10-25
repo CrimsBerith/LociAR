@@ -352,9 +352,11 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
             blocked, collection: "user_blocks", id: "\(key(userID))_\(key(targetID))",
             data: ["blocker_id": key(userID), "blocked_id": key(targetID), "created_at": FieldValue.serverTimestamp()]
         )
-        if blocked { try await setFollowing(false, targetID: targetID, userID: userID) }
         await BlockListCache.shared.record(blocked: blocked, targetID: key(targetID))
         await MapRequestCoordinator.shared.invalidate()
+        await ContentUpdates.shared.changed()
+        // A later unfollow failure must not leave already-blocked content in a visible list.
+        if blocked { try await setFollowing(false, targetID: targetID, userID: userID) }
     }
 
     func collections(for userID: UUID) async throws -> [LociCollection] {

@@ -32,6 +32,10 @@ struct PostPreviewView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
     let post: LociPost
+    @State private var refreshGate = ScreenRefreshGate()
+    @State private var paginationGate = ScreenRefreshGate()
+    @State private var loadedRevision: UUID?
+    @State private var hasLoadedOlder = false
     @State private var comments: [LociComment] = []
     @State private var olderCommentsCursor: CommentPageCursor?
     @State private var isLoadingOlderComments = false
@@ -294,7 +298,15 @@ struct PostPreviewView: View {
         .sensoryFeedback(.selection, trigger: likeTaps)
         .sensoryFeedback(.selection, trigger: saveTaps)
         .sensoryFeedback(.success, trigger: commentsSent)
-        .task(id: commentViewerID) { await load() }
+        .onChange(of: refreshScope) { _, scope in
+            if refreshGate.prepare(scope: scope, revision: ContentUpdates.shared.revision) { comments = []; olderCommentsCursor = nil }
+        }
+        .onChange(of: ContentUpdates.shared.revision) { _, value in
+            if loadedRevision != value { comments = []; olderCommentsCursor = nil }
+        }
+        .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.revision) { opening in
+            await load(force: false, automatic: !opening)
+        }
         .refreshable { await load() }
         .safeAreaInset(edge: .bottom) {
             Button("AR’da aç", systemImage: "viewfinder") { showAR = true }
@@ -403,44 +415,59 @@ struct PostPreviewView: View {
         }
     }
 
-    private func load() async {
-        let requestID = UUID()
+    private var refreshScope: String {
+        "\(commentViewerID?.uuidString ?? "signed-out")|\(post.id.uuidString)|\(post.isLocked)"
+    }
+
+    private func load(force: Bool = true, automatic: Bool = false) async {
+        let revision = ContentUpdates.shared.revision
+        if refreshGate.prepare(scope: refreshScope, revision: revision) { comments = []; olderCommentsCursor = nil }
+        guard !isLoadingOlderComments, !isCommentSending, !isLikeMutating, !isSaveMutating,
+              !(automatic && hasLoadedOlder && loadedRevision == revision),
+              let ticket = refreshGate.begin(scope: refreshScope, revision: revision, force: force) else { return }
+        let requestID = ticket.id
         let viewerID = commentViewerID
         commentsLoadID = requestID
-        comments = []
-        olderCommentsCursor = nil
+        if loadedRevision != nil && loadedRevision != revision { comments = []; olderCommentsCursor = nil }
+        var succeeded = false
+        var failure: Error?
         commentsFailed = false
         message = nil
         isLoadingOlderComments = false
-        isLoading = true
-        defer { if commentsLoadID == requestID { isLoading = false } }
+        isLoading = comments.isEmpty
+        defer {
+            if refreshGate.isCurrent(ticket, scope: refreshScope, revision: ContentUpdates.shared.revision) { isLoading = false }
+            refreshGate.finish(ticket, succeeded: succeeded, error: failure)
+        }
         if !post.isLocked { await recordViewIfNeeded() }
-        if post.sponsorship != nil { return }
-        guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+        if post.sponsorship != nil { succeeded = true; return }
+        guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
         if UITestFixtures.sampleContentEnabled {
             comments = UITestFixtures.comments
-            collections = []
+            collections = []; loadedRevision = revision; succeeded = true
             return
         }
         guard container.isBackendConfigured || session.isLocalPreview else { return }
         if !post.isLocked {
         do {
             let page = try await container.social.commentPage(for: post.id, before: nil)
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
-            comments = LociComment.merging(comments, with: page.comments)
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+            comments = LociComment.merging([], with: page.comments)
             olderCommentsCursor = page.olderCursor
         } catch {
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
-            commentsFailed = true
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+            commentsFailed = true; failure = error
+            if let backend = error as? BackendCallError, case .rejected = backend { comments = []; olderCommentsCursor = nil }
         }
         }
         if case let .signedIn(user) = session.phase {
             async let membership = container.social.membership(postID: post.id, userID: user.id)
             let membershipResult = try? await membership
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
             saved = membershipResult?.saved ?? false
             liked = membershipResult?.liked ?? false
         }
+        loadedRevision = revision; hasLoadedOlder = false; succeeded = !commentsFailed
     }
 
     private func loadCollections() async {
@@ -467,7 +494,12 @@ struct PostPreviewView: View {
     }
 
     private func loadOlderComments() async {
-        guard !isLoading, !isLoadingOlderComments, let cursor = olderCommentsCursor else { return }
+        guard !isLoading, !isLoadingOlderComments, !refreshGate.isInFlight, let cursor = olderCommentsCursor else { return }
+        let revision = ContentUpdates.shared.revision
+        guard let pageTicket = paginationGate.begin(scope: "\(refreshScope)|\(cursor.documentID)", revision: revision, force: true) else { return }
+        var pageSucceeded = false
+        var pageFailure: Error?
+        defer { paginationGate.finish(pageTicket, succeeded: pageSucceeded, error: pageFailure) }
         let requestID = commentsLoadID
         let viewerID = commentViewerID
         isLoadingOlderComments = true
@@ -475,11 +507,14 @@ struct PostPreviewView: View {
         defer { if commentsLoadID == requestID { isLoadingOlderComments = false } }
         do {
             let page = try await container.social.commentPage(for: post.id, before: cursor)
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+            pageSucceeded = true
+            hasLoadedOlder = true
             comments = LociComment.merging(comments, with: page.comments)
             olderCommentsCursor = page.olderCursor
         } catch {
-            guard isCurrentCommentsLoad(requestID, viewerID: viewerID) else { return }
+            guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
+            pageFailure = error
             message = String(localized: "Yorumlar şu anda yüklenemiyor. Tekrar dene.")
         }
     }

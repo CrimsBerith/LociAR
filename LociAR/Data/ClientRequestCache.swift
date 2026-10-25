@@ -1,4 +1,99 @@
 import Foundation
+import Observation
+import FirebaseFunctions
+
+/// Dispatch policy only: no response bodies or authorization decisions are cached here.
+@MainActor @Observable
+final class ScreenRefreshGate {
+    struct Ticket: Equatable { let id: UUID; let generation: UUID }
+    private var scope: String?
+    private var revision: UUID?
+    private var generation = UUID()
+    private var flight: Ticket?
+    private var lastSuccess: TimeInterval = -.infinity
+    private var lastAttempt: TimeInterval = -.infinity
+    private var retryAt: TimeInterval = 0
+    private var failures = 0
+    private var automaticRetryStopped = false
+    private var connectionFailure = false
+    private let now: () -> TimeInterval
+    let interval: TimeInterval
+
+    init(interval: TimeInterval = 60, now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+        self.interval = max(5, interval); self.now = now
+    }
+
+    @discardableResult
+    func prepare(scope: String, revision: UUID) -> Bool {
+        let changed = self.scope != scope || self.revision != revision
+        if self.scope != scope {
+            self.scope = scope; self.revision = revision; generation = UUID(); flight = nil
+            lastSuccess = -.infinity; lastAttempt = -.infinity; retryAt = 0; failures = 0; automaticRetryStopped = false; connectionFailure = false
+        } else if self.revision != revision {
+            self.revision = revision; generation = UUID(); lastSuccess = -.infinity
+            retryAt = 0; failures = 0; automaticRetryStopped = false; connectionFailure = false
+        }
+        return changed
+    }
+
+    func begin(scope: String, revision: UUID, force: Bool = false) -> Ticket? {
+        prepare(scope: scope, revision: revision)
+        guard flight == nil, now() >= lastAttempt + 5, now() >= retryAt,
+              force || (!automaticRetryStopped && now() >= lastSuccess + interval) else { return nil }
+        let ticket = Ticket(id: UUID(), generation: generation)
+        flight = ticket; lastAttempt = now()
+        return ticket
+    }
+
+    func isCurrent(_ ticket: Ticket, scope: String, revision: UUID) -> Bool {
+        flight == ticket && ticket.generation == generation && self.scope == scope && self.revision == revision
+    }
+
+    func finish(_ ticket: Ticket, succeeded: Bool, error: Error? = nil) {
+        guard flight == ticket else { return }
+        flight = nil
+        guard ticket.generation == generation else { return }
+        if succeeded { lastSuccess = now(); retryAt = 0; failures = 0; automaticRetryStopped = false; connectionFailure = false }
+        else if let error, !(error is CancellationError) {
+            let ns = error as NSError
+            connectionFailure = error is URLError || ns.domain == FunctionsErrorDomain
+                && [FunctionsErrorCode.unavailable.rawValue, FunctionsErrorCode.deadlineExceeded.rawValue].contains(ns.code)
+            failures += 1
+            retryAt = now() + min(120, 15 * pow(2, Double(min(failures - 1, 3))))
+            if error is AuthFlowError { automaticRetryStopped = true }
+            if let backend = error as? BackendCallError, case let .rejected(code, _, reason) = backend {
+                let rateLimited = code == FunctionsErrorCode.resourceExhausted.rawValue && reason == "rate_limited"
+                automaticRetryStopped = BackendErrorPolicy.isPermanent(FunctionsErrorCode(rawValue: code)) && !rateLimited
+                if code == FunctionsErrorCode.resourceExhausted.rawValue { retryAt = max(retryAt, now() + 60) }
+            }
+            if error as? GifSearchError == .rateLimited { retryAt = max(retryAt, now() + 60) }
+        }
+    }
+
+    var nextDelay: TimeInterval {
+        if flight != nil { return 5 }
+        if automaticRetryStopped { return 120 }
+        return max(5, max(lastAttempt + 5, max(retryAt, lastSuccess + interval)) - now())
+    }
+
+    var isInFlight: Bool { flight != nil }
+
+    func connectionRestored() -> Bool {
+        guard connectionFailure, flight == nil else { return false }
+        retryAt = 0; connectionFailure = false
+        return true
+    }
+}
+
+/// Successful content mutations wake visible lists; hidden screens do not fetch.
+@MainActor @Observable
+final class ContentUpdates {
+    static let shared = ContentUpdates()
+    private(set) var revision = UUID()
+    private(set) var activityRevision = UUID()
+    func changed() { revision = UUID(); activityRevision = UUID() }
+    func activityChanged() { activityRevision = UUID() }
+}
 
 /// Memory only. Presentation results and successful receipts never grant content access.
 /// Clearing changes the generation, so a late network result cannot refill a former session.

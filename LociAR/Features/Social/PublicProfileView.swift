@@ -7,6 +7,10 @@ struct PublicProfileView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     let user: LociUser
+    @State private var refreshGate = ScreenRefreshGate()
+    @State private var paginationGate = ScreenRefreshGate()
+    @State private var loadedRevision: UUID?
+    @State private var hasLoadedMore = false
     @State private var profile: PublicProfileProjection?
     @State private var posts: [LociPost] = []
     @State private var following = false
@@ -70,7 +74,15 @@ struct PublicProfileView: View {
         .navigationTitle("Profil")
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
         .refreshable { await load() }
-        .task { await load() }
+        .onChange(of: refreshScope) { _, scope in
+            if refreshGate.prepare(scope: scope, revision: ContentUpdates.shared.revision) { posts = []; nextCursor = nil; profile = nil }
+        }
+        .onChange(of: ContentUpdates.shared.revision) { _, value in
+            if loadedRevision != value { posts = []; nextCursor = nil; profile = nil }
+        }
+        .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.revision, enabled: !isBlocked) { opening in
+            await load(force: false, automatic: !opening)
+        }
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
                 Button("Daha fazla göster") { Task { await loadMore() } }
@@ -103,19 +115,35 @@ struct PublicProfileView: View {
         }
     }
 
-    private func load() async {
+    private var refreshScope: String {
+        let owner: String
+        if case let .signedIn(viewer) = session.phase { owner = viewer.id.uuidString } else { owner = "signed-out" }
+        return "\(owner)|\(user.id.uuidString)"
+    }
+
+    private func load(force: Bool = true, automatic: Bool = false) async {
+        let revision = ContentUpdates.shared.revision, scope = refreshScope
+        if refreshGate.prepare(scope: refreshScope, revision: revision) { posts = []; nextCursor = nil; profile = nil }
+        guard !isLoadingMore, !isBlockMutating, !isFollowMutating,
+              !(automatic && hasLoadedMore && loadedRevision == revision),
+              let ticket = refreshGate.begin(scope: scope, revision: revision, force: force) else { return }
+        if loadedRevision != nil && loadedRevision != revision { profile = nil; posts = []; nextCursor = nil }
         pageGeneration += 1
-        nextCursor = nil
-        isLoading = true
+        isLoading = profile == nil
         message = nil
-        defer { isLoading = false }
+        var succeeded = false
+        var failure: Error?
+        defer {
+            if refreshGate.isCurrent(ticket, scope: refreshScope, revision: ContentUpdates.shared.revision) { isLoading = false }
+            refreshGate.finish(ticket, succeeded: succeeded, error: failure)
+        }
         if UITestFixtures.sampleContentEnabled || session.isLocalPreview {
             profile = PublicProfileProjection(
                 id: UITestFixtures.creator.id, handle: UITestFixtures.creator.handle, avatarURL: nil,
                 bio: "Şehrin unutulan hikâyelerini yüzeylere bırakıyorum.", publicPostCount: 1,
                 followerCount: 248, followingCount: 73
             )
-            posts = [UITestFixtures.post]
+            posts = [UITestFixtures.post]; loadedRevision = revision; succeeded = true
             return
         }
         guard container.isBackendConfigured else { message = String(localized: "Sunucu bağlantısı henüz hazır değil."); return }
@@ -123,11 +151,23 @@ struct PublicProfileView: View {
             async let loadedProfile = container.posts.publicProfile(creatorID: user.id)
             async let loadedPage = container.posts.publicPostsPage(creatorID: user.id, cursor: nil)
             let (newProfile, page) = try await (loadedProfile, loadedPage)
-            profile = newProfile; posts = page.posts; nextCursor = page.next
-            if case let .signedIn(viewer) = session.phase {
-                following = try await container.social.isFollowing(targetID: user.id, userID: viewer.id)
-            }
-        } catch { message = String(localized: "Profil şu anda yüklenemiyor.") }
+            guard !Task.isCancelled, scope == refreshScope, revision == ContentUpdates.shared.revision,
+                  refreshGate.isCurrent(ticket, scope: scope, revision: revision) else { return }
+            let loadedFollowing: Bool
+            if newProfile != nil, case let .signedIn(viewer) = session.phase {
+                loadedFollowing = try await container.social.isFollowing(targetID: user.id, userID: viewer.id)
+            } else { loadedFollowing = false }
+            guard !Task.isCancelled, scope == refreshScope, revision == ContentUpdates.shared.revision,
+                  refreshGate.isCurrent(ticket, scope: scope, revision: revision) else { return }
+            profile = newProfile; posts = page.posts; nextCursor = page.next; following = loadedFollowing
+            loadedRevision = revision; hasLoadedMore = false; succeeded = true
+        } catch {
+            guard !Task.isCancelled, scope == refreshScope, revision == ContentUpdates.shared.revision,
+                  refreshGate.isCurrent(ticket, scope: scope, revision: revision) else { return }
+            failure = error
+            if let backend = error as? BackendCallError, case .rejected = backend { profile = nil; posts = []; nextCursor = nil }
+            message = String(localized: "Profil şu anda yüklenemiyor.")
+        }
     }
 
     private func toggleFollow() async {
@@ -156,16 +196,27 @@ struct PublicProfileView: View {
     }
 
     private func loadMore() async {
-        guard let cursor = nextCursor, !isLoadingMore, case let .signedIn(viewer) = session.phase else { return }
+        guard let cursor = nextCursor, !isLoadingMore, !refreshGate.isInFlight, case let .signedIn(viewer) = session.phase else { return }
+        let revision = ContentUpdates.shared.revision
+        guard let pageTicket = paginationGate.begin(scope: "\(refreshScope)|\(cursor)", revision: revision, force: true) else { return }
+        var pageSucceeded = false
+        var pageFailure: Error?
+        defer { paginationGate.finish(pageTicket, succeeded: pageSucceeded, error: pageFailure) }
         let generation = pageGeneration
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
             let page = try await container.posts.publicPostsPage(creatorID: user.id, cursor: cursor)
-            guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            guard !Task.isCancelled, revision == ContentUpdates.shared.revision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            pageSucceeded = true
+            hasLoadedMore = true
             var unique = Dictionary(posts.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest }); for post in page.posts { unique[post.id] = post }; posts = unique.values.sorted { $0.createdAt > $1.createdAt }
             nextCursor = page.next
-        } catch { message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") }
+        } catch {
+            guard !Task.isCancelled, revision == ContentUpdates.shared.revision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            pageFailure = error
+            message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
+        }
     }
 
     private func profileMetric(value: Int, label: String) -> some View {

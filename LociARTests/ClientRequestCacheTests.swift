@@ -123,4 +123,118 @@ final class ClientRequestCacheTests: XCTestCase {
         XCTAssertEqual(first, 17); XCTAssertNil(repeatResult); XCTAssertEqual(nextDay, 19); XCTAssertEqual(otherUser, 20)
         ClientReadCaches.clear()
     }
+
+    func testScreenRefreshCoalescesTwentyTriggersAndReusesOnlyFreshPresentation() throws {
+        let clock = Clock(), gate = ScreenRefreshGate(now: { clock.time }), revision = UUID()
+        let first = try XCTUnwrap(gate.begin(scope: "viewer|feed", revision: revision))
+        for _ in 0..<20 { XCTAssertNil(gate.begin(scope: "viewer|feed", revision: revision, force: true)) }
+        gate.finish(first, succeeded: true)
+        clock.time = 59
+        XCTAssertNil(gate.begin(scope: "viewer|feed", revision: revision))
+        XCTAssertEqual(gate.nextDelay, 5)
+        clock.time = 60
+        XCTAssertNotNil(gate.begin(scope: "viewer|feed", revision: revision))
+    }
+
+    func testCompletedManualRefreshCannotBeRepeatedOnEveryTap() throws {
+        let clock = Clock(), gate = ScreenRefreshGate(now: { clock.time }), revision = UUID()
+        var calls = 0
+        for second in 0...20 {
+            clock.time = Double(second)
+            if let ticket = gate.begin(scope: "viewer|feed", revision: revision, force: true) {
+                calls += 1; gate.finish(ticket, succeeded: true)
+            }
+        }
+        XCTAssertEqual(calls, 5, "one initial request and at most one per five seconds even if every tap finishes immediately")
+    }
+
+    func testContentChangeRejectsOldFlightAndQueuesOneFreshRead() throws {
+        let clock = Clock(), gate = ScreenRefreshGate(now: { clock.time }), oldRevision = UUID(), newRevision = UUID()
+        let old = try XCTUnwrap(gate.begin(scope: "viewer|feed", revision: oldRevision))
+        gate.prepare(scope: "viewer|feed", revision: newRevision)
+        XCTAssertFalse(gate.isCurrent(old, scope: "viewer|feed", revision: oldRevision))
+        XCTAssertNil(gate.begin(scope: "viewer|feed", revision: newRevision))
+        gate.finish(old, succeeded: true)
+        clock.time = 5
+        XCTAssertNotNil(gate.begin(scope: "viewer|feed", revision: newRevision), "late old response must not make the new revision fresh")
+    }
+
+    func testOldViewerCompletionCannotClearNewViewerFlight() throws {
+        let gate = ScreenRefreshGate(), revision = UUID()
+        let old = try XCTUnwrap(gate.begin(scope: "old-user|comments", revision: revision))
+        let current = try XCTUnwrap(gate.begin(scope: "new-user|comments", revision: revision))
+        gate.finish(old, succeeded: true)
+        XCTAssertTrue(gate.isCurrent(current, scope: "new-user|comments", revision: revision))
+        XCTAssertFalse(gate.isCurrent(old, scope: "old-user|comments", revision: revision))
+    }
+
+    func testReadRetriesBackOffWithoutCachingAnError() throws {
+        let clock = Clock(), gate = ScreenRefreshGate(now: { clock.time }), revision = UUID()
+        for delay in [15.0, 30, 60, 120] {
+            let ticket = try XCTUnwrap(gate.begin(scope: "viewer|feed", revision: revision))
+            gate.finish(ticket, succeeded: false, error: URLError(.notConnectedToInternet))
+            XCTAssertEqual(gate.nextDelay, delay)
+            clock.time += delay - 1
+            XCTAssertNil(gate.begin(scope: "viewer|feed", revision: revision, force: true))
+            clock.time += 1
+        }
+        let recovered = try XCTUnwrap(gate.begin(scope: "viewer|feed", revision: revision))
+        gate.finish(recovered, succeeded: true)
+        XCTAssertEqual(gate.nextDelay, 60)
+    }
+
+    func testPermissionFailureStopsAutomaticReadsButNewContentRevisionCanRevalidate() throws {
+        let clock = Clock(), gate = ScreenRefreshGate(now: { clock.time }), revision = UUID()
+        let ticket = try XCTUnwrap(gate.begin(scope: "viewer|profile", revision: revision))
+        gate.finish(ticket, succeeded: false, error: BackendCallError.rejected(code: 7, message: "Denied", reason: nil))
+        clock.time = 1_000
+        XCTAssertNil(gate.begin(scope: "viewer|profile", revision: revision))
+        XCTAssertNotNil(gate.begin(scope: "viewer|profile", revision: UUID()))
+    }
+
+    func testRateLimitWaitsAtLeastAMinuteAndCancellationDoesNotCreateAnErrorBackoff() throws {
+        let clock = Clock(), gate = ScreenRefreshGate(now: { clock.time }), revision = UUID()
+        let ticket = try XCTUnwrap(gate.begin(scope: "viewer|feed", revision: revision))
+        gate.finish(ticket, succeeded: false, error: BackendCallError.rejected(code: 8, message: "Rate limited", reason: "rate_limited"))
+        clock.time = 59
+        XCTAssertNil(gate.begin(scope: "viewer|feed", revision: revision, force: true))
+        clock.time = 60
+        let retry = try XCTUnwrap(gate.begin(scope: "viewer|feed", revision: revision))
+        gate.finish(retry, succeeded: false, error: CancellationError())
+        clock.time = 65
+        let afterCancellation = try XCTUnwrap(gate.begin(scope: "viewer|feed", revision: revision))
+        gate.finish(afterCancellation, succeeded: false, error: BackendCallError.rejected(code: 8, message: "Query too dense", reason: nil))
+        clock.time = 1_000
+        XCTAssertNil(gate.begin(scope: "viewer|feed", revision: revision), "unknown resource failures must not repeat an expensive query automatically")
+    }
+
+    func testActivityPushDoesNotInvalidateUnrelatedFeedButContentChangesInvalidateBoth() {
+        let updates = ContentUpdates(), feed = updates.revision, activity = updates.activityRevision
+        updates.activityChanged()
+        XCTAssertEqual(updates.revision, feed); XCTAssertNotEqual(updates.activityRevision, activity)
+        let nextActivity = updates.activityRevision
+        updates.changed()
+        XCTAssertNotEqual(updates.revision, feed); XCTAssertNotEqual(updates.activityRevision, nextActivity)
+    }
+
+    func testGifSearchIdentityIgnoresWhitespaceAndTextBeyondTheServerLimit() {
+        XCTAssertEqual(GifSearchQuery.normalized("  cats\n"), "cats")
+        XCTAssertEqual(GifSearchQuery.normalized(String(repeating: "a", count: 50) + "b"), String(repeating: "a", count: 50))
+    }
+
+
+    func testNetworkRecoveryWakesReadsWithoutBypassingAServerRateLimit() throws {
+        let clock = Clock(), gate = ScreenRefreshGate(now: { clock.time }), revision = UUID()
+        let first = try XCTUnwrap(gate.begin(scope: "viewer", revision: revision))
+        XCTAssertFalse(gate.connectionRestored(), "do not cancel a still-running request on a connectivity event")
+        gate.finish(first, succeeded: false, error: URLError(.notConnectedToInternet))
+        clock.time = 5
+        XCTAssertTrue(gate.connectionRestored())
+        let recovered = try XCTUnwrap(gate.begin(scope: "viewer", revision: revision))
+        gate.finish(recovered, succeeded: false, error: BackendCallError.rejected(code: 8, message: "Rate limited", reason: "rate_limited"))
+        clock.time = 10
+        XCTAssertFalse(gate.connectionRestored())
+        XCTAssertNil(gate.begin(scope: "viewer", revision: revision, force: true))
+    }
+
 }

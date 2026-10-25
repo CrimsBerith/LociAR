@@ -13,6 +13,12 @@ struct GifSearchPage: Sendable {
     let nextOffset: Int?
 }
 
+enum GifSearchQuery {
+    nonisolated static func normalized(_ query: String) -> String {
+        String(decoding: query.trimmingCharacters(in: .whitespacesAndNewlines).utf16.prefix(50), as: UTF16.self)
+    }
+}
+
 enum GifSearchError: LocalizedError, Equatable, Sendable {
     case rateLimited
     case unavailable
@@ -46,7 +52,7 @@ final class FirebaseGifRepository: GifRepository, @unchecked Sendable {
         guard let owner = FirebaseIdentity.currentLUID() else { throw AuthFlowError.notSignedIn }
         let locale = Locale.current.identifier
         // Match the server's 50 UTF-16-unit query and bounded offset before keying memory.
-        let normalized = String(decoding: query.trimmingCharacters(in: .whitespacesAndNewlines).utf16.prefix(50), as: UTF16.self)
+        let normalized = GifSearchQuery.normalized(query)
         let offset = max(0, min(offset, 480))
         let key = "\(owner.uuidString)|\(locale)|\(offset)|\(normalized)"
         let client = callables

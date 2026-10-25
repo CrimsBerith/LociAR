@@ -135,7 +135,7 @@ final class MapRequestCoordinatorTests: XCTestCase {
         XCTAssertEqual(calls, 1)
     }
 
-    func testHeatExpiryDoesNotPollButNextMovementFetchesAgain() async {
+    func testVisibleHeatRefreshesAtExpiryAndSuspensionStopsAutomaticRequests() async {
         let clock = Clock()
         var calls = 0
         let coordinator = MapRequestCoordinator(now: { clock.time }, automaticScheduling: false) { request in
@@ -144,11 +144,15 @@ final class MapRequestCoordinatorTests: XCTestCase {
         ready(coordinator, clock: clock)
         coordinator.cameraChanged(region(), byUser: true)
         clock.time += 2; coordinator.processPending(); await coordinator.waitForCurrentRequest()
-        clock.time += 301; coordinator.processPending()
+        clock.time += 299; coordinator.processPending(); await coordinator.waitForCurrentRequest()
         XCTAssertEqual(calls, 1)
-        coordinator.cameraChanged(region(41, 29.001), byUser: true)
         clock.time += 2; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 2, "a visible unchanged map must update without a pull or pan")
+        coordinator.suspend()
+        clock.time += 301; coordinator.processPending(); await coordinator.waitForCurrentRequest()
         XCTAssertEqual(calls, 2)
+        coordinator.resume(); coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 3)
     }
 
     func testTruncatedResponseOnlyReusesItsExactRequestNotNeighboringCoverage() {
@@ -273,4 +277,85 @@ final class MapRequestCoordinatorTests: XCTestCase {
         clock.time += 2; coordinator.processPending(); await coordinator.waitForCurrentRequest()
         XCTAssertEqual(calls, 34, "cache hits do not make a stale summary fresh again")
     }
+
+    func testVisibleNearbyGroupsRefreshOncePerMinuteAndRepeatedRefreshTapsAreThrottled() async {
+        let clock = Clock(); var calls = 0
+        let coordinator = MapRequestCoordinator(now: { clock.time }, automaticScheduling: false) { request in
+            calls += 1
+            return .init(request: request, content: .groups([], unlockRadius: 15), complete: true, groupCoverageRadius: 2_000)
+        }
+        ready(coordinator, clock: clock)
+        coordinator.cameraChanged(region(span: 0.001), byUser: true)
+        clock.time += 2; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        clock.time += 59; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 1)
+        clock.time += 1; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 2)
+        clock.time += 2; coordinator.refresh(); coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 3)
+        for _ in 0..<20 { coordinator.refresh(); coordinator.processPending(); await coordinator.waitForCurrentRequest() }
+        clock.time += 9.9; coordinator.refresh(); coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 3)
+        clock.time += 0.1; coordinator.refresh(); coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 4)
+    }
+
+    func testNewViewportPreemptsTheLongAutomaticFreshnessTimer() async {
+        let clock = Clock(); var calls = 0
+        let coordinator = MapRequestCoordinator(now: { clock.time }) { request in
+            calls += 1; return self.response(request)
+        }
+        defer { coordinator.suspend() }
+        ready(coordinator, clock: clock)
+        coordinator.cameraChanged(region(), byUser: true); clock.time += 2
+        for _ in 0..<100 where calls < 1 { await Task.yield() }
+        XCTAssertEqual(calls, 1)
+        await coordinator.waitForCurrentRequest()
+        for _ in 0..<5 { await Task.yield() } // let the five-minute refresh timer go to sleep
+        coordinator.cameraChanged(region(42), byUser: true); clock.time += 2
+        for _ in 0..<100 where calls < 2 { await Task.yield() }
+        XCTAssertEqual(calls, 2, "new movement must replace the five-minute sleep with its short debounce")
+        await coordinator.waitForCurrentRequest()
+    }
+
+
+    func testReturnWhileCircuitIsCoolingDownSchedulesRecoveryWithoutAnotherGesture() async {
+        let clock = Clock(); var calls = 0
+        let coordinator = MapRequestCoordinator(now: { clock.time }, automaticScheduling: false, retryJitter: { 0 }) { _ in
+            calls += 1; throw URLError(.notConnectedToInternet)
+        }
+        ready(coordinator, clock: clock)
+        coordinator.cameraChanged(region(), byUser: true)
+        for delay in [2.0, 2, 5, 15] {
+            clock.time += delay; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        }
+        XCTAssertEqual(calls, 4)
+        coordinator.suspend(); coordinator.resume()
+        coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 4, "foreground/network recovery still honours the cooldown")
+        clock.time += 60
+        coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 5, "the queued recovery must not require another pan or pull")
+    }
+
+
+    func testReturningToCachedAreaAfterAnotherAreasFailureStillRefreshesOnExpiry() async {
+        let clock = Clock(); var calls = 0
+        let coordinator = MapRequestCoordinator(now: { clock.time }, automaticScheduling: false) { request in
+            calls += 1
+            if request.viewport.latitude > 41.5 { throw BackendCallError.rejected(code: 7, message: "Denied", reason: nil) }
+            return self.response(request)
+        }
+        ready(coordinator, clock: clock)
+        coordinator.cameraChanged(region(), byUser: true)
+        clock.time += 2; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        coordinator.cameraChanged(region(42), byUser: true)
+        clock.time += 2; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        coordinator.cameraChanged(region(), byUser: true)
+        clock.time += 2; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 2)
+        clock.time += 301; coordinator.processPending(); await coordinator.waitForCurrentRequest()
+        XCTAssertEqual(calls, 3)
+    }
+
 }

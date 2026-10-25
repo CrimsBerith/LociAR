@@ -382,6 +382,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             guard let id, self.acceptsTokens, self.desiredUserID == id, self.boundUserID == id else {
                 completionHandler([]); return
             }
+            ContentUpdates.shared.activityChanged()
             completionHandler([.banner, .sound, .badge])
         }
     }

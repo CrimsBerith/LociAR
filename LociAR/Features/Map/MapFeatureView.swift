@@ -43,6 +43,11 @@ struct MapFeatureView: View {
         return false
     }
 
+    private var mayFetchMap: Bool {
+        isVisible && scenePhase == .active && router.selectedTab == .map
+            && !showCreate && !showPlaceNote && selectedMapGroup == nil && !showCameraUnlock
+    }
+
     private var usesMapGroups: Bool { !layer.isHeat && container.isBackendConfigured && !session.isLocalPreview }
     private var mapClusters: [MapNoteCluster] {
         MapNoteCluster.cluster(mapGroups, longitudeSpan: visibleRegion?.span.longitudeDelta ?? 0.01,
@@ -136,7 +141,7 @@ struct MapFeatureView: View {
         .sheet(isPresented: $showPlaceNote, onDismiss: {
             selection = nil
             clusterFocus = nil
-            Task { await startAndLoad(force: true) }
+            Task { await startAndLoad() }
         }) {
             if isGuest {
                 NavigationStack {
@@ -175,16 +180,19 @@ struct MapFeatureView: View {
         .onChange(of: showCreate) { _, presented in
             if !presented {
                 selection = nil
-                Task { await startAndLoad(force: true) }
+                Task { await startAndLoad() }
             }
         }
         .onDisappear { isVisible = false; location.stop(); container.mapRequests.suspend() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
             container.mapRequests.trimMemory()
         }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active, isVisible { container.mapRequests.resume() }
+        .onChange(of: mayFetchMap, initial: true) { _, active in
+            if active { container.mapRequests.resume() }
             else { container.mapRequests.suspend() }
+        }
+        .onChange(of: container.connectivity.isOnline) { _, online in
+            if online, mayFetchMap, container.mapRequests.failed { container.mapRequests.resume() }
         }
         .onChange(of: router.pendingMapFocus, initial: true) { _, focus in
             guard let focus else { return }
@@ -506,7 +514,7 @@ struct MapFeatureView: View {
     private func startAndLoad(force: Bool = false) async {
         if container.isBackendConfigured, !session.isLocalPreview {
             posts = localDraftsForCurrentUser()
-            container.mapRequests.resume()
+            if mayFetchMap { container.mapRequests.resume() }
             if force { container.mapRequests.refresh() }
             if container.mapRequests.presentation != nil { applyMapPresentation() }
             return

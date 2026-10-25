@@ -321,10 +321,49 @@ struct LociAvatar: View {
 }
 
 extension View {
+    func visibleContentRefresh(gate: ScreenRefreshGate, scope: String, revision: UUID,
+                               enabled: Bool = true, action: @escaping @MainActor (Bool) async -> Void) -> some View {
+        modifier(VisibleContentRefresh(gate: gate, scope: scope, revision: revision, enabled: enabled, action: action))
+    }
+
     func lociListStyle() -> some View {
         self
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(LociScreenBackground())
+    }
+}
+
+private struct VisibleContentRefresh: ViewModifier {
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(AppContainer.self) private var container
+    @State private var visible = false
+    @State private var connectionWake = UUID()
+    let gate: ScreenRefreshGate
+    let scope: String
+    let revision: UUID
+    let enabled: Bool
+    let action: @MainActor (Bool) async -> Void
+
+    private struct Activation: Equatable { let active: Bool; let scope: String; let revision: UUID; let connection: UUID }
+    func body(content: Content) -> some View {
+        let activation = Activation(active: visible && scenePhase == .active && enabled, scope: scope, revision: revision, connection: connectionWake)
+        content
+            .onAppear { visible = true }
+            .onDisappear { visible = false }
+            .onChange(of: container.connectivity.isOnline) { _, online in
+                if online, gate.connectionRestored() { connectionWake = UUID() }
+            }
+            .task(id: activation) {
+                guard activation.active else { return }
+                var opening = true
+                while !Task.isCancelled {
+                    await action(opening)
+                    opening = false
+                    guard container.isBackendConfigured, !container.session.isLocalPreview,
+                          !UITestFixtures.authenticatedSessionEnabled, !UITestFixtures.sampleContentEnabled else { return }
+                    do { try await Task.sleep(for: .seconds(gate.nextDelay)) } catch { return }
+                }
+            }
     }
 }

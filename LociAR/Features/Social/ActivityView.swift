@@ -6,6 +6,10 @@ import UIKit
 struct ActivityView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
+    @State private var refreshGate = ScreenRefreshGate()
+    @State private var paginationGate = ScreenRefreshGate()
+    @State private var loadedRevision: UUID?
+    @State private var hasLoadedMore = false
     @State private var items: [SocialActivity] = []
     @State private var message: String?
     @State private var nextCursor: String?
@@ -61,7 +65,15 @@ struct ActivityView: View {
         }
         .background(LociScreenBackground())
         .navigationTitle("Aktivite")
-        .task { await load() }
+        .onChange(of: refreshScope) { _, scope in
+            if refreshGate.prepare(scope: scope, revision: ContentUpdates.shared.activityRevision) { items = []; nextCursor = nil }
+        }
+        .onChange(of: ContentUpdates.shared.activityRevision) { _, value in
+            if loadedRevision != value { items = []; nextCursor = nil }
+        }
+        .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.activityRevision) { opening in
+            await load(force: false, automatic: !opening)
+        }
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
                 Button("Daha fazla göster") { Task { await loadMore() } }
@@ -71,41 +83,60 @@ struct ActivityView: View {
         .accessibilityIdentifier("screen-activity")
     }
 
-    private func load() async {
+    private var refreshScope: String {
+        if case let .signedIn(user) = session.phase { return user.id.uuidString }
+        return "signed-out"
+    }
+
+    private func load(force: Bool = true, automatic: Bool = false) async {
+        let revision = ContentUpdates.shared.activityRevision
+        if refreshGate.prepare(scope: refreshScope, revision: revision) { items = []; nextCursor = nil }
+        guard !isLoadingMore, !(automatic && hasLoadedMore && loadedRevision == revision),
+              let ticket = refreshGate.begin(scope: refreshScope, revision: revision, force: force) else { return }
+        if loadedRevision != nil && loadedRevision != revision { items = []; nextCursor = nil }
         pageGeneration += 1
-        nextCursor = nil
-        let requestID = UUID()
+        let requestID = ticket.id
+        var succeeded = false
+        var failure: Error?
         loadID = requestID
         isLoading = items.isEmpty
         message = nil
-        defer { if loadID == requestID { isLoading = false } }
+        defer {
+            if refreshGate.isCurrent(ticket, scope: refreshScope, revision: ContentUpdates.shared.activityRevision) { isLoading = false }
+            refreshGate.finish(ticket, succeeded: succeeded, error: failure)
+        }
         if session.isLocalPreview {
             message = String(localized: "Cihaz test modunda yeni aktivite bulunmuyor.")
+            loadedRevision = revision; succeeded = true
             return
         }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
             message = String(localized: "Aktiviteler için sunucu bağlantısı gerekiyor.")
+            loadedRevision = revision; succeeded = true
             return
         }
         do {
             let page = try await container.social.activityPage(for: user.id, cursor: nil)
             let loaded = page.items
+            guard isCurrentLoad(requestID, userID: user.id), revision == ContentUpdates.shared.activityRevision else { return }
             nextCursor = page.next
-            guard isCurrentLoad(requestID, userID: user.id) else { return }
+            loadedRevision = revision; hasLoadedMore = false; succeeded = true
             items = loaded
             isLoading = false
             let unread = SocialActivity.unreadIDs(in: loaded)
             guard !unread.isEmpty else { return }
             do {
                 let acknowledged = try await container.social.markActivityRead(ids: unread, for: user.id)
-                guard isCurrentLoad(requestID, userID: user.id) else { return }
+                guard isCurrentLoad(requestID, userID: user.id), revision == ContentUpdates.shared.activityRevision else { return }
                 items = items.map { item in acknowledged[item.id].map { item.markingRead(at: $0) } ?? item }
             } catch {
-                guard isCurrentLoad(requestID, userID: user.id) else { return }
+                guard isCurrentLoad(requestID, userID: user.id), revision == ContentUpdates.shared.activityRevision else { return }
                 message = String(localized: "Okundu bilgisi kaydedilemedi. Bağlantını kontrol edip tekrar dene.")
             }
         } catch {
-            guard isCurrentLoad(requestID, userID: user.id) else { return }
+            guard isCurrentLoad(requestID, userID: user.id), revision == ContentUpdates.shared.activityRevision else { return }
+            failure = error
+            if let backend = error as? BackendCallError, case .rejected = backend { items = []; nextCursor = nil }
             message = String(localized: "Aktiviteler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
         }
     }
@@ -131,26 +162,38 @@ struct ActivityView: View {
         ["like": "heart.fill", "comment": "bubble.right.fill", "follow": "person.badge.plus", "save": "bookmark.fill"][kind] ?? "bell.fill"
     }
     private func loadMore() async {
-        guard let cursor = nextCursor, !isLoadingMore, case let .signedIn(viewer) = session.phase else { return }
+        guard let cursor = nextCursor, !isLoadingMore, !refreshGate.isInFlight, case let .signedIn(viewer) = session.phase else { return }
+        let revision = ContentUpdates.shared.activityRevision
+        guard let pageTicket = paginationGate.begin(scope: "\(refreshScope)|\(cursor)", revision: revision, force: true) else { return }
+        var pageSucceeded = false
+        var pageFailure: Error?
+        defer { paginationGate.finish(pageTicket, succeeded: pageSucceeded, error: pageFailure) }
         let generation = pageGeneration
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
             let page = try await container.social.activityPage(for: viewer.id, cursor: cursor)
-            guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            guard !Task.isCancelled, revision == ContentUpdates.shared.activityRevision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            pageSucceeded = true
+            hasLoadedMore = true
             var unique = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest }); for item in page.items { unique[item.id] = item }; items = unique.values.sorted { $0.createdAt > $1.createdAt }
             nextCursor = page.next
             let unread = SocialActivity.unreadIDs(in: page.items)
             if !unread.isEmpty {
                 do {
                     let acknowledged = try await container.social.markActivityRead(ids: unread, for: viewer.id)
-                    guard !Task.isCancelled, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+                    guard !Task.isCancelled, revision == ContentUpdates.shared.activityRevision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
                     items = items.map { item in acknowledged[item.id].map { item.markingRead(at: $0) } ?? item }
                 } catch {
+            guard !Task.isCancelled, revision == ContentUpdates.shared.activityRevision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
                     message = String(localized: "Okundu bilgisi kaydedilemedi. Bağlantını kontrol edip tekrar dene.")
                 }
             }
-        } catch { message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.") }
+        } catch {
+            guard !Task.isCancelled, revision == ContentUpdates.shared.activityRevision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
+            pageFailure = error
+            message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
+        }
     }
 
 }
