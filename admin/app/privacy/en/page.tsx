@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPageEn() {
   return (
-    <LegalLayout title="Privacy policy" updated="October 11, 2026" lang="en">
+    <LegalLayout title="Privacy policy" updated="October 26, 2026" lang="en">
       <p>
         LociAR is an iOS app for sharing short text notes anchored to real-world surfaces. This
         policy explains which personal data we process. <Link href="/privacy">Türkçe sürüm</Link>
@@ -73,7 +73,7 @@ export default function PrivacyPageEn() {
         <li><strong>Google ARCore:</strong> AR positioning (below).</li>
         <li><strong>GIPHY:</strong> GIF search and GIF display (below).</li>
       </ul>
-      <p>Public posts are visible to other users; anonymous posts hide the author&apos;s name and profile. We may disclose data in response to lawful requests.</p>
+      <p>Public posts are visible to other users. New notes are anonymous by default; choosing to show your username makes your name and profile visible with the note. Anonymous posts hide the author&apos;s name and profile. We may disclose data in response to lawful requests.</p>
 
       <h2>Google ARCore (AR positioning)</h2>
       <p>

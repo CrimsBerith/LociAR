@@ -2,7 +2,6 @@ import BackgroundTasks
 @preconcurrency import CoreLocation
 @preconcurrency import FirebaseCore
 @preconcurrency import FirebaseMessaging
-import FirebaseCrashlytics
 import Foundation
 import Observation
 import OSLog
@@ -135,7 +134,9 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     /// Approximate location cannot drive region monitoring or 15-100 m note circles.
     private(set) var needsPreciseLocation = false
     private(set) var needsBackgroundRefresh = false
-    private(set) var isSupported = true
+    private(set) var isSupported = false
+    private(set) var hasAlwaysLocationAuthorization = false
+    @ObservationIgnored private var supportsSignificantChanges = false
     private(set) var needsMonitoringRecovery = false
     @ObservationIgnored private var monitoringHealth = ArrivalMonitoringHealth()
     @ObservationIgnored private var requestedMonitoring: [String: CLCircularRegion] = [:]
@@ -194,7 +195,19 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.distanceFilter = 1
         manager.showsBackgroundLocationIndicator = true
-        isSupported = CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self)
+        // Capability queries can synchronously contact locationd; keep them off the UI thread.
+        Task { [weak self] in
+            let capabilities = await Task.detached(priority: .utility) {
+                (CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self),
+                 CLLocationManager.significantLocationChangeMonitoringAvailable())
+            }.value
+            guard let self else { return }
+            self.isSupported = capabilities.0
+            self.supportsSignificantChanges = capabilities.1
+            self.updatePermissionState()
+            self.restoreCachedMonitoring()
+            await self.synchronizeIfNeeded()
+        }
     }
 
     private func consentKey(_ id: UUID) -> String { "lociar.notifications.regions-enabled.v2.\(id.uuidString)" }
@@ -392,7 +405,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         }
         let delay = monitoringHealth.failed(identifier)
         needsMonitoringRecovery = true
-        Crashlytics.crashlytics().record(error: NSError(domain: "LociAR.RegionMonitoring", code: (error as NSError).code))
+        DiagnosticsReporter.report(error, component: .regionMonitoring)
         guard retry, let delay, let region = requestedMonitoring[identifier], monitoringRetries[identifier] == nil else { return }
         let epoch = generation
         monitoringRetries[identifier] = Task { [weak self] in
@@ -407,6 +420,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     }
 
     private func updatePermissionState() {
+        hasAlwaysLocationAuthorization = manager.authorizationStatus == .authorizedAlways
         let monitoring = enabled && (placeNotesEnabled || promotionsEnabled)
         if !monitoring { resetMonitoringHealth() }
         if !monitoring || !locationAuthorized { endRefreshBackgroundTask(cancelWork: true) }
@@ -416,7 +430,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             && manager.authorizationStatus != .notDetermined && manager.accuracyAuthorization == .reducedAccuracy
         // ~500 m moves wake the app so the 20 monitored regions follow the user in the background.
         let always = monitoring && manager.authorizationStatus == .authorizedAlways
-        let wantsSignificant = always && CLLocationManager.significantLocationChangeMonitoringAvailable()
+        let wantsSignificant = always && supportsSignificantChanges
         if wantsSignificant != monitoringSignificantChanges {
             monitoringSignificantChanges = wantsSignificant
             if wantsSignificant { manager.startMonitoringSignificantLocationChanges() } else { manager.stopMonitoringSignificantLocationChanges() }

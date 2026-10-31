@@ -110,6 +110,7 @@ final class ARCoreService {
             isStartFailed = true
             availability = .unavailable(error.localizedDescription)
             logger.error("ARCore session failed: \(error.localizedDescription, privacy: .public)")
+            DiagnosticsReporter.shared.record(DiagnosticEvent(component: .ar, failure: .arSession))
         }
     }
 

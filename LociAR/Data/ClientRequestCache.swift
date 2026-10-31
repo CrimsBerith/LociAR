@@ -2,6 +2,38 @@ import Foundation
 import Observation
 import FirebaseFunctions
 
+/// Dispatch timing only. Never caches consent or grants permission to upload/read content.
+struct PreferenceRefreshPolicy {
+    private(set) var refreshAt: TimeInterval = 0
+    private var lastAttempt: TimeInterval = -.infinity
+    private var retryAt: TimeInterval = 0
+    private var failures = 0
+
+    mutating func begin(now: TimeInterval, force: Bool = false) -> Bool {
+        guard now >= lastAttempt + 5, now >= retryAt, force || now >= refreshAt else { return false }
+        lastAttempt = now
+        return true
+    }
+
+    mutating func succeeded(now: TimeInterval, activeConsent: Bool) {
+        refreshAt = now + (activeConsent ? 60 : 300)
+        retryAt = 0; failures = 0
+    }
+
+    mutating func failed(now: TimeInterval) {
+        failures += 1
+        retryAt = now + min(300, 60 * pow(2, Double(min(failures - 1, 3))))
+        refreshAt = 0
+    }
+
+    /// Active sharing is revalidated on foreground return before another upload.
+    mutating func requireValidation() { refreshAt = 0 }
+
+    func nextDelay(now: TimeInterval) -> TimeInterval {
+        max(5, max(lastAttempt + 5, max(retryAt, refreshAt)) - now)
+    }
+}
+
 /// Dispatch policy only: no response bodies or authorization decisions are cached here.
 @MainActor @Observable
 final class ScreenRefreshGate {

@@ -86,7 +86,7 @@ test('campaign consent drives arrivals and departures, revokes private origins a
   assert.equal(again.departures, true); assert.notEqual((await pref.get()).get('departures_revision'), firstEpoch);
 });
 
-test('notifications cover social and note alerts; brand campaigns need their own opt-in and stop with notifications', async () => {
+test('legacy combined notifications retain compatibility; explicit note choice wins and campaigns still require opt-in', async () => {
   const u = await newAnonymousUser(), base = { telemetry: false, location: false, revision: '', noticeVersion: '2026-10-11', notifications: true };
   assert.equal((await expectFailure(u.call('setDataPreferences', base))).code, 'functions/invalid-argument');
   const on = await u.call('setDataPreferences', { ...base, notificationsNoticeVersion: '2026-10-11-notifications' });
@@ -97,10 +97,72 @@ test('notifications cover social and note alerts; brand campaigns need their own
   for (const key of ['notifications', 'promotions', 'arrivals', 'departures', 'placeNotes']) assert.equal(marketing[key], true);
   const changed = await u.call('setDataPreferences', { telemetry: true, location: false, noticeVersion: base.noticeVersion,
     revision: marketing.revision, placeNotes: false, placeNotesNoticeVersion: '2026-10-11-place-notes' });
-  for (const key of ['notifications', 'promotions', 'arrivals', 'departures', 'placeNotes']) assert.equal(changed[key], true);
-  const off = await u.call('setDataPreferences', { ...base, notifications: false, revision: changed.revision, notificationsNoticeVersion: '2026-10-11-notifications' });
+  for (const key of ['notifications', 'promotions', 'arrivals', 'departures']) assert.equal(changed[key], true);
+  assert.equal(changed.placeNotes, false);
+  const unrelated = await set(u, false, false, changed.revision);
+  assert.equal(unrelated.notifications, true);
+  assert.equal(unrelated.placeNotes, false, 'an unrelated telemetry change cannot revive note alerts');
+  const off = await u.call('setDataPreferences', { ...base, notifications: false, revision: unrelated.revision, notificationsNoticeVersion: '2026-10-11-notifications' });
   for (const key of ['notifications', 'promotions', 'arrivals', 'departures', 'placeNotes']) assert.equal(off[key], false);
   const legacy = await u.call('setDataPreferences', { telemetry: false, location: false, noticeVersion: base.noticeVersion,
     revision: off.revision, promotions: true, promotionsNoticeVersion: '2026-10-11-promotions' });
   for (const key of ['notifications', 'promotions', 'arrivals', 'departures', 'placeNotes']) assert.equal(legacy[key], false);
+});
+
+test('explicit note-alert consent is independent of the notification delivery master', async () => {
+  for (const notifications of [false, true]) {
+    for (const placeNotes of [false, true]) {
+      const user = await newAnonymousUser();
+      const preference = await user.call('setDataPreferences', {
+        telemetry: false, location: false, revision: '', noticeVersion: '2026-10-11',
+        notifications, notificationsNoticeVersion: '2026-10-11-notifications',
+        placeNotes, placeNotesNoticeVersion: '2026-10-11-place-notes',
+      });
+      assert.equal(preference.notifications, notifications);
+      assert.equal(preference.placeNotes, placeNotes);
+      const stored = (await adminDb.collection('user_data_preferences').doc(user.luid).get()).data();
+      assert.equal(stored.notifications, notifications);
+      assert.equal(stored.place_notes, placeNotes);
+      assert.equal(stored.place_notes_notice_version, '2026-10-11-place-notes');
+      for (const key of ['telemetry', 'location', 'promotions', 'arrivals', 'departures']) assert.equal(preference[key], false);
+    }
+  }
+});
+
+test('turning the notification master off and on preserves each explicit note choice', async () => {
+  for (const placeNotes of [false, true]) {
+    const user = await newAnonymousUser();
+    let revision = '';
+    for (const notifications of [true, false, true]) {
+      const result = await user.call('setDataPreferences', {
+        telemetry: false, location: false, revision, noticeVersion: '2026-10-11',
+        notifications, notificationsNoticeVersion: '2026-10-11-notifications',
+        placeNotes, placeNotesNoticeVersion: '2026-10-11-place-notes',
+      });
+      assert.equal(result.notifications, notifications);
+      assert.equal(result.placeNotes, placeNotes, 'master delivery changes do not rewrite note consent');
+      revision = result.revision;
+    }
+  }
+});
+
+test('note-alert overrides require the current note notice and reject stale revisions without mutation', async () => {
+  const user = await newAnonymousUser();
+  const base = { telemetry: false, location: false, revision: '', noticeVersion: '2026-10-11',
+    notifications: true, notificationsNoticeVersion: '2026-10-11-notifications' };
+  for (const placeNotes of [false, true]) {
+    for (const notice of [undefined, 'old']) {
+      const invalid = { ...base, placeNotes, ...(notice === undefined ? {} : { placeNotesNoticeVersion: notice }) };
+      assert.equal((await expectFailure(user.call('setDataPreferences', invalid))).code, 'functions/invalid-argument');
+      assert.equal((await user.call('readDataPreferences')).revision, '', 'invalid consent must not write preferences');
+    }
+  }
+  const accepted = await user.call('setDataPreferences', { ...base, placeNotes: false, placeNotesNoticeVersion: '2026-10-11-place-notes' });
+  assert.equal((await expectFailure(user.call('setDataPreferences', {
+    ...base, placeNotes: true, placeNotesNoticeVersion: '2026-10-11-place-notes',
+  }))).code, 'functions/failed-precondition');
+  const current = await user.call('readDataPreferences');
+  assert.equal(current.revision, accepted.revision);
+  assert.equal(current.notifications, true);
+  assert.equal(current.placeNotes, false);
 });

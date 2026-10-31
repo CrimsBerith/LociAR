@@ -18,6 +18,15 @@ const env = { ...process.env, GCLOUD_PROJECT: 'demo-lociar', GOOGLE_CLOUD_PROJEC
   FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080', FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099', FIREBASE_STORAGE_EMULATOR_HOST: '127.0.0.1:9199' };
 delete env.GOOGLE_APPLICATION_CREDENTIALS; delete env.FIREBASE_TOKEN;
 delete env.FIREBASE_SERVICE_ACCOUNT_JSON;
+// A selected UI plan can publish one to four own notes before account
+// deletion. Keep its cleanup assertion tied to that plan, rather than assuming
+// every optional publishing/recovery scenario ran.
+const noteScenarios = ['testEmulator02CameraFreeNotePublishesAndAppearsWithoutManualRefresh',
+  'testEmulator02bMissingFixDoesNotPublishAndFreshFixAllowsRetry', 'testEmulator02cFilteredTextIsLocalizedAndRetryPublishes', 'testEmulator08cUsernameLocationNoteUsesExplicitChoice'];
+const requestedScenarios = process.env.LOCIAR_SIMULATOR_TESTS?.split(',');
+const expectedOwnNotes = requestedScenarios ? noteScenarios.filter(name => requestedScenarios.includes(name)).length : noteScenarios.length;
+if (requestedScenarios?.includes('testEmulator09DeleteAccount')) assert.ok(expectedOwnNotes > 0, 'Account-deletion acceptance must publish at least one note first.');
+env.LOCIAR_SIMULATOR_EXPECTED_OWN_NOTES = String(expectedOwnNotes);
 const sim = process.env.LOCIAR_TEST_SIMULATOR;
 assert.match(sim ?? '', /^[A-F0-9-]{36}$/i, 'Choose a dedicated LociAR Notes simulator.');
 env.LOCIAR_TEST_SIMULATOR = sim; env.LOCIAR_TEST_OUTPUT = output;
@@ -85,8 +94,6 @@ try {
   // Opt in only on this dedicated simulator, then restore its prior value in stop().
   const inherited = command('xcrun', ['simctl', 'spawn', sim, 'launchctl', 'getenv', 'LOCIAR_DEMO_EMULATOR_HTTP']);
   previousSimulatorHTTPEnvironment = inherited.status === 0 && inherited.stdout.trim() ? inherited.stdout.trim() : null;
-  assert.equal(command('xcrun', ['simctl', 'spawn', sim, 'launchctl', 'setenv', 'LOCIAR_DEMO_EMULATOR_HTTP', '1']).status, 0);
-  simulatorHTTPEnvironmentChanged = true;
   const java = command('java', ['-version']);
   assert.ok(java.status === 0 && Number(/version "(\d+)/.exec(java.stderr + java.stdout)?.[1]) >= 21, 'Java 21 is required.');
   let host;
@@ -134,10 +141,14 @@ try {
   // DerivedData here: a different simulator build can change signing/keychain access.
   const products = join(output, 'Products');
   cpSync(join(derivedData, 'Build/Products'), products, { recursive: true, mode: constants.COPYFILE_FICLONE, verbatimSymlinks: true });
-  const manifests = readdirSync(products).filter(name => name.startsWith('LociAR_') && name.endsWith('.xctestrun'));
+  const sdk = command('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-version']);
+  assert.equal(sdk.status, 0);
+  const architecture = process.arch === 'x64' ? 'x86_64' : process.arch;
+  const manifestName = 'LociAR_iphonesimulator' + sdk.stdout.trim() + '-' + architecture + '.xctestrun';
+  const manifests = readdirSync(products).filter(name => name === manifestName);
   assert.equal(manifests.length, 1);
   const testCommon = ['-xctestrun', join(products, manifests[0]), '-destination', 'platform=iOS Simulator,id=' + sim,
-    '-parallel-testing-enabled', 'NO'];
+    '-parallel-testing-enabled', 'NO', '-collect-test-diagnostics', 'never'];
   const appFiles = ['Debug-iphonesimulator/LociAR.app/Info.plist', 'Debug-iphonesimulator/LociAR.app/LociAR'];
   const artifactHashes = () => Object.fromEntries(appFiles.map(file => [file, createHash('sha256').update(readFileSync(join(products, file))).digest('hex')]));
   const frozenHashes = artifactHashes();
@@ -164,16 +175,21 @@ try {
     && skipped.length === nativeSummary.skippedTests && skipped.every(id => physicalOnly.has(id))
     && nativeSummary.totalTestCount === nativeSummary.passedTests + nativeSummary.skippedTests, 'Incomplete native test evidence.');
   writeFileSync(join(output, 'native-summary.json'), JSON.stringify(nativeSummary, null, 2));
+  // Native security tests exercise production-style provenance. Enable the explicitly
+  // synthetic transport/GPS fixture only for UI acceptance and SpringBoard cold launches.
+  assert.equal(command('xcrun', ['simctl', 'spawn', sim, 'launchctl', 'setenv', 'LOCIAR_DEMO_EMULATOR_HTTP', '1']).status, 0);
+  simulatorHTTPEnvironmentChanged = true;
   const allTests = ['testEmulator01SignUpVerifyAndSignIn', 'testEmulator02CameraFreeNotePublishesAndAppearsWithoutManualRefresh',
     'testEmulator02bMissingFixDoesNotPublishAndFreshFixAllowsRetry',
     'testEmulator02cFilteredTextIsLocalizedAndRetryPublishes',
     'testEmulator02dMapGroupRequiresOnSiteFixAndRanksAllNotes',
     'testEmulator03BrowseTabsAndEditProfile', 'testEmulator03bSavedAndCollectionListsPageWithoutFanout', 'testEmulator04NotificationConsentPersistsWithoutMarketingOrLocationSharing',
     'testEmulator05SignOutAndBackIn', 'testEmulator06LocationEntryQueuesOneNotificationAndOpensTheNote',
+    'testEmulator06bLocationEntryNotifiesWhileAppIsOnHomeScreen',
     'testEmulator07AdminNotificationOpensActivityWithMarketingOff', 'testEmulator07bAdminNotificationColdLaunchOpensActivity',
     'testEmulator07cForeignRecipientCannotPresentOrNavigate', 'testEmulator07dForegroundAdminNotificationOpensActivity',
     'testEmulator08NotificationsOffPreventsAdminQueue',
-    'testEmulator08bDeniedLocationBlocksPublishingAndRecovers', 'testEmulator09DeleteAccount'];
+    'testEmulator08bDeniedLocationBlocksPublishingAndRecovers', 'testEmulator08cUsernameLocationNoteUsesExplicitChoice', 'testEmulator09DeleteAccount'];
   const tests = process.env.LOCIAR_SIMULATOR_TESTS ? process.env.LOCIAR_SIMULATOR_TESTS.split(',') : allTests;
   assert.equal(tests[0], allTests[0], 'Every selection must establish a real SDK session first.');
   assert.ok(tests.every(name => allTests.includes(name)));

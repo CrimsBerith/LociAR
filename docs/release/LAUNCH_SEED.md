@@ -21,16 +21,23 @@ Frozen coordinates and ODbL attribution are in `launch-street-points.geojson`. P
 worship/monument points within 70 m and school/hospital/kindergarten points within 90 m. These are not a replacement
 for complete server protected zones or on-site checks. Every A/B item remains `coord: approx` for owner map review.
 
+The 30 October editorial revision replaces the rotating A/B prompt bank with 393 individually edited entries in
+`scripts/seed/editorial/turkey-notes.json`. Each carries a writing-persona draft and a tone label; these are editorial
+metadata, not an assigned account or publication approval. Adding geometry now also requires a separate text entry.
+Pins, item IDs, notification settings and field-placement holds are unchanged. The local country/language identity
+plan now has per-note author mapping and a locally tested anonymous/named admin publishing option. Managed accounts
+are not provisioned. Production public-content provenance/group protocol must match before uploading persona content.
+
 Rebuild/check both batches with `python3 scripts/seed/turkey_launch.py [--check]`. The same importer accepts
 `--seed istanbul-beta` or `--seed turkey-streets`; `--only kadikoy`, `--only beyoglu`, `--only ankara`, or an exact
 item id narrows the run. Only the first note in each area notifies. No batch is loaded by the generator.
-The A layer's 12 AR drafts have `placement_requirement: field_cloud_anchor`: the importer holds them even with
+All 23 A/B AR drafts have `placement_requirement: field_cloud_anchor`: the importer holds them even with
 `--allow-approx`. They need physical Cloud Anchor capture and an authorized publishing workflow; a text draft
 is not proof of a hosted anchor. Do not remove that hold to claim field placement remotely.
 
 Each capital has seven location notes (English, plus one Turkish note for Turkish visitors) and one AR post. One note per
 capital notifies; the rest show on the map only, so a busy street does not turn into a stream of notifications. Seeds of one
-place stand at least 26 m apart, so each forms its own 25 m group.
+place stand at least 26 m apart, exceeding the current 6 m physical grouping distance. Reading radii are separate.
 
 ## Content rules
 
@@ -43,19 +50,26 @@ notify, and the generator refuses review words (taste, price, service, recommend
 - Every fact carries a source in the seed file. No links (the admin link check also reads `Amstel:` as a `tel:` link).
 - No jokes about religion, politics, nations or tragedies. Memorials, places of worship, schools and hospitals belong in
   `protected_zones` before loading.
-- Write like people, not a brochure. Every place mixes a casual note (lowercase, short, like a text message), plain tips,
-  one sourced fact told conversationally and a Turkish note in everyday Turkish. The generators refuse long dashes and any
-  two-word opening used on more than four notes, the usual signs of templated text. Casual never means a made-up personal
-  experience: no 'I ate here' or 'my favourite' about a business.
-- At most 220 characters. Reviews on Google Maps or Tripadvisor may only be read by hand for themes, never scraped, quoted or
+- Use distinct writing voices: a plain sentence, hesitation or unfinished thought can stand on its own. A joke, lesson,
+  reassuring ending or lowercase spelling is not required on every note. Business facts still require sources. The world
+  and business generators retain their opening-phrase check; the individually edited A/B bank permits ordinary shared
+  openings such as “Bir şey” and instead rejects duplicate normalized full texts. Long-dash, link and length checks remain.
+  A conversational voice never authorizes a made-up personal visit: no 'I ate here' or 'my favourite' about a business.
+- At most 140 characters (owner decision, 29 October 2026); the generators and importer enforce this seed limit. Reviews on Google Maps or Tripadvisor may only be read by hand for themes, never scraped, quoted or
   fed to a model (both services' terms forbid it).
 
 ## Load a batch
 
+The 30 October multi-identity editorial package is still held for coordinate, identity and attribution review.
+Do not use the double-click helper below for that package: it loads a remote checkout, not these reviewed local edits.
+The local helper now stops on failed strict preflight and no longer allows approximate pins automatically.
+The following is the legacy single-author procedure, not approval to upload
+the new drafts. A passing local selection needs an explicit strict dry run and expected-ID reconciliation first.
+
 One step on a Mac: double-click `scripts/load-launch-seed.command` once Functions and the admin backend are deployed and
 the protected zones are in. It checks out the published branch in `~/.lociar-seed` (local edits stay untouched), signs in
 with `gcloud auth application-default login` if needed, runs `admin/scripts/seed-prepare.mjs` (picks the super admin,
-`SEED_ACTOR_EMAIL` chooses one, and creates `@loci.guide` once), then checks and loads both batches with `--allow-approx`.
+`SEED_ACTOR_EMAIL` chooses one, and creates `@loci.guide` once), then requires a complete dry run before loading.
 The log goes to `.git/lociar-seed-load.log`. The manual steps:
 
 1. Deploy Functions and the admin backend, then create the content account in the panel: **Users → Create content user**,
@@ -78,9 +92,15 @@ The log goes to `.git/lociar-seed-load.log`. The manual steps:
    Nairobi, Santiago, Sarajevo, Seoul, Skopje, Tashkent, Warsaw, Washington).
 4. Check every approximate anchor on the admin map (Posts → Create shows the OpenStreetMap picker). Correct it in
    `world_capitals.py` if needed and rebuild.
-5. Load: add `--apply` (and `--allow-approx` once the approximate anchors are checked). Each item goes through
+5. Load: add `--apply --require-complete` (and `--allow-approx` only after the approximate anchors are checked). Each item goes through
    `saveAdminPost`: text and link checks, permissions, protected zones and one audit receipt. Keys derive from the batch
    and item id, so a rerun skips loaded items. `--only london,paris` limits the run to some places.
+   Persona plans require per-item `author_handle` and `author_attribution` (`named` or `anonymous`); a global
+   `--author` cannot override them. Draft editorial/identity/field holds are not released by `--allow-approx`.
+   Strict preflight also refuses existing IDs whose text, author, attribution or active/public state differs.
+   The 6 m preflight includes a bounded query of current active public posts, not just the selected source file;
+   it is not a batch-wide transaction against concurrent mobile publishing. Existing text corrections require
+   separately audited existing-ID edits.
 6. Zoom out on the map: every capital should glow.
 7. Business notes: repeat steps 3–5 with `--seed landmark-businesses`. Their approximate pins (38 of 52) come from the
    street address; check each on the admin map before `--allow-approx`.

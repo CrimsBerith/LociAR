@@ -10,6 +10,7 @@ export const REASONS = [
   'avatar_not_found',
   'account_suspended',
   'identity_unverified',
+  'identity_changed',
   'protected_zone',
   'rate_limited',
   'draft_expired',

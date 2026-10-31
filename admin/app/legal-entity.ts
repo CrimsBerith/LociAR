@@ -3,10 +3,10 @@
 export const LEGAL_ENTITY = {
   controllerName: 'Kağan Kartal Babahan',
   controllerAddress: 'Edremit, Balıkesir, Türkiye',
-  contactEmail: 'support@lociar.app',
+  contactEmail: 'support@alfagolab.com',
   analyticsRetentionDays: 180,
   /** Crash reports are kept by Firebase Crashlytics for 90 days. */
   crashRetentionDays: 90,
-  updatedTr: '18 Ekim 2026',
-  updatedEn: '18 October 2026',
+  updatedTr: '26 Ekim 2026',
+  updatedEn: '26 October 2026',
 };

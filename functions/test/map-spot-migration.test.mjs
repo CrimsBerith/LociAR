@@ -23,7 +23,7 @@ function setup(n=17){store.clear();versions.clear();seq=0;writes=0;now=1000000;h
 write(`note_spots/${OLD}`,{lat:76.5*step,lng:29,radius:40,count:n});
 for(let i=0;i<n;i++){write(`posts/${id(i)}`,{lat:153*i/(n-1)*step,lng:29,creator_id:OWNER,status:'active',visibility:'public',spot_id:OLD});write(`note_spot_members/${id(i)}`,{post_id:id(i),spot_id:OLD,owner_luid:OWNER});}
 write(`posts/${id(900)}`,{lat:0,lng:29,creator_id:OWNER,status:'hidden',visibility:'public',spot_id:OLD});write(`note_spot_members/${id(900)}`,{post_id:id(900),spot_id:OLD});write(`note_spot_members/${id(901)}`,{post_id:id(901),spot_id:OLD});writes=0;}
-function verify(n=17){let total=0;for(let i=0;i<n;i++){const p=store.get(`posts/${id(i)}`);assert.ok(p);const s=store.get(`note_spots/${p.spot_id}`);assert.ok(s);assert.ok(distanceMeters(s.lat,s.lng,p.lat,p.lng)<=25);assert.equal(store.get(`note_spot_members/${id(i)}`).spot_id,p.spot_id);}
+function verify(n=17){let total=0;for(let i=0;i<n;i++){const p=store.get(`posts/${id(i)}`);assert.ok(p);const s=store.get(`note_spots/${p.spot_id}`);assert.ok(s);assert.ok(distanceMeters(s.lat,s.lng,p.lat,p.lng)<=6);assert.equal(store.get(`note_spot_members/${id(i)}`).spot_id,p.spot_id);}
 for(const[k,v]of store)if(k.startsWith('note_spots/'))total+=v.count;assert.equal(total,n);assert.ok(store.has(`posts/${id(900)}`));assert.equal(store.get(`posts/${id(900)}`).spot_id,undefined);assert.equal(store.has(`note_spot_members/${id(900)}`),false);assert.equal(store.has(`note_spot_members/${id(901)}`),false);}
 test('migration defaults to preview; apply requires paused writers',async()=>{setup();const preview=await splitLegacySpot(OLD);assert.equal(preview.applied,false);assert.equal(writes,0);await assert.rejects(splitLegacySpot(OLD,{apply:true}),/Pause/);assert.equal(writes,0);});
 test('offline apply preserves every post, cleans hidden/orphan memberships and is write-idempotent',async()=>{setup();const result=await splitLegacySpot(OLD,{apply:true,writesPaused:true});assert.equal(result.phase,'complete');verify();const before=writes;const again=await splitLegacySpot(OLD,{apply:true,writesPaused:true});assert.equal(again.applied,false);assert.equal(writes,before);});
@@ -32,3 +32,12 @@ test('fencing prevents a stale worker completing after ownership changes',async(
 test('planning uses bounded chunks with more than 500 post/member writes',async()=>{setup(260);await splitLegacySpot(OLD,{apply:true,writesPaused:true});verify(260);});
 test('deleted posts are not recreated by a planned migration',async()=>{setup();let removed=false;hook=()=>{if(!removed&&store.get(`note_spot_migrations/${OLD}`)?.phase==='planned'){removed=true;store.delete(`posts/${id(0)}`);versions.set(`posts/${id(0)}`,++seq);}};await splitLegacySpot(OLD,{apply:true,writesPaused:true});assert.equal(store.has(`posts/${id(0)}`),false);assert.equal(store.has(`note_spot_members/${id(0)}`),false);});
 test.after(()=>{Date.now=originalNow;});
+
+test('a completed wider-radius journal cannot skip the new 6 m migration',async()=>{
+ setup();write(`note_spot_migrations/${OLD}`,{phase:'complete',membership_radius_m:25,group_count:1});writes=0;
+ await assert.rejects(splitLegacySpot(OLD),/older membership radius/);assert.equal(writes,0);
+});
+test('a planned wider-radius journal cannot resume old assignments',async()=>{
+ setup();write(`note_spot_migrations/${OLD}`,{phase:'planned',membership_radius_m:25,plan_hash:'old'});writes=0;
+ await assert.rejects(splitLegacySpot(OLD,{apply:true,writesPaused:true}),/older membership radius/);assert.equal(writes,0);
+});

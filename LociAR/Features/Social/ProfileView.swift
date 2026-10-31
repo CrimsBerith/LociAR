@@ -19,13 +19,18 @@ struct ProfileView: View {
         List {
             Section {
                 HStack(spacing: 16) {
-                    LociAvatar(handle: user.handle, avatarURL: user.avatarURL, size: 66)
+                    LociAvatar(handle: user.isAnonymousAccount ? "guest" : user.handle,
+                               avatarURL: user.isAnonymousAccount ? nil : user.avatarURL, size: 66)
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(verbatim: "@\(user.handle)").font(.title3.bold())
-                        if let email = user.email { Text(email).font(.caption).foregroundStyle(.secondary) }
-                        LociStatusPill(title: String(localized: "Hesap aktif"), symbol: "checkmark.seal.fill", color: LociTheme.accent)
+                        if user.isAnonymousAccount {
+                            Text("Misafir").font(.title3.bold())
+                        } else {
+                            Text(verbatim: "@\(user.handle)").font(.title3.bold())
+                            if let email = user.email { Text(email).font(.subheadline).foregroundStyle(.secondary) }
+                        }
                     }
                     Spacer()
+                    if !user.isAnonymousAccount {
                     Button {
                         showEditProfile = true
                     } label: {
@@ -38,27 +43,28 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel("Profili düzenle")
                     .accessibilityIdentifier("profile-edit-button")
+                    }
                 }.padding(.vertical, 8)
             }
             if user.isAnonymousAccount {
                 Section {
-                    Button("Hesap oluştur") { showAccountCreation = true }
+                    Button("Giriş yap") { showAccountCreation = true }
                         .accessibilityIdentifier("profile-create-account")
-                    Text("Not bırakmak ve yorum yazmak için hesap oluştur. Notlarında adın diğer kullanıcılara gösterilmez.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Devam etmek için giriş yap.")
+                        .font(.subheadline).foregroundStyle(.secondary)
                 }
             }
             Section {
-                NavigationLink { MyPostsView() } label: { ProfileLinkRow(title: String(localized: "Postlarım"), symbol: "rectangle.stack.fill", color: LociTheme.accent) }
+                NavigationLink { MyPostsView() } label: { ProfileLinkRow(title: String(localized: "Notlarım"), symbol: "rectangle.stack.fill", color: LociTheme.accent) }
                 NavigationLink { ActivityView() } label: {
-                    ProfileLinkRow(title: "Aktivite", symbol: "bell.fill", color: .orange)
+                    ProfileLinkRow(title: "Aktivite", symbol: "bell.fill", color: LociTheme.accent)
                 }
                 .accessibilityIdentifier("profile-activity")
-                NavigationLink { CollectionsView() } label: { ProfileLinkRow(title: String(localized: "Koleksiyonlar"), symbol: "square.stack.3d.up.fill", color: .purple) }
+                NavigationLink { CollectionsView() } label: { ProfileLinkRow(title: String(localized: "Koleksiyonlar"), symbol: "square.stack.3d.up.fill", color: LociTheme.accent) }
                     .accessibilityIdentifier("profile-collections")
-                NavigationLink { SavedPostsView() } label: { ProfileLinkRow(title: String(localized: "Kaydedilenler"), symbol: "bookmark.fill", color: .blue) }
+                NavigationLink { SavedPostsView() } label: { ProfileLinkRow(title: String(localized: "Kaydedilenler"), symbol: "bookmark.fill", color: LociTheme.accent) }
                     .accessibilityIdentifier("profile-saved")
-                if !user.isAnonymousAccount {
+                if PostSupportAvailability.showsEntryPoints && !user.isAnonymousAccount {
                     NavigationLink { SupportEarningsView() } label: {
                         ProfileLinkRow(title: String(localized: "Kazançlarım"), symbol: "heart.circle", color: LociTheme.accent)
                     }.accessibilityIdentifier("profile-support-earnings")
@@ -67,19 +73,13 @@ struct ProfileView: View {
                 profileSectionText("İçerik")
             }
             Section {
-                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket.fill", color: .green) }
-                    .accessibilityIdentifier("profile-invite")
-            } header: {
-                profileSectionText("Davet")
-            }
-            Section {
                 NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: .gray) }
                     .accessibilityIdentifier("profile-settings")
-                NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: .orange) }
-                NavigationLink { AppSettingsView() } label: { Label("Bildirim ayarları", systemImage: "bell.badge") }
-                    .accessibilityIdentifier("profile-push-permission")
+                NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: .gray) }
+                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket", color: .gray) }
+                    .accessibilityIdentifier("profile-invite")
             } header: {
-                profileSectionText("Gizlilik ve güvenlik")
+                profileSectionText(String(localized: "Tercihler"))
             }
             Section {
                 if let url = container.configuration.privacyPolicyURL {
@@ -106,7 +106,7 @@ struct ProfileView: View {
             }
 #endif
             Section {
-                Button(role: .destructive) {
+                Button {
                     guard !isSigningOut else { return }
                     isSigningOut = true
                     Task { await session.signOut(); isSigningOut = false }
@@ -129,9 +129,9 @@ struct ProfileView: View {
         .background(LociScreenBackground())
         .navigationTitle("Profil")
         .alert("Hesabı kalıcı olarak sil?", isPresented: $confirmDeletion) {
-            Button("Devam et", role: .destructive) { showDeletionReauthentication = true }
+            Button(user.isAnonymousAccount ? String(localized: "Devam et") : String(localized: "Kimliğini doğrula")) { showDeletionReauthentication = true }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
-        } message: { Text("Postlarınız ve sosyal verileriniz sunucudan silinir. Bu işlem geri alınamaz.") }
+        } message: { Text("Notların ve sosyal verilerin sunucudan silinir. Bu işlem geri alınamaz.") }
         .onChange(of: user.isAnonymousAccount) { _, anonymous in
             if !anonymous { showAccountCreation = false }
         }
@@ -213,7 +213,7 @@ private struct AccountDeletionView: View {
                     }
                     if isWorking { ProgressView() }
                 } footer: {
-                    Text("Postlarınız ve sosyal verileriniz sunucudan silinir. Bu işlem geri alınamaz.")
+                    Text("Notların ve sosyal verilerin sunucudan silinir. Bu işlem geri alınamaz.")
                 }
             }
             .navigationTitle("Hesabı sil")

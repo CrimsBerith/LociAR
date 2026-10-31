@@ -27,7 +27,7 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | İndeksler, TTL, Cloud Functions (`us-central1`) | ⚠️ 24 fonksiyon — yeni sürüm (push, kill switch, `terms_version`) deploy bekliyor |
 | Admin + yasal sayfalar (App Hosting, backend `lociar-admin`) | ⚠️ yeni sürüm (EN sayfalar, kill switch paneli, nonce CSP) deploy bekliyor |
 | Identity Platform + ilk süper admin | ✅ yapıldı (proje sahibinin hesabı, TOTP MFA açık) |
-| İnceleme hesabı + seed içerik | ✅ yapıldı (`apple-review@lociar.app`, 7 onaylı post) |
+| İnceleme hesabı + seed içerik | ⚠️ 26 Ekim: yeniden yapılmalı. Eski `apple-review@lociar.app` kayıtsız alan adında (parola sıfırlama başkasına gidebilir); yeni hesap `apple-review@alfagolab.com` |
 
 ## Mimari özeti
 
@@ -56,6 +56,30 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
   Akış ve cihaz kabulü: [ACTIVITY_AND_ACCOUNT_DELETION.md](ACTIVITY_AND_ACCOUNT_DELETION.md).
 - Giriş ekranında gizlilik/topluluk kuralları onay kutusu zorunludur; `ensureProfile` kabul edilen sürümü
   `users_private.terms_version` / `terms_accepted_at` olarak kaydeder.
+
+## Canlı 500/503: hesap açıkken harcama engeli
+
+`billingEnabled=true` ve Billing hesabının `open=true` olması, Functions'ın çağrı kabul ettiğini kanıtlamaz.
+28 Ekim 2026'da `LociAR spend cap` bütçesi, Cloud Run Functions (`29E7-DA93-CA13`) için aylık **₺10** ve
+`spendCap.outputState=ENFORCED` durumundaydı. Canlı `readDataPreferences` 503 veriyordu. Billing hesabı
+kapanmamıştı; hizmet düzeyindeki aylık harcama sınırı kullanımı durduruyordu.
+
+Önce `gcloud billing projects describe lociar-2f38c`, ardından dönen hesabın kimliğiyle
+`gcloud billing budgets list --billing-account=ACCOUNT_ID --format=json` çalıştırılır. Proje/hizmet filtresi,
+`spendCap.outputState`, tutar ve `creditTypesTreatment` birlikte kontrol edilir. Uyarı bütçeleri kullanım
+engeli değildir. Spend cap, ücretsiz haklar ve krediler düşülmeden brüt maliyetle hesaplandığı için net faturayla
+aynı değildir; bildirim gecikmeleri nedeniyle kesin fatura üst sınırı da sayılmaz.
+
+`ENFORCED` bütçeyi yeniden dağıtım veya daha çok instance çözmez. Yeni dönem başında otomatik açılır.
+Hemen kurtarmak için sahibin onayladığı yeni tutarla mevcut cap kaldırılır ve **yeniden sınır konur**;
+yalnızca kaldırmak ay sonuna kadar sınırsız bırakabilir. Yeni cap etkinleştirildikten sonra gerçek callable,
+APNs kaydı ve alıcı teslimi doğrulanır; servislerin dönmesi bir saate kadar sürebilir.
+[Google'ın spend cap kurtarma akışı](https://firebase.google.com/docs/projects/billing/spend-caps).
+
+Bakım geçişinde önce yeni üç zamanlayıcı işlevinin çalıştığı doğrulanır, sonra `RETIRED_FUNCTIONS` silinir.
+Eski yedi işin yalnızca kaynak koddan kaldırılması canlı işleri kaldırmaz; pause edilen Scheduler işleri de
+faturalandırılır ([fiyatlandırma](https://cloud.google.com/scheduler/pricing)). Scheduler iş ücreti ile
+Cloud Functions cap'inin brüt işlem maliyeti ayrı kalemlerdir.
 
 ## 0. Tek komutla kurulum (önerilen)
 
@@ -131,9 +155,9 @@ node scripts/import-protected-zones.mjs zones.json           # okul/hastane/ibad
 ```
 
 App Review hesabı:
-1. Uygulamada `apple-review@lociar.app` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
+1. Uygulamada `apple-review@alfagolab.com` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
    uygulamada bir kez giriş yap (profil oluşur).
-2. `node scripts/seed-review-content.mjs apple-review@lociar.app` → İstanbul ve Cupertino'da 7 onaylı örnek post.
+2. `node scripts/seed-review-content.mjs apple-review@alfagolab.com` → İstanbul ve Cupertino'da 7 onaylı örnek post.
 3. Parolayı [CREDENTIALS.md](CREDENTIALS.md) adımlarına göre yenile ve App Store Connect'in Sign-In Information alanına gir; inceleme notlarına veya depoya yazma.
 
 ## 4. iOS uygulaması
@@ -200,26 +224,20 @@ içinde normale döner.
 
 ## 6b. İzleme ve alarmlar (bir kez, owner)
 
-`scripts/monitoring-setup.command` (Mac'te çift tıkla; tekrar çalıştırılabilir) şunları kurar:
+`scripts/monitoring-setup.command` adresi sorar, planı gösterir ve onaydan sonra üç **log eşleşmesi** uyarısı kurar:
 
-- **E-posta bildirim kanalı:** adresi betik sorar. Google'ın doğrulama e-postasını onayla.
-- **Log tabanlı metrikler ve alarmlar** (Cloud Functions ve App Hosting logları):
+- Hesap silme, Apple token iptali, Storage/Cloud Anchor temizliği ve kill switch olayları.
+- Diğer Cloud Functions / App Hosting `ERROR` kayıtları (ARCore, avatar, push dahil) ve kullanılabilir
+  instance olmadığı için oluşan Cloud Run `WARNING` / HTTP 429 kayıtları.
+- iOS fatal crash kayıtları; veri kaynağı ayrıca Firebase → Integrations → Cloud Logging'de bağlanmalıdır.
 
-| Metrik | Alarm koşulu | Ne yapılır |
-|--------|--------------|------------|
-| `lociar_server_errors` | 10 dk'da >10 ERROR satırı | Logs'ta `severity>=ERROR` filtresine bak |
-| `lociar_apple_revoke_failed` | herhangi biri | Apple anahtar/secret'larını kontrol et; hesap silme durdu |
-| `lociar_account_deletion_deferred` | 1 saatte herhangi biri | Silme işi zamanlayıcıyla yeniden denenir; tamamlandığını doğrula |
-| `lociar_storage_cleanup_deferred` | 1 saatte >3 | Storage yetkileri ve temizlik zamanlayıcıları |
-| `lociar_cloud_anchor_cleanup_failed` | 1 saatte herhangi biri | `arcoreManagement.ts` logları; iş kendini yeniden dener |
-| `lociar_arcore_token_failed` | 10 dk'da >3 | Functions servis hesabının Token Creator yetkisi (`google-cloud-setup.command`) |
-| `lociar_avatar_screening_failed` | 1 saatte >3 | Cloud Vision API / kota |
-| `lociar_push_failed` | 1 saatte >20 | Firebase Console → Cloud Messaging → APNs anahtarı |
-| `lociar_service_paused` | herhangi biri | Kill switch açık kaldıysa kapat (6a) |
+Tek eşleşme alarm açar; politika başına e-posta en fazla saatte bir gönderilir. Sayaç eşiği kullanılmaz.
+Özel metrik, yeni Scheduler işi, BigQuery aktarımı veya bütçe değişikliği yapılmaz. Crashlytics bağlantısı
+kurulurken yalnız iOS uygulaması seçilir, sessions export kapalı tutulur. Betik yalnız
+`lociar_diagnostics=v1` etiketli politikaları günceller; tekrar çalıştırılabilir.
 
-- **Aylık bütçe:** varsayılan 50 USD. %50, %90 ve %100'de e-posta gelir.
-
-Crashlytics çökme uyarıları ayrıca Firebase Console → Crashlytics → ⋮ → *Alert settings* üzerinden açılır.
+CLI: `python3 scripts/setup-diagnostics-monitoring.py --email ADRES` planı gösterir; `--apply` uygular.
+Crashlytics toplama, semboller, maliyet sınırları ve gerçek teslim testi: [DIAGNOSTICS.md](DIAGNOSTICS.md).
 
 ## 6c. Büyüme özellikleri (varsayılan kapalı, owner)
 

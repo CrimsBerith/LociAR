@@ -12,7 +12,7 @@ import { anonymousGeometry, anonymousIdentity, publicEditData } from './anonymou
 import { campaignOffer, ownCampaignOffers } from './campaigns';
 import { denseLocks, spotSettings, type SpotLock } from './denseSpots';
 import { mapNoteGroups } from './mapNoteGroups';
-import { validCoordinates, UNLOCK_TTL_MS, SPOT_JOIN_RADIUS_M, type Fix } from './placeNoteRules';
+import { validCoordinates, UNLOCK_TTL_MS, SPOT_JOIN_RADIUS_M, SPOT_MEMBERSHIP_VERSION, type Fix } from './placeNoteRules';
 import { postHiddenByBlocks, type BlockSets } from './visibility';
 import { MEMORY_LIMITS_ENABLED, WindowLimiter } from './memoryLimits';
 import { reasonError } from './errors';
@@ -379,7 +379,7 @@ async function readMapGroups(body: Record<string, unknown>, luid: string, blocke
 
 const MAP_GROUP_ID = /^(spot|post):([0-9a-f-]{36})$/;
 const POST_ID = /^[0-9a-f-]{36}$/;
-const MAP_GROUP_MEMBERSHIP_VERSION = 2;
+const MAP_GROUP_MEMBERSHIP_VERSION = SPOT_MEMBERSHIP_VERSION;
 
 /** Resolve a stale small-group identity through its current anchor membership. */
 export async function visibleMapDocuments(docs: FirebaseFirestore.DocumentSnapshot[], luid: string, blocked: BlockSets) {
@@ -476,7 +476,11 @@ async function readMapGroup(body: Record<string, unknown>, luid: string, blocked
   if (session && session.get('group_id') !== canonicalId) await session.ref.update({ group_id: canonicalId });
   allowed.sort((a, b) => Number(b.get('likes_count') ?? 0) - Number(a.get('likes_count') ?? 0)
     || (b.get('created_at')?.toMillis?.() ?? 0) - (a.get('created_at')?.toMillis?.() ?? 0) || a.id.localeCompare(b.id, 'en'));
-  const area = group ? { ...group, id: canonicalId.slice(5), groupId: canonicalId } : undefined;
+  // Transient post groups can be repartitioned when read from another anchor.
+  // Only a persistent spot may supply a shared access area; otherwise each note
+  // requires proximity to its own point, independently of the requested group.
+  const area = group && canonicalId.startsWith('spot:')
+    ? { ...group, id: canonicalId.slice(5), groupId: canonicalId } : undefined;
   // Freeze the ordered IDs, never text or an access grant. Later pages recheck current
   // membership, blocks, account fences and fresh on-site location before serializing bodies.
   const order: string[] = session ? session.get('post_ids') : allowed.map(d => d.id);

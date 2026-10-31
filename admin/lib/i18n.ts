@@ -68,6 +68,10 @@ const FIELD_NAMES: Record<string, string> = {
 
 /** API error codes shown as readable text: [English, Turkish]. */
 const CODES: Record<string, readonly [string, string]> = {
+  'invalid_author_attribution': ['Choose named or anonymous attribution.', 'Adlı veya anonim yazar görünürlüğünü seç.'],
+  'use_author_attribution': ['Use the author attribution field.', 'Yazar görünürlüğü alanını kullan.'],
+  'post_attribution_cannot_be_changed': ['A published post keeps its original attribution.', 'Yayımlanmış notun yazar görünürlüğü değiştirilemez.'],
+  'anonymous_requires_managed_author': ['Anonymous admin posts require a managed content identity.', 'Anonim admin notu için yönetilen içerik kimliği gerekir.'],
   "account_deleting": ["This account is being deleted.", "Bu hesap siliniyor."],
   "approval_required": ["This change needs independent approval.", "Bu değişiklik bağımsız onay gerektiriyor."],
   "brand_author_unavailable": ["The brand's public profile is not available.", "Markanın herkese açık profili mevcut değil."],
@@ -127,6 +131,10 @@ const CODES: Record<string, readonly [string, string]> = {
 };
 
 const TR: Record<string, string> = {
+  'Author attribution': 'Yazar görünürlüğü',
+  'Show selected username': 'Seçilen kullanıcı adını göster',
+  'Anonymous (managed content identities only)': 'Anonim (yalnızca yönetilen içerik kimlikleri)',
+  'Attribution is fixed when the post is created. The team content badge is preserved.': 'Yazar görünürlüğü not oluşturulurken sabitlenir. Ekip içerik rozeti korunur.',
   "managed user create": "yönetilen kullanıcı oluşturuldu",
   "user invite accepted": "kullanıcı daveti kabul edildi",
   "user invited": "kullanıcı davet edildi",

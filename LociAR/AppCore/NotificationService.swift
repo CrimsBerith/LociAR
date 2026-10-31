@@ -197,8 +197,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     private static func recordFailure(_ error: Error) {
         debugTrace("failure domain=\((error as NSError).domain) code=\((error as NSError).code)")
-        // Firebase errors can include request details; record a value-free error instead.
-        Crashlytics.crashlytics().record(error: NSError(domain: "LociAR.Push", code: (error as NSError).code))
+        DiagnosticsReporter.report(error, component: .push)
     }
 
     private static func debugTrace(_ message: String) {
@@ -498,5 +497,6 @@ enum CrashReportingPreference {
     static func apply() {
         guard FirebaseApp.app() != nil else { return }
         Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(isEnabled)
+        if !isEnabled { Crashlytics.crashlytics().deleteUnsentReports() }
     }
 }

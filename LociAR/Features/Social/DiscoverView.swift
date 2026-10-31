@@ -25,8 +25,8 @@ struct DiscoverView: View {
                 LociLoadingView(title: String(localized: "Keşfet hazırlanıyor…"))
             } else if filteredPosts.isEmpty {
                 LociEmptyState(
-                    title: query.isEmpty ? String(localized: "Henüz içerik yok") : String(localized: "Sonuç bulunamadı"),
-                    message: message ?? (query.isEmpty ? String(localized: "Yeni mekânsal postlar burada görünecek.") : String(localized: "Farklı bir kelimeyle tekrar ara.")),
+                    title: query.isEmpty ? String(localized: "Henüz not yok") : String(localized: "Sonuç bulunamadı"),
+                    message: message ?? (query.isEmpty ? String(localized: "Yeni notlar burada görünecek.") : String(localized: "Farklı bir kelimeyle tekrar ara.")),
                     symbol: "sparkle.magnifyingglass",
                     actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene",
                     action: message == nil ? nil : { Task { await load() } }
@@ -46,7 +46,7 @@ struct DiscoverView: View {
         }
         .background(LociScreenBackground())
         .navigationTitle("Keşfet")
-        .searchable(text: $query, prompt: String(localized: "Kişi, yer veya içerik"))
+        .searchable(text: $query, prompt: String(localized: "Notlarda ara"))
         .onChange(of: refreshScope) { _, scope in
             if refreshGate.prepare(scope: scope, revision: ContentUpdates.shared.revision) { posts = []; nextCursor = nil }
         }
@@ -102,7 +102,7 @@ struct DiscoverView: View {
         }
         guard container.isBackendConfigured else {
             posts = local
-            message = posts.isEmpty ? String(localized: "Bağlantı ayarları tamamlandığında içerikler burada görünecek.") : nil
+            message = posts.isEmpty ? String(localized: "Notlar şu anda yüklenemiyor.") : nil
             succeeded = true
             return
         }
@@ -117,7 +117,7 @@ struct DiscoverView: View {
                   refreshGate.isCurrent(ticket, scope: scope, revision: revision) else { return }
             failure = error
             if let backend = error as? BackendCallError, case .rejected = backend { posts = local; nextCursor = nil }
-            message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
+            message = String(localized: "Notlar yüklenemedi. Tekrar dene.")
         }
     }
 
@@ -167,7 +167,7 @@ struct DiscoverView: View {
         } catch {
             guard !Task.isCancelled, revision == ContentUpdates.shared.revision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
             pageFailure = error
-            message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
+            message = String(localized: "Notlar yüklenemedi. Tekrar dene.")
         }
     }
 

@@ -4,6 +4,10 @@ export type ContentInput = {
   color: string; background: string; opacity: number; scale: number; rotation: number;
   visibility: 'public' | 'private' | 'friends'; ageRating: 'all' | '13_plus' | '16_plus'; status: 'active' | 'pending_review';
   zoneExceptionReason: string; replacePlacement: boolean;
+  /** Frozen when created. Missing on legacy API callers means named; edits preserve existing attribution. */
+  authorAttribution?: 'named' | 'anonymous';
+  /** Optional Firestore document update-time precondition for reviewed bulk edits. */
+  expectedUpdateTime?: string;
   /** Location note: notification radius 15–100 m; approval needs posts.moderate and an active public post. */
   locationNote: boolean; notifyRadius: number; approveNotifications: boolean;
   /** Launch seed batch (`admin/scripts/seed-notes.mjs`); stored as `seed_batch` for measuring and retiring seeds. */

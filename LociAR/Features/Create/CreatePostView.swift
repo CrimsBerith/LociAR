@@ -13,6 +13,9 @@ struct CreatePostView: View {
     @Environment(ARPinningEngine.self) private var engine
     @State private var selectedAnchor: SurfaceAnchor?
     @State private var caption = ""
+    @State private var publishAnonymously = true
+    /// Frozen once this id is submitted; retries must never change public attribution.
+    @State private var intentAnonymously: Bool?
     /// The post's GIPHY GIF (at most one); posts are a message: text and/or a GIF.
     @State private var selectedGif: GifReference?
     @State private var showGifPicker = false
@@ -63,15 +66,6 @@ struct CreatePostView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Bitti") {
-                        isCaptionFocused = false
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    }
-                    .fontWeight(.semibold)
-                    .accessibilityIdentifier("keyboard-done-button")
-                }
             }
         }
         .preferredColorScheme(.dark)
@@ -146,27 +140,20 @@ struct CreatePostView: View {
                             ARCoreNoticeButton()
                         }
                         .foregroundStyle(engine.candidateQuality == nil ? Color.white : LociTheme.accent)
-                        Text(engine.statusMessage.localizedUI).font(.footnote).foregroundStyle(.secondary)
-                        if engine.currentAnchor == nil {
+                        Text(placementGuidance.localizedUI).font(.footnote).foregroundStyle(.secondary)
+#if DEBUG
+                        DisclosureGroup(String(localized: "Tanılama")) {
                             Text(engine.mappingDiagnosticSummary)
-                                .font(.caption2.monospacedDigit())
+                                .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                                 .accessibilityIdentifier("ar-mapping-diagnostic")
                         }
+                        .font(.caption)
+#endif
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Spacer()
                 VStack(spacing: 10) {
-                    if engine.state == .approximateOffered {
-                        Button("Yaklaşık yerleştir · 0,8 m") {
-                            guard !isCommitting else { return }
-                            engine.placeApproximate()
-                            if let anchor = engine.currentAnchor {
-                                startCommit(anchor)
-                            }
-                        }
-                        .buttonStyle(.borderedProminent).tint(.orange)
-                    }
                     if engine.state == .failed {
                         if placementUnsupported {
                             Label("AR bu cihazda desteklenmiyor", systemImage: "iphone.slash")
@@ -197,11 +184,6 @@ struct CreatePostView: View {
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                                     .multilineTextAlignment(.center)
-                                Text(engine.mappingDiagnosticSummary)
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .accessibilityIdentifier("ar-mapping-diagnostic")
                             }
                             HStack(spacing: 12) {
                                 Button("Tekrar tara", systemImage: "arrow.clockwise") {
@@ -227,7 +209,7 @@ struct CreatePostView: View {
                     } else {
                         Button("Yüzeye sabitle") { engine.requestPin() }
                             .frame(maxWidth: .infinity, minHeight: 48)
-                            .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+                            .buttonStyle(LociPrimaryButtonStyle())
                             .accessibilityIdentifier("create-pin-surface")
                         Button {
                             guard !isCommitting else { return }
@@ -237,11 +219,9 @@ struct CreatePostView: View {
                                 startCommit(anchor)
                             }
                         } label: {
-                            Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.85))
+                            Label("Yaklaşık yerleştir", systemImage: "cube.transparent")
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(LociSecondaryButtonStyle())
                         .padding(.top, 4)
                         .accessibilityIdentifier("create-place-approximate")
                     }
@@ -272,6 +252,16 @@ struct CreatePostView: View {
 
     private var physicalPlacementReady: Bool {
         trackingUsableForPlacement && engine.mappingQuality.canPersist
+    }
+
+    private var placementGuidance: String {
+        if engine.state == .failed { return engine.statusMessage }
+        if let anchor = engine.currentAnchor {
+            if anchor.pinQuality.isPhysicalSurface, !physicalPlacementReady { return mappingStatusGuidance }
+            return String(localized: "Yerleşim hazır.")
+        }
+        if engine.candidateQuality != nil { return String(localized: "Telefonu sabit tut ve Yüzeye sabitle’ye dokun.") }
+        return String(localized: "Halkayı duvar veya masaya yönelt.")
     }
 
     private var mappingStatusTitle: String {
@@ -347,22 +337,20 @@ struct CreatePostView: View {
 
                 LociCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        LociSectionLabel(title: String(localized: "Caption"), symbol: "text.quote")
-                        TextField("Bu yüzeyde ne var?", text: $caption, axis: .vertical)
+                        LociSectionLabel(title: String(localized: "Mesajın"), symbol: "text.quote")
+                        TextField("Bir mesaj yaz…", text: $caption, axis: .vertical)
                             .lineLimit(2...6)
                             .padding(12)
                             .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .focused($isCaptionFocused)
                             .accessibilityIdentifier("create-caption")
                         HStack {
-                            Text("Harita, Keşfet, arama ve VoiceOver’da kullanılır.")
-                                .font(.caption2).foregroundStyle(.secondary)
                             Spacer(minLength: 8)
                             Text(verbatim: "\(captionLength.formatted())/220").font(.caption.monospacedDigit())
                                 .foregroundStyle(captionLength <= 220 ? Color.secondary : Color.red)
                         }
                         if captionLength > 220 {
-                            Label("Caption 220 karakteri geçemez.", systemImage: "exclamationmark.circle.fill")
+                            Label("En fazla 220 karakter yazabilirsin.", systemImage: "exclamationmark.circle.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.red)
                         }
@@ -370,6 +358,8 @@ struct CreatePostView: View {
                 }
 
                 gifCard
+                PublishingIdentityPicker(anonymously: $publishAnonymously)
+                    .disabled(isPublishing || intentAnonymously != nil)
             }
             .padding()
         }
@@ -405,7 +395,7 @@ struct CreatePostView: View {
                         Label("GIF ekle", systemImage: "plus.circle.fill")
                             .frame(maxWidth: .infinity, minHeight: 44)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.bordered).tint(LociTheme.accent)
                     .accessibilityIdentifier("create-gif-add")
                 }
             }
@@ -414,6 +404,20 @@ struct CreatePostView: View {
 
     private func publishBar(anchor: SurfaceAnchor) -> some View {
         VStack(spacing: 6) {
+            // Keep dismissal in the keyboard-aware inset; the keyboard toolbar can receive
+            // an invalid frame while this editor’s bottom inset is being resized.
+            if isCaptionFocused {
+                HStack {
+                    Spacer()
+                    Button("Bitti") {
+                        isCaptionFocused = false
+                        dismissKeyboard()
+                    }
+                    .fontWeight(.semibold)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityIdentifier("keyboard-done-button")
+                }
+            }
             Button {
                 isCaptionFocused = false
                 dismissKeyboard()
@@ -453,7 +457,7 @@ struct CreatePostView: View {
         }
     }
 
-    private func publish(anchor: SurfaceAnchor) async {
+    private func publish(anchor: SurfaceAnchor, anonymously: Bool) async {
         guard case .signedIn(let user) = session.phase else {
             message = String(localized: "Yayınlamak için tekrar giriş yapın.")
             return
@@ -504,6 +508,7 @@ struct CreatePostView: View {
         }
 
         var layers: [EditLayer] = []
+        guard case let .signedIn(currentUser) = session.phase, currentUser.id == user.id else { return }
         let finalCaption = resolvedCaption
         let messageText = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if !messageText.isEmpty {
@@ -516,8 +521,9 @@ struct CreatePostView: View {
             id: postID, creatorID: user.id, creatorHandle: user.handle, createdAt: Date(), caption: finalCaption,
             status: .pendingReview, visibility: .public, ageRating: .all,
             anchorBundle: AnchorBundle(anchor: anchor), editData: EditData(layers: layers), contentSource: nil,
-            counts: PostCounts(), anonymous: true
+            counts: PostCounts(), anonymous: anonymously
         )
+        intentAnonymously = anonymously
         do {
             let outcome = try await container.publisher.submit(
                 post,
@@ -584,7 +590,8 @@ struct CreatePostView: View {
     private func startPublish(anchor: SurfaceAnchor) {
         guard canPublish else { return }
         isPublishing = true
-        Task { await publish(anchor: anchor) }
+        let anonymous = intentAnonymously ?? publishAnonymously
+        Task { await publish(anchor: anchor, anonymously: anonymous) }
     }
 
     private func commitPlacement(_ anchor: SurfaceAnchor) async {

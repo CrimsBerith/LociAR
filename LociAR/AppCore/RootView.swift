@@ -40,14 +40,15 @@ struct RootView: View {
                 case .signedOut:
                     AuthView()
                 case .signedIn(let user):
-                    MainTabView(user: user)
-                        .id(user.id)
+                    if user.isAnonymousAccount { AuthView() }
+                    else { MainTabView(user: user).id(user.id) }
                 case .passwordRecovery:
                     PasswordRecoveryView()
                 }
             }
         }
         .preferredColorScheme(.dark)
+        .tint(LociTheme.accent)
         .task {
             try? LegacyMigrationCoordinator.run(modelContext: modelContext)
             try? SyncQueueProcessor.migrateLegacyOwners(in: modelContext)

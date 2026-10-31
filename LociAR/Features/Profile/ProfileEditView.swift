@@ -54,7 +54,7 @@ struct ProfileEditView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("Profili Düzenle")
+            .navigationTitle("Profili düzenle")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -113,7 +113,7 @@ struct ProfileEditView: View {
     private var fieldsSection: some View {
         LociCard {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Kullanıcı Adı")
+                Text("Kullanıcı adı")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(LociTheme.secondaryText)
                 HStack {
@@ -129,15 +129,15 @@ struct ProfileEditView: View {
                 .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(LociTheme.hairline))
                 Text("3–30 karakter; küçük harf, rakam, alt çizgi ve nokta.")
-                    .font(.caption2)
-                    .foregroundStyle(LociTheme.tertiaryText)
+                    .font(.footnote)
+                    .foregroundStyle(LociTheme.secondaryText)
             }
         }
     }
 
     private var presetAvatarsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Hazır Avatarlar")
+            Text("Hazır avatarlar")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(LociTheme.secondaryText)
                 .padding(.horizontal, 4)

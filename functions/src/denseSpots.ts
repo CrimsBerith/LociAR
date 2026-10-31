@@ -8,12 +8,12 @@ import { createHash, randomUUID } from 'node:crypto';
 import { splitSpotPlan } from './mapNoteGroups';
 import {
   distanceToSpot, fixIsFresh, fixUnlocksSpot, joinSpot, spotOf, validCoordinates, DEFAULT_DENSE_THRESHOLD, DEFAULT_UNLOCK_RADIUS_M,
-  MAX_ENTRY_ACCURACY_M, MAX_SPOT_RADIUS_M, MAX_UNLOCK_RADIUS_M, MIN_SPOT_SIZE, MIN_UNLOCK_RADIUS_M, SPOT_JOIN_RADIUS_M,
+  MAX_ENTRY_ACCURACY_M, MAX_SPOT_RADIUS_M, MAX_UNLOCK_RADIUS_M, MIN_SPOT_SIZE, MIN_UNLOCK_RADIUS_M, SPOT_JOIN_RADIUS_M, SPOT_MEMBERSHIP_VERSION,
   UNLOCK_TOLERANCE_CAP_M, UNLOCK_TTL_MS, type Fix, type Spot,
 } from './placeNoteRules';
 
 /**
- * Spots are server-only clusters of public posts within 25 m of a fixed centre.
+ * Spots are server-only clusters of public posts within 6 m of a fixed centre.
  * A spot holding at least `dense_threshold` posts is dense: its text opens
  * only on site. A server-only membership record survives deletion until the count is settled.
  */
@@ -43,8 +43,8 @@ async function spotsNear(tx: FirebaseFirestore.Transaction, lat: number, lng: nu
 
 /**
  * Keeps a post's spot membership in step with its live state: leaves its spot when it stops
- * being public or moves away, joins the nearest spot within 25 m, or seeds a new spot when at
- * least five unclustered public posts lie within 25 m.
+ * being public or moves away, joins the nearest spot within 6 m, or seeds a new spot when at
+ * least five unclustered public posts lie within 6 m.
  */
 export async function syncSpotMembership(postId: string) {
   await db.runTransaction(async tx => {
@@ -140,6 +140,9 @@ export async function splitLegacySpot(spotId: string, options: { apply?: boolean
   if (options.apply && options.writesPaused !== true) throw new Error('Pause post/spot writers before applying a split');
   const journal = db.collection('note_spot_migrations').doc(spotId), owner = randomUUID();
   const previous = await journal.get();
+  if (previous.exists && previous.get('membership_radius_m') !== SPOT_JOIN_RADIUS_M) {
+    throw new Error('Preserved migration uses an older membership radius; review a new migration journal before applying');
+  }
   if (previous.get('phase') === 'complete') return { spotId, phase: 'complete', groups: previous.get('group_count'), applied: false };
   let plan: ReturnType<typeof splitSpotPlan> = [], records: Array<Record<string, unknown>> = [];
   let planHash = previous.get('plan_hash') as string | undefined;
@@ -169,7 +172,7 @@ export async function splitLegacySpot(spotId: string, options: { apply?: boolean
     if (current.get('phase') === 'complete') throw new Error('Split already completed; refresh the preview');
     if (current.exists && current.get('plan_hash') !== planHash) throw new Error('Split plan changed; refresh the preview');
     if (current.get('lease_until') instanceof Timestamp && current.get('lease_until').toMillis() > Date.now()) throw new Error('Another split worker holds the lease');
-    tx.set(journal, { source_spot_id: spotId, plan_hash: planHash, phase: resume ? 'planned' : 'preparing',
+    tx.set(journal, { source_spot_id: spotId, membership_radius_m: SPOT_JOIN_RADIUS_M, plan_hash: planHash, phase: resume ? 'planned' : 'preparing',
       group_count: preview.groups, post_count: preview.posts, lease_owner: owner,
       lease_until: Timestamp.fromMillis(Date.now() + leaseMs) }, { merge: true });
   });
@@ -202,7 +205,7 @@ export async function splitLegacySpot(spotId: string, options: { apply?: boolean
         if (target.exists && target.get('split_source') !== spotId) throw new Error('Split target ID collision');
         if (!target.exists) tx.set(target.ref, { lat: group.get('lat'), lng: group.get('lng'), radius: group.get('radius'), count: 0,
           geohash: encodeGeohash(group.get('lat'), group.get('lng'), 9), split_source: spotId,
-          membership_version: 2, created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
+          membership_version: SPOT_MEMBERSHIP_VERSION, created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
       }
       renew(tx);
     });
@@ -242,7 +245,7 @@ export async function splitLegacySpot(spotId: string, options: { apply?: boolean
       if (!target.exists || active.some(d => distanceToSpot(d.get('lat'), d.get('lng'), spotData(target)) > SPOT_JOIN_RADIUS_M)) {
         throw new Error('Split target geometry changed; review the journal');
       }
-      tx.update(target.ref, { count: active.length, radius: geometry.radius ?? 0, membership_version: 2, updated_at: FieldValue.serverTimestamp() });
+      tx.update(target.ref, { count: active.length, radius: geometry.radius ?? 0, membership_version: SPOT_MEMBERSHIP_VERSION, updated_at: FieldValue.serverTimestamp() });
       renew(tx);
     });
   }

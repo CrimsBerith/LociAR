@@ -19,6 +19,8 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  const saveLabel = postId ? t('Save changes') : t('Create post');
  return <form onSubmit={submit} className="contentEditor">
  <AuthorPicker value={value.authorId} onChange={id=>set('authorId',id)} disabled={Boolean(postId)}/>
+ <label>{t('Author attribution')}<select value={value.authorAttribution??'named'} disabled={Boolean(postId)} onChange={e=>set('authorAttribution',e.target.value as ContentInput['authorAttribution'])}><option value="named">{t('Show selected username')}</option><option value="anonymous">{t('Anonymous (managed content identities only)')}</option></select></label>
+ <p className="muted">{t('Attribution is fixed when the post is created. The team content badge is preserved.')}</p>
  <fieldset><legend>{t('Text')}</legend><label>{t('Caption')}<input value={value.caption} onChange={e=>set('caption',e.target.value)} required maxLength={220}/></label>
  <label>{t('AR text')}<textarea value={value.text} onChange={e=>set('text',e.target.value)} maxLength={2000}/></label>
  <label>{t('Text color')}<input type="color" value={value.color} onChange={e=>set('color',e.target.value)}/></label>

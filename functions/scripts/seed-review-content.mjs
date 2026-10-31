@@ -1,7 +1,7 @@
 // Seeds approved (active) text posts and anonymous location notes so App Review never sees an empty map.
 // Location notes are approved for arrival notifications ('system:review-seed') so a reviewer standing
 // at one could receive it; they carry no likes (counters stay server-authoritative).
-// Usage: FIREBASE_PROJECT_ID=my-project node scripts/seed-review-content.mjs apple-review@lociar.app
+// Usage: FIREBASE_PROJECT_ID=my-project node scripts/seed-review-content.mjs apple-review@alfagolab.com
 // The review account must exist and have signed in once (so its profile exists).
 // Rerunning is safe: post IDs are derived from the account and place, so posts are overwritten.
 import { readFileSync } from 'node:fs';

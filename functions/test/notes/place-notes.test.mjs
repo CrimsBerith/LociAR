@@ -2,6 +2,7 @@ import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { encodeGeohash } from '../../lib/geo.js';
 // Run in a fresh emulator (npm run test:notes). Bulk integration fixtures leave
 // queued triggers behind even when their serial test files have finished.
 import { adminDb, closeClients, newAnonymousUser, newUser, expectFailure } from '../integration/_harness.mjs';
@@ -84,11 +85,11 @@ test('location notes publish at once, anonymously, at the measured position with
   assert.equal((await expectFailure(fresh({ text: 'See https://example.com' }))).code, 'functions/invalid-argument');
   assert.equal((await expectFailure(fresh({ accuracy: 60, source: 'manual', measuredLat: f.point.lat, measuredLng: f.point.lng }))).code, 'functions/failed-precondition');
   assert.equal((await expectFailure(fresh({ accuracy: 20 }))).code, 'functions/invalid-argument', 'uncertain GPS needs a manual pin');
-  const far = north(f.point, 60);
+  const far = north(f.point, 12.1);
   assert.equal((await expectFailure(fresh({ ...far, source: 'manual', accuracy: 20, measuredLat: f.point.lat, measuredLng: f.point.lng }))).code, 'functions/invalid-argument');
-  const near = north(f.point, 30), manual = await fresh({ ...near, source: 'manual', accuracy: 20, measuredLat: f.point.lat, measuredLng: f.point.lng });
+  const near = north(f.point, 11.9), manual = await fresh({ ...near, source: 'manual', accuracy: 20, measuredLat: f.point.lat, measuredLng: f.point.lng });
   const m = (await adminDb.collection('posts').doc(manual.post.id).get()).data();
-  assert.equal(m.notify_radius_m, 30); assert.equal(m.location_note.source, 'manual'); assert.ok(Math.abs(m.location_note.pin_drag_m - 30) < 1);
+  assert.equal(m.notify_radius_m, 30); assert.equal(m.location_note.source, 'manual'); assert.ok(Math.abs(m.location_note.pin_drag_m - 11.9) < 0.1);
   const zone = adminDb.collection('protected_zones').doc(randomUUID());
   await zone.set({ active: true, name: 'Protected', lat: f.point.lat, lng: f.point.lng, radius_meters: 100 });
   assert.equal((await expectFailure(fresh({}))).code, 'functions/permission-denied');
@@ -543,7 +544,7 @@ test('a small summary resolves current members after its anchor joins a persiste
 
 test('location-note access uses the current singleton after other spot members are removed', async () => {
   const f = await fixture(), refs = [f.n.ref];
-  for (let index = 0; index < 4; index++) refs.push((await note(f.author, north(f.point, 24))).ref);
+  for (let index = 0; index < 4; index++) refs.push((await note(f.author, north(f.point, 5.9))).ref);
   await eventually(async () => typeof (await f.n.ref.get()).get('spot_id') === 'string', 'spot formed');
   const spotId = (await f.n.ref.get()).get('spot_id');
   for (const ref of refs.slice(1)) { await ref.update({ status: 'removed' }); await syncSpotMembership(ref.id); }
@@ -564,20 +565,68 @@ test('a single location note stays closed outside its own radius without waiting
   assert.equal((await read(undefined)).posts[0].locked, true);
 });
 
-test('a small real group opens all of its notes on site before it has persistent spot membership', async () => {
-  const f = await fixture(), other = await note(f.author, north(f.point, 24));
+test('a transient group lists every note but checks each note location until persistent membership exists', async () => {
+  const f = await fixture(), other = await note(f.author, north(f.point, 5.9));
   const ids = [f.n.created.post.id, other.created.post.id];
   const read = location => f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `post:${ids[0]}`, postIds: ids, location });
-  const near = await read(fix(f.point.lat, f.point.lng));
+  const near = await read(fix(north(f.point, -17).lat, f.point.lng));
   assert.equal(near.posts.length, 2);
-  assert.ok(near.posts.every(p => !p.locked), 'reading applies to the real place, not only the note nearest the visitor');
+  assert.equal(near.posts.find(p => p.id === ids[0]).locked, undefined);
+  assert.equal(near.posts.find(p => p.id === ids[1]).locked, true,
+    'a transient group cannot extend the access area of a note beyond its own reading circle');
   assert.ok((await read(undefined)).posts.every(p => p.locked));
   const singleHint = await f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `post:${ids[0]}`, postIds: [ids[0]], location: fix(f.point.lat, f.point.lng) });
   assert.equal(singleHint.total, 2, 'a side-panel singleton must discover the full real group');
   await f.n.ref.delete();
-  const recovered = await read(fix(north(f.point, 24).lat, f.point.lng));
+  const recovered = await read(fix(north(f.point, 5.9).lat, f.point.lng));
   assert.equal(recovered.total, 1); assert.equal(recovered.group.id, `post:${ids[1]}`);
   assert.equal(recovered.posts[0].locked, undefined, 'a deleted anchor cannot strand the remaining note');
+});
+
+test('another transient anchor cannot unlock a neighbouring note through a different group circle', async () => {
+  const f = await fixture(), ids = ['00000000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000003'];
+  const original = (await f.n.ref.get()).data();
+  await f.n.ref.delete();
+  for (const [index, id] of ids.entries()) {
+    const point = north(f.point, index * 5);
+    await adminDb.collection('posts').doc(id).set({ ...original, id, lat: point.lat, lng: point.lng,
+      geohash: encodeGeohash(point.lat, point.lng), spot_id: null });
+  }
+  const read = anchor => f.visitor.call('readPublicContent', { mode: 'map_group', groupId: `post:${anchor}`,
+    location: fix(north(f.point, 24).lat, f.point.lng, 0) });
+  const first = await read(ids[0]), last = await read(ids[2]);
+  for (const page of [first, last]) {
+    const middle = page.posts.find(post => post.id === ids[1]);
+    assert.ok(middle, 'the reproduction must include the neighbouring note');
+    assert.equal(middle.locked, true); assert.equal(middle.caption, '');
+    assert.equal((await adminDb.collection('dense_spot_unlocks').doc(`${f.visitor.luid}_note_${ids[1]}`).get()).exists, false);
+  }
+  assert.equal(last.posts.find(post => post.id === ids[2]).locked, undefined,
+    'the note 14 m away remains readable');
+});
+
+test('views reject suspended or deleted viewers and authors without changing counters or receipts', async () => {
+  const f = await fixture(), postId = f.n.ref.id;
+  const receipt = adminDb.collection('post_view_receipts').doc(`${postId}_${f.visitor.luid}_${new Date().toISOString().slice(0, 10)}`);
+  const view = () => f.visitor.call('recordPostView', { postId });
+  for (const account of [f.visitor.luid, f.author.luid]) {
+    const ref = adminDb.collection('profiles').doc(account);
+    for (const patch of [{ suspended: true }, { deleted_at: Timestamp.now() }]) {
+      const before = (await f.n.ref.get()).data();
+      await ref.update(patch);
+      const error = await expectFailure(view());
+      assert.equal(error.code, 'functions/permission-denied');
+      const after = (await f.n.ref.get()).data();
+      assert.equal(after.views_count, before.views_count);
+      assert.equal(after.engagement_score, before.engagement_score);
+      assert.equal((await receipt.get()).exists, false);
+      await ref.update({ suspended: false, deleted_at: null });
+    }
+  }
+  assert.equal((await view()).views, 1);
+  assert.equal((await view()).views, 1, 'an active viewer is still counted only once per day');
+  assert.equal((await receipt.get()).exists, true);
 });
 
 test('entering a dense spot sends one text-free alert, and the region list advertises unalerted spots', async () => {

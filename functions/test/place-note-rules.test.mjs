@@ -83,16 +83,16 @@ test('density cells cover precisions 4 to 7 and box enumeration finds every inte
   assert.equal(validBox({ ...box, minLat: 42 }), false);
 });
 
-test('spot joins preserve the fixed centre, reject members beyond 25 m and cap GPS tolerance', () => {
+test('spot joins preserve the fixed centre, reject members beyond 6 m and cap GPS tolerance', () => {
   const p = (north, east = 0) => ({ lat: 41 + north * METER, lng: 29 + east * METER / Math.cos(41 * Math.PI / 180) });
   const seed = spotOf([p(0), p(4), p(-4), p(0, 4), p(0, -4)]);
   assert.equal(seed.count, 5); assert.ok(Math.abs(seed.lat - 41) < 1e-7); assert.ok(seed.radius > 3.9 && seed.radius < 4.1);
-  const grown = joinSpot(seed, p(20).lat, p(20).lng);
+  const grown = joinSpot(seed, p(5.99).lat, p(5.99).lng);
   assert.equal(grown.count, 6);
   assert.equal(grown.lat, seed.lat); assert.equal(grown.lng, seed.lng);
-  assert.ok(grown.radius >= 19 && grown.radius <= 25);
-  assert.throws(() => joinSpot(seed, p(26).lat, p(26).lng), /outside 25 m/);
-  assert.throws(() => joinSpot({ ...seed, radius: 39 }, p(80).lat, p(80).lng), /outside 25 m/);
+  assert.ok(grown.radius >= 5.9 && grown.radius <= 6);
+  assert.throws(() => joinSpot(seed, p(6.1).lat, p(6.1).lng), /outside 6 m/);
+  assert.throws(() => joinSpot({ ...seed, radius: 39 }, p(80).lat, p(80).lng), /outside 6 m/);
   const spot = { lat: 41, lng: 29, radius: 10 };
   assert.equal(distanceToSpot(41, 29, spot), 0);
   const fix = (north, accuracy) => ({ ...p(north), accuracy, measuredAt: Date.now() });
@@ -109,7 +109,7 @@ test('persistent spot seeding and growth preserve neighbours across the date lin
   const seed = spotOf([{ lat: 0, lng: 179.99995 }, { lat: 0, lng: -179.99995 }]);
   assert.ok(Math.abs(seed.lng) > 179.9999);
   assert.ok(seed.radius > 5 && seed.radius < 6);
-  const grown = joinSpot(seed, 0, 179.9999);
+  const grown = joinSpot(seed, 0, 179.99996);
   assert.ok(Math.abs(grown.lng) > 179.9999);
-  assert.ok(grown.radius < 15);
+  assert.ok(grown.radius <= 6);
 });

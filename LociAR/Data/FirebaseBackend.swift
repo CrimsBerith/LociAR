@@ -189,7 +189,12 @@ struct CallableClient: Sendable {
         let payloadData = try Self.jsonEncoder().encode(payload)
         let object = try JSONSerialization.jsonObject(with: payloadData)
         let data = try await callRaw(name, object: object, timeout: timeout)
-        return try FirestoreJSON.decoder().decode(Response.self, from: data)
+        do {
+            return try FirestoreJSON.decoder().decode(Response.self, from: data)
+        } catch {
+            DiagnosticsReporter.report(error, component: .callable(name))
+            throw error
+        }
     }
 
     nonisolated func callRaw(
@@ -226,8 +231,12 @@ struct CallableClient: Sendable {
                     _ = try? await user.getIDTokenResult(forcingRefresh: true)
                     continue
                 }
+                DiagnosticsReporter.report(error, component: .callable(name))
                 if let transient = BackendErrorPolicy.transient(code: error.code, userInfo: error.userInfo) { throw transient }
                 throw BackendErrorPolicy.map(code: error.code, message: error.localizedDescription, userInfo: error.userInfo) ?? error
+            } catch {
+                DiagnosticsReporter.report(error, component: .callable(name))
+                throw error
             }
         }
     }

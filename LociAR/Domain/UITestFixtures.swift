@@ -6,9 +6,11 @@ enum UITestFixtures {
     static var signedOutSessionEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_SIGNED_OUT") }
     static var authenticatedSessionEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_AUTHENTICATED") }
     static var authenticatedUser: LociUser {
-        ProcessInfo.processInfo.arguments.contains("UITEST_OTHER_USER")
+        var user = ProcessInfo.processInfo.arguments.contains("UITEST_OTHER_USER")
             ? LociUser(id: UUID(uuidString: "44444444-4444-4444-4444-444444444444")!, handle: "not_okuru", email: nil)
             : creator
+        if ProcessInfo.processInfo.arguments.contains("UITEST_GUEST_ACCOUNT") { user.role = "anonymous" }
+        return user
     }
     static var sampleContentEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_SAMPLE_CONTENT") }
     static var socialARPreviewEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_SOCIAL_AR_PREVIEW") }

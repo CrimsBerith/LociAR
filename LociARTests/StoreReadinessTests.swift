@@ -27,6 +27,12 @@ final class StoreReadinessTests: XCTestCase {
     }
 #endif
 
+    func testNormalBuildsHideCreatorSupportUntilExplicitlyEnabled() {
+        // Turning this on also requires terms/privacy, App Privacy (Purchases) and App Review notes updates.
+        XCTAssertFalse(PostSupportAvailability.releaseBuilds)
+        XCTAssertFalse(PostSupportAvailability.showsEntryPoints)
+    }
+
     func testShippedInfoPlistDeclaresStorePackagingRequirements() throws {
         let bundle = appBundle
         // Usage descriptions are localized (InfoPlist.xcstrings); every language names the app and
@@ -78,7 +84,13 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeName"), "Apple full name is sent to ensureProfile")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeProductInteraction"), "views/likes and analytics_events")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCoarseLocation"), "analytics_events keep approximate location")
-        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherDataTypes"), "camera-derived features sent to Google ARCore")
+        let environment = try XCTUnwrap(collected.first {
+            ($0["NSPrivacyCollectedDataType"] as? String) == "NSPrivacyCollectedDataTypeEnvironmentScanning"
+        }, "AR relocalization uploads environment maps and visual features")
+        XCTAssertEqual(environment["NSPrivacyCollectedDataTypeLinked"] as? Bool, true,
+                       "WorldMapStore uploads under the account/post path; anonymous public attribution does not unlink server data")
+        XCTAssertEqual(environment["NSPrivacyCollectedDataTypePurposes"] as? [String],
+                       ["NSPrivacyCollectedDataTypePurposeAppFunctionality"])
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCrashData"), "Firebase Crashlytics")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherDiagnosticData"), "Firebase Crashlytics diagnostics")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeDeviceID"), "FCM registration token stored per account")

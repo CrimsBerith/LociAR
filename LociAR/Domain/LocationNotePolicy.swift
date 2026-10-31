@@ -14,14 +14,14 @@ enum ArrivalLocationMode: Equatable {
 /// Location-note thresholds. Mirrors `functions/src/placeNoteRules.ts`; keep the numbers in sync.
 enum LocationNotePolicy {
     /// Fixed-centre spot membership; mirrors SPOT_JOIN_RADIUS_M on the server.
-    static let spotJoinRadius: CLLocationDistance = 25
+    static let spotJoinRadius: CLLocationDistance = 6
     /// A GPS estimate this good and stable can be published without waiting.
     static let readyAccuracy: CLLocationAccuracy = 10
     /// Best GPS accuracy accepted without asking the author to place the pin.
     static let gpsAcceptAccuracy: CLLocationAccuracy = 15
     /// Above this the note is refused; the author should move outside or wait.
     static let maxCreateAccuracy: CLLocationAccuracy = 50
-    static let maxPinDrag: CLLocationDistance = 50
+    static let maxPinDrag: CLLocationDistance = 12
     /// Longest wait after the publish tap. GPS rarely improves after ~10 s; indoors it never converges.
     static let maxPublishWait: TimeInterval = 10
     /// Samples spread used to call an estimate stable.
@@ -64,6 +64,36 @@ struct LocationNoteEntryConfirmation {
     }
 }
 
+/// Simulated GPS is trusted only in the explicitly opted-in, synthetic local
+/// backend on a Debug simulator. Device and Release builds always reject it.
+enum LocationProvenancePolicy {
+    nonisolated static let permitsDemoSimulation: Bool = {
+#if DEBUG && targetEnvironment(simulator)
+        let configuration = AppConfiguration.load()
+        return AppConfiguration.permitsDemoEmulatorHTTP(
+            settings: configuration.firebase, host: configuration.emulatorHost,
+            optedIn: ProcessInfo.processInfo.environment["LOCIAR_DEMO_EMULATOR_HTTP"] == "1"
+        )
+#else
+        return false
+#endif
+    }()
+
+    nonisolated static func accepts(simulated: Bool, approvedDemoFixture: Bool) -> Bool {
+        guard simulated else { return true }
+#if DEBUG && targetEnvironment(simulator)
+        return approvedDemoFixture
+#else
+        return false
+#endif
+    }
+
+    nonisolated static func accepts(_ location: CLLocation) -> Bool {
+        accepts(simulated: location.sourceInformation?.isSimulatedBySoftware == true,
+                approvedDemoFixture: permitsDemoSimulation)
+    }
+}
+
 struct LocationSample: Equatable, Sendable {
     let latitude: Double
     let longitude: Double
@@ -82,10 +112,7 @@ struct LocationSample: Equatable, Sendable {
 
 extension LocationSample {
     init(_ location: CLLocation) {
-        var simulated = location.sourceInformation?.isSimulatedBySoftware == true
-#if targetEnvironment(simulator)
-        simulated = false
-#endif
+        let simulated = !LocationProvenancePolicy.accepts(location)
         self.init(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
                   accuracy: location.horizontalAccuracy, timestamp: location.timestamp, simulated: simulated)
     }

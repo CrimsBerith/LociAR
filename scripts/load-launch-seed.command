@@ -3,7 +3,7 @@
 # Double-click in Finder or run in Terminal on a Mac. Needs Google Cloud CLI (gcloud), git and Node.js 22.
 # Works in a separate checkout (~/.lociar-seed) of the published branch, so local edits stay untouched.
 # Safe to re-run: the content user and every note have fixed keys, loaded items are skipped.
-# Approximate pins are loaded too (--allow-approx); retire a batch with seed-notes.mjs --retire.
+# Strict preflight stops on unreviewed pins, identity plans or existing-text mismatches.
 # SEED_LIST chooses batches (default: the world capitals and the business notes; the A/B Turkey drafts wait
 # for coordinate review). Field-only AR drafts stay held whatever is passed.
 set -euo pipefail
@@ -76,10 +76,10 @@ ACTOR="$(run scripts/seed-prepare.mjs ${SEED_ACTOR_EMAIL:+--actor-email "$SEED_A
 
 for SEED in ${SEED_LIST:-world-capitals landmark-businesses}; do
   step "Kontrol: $SEED (yalnız okur)"
-  run scripts/seed-notes.mjs --seed "$SEED" --actor "$ACTOR" --allow-approx || true
+  run scripts/seed-notes.mjs --seed "$SEED" --actor "$ACTOR" --require-complete
   step "Yükleme: $SEED"
-  run scripts/seed-notes.mjs --seed "$SEED" --actor "$ACTOR" --apply --allow-approx
+  run scripts/seed-notes.mjs --seed "$SEED" --actor "$ACTOR" --apply --require-complete
 done
 
 echo ""
-echo "✅ Notlar yüklendi. Uygulamada haritayı uzaklaştır: başkentler parlamalı."
+echo "✅ Sıkı kontrol ve yükleme işlemleri bitti. Eklenen ve önceden bulunan kayıt sayılarını logdan kontrol et."

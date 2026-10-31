@@ -24,7 +24,7 @@ export default function TermsPageEn() {
 
       <h2>Your account</h2>
       <p>
-        Publishing requires Sign in with Apple or a verified email account. You are responsible for keeping your account
+        Using the app requires Sign in with Apple or a verified email account. New notes are anonymous by default; you can choose to show your username. You are responsible for keeping your account
         secure. You can delete your account in Profile → Delete account permanently; deletion cannot be undone.
       </p>
 

@@ -1,6 +1,8 @@
 # FIX-12 — LociAR on iki ajanlı düzeltme planı
 
-**Ad:** FIX-12. **Tarih:** 24 Ekim 2026. **Yürüten:** Gemini. **Tek kaynak bu dosyadır.**
+**Güncel el:** [GEMINI_CONTINUE_2026-10-24.md](GEMINI_CONTINUE_2026-10-24.md). Bu dosyayı baştan yürütme. HEAD artık `60afbca` değil.
+
+**Ad:** FIX-12. **Tarih:** 24 Ekim 2026. **Yürüten:** Gemini. İlk plan buydu.
 
 `docs/release/TEN_AGENT_FIX_PLAN_2026-10-24.md` ve `docs/release/TWO_AGENT_ADDON_2026-10-24.md` yürürlükten kalktı. Onları yürütme.
 

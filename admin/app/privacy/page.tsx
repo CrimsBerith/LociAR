@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="11 Ekim 2026">
+    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="26 Ekim 2026">
       <p>
         LociAR, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.10 kapsamında aydınlatma metni olarak da
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
         <li><strong>GIPHY:</strong> GIF arama ve GIF gösterimi (aşağıda).</li>
       </ul>
       <p>
-        Herkese açık gönderiler diğer kullanıcılara görünür; anonim gönderilerde yazarın adı ve profili gizlenir. Yetkili kurumların hukuka uygun talepleri
+        Herkese açık gönderiler diğer kullanıcılara görünür. Yeni notlar varsayılan olarak anonimdir; kullanıcı adınızı göstermeyi seçerseniz adınız ve profiliniz notla birlikte görünür. Anonim gönderilerde yazarın adı ve profili gizlenir. Yetkili kurumların hukuka uygun talepleri
         halinde veriler paylaşılabilir.
       </p>
 

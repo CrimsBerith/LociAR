@@ -15,7 +15,7 @@ export const DEFAULT_AR_NOTIFY_RADIUS_M = 20;
 /** Worst creation accuracy; above it the app asks the author to wait or move outside. */
 export const MAX_CREATE_ACCURACY_M = 50;
 /** A manual pin may move at most this far from the measured position. */
-export const MAX_PIN_DRAG_M = 50;
+export const MAX_PIN_DRAG_M = 12;
 /** Entry fixes worse than this are discarded; GPS indoors is often 15-50 m. */
 export const MAX_ENTRY_ACCURACY_M = 35;
 /** How much of the visitor's uncertainty may extend the note radius. */
@@ -34,14 +34,16 @@ export function deliveryRetryActive(createdAtMs: number | null, now: number, ret
   const until = typeof retryUntilMs === 'number' && Number.isFinite(retryUntilMs) ? Math.min(deadline, retryUntilMs) : deadline;
   return now < until;
 }
-export const CLUSTER_RADIUS_M = 25;
+export const CLUSTER_RADIUS_M = 6;
 /** Wake ahead of the note so GPS can settle before a visitor reaches a shop-sized circle. */
 export const WAKE_RADIUS_MIN_M = 300;
 export const WAKE_RADIUS_MAX_M = 400;
 export const REGION_SEARCH_RADIUS_M = 3_000;
 export const DENSITY_PRECISIONS = [4, 5, 6, 7] as const;
 /** Notes within this distance of a spot's centre join it; a spot forms from this many neighbours. */
-export const SPOT_JOIN_RADIUS_M = 25;
+export const SPOT_JOIN_RADIUS_M = 6;
+/** Bump when membership geometry changes; old paging sessions must not retain wider groups. */
+export const SPOT_MEMBERSHIP_VERSION = 3;
 export const MIN_SPOT_SIZE = 5;
 export const MAX_SPOT_RADIUS_M = 40;
 /** A spot with at least this many public notes is a dense spot (admin setting, 5-1000). */
@@ -103,7 +105,7 @@ export function compareByLikes(a: RankedNote, b: RankedNote): number {
 export type NoteCluster = { id: string; lat: number; lng: number; radius: number; triggerRadius: number; notes: Array<{ lat: number; lng: number; r: number }> };
 
 /**
- * Greedy 25 m grouping seeded by the most-liked note. The wake circle covers every member's
+ * Greedy 6 m grouping seeded by the most-liked note. The wake circle covers every member's
  * trigger circle plus a walking margin, within iOS-friendly bounds.
  */
 export function clusterNotes(notes: RankedNote[]): NoteCluster[] {
@@ -143,10 +145,10 @@ export function fixUnlocksSpot(fix: Fix, spot: Spot, unlockRadius: number): bool
   return Math.max(0, distanceToSpot(fix.lat, fix.lng, spot) - spot.radius) <= unlockRadius + Math.min(fix.accuracy, UNLOCK_TOLERANCE_CAP_M);
 }
 
-/** A fixed centre prevents later joins from pushing existing members outside 25 m. */
+/** A fixed centre prevents later joins from pushing existing members outside 6 m. */
 export function joinSpot(spot: Spot & { count: number }, lat: number, lng: number): Spot & { count: number } {
   const distance = distanceToSpot(lat, lng, spot);
-  if (distance > SPOT_JOIN_RADIUS_M) throw new RangeError('Spot member is outside 25 m');
+  if (distance > SPOT_JOIN_RADIUS_M) throw new RangeError('Spot member is outside 6 m');
   return { lat: spot.lat, lng: spot.lng, radius: Math.min(SPOT_JOIN_RADIUS_M, Math.max(spot.radius, distance)), count: spot.count + 1 };
 }
 
@@ -159,7 +161,7 @@ export function spotOf(points: Array<{ lat: number; lng: number }>): Spot & { co
     ({ lat, lng } = points[0]);
     radius = Math.max(...points.map(p => distanceMeters(lat, lng, p.lat, p.lng)));
   }
-  if (radius > SPOT_JOIN_RADIUS_M) throw new RangeError('Spot members need separate 25 m groups');
+  if (radius > SPOT_JOIN_RADIUS_M) throw new RangeError('Spot members need separate 6 m groups');
   return { lat, lng, count: points.length, radius };
 }
 

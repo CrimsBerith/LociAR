@@ -116,3 +116,49 @@ test('launch seed batches are validated and stored on the post for measuring and
  const post=(await db.collection('posts').doc(created.id).get()).data();
  assert.equal(post.seed_batch,'world-capitals-test');assert.equal(post.note_kind,'location');assert.equal(post.creator_id,author);
 });
+
+test('managed posts freeze named or anonymous attribution across replay, edits and storage projections',async()=>{
+ const {actor,author}=await fixture();
+ await db.collection('profiles').doc(author).update({admin_managed:true});
+ const {anonymousIdentity}=await import('../../../functions/src/anonymous.ts');
+ for(const authorAttribution of ['named','anonymous']){
+  const key=randomUUID(),body=input(author,{authorAttribution,locationNote:true});
+  const first=await saveAdminPost(body,actor,reason,key);const ref=db.collection('posts').doc(first.id);
+  assert.deepEqual(await saveAdminPost(body,actor,reason,key),first);
+  const post=(await ref.get()).data();const anonymous=authorAttribution==='anonymous';
+  assert.equal(post.is_anonymous,anonymous);assert.equal(post.admin_managed,true);
+  assert.equal(post.creator_id,author);assert.equal(post.created_by_admin,actor);
+  assert.equal((await db.collection('storage_reclamations').doc(first.id).get()).get('is_anonymous'),anonymous);
+  const projected=anonymousIdentity(first.id,post.creator_id,'unrelated-viewer',post.is_anonymous);
+  assert.equal(projected.creator_id,anonymous?first.id:author);
+  assert.equal(projected.creator_handle,anonymous?null:undefined);
+  const opposite=anonymous?'named':'anonymous';
+  await assert.rejects(saveAdminPost({...body,authorAttribution:opposite},actor,reason,key),/idempotency_key_reused/);
+  await assert.rejects(saveAdminPost({...body,authorAttribution:opposite},actor,reason,randomUUID(),first.id),/post_attribution_cannot_be_changed/);
+  const omitted={...body,text:'Edited without changing attribution'};delete omitted.authorAttribution;
+  await saveAdminPost(omitted,actor,reason,randomUUID(),first.id);
+  assert.equal((await ref.get()).get('is_anonymous'),anonymous);
+  assert.equal((await db.collection('storage_reclamations').doc(first.id).get()).get('is_anonymous'),anonymous);
+ }
+});
+
+test('delegated normal users cannot be made anonymous and invalid attribution never silently becomes named',async()=>{
+ const {actor,author}=await fixture();
+ await assert.rejects(saveAdminPost(input(author,{authorAttribution:'anonymous'}),actor,reason,randomUUID()),/anonymous_requires_managed_author/);
+ for(const authorAttribution of [true,false,null,'hidden',''])assert.throws(()=>input(author,{authorAttribution}),/invalid_author_attribution/);
+ for(const field of ['anonymous','isAnonymous','is_anonymous','authorVisibility'])assert.throws(()=>input(author,{[field]:true}),/use_author_attribution/);
+});
+
+test('reviewed bulk edits reject concurrent changes atomically and replay their own completed receipt',async()=>{
+ const{actor,author}=await fixture();const created=await saveAdminPost(input(author),actor,reason,randomUUID());const ref=db.collection('posts').doc(created.id);
+ const old=await ref.get();const version=`${old.updateTime.seconds}:${old.updateTime.nanoseconds}`;
+ const body=input(author,{text:'Reviewed revision',caption:'Reviewed revision',expectedUpdateTime:version});
+ await ref.update({caption:'A newer edit'});const rejected=randomUUID();
+ await assert.rejects(saveAdminPost(body,actor,reason,rejected,created.id),/post_changed_since_review/);
+ assert.equal((await ref.get()).get('caption'),'A newer edit');assert.equal((await db.collection('admin_audit_log').doc(rejected).get()).exists,false);
+ const current=await ref.get();const fresh={...body,expectedUpdateTime:`${current.updateTime.seconds}:${current.updateTime.nanoseconds}`};const key=randomUUID();
+ await saveAdminPost(fresh,actor,reason,key,created.id);await saveAdminPost(fresh,actor,reason,key,created.id);
+ await saveAdminPost({...fresh,expectedUpdateTime:version},actor,reason,key,created.id);
+ await assert.rejects(saveAdminPost({...fresh,text:'A different request'},actor,reason,key,created.id),/idempotency_key_reused/);
+ assert.equal((await ref.get()).get('caption'),'Reviewed revision');
+});

@@ -14,6 +14,7 @@ final class PlaceNoteClient {
     private struct Payload: Encodable {
         let userId: String; let clientMutationId: String; let lat: Double; let lng: Double
         let source: Source; let accuracy: Double; let measuredLat: Double?; let measuredLng: Double?; let text: String
+        let anonymous: Bool
     }
     struct Response: Decodable {
         let publishStatus: PostStatus
@@ -36,21 +37,21 @@ final class PlaceNoteClient {
         return Response(publishStatus: receipt.status)
     }
 
-    func create(at pin: CLLocationCoordinate2D, source: Source, measured: LocationEstimate, text: String, mutation: UUID, user: UUID) async throws -> Response {
+    func create(at pin: CLLocationCoordinate2D, source: Source, measured: LocationEstimate, text: String, mutation: UUID, user: UUID, anonymous: Bool = true) async throws -> Response {
         guard let callables, FirebaseIdentity.currentLUID() == user else { throw AuthFlowError.notSignedIn }
         do {
             return try await callables.call("createPlaceNote", payload: Payload(
                 userId: FirebaseIdentity.key(user), clientMutationId: mutation.uuidString.lowercased(),
                 lat: pin.latitude, lng: pin.longitude, source: source, accuracy: measured.accuracy,
                 measuredLat: source == .manual ? measured.latitude : nil, measuredLng: source == .manual ? measured.longitude : nil,
-                text: text), timeout: 60)
+                text: text, anonymous: anonymous), timeout: 60)
         } catch BackendCallError.rejected(_, let message, let reason) {
             throw PostPublishError.rejected(FirestorePostRepository.serverMessage(message, reason: reason))
         }
     }
 }
 
-/// Only an opaque, account-scoped intent UUID reaches disk. Never store note text or a text digest.
+/// Only an owner-scoped intent UUID and its optional attribution choice reach disk. No note text or digest.
 @MainActor
 struct PlaceNotePendingIntentStore {
     var defaults: UserDefaults = .standard
@@ -58,12 +59,24 @@ struct PlaceNotePendingIntentStore {
     private func key(for user: UUID) -> String { "place-note.pending-intent.\(user.uuidString.lowercased())" }
 
     func pending(for user: UUID) -> UUID? {
-        defaults.string(forKey: key(for: user)).flatMap(UUID.init(uuidString:))
+        let value = defaults.string(forKey: key(for: user))
+            ?? defaults.dictionary(forKey: key(for: user))?["mutation"] as? String
+        return value.flatMap(UUID.init(uuidString:))
     }
 
-    func save(_ mutation: UUID, for user: UUID) {
-        defaults.set(mutation.uuidString.lowercased(), forKey: key(for: user))
-        // Flush the opaque id before the network write can commit and its response can be lost.
+    func publishAnonymously(for user: UUID) -> Bool {
+        defaults.dictionary(forKey: key(for: user))?["anonymous"] as? Bool ?? true
+    }
+
+    func save(_ mutation: UUID, for user: UUID, anonymously: Bool = true) {
+        // A retry cannot change a choice that may already have committed remotely.
+        guard pending(for: user) != mutation else { return }
+        if anonymously {
+            defaults.set(mutation.uuidString.lowercased(), forKey: key(for: user))
+        } else {
+            defaults.set(["mutation": mutation.uuidString.lowercased(), "anonymous": false], forKey: key(for: user))
+        }
+        // Store id and choice together before the network write can commit and lose its response.
         defaults.synchronize()
     }
 
@@ -100,8 +113,8 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
         running = true; requestedPreciseAccuracy = false
         // Seeded fixes count as warm-up time already spent on the map.
         let now = Date()
-        // Check raw Core Location provenance before LocationSample's simulator fixture conversion.
-        let genuineSeed = seed.filter { $0.sourceInformation?.isSimulatedBySoftware != true && $0.timestamp <= now }
+        // Apply the same raw-provenance boundary to warm-up and live fixes.
+        let genuineSeed = seed.filter { LocationProvenancePolicy.accepts($0) && $0.timestamp <= now }
         let oldest = genuineSeed.map(\.timestamp).min()
         estimator = LocationFixEstimator(startedAt: oldest.map { min(now, $0) } ?? now)
         estimator.seed(genuineSeed.map(LocationSample.init), now: now)
@@ -157,7 +170,7 @@ final class LocationNoteMeasurement: NSObject, @preconcurrency CLLocationManager
     func locationManager(_ _: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard running else { return }
         let now = Date()
-        for location in locations where location.sourceInformation?.isSimulatedBySoftware != true && location.timestamp <= now {
+        for location in locations where LocationProvenancePolicy.accepts(location) && location.timestamp <= now {
             estimator.add(LocationSample(location), now: now)
         }
         estimate = estimator.estimate
@@ -189,6 +202,7 @@ struct PlaceNoteComposer: View {
     /// Map centre while the author places the pin by hand; nil while following GPS.
     @State private var manualPin: CLLocationCoordinate2D?
     @State private var text = ""
+    @State private var publishAnonymously = true
     @State private var mutation = UUID()
     @State private var mutationOwner: UUID?
     @State private var hasPendingIntent = false
@@ -234,21 +248,32 @@ struct PlaceNoteComposer: View {
                         .focused($isTextFocused)
                         .accessibilityIdentifier("place-note-text")
                         .onChange(of: text) { _, _ in
-                            if !hasPendingIntent || submittedTextInThisScreen { startNewIntent(restartMeasurement: false) }
+                            if !hasPendingIntent || submittedTextInThisScreen {
+                                startNewIntent(restartMeasurement: false,
+                                               resetIdentity: hasPendingIntent || submitted || submittedTextInThisScreen)
+                            }
                         }
                     Text("En fazla 220 karakter.").font(.caption).foregroundStyle(.secondary)
-                    Text("Not anonim ve hemen yayınlanır. Bulunduğun nokta kaydedilir. Yeterince beğenilen notlar, o noktaya gelen ziyaretçilere bir kez bildirim olarak gider; şikayet edilen notlar gizlenir.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    PublishingIdentityPicker(anonymously: $publishAnonymously, showsExplanation: false)
+                        .disabled(hasPendingIntent)
+                    Text(publishAnonymously
+                         ? String(localized: "Adın diğer kullanıcılara görünmez. Notun ve konumu hemen paylaşılır.")
+                         : String(localized: "Kullanıcı adın, notun ve konumu hemen paylaşılır."))
+                        .font(.footnote).foregroundStyle(.secondary)
+                    DisclosureGroup(String(localized: "Notlar nasıl çalışır?")) {
+                        Text("Yeterince beğenilen notlar, o konuma gelen ziyaretçilere bir kez bildirilir. Şikâyet edilen notlar gizlenir.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                     Button { Task { await publish() } } label: {
                         if waiting { Label("Konum netleşiyor…", systemImage: "location.circle") }
-                        else { Label("Burada yayınla", systemImage: "mappin.and.ellipse") }
+                        else { Label("Burada paylaş", systemImage: "mappin.and.ellipse") }
                     }
                     .disabled(busy || submitted || trimmed.isEmpty || textLength > 220 || measurement.denied)
                     .accessibilityIdentifier("place-note-publish")
                 }
                 .disabled(busy || submitted)
                 if hasPendingIntent || submitted {
-                    Button("Yeni", systemImage: "plus") { startNewIntent(clearText: true) }
+                    Button("Yeni not", systemImage: "plus") { startNewIntent(clearText: true) }
                         .disabled(busy)
                         .accessibilityIdentifier("place-note-new-intent")
                 }
@@ -265,12 +290,14 @@ struct PlaceNoteComposer: View {
             }
             .navigationTitle("Konum notu bırak")
             .navigationBarTitleDisplayMode(.inline)
+            .tint(LociTheme.accent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() }.disabled(busy) }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Bitti") { isTextFocused = false }
-                        .accessibilityIdentifier("keyboard-done-button")
+                ToolbarItem(placement: .confirmationAction) {
+                    if isTextFocused {
+                        Button("Bitti") { isTextFocused = false }
+                            .accessibilityIdentifier("keyboard-done-button")
+                    }
                 }
             }
         }
@@ -296,7 +323,7 @@ struct PlaceNoteComposer: View {
         !Task.isCancelled && currentOwner == user && mutationOwner == user && mutation == id
     }
 
-    private func startNewIntent(clearText: Bool = false, restartMeasurement: Bool = true) {
+    private func startNewIntent(clearText: Bool = false, restartMeasurement: Bool = true, resetIdentity: Bool = true) {
         if let owner = mutationOwner { pendingIntents.clear(mutation, for: owner) }
         mutation = UUID()
         hasPendingIntent = false
@@ -304,6 +331,7 @@ struct PlaceNoteComposer: View {
         submitted = false
         submittedPin = nil
         message = nil
+        if resetIdentity { publishAnonymously = true }
         if clearText { text = "" }
         if restartMeasurement { measurement.start(seed: seed) }
     }
@@ -311,6 +339,7 @@ struct PlaceNoteComposer: View {
     private func restorePendingIntent() async {
         guard let owner = currentOwner else {
             mutationOwner = nil; text = ""; submitted = false; hasPendingIntent = false; busy = false
+            publishAnonymously = true
             return
         }
         if mutationOwner != owner {
@@ -318,6 +347,7 @@ struct PlaceNoteComposer: View {
             text = ""; submitted = false; submittedTextInThisScreen = false; submittedPin = nil
             mutationOwner = owner
             mutation = pendingIntents.pending(for: owner) ?? UUID()
+            publishAnonymously = pendingIntents.publishAnonymously(for: owner)
         }
         hasPendingIntent = pendingIntents.pending(for: owner) == mutation
         guard hasPendingIntent else { return }
@@ -445,7 +475,7 @@ struct PlaceNoteComposer: View {
                 message = String(localized: "Konum aranıyor. Açık bir alanda kısa süre bekleyin."); return
             }
             guard (dragDistance ?? 0) <= LocationNotePolicy.maxPinDrag else {
-                message = String(localized: "Pin, konumundan en fazla 50 m uzağa taşınabilir."); return
+                message = String(localized: "Pin, konumundan en fazla 12 m uzağa taşınabilir."); return
             }
             guard measured.accuracy <= LocationNotePolicy.maxCreateAccuracy else {
                 message = Self.tooUncertain(measured.accuracy); return
@@ -497,12 +527,14 @@ struct PlaceNoteComposer: View {
             message = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin.")
             return
         }
-        pendingIntents.save(id, for: user)
+        let anonymous = hasPendingIntent ? pendingIntents.publishAnonymously(for: user) : publishAnonymously
+        pendingIntents.save(id, for: user, anonymously: anonymous)
+        publishAnonymously = anonymous
         hasPendingIntent = true
         submittedTextInThisScreen = true
         submittedPin = pin
         do {
-            let response = try await PlaceNoteClient.shared.create(at: pin, source: source, measured: measured, text: trimmed, mutation: id, user: user)
+            let response = try await PlaceNoteClient.shared.create(at: pin, source: source, measured: measured, text: trimmed, mutation: id, user: user, anonymous: anonymous)
             complete(response, mutation: id, user: user, pin: pin)
         } catch {
             guard ownsIntent(id, user: user) else { return }

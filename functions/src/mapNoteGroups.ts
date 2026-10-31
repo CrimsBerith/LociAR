@@ -1,5 +1,5 @@
 import { distanceMeters } from './geo';
-import { SPOT_JOIN_RADIUS_M, spotOf, stableUuid, validCoordinates, type Spot } from './placeNoteRules';
+import { SPOT_JOIN_RADIUS_M, SPOT_MEMBERSHIP_VERSION, spotOf, stableUuid, validCoordinates, type Spot } from './placeNoteRules';
 
 export type MapGroupPost = { id: string; lat: number; lng: number; spotId?: string };
 export type MapNoteGroup = {
@@ -11,7 +11,7 @@ export function mapGroupSummary(id: string, posts: MapGroupPost[]): MapNoteGroup
   return { id, ...spotOf(posts), post_ids: posts.map(post => post.id) };
 }
 
-/** Stable identities come from server spots; small, not-yet-clustered sets use a fixed 25 m anchor. */
+/** Stable identities come from server spots; small, not-yet-clustered sets use a fixed 6 m anchor. */
 export function mapNoteGroups(posts: MapGroupPost[]): MapNoteGroup[] {
   const groups: Array<{ id: string; spotId?: string; anchorLat: number; anchorLng: number; posts: MapGroupPost[] }> = [];
   for (const post of [...posts].sort((a, b) => a.id.localeCompare(b.id, 'en'))) {
@@ -40,7 +40,7 @@ export function splitSpotPlan(spotId: string, centre: Spot, posts: MapGroupPost[
   const inside = posts.filter(p => distanceMeters(centre.lat, centre.lng, p.lat, p.lng) <= SPOT_JOIN_RADIUS_M);
   const retained = new Set(inside.map(p => p.id));
   const groups = mapNoteGroups(posts.filter(p => !retained.has(p.id)).map(p => ({ ...p, spotId: undefined })))
-    .map(g => ({ ...g, id: stableUuid(`spot-split-v2:${spotId}:${g.id}`) }));
+    .map(g => ({ ...g, id: stableUuid(`spot-split-v${SPOT_MEMBERSHIP_VERSION}:${SPOT_JOIN_RADIUS_M}:${spotId}:${g.id}`) }));
   if (inside.length) groups.unshift({ id: spotId, lat: centre.lat, lng: centre.lng, count: inside.length,
     radius: Math.max(...inside.map(p => distanceMeters(centre.lat, centre.lng, p.lat, p.lng))),
     post_ids: inside.map(p => p.id).sort((a, b) => a.localeCompare(b, 'en')) });

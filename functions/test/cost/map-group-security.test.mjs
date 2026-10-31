@@ -30,9 +30,9 @@ assert.equal(db.projectId, project);
 const uid = `map-security-viewer-${randomUUID()}`, viewer = luidForUid(uid), author = luidForUid(`map-security-author-${randomUUID()}`);
 const spotId = randomUUID(), ids = Array.from({ length: 19 }, () => randomUUID()).sort();
 const activeIds = ids.slice(0, 17), hiddenId = ids[17], missingId = ids[18];
-const oldToken = randomUUID(), poisonedToken = randomUUID(), tokens = new Set([oldToken, poisonedToken]);
+const oldToken = randomUUID(), oldRadiusToken = randomUUID(), poisonedToken = randomUUID(), tokens = new Set([oldToken, oldRadiusToken, poisonedToken]);
 const centre = { lat: 41, lng: 29, radius: 40 }, step = 180 / (Math.PI * 6371008.8);
-const points = activeIds.map((id, i) => ({ id, lat: centre.lat + (153 * i / 16 - 76.5) * step, lng: centre.lng, spotId }));
+const points = activeIds.map((id, i) => ({ id, lat: centre.lat + ((i === 1 ? 5 : 153 * i / 16) - 76.5) * step, lng: centre.lng, spotId }));
 const targetIds = new Set([spotId, ...splitSpotPlan(spotId, centre, points).map(g => g.id)]);
 const fixedRefs = [db.collection('profiles').doc(viewer), db.collection('profiles').doc(author),
   ...ids.map(id => db.collection('posts').doc(id)), ...ids.map(id => db.collection('note_spot_members').doc(id)),
@@ -70,7 +70,7 @@ async function main() {
   for (const id of [hiddenId, missingId]) seed.set(db.collection('note_spot_members').doc(id), { post_id: id, spot_id: spotId, owner_luid: author });
   await seed.commit();
   let groups;
-  await check('real map summaries partition 17 legacy notes spanning 153 m losslessly within 25 m', async () => {
+  await check('real map summaries partition 17 legacy notes spanning 153 m losslessly within 6 m', async () => {
     const response = await call({ mode: 'map_groups', latitude: centre.lat, longitude: centre.lng, radiusMeters: 200 });
     // Other root-owned fixtures may coexist; only inspect this probe's exact UUIDs.
     groups = response.groups.filter(g => g.post_ids.some(id => activeIds.includes(id)));
@@ -78,7 +78,7 @@ async function main() {
     assert.ok(groups.length > 1);
     const byId = new Map(points.map(p => [p.id, p]));
     for (const g of groups) for (const id of g.post_ids) {
-      const p = byId.get(id); assert.ok(p); assert.ok(distanceMeters(g.lat, g.lng, p.lat, p.lng) <= 25);
+      const p = byId.get(id); assert.ok(p); assert.ok(distanceMeters(g.lat, g.lng, p.lat, p.lng) <= 6);
     }
   });
   await check('each real handler reads only the requested canonical members; remote fixes retain locks', async () => {
@@ -90,7 +90,7 @@ async function main() {
       assert.ok(remote.posts.every(p => p.locked && p.caption === ''));
     }
   });
-  await check('readArea cannot open an explicitly listed member beyond its canonical 25 m centre', async () => {
+  await check('readArea cannot open an explicitly listed member beyond its canonical 6 m centre', async () => {
     const first = groups.find(g => g.post_ids.includes(activeIds[0]));
     const far = await db.collection('posts').doc(activeIds[16]).get();
     const locks = await denseLocks([far], viewer, fix(first), { ...first, id: spotId, post_ids: [far.id], groupId: first.id });
@@ -105,14 +105,16 @@ async function main() {
     assert.deepEqual(after.posts.map(p => p.id).sort(), before.posts.filter(p => p.id !== activeIds[0]).map(p => p.id).sort());
     assert.ok(after.posts.every(p => !p.locked)); await block.delete(); await anchor.update({ is_anonymous: true });
   });
-  await check('pre-v2 legacy cursors reject; a poisoned v2 session cannot carry distant bodies', async () => {
-    for (const [token, version] of [[oldToken, undefined], [poisonedToken, 2]]) {
+  await check('pre-v3 legacy cursors reject; a poisoned v3 session cannot carry distant bodies', async () => {
+    for (const [token, version] of [[oldToken, undefined], [oldRadiusToken, 2], [poisonedToken, 3]]) {
       const data = { owner_luid: viewer, requested_group_id: `spot:${spotId}`, group_id: `spot:${spotId}`,
         post_ids: activeIds, expires_at: Timestamp.fromMillis(Date.now() + 60000) };
       if (version) data.membership_version = version;
       await db.collection('map_group_sessions').doc(token).set(data);
     }
     await assert.rejects(call({ mode: 'map_group', groupId: `spot:${spotId}`, pageToken: oldToken, offset: 1,
+      location: fix(points[0]) }), e => e.code === 'failed-precondition');
+    await assert.rejects(call({ mode: 'map_group', groupId: `spot:${spotId}`, pageToken: oldRadiusToken, offset: 1,
       location: fix(points[0]) }), e => e.code === 'failed-precondition');
     const page = await call({ mode: 'map_group', groupId: `spot:${spotId}`, pageToken: poisonedToken, offset: 15,
       location: fix(points[0]) });
@@ -133,7 +135,7 @@ async function main() {
       assert.ok(distanceMeters(target.get('lat'), target.get('lng'), post.get('lat'), post.get('lng')) <= 25);
       const member = await db.collection('note_spot_members').doc(id).get(); assert.equal(member.get('spot_id'), target.id);
       const original = points.find(p => p.id === id);
-      if (distanceMeters(centre.lat, centre.lng, original.lat, original.lng) <= 25) assert.equal(target.id, spotId);
+      if (distanceMeters(centre.lat, centre.lng, original.lat, original.lng) <= 6) assert.equal(target.id, spotId);
     }
     for (const id of targetIds) { const target = await db.collection('note_spots').doc(id).get(); if (target.exists) total += target.get('count'); }
     assert.equal(total, 17);

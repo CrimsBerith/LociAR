@@ -145,7 +145,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     }
 
     nonisolated private static func isVerified(_ user: User) -> Bool {
-        if user.isAnonymous { return true }
+        if user.isAnonymous { return false }
         if user.isEmailVerified { return true }
         return user.providerData.contains { $0.providerID == "apple.com" }
     }
@@ -258,10 +258,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     }
 
     func signInAnonymously() async throws -> LociUser {
-        guard TermsConsent.isAccepted else { throw AuthFlowError.notSignedIn }
-        if let user = Auth.auth().currentUser, user.isAnonymous { return try await establish(user) }
-        let result = try await Auth.auth().signInAnonymously()
-        return try await establish(result.user)
+        throw AuthFlowError.unsupported
     }
 
     func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult {

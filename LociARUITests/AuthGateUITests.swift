@@ -2,6 +2,259 @@ import ObjectiveC.runtime
 import UIKit
 import XCTest
 
+// Current-build screen inventory. Uses inert repositories and never submits real content or payments.
+extension AuthGateUITests {
+    private func screenTourApp(_ arguments: [String] = []) -> XCUIApplication {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"] + arguments
+        app.launch()
+        return app
+    }
+
+    private func screenTourProfile(_ app: XCUIApplication) {
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+        app.tabBars.buttons["Profil"].tap()
+        XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["profile-support-earnings"].exists)
+    }
+
+    func testScreenTour01Onboarding() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-hasCompletedOnboarding", "NO"]
+        app.launch()
+        XCTAssertTrue(app.buttons["onboarding-next"].waitForExistence(timeout: 10))
+        capture(app, name: "screen-01-onboarding-place")
+        app.buttons["onboarding-next"].tap()
+        XCTAssertTrue(app.staticTexts["Yakınındaki notları keşfet"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-02-onboarding-discover")
+        app.buttons["onboarding-next"].tap()
+        XCTAssertTrue(app.buttons["onboarding-finish"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-03-onboarding-privacy")
+    }
+
+    func testScreenTour02Authentication() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_SIGNED_OUT"]
+        app.launch()
+        XCTAssertTrue(app.textFields["auth-email-field"].waitForExistence(timeout: 10))
+        capture(app, name: "screen-04-auth-signin")
+        app.buttons["auth-mode-signup"].tap()
+        XCTAssertTrue(app.secureTextFields["auth-confirm-password-field"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-05-auth-signup")
+        app.buttons["auth-mode-signin"].tap()
+        app.buttons["auth-forgot-password"].tap()
+        XCTAssertTrue(app.navigationBars["Şifremi unuttum"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-06-auth-password-recovery")
+    }
+
+    func testScreenTour03PrimaryTabs() {
+        let app = screenTourApp()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+        capture(app, name: "screen-07-map")
+        app.tabBars.buttons["AR"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["screen-ar"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-08-ar-discover")
+        if app.buttons["arcore-notice"].exists {
+            app.buttons["arcore-notice"].tap()
+            XCTAssertTrue(app.alerts["Google AR"].waitForExistence(timeout: 5))
+            capture(app, name: "screen-09-google-ar-disclosure")
+            app.alerts["Google AR"].buttons["Tamam"].tap()
+        }
+        app.tabBars.buttons["Paylaş"].tap()
+        XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 8))
+        capture(app, name: "screen-10-share-ar-placement")
+        app.tabBars.buttons["Keşfet"].tap()
+        XCTAssertTrue(app.navigationBars["Keşfet"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."].waitForExistence(timeout: 5))
+        capture(app, name: "screen-11-discover")
+        screenTourProfile(app)
+        capture(app, name: "screen-12-profile")
+        scrollUntilHittable(app.buttons["profile-delete-account"], in: app, maxSwipes: 8)
+        capture(app, name: "screen-13-profile-account-actions")
+        // The inert preview account deliberately disables account deletion.
+        XCTAssertFalse(app.buttons["profile-delete-account"].isEnabled)
+    }
+
+    func testScreenTour04ProfileLists() {
+        let app = screenTourApp()
+        screenTourProfile(app)
+        for (route, title, name) in [
+            ("Notlarım", "Notlarım", "screen-15-my-posts"),
+            ("Aktivite", "Aktivite", "screen-16-activity"),
+            ("Koleksiyonlar", "Koleksiyonlar", "screen-17-collections"),
+            ("Kaydedilenler", "Kaydedilenler", "screen-19-saved-posts"),
+            ("Engellenen hesaplar", "Engellenenler", "screen-20-blocked-users"),
+            ("Davet kodu", "Davet kodu", "screen-21-invite")
+        ] {
+            let entry = app.staticTexts[route]
+            scrollUntilHittable(entry, in: app, maxSwipes: 8)
+            entry.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5))
+            capture(app, name: name)
+            if route == "Koleksiyonlar" {
+                app.buttons["Yeni"].tap()
+                XCTAssertTrue(app.alerts["Yeni koleksiyon"].waitForExistence(timeout: 5))
+                capture(app, name: "screen-18-new-collection")
+                app.alerts.textFields.firstMatch.tap()
+                app.alerts.textFields.firstMatch.typeText("Şehir notları")
+                app.alerts.buttons["Oluştur"].tap()
+                XCTAssertTrue(app.staticTexts["Şehir notları"].waitForExistence(timeout: 5))
+                capture(app, name: "screen-18b-collection-created")
+                app.staticTexts["Şehir notları"].tap()
+                XCTAssertTrue(app.navigationBars["Şehir notları"].waitForExistence(timeout: 5))
+                capture(app, name: "screen-18c-collection-detail")
+                app.navigationBars.buttons.element(boundBy: 0).tap()
+                XCTAssertTrue(app.navigationBars["Koleksiyonlar"].waitForExistence(timeout: 5))
+            }
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+            XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 5))
+        }
+    }
+
+    func testScreenTour05SettingsAndProfileEdit() {
+        let app = screenTourApp()
+        screenTourProfile(app)
+        app.buttons["profile-edit-button"].tap()
+        XCTAssertTrue(app.navigationBars["Profili düzenle"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-22-edit-profile")
+        scrollUntilHittable(app.buttons["profile-edit-photo"], in: app, maxSwipes: 8)
+        capture(app, name: "screen-23-edit-profile-avatars")
+        app.buttons["Vazgeç"].tap()
+        let settings = app.buttons["profile-settings"]
+        scrollUntilHittable(settings, in: app, maxSwipes: 8)
+        settings.tap()
+        XCTAssertTrue(app.navigationBars["Ayarlar"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-24-settings-overview")
+        for (page, control, shot) in [
+            ("notifications", "settings-notifications", "screen-24b-notifications"),
+            ("privacy", "settings-share-admin-location", "screen-25-privacy"),
+            ("translation", "settings-translate-notes", "screen-26-translation"),
+            ("diagnostics", "settings-crash-reports", "screen-26b-diagnostics")
+        ] {
+            app.buttons["settings-open-\(page)"].tap()
+            XCTAssertTrue(identifiedControl(app, control).waitForExistence(timeout: 5))
+            capture(app, name: shot)
+            app.navigationBars.buttons.firstMatch.tap()
+        }
+    }
+
+    func testScreenTour06PostAndSafety() {
+        let app = screenTourApp(["UITEST_OTHER_USER", "UITEST_OPEN_POST_DIRECTLY"])
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["post-like-button"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["post-support-button"].exists)
+        capture(app, name: "screen-27-post-detail-no-donations")
+        let report = app.buttons["post-report"]
+        scrollUntilHittable(report, in: app)
+        report.tap()
+        XCTAssertTrue(app.buttons["Spam veya yanıltıcı"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-28-report-reasons")
+        // iOS may present confirmationDialog as a popover without a cancel row.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.70)).tap()
+        let more = app.buttons["post-more-menu"]
+        scrollUntilHittable(more, in: app)
+        more.tap()
+        app.buttons["post-add-to-collection"].tap()
+        XCTAssertTrue(app.navigationBars["Koleksiyonlar"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-29-add-post-to-collection")
+        app.buttons["Kapat"].tap()
+        let profile = app.buttons["post-open-profile"]
+        scrollUntilHittable(profile, in: app, maxSwipes: 6)
+        profile.tap()
+        let blockButton = app.buttons["profile-block-user"]
+        scrollUntilHittable(blockButton, in: app, maxSwipes: 6)
+        XCTAssertTrue(blockButton.waitForExistence(timeout: 5))
+        capture(app, name: "screen-30-public-profile")
+        blockButton.tap()
+        let confirmBlock = app.buttons["Engelle"]
+        if !confirmBlock.waitForExistence(timeout: 2) {
+            scrollUntilHittable(blockButton, in: app, maxSwipes: 2)
+            blockButton.tap()
+        }
+        XCTAssertTrue(confirmBlock.waitForExistence(timeout: 5))
+        capture(app, name: "screen-31-block-confirmation")
+        if app.buttons["Vazgeç"].waitForExistence(timeout: 1) {
+            app.buttons["Vazgeç"].tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.70)).tap()
+        }
+    }
+
+    func testScreenTour07EditorAndGIF() {
+        let app = screenTourApp(["UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY"])
+        XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 10))
+        capture(app, name: "screen-32-create-editor")
+        let gif = app.buttons["GIF ekle"]
+        scrollUntilHittable(gif, in: app, maxSwipes: 6)
+        gif.tap()
+        XCTAssertTrue(app.navigationBars["GIF seç"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["gif-attribution"].exists || app.descendants(matching: .any)["gif-attribution"].exists)
+        capture(app, name: "screen-33-giphy-picker")
+    }
+
+    func testScreenTour08LocationNoteAndSurface() {
+        let app = screenTourApp()
+        XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+        app.buttons["map-location-note"].tap()
+        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-34-location-note-position")
+        let field = identifiedControl(app, "place-note-text")
+        scrollUntilHittable(field, in: app, maxSwipes: 6)
+        field.tap()
+        field.typeText("Bu sokakta bir an dur, şehri dinle.")
+        dismissKeyboard(app)
+        scrollUntilHittable(app.buttons["place-note-publish"], in: app, maxSwipes: 6)
+        capture(app, name: "screen-35-location-note-draft")
+        app.buttons["Kapat"].tap()
+        app.buttons["map-create"].tap()
+        XCTAssertTrue(app.navigationBars["Yüzey seç"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-36-create-surface")
+    }
+
+    func testScreenTour09ARViewer() {
+        let app = screenTourApp(["UITEST_OTHER_USER", "UITEST_OPEN_POST_DIRECTLY"])
+        XCTAssertTrue(app.buttons["post-open-ar"].waitForExistence(timeout: 10))
+        app.buttons["post-open-ar"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["ar-post-viewer"].waitForExistence(timeout: 10))
+        capture(app, name: "screen-37-ar-post-viewer")
+    }
+
+    func testScreenTour10PermissionRecovery() {
+        let app = screenTourApp(["UITEST_CAMERA_DENIED"])
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+        app.tabBars.buttons["Paylaş"].tap()
+        XCTAssertTrue(app.buttons["Kamera ayarlarını aç"].waitForExistence(timeout: 8))
+        capture(app, name: "screen-38-camera-permission-recovery")
+        app.terminate()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_LOCATION_DENIED"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Ayarlar"].waitForExistence(timeout: 8))
+        capture(app, name: "screen-39-location-permission-recovery")
+    }
+
+    func testScreenTour11GuestAccount() {
+        let app = screenTourApp(["UITEST_GUEST_ACCOUNT"])
+        XCTAssertTrue(app.buttons["auth-mode-signin"].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        XCTAssertFalse(app.buttons["auth-anonymous"].exists)
+        capture(app, name: "screen-40-legacy-guest-membership-gate")
+    }
+
+    func testScreenTour12ARCoreDiagnostics() {
+        let app = screenTourApp()
+        screenTourProfile(app)
+        let coverage = app.buttons["profile-debug-arcore"]
+        scrollUntilHittable(coverage, in: app, maxSwipes: 8)
+        coverage.tap()
+        XCTAssertTrue(app.navigationBars["ARCore kapsamı"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-43-arcore-debug-coverage")
+    }
+}
+
 extension XCUIApplication {
     @objc dynamic func loci_launch() {
         if ProcessInfo.processInfo.environment["E2E_DEMO_EMULATOR_HTTP"] == "1" {
@@ -39,33 +292,45 @@ final class AuthGateUITests: XCTestCase {
         capture(app, name: "auth-english-localization")
     }
 
-    func testAnonymousEntryRequiresConsent() {
+    func testNewNotesDefaultToAnonymousAndAllowUsername() {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments.append("UITEST_SIGNED_OUT")
-        app.launch()
-        let entry = app.buttons["auth-anonymous"]
-        XCTAssertTrue(entry.waitForExistence(timeout: 8))
-        // A preceding real SDK run may have retained consent. Establish the
-        // unchecked state through the actual control, independently of entry.
-        let consent = identifiedControl(app, "auth-terms-consent")
-        if consent.isSelected { consent.tap() }
-        XCTAssertFalse(consent.isSelected)
-        XCTAssertFalse(entry.isEnabled)
-        consent.tap()
-        XCTAssertTrue(entry.isEnabled)
-        app.terminate()
-        app.launch()
-        XCTAssertTrue(entry.waitForExistence(timeout: 8))
-        XCTAssertTrue(consent.isSelected, "Accepted consent must survive relaunch")
-        XCTAssertTrue(entry.isEnabled)
-        consent.tap()
-        XCTAssertFalse(entry.isEnabled)
-        app.terminate()
-        app.launch()
-        XCTAssertTrue(entry.waitForExistence(timeout: 8))
-        XCTAssertFalse(consent.isSelected, "Revoked consent must survive relaunch")
-        XCTAssertFalse(entry.isEnabled)
+        for editor in [false, true] {
+            app.launchArguments = ["UITEST_AUTHENTICATED"]
+            if editor { app.launchArguments += ["UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY"] }
+            app.launch()
+            if !editor {
+                XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+                app.buttons["map-location-note"].tap()
+            }
+            let identity = app.switches["publish-anonymously"]
+            scrollUntilHittable(identity, in: app, maxSwipes: 8)
+            XCTAssertTrue(identity.waitForExistence(timeout: 5))
+            XCTAssertEqual(identity.value as? String, "1")
+            capture(app, name: editor ? "ar-note-anonymous-default" : "location-note-anonymous-default")
+            identity.coordinate(withNormalizedOffset: CGVector(dx: 0.84, dy: 0.5)).tap()
+            let attributed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '0'"), object: identity)
+            XCTAssertEqual(XCTWaiter.wait(for: [attributed], timeout: 5), .completed)
+            XCTAssertTrue(app.staticTexts[editor ? "Kullanıcı adın notta görünür." : "Kullanıcı adın, notun ve konumu hemen paylaşılır."].exists)
+            capture(app, name: editor ? "ar-note-username-selected" : "location-note-username-selected")
+            app.terminate()
+        }
+    }
+
+    func testMembershipRequiredForAppEntry() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        for arguments in [["UITEST_SIGNED_OUT"], ["UITEST_AUTHENTICATED", "UITEST_GUEST_ACCOUNT"]] {
+            app.launchArguments = arguments
+            app.launch()
+            XCTAssertTrue(app.buttons["auth-mode-signin"].waitForExistence(timeout: 8))
+            XCTAssertTrue(app.buttons["auth-mode-signup"].exists)
+            XCTAssertFalse(app.buttons["auth-anonymous"].exists)
+            XCTAssertFalse(app.buttons["auth-device-preview"].exists)
+            XCTAssertFalse(app.tabBars.firstMatch.exists)
+            capture(app, name: "membership-required")
+            app.terminate()
+        }
     }
 
     func testAuthGateArabicLocalizationAndRTL() {
@@ -108,7 +373,7 @@ final class AuthGateUITests: XCTestCase {
         let saved = app.staticTexts["Kaydedilenler"]
         scrollUntilHittable(saved, in: app, maxSwipes: 10)
         XCTAssertTrue(saved.waitForExistence(timeout: 3))
-        let privacy = app.staticTexts["Gizlilik ve güvenlik"]
+        let privacy = app.staticTexts["Tercihler"]
         scrollUntilHittable(privacy, in: app, maxSwipes: 10)
         XCTAssertTrue(privacy.exists)
         let deletionWarning = app.staticTexts["Hesap silme işlemi geri alınamaz."]
@@ -185,7 +450,7 @@ final class AuthGateUITests: XCTestCase {
         let tabs = app.tabBars.firstMatch
         XCTAssertTrue(tabs.waitForExistence(timeout: 5))
         tabs.buttons["Harita"].tap()
-        XCTAssertTrue(app.staticTexts["Yakındaki postlar"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Yakındaki notlar"].waitForExistence(timeout: 10))
         let row = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier BEGINSWITH %@", "map-open-"))
             .firstMatch
@@ -193,12 +458,15 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Yakın çevre taranıyor"].exists)
         XCTAssertGreaterThanOrEqual(row.frame.height, 44, "Not satırı erişilebilir bir dokunma alanı sağlamalı.")
         row.tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 8))
     }
 
     func testCameraFreeNoteUsesServerUnicodeLengthLimit() {
         continueAfterFailure = false
         let app = XCUIApplication()
+        // A denial left by another test must not mask text validation.
+        app.resetAuthorizationStatus(for: .location)
+        addPrivacyAlertMonitor()
         app.launchArguments = ["UITEST_AUTHENTICATED"]
         app.launch()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
@@ -243,13 +511,17 @@ final class AuthGateUITests: XCTestCase {
             app.tabBars.buttons.element(boundBy: 4).tap()
             scrollUntilHittable(app.buttons["profile-settings"], in: app, maxSwipes: 6)
             app.buttons["profile-settings"].tap()
+            app.buttons["settings-open-notifications"].tap()
             XCTAssertTrue(app.switches["settings-notifications"].waitForExistence(timeout: 10), language)
             XCTAssertTrue(app.switches["settings-promotions"].exists, language)
+            capture(app, name: "notification-settings-\(language)")
+            app.navigationBars.buttons.firstMatch.tap()
+            app.buttons["settings-open-translation"].tap()
             let translation = app.switches["settings-translate-notes"]
             scrollUntilHittable(translation, in: app, maxSwipes: 6)
             XCTAssertTrue(translation.exists, language)
             XCTAssertTrue(translation.isEnabled, language)
-            capture(app, name: "notification-settings-\(language)")
+            capture(app, name: "translation-settings-\(language)")
             app.terminate()
         }
     }
@@ -303,7 +575,7 @@ final class AuthGateUITests: XCTestCase {
         tabs.buttons["Keşfet"].tap()
         XCTAssertTrue(app.staticTexts["Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."].waitForExistence(timeout: 5))
         app.staticTexts["Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."].tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["post-report"].waitForExistence(timeout: 3))
         app.buttons["post-open-profile"].tap()
         XCTAssertTrue(app.buttons["profile-block-user"].waitForExistence(timeout: 3))
@@ -313,17 +585,21 @@ final class AuthGateUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY"]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["post-like-button"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["post-report"].exists)
-        XCTAssertFalse(app.buttons["post-more-menu"].exists)
+        XCTAssertTrue(app.buttons["post-more-menu"].exists)
         XCTAssertFalse(app.buttons["post-support-button"].exists)
+        app.buttons["post-more-menu"].tap()
+        XCTAssertTrue(app.buttons["post-add-to-collection"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["post-block-user"].exists)
     }
 
     func testSupportOpensFromRightmostPostActionWithoutShowingAnAuthorOrFakePayment() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY"]
+        app.launchArguments.append("UITEST_SUPPORT_UI")
         app.launch()
         let support = app.buttons["post-support-button"]
         scrollUntilHittable(support, in: app)
@@ -344,7 +620,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Destek ödemeleri henüz kullanıma açık değil."].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["support-pay"].exists)
         app.buttons["Kapat"].tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
     }
 
     func testSupportUnavailableStateRemainsUsableAtAccessibilityXXXL() {
@@ -353,6 +629,7 @@ final class AuthGateUITests: XCTestCase {
         app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT",
                                "UITEST_OPEN_POST_DIRECTLY", "-UIPreferredContentSizeCategoryName",
                                UIContentSizeCategory.accessibilityExtraExtraExtraLarge.rawValue]
+        app.launchArguments.append("UITEST_SUPPORT_UI")
         app.launch()
         let support = app.buttons["post-support-button"]
         scrollUntilHittable(support, in: app, maxSwipes: 10)
@@ -365,13 +642,14 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertFalse(app.buttons["support-pay"].exists)
         capture(app, name: "support-accessibility-xxxl")
         app.buttons["Kapat"].tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
     }
 
     func testSupportEarningsShowsUnavailableInsteadOfAnInventedBalance() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["UITEST_AUTHENTICATED"]
+        app.launchArguments.append("UITEST_SUPPORT_UI")
         app.launch()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5))
         app.tabBars.buttons["Profil"].tap()
@@ -393,6 +671,7 @@ final class AuthGateUITests: XCTestCase {
         app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
                                "UITEST_SUPPORT_PENDING", "UITEST_SUPPORT_CATALOG_UNAVAILABLE"]
         for launch in 0..<2 {
+            app.launchArguments.append("UITEST_SUPPORT_UI")
             app.launch()
             let support = app.buttons["post-support-button"]
             scrollUntilHittable(support, in: app)
@@ -411,6 +690,7 @@ final class AuthGateUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
                                "UITEST_SUPPORT_PENDING", "UITEST_SUPPORT_EXPIRED"]
+        app.launchArguments.append("UITEST_SUPPORT_UI")
         app.launch()
         let support = app.buttons["post-support-button"]
         scrollUntilHittable(support, in: app)
@@ -428,6 +708,7 @@ final class AuthGateUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
                                "UITEST_SUPPORT_PENDING", "UITEST_SUPPORT_FOREIGN_STOREFRONT"]
+        app.launchArguments.append("UITEST_SUPPORT_UI")
         app.launch()
         let support = app.buttons["post-support-button"]
         scrollUntilHittable(support, in: app)
@@ -497,7 +778,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertFalse(check.exists)
         capture(app, name: "support-verified-sandbox-receipt")
         app.buttons["Nota dön"].tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
     }
 
     func testSupportRestoresCompletedPaymentAndRequiresAnExplicitRepeat() {
@@ -507,6 +788,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertFalse(app.buttons["support-pay"].exists)
         capture(app, name: "support-completed-before-relaunch")
         app.terminate()
+        app.launchArguments.append("UITEST_SUPPORT_UI")
         app.launch()
         let support = app.buttons["post-support-button"]
         scrollUntilHittable(support, in: app)
@@ -549,7 +831,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(check.isEnabled)
         capture(app, name: "support-status-unavailable")
         app.buttons["Kapat"].tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
     }
 
     func testSupportPendingArabicLocalizationRemainsUsable() {
@@ -569,6 +851,7 @@ final class AuthGateUITests: XCTestCase {
         app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_OTHER_USER", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
                                "-AppleLanguages", "(\(language))", "-AppleLocale", language == "ar" ? "ar_SA" : "tr_TR"]
         app.launchEnvironment["UITEST_SUPPORT_SCENARIO"] = scenario
+        app.launchArguments.append("UITEST_SUPPORT_UI")
         app.launch()
         let support = app.buttons["post-support-button"]
         scrollUntilHittable(support, in: app)
@@ -626,7 +909,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 3))
         capture(app, name: "05-profile")
 
-        for route in ["Postlarım", "Aktivite", "Koleksiyonlar", "Kaydedilenler", "Engellenen hesaplar"] {
+        for route in ["Notlarım", "Aktivite", "Koleksiyonlar", "Kaydedilenler", "Engellenen hesaplar"] {
             let entry = app.staticTexts[route]
             scrollUntilHittable(entry, in: app, maxSwipes: 6)
             entry.tap()
@@ -680,7 +963,7 @@ final class AuthGateUITests: XCTestCase {
         app.tabBars.buttons["Keşfet"].tap()
         XCTAssertTrue(app.staticTexts["Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."].waitForExistence(timeout: 5))
         app.staticTexts["Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."].tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 3))
         capture(app, name: "06-post-detail")
         app.buttons["post-open-profile"].tap()
         XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 3))

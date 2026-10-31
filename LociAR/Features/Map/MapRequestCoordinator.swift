@@ -85,6 +85,9 @@ struct MapSummary: Sendable {
 /// author identities or access grants. The network loader always retains server authorization.
 @MainActor @Observable
 final class MapRequestCoordinator {
+    // Summary counts/heat only; on-site note access is still checked live by the server.
+    static let nearbySummaryTTL: TimeInterval = 60
+    static let coarseHeatTTL: TimeInterval = 300
     static let shared = MapRequestCoordinator { try await NoteDensityClient.shared.summary(for: $0) }
     struct Presentation {
         let viewport: MapViewport
@@ -260,7 +263,9 @@ final class MapRequestCoordinator {
                     self.isLoading = false; self.scheduleWake(); return
                 }
                 self.failures = 0; self.retryAt = 0
-                let ttl: TimeInterval = if case .heat(let precision) = request.kind, precision <= 6 { 300 } else { 60 }
+                let ttl: TimeInterval = if case .heat(let precision) = request.kind, precision <= 6 {
+                    Self.coarseHeatTTL
+                } else { Self.nearbySummaryTTL }
                 if result.estimatedBytes <= 2 * 1_024 * 1_024 {
                     self.entries.append((result, self.now() + ttl))
                     while self.entries.count > 32 || self.entries.reduce(0, { $0 + $1.summary.estimatedBytes }) > 2 * 1_024 * 1_024 {

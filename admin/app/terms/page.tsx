@@ -24,7 +24,7 @@ export default function TermsPage() {
 
       <h2>Hesap</h2>
       <p>
-        Yayınlamak için Apple ile Giriş veya doğrulanmış e-posta hesabı gerekir. Hesabınızın güvenliğinden siz sorumlusunuz.
+        Uygulamayı kullanmak için Apple ile Giriş veya doğrulanmış e-posta hesabı gerekir. Yeni notlar varsayılan olarak anonim paylaşılır; isterseniz kullanıcı adınızı göstermeyi seçebilirsiniz. Hesabınızın güvenliğinden siz sorumlusunuz.
         Hesabınızı Profil → Hesabı kalıcı olarak sil ile silebilirsiniz; silme geri alınamaz.
       </p>
 

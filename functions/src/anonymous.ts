@@ -1,7 +1,7 @@
 /**
- * Posts are shown without their author, but every post belongs to a verified Apple or email
- * identity that moderators can act on (App Store 1.2; owner decision 17 Oct 2026). Guests
- * (Anonymous Auth installations) may browse, like, report and block, but not publish.
+ * New notes default to hidden authorship; a verified member may explicitly show their username.
+ * In both modes moderators retain the owner identity. Anonymous Auth installations cannot publish;
+ * the native app also requires membership before entering its content screens (28 Oct 2026).
  */
 export function mayPublishAnonymously(caller: { provider: string; isAnonymous: boolean; isAppleUser: boolean; emailVerified: boolean }): boolean {
   return !caller.isAnonymous && (caller.isAppleUser || caller.emailVerified);

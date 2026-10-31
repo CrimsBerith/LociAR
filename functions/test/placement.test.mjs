@@ -12,6 +12,15 @@ const base = () => ({
   visibility: 'public',
 });
 
+test('publishing identity defaults to anonymous and accepts only explicit booleans', () => {
+  for (const anonymous of [undefined, true, false]) {
+    assert.equal(validateCreatePostBody({ ...base(), anonymous }), null);
+  }
+  for (const anonymous of [null, 'false', 0, 1, {}, []]) {
+    assert.equal(validateCreatePostBody({ ...base(), anonymous }), 'Invalid publishing identity');
+  }
+});
+
 test('rejects 18+, bad caption, missing layers and weak GPS', () => {
   assert.equal(validateCreatePostBody(base()), null);
   assert.match(validateCreatePostBody({ ...base(), ageRating: '18_plus' }), /18\+/);

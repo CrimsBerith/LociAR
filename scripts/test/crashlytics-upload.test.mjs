@@ -17,10 +17,10 @@ function fixture(t,body){
     LOCIAR_FIREBASE_GOOGLE_APP_ID:'synthetic-app-id',DWARF_DSYM_FOLDER_PATH:root,DWARF_DSYM_FILE_NAME:'LociAR.app.dSYM',
     LOCIAR_CRASHLYTICS_UPLOAD_TIMEOUT_SECONDS:'10'}};
 }
-function run(env){
+function run(env,expectedStatus=0){
   const result=spawnSync('/bin/sh',[script],{env,encoding:'utf8',timeout:20000});
   assert.equal(result.error,undefined);
-  assert.equal(result.status,0,result.stderr);
+  assert.equal(result.status,expectedStatus,result.stdout+result.stderr);
   return result;
 }
 test('non-Release builds do not start the symbol uploader',t=>{
@@ -48,4 +48,22 @@ test('stalled uploader is stopped within the deadline and termination grace',t=>
   const started=Date.now();
   assert.match(run({...env,LOCIAR_CRASHLYTICS_UPLOAD_TIMEOUT_SECONDS:'1'}).stdout,/timed out after 1s/);
   assert.ok(Date.now()-started<7500,'One-second deadline and five-second termination grace must remain bounded');
+});
+test('an archive fails rather than silently skipping a missing uploader',t=>{
+  const {root,env}=fixture(t,'exit 0');
+  const result=run({...env,ACTION:'install',LOCIAR_SOURCE_PACKAGES_DIR:join(root,'missing')},1);
+  assert.match(result.stdout,/symbols are required for distribution/);
+});
+test('an archive fails on an uploader error or deadline',t=>{
+  const {env}=fixture(t,'exit 7');
+  assert.match(run({...env,ACTION:'install'},1).stdout,/status 7/);
+  const stalled=fixture(t,'exec sleep 30');
+  assert.match(run({...stalled.env,ACTION:'install',LOCIAR_CRASHLYTICS_UPLOAD_TIMEOUT_SECONDS:'1'},1).stdout,/timed out/);
+});
+test('standard external CI package path is resolved without scanning build trees',t=>{
+  const {root,env}=fixture(t,'exit 0');
+  const ci=join(root,'build/ci-ios/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics');
+  mkdirSync(ci,{recursive:true});
+  writeFileSync(join(ci,'upload-symbols'),'#!/bin/sh\nexit 0\n',{mode:0o700});
+  assert.equal(run({...env,ACTION:'install',SRCROOT:root,BUILD_DIR:join(root,'different/Build/Products')}).stdout,'');
 });

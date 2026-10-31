@@ -36,7 +36,7 @@ function plain(value: unknown, max: number): string {
 
 /**
  * A location note is written where the author stands. GPS and Geospatial pins must be the
- * measured position; a pin moved by hand is `manual`, at most 50 m from the measurement.
+ * measured position; a pin moved by hand is `manual`, at most 12 m from the measurement.
  */
 export const createPlaceNote = onCall(options, async request => {
   const caller = requireCaller(request), b = request.data;
@@ -53,7 +53,7 @@ export const createPlaceNote = onCall(options, async request => {
   }
   const note: LocationNoteMetadata = { source, accuracy_m: Math.round(accuracy * 10) / 10, pin_drag_m: Math.round(drag * 10) / 10, notify_radius_m: defaultNotifyRadius(source, accuracy) };
   const text = plain(b.text, 220);
-  const data = { userId: caller.luid, clientMutationId: b.clientMutationId, caption: text, ageRating: 'all' as const, visibility: 'public' as const,
+  const data = { userId: caller.luid, clientMutationId: b.clientMutationId, caption: text, anonymous: b.anonymous, ageRating: 'all' as const, visibility: 'public' as const,
     pose: { latitude: b.lat, longitude: b.lng, heading: 0, anchor: { coordinateSpace: 'camera_free_space' as const,
       provider: 'native_ios_map', x: 0, y: 0, z: -2, yaw: 0, pitch: 0, roll: 0, capturedAt: new Date().toISOString() } },
     refImageUri: 'native-ar-reference://none', editData: { version: 1, layers: [{ id: b.clientMutationId, type: 'text', text }] } };

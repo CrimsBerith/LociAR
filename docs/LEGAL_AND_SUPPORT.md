@@ -30,13 +30,15 @@ domain is attached, update `Config/Base.xcconfig`, `admin/apphosting.yaml` (`ADM
 
 ## App Review contact
 
-- Email: same as support (`support@lociar.app`).
-- Demo path: verified `apple-review@lociar.app` account + `seed-review-content.mjs` sample posts (password only in
+- Email: same as support (`support@alfagolab.com`, the owner's Alfago Lab domain with Hostinger mail; owner decision
+  26 Oct 2026). `lociar.app` is not registered, so no `@lociar.app` address is used.
+- Demo path: verified `apple-review@alfagolab.com` account + `seed-review-content.mjs` sample posts (password only in
   App Store Connect).
 
 ## UGC statement (for App Review notes)
 
-> Users accept the privacy policy and community rules with an explicit checkbox before signing in. New posts are held
-> in `pending_review` until an admin approves them. Posts, comments and users can be reported and users blocked from
-> inside the app; reports are reviewed within 24 hours. 18+ content is not allowed and protected locations are
-> hard-blocked on the server.
+> Users accept the privacy policy and community rules with an explicit checkbox before signing in. New posts go live
+> after the automatic text filter, link ban, protected-zone and 18+ checks (owner decision, 18 Oct 2026); content
+> reported by several verified users is hidden automatically. Posts, comments and users can be reported and users
+> blocked from inside the app; reports are reviewed within 24 hours. 18+ content is not allowed and protected
+> locations are hard-blocked on the server. The full current notes text is `docs/release/APP_REVIEW_NOTES.md` §1.

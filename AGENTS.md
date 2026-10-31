@@ -44,10 +44,12 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 ## Product decisions
 
 - SMS auth is disabled unless the owner re-enables it.
-- **Publishing identity** (owner decision, 17 Oct 2026, App Store 1.2): guests (Firebase anonymous auth) browse, like,
-  report and block only. Posts, location notes and comments need a verified Apple or email identity
-  (`mayPublishAnonymously` in `functions/src/anonymous.ts`, `verifiedIdentity()` in `firestore.rules`); the app shows
-  `AccountRequiredView` instead of the composers. Do not describe the product as "anonymous chat" in store copy.
+- **Membership and publishing identity** (owner decision, 28 Oct 2026): entering the iOS app requires
+  a verified Apple or email account. No guest entry or automatic anonymous sign-in. Legacy anonymous sessions
+  return to sign-in and may link their account. The Debug preview entry is hidden unless explicitly launched with `UITEST_DEVICE_PREVIEW`. New AR posts and location notes default to anonymous authorship;
+  a member may explicitly show their username. Both choices require verified identity. The server derives the
+  author and handle and freezes the visibility choice for the same client mutation. Public anonymous projections
+  and independent block semantics must stay intact. Do not describe the product as "anonymous chat" in store copy.
 - **Blocks and anonymous authorship** (17 Oct 2026): a profile block (`user_blocks`) affects attributed content,
   comments and profiles only; "hide this author's notes" (`anonymous_blocks`) affects that author's anonymous notes
   only, for the muting viewer only. Neither may change any other surface, rule decision or error, or comparing
@@ -60,13 +62,15 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - **Direct publishing** (owner decision, 18 Oct 2026): AR posts and location notes publish at once after the automated
   checks in `createPost`; moderation is after the fact (reports, automatic hiding, 24-hour report handling). The trusted-author
   and high-quality auto-publish switches were removed. Keep the App Review notes, terms and store copy saying the same.
+- **Placement and grouping distances** (owner decision, 29 Oct 2026): a manually corrected location-note pin may move at most **12 m** from the measured fix; physical map/spot and notification grouping use **6 m** fixed-centre membership. Keep iOS and Functions in sync. GPS accuracy, note-reading radii and admission-density limits are separate policies.
 - **Location notes** (owner decision, 12 Oct 2026): written at the author's measured GPS position (no business/POI selection), published at once after the text filter, ordered by likes, never self-expiring (admin end date only). Likes from established accounts approve notifications automatically; reports hide notes. Entry rule `distance ≤ radius + min(accuracy, 20 m)` with 15–100 m radii. See `docs/LOCATION_NOTES.md`; keep `placeNoteRules.ts` and `LocationNotePolicy.swift` in sync.
-- **Map and note reading** (owner decision, 19 Oct 2026): use the Cam Katman glass heat style, with stable density colours and real 25 m groups at close zoom (`10 not`, including multiple notes at the same coordinate). Tapping a group lists every readable note by likes, with pagination. Other people's location-note text stays server-redacted remotely, even for a single note; `readPublicContent` map-group reads require a fresh on-site GPS/Geospatial fix. Zooming the map never grants access. Keep direct Firestore note reads closed, comment access server-granted, and anonymous/profile blocks independent. The dense threshold controls crowded-spot alerts, not location-note reading access.
+- **Map and note reading** (owner decision, 19 Oct 2026): use the Cam Katman glass heat style, with stable density colours and real 6 m groups at close zoom (`10 not`, including multiple notes at the same coordinate). Tapping a group lists every readable note by likes, with pagination. Other people's location-note text stays server-redacted remotely, even for a single note; `readPublicContent` map-group reads require a fresh on-site GPS/Geospatial fix. Zooming the map never grants access. Keep direct Firestore note reads closed, comment access server-granted, and anonymous/profile blocks independent. The dense threshold controls crowded-spot alerts, not location-note reading access.
   Map opening reads the server-only **map cell index** (`map_cells`, `functions/src/mapCells.ts`, owner request 22 Oct 2026),
   never a scan of every post in range: keep `map_groups`/`nearby` on it, keep the scan only as the fallback (index not
   complete, area over 2 km, overflowing cell), and apply the same account fences and block rules to index entries.
+- **Admin persona identities** (owner decision, 29 Oct 2026): prepare 50 distinct persona-linked handles for admin-only content operations. Managed Auth logins stay disabled/unverified and have no admin roles. Some notes are anonymous and others attributed; anonymity is a server-enforced per-post choice, never a blank/obscure handle. Keep server-stamped managed provenance and never imply independent real users or fabricate engagement. The local identity plan does not authorize uploads or changing existing authors; the admin writer needs a tested explicit attribution option before mixed-attribution publishing.
 - **Launch seed content** (owner decision, 19 Oct 2026): the map must not open empty. Seeds are team-written location notes
-  and approximate AR posts under the managed account `loci.guide`, loaded only through `admin/scripts/seed-notes.mjs`
+  and approximate AR posts under admin-managed content identities (`loci.guide` is the legacy author), loaded only through `admin/scripts/seed-notes.mjs`
   (dry run first, `saveAdminPost`, tagged `seed_batch`). Never review a business, source every fact, never scrape or quote
   Google Maps/Tripadvisor reviews. One AR per busy street. Business notes are facts about well-known businesses
   (`scripts/seed/landmark_businesses.py`), never taste, price or service, and never notify. See `docs/release/LAUNCH_SEED.md`.
@@ -101,6 +105,12 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   Admin publishing derives it from the selected managed content identity, never a supplied handle or client flag.
   Anonymous attribution and independent block semantics still apply. A/B seed drafts are generated by
   `scripts/seed/turkey_launch.py`; all require coordinate review, and A's 12 AR drafts require field Cloud Anchors.
+- **Creator support payments hidden** (owner decision, 28 Oct 2026): the note's support button and Profile → Earnings
+  stay hidden in normal Debug and Release builds (`PostSupportAvailability.releaseBuilds = false`,
+  `LociAR/Data/PostSupportClient.swift`). Only authenticated payment UI-test fixtures explicitly launched with
+  `UITEST_SUPPORT_UI` keep them, using fake payments; general UI tests keep the entries hidden.
+  Re-enable only at the owner's explicit request, with a live provider and updated terms, privacy, App Privacy
+  (Purchases) and App Review notes. Go-live checklist: `docs/release/APP_STORE_GO_LIVE_2026-10-26.md`.
 - **Crash reporting:** Firebase Crashlytics enabled.
 - **Store availability:** Global (all territories).
 - **Media model:** Text and/or one GIPHY GIF (no photos, videos, drawings or links). Social media links and drawings removed 9 Oct 2026.

@@ -31,6 +31,7 @@ struct PostPreviewView: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let post: LociPost
     @State private var refreshGate = ScreenRefreshGate()
     @State private var paginationGate = ScreenRefreshGate()
@@ -78,9 +79,10 @@ struct PostPreviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PostCard(post: post, likeCount: likeCount, viewCount: viewCount, allowsTranslationControls: true, textLineLimit: nil)
+                PostCard(post: post, likeCount: likeCount, viewCount: viewCount, allowsTranslationControls: true,
+                         textLineLimit: nil, authorProfile: post.isAnonymous ? nil : creatorUser)
                 if post.isLocked {
-                    Label("Notları görmek için yaklaş ve haritada aç.", systemImage: "lock.fill")
+                    Label("Bu not konumunda açılır.", systemImage: "lock.fill")
                         .font(.callout)
                     if let spot = post.denseSpot {
                         Button { router.focusMap(MapFocus(latitude: spot.lat, longitude: spot.lng)); dismiss() } label: {
@@ -90,11 +92,13 @@ struct PostPreviewView: View {
                 }
 
                 if post.isLocationNote, let pose = post.anchorBundle.anchor.geoPose {
-                    Label("Konum notu", systemImage: "mappin.and.ellipse")
                     Button {
                         MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: pose.latitude, longitude: pose.longitude)))
                             .openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
                     } label: { Label("Konumu gör", systemImage: "map") }
+                        .buttonStyle(.bordered)
+                        .tint(LociTheme.accent)
+                        .accessibilityIdentifier("post-show-location")
                 }
                 if let sponsorship = post.sponsorship {
                     Text(sponsorship.terms).font(.body)
@@ -109,84 +113,18 @@ struct PostPreviewView: View {
                         Label("Konumu gör", systemImage: "map")
                     }
                 }
-                if !post.isAnonymous {
-                NavigationLink {
-                    PublicProfileView(user: creatorUser)
-                } label: {
-                    HStack(spacing: 10) {
-                        LociAvatar(handle: creatorUser.handle, size: 36)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(verbatim: "@\(creatorUser.handle)").font(.subheadline.weight(.semibold))
-                            Text("Profili görüntüle").font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .padding(12).background(LociTheme.field, in: RoundedRectangle(cornerRadius: 16))
+                if !post.isLocationNote {
+                    LociInlineNotice(
+                        title: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "AR notu") : String(localized: "Yaklaşık yerleştirme"),
+                        message: post.anchorBundle.anchor.pinQuality.isPhysicalSurface
+                            ? String(localized: "AR için notun konumuna git.")
+                            : String(localized: "Bu not bir yüzeye sabitlenmedi."),
+                        symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "location.fill.viewfinder" : "exclamationmark.triangle.fill",
+                        color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
+                    )
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("post-open-profile")
-                }
-                LociInlineNotice(
-                    title: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "Konuma bağlı AR") : String(localized: "Yaklaşık yerleştirme"),
-                    message: post.anchorBundle.anchor.pinQuality.isPhysicalSurface
-                        ? String(localized: "AR görünümü yalnız postun kaydedildiği konumda açılır.")
-                        : String(localized: "Bu içerik fiziksel bir yüzeye kilitli değildir."),
-                    symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "location.fill.viewfinder" : "exclamationmark.triangle.fill",
-                    color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
-                )
                 if post.sponsorship == nil {
-                HStack(spacing: 10) {
-                    Button { Task { await toggleLike() } } label: {
-                        PostActionLabel(title: liked ? String(localized: "Beğenildi") : String(localized: "Beğen"), symbol: liked ? "heart.fill" : "heart", color: liked ? .pink : .white, effectValue: liked)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isLikeMutating)
-                    .accessibilityIdentifier("post-like-button")
-                    Button { Task { await toggleSaved() } } label: {
-                        PostActionLabel(title: saved ? String(localized: "Kaydedildi") : "Kaydet", symbol: saved ? "bookmark.fill" : "bookmark", color: saved ? LociTheme.accent : .white, effectValue: saved)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSaveMutating)
-                    .accessibilityIdentifier("post-save-button")
-                    if !ownsPost {
-                        Button { reportTarget = .post } label: {
-                            PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: .white)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isReporting)
-                        .accessibilityIdentifier("post-report")
-                        Menu {
-                            Button(role: .destructive) { confirmBlock = true } label: {
-                                // An anonymous note offers a mute that hides only this author's anonymous
-                                // notes and never names them (functions/src/visibility.ts).
-                                Label(post.isAnonymous ? String(localized: "Bu yazarın notlarını gizle") : String(localized: "Kullanıcıyı engelle"),
-                                      systemImage: "person.crop.circle.badge.xmark")
-                            }
-                            .accessibilityIdentifier("post-block-user")
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.title3)
-                                .foregroundStyle(.secondary)
-                                .frame(minWidth: 44, minHeight: 44)
-                                .contentShape(Rectangle())
-                        }
-                        .accessibilityLabel("Diğer seçenekler")
-                        .accessibilityIdentifier("post-more-menu")
-                    }
-                    if !post.isLocked {
-                        Button("Koleksiyona ekle") { showCollectionPicker = true }
-                    }
-                    if !ownsPost && !post.isLocked {
-                        Button { showPostSupport = true } label: {
-                            PostSupportIcon().foregroundStyle(LociTheme.accent)
-                                .frame(minWidth: 44, minHeight: 58).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Yazara destek ol")
-                        .accessibilityIdentifier("post-support-button")
-                    }
-                }
+                postActions
 
                 if !post.isLocked {
                 LociSectionLabel(title: "Yorumlar", symbol: "bubble.left.and.bubble.right")
@@ -244,7 +182,7 @@ struct PostPreviewView: View {
                 if isGuest {
                     // Comments need a verified account (firestore.rules verifiedIdentity()).
                     Button { showAccountCreation = true } label: {
-                        Label("Yorum yazmak için hesap oluştur", systemImage: "person.crop.circle.badge.plus")
+                        Label("Yorum yazmak için giriş yap", systemImage: "person.crop.circle.badge.plus")
                     }
                     .accessibilityIdentifier("comment-account-required")
                 } else {
@@ -294,8 +232,21 @@ struct PostPreviewView: View {
             }.padding()
         }
         .background(LociScreenBackground())
-        .navigationTitle("Post")
+        .navigationTitle("Not")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Sponsored location notes have no social action row; retain their secondary AR entry.
+            if post.isLocationNote, post.sponsorship != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu { openARButton } label: {
+                        Image(systemName: "ellipsis")
+                            .frame(minWidth: 44, minHeight: 44)
+                    }
+                    .accessibilityLabel("Diğer seçenekler")
+                    .accessibilityIdentifier("post-more-menu")
+                }
+            }
+        }
         .sensoryFeedback(.selection, trigger: likeTaps)
         .sensoryFeedback(.selection, trigger: saveTaps)
         .sensoryFeedback(.success, trigger: commentsSent)
@@ -311,11 +262,12 @@ struct PostPreviewView: View {
         }
         .refreshable { await load() }
         .safeAreaInset(edge: .bottom) {
-            Button("AR’da aç", systemImage: "viewfinder") { showAR = true }
-                .buttonStyle(LociPrimaryButtonStyle())
-                .padding(.horizontal, 16).padding(.vertical, 9)
-                .background(.ultraThinMaterial)
-                .accessibilityIdentifier("post-open-ar")
+            if !post.isLocationNote {
+                openARButton
+                    .buttonStyle(LociPrimaryButtonStyle())
+                    .padding(.horizontal, 16).padding(.vertical, 9)
+                    .background(.ultraThinMaterial)
+            }
         }
         .fullScreenCover(isPresented: $showAR) { ARPostViewerView(post: post) }
         .confirmationDialog(
@@ -339,8 +291,8 @@ struct PostPreviewView: View {
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: {
             Text(post.isAnonymous
-                 ? String(localized: "Bu yazarın anonim notlarını artık görmezsin. Yazarın kim olduğu sana gösterilmez.")
-                 : String(localized: "Bu kullanıcının adıyla paylaşılanları ve yorumlarını görmezsin, seni takip edemez. Anonim notlar kimseye yazarını göstermediği için bu engelden etkilenmez."))
+                 ? String(localized: "Bu yazarın anonim notları yalnız senin için gizlenir. Yazarın kimliği gösterilmez.")
+                 : String(localized: "Bu hesabın adıyla paylaştığı notları ve yorumları görmezsin; seni takip edemez. Anonim notlar bu engelden etkilenmez."))
         }
         .confirmationDialog("Yorumun adınla görünecek", isPresented: $confirmOwnAnonymousComment, titleVisibility: .visible) {
             Button("Yine de gönder") { Task { await addComment() } }
@@ -373,6 +325,92 @@ struct PostPreviewView: View {
             else { PostSupportView(post: post) }
         }
         .onChange(of: isGuest) { _, guest in if !guest { showAccountCreation = false } }
+    }
+
+    private var postActions: some View {
+        LazyVGrid(columns: actionColumns, spacing: 10) {
+            Button { Task { await toggleLike() } } label: {
+                PostActionLabel(title: String(localized: "Beğen"), symbol: liked ? "heart.fill" : "heart",
+                                color: liked ? .pink : .white, effectValue: liked)
+            }
+            .buttonStyle(.plain)
+            .disabled(isLikeMutating)
+            .accessibilityValue(liked ? String(localized: "Beğenildi") : String(localized: "Beğenilmedi"))
+            .accessibilityIdentifier("post-like-button")
+
+            // Saving remains one tap; collections are a separate choice under More.
+            Button { Task { await toggleSaved() } } label: {
+                PostActionLabel(title: String(localized: "Kaydet"), symbol: saved ? "bookmark.fill" : "bookmark",
+                                color: saved ? LociTheme.accent : .white, effectValue: saved)
+            }
+            .buttonStyle(.plain)
+            .disabled(isSaveMutating)
+            .accessibilityValue(saved ? String(localized: "Kaydedildi") : String(localized: "Kaydedilmedi"))
+            .accessibilityIdentifier("post-save-button")
+
+            if !ownsPost {
+                Button { reportTarget = .post } label: {
+                    PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: .white)
+                }
+                .buttonStyle(.plain)
+                .disabled(isReporting)
+                .accessibilityIdentifier("post-report")
+            }
+            if hasMoreActions { postMoreMenu }
+            if showsSupportEntryPoint {
+                Button { showPostSupport = true } label: {
+                    PostSupportIcon().foregroundStyle(LociTheme.accent)
+                        .frame(minWidth: 44, minHeight: 58).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Yazara destek ol")
+                .accessibilityIdentifier("post-support-button")
+            }
+        }
+    }
+
+    private var postMoreMenu: some View {
+        Menu {
+            if !post.isLocked {
+                Button { showCollectionPicker = true } label: {
+                    Label("Koleksiyona ekle", systemImage: "folder.badge.plus")
+                }
+                .accessibilityIdentifier("post-add-to-collection")
+            }
+            if post.isLocationNote { openARButton }
+            if !ownsPost {
+                Button(role: .destructive) { confirmBlock = true } label: {
+                    // An anonymous mute affects this viewer only and never opens an author profile.
+                    Label(post.isAnonymous ? String(localized: "Bu yazarın notlarını gizle") : String(localized: "Kullanıcıyı engelle"),
+                          systemImage: "person.crop.circle.badge.xmark")
+                }
+                .accessibilityIdentifier("post-block-user")
+            }
+        } label: {
+            PostActionLabel(title: String(localized: "Diğer"), symbol: "ellipsis", color: .white)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Diğer seçenekler")
+        .accessibilityIdentifier("post-more-menu")
+    }
+
+    private var openARButton: some View {
+        Button("AR’da aç", systemImage: "viewfinder") { showAR = true }
+            .accessibilityIdentifier("post-open-ar")
+    }
+
+    private var showsSupportEntryPoint: Bool {
+        PostSupportAvailability.showsEntryPoints && !ownsPost && !post.isLocked
+    }
+
+    private var hasMoreActions: Bool {
+        !post.isLocked || !ownsPost || post.isLocationNote
+    }
+
+    private var actionColumns: [GridItem] {
+        let count = 2 + (ownsPost ? 0 : 1) + (hasMoreActions ? 1 : 0) + (showsSupportEntryPoint ? 1 : 0)
+        return Array(repeating: GridItem(.flexible(), spacing: 10),
+                     count: dynamicTypeSize.isAccessibilitySize ? min(2, count) : count)
     }
 
     private var ownsPost: Bool {

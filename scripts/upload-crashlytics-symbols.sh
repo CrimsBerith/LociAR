@@ -1,15 +1,29 @@
 #!/bin/sh
-# Keep Release archives usable when Crashlytics' external uploader stops responding.
+# Release archives must not silently ship without symbols. Ordinary simulator/device
+# builds remain usable offline; an archive (ACTION=install) fails if upload fails.
 [ "${CONFIGURATION:-}" = "Release" ] || exit 0
-if [ -z "${LOCIAR_FIREBASE_GOOGLE_APP_ID:-}" ]; then
-  echo "warning: LOCIAR_FIREBASE_GOOGLE_APP_ID is empty; dSYMs remain in the archive."
+symbol_required="${LOCIAR_CRASHLYTICS_REQUIRE_UPLOAD:-0}"
+[ "${ACTION:-}" != "install" ] || symbol_required=1
+symbol_failure() {
+  echo "warning: $*; dSYMs remain in the archive."
+  if [ "$symbol_required" = "1" ]; then
+    echo "error: Crashlytics symbols are required for distribution. Set LOCIAR_SOURCE_PACKAGES_DIR to the cloned SourcePackages directory and retry."
+    exit 1
+  fi
   exit 0
+}
+if [ -z "${LOCIAR_FIREBASE_GOOGLE_APP_ID:-}" ]; then
+  symbol_failure "LOCIAR_FIREBASE_GOOGLE_APP_ID is empty"
 fi
 symbol_packages="${LOCIAR_SOURCE_PACKAGES_DIR:-${BUILD_DIR%/Build/*}/SourcePackages}"
 symbol_uploader="${symbol_packages}/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols"
+# The repository's CI deliberately clones packages outside DerivedData. Never scan
+# arbitrary build folders or download an uploader. An explicit override stays authoritative.
+if [ ! -x "$symbol_uploader" ] && [ -z "${LOCIAR_SOURCE_PACKAGES_DIR:-}" ] && [ -n "${SRCROOT:-}" ]; then
+  symbol_uploader="${SRCROOT}/build/ci-ios/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols"
+fi
 if [ ! -x "${symbol_uploader}" ]; then
-  echo "warning: Crashlytics upload-symbols not found; dSYMs remain in the archive."
-  exit 0
+  symbol_failure "Crashlytics upload-symbols not found"
 fi
 symbol_upload_timeout="${LOCIAR_CRASHLYTICS_UPLOAD_TIMEOUT_SECONDS:-120}"
 case "$symbol_upload_timeout" in
@@ -48,6 +62,6 @@ if wait "$symbol_upload_pid"; then symbol_upload_status=0; else symbol_upload_st
 stop_symbol_watchdog
 trap - HUP INT TERM
 if [ "$symbol_upload_status" -ne 0 ]; then
-  echo "warning: Crashlytics dSYM upload failed; upload symbols later from the archive (Xcode Organizer)."
+  symbol_failure "Crashlytics dSYM upload failed (status $symbol_upload_status)"
 fi
 exit 0

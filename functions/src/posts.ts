@@ -50,6 +50,9 @@ async function requirePublishInvite(luid: string) {
 function replayPost(existing: FirebaseFirestore.DocumentSnapshot, luid: string, body: CreatePostBody, locationNote?: LocationNoteMetadata) {
   const data = existing.data()!;
   if (data.creator_id !== luid) throw new HttpsError('already-exists', 'Post ID is already in use');
+  if ((data.is_anonymous === true) !== (body.anonymous !== false)) {
+    throw reasonError('already-exists', 'Publishing identity cannot change for an existing mutation', 'identity_changed');
+  }
   if (locationNote && (data.note_kind !== 'location' || data.caption !== body.caption.trim())) throw new HttpsError('already-exists', 'Mutation ID was reused');
   return { post: serializePost(existing.id, data), publishStatus: data.status };
 }
@@ -97,7 +100,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
     id: postId,
     creator_id: caller.luid,
     creator_handle: '',
-    is_anonymous: true,
+    is_anonymous: body.anonymous !== false,
     lat,
     lng,
     geohash: encodeGeohash(lat, lng, 10),
@@ -177,7 +180,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
     if (!densityLock) throw new Error('Missing density admission fence');
     updateDensityLock(tx, densityLock, Date.now());
     if (anchorRef) tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp(), expires_at: FieldValue.delete() });
-    tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', is_anonymous: true, world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
+    tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', is_anonymous: body.anonymous !== false, world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
     tx.create(postRef, { ...document, creator_handle: String(profile.handle ?? '') });
     tx.create(db.collection('analytics_events').doc(randomUUID()), analyticsEventDoc({
       userId: caller.luid, postId,
@@ -237,7 +240,9 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
   const receiptRef = db.collection('post_view_receipts').doc(`${id}_${caller.luid}_${day}`);
 
   return db.runTransaction(async (tx) => {
-    await assertAccountNotDeleting(tx, caller.luid);
+    // Same account fences as the read path (readablePost / readPublicContent): a suspended, deleted or
+    // deleting viewer cannot move counters, and neither can views of a suspended author's post.
+    await requireActiveAccount(tx, caller.luid);
     const snap = await tx.get(postRef);
     if (!snap.exists) {
       const offer = await campaignOffer(tx, caller.luid, id);
@@ -251,7 +256,7 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
       return { views: views + 1 };
     }
     const post = snap.data()!;
-    await assertAccountNotDeleting(tx, String(post.creator_id));
+    await requireActiveAccount(tx, String(post.creator_id));
     const viewable = post.creator_id === caller.luid
       || (post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
     if (!viewable) throw new HttpsError('permission-denied', 'post_not_viewable');

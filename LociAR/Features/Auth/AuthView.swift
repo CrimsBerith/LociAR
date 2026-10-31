@@ -44,23 +44,8 @@ struct AuthView: View {
                         )
                     }
                     legalNotice
-                    Button {
-                        Task {
-                            isWorking = true
-                            defer { isWorking = false }
-                            do { try await session.continueAnonymously() }
-                            catch { message = error.localizedDescription }
-                        }
-                    } label: {
-                        Label("Hesapsız devam et", systemImage: "person.crop.circle.badge.questionmark")
-                            .frame(maxWidth: .infinity, minHeight: 48)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!termsAccepted || isWorking)
-                    .accessibilityIdentifier("auth-anonymous")
-                    // Guests browse only; posting needs a verified identity (App Store 1.2, functions/src/anonymous.ts).
-                    Text("Hesap açmadan notları görebilir ve beğenebilirsin. Not bırakmak ve yorum yazmak için Apple ile giriş yap ya da e-postanla kaydol.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Üyeliğinle giriş yap. Notlarını anonim paylaşabilir veya kullanıcı adını gösterebilirsin.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 .padding(24)
             }
@@ -246,7 +231,9 @@ struct AuthView: View {
                 }
 
                 #if DEBUG
-                if !UITestFixtures.signedOutSessionEnabled {
+                // Preview is an explicit developer fixture, never a normal app-entry option.
+                if ProcessInfo.processInfo.arguments.contains("UITEST_DEVICE_PREVIEW"),
+                   !UITestFixtures.signedOutSessionEnabled {
                     Button {
                         session.continueInDevicePreview()
                     } label: {
@@ -580,7 +567,7 @@ private struct ForgotPasswordView: View {
                         Task { await send() }
                     } label: {
                         if isWorking { ProgressView().frame(maxWidth: .infinity, minHeight: 48) }
-                        else { Text("Yenileme bağlantısı gönder").frame(maxWidth: .infinity, minHeight: 48) }
+                        else { Text("Bağlantı gönder").frame(maxWidth: .infinity, minHeight: 48) }
                     }
                     .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
                     .disabled(isWorking || !email.contains("@"))

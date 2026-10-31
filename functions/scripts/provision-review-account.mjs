@@ -1,7 +1,8 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { createReviewCredentialsFile } from './review-credentials.mjs';
 
-const email = 'apple-review@lociar.app';
+// Must be on a domain the owner controls (password resets go there). lociar.app is not registered.
+const email = 'apple-review@alfagolab.com';
 const { password, filePath } = createReviewCredentialsFile(process.env.REVIEW_CREDENTIALS_FILE, email);
 console.log('Private credential file created:', filePath);
 const { auth, db, luidForUid } = await import('./_admin.mjs');

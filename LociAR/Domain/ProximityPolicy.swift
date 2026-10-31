@@ -36,7 +36,7 @@ enum ProximityPolicy {
         return age.isFinite && age >= 0 && age < maxFixAge
             && viewer.horizontalAccuracy.isFinite && viewer.horizontalAccuracy >= 0
             && viewer.horizontalAccuracy < maxHorizontalAccuracy
-            && viewer.sourceInformation?.isSimulatedBySoftware != true
+            && LocationProvenancePolicy.accepts(viewer)
             && isValidCoordinate(latitude: viewer.coordinate.latitude, longitude: viewer.coordinate.longitude)
     }
 

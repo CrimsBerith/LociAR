@@ -12,7 +12,8 @@ import json,sys
 devices=json.load(open(sys.argv[1]))['devices']
 for runtime in sorted(devices,reverse=True):
     if 'iOS' not in runtime: continue
-    candidates=[d for d in devices[runtime] if d.get('isAvailable') and d['name'].startswith('iPhone')]
+    candidates=[d for d in devices[runtime] if d.get('isAvailable') and
+        (d.get('deviceTypeIdentifier','').startswith('com.apple.CoreSimulator.SimDeviceType.iPhone-') or d['name'].startswith('iPhone'))]
     if candidates:
         print(candidates[0]['udid']);sys.exit(0)
 sys.exit('No available iPhone simulator found')

@@ -6,6 +6,38 @@ import XCTest
 
 @MainActor
 final class ArchitectureAndPublishTests: XCTestCase {
+    func testMembershipGateRejectsLegacyAnonymousSessions() {
+        XCTAssertEqual(AppSession.memberPhase(nil), .signedOut)
+        var member = UITestFixtures.creator
+        XCTAssertEqual(AppSession.memberPhase(member), .signedIn(member))
+        member.role = "anonymous"
+        XCTAssertEqual(AppSession.memberPhase(member), .signedOut)
+    }
+
+    func testPendingLocationNoteKeepsIdentityAcrossRetriesAndOwnerChanges() throws {
+        let suite = "pending-identity-test.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = PlaceNotePendingIntentStore(defaults: defaults)
+        let owner = UUID(), other = UUID(), mutation = UUID()
+        XCTAssertTrue(store.publishAnonymously(for: owner))
+        store.save(mutation, for: owner, anonymously: false)
+        XCTAssertEqual(store.pending(for: owner), mutation)
+        store.save(mutation, for: owner, anonymously: true)
+        XCTAssertFalse(store.publishAnonymously(for: owner))
+        XCTAssertNil(store.pending(for: other))
+        store.clear(UUID(), for: owner)
+        XCTAssertEqual(store.pending(for: owner), mutation)
+        store.clear(mutation, for: owner)
+        XCTAssertTrue(store.publishAnonymously(for: owner))
+        let legacy = UUID()
+        defaults.set(legacy.uuidString, forKey: "place-note.pending-intent.\(owner.uuidString.lowercased())")
+        XCTAssertEqual(store.pending(for: owner), legacy)
+        XCTAssertTrue(store.publishAnonymously(for: owner))
+        store.save(legacy, for: owner, anonymously: false)
+        XCTAssertTrue(store.publishAnonymously(for: owner))
+    }
+
     func testSupportCatalogRejectsInvalidOrAmbiguousAmounts() throws {
         let product = PostSupportClient.productIDs[0]
         func catalog(_ offers: [PostSupportCatalog.Offer], crypto: Bool = false) -> PostSupportCatalog {

@@ -60,6 +60,7 @@ extension AuthGateUITests {
         let settings = app.buttons["profile-settings"]
         scrollUntilHittable(settings, in: app)
         settings.tap()
+        app.buttons["settings-open-notifications"].tap()
         let notifications = app.switches["settings-notifications"]
         XCTAssertTrue(notifications.waitForExistence(timeout: 10))
         func waitForPreference(_ value: String) {
@@ -328,9 +329,9 @@ extension AuthGateUITests {
         XCTAssertTrue(nearbyPost.waitForExistence(timeout: 15), "Aktif post yakındaki AR listesinde görünmedi.")
 
         app.tabBars.buttons["Profil"].tap()
-        XCTAssertTrue(app.staticTexts["Postlarım"].waitForExistence(timeout: 8))
-        app.staticTexts["Postlarım"].tap()
-        XCTAssertTrue(app.navigationBars["Postlarım"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Notlarım"].waitForExistence(timeout: 8))
+        app.staticTexts["Notlarım"].tap()
+        XCTAssertTrue(app.navigationBars["Notlarım"].waitForExistence(timeout: 8))
         let ownPost = app.staticTexts[caption]
         XCTAssertTrue(ownPost.waitForExistence(timeout: 15), "Canlı post profil listesinde görünmedi.")
         ownPost.swipeLeft()
@@ -354,11 +355,11 @@ extension AuthGateUITests {
         }
 
         app.tabBars.buttons["Profil"].tap()
-        guard app.staticTexts["Postlarım"].waitForExistence(timeout: 8) else {
+        guard app.staticTexts["Notlarım"].waitForExistence(timeout: 8) else {
             throw XCTSkip("Normal hesap profilinde Postlarım açılamadı.")
         }
-        app.staticTexts["Postlarım"].tap()
-        XCTAssertTrue(app.navigationBars["Postlarım"].waitForExistence(timeout: 8))
+        app.staticTexts["Notlarım"].tap()
+        XCTAssertTrue(app.navigationBars["Notlarım"].waitForExistence(timeout: 8))
         let retry = app.buttons["my-posts-retry-pending"]
         guard retry.waitForExistence(timeout: 8) else {
             throw XCTSkip("Yeniden gönderilecek dead-letter AR postu yok.")
@@ -380,9 +381,9 @@ extension AuthGateUITests {
         XCTAssertTrue(app.staticTexts[caption].waitForExistence(timeout: 20), "Kurtarılan post AR listesinde görünmedi.")
 
         app.tabBars.buttons["Profil"].tap()
-        XCTAssertTrue(app.staticTexts["Postlarım"].waitForExistence(timeout: 8))
-        app.staticTexts["Postlarım"].tap()
-        XCTAssertTrue(app.navigationBars["Postlarım"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Notlarım"].waitForExistence(timeout: 8))
+        app.staticTexts["Notlarım"].tap()
+        XCTAssertTrue(app.navigationBars["Notlarım"].waitForExistence(timeout: 8))
         let ownPost = app.staticTexts[caption]
         XCTAssertTrue(ownPost.waitForExistence(timeout: 20), "Kurtarılan post Postlarım'da görünmedi.")
         ownPost.swipeLeft()
@@ -753,7 +754,8 @@ extension AuthGateUITests {
 
     func testPhysicalDevicePostOpenCloseLifecycleAndInteractions() {
         let app = XCUIApplication()
-        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+        // Blocking is available only when viewing another member’s post.
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OTHER_USER"]
         app.launch()
 
         // 1. Keşfet: Open post, like, save, view profile, back, open AR, close AR, back to Discover
@@ -764,7 +766,7 @@ extension AuthGateUITests {
         XCTAssertTrue(postRow.waitForExistence(timeout: 8), "Keşfet postu bulunamadı.")
         postRow.tap()
 
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5), "Post detay ekranı açılmadı.")
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5), "Post detay ekranı açılmadı.")
         capture(app, name: "device-post-detail-open")
 
         // Like button toggle
@@ -787,7 +789,7 @@ extension AuthGateUITests {
         profileLink.tap()
         XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
 
         // Open 3-dots more menu
         let moreMenu = app.buttons["post-more-menu"]
@@ -795,7 +797,7 @@ extension AuthGateUITests {
             moreMenu.tap()
             XCTAssertTrue(app.buttons["post-block-user"].waitForExistence(timeout: 3))
             // Dismiss menu by tapping navigation bar
-            app.navigationBars["Post"].tap()
+            app.navigationBars["Not"].tap()
         }
 
         // Open AR viewer & close
@@ -807,7 +809,7 @@ extension AuthGateUITests {
         app.buttons["Kapat"].tap()
 
         // Verify back in Post detail
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 8))
 
         // Back to Discover
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -819,7 +821,7 @@ extension AuthGateUITests {
         let mapPost = app.descendants(matching: .any)["map-open-\(samplePostText)"]
         if mapPost.waitForExistence(timeout: 6) {
             mapPost.tap()
-            XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
             app.navigationBars.buttons.element(boundBy: 0).tap()
             XCTAssertTrue(app.navigationBars["Harita"].waitForExistence(timeout: 5))
         }
@@ -946,7 +948,7 @@ extension AuthGateUITests {
             postApp.launchEnvironment["UITEST_FIXTURE_PLATFORM"] = item.key
             postApp.launch()
 
-            XCTAssertTrue(postApp.navigationBars["Post"].waitForExistence(timeout: 8))
+            XCTAssertTrue(postApp.navigationBars["Not"].waitForExistence(timeout: 8))
             RunLoop.current.run(until: Date().addingTimeInterval(0.5))
             capture(postApp, name: "wall-detail-\(item.key)")
 

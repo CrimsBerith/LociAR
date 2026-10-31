@@ -57,6 +57,24 @@ enum PostSupportError: LocalizedError {
     }
 }
 
+/// Whether creator-support payment entry points (the note's support button and Profile → Earnings) are shown.
+/// Hidden in normal Debug and Release use until the owner explicitly re-enables them (28 Oct 2026).
+/// Only explicitly enabled payment UI-test fixtures retain access; they never create payments.
+/// Re-enabling also requires a live provider, updated terms/privacy, App Privacy answers (Purchases)
+/// and App Review notes (docs/release/POST_SUPPORT.md).
+enum PostSupportAvailability {
+    static let releaseBuilds = false
+
+    static var showsEntryPoints: Bool {
+        #if DEBUG
+        return releaseBuilds || (UITestFixtures.authenticatedSessionEnabled
+            && ProcessInfo.processInfo.arguments.contains("UITEST_SUPPORT_UI"))
+        #else
+        return releaseBuilds
+        #endif
+    }
+}
+
 @MainActor
 protocol PostSupportServing {
     func storefrontCountry() async -> String

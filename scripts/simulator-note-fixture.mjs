@@ -125,6 +125,16 @@ const actions = {
     return { caption: note.caption, count: String(notes.size), anonymous: String(note.is_anonymous), source: note.location_note.source,
       postId: notes.docs[0].id, groupId: note.spot_id ? `spot:${note.spot_id}` : `post:${notes.docs[0].id}` };
   },
+  async 'verify-attributed'() {
+    const { luid } = await account();
+    const notes = await eventually(() => adminDb.collection('posts').where('creator_id', '==', luid)
+      .where('caption', '==', 'Username note from iOS').get(), s => s.size === 1);
+    const note = notes.docs[0].data(), profile = await adminDb.collection('profiles').doc(luid).get();
+    assert.equal(note.is_anonymous, false);
+    assert.equal(note.creator_handle, profile.get('handle'));
+    assert.equal(note.status, 'active');
+    return { anonymous: String(note.is_anonymous), caption: note.caption, handle: note.creator_handle };
+  },
   async 'verify-consent'() {
     const p = await eventually(preferences, p => p?.notifications === true);
     return Object.fromEntries(['notifications', 'promotions', 'location', 'telemetry'].map(key => [key, String(p[key] === true)]).concat([['placeNotes', String(p.place_notes === true)]]));
@@ -176,8 +186,14 @@ const actions = {
     await adminDb.collection('push_tokens').doc(adminDevice).set({ owner_luid: luid, token: 'fake-simulator-' + randomUUID(),
       locale: 'tr', expires_at: Timestamp.fromMillis(Date.now() + 86_400_000) });
     const body = 'Simulator administrator message ' + randomUUID().slice(0, 8);
-    adminJob = await queueNotification({ recipientId: luid, title: 'LociAR Simulator', message: body }, adminActor,
-      'Local simulator notification acceptance', randomUUID());
+    if (process.env.LOCIAR_SIMULATOR_ADMIN_PANEL === '1') {
+      const { queueThroughSimulatorAdminPanel } = await import('./simulator-admin-panel.mjs');
+      adminJob = await queueThroughSimulatorAdminPanel({adminAuth, adminDb, adminUID: adminActor, recipient: luid,
+        title: 'LociAR Simulator', message: body, output});
+    } else {
+      adminJob = await queueNotification({ recipientId: luid, title: 'LociAR Simulator', message: body }, adminActor,
+        'Local simulator notification acceptance', randomUUID());
+    }
     // The production trigger intentionally skips external FCM in the emulator.
     // Exercise its real delivery function with an explicit simulator sender.
     const attempts = await deliverAdminNotification(adminJob.id, async message => {
@@ -215,7 +231,9 @@ const actions = {
   async 'prepare-deletion'() {
     deletingAccount = await account();
     const posts = await adminDb.collection('posts').where('creator_id', '==', deletingAccount.luid).get();
-    assert.ok(posts.size >= 3);
+    const expectedOwnNotes = Number(process.env.LOCIAR_SIMULATOR_EXPECTED_OWN_NOTES ?? 3);
+    assert.ok(Number.isInteger(expectedOwnNotes) && expectedOwnNotes >= 1 && expectedOwnNotes <= 4);
+    assert.ok(posts.size >= expectedOwnNotes, `Expected at least ${expectedOwnNotes} notes from the selected publishing scenarios`);
     deletingPosts = posts.docs.map(post => post.id);
     return { result: 'ready' };
   },

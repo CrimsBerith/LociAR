@@ -36,7 +36,7 @@ struct PublicProfileView: View {
                         if let bio = profile?.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center) }
                     }
                     HStack(spacing: 22) {
-                        profileMetric(value: profile?.publicPostCount ?? posts.count, label: String(localized: "Post"))
+                        profileMetric(value: profile?.publicPostCount ?? posts.count, label: String(localized: "Not"))
                         profileMetric(value: profile?.followerCount ?? 0, label: String(localized: "Takipçi"))
                     }
                     Button(following ? String(localized: "Takibi bırak") : String(localized: "Takip et")) { Task { await toggleFollow() } }
@@ -48,11 +48,13 @@ struct PublicProfileView: View {
                             .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     } else {
                         Button("Kullanıcıyı engelle", role: .destructive) { confirmBlock = true }
+                            .buttonStyle(.borderless)
                             .frame(maxWidth: .infinity, minHeight: 44)
                             .disabled(isFollowMutating || isBlockMutating)
                             .accessibilityIdentifier("profile-block-user")
                     }
                     Button("Kullanıcıyı bildir") { reportingUser = true }
+                        .buttonStyle(.borderless)
                         .font(.footnote)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .accessibilityIdentifier("profile-report-user")
@@ -63,9 +65,9 @@ struct PublicProfileView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
             }
-            Section("Paylaşımlar") {
+            Section("Notlar") {
                 if isLoading { HStack { Spacer(); ProgressView().tint(LociTheme.accent); Spacer() }.padding() }
-                else if posts.isEmpty { LociEmptyState(title: String(localized: "Henüz paylaşım yok"), message: message ?? String(localized: "Bu hesap henüz bir post paylaşmadı."), symbol: "rectangle.stack") }
+                else if posts.isEmpty { LociEmptyState(title: String(localized: "Henüz not yok"), message: message ?? String(localized: "Bu hesap henüz bir not paylaşmadı."), symbol: "rectangle.stack") }
                 ForEach(posts) { post in
                     NavigationLink(value: post) { PostCard(post: post) }.listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
@@ -94,7 +96,7 @@ struct PublicProfileView: View {
             Button("Engelle", role: .destructive) { Task { await block() } }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
         } message: {
-            Text("Bu kullanıcının adıyla paylaşılanları ve yorumlarını görmezsin, seni takip edemez. Anonim notlar kimseye yazarını göstermediği için bu engelden etkilenmez.")
+            Text("Bu hesabın adıyla paylaştığı notları ve yorumları görmezsin; seni takip edemez. Anonim notlar bu engelden etkilenmez.")
         }
         .confirmationDialog("Neden bildiriyorsun?", isPresented: $reportingUser, titleVisibility: .visible) {
             ForEach(ReportReason.allCases) { reason in
@@ -221,7 +223,7 @@ struct PublicProfileView: View {
         } catch {
             guard !Task.isCancelled, revision == ContentUpdates.shared.revision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
             pageFailure = error
-            message = String(localized: "İçerikler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
+            message = String(localized: "Notlar yüklenemedi. Tekrar dene.")
         }
     }
 

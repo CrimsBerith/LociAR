@@ -34,7 +34,7 @@ struct MapFeatureView: View {
     @State private var selectedMapGroupFix: LocationSample?
     @State private var mapWidth: Double = 390
     @State private var isVisible = false
-    /// Notes of a tapped 25 m group, listed by likes in the panel.
+    /// Notes of a tapped 6 m group, listed by likes in the panel.
     @State private var clusterFocus: Set<UUID>?
     @State private var showCameraUnlock = false
 
@@ -97,13 +97,13 @@ struct MapFeatureView: View {
                     .tint(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                     .tag(post.id)
                 } else {
-                    Annotation("\(cluster.posts.count) post", coordinate: cluster.coordinate) {
+                    Annotation("\(cluster.posts.count) not", coordinate: cluster.coordinate) {
                         Button {
                             selection = nil
                             clusterFocus = Set(cluster.posts.map(\.id))
                         } label: { countBubble(cluster.posts.count) }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(Text("\(cluster.posts.count) post"))
+                        .accessibilityLabel(Text("\(cluster.posts.count) not"))
                     }
                     .annotationTitles(.hidden)
                 }
@@ -167,14 +167,18 @@ struct MapFeatureView: View {
                 .accessibilityIdentifier("map-refresh")
             }
             ToolbarItem(placement: .topBarLeading) {
-                Button { showPlaceNote = true } label: { Label("Konum notu bırak", systemImage: "square.and.pencil") }
+                Button { showPlaceNote = true } label: { Label("Konum notu", systemImage: "square.and.pencil") }
+                    .labelStyle(.titleOnly)
+                    .fontWeight(.semibold)
                     .accessibilityIdentifier("map-location-note")
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showCreate = true } label: { Label("Yeni yüzey", systemImage: "plus") }
+                Button { showCreate = true } label: { Label("AR notu", systemImage: "viewfinder") }
+                    .labelStyle(.titleAndIcon)
                     .accessibilityIdentifier("map-create")
             }
         }
+        .tint(LociTheme.accent)
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
         .task { await startAndLoad() }
         .onAppear { isVisible = true }
@@ -211,8 +215,8 @@ struct MapFeatureView: View {
 
     private var clusters: [PostCluster] {
         var result: [PostCluster] = []
-        // Same 25 m grouping as the server's notification clusters.
-        let thresholdMeters: Double = 25.0
+        // Same fixed-distance grouping as the server's notification clusters.
+        let thresholdMeters = LocationNotePolicy.spotJoinRadius
 
         for post in posts {
             guard let geo = post.anchorBundle.anchor.geoPose else { continue }
@@ -225,7 +229,7 @@ struct MapFeatureView: View {
                     latitude: result[i].coordinate.latitude,
                     longitude: result[i].coordinate.longitude
                 )
-                if clusterLocation.distance(from: postLocation) < thresholdMeters {
+                if clusterLocation.distance(from: postLocation) <= thresholdMeters {
                     var updatedPosts = result[i].posts
                     updatedPosts.append(post)
                     result[i] = PostCluster(
@@ -288,9 +292,9 @@ struct MapFeatureView: View {
                             else { Image(systemName: statusSymbol).foregroundStyle(LociTheme.accent) }
                         }
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(isLoading ? String(localized: "Yakın çevre taranıyor") : String(localized: "Yakındaki postlar"))
+                            Text(isLoading ? String(localized: "Yakın çevre taranıyor") : String(localized: "Yakındaki notlar"))
                                 .font(.headline)
-                            Text(message?.localizedUI ?? (posts.isEmpty ? String(localized: "Yakınında henüz post yok.") : String(localized: "\(posts.count) post bulundu. Haritadaki bir pine dokun.")))
+                            Text(message?.localizedUI ?? (posts.isEmpty ? String(localized: "Henüz not yok") : String(localized: "\(posts.count) not")))
                                 .font(.caption).foregroundStyle(LociTheme.secondaryText).lineLimit(2)
                         }
                         Spacer(minLength: 0)
@@ -371,7 +375,7 @@ struct MapFeatureView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 if container.mapRequests.isLoading { ProgressView().tint(LociTheme.accent) }
-                Label("Yakındaki postlar", systemImage: "map")
+                Label("Yakındaki notlar", systemImage: "map")
                     .font(.headline)
                 Spacer()
                 if !mapGroups.isEmpty {
@@ -408,7 +412,7 @@ struct MapFeatureView: View {
     private var listedPosts: [LociPost] {
         if let clusterFocus { return posts.filter { clusterFocus.contains($0.id) } }
         guard let current = location.location else { return posts }
-        // Nearby places first; notes within each 25 m group retain their likes order.
+        // Nearby places first; notes within each 6 m group retain their likes order.
         return clusters.sorted {
             let a = current.distance(from: CLLocation(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude))
             let b = current.distance(from: CLLocation(latitude: $1.coordinate.latitude, longitude: $1.coordinate.longitude))
@@ -418,7 +422,7 @@ struct MapFeatureView: View {
 
     private func postTitle(_ post: LociPost) -> String {
         if post.isLocked { return String(localized: "Kilitli not") }
-        return post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption
+        return post.caption.isEmpty ? String(localized: "Not") : post.caption
     }
 
     /// Dense spot: the count is public, the text opens only on site (GPS ~15 m, AR camera 2-5 m).

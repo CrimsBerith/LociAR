@@ -87,6 +87,8 @@ export type CreatePostBody = {
   editData: Record<string, unknown>;
   contentSource?: Record<string, unknown> | null;
   caption: string;
+  /** Defaults to anonymous; attributed publishing is an explicit verified-member choice. */
+  anonymous?: boolean;
   ageRating: 'all' | '13_plus' | '16_plus' | '18_plus';
   visibility: 'public' | 'friends' | 'private';
   placementState?: string;
@@ -222,6 +224,7 @@ function contentPolicyError(body: CreatePostBody): string | null {
 /** Returns an error message or null. Messages match what the iOS client maps to Turkish copy. */
 export function validateCreatePostBody(body: CreatePostBody | undefined, luid?: string): string | null {
   if (!body || typeof body !== 'object') return 'Invalid request';
+  if (body.anonymous !== undefined && typeof body.anonymous !== 'boolean') return 'Invalid publishing identity';
   if (!body.clientMutationId || !UUID_V4.test(body.clientMutationId)) return 'Invalid client mutation ID';
   if (!isValidPose(body.pose)) return 'Invalid pose';
   if (body.pose.accuracy != null && body.pose.accuracy > 100) {

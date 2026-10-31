@@ -21,16 +21,29 @@ Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App 
 ## 2. Fiyatlandırma ve Dağıtım (Pricing and Availability)
 
 * **Fiyat:** Ücretsiz ($0.00 / Free)
-* **Uygulama İçi Satın Alma:** Yok (v1.0 için tamamen ücretsiz)
-* **Kullanılabilirlik:** Tüm bölgeler (global, All territories)
+* **Uygulama İçi Satın Alma:** Yok (v1.0 için tamamen ücretsiz). Yazar desteği ödemeleri Release derlemesinde gizli
+  (`PostSupportAvailability.releaseBuilds = false`); App Privacy'de "Purchases" işaretlenmez. Açılacağı sürümde
+  bu bölüm, App Privacy, inceleme notları ve kullanım koşulları birlikte güncellenir.
+* **Kullanılabilirlik:** Tüm bölgeler (global, All territories) — AGENTS.md sahip kararı. AB ülkeleri dahil olduğu için
+  App Store Connect → Business → **Digital Services Act (DSA) tüccar durumu** beyan edilmeden AB'de yayın yapılmaz.
+  Ücretsiz olması tek başına "tüccar değilim" sonucu vermez. Mesleki/ticari faaliyet, pazarlama ve gelir amacı
+  dahil ölçütlerle hesap sahibi kendi durumunu değerlendirir; tüccar ise doğrulanmış adres, telefon ve e-posta
+  AB mağaza sayfasında görünür. [Apple'ın öz değerlendirme ölçütleri](https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements/).
+* **Üçüncü taraf içerik (Content Rights):** "Evet, üçüncü taraf içerik içerir ve gerekli haklara sahibim" —
+  GIF'ler GIPHY API koşullarıyla gösterilir, "Powered by GIPHY" atfı arama ekranında var.
+* **Build numarası:** `project.yml` → `CURRENT_PROJECT_VERSION`. İlk yükleme `1`; App Store Connect'e her yeni
+  yükleme (TestFlight dahil) için bir artırılır, sonra `xcodegen generate`.
 * **Diller:** 12 dil (tr, en, de, es, fr, pt, ru, ar, hi, bn, ja, zh-Hans). App Store Connect'te her dil için
-  ayrı açıklama/anahtar kelime/ekran görüntüsü girilebilir; girilmeyen diller İngilizce metni gösterir.
+  ayrı açıklama/anahtar kelime/ekran görüntüsü girilebilir. Mevcut kaydın ana dili Türkçe; diğer mağaza
+  dillerinde Apple'ın yerelleştirme fallback'i uygulanır. Uygulamanın kendi geliştirme/fallback dili İngilizcedir.
 
 ---
 
 ## 3. Canlı Yasal ve Destek Bağlantıları (Live URLs)
 
-Apple tarafından canlı doğrulamadan geçen ve HTTP 200 yanıtı veren güncel URL'ler:
+Uygulamanın kullandığı URL'ler aşağıdadır. 27 Ekim 2026 yerel HTTP kontrolünde sayfalar 200 döndü;
+Apple'ın doğruladığı iddia edilmez. Canlı sayfalar hâlâ eski destek adresini gösteriyor; aday admin yayını ve
+yeni adresin sayfalarda görünmesi gönderimden önce doğrulanmalı.
 
 * **Gizlilik Politikası (Privacy Policy URL):**  
   `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy`
@@ -40,7 +53,8 @@ Apple tarafından canlı doğrulamadan geçen ve HTTP 200 yanıtı veren güncel
   `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support`
 * **İngilizce sürümler** (İngilizce App Store sayfası için): `/privacy/en`, `/terms/en`, `/support/en`
 * **Destek İletişim E-Postası (Contact Email):**  
-  `support@lociar.app` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmıştır)*
+  `support@alfagolab.com` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmalıdır; Alfago Lab
+  alan adı, Hostinger e-postası — sahip kararı 26 Ekim 2026. `lociar.app` kayıtlı olmadığı için kullanılmaz.)*
 
 ---
 
@@ -54,8 +68,8 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 
 | Toplanan Veri Türü (App Store Connect) | Kimlikle ilişkili mi? | İzleme? | Amaç |
 |---|---|---|---|
-| **Precise Location** (Kesin Konum) | Evet | Hayır | App Functionality — yakındaki AR postları, postun konumu |
-| **Coarse Location** (Yaklaşık Konum) | Evet | Hayır | App Functionality, Analytics — kullanım/güvenlik olayları (180 gün) |
+| **Precise Location** (Kesin Konum) | Evet | Hayır | App Functionality — yakındaki AR postları, postun konumu; Developer's Advertising or Marketing — kampanya adımı doğrulaması (yalnız "Kampanyalar ve teklifler" açıksa) |
+| **Coarse Location** (Yaklaşık Konum) | Evet | Hayır | App Functionality, Analytics — kullanım/güvenlik olayları (180 gün); Developer's Advertising or Marketing — kampanya bölgeleri |
 | **User ID** | Evet | Hayır | App Functionality — hesap |
 | **Email Address** | Evet | Hayır | App Functionality — giriş ve hesap doğrulama |
 | **Name** | Evet | Hayır | App Functionality — Apple ile girişte paylaşılan ad |
@@ -65,14 +79,18 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 | **Device ID** | Evet | Hayır | App Functionality — push bildirim belirteci (FCM/APNs) |
 | **Crash Data** | Hayır | Hayır | App Functionality — Firebase Crashlytics (kapatılabilir) |
 | **Other Diagnostic Data** | Hayır | Hayır | App Functionality — Crashlytics teşhis bilgisi |
-| **Other Data Types** — Google ARCore'a giden kamera kaynaklı görsel özellikler | Hayır | Hayır | App Functionality — Cloud Anchors / Geospatial. Üçüncü tarafla (Google) paylaşılır |
+| **Environment Scanning** — AR çevre haritaları ve kamera kaynaklı görsel özellikler | Evet | Hayır | App Functionality — yeniden konumlandırma, Cloud Anchors / Geospatial. Çevre haritası ve anchor kaydı sunucuda hesap/post ile ilişkilidir; herkese açık anonim atıf bu bağlantıyı kaldırmaz. ARCore görsel özellikleri Google ile paylaşılır |
+| **Other Data Types** — Firebase Messaging SDK meta verileri | Hayır | Hayır | Analytics — arşivdeki Firebase Messaging SDK manifesti tarafından beyan edilir; AR çevre taramasından ayrı bir veri türüdür. Firebase Analytics SDK'sının kullanıldığı veya izleme yapıldığı anlamına gelmez |
 
 ---
 
 ## 5. Yaş Derecelendirmesi (Age Rating)
 
 Uygulama Kullanıcı Tarafından Üretilen İçerik (UGC) barındırdığı için Apple anketinde şu yanıtlar verilmelidir:
-* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin mesajı ve/veya GIPHY'den bir GIF paylaşabilir; fotoğraf, video, çizim veya bağlantı yok. GIF'ler GIPHY `pg-13` sınırıyla aranır ve sunucuda yeniden doğrulanır; tüm postlar yayından önce incelenir)
+* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin mesajı ve/veya GIPHY'den bir GIF paylaşabilir; fotoğraf, video, çizim veya bağlantı yok. GIF'ler GIPHY `pg-13` sınırıyla aranır ve sunucuda yeniden doğrulanır. Postlar otomatik metin filtresi, bağlantı yasağı, korumalı bölge ve 18+ kontrollerinden geçince hemen yayınlanır; denetim sonradan yapılır: şikâyet, birden çok şikâyette otomatik gizleme, 24 saat içinde moderatör incelemesi — sahip kararı 18 Ekim 2026)
+* **Mesajlaşma / sohbet:** Hayır (özel mesaj yok; yorumlar herkese açık ve şikâyet edilebilir)
+* **Reklam:** Üçüncü taraf reklam SDK'sı yok. Marka teklifleri (varsayılan kapalı, ayrı onaylı) reklam sayılır:
+  yayında aktif kampanya varsa "Evet", yoksa "Hayır" de ve ilk kampanyadan önce cevabı güncelle.
 * **Konum Paylaşımı:** Evet (Gönderiler gerçek koordinatlara sabitlenir)
 * **Kısıtlanmamış Web Erişimi:** Hayır
 * **18+ / Müstehcenlik:** Hayır (Sunucu tarafında hard-block; profil fotoğrafları otomatik SafeSearch taramasından geçer)
@@ -87,7 +105,7 @@ App Store Connect'te **App Review Information** bölümüne girilecek metin:
 
 ### Giriş Bilgileri (Sign-In Information)
 * **Giriş Gerekli mi (Sign-in required):** Evet (Kutu işaretlenmeli)
-* **Kullanıcı Adı (Username):** `apple-review@lociar.app`
+* **Kullanıcı Adı (Username):** `apple-review@alfagolab.com`
 * **Şifre (Password):** Parola yöneticisindeki güncel değeri yalnızca App Store Connect'in Sign-In Information alanına girin; depoya veya inceleme notlarına yazmayın.
 
 Daha önce depoda bulunan parola canlı hesapta değiştirilmeli ve App Store Connect güncellenmelidir. Güvenli oluşturma/yenileme adımları: [CREDENTIALS.md](../CREDENTIALS.md).
@@ -122,6 +140,13 @@ App Store Connect yüklemesi için aşağıdaki iki ana boyutta ekran görüntü
 2. **6.7" Ekran (iPhone 15 Pro Max):** 1290 x 2796 piksel (Dikey)
 
 ### Önerilen 4 Temel Sahne:
+Ekim başındaki görüntüler (`screenshots/`) kullanılamaz: boş harita, yükleniyor simgesi, simülatör kamerası ve tanı
+yazısı, kaldırılmış "fotoğraf/video" metni ve aynı iki kare içeriyor. Seed içerik canlıdayken gerçek iPhone'da
+yeniden çekilmeli (Apple en az 1, en fazla 10 kare ister; öneri 4–6. 6.9" boyutu zorunlu, diğer boyutlar
+ondan küçültülür). Yüklemeden önce App Store Connect'in o gün gösterdiği zorunlu ekran yuvasını ve
+[Apple'ın güncel ölçülerini](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)
+doğrula; görüntüler alfa kanalı içermemeli.
+
 1. **Sahne 1 (AR Kamera):** Merkez nişangâh (reticle) ve gerçek duvar/masa üzerine yerleştirilmiş mesaj balonu (metin ve/veya GIF).  
    *Pazarlama Başlığı:* "Anılarınızı Gerçek Dünyaya Sabitleyin"
 2. **Sahne 2 (Harita / Keşfet):** Yakındaki mekânsal pinlerin ve AR noktalarının haritada gösterimi.  

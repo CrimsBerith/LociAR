@@ -1,6 +1,6 @@
 # Location notes
 
-A location note is a short anonymous text written at the author's own position. It publishes at once after the automatic text filter (protected zones and rate limits still apply; up to 200 may share a 25 m area). Users can also pin posts to AR surfaces; both kinds appear on the map.
+A location note is a short text written at the author's own position. App entry requires a verified Apple or email account. New notes default to anonymous authorship; the member can explicitly show their username. Both modes use server-derived authorship and an immutable identity choice per mutation. It publishes at once after the automatic text filter (protected zones and rate limits still apply; up to 200 may share a 25 m area). Users can also pin posts to AR surfaces; both kinds appear on the map.
 
 ## Writing a note (iOS)
 
@@ -17,16 +17,16 @@ GPS measurement starts when the composer opens, so the fix usually settles while
 |---|---|---|---|
 | ≤ 10 m | Published | `gps` | 20 m |
 | 10–15 m | Published | `gps` | 25 m |
-| 15–50 m | The author places the pin by hand (map centre), within 50 m of the measurement | `manual` | 30 m |
+| 15–50 m | The author places the pin by hand (map centre), within 12 m of the measurement | `manual` | 30 m |
 | > 50 m | Refused: move outside or retry | — | — |
 
 **Refine with camera** (physical iPhones with ARCore): opens the shared AR camera with the Google AR notice; ARCore Geospatial (VPS) localizes against Street View imagery, typically 1–5 m outdoors. A camera fix ≤ 5 m is used automatically, ≤ 15 m on tap, and the note is sent with `source: 'geospatial'` (≤ 5 m gets a 15 m radius, otherwise as GPS). Indoors VPS usually does not localize; GPS and the manual pin remain.
 
-Approximate-location permission triggers a temporary full-accuracy request. `createPlaceNote` re-checks the source, accuracy and pin distance, then applies the normal post admission (anonymous author, text filter, protected zones, rate/density limits) and publishes the note at once. The post stores `note_kind: 'location'`, `location_note {source, accuracy_m, pin_drag_m}`, `notify_radius_m` and `push_state: 'none'`.
+Approximate-location permission triggers a temporary full-accuracy request. `createPlaceNote` re-checks the source, accuracy and pin distance, then applies the normal post admission (verified member and selected author visibility, text filter, protected zones, rate/density limits) and publishes the note at once. The post stores `note_kind: 'location'`, `location_note {source, accuracy_m, pin_drag_m}`, `notify_radius_m` and `push_state: 'none'`.
 
 ## Ranking
 
-Likes decide usefulness. Everywhere notes are listed at a place (map panel, tapped 25 m group, notification choice) they are ordered by likes, newest first on ties. Notes never expire on their own.
+Likes decide usefulness. Everywhere notes are listed at a place (map panel, tapped 6 m group, notification choice) they are ordered by likes, newest first on ties. Notes never expire on their own.
 
 ## Notifications
 
@@ -36,7 +36,7 @@ Each person receives each note at most once (`place_note_notification_receipts/p
 
 ### Entry detection
 
-1. `readPlaceNoteRegions` returns up to 15 wake regions: approved notes within 3 km that this user has not received, grouped within 25 m around the most-liked note. Completed clusters do not use one of iOS's 20 monitored regions; a reserved alert pending local queueing remains recoverable. A coarse fix (≤ 1 km, ≤ 5 min old) is enough, so the list also refreshes in the background.
+1. `readPlaceNoteRegions` returns up to 15 wake regions: approved notes within 3 km that this user has not received, grouped within 6 m around the most-liked note. Completed clusters do not use one of iOS's 20 monitored regions; a reserved alert pending local queueing remains recoverable. A coarse fix (≤ 1 km, ≤ 5 min old) is enough, so the list also refreshes in the background.
 2. Significant-location-change monitoring (~500 m) wakes the app to refresh regions while it is in the background.
 3. iOS wakes the app when it enters a cluster's 300–400 m circle, ahead of the note so GPS can settle (entry and exit are both monitored; the state is requested on registration, so a user already inside is detected). This wake circle does not expand the note's 15–100 m notification radius.
 4. A precise window runs until a notification is sent, the user leaves the wake circle, or 10 minutes pass. Far from every note it uses 10 m accuracy and a 10 m filter; within 40 m of a note circle it switches to best accuracy. In the background it keeps a `CLBackgroundActivitySession`.
@@ -80,7 +80,7 @@ the result and reject late completions. Remote locked notes are never passed to 
 
 ## Dense spots
 
-A spot is a server-side cluster (`note_spots`): a public note joins the nearest spot whose centre is within 25 m; five unclustered notes within 25 m start a new spot. The centre is the running mean of its notes and the circle grows to cover them, at most 40 m (`syncSpotMembership`, also run by the hourly reconciler). When a spot holds at least `dense_threshold` notes (default 30, 5–1000), it is a dense spot:
+A spot is a server-side cluster (`note_spots`): a public note joins the nearest spot whose centre is within 6 m; five unclustered notes within 6 m start a new spot. The membership centre stays fixed, and every member must lie within 6 m; read geometry is recomputed from current members and capped at 6 m (`syncSpotMembership`, also run by the hourly reconciler). When a spot holds at least `dense_threshold` notes (default 30, 5–1000), it is a dense spot:
 
 - **Locked text.** Every location note, including a single note and a ten-note group, is returned without caption/text remotely. Authors retain their own access. `dense_threshold` controls dense alerts, not location-note text access. Existing AR dense spots retain their own unlock policy.
 - **Open on site.** `readPublicContent` mode `map_group` receives a fresh GPS/Geospatial fix (at most 10 s old, accuracy at most 35 m). Text opens when distance to the spot circle is at most `unlock_radius_m + min(accuracy, 5 m)` (default 15 m, admin range 2–50 m). A previous visit or unlock cannot open location-note bodies on a later remote request. Direct Firestore reads of other people's location notes are denied. Successful on-site reads create a location-free 30-minute comment session in the existing TTL-protected `dense_spot_unlocks` collection; comment rules also recheck post status, author access and blocks. The native group sheet hides loaded rows when its fix goes stale, permission is revoked or it leaves the area. Phone GPS cannot guarantee door-level presence.
@@ -88,7 +88,7 @@ A spot is a server-side cluster (`note_spots`): a public note joins the nearest 
 
 ## Map
 
-The nearby side panel retains the nearest 100 posts within 1 km of GPS. The close-zoom map uses the separate text-free `map_groups` projection for the visible region (at most 2 km search radius). It is answered from the **map cell index** (below), not by scanning posts; the bounded 5,000-row scan remains only as the fallback. It groups by persistent server spot or a fixed 25 m anchor, rather than a broad geohash heat cell. Screen-space collision grouping combines neighbouring badges at wider zooms; tapping a combined badge zooms until the real places separate. A real place with ten co-located notes stays one **10 notes** badge. That badge opens the group sheet; `map_group` returns all currently eligible members in 50-row pages, most likes first, then newest and stable id. Paging freezes the ordered IDs in a server-only, viewer-bound `map_group_sessions` record for at most 30 minutes (`pageToken` + `nextOffset`); each page rechecks live membership, account/block fences and fresh location. Refresh starts a new ranking. Old `post:` identities resolve their anchor’s current `spot:` membership and return current group metadata. The server discovers small-group members itself; client ID lists cannot omit nearby members. Panning to another city reveals only location/count summaries. A map viewport is never used as an access fix. Camera and AR world locks are not required for a normal location note. Summaries and location-note authorization share the live group circle, capped at 40 m; historical spot circles never grant current note access. Longitude means wrap at ±180°. The group’s GPS monitor remains active while a note detail is pushed; leaving, losing fresh location or backgrounding clears both the list and its detail navigation.
+The nearby side panel retains the nearest 100 posts within 1 km of GPS. The close-zoom map uses the separate text-free `map_groups` projection for the visible region (at most 2 km search radius). It is answered from the **map cell index** (below), not by scanning posts; the bounded 5,000-row scan remains only as the fallback. It groups by persistent server spot or a fixed 6 m anchor, rather than a broad geohash heat cell. Screen-space collision grouping combines neighbouring badges at wider zooms; tapping a combined badge zooms until the real places separate. A real place with ten co-located notes stays one **10 notes** badge. That badge opens the group sheet; `map_group` returns all currently eligible members in 50-row pages, most likes first, then newest and stable id. Paging freezes the ordered IDs in a server-only, viewer-bound `map_group_sessions` record for at most 30 minutes (`pageToken` + `nextOffset`); each page rechecks live membership, account/block fences and fresh location. Refresh starts a new ranking. Old `post:` identities resolve their anchor’s current `spot:` membership and return current group metadata. The server discovers small-group members itself; client ID lists cannot omit nearby members. Panning to another city reveals only location/count summaries. A map viewport is never used as an access fix. Camera and AR world locks are not required for a normal location note. Summaries and location-note authorization share the live group circle, capped at 6 m; historical spot circles never grant current note access. Longitude means wrap at ±180°. The group’s GPS monitor remains active while a note detail is pushed; leaving, losing fresh location or backgrounding clears both the list and its detail navigation.
 
 | Visible width | Layer | Data |
 |---|---|---|
@@ -96,7 +96,7 @@ The nearby side panel retains the nearest 100 posts within 1 km of GPS. The clos
 | 50–500 km | Heat | precision 5 |
 | 5–50 km | Heat | precision 6 |
 | 1–5 km | Heat | precision 7 |
-| 300 m–1 km | Real group counts | `map_groups`, 25 m grouping |
+| 300 m–1 km | Real group counts | `map_groups`, 6 m grouping |
 | < 300 m | Same real group counts; tap for ranked notes | `map_groups` / `map_group` |
 
 The selected style is **Cam Katman**: smooth irregular glass lenses with a restrained rim, translucent fill and readable map streets. The fixed count scale moves from brand mint to aqua and warm amber; panning never recolours a place merely because another crowded place entered the viewport. There is no perpetual pulse. Reduce Motion and Reduce Transparency are respected. Tapping a lens zooms in; it does not open note text.
@@ -120,3 +120,7 @@ Deploy the updated `readPublicContent`, Firestore rules and indexes (including `
 Notification searches cover the full requested radius with paged geohash ranges and a latitude fallback near the poles. A 10,000-document scan budget fails explicitly rather than returning partial `nothing_new` results. Lifetime receipts and access checks precede the 80-region-candidate / 40-visit-candidate limits; each native note cluster carries at most 50 targets. Like approval scans subsequent pages until the configured 1–1000 established-account threshold is met or likes are exhausted, excluding account-deletion fences.
 
 Public edit projections keep only text, GIF and legacy drawing fields; owner-folder media/texture paths and old link sources are omitted. New caption/layer text rejects URLs consistently in native-callable and admin admission.
+
+## 29 October 2026 distance policy
+
+Owner decision: manual pin displacement is at most 12 m; physical map/spot and notification grouping use a fixed 6 m membership radius. GPS creation accuracy (50 m maximum), note reading/notification radii and the separate 25 m admission-density fence retain their existing roles. Membership version 3 invalidates older map-group paging sessions. Preserved split journals from wider membership geometry must not be resumed as 6 m plans; a new reviewed migration is required. Existing broad spots are partitioned by current read geometry without discarding notes. These source changes require a matching Functions deployment and iOS build before they describe live behavior.

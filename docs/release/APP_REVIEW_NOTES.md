@@ -6,13 +6,13 @@ Owner: release manager. Update this file whenever permissions, background modes 
 
 This is the **only** notes text for the submission (it replaces the older text in `APP_STORE_SUBMISSION_GUIDE.md` §6; both together exceed Apple's 4,000-character limit). About 3,600 characters with the video link.
 
-Before pasting: replace `<VIDEO_LINK>` with the screen recording from section 6 (an unlisted link, or attach the file under App Review Information → Attachment and write "see attachment"). The demo account (`apple-review@lociar.app`) and its password go only into the **Sign-In Information** fields, never into these notes. Run `node functions/scripts/seed-review-content.mjs apple-review@lociar.app` once against production so the sample posts and location notes exist.
+Before pasting: replace `<VIDEO_LINK>` with the screen recording from section 6 (an unlisted link, or attach the file under App Review Information → Attachment and write "see attachment"). The demo account (`apple-review@alfagolab.com`) and its password go only into the **Sign-In Information** fields, never into these notes. Run `node functions/scripts/seed-review-content.mjs apple-review@alfagolab.com` once against production so the sample posts and location notes exist.
 
 ```
 LociAR lets people leave short notes, in AR on real surfaces or at the exact spot where they stand, so the next visitor gets useful local tips ("Wi-Fi password is at the counter"). Notes are text and/or one GIPHY GIF (PG-13 at most): no photos, videos or links. LociAR has no chat or private messaging.
 
 ACCOUNTABILITY
-Other users do not see a note's author name, but every note and comment belongs to a Sign in with Apple or verified-email account that moderators see and can suspend. Without an account people can only browse, like, report and block.
+Entering the app requires Sign in with Apple or a verified-email account. New notes are anonymous by default; the member can explicitly show their username before publishing. Moderators retain account ownership for safety and deletion. Anonymous notes do not expose their author's profile to other users.
 
 HOW TO REVIEW
 Sign in with the demo account in the sign-in fields (or Sign in with Apple) and tick the terms checkbox. Sample AR posts and location notes are at Apple Park Visitor Center, Cupertino (37.3327, -122.0053) and in Istanbul.
@@ -37,7 +37,7 @@ Brand offers have their own off-by-default "Campaigns and offers" switch and con
 SAFETY (1.2)
 Every post passes an automatic text filter (no links, blocked terms) before it goes live. Content is hidden automatically when several verified users report it, and moderators review every report. Report and block on every post, comment and profile, handled within 24 hours. Protected zones and 18+ content are blocked on the server. Account deletion: Profile > Permanently delete account.
 
-Support: support@lociar.app, https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support
+Support: support@alfagolab.com, https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support
 ```
 
 ## 2. Why "Always" is justified (for any follow-up from App Review)
@@ -81,6 +81,8 @@ Region monitoring, visit monitoring and significant-change updates do not requir
 | Product Interaction | Yes | No | App Functionality, Analytics |
 | Device ID | Yes | No | App Functionality |
 | Crash Data, Other Diagnostic Data | No | No | App Functionality |
+| Environment Scanning (AR environment maps and camera-derived visual features) | Yes | No | App Functionality; environment maps and anchor records are associated with the account/post on the server even when public attribution is anonymous |
+| Other Data Types (Firebase Messaging SDK metadata) | No | No | Analytics; declared by the bundled Firebase Messaging privacy manifest, independently of the app's AR environment data |
 
 ## 6. Screen recording for reviewers (2–3 minutes)
 

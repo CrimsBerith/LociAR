@@ -23,6 +23,8 @@ function seedBatchValue(value: unknown): string | undefined {
   return batch;
 }
 export function parseContentInput(body: Record<string, unknown>): ContentInput {
+  if (['anonymous','isAnonymous','is_anonymous','authorVisibility'].some(key => Object.hasOwn(body,key))) throw new ValidationError('use_author_attribution');
+  if (body.authorAttribution !== undefined && body.authorAttribution !== 'named' && body.authorAttribution !== 'anonymous') throw new ValidationError('invalid_author_attribution');
   const caption = requiredString(body.caption, 'caption', 1, 220);
   const text = typeof body.text === 'string' ? body.text.trim() : caption;
   if (text.length > 2000 || anyBlocked([caption, text])) throw new ValidationError('content_not_allowed');
@@ -38,6 +40,7 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
   const zoneExceptionReason = typeof body.zoneExceptionReason === 'string' ? body.zoneExceptionReason.trim() : '';
   if (zoneExceptionReason && (zoneExceptionReason.length < 8 || zoneExceptionReason.length > 1000)) throw new ValidationError('zone exception requires 8–1000 characters');
   const seedBatch = seedBatchValue(body.seedBatch);
+  if (body.expectedUpdateTime !== undefined && (typeof body.expectedUpdateTime !== 'string' || !/^\d{1,12}:\d{1,9}$/.test(body.expectedUpdateTime))) throw new ValidationError('invalid_update_precondition');
   return {
     authorId: uuid(body.authorId,'authorId').toLowerCase(), caption, text, platform, url,
     lat: number(body.lat,'latitude',-90,90), lng: number(body.lng,'longitude',-180,180),
@@ -48,7 +51,9 @@ export function parseContentInput(body: Record<string, unknown>): ContentInput {
     status: (body.status ?? 'active') as ContentInput['status'], zoneExceptionReason, replacePlacement: body.replacePlacement === true,
     locationNote: body.locationNote === true, notifyRadius: Math.round(number(body.notifyRadius ?? 20,'notification radius',15,100)),
     approveNotifications: body.locationNote === true && body.approveNotifications === true,
+    ...(body.authorAttribution !== undefined ? {authorAttribution:body.authorAttribution as ContentInput['authorAttribution']} : {}),
     ...(seedBatch ? { seedBatch } : {}),
+    ...(body.expectedUpdateTime !== undefined ? { expectedUpdateTime: body.expectedUpdateTime as string } : {}),
   };
 }
 async function requirePermission(tx: Transaction, actorId: string, permission: string) {
@@ -80,6 +85,11 @@ export function placement(input: ContentInput, postId: string) {
 }
 async function validatePostEdit(tx: Transaction, before: FirebaseFirestore.DocumentSnapshot, input: ContentInput, editingId: string | undefined, actorId: string) {
   if (editingId && !before.exists) throw new ValidationError('post_not_found');
+  if (input.expectedUpdateTime !== undefined) {
+    if (!editingId) throw new ValidationError('precondition_requires_edit');
+    const version = before.updateTime;
+    if (!version || `${version.seconds}:${version.nanoseconds}` !== input.expectedUpdateTime) throw new ConflictError('post_changed_since_review');
+  }
   if (before.get('media_purge_state') === 'purging') throw new ConflictError('post_media_cleanup_in_progress');
   // Approval is a moderation decision; keeping an existing approval while editing is not.
   if (input.approveNotifications && before.get('push_state') !== 'approved') {
@@ -89,6 +99,8 @@ async function validatePostEdit(tx: Transaction, before: FirebaseFirestore.Docum
   if (before.get('deleted_at')) throw new ConflictError('restore_post_before_editing');
   const author = await activeAuthor(tx,input.authorId);
   if (before.exists && before.get('creator_id') !== input.authorId) throw new ConflictError('post_author_cannot_be_changed');
+  if (before.exists && input.authorAttribution !== undefined && (before.get('is_anonymous') === true) !== (input.authorAttribution === 'anonymous')) throw new ConflictError('post_attribution_cannot_be_changed');
+  if (!before.exists && input.authorAttribution === 'anonymous' && author.get('admin_managed') !== true) throw new ValidationError('anonymous_requires_managed_author');
   return author;
 }
 
@@ -133,14 +145,21 @@ function postChanges(input: ContentInput, id: string, actorId: string, before: F
 }
 
 function postStorageClaim(before: FirebaseFirestore.DocumentSnapshot, input: ContentInput, id: string, moved: boolean) {
-  return { state: 'committed', creator_id: input.authorId, post_id: id, is_anonymous: before.exists && before.get('is_anonymous') === true,
+  return { state: 'committed', creator_id: input.authorId, post_id: id, is_anonymous: before.exists ? before.get('is_anonymous') === true : input.authorAttribution === 'anonymous',
     world_map_path: before.exists && !moved ? before.get('world_map_path') ?? null : null, public_readable: input.status === 'active' && input.visibility === 'public' };
+}
+
+/** A read-version guard is retry metadata, not a different requested content mutation. */
+export function adminPostRequestHash(actorId: string, action: 'admin_post_create' | 'admin_post_edit', id: string, input: ContentInput, reason: string) {
+  const content = { ...input };
+  delete content.expectedUpdateTime;
+  return mutationHash(actorId,action,id,{input:content,reason});
 }
 
 export async function saveAdminPost(input: ContentInput, actorId: string, reason: string, key: string, editingId?: string) {
   const db = adminDb(); const id = editingId ?? derivedKey(key,'post');
   const action = editingId ? 'admin_post_edit' : 'admin_post_create';
-  const hash = mutationHash(actorId,action,id,{input,reason});
+  const hash = adminPostRequestHash(actorId,action,id,input,reason);
   return await db.runTransaction(async tx => {
     await requirePermission(tx,actorId,editingId ? 'posts.edit' : 'posts.create');
     if (input.status === 'active') await requirePermission(tx,actorId,'posts.moderate');
@@ -154,6 +173,7 @@ export async function saveAdminPost(input: ContentInput, actorId: string, reason
     const physical = before.exists && oldPose.anchor?.coordinateSpace !== 'admin_geo_estimate' && oldPose.anchor?.coordinateSpace !== 'camera_free_space';
     if (moved && physical && !input.replacePlacement) throw new ConflictError('confirm_approximate_replacement');
     const changed = { ...postChanges(input, id, actorId, before, blockedZones, moved),
+      ...(!before.exists ? {is_anonymous:input.authorAttribution === 'anonymous'} : {}),
       admin_managed: author.get('admin_managed') === true };
     tx.delete(db.collection('media_purge_queue').doc(id));
     if (anchor?.exists && anchor.get('post_id') === id) {

@@ -10,12 +10,16 @@ extension AuthGateUITests {
 
     func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 4) {
         for _ in 0..<maxSwipes {
-            if element.exists && element.isHittable { return }
+            if element.exists && element.isHittable,
+               element.frame.midY >= app.frame.minY + 100,
+               element.frame.midY <= app.frame.maxY - 90 { return }
             // Full-screen flings can skip a short row entirely on an iPhone SE.
             // Use bounded drags and recover upward if the row has passed the viewport.
             let above = element.exists && element.frame.maxY > 0 && element.frame.maxY < app.frame.minY + 100
-            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.42 : 0.72))
-            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.72 : 0.42))
+            // Use the form gutter: a drag through a map or multiline input scrolls that
+            // nested control instead, and a partially clipped switch can still be hittable.
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: above ? 0.42 : 0.72))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: above ? 0.72 : 0.42))
             start.press(forDuration: 0.05, thenDragTo: end)
         }
     }
@@ -138,7 +142,7 @@ extension AuthGateUITests {
             return false
         }
         if mapRow.exists { mapRow.tap() } else { captionLabel.tap() }
-        guard app.navigationBars["Post"].waitForExistence(timeout: 8) else {
+        guard app.navigationBars["Not"].waitForExistence(timeout: 8) else {
             capture(app, name: "map-open-failed-\(shotName)")
             XCTFail("Post haritadan açılmadı: \(caption)")
             return false
@@ -158,7 +162,7 @@ extension AuthGateUITests {
         _ = app.staticTexts["Yüzey bulundu. İçerik hazır."].waitForExistence(timeout: 25)
         capture(app, name: "map-ar-\(shotName)")
         app.buttons["Kapat"].tap()
-        if !app.navigationBars["Post"].waitForExistence(timeout: 8) {
+        if !app.navigationBars["Not"].waitForExistence(timeout: 8) {
             recoverToMap(app)
             return true
         }
@@ -233,7 +237,7 @@ extension AuthGateUITests {
         if app.buttons["Kapat"].exists {
             app.buttons["Kapat"].tap()
         }
-        if app.navigationBars["Post"].exists {
+        if app.navigationBars["Not"].exists {
             app.navigationBars.buttons.element(boundBy: 0).tap()
         }
         if app.tabBars.buttons["Harita"].exists {

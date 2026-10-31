@@ -13,6 +13,7 @@ struct GifPickerView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var searchGeneration = 0
+    @State private var retryRevision = 0
     @State private var activeQuery: String?
     @State private var paginationGate = ScreenRefreshGate()
 
@@ -47,9 +48,20 @@ struct GifPickerView: View {
                 } else if let errorMessage {
                     LociInlineNotice(title: String(localized: "GIF"), message: errorMessage, symbol: "exclamationmark.triangle.fill", color: .orange)
                         .padding()
+                    Button("Tekrar dene") { retryRevision += 1 }
+                        .buttonStyle(.bordered)
                 } else if results.isEmpty {
-                    Text("GIF bulunamadı.")
-                        .font(.subheadline).foregroundStyle(.secondary).padding(.top, 40)
+                    VStack(spacing: 8) {
+                        Text(normalizedQuery.isEmpty ? String(localized: "Şu anda GIF gösterilemiyor.") : String(localized: "Sonuç bulunamadı."))
+                            .font(.subheadline.weight(.semibold))
+                        if normalizedQuery.isEmpty {
+                            Button("Tekrar dene") { retryRevision += 1 }
+                                .buttonStyle(.bordered)
+                        } else {
+                            Text("Başka bir kelimeyle ara.").font(.footnote)
+                        }
+                    }
+                    .foregroundStyle(.secondary).padding(.top, 40)
                 }
             }
             .background(LociTheme.background)
@@ -66,10 +78,11 @@ struct GifPickerView: View {
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("GIF ara"))
             .navigationTitle("GIF seç")
             .navigationBarTitleDisplayMode(.inline)
+            .tint(LociTheme.accent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } }
             }
-            .task(id: normalizedQuery) {
+            .task(id: "\(retryRevision):\(normalizedQuery)") {
                 searchGeneration += 1
                 let generation = searchGeneration, requestedQuery = normalizedQuery
                 activeQuery = requestedQuery

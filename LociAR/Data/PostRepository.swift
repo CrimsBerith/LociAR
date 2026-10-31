@@ -125,6 +125,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             editData: post.editData,
             contentSource: post.contentSource,
             caption: post.caption,
+            anonymous: post.anonymous ?? true,
             ageRating: post.ageRating,
             visibility: post.visibility,
             placementState: placement.state,
@@ -234,6 +235,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         case "links_not_allowed": return String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
         case "location_inaccurate": return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         case "identity_unverified": return String(localized: "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor.")
+        case "identity_changed": return String(localized: "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.")
         case "account_suspended": return String(localized: "Bu hesap şu anda yayın yapamaz. Destek ile iletişime geçin.")
         case "protected_zone": return String(localized: "Bu korumalı bölgede post yayınlanamaz.")
         case "draft_expired": return String(localized: "Fiziksel AR yüzey kaydı eksik. Yüzeyi yeniden tarayıp kesin kilit oluşturun.")
@@ -351,6 +353,7 @@ private struct CreatePostPayload: Encodable, Sendable {
     let editData: EditData
     let contentSource: ContentSource?
     let caption: String
+    let anonymous: Bool
     let ageRating: AgeRating
     let visibility: Visibility
     let placementState: String

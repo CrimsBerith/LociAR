@@ -6,6 +6,44 @@ import { adminDb, adminAuth, closeClients, expectFailure, newAnonymousUser, newU
 import { onLikeCreated } from '../../lib/triggers.js';
 after(closeClients);
 
+test('verified members explicitly attribute posts; replays cannot change publishing identity', async () => {
+  const author = await newUser(), viewer = await newUser();
+  for (const anonymous of [true, false]) {
+    const body = postBody({ anonymous, creatorHandle: 'spoofed',
+      pose: { latitude: -35.7 - (anonymous ? 0 : .01), longitude: 120.8, heading: 0, accuracy: 5 } });
+    await author.call('createPost', body);
+    const ref = adminDb.collection('posts').doc(body.clientMutationId);
+    const stored = (await ref.get()).data();
+    assert.equal(stored.is_anonymous, anonymous);
+    assert.equal(stored.creator_handle, author.handle);
+    assert.equal((await author.call('createPost', body)).idempotentReplay, true);
+    const changed = await expectFailure(author.call('createPost', { ...body, anonymous: !anonymous }));
+    assert.equal(changed.details?.reason, 'identity_changed');
+    assert.equal((await ref.get()).get('is_anonymous'), anonymous);
+    const listed = (await viewer.call('readPublicContent', { mode: 'creator', creatorId: author.luid })).posts;
+    assert.equal(listed.some(p => p.id === ref.id), !anonymous);
+    const post = (await viewer.call('readPublicContent', { mode: 'single', postId: ref.id })).posts[0];
+    assert.equal(post.creator_handle, anonymous ? null : author.handle);
+  }
+});
+
+test('location notes preserve explicit attribution and reject identity changes on retry', async () => {
+  for (const anonymous of [undefined, false]) {
+    const author = await newUser();
+    const body = { clientMutationId: randomUUID(), lat: -36.5 - Math.random() / 100,
+      lng: 121.5, source: 'gps', accuracy: 6, text: 'Member location note',
+      ...(anonymous === undefined ? {} : { anonymous }) };
+    await author.call('createPlaceNote', body);
+    const ref = adminDb.collection('posts').doc(body.clientMutationId);
+    assert.equal((await ref.get()).get('is_anonymous'), anonymous !== false);
+    assert.equal((await author.call('createPlaceNote', body)).idempotentReplay, true);
+    const changed = await expectFailure(author.call('createPlaceNote', { ...body, anonymous: anonymous === false }));
+    assert.equal(changed.details?.reason, 'identity_changed');
+    const invalid = await expectFailure(author.call('createPlaceNote', { ...body, clientMutationId: randomUUID(), anonymous: 'false' }));
+    assert.equal(invalid.code, 'functions/invalid-argument');
+  }
+});
+
 test('anonymous publishing goes live directly, replays idempotently and keeps author-free projections', async () => {
   const author = await newUser(), viewer = await newUser();
   const body = postBody({ pose: { latitude: -32, longitude: 119, heading: 0, accuracy: 5 } });
@@ -58,13 +96,15 @@ test('an anonymous identity can delete its account and posts without a nonexiste
 
 test('guests can browse and like but cannot publish posts or location notes', async () => {
   const guest = await newAnonymousUser();
-  const postError = await expectFailure(guest.call('createPost', postBody()));
-  assert.equal(postError.code, 'functions/permission-denied');
-  assert.equal(postError.details?.reason, 'identity_unverified');
-  const noteError = await expectFailure(guest.call('createPlaceNote', {
-    clientMutationId: randomUUID(), lat: -31.95, lng: 115.86, source: 'gps', accuracy: 6, text: 'Guest note' }));
-  assert.equal(noteError.code, 'functions/permission-denied');
-  assert.equal(noteError.details?.reason, 'identity_unverified');
+  for (const anonymous of [true, false]) {
+    const postError = await expectFailure(guest.call('createPost', postBody({ anonymous })));
+    assert.equal(postError.code, 'functions/permission-denied');
+    assert.equal(postError.details?.reason, 'identity_unverified');
+    const noteError = await expectFailure(guest.call('createPlaceNote', {
+      clientMutationId: randomUUID(), lat: -31.95, lng: 115.86, source: 'gps', accuracy: 6, text: 'Guest note', anonymous }));
+    assert.equal(noteError.code, 'functions/permission-denied');
+    assert.equal(noteError.details?.reason, 'identity_unverified');
+  }
   assert.equal((await adminDb.collection('posts').where('creator_id', '==', guest.luid).get()).size, 0);
 });
 

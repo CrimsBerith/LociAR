@@ -300,11 +300,11 @@ extension AuthGateUITests {
         XCTAssertLessThan(first.frame.minY, second.frame.minY, "En çok beğenilen not önce görünmeli.")
         capture(app, name: "glass-map-near-group-ranked")
         first.tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["İlk yorumu sen yaz."].waitForExistence(timeout: 15), "Yerinde açılan notun yorum oturumu da yetkilendirilmeli.")
         capture(app, name: "glass-map-near-note-opened")
         _ = try await simulatorFixture("leave-map-group")
-        let detailClosed = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.navigationBars["Post"])
+        let detailClosed = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.navigationBars["Not"])
         await fulfillment(of: [detailClosed], timeout: 15)
         let hidden = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: first)
         await fulfillment(of: [hidden], timeout: 15)
@@ -374,7 +374,7 @@ extension AuthGateUITests {
         row.tap()
         XCTAssertTrue(app.staticTexts[caption].waitForExistence(timeout: 10))
         app.staticTexts[caption].tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["ar-pin-surface"].exists)
         XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
         capture(app, name: "simulator-camera-free-note-opened")
@@ -474,6 +474,7 @@ extension AuthGateUITests {
         app.tabBars.buttons["Profil"].tap()
         scrollUntilHittable(app.buttons["profile-settings"], in: app, maxSwipes: 6)
         app.buttons["profile-settings"].tap()
+        app.buttons["settings-open-notifications"].tap()
         let notifications = app.switches["settings-notifications"]
         XCTAssertTrue(notifications.waitForExistence(timeout: 10))
         XCTAssertEqual(notifications.value as? String, "0")
@@ -486,7 +487,15 @@ extension AuthGateUITests {
         XCTAssertEqual(marketing.value as? String, "0")
         let verified = try await simulatorFixture("verify-consent")
         XCTAssertEqual(verified["notifications"], "true")
-        XCTAssertEqual(verified["placeNotes"], "true")
+        XCTAssertEqual(verified["placeNotes"], "false")
+        let noteAlerts = app.switches["settings-place-notes"]
+        scrollUntilHittable(noteAlerts, in: app)
+        noteAlerts.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        e2eAllowSystemAlerts()
+        let noteEnabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '1' AND enabled == true"), object: noteAlerts)
+        XCTAssertEqual(XCTWaiter.wait(for: [noteEnabled], timeout: 20), .completed)
+        let notePreference = try await simulatorFixture("verify-consent")
+        XCTAssertEqual(notePreference["placeNotes"], "true")
         XCTAssertEqual(verified["promotions"], "false")
         XCTAssertEqual(verified["location"], "false")
         XCTAssertEqual(verified["telemetry"], "false")
@@ -495,6 +504,7 @@ extension AuthGateUITests {
         app.tabBars.buttons["Profil"].tap()
         scrollUntilHittable(app.buttons["profile-settings"], in: app, maxSwipes: 6)
         app.buttons["profile-settings"].tap()
+        app.buttons["settings-open-notifications"].tap()
         XCTAssertTrue(notifications.waitForExistence(timeout: 10))
         XCTAssertEqual(notifications.value as? String, "1")
         capture(app, name: "simulator-notification-consent-persisted")
@@ -517,7 +527,7 @@ extension AuthGateUITests {
         XCTAssertTrue(notification.waitForExistence(timeout: 90), "Gerçek konum akışı + callable + yerel bildirim zinciri bildirim üretmeli.")
         capture(springboard, name: "simulator-location-entry-notification")
         notification.tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.staticTexts["Notları görmek için yaklaş ve haritada aç."].waitForExistence(timeout: 20))
         XCTAssertFalse(app.staticTexts[prepared["body"]!].exists, "Bildirim yönlendirmesi konumsuz not gövdesini açmamalı.")
         XCTAssertTrue(app.buttons["Konumu gör"].firstMatch.exists)
@@ -526,6 +536,45 @@ extension AuthGateUITests {
         XCTAssertEqual(verified["deliveries"], "1")
         XCTAssertEqual(verified["state"], "queued")
         capture(app, name: "simulator-location-notification-opened-note")
+    }
+
+    func testEmulator06bLocationEntryNotifiesWhileAppIsOnHomeScreen() async throws {
+        guard !e2eEmail.isEmpty, ProcessInfo.processInfo.environment["E2E_FIXTURE_URL"] != nil else {
+            throw XCTSkip("Yerel simülatör ana ekran giriş bildirimi testi seçilmedi.")
+        }
+        continueAfterFailure = false
+        let prepared = try await simulatorFixture("prepare-arrival")
+        let body = try XCTUnwrap(prepared["body"])
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
+        app.tabBars.buttons["Harita"].tap()
+        // Let foreground discovery register the existing destination before leaving the app.
+        try await Task.sleep(for: .seconds(3))
+        XCUIDevice.shared.press(.home)
+        let background = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            app.state == .runningBackground || app.state == .runningBackgroundSuspended
+        }, object: app)
+        await fulfillment(of: [background], timeout: 10)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let notification = springboard.staticTexts[body].firstMatch
+        XCTAssertFalse(notification.exists, "Hedefe girmeden bildirim gelmemeli.")
+        capture(springboard, name: "home-screen-before-location-entry")
+        _ = try await simulatorFixture("enter-arrival")
+        XCTAssertTrue(notification.waitForExistence(timeout: 90),
+                      "LociAR arka plandayken gerçek konum akışı ve callable, ana ekranda yerel bildirim üretmeli.")
+        XCTAssertNotEqual(app.state, .runningForeground, "Bildirim için uygulama öne getirilmemeli.")
+        capture(springboard, name: "home-screen-location-note-notification")
+        let verified = try await simulatorFixture("verify-arrival")
+        XCTAssertEqual(verified["deliveries"], "1")
+        XCTAssertEqual(verified["state"], "queued")
+        notification.tap()
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.buttons["Konumu gör"].firstMatch.exists)
+        capture(app, name: "home-screen-notification-opened-note")
+        let afterTap = try await simulatorFixture("verify-arrival")
+        XCTAssertEqual(afterTap["deliveries"], "1", "Bildirime dokunmak ikinci teslim oluşturmamalı.")
     }
 
     func testEmulator07AdminNotificationOpensActivityWithMarketingOff() async throws {
@@ -599,7 +648,7 @@ extension AuthGateUITests {
         backgroundNotification.tap()
         XCTAssertTrue(app.navigationBars["Harita"].waitForExistence(timeout: 20))
         XCTAssertFalse(app.navigationBars["Aktivite"].exists)
-        XCTAssertFalse(app.navigationBars["Post"].exists)
+        XCTAssertFalse(app.navigationBars["Not"].exists)
         capture(app, name: "simulator-foreign-recipient-rejected")
     }
 
@@ -636,6 +685,7 @@ extension AuthGateUITests {
         app.tabBars.buttons["Profil"].tap()
         scrollUntilHittable(app.buttons["profile-settings"], in: app, maxSwipes: 6)
         app.buttons["profile-settings"].tap()
+        app.buttons["settings-open-notifications"].tap()
         let notifications = app.switches["settings-notifications"]
         XCTAssertTrue(notifications.waitForExistence(timeout: 10))
         XCTAssertEqual(notifications.value as? String, "1")
@@ -692,6 +742,45 @@ extension AuthGateUITests {
         XCTAssertTrue(e2eSignIn(app), "Tekrar giriş başarısız: \(e2eMessageText(app))")
     }
 
+    func testEmulator08cUsernameLocationNoteUsesExplicitChoice() async throws {
+        guard !e2eEmail.isEmpty, ProcessInfo.processInfo.environment["E2E_FIXTURE_URL"] != nil else {
+            throw XCTSkip("Yerel simülatör kimlik testi seçilmedi.")
+        }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
+        app.tabBars.buttons["Harita"].tap()
+        app.buttons["map-location-note"].tap()
+        let field = e2eField(app, "place-note-text")
+        scrollUntilHittable(field, in: app, maxSwipes: 6)
+        field.tap()
+        field.typeText("Username note from iOS")
+        dismissKeyboard(app)
+        let identity = app.switches["publish-anonymously"]
+        scrollUntilHittable(identity, in: app, maxSwipes: 6)
+        XCTAssertEqual(identity.value as? String, "1")
+        identity.coordinate(withNormalizedOffset: CGVector(dx: 0.84, dy: 0.5)).tap()
+        let attributed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '0'"), object: identity)
+        XCTAssertEqual(XCTWaiter.wait(for: [attributed], timeout: 5), .completed)
+        capture(app, name: "ios-username-note-before-publish")
+        let publish = app.buttons["place-note-publish"]
+        scrollUntilHittable(publish, in: app, maxSwipes: 6)
+        publish.tap()
+        XCTAssertTrue(app.staticTexts["Notun yayınlandı. Haritada görünüyor."].waitForExistence(timeout: 60))
+        let stored = try await simulatorFixture("verify-attributed")
+        XCTAssertEqual(stored["anonymous"], "false")
+        XCTAssertFalse(try XCTUnwrap(stored["handle"]).isEmpty)
+        XCTAssertEqual(stored["caption"], "Username note from iOS")
+        capture(app, name: "ios-username-note-published")
+        let fresh = app.buttons["place-note-new-intent"]
+        scrollUntilHittable(fresh, in: app, maxSwipes: 6)
+        fresh.tap()
+        scrollUntilHittable(identity, in: app, maxSwipes: 6)
+        XCTAssertEqual(identity.value as? String, "1", "Yeni not yeniden anonim başlamalı.")
+    }
+
     func testEmulator09DeleteAccount() async throws {
         guard !e2eEmail.isEmpty else { throw XCTSkip("E2E_EMAIL yok") }
         let fixtureEnabled = ProcessInfo.processInfo.environment["E2E_FIXTURE_URL"] != nil
@@ -710,9 +799,11 @@ extension AuthGateUITests {
         delete.tap()
         let alert = app.alerts["Hesabı kalıcı olarak sil?"]
         XCTAssertTrue(alert.waitForExistence(timeout: 5))
-        alert.buttons["Devam et"].tap()
+        capture(app, name: "screen-14-delete-account-confirmation")
+        alert.buttons["Kimliğini doğrula"].tap()
         let password = app.secureTextFields["account-delete-password"]
         XCTAssertTrue(password.waitForExistence(timeout: 10), "Silmeden önce parola ile yeniden doğrulama gerekir.")
+        capture(app, name: "screen-14b-delete-account-reauthentication")
         password.tap()
         password.typeText(e2ePassword)
         app.buttons["account-delete-confirm"].tap()

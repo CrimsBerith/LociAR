@@ -274,12 +274,16 @@ struct ARExperienceView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                         .accessibilityIdentifier("ar-pin-diagnostic")
-                } else {
+                }
+#if DEBUG
+                DisclosureGroup(String(localized: "Tanılama")) {
                     Text(engine.mappingDiagnosticSummary)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.68))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
                         .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
+                .font(.caption)
+#endif
             }
         }
     }
@@ -293,9 +297,6 @@ struct ARExperienceView: View {
                     symbol: "exclamationmark.triangle.fill",
                     color: .orange
                 )
-                Button("Yaklaşık yerleştir · 0,8 m") { engine.placeApproximate() }
-                    .buttonStyle(LociSecondaryButtonStyle())
-                    .accessibilityIdentifier("ar-place-approximate")
             }
             if engine.state == .failed {
                 if isUnsupported {
@@ -326,11 +327,6 @@ struct ARExperienceView: View {
                         symbol: "viewfinder",
                         color: .orange
                     )
-                    Text(engine.mappingDiagnosticSummary)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
                 if let prepareStatus {
                     Text(prepareStatus.localizedUI)
@@ -371,7 +367,7 @@ struct ARExperienceView: View {
                     engine.placeApproximate()
                     startPreparingContent()
                 } label: {
-                    Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
+                    Label("Yaklaşık yerleştir", systemImage: "cube.transparent")
                 }
                 .buttonStyle(LociSecondaryButtonStyle())
                 .accessibilityIdentifier("ar-place-approximate-direct")

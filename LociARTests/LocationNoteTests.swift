@@ -3,6 +3,27 @@ import XCTest
 @testable import LociAR
 
 final class LocationNoteTests: XCTestCase {
+    func testSimulatedFixRequiresApprovedDemoAndCannotBeEnabledOnDeviceOrRelease() {
+        XCTAssertTrue(LocationProvenancePolicy.accepts(simulated: false, approvedDemoFixture: false))
+        XCTAssertFalse(LocationProvenancePolicy.accepts(simulated: true, approvedDemoFixture: false))
+#if DEBUG && targetEnvironment(simulator)
+        XCTAssertTrue(LocationProvenancePolicy.accepts(simulated: true, approvedDemoFixture: true))
+#else
+        XCTAssertFalse(LocationProvenancePolicy.accepts(simulated: true, approvedDemoFixture: true))
+        XCTAssertFalse(LocationProvenancePolicy.permitsDemoSimulation)
+#endif
+    }
+
+    func testRawSimulatedProvenanceStaysVisibleOutsideApprovedDemoFixture() {
+        let now = Date()
+        let location = SimulatedNoteLocation(coordinate: .init(latitude: 41, longitude: 29), altitude: 0,
+            horizontalAccuracy: 6, verticalAccuracy: 6, timestamp: now)
+        let accepted = LocationProvenancePolicy.permitsDemoSimulation
+        XCTAssertEqual(LocationProvenancePolicy.accepts(location), accepted)
+        XCTAssertEqual(LocationSample(location).simulated, !accepted)
+        XCTAssertEqual(ProximityPolicy.isUsableFix(location, at: now), accepted)
+    }
+
     func testLocationModeStopsAfterLastBackgroundTargetAndReturnsToLowPowerInForeground() {
         XCTAssertEqual(ArrivalLocationMode.resolve(monitoring: true, foreground: false, authorized: true, fullAccuracy: true, hasPreciseTargets: true), .precise)
         XCTAssertEqual(ArrivalLocationMode.resolve(monitoring: true, foreground: false, authorized: true, fullAccuracy: true, hasPreciseTargets: false), .stopped)
@@ -199,6 +220,12 @@ final class LocationNoteTests: XCTestCase {
         XCTAssertTrue(LocationNotePolicy.fixInsideNote(distance: 39, accuracy: 30, radius: 20), "tolerance capped at 20 m")
         XCTAssertFalse(LocationNotePolicy.fixInsideNote(distance: 41, accuracy: 30, radius: 20))
         XCTAssertFalse(LocationNotePolicy.fixInsideNote(distance: 0, accuracy: 36, radius: 20), "fixes worse than 35 m never count")
+    }
+}
+
+private final class SimulatedNoteLocation: CLLocation, @unchecked Sendable {
+    override var sourceInformation: CLLocationSourceInformation? {
+        CLLocationSourceInformation(softwareSimulationState: true, andExternalAccessoryState: false)
     }
 }
 

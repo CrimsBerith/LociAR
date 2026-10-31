@@ -48,6 +48,12 @@ export const setDataPreferences = onCall(options, async request => {
     const current = await tx.get(preferences(caller.luid));
     if (body.revision !== summary(current.data()).revision) throw new HttpsError('failed-precondition', 'Data preferences changed; refresh and retry');
     const notifications = body.notifications ?? current.get('notifications') ?? null;
+    // Current clients disclose note alerts separately. Keep that explicit choice even when
+    // the delivery master is off, so re-enabling social notifications cannot imply a new opt-in.
+    // Old clients omit placeNotes and use the combined notification notice; preserve their
+    // explicit on/off behavior, but unrelated preference updates must not revive note alerts.
+    const placeNotes = body.placeNotes !== undefined ? body.placeNotes
+      : body.notifications !== undefined ? body.notifications : current.get('place_notes') === true;
     const data = { owner_luid: caller.luid, telemetry: body.telemetry, location: body.location,
       notifications,
       notifications_notice_version: body.notifications !== undefined ? '2026-10-11-notifications' : current.get('notifications_notice_version') ?? null,
@@ -57,7 +63,7 @@ export const setDataPreferences = onCall(options, async request => {
         const marketing = notifications === true && (body.promotions ?? current.get('promotions') === true);
         return { promotions: marketing, arrivals: marketing, departures: marketing };
       })(),
-      place_notes: notifications ?? body.placeNotes ?? current.get('place_notes') === true,
+      place_notes: placeNotes,
       place_notes_notice_version: body.placeNotes !== undefined ? '2026-10-11-place-notes' : current.get('place_notes_notice_version') ?? null,
       departures_revision: current.get('departures') === true && typeof current.get('departures_revision') === 'string' ? current.get('departures_revision') : randomUUID(),
       departures_notice_version: body.departures !== undefined ? '2026-10-11-departures' : current.get('departures_notice_version') ?? null,

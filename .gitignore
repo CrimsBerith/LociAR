@@ -98,3 +98,6 @@ RTK.md
 
 # Generated owner reports (PDF/zip/png); not source
 output/
+
+# Owner-only launch payload contains anonymous author assignments.
+/scripts/seed/private-launch-1680.json

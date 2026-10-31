@@ -10,6 +10,7 @@
 		0684C5B54CBF82C365DD6006 /* CampaignZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3FB9C9D3DD465022F5FCB /* CampaignZone.swift */; };
 		07A6B2E9732A5CC113D1413D /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B673A12AAA93EA6AEF0A6476 /* AppSession.swift */; };
 		11D6F42EE2E0C8ECC2BC223C /* PlaceNoteDeliveryRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10B71841DEEEB76A6112317 /* PlaceNoteDeliveryRecoveryTests.swift */; };
+		1555EE13C97366C25F697050 /* DiagnosticsReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82C371E46CA93A349BC13EDD /* DiagnosticsReporter.swift */; };
 		15F8A88121766DF809CE1576 /* SyncQueueProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EC49D350291D0E4081FDB2 /* SyncQueueProcessor.swift */; };
 		17F3C538925E63AA7FE82E27 /* ARCoreGeospatial in Frameworks */ = {isa = PBXBuildFile; productRef = E659B09B1577861722AADEC8 /* ARCoreGeospatial */; };
 		1A75F14A6AB34C0CA880010F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */; };
@@ -42,6 +43,7 @@
 		5A69D23CDAC608069B88A73B /* UserContextService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7796ACFDBCBD0E65741ABF9 /* UserContextService.swift */; };
 		5CD424BE6F1C83D9B7FCACD0 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = D79507527DE249B572FDC585 /* FirebaseAuth */; };
 		5EBCBEB9EF4FD520099CFAD5 /* PinStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F28BA583598B172F3047BCE /* PinStateMachineTests.swift */; };
+		5EE601E50B09F5F917645722 /* DiagnosticsReporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC3FA72CDF582E0086EB41A /* DiagnosticsReporterTests.swift */; };
 		5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8263073D47812D536F4369 /* GeoPoseCaptureService.swift */; };
 		5F78CC09A3E01624D5E04C2B /* ArrivalRuntimePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75F85BD0052B77149A1441B /* ArrivalRuntimePolicy.swift */; };
 		60C720C4226E7EADD4D73BD5 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C46B83A003BDC6A241B3BDD /* NotificationService.swift */; };
@@ -208,6 +210,7 @@
 		7A8A0BF94835F851681A368D /* MediaAssetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAssetStore.swift; sourceTree = "<group>"; };
 		7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		7CC3FB9C9D3DD465022F5FCB /* CampaignZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampaignZone.swift; sourceTree = "<group>"; };
+		82C371E46CA93A349BC13EDD /* DiagnosticsReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsReporter.swift; sourceTree = "<group>"; };
 		88E6CBE9F116D30F21D9E4A6 /* CameraLocationRefineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraLocationRefineView.swift; sourceTree = "<group>"; };
 		891EEAD969F84E2C29DF11EC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyAsyncStorageImporter.swift; sourceTree = "<group>"; };
@@ -232,6 +235,7 @@
 		BC4C259A333DB3649222F01A /* LociAR.Release.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LociAR.Release.entitlements; sourceTree = "<group>"; };
 		BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifRepository.swift; sourceTree = "<group>"; };
 		BF358541B33EC7779CA4640C /* LaunchReadabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchReadabilityTests.swift; sourceTree = "<group>"; };
+		BFC3FA72CDF582E0086EB41A /* DiagnosticsReporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsReporterTests.swift; sourceTree = "<group>"; };
 		C10B71841DEEEB76A6112317 /* PlaceNoteDeliveryRecoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceNoteDeliveryRecoveryTests.swift; sourceTree = "<group>"; };
 		CFB8A5BAB83F4214657CF863 /* LocationNotePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNotePolicy.swift; sourceTree = "<group>"; };
 		D58FA2D86BC168C06D6BCF20 /* ARExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARExperienceView.swift; sourceTree = "<group>"; };
@@ -340,6 +344,7 @@
 				D75F85BD0052B77149A1441B /* ArrivalRuntimePolicy.swift */,
 				19CF3A4B1065A252673D427A /* CampaignArrivalService.swift */,
 				32443B79810E5CE2F38FB099 /* ConnectivityMonitor.swift */,
+				82C371E46CA93A349BC13EDD /* DiagnosticsReporter.swift */,
 				9309C5EFBE40B5DE193B3ECF /* LocationController.swift */,
 				DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */,
 				6C46B83A003BDC6A241B3BDD /* NotificationService.swift */,
@@ -378,6 +383,7 @@
 				B9EE4695B4E9798270DB34E8 /* ArrivalRuntimeTests.swift */,
 				61A27A11D2DC46B7BCDA5DC4 /* BackendAndPolicyTests.swift */,
 				07471D9DD5F568CCD5B6981C /* ClientRequestCacheTests.swift */,
+				BFC3FA72CDF582E0086EB41A /* DiagnosticsReporterTests.swift */,
 				5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */,
 				24971089F9EF41DDADCD30AC /* GifPostTests.swift */,
 				BF358541B33EC7779CA4640C /* LaunchReadabilityTests.swift */,
@@ -770,6 +776,7 @@
 				E60822FB1DFCC42E708C1F93 /* ArrivalRuntimeTests.swift in Sources */,
 				92CB2579F9A4D9FA6136AF3D /* BackendAndPolicyTests.swift in Sources */,
 				DA7E6D5169E31200A4B2A026 /* ClientRequestCacheTests.swift in Sources */,
+				5EE601E50B09F5F917645722 /* DiagnosticsReporterTests.swift in Sources */,
 				788505617997733A088C4578 /* DomainContractTests.swift in Sources */,
 				D5D44603AAEDBFBE61BC3067 /* GifPostTests.swift in Sources */,
 				FC9CEB0C83AD6CD1A0DA20E1 /* LaunchReadabilityTests.swift in Sources */,
@@ -814,6 +821,7 @@
 				33A12325686F3ED8542A01B3 /* ClientRequestCache.swift in Sources */,
 				7478793DCB1CF6E75F8A2455 /* ConnectivityMonitor.swift in Sources */,
 				B93C26B18250AC79DE3E8C22 /* CreatePostView.swift in Sources */,
+				1555EE13C97366C25F697050 /* DiagnosticsReporter.swift in Sources */,
 				A46198DE013220502EEEAF5F /* DiscoverView.swift in Sources */,
 				2CDCD676F2852A6E77BCE560 /* FirebaseBackend.swift in Sources */,
 				5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */,
@@ -902,7 +910,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.khankartal.lociar;
 				PRODUCT_NAME = LociAR;
@@ -1113,7 +1121,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.khankartal.lociar;
 				PRODUCT_NAME = LociAR;

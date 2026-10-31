@@ -84,21 +84,36 @@ struct WorldMapDownloadCache: Sendable {
     let directory: URL
     private let generation: UUID
     private let owner: UUID?
+    private let lifecycleKey: String
 
     nonisolated init(directory: URL, owner: UUID? = nil) {
         self.directory = directory.standardizedFileURL
         self.owner = owner
+        let key = Self.lifecycleKey(for: directory)
+        self.lifecycleKey = key
         Self.lifecycle.lock.lock()
         defer { Self.lifecycle.lock.unlock() }
-        let key = self.directory.path
         let token = Self.lifecycle.generations[key] ?? UUID()
         Self.lifecycle.generations[key] = token
         generation = token
     }
 
+    /// Stable lifecycle key that does not depend on whether the path currently exists.
+    /// `standardizedFileURL` only resolves the `/var`→`/private/var` symlink for paths that
+    /// exist on disk, so a handle captured before the directory was created would otherwise key
+    /// its tombstone differently from the instance that deletes it — letting a late download
+    /// completion recreate deleted geometry on device. Collapse the alias so both agree.
+    private nonisolated static func lifecycleKey(for url: URL) -> String {
+        let path = url.standardizedFileURL.path
+        for alias in ["/private/var/", "/private/tmp/", "/private/etc/"] where path.hasPrefix(alias) {
+            return String(path.dropFirst("/private".count))
+        }
+        return path
+    }
+
     private nonisolated var validLocked: Bool {
-        !Task.isCancelled && !Self.lifecycle.blocked.contains(directory.path)
-            && Self.lifecycle.generations[directory.path] == generation
+        !Task.isCancelled && !Self.lifecycle.blocked.contains(lifecycleKey)
+            && Self.lifecycle.generations[lifecycleKey] == generation
             && (owner == nil || FirebaseIdentity.currentLUID() == owner)
     }
 
@@ -117,18 +132,19 @@ struct WorldMapDownloadCache: Sendable {
     /// Invalidates captured download handles before the deletion UI can dismiss.
     nonisolated static func block(owner: UUID) {
         guard let directory = accountDirectory(owner) else { return }
+        let key = lifecycleKey(for: directory)
         lifecycle.lock.lock()
         defer { lifecycle.lock.unlock() }
-        lifecycle.blocked.insert(directory.path)
-        lifecycle.generations[directory.path] = UUID()
+        lifecycle.blocked.insert(key)
+        lifecycle.generations[key] = UUID()
     }
 
     /// Cache commits and deletion share one lock: a late SDK completion cannot recreate files.
     nonisolated func removeAll() throws {
         Self.lifecycle.lock.lock()
         defer { Self.lifecycle.lock.unlock() }
-        Self.lifecycle.blocked.insert(directory.path)
-        Self.lifecycle.generations[directory.path] = UUID()
+        Self.lifecycle.blocked.insert(lifecycleKey)
+        Self.lifecycle.generations[lifecycleKey] = UUID()
         if FileManager.default.fileExists(atPath: directory.path) { try FileManager.default.removeItem(at: directory) }
     }
 

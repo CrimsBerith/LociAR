@@ -7,7 +7,7 @@ enum NoteMapLayer: Equatable {
     case heat(precision: Int)
     /// Neighbourhood: one bubble per ~150 m cell with its note count.
     case counts
-    /// Street level: the notes themselves, grouped within 25 m.
+    /// Street level: the notes themselves, grouped within 6 m.
     case notes
 
     /// Finer cells reduce the offset from each cell's centre; screen-space grouping limits clutter.
@@ -287,10 +287,10 @@ struct MapNoteGroupSheet: View {
         NavigationStack(path: $path) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    Text("Bu noktadaki notlar · en çok beğenilen önce")
+                    Text("En çok beğenilenler")
                         .font(.subheadline).foregroundStyle(LociTheme.secondaryText)
                     if !isNear || posts.contains(where: \.isLocked) {
-                        Label("Notları görmek için yaklaş ve haritada aç.", systemImage: "lock.fill")
+                        Label("Bu notlar konumunda açılır.", systemImage: "lock.fill")
                             .font(.callout).foregroundStyle(LociTheme.secondaryText)
                     }
                     if let message { Text(message).font(.caption).foregroundStyle(LociTheme.secondaryText) }
@@ -314,7 +314,7 @@ struct MapNoteGroupSheet: View {
                     }
                     if totalCount != 0 && (!isNear || readablePosts.isEmpty) {
                         Button { Task { await load(reset: true, waitForFix: true) } } label: {
-                            Label(isLoading ? String(localized: "Konum doğrulanıyor…") : String(localized: "Burada aç"), systemImage: "lock.open")
+                            Label(isLoading ? String(localized: "Konum doğrulanıyor…") : String(localized: "Notları aç"), systemImage: "lock.open")
                         }
                         .buttonStyle(LociPrimaryButtonStyle()).disabled(isLoading)
                         .accessibilityIdentifier("map-group-open-here")
