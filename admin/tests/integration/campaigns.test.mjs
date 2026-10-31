@@ -24,7 +24,7 @@ async function fixture(overrides = {}) {
   const campaign = await createCampaign(input, actor, reason, randomUUID());
   const postId = randomUUID();
   await db.collection('posts').doc(postId).set({ creator_id: recipient, status: 'active', visibility: 'public', age_rating: 'all',
-    likes_count: 12, created_at: Timestamp.now() });
+    likes_count: 12, created_at: Timestamp.now(), lat: 41.0082, lng: 28.9784 });
   return { actor, author, recipient, brand: brand.id, campaign: campaign.id, revision, postId };
 }
 

@@ -163,7 +163,7 @@ test('session cookie is HttpOnly, Secure, SameSite Strict and sign-in creates an
 });
 test('API rejects missing sessions, AAL1 and an AAL2 role without the operation permission', async () => {
   const postId = randomUUID();
-  await db.collection('posts').doc(postId).set({ status: 'pending_review', deleted_at: null, age_rating: 'all' });
+  await db.collection('posts').doc(postId).set({ status: 'pending_review', deleted_at: null, age_rating: 'all', lat: 41.0082, lng: 28.9784 });
   const headers = { 'idempotency-key': randomUUID() };
   assert.equal((await post(actionPath(postId), { action: 'approve', reason }, null, headers)).status, 401);
   const aal1 = await session(await identity('super_admin', false));
@@ -178,7 +178,7 @@ test('API rejects missing sessions, AAL1 and an AAL2 role without the operation 
 test('moderation through the real HTTP route updates once, audits once, rejects foreign origins and bad payloads', async () => {
   const admin = await identity('trust_safety_admin'); const { cookie } = await session(admin);
   const postId = randomUUID(); const ref = db.collection('posts').doc(postId);
-  await ref.set({ status: 'pending_review', deleted_at: null, age_rating: 'all' });
+  await ref.set({ status: 'pending_review', deleted_at: null, age_rating: 'all', lat: 41.0082, lng: 28.9784 });
   const key = randomUUID(); const headers = { 'idempotency-key': key };
   for (let i = 0; i < 2; i++) assert.equal((await post(actionPath(postId), { action: 'approve', reason }, cookie, headers)).status, 200);
   assert.equal((await ref.get()).get('status'), 'active');
@@ -221,7 +221,7 @@ test('approval HTTP flow requires a second admin and atomically applies the appr
   const requester = await identity('super_admin'); const reviewer = await identity('super_admin');
   const first = await session(requester); const second = await session(reviewer);
   const id = randomUUID(); const postRef = db.collection('posts').doc(id);
-  await postRef.set({ status: 'active', views_count: 1, likes_count: 2, comments_count: 3, updated_at: Timestamp.now() });
+  await postRef.set({ status: 'active', views_count: 1, likes_count: 2, comments_count: 3, updated_at: Timestamp.now(), lat: 41.0082, lng: 28.9784 });
   const key = randomUUID();
   const request = { action: 'post_metrics_set', resourceType: 'post', resourceId: id, reason,
     payload: { viewsCount: 20, likesCount: 30, commentsCount: 40 } };
@@ -254,7 +254,7 @@ test('rate-limited HTTP actions return 429 with no post mutation', async () => {
 test('rate-limited place-note HTTP actions cannot mutate or create an audit receipt', async () => {
   const admin = await identity('super_admin'); const { cookie } = await session(admin);
   const id = randomUUID(), key = randomUUID(), ref = db.collection('posts').doc(id);
-  await ref.set({ status: 'active', note_kind: 'location', push_state: 'none', notify_radius_m: 20, age_rating: 'all', deleted_at: null });
+  await ref.set({ status: 'active', note_kind: 'location', push_state: 'none', notify_radius_m: 20, age_rating: 'all', deleted_at: null, lat: 41.0082, lng: 28.9784 });
   const before = (await ref.get()).data(), bucket = Math.floor(Date.now() / 60_000);
   for (const window of [bucket, bucket + 1]) await db.collection('admin_rate_limits').doc(`${admin.uid}_place_note_ops_${window}`).set({ count: 30 });
   const response = await post('/api/admin/v1/place-notes', { action: 'remove', id, reason }, cookie, { 'idempotency-key': key });

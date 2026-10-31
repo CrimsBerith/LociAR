@@ -99,6 +99,7 @@ async function withinDeadline(operation, timeout, label) {
 async function postFixture(caption) {
   const ref = db.collection('posts').doc(randomUUID());
   await ref.set({ caption, status: 'pending_review', deleted_at: null, age_rating: 'all', visibility: 'public',
+    lat: 41.0082, lng: 28.9784,
     created_at: Timestamp.now(), updated_at: Timestamp.now(), views_count: 1, likes_count: 2, comments_count: 3 });
   return ref;
 }
