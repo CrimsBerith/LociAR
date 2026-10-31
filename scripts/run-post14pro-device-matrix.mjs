@@ -1,0 +1,233 @@
+#!/usr/bin/env node
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
+const root = resolve(import.meta.dirname, '..');
+process.chdir(root);
+
+const DEVICES = [
+  {
+    key: '14ProMax',
+    name: 'iPhone 14 Pro Max',
+    simName: 'LociAR Notes - 14ProMax',
+    udid: '02E3E2DC-D000-4DD1-BAE6-DDACE8928B4A',
+    formFactor: '6.7" Dynamic Island',
+    focus: 'Large screen Dynamic Island layout, high density content',
+  },
+  {
+    key: '15',
+    name: 'iPhone 15',
+    simName: 'LociAR Notes - 15',
+    udid: '3FCE7914-3B1B-4B94-8096-22349BF6FDE5',
+    formFactor: '6.1" Dynamic Island (Base Model)',
+    focus: 'Standard modern base model Dynamic Island baseline',
+  },
+  {
+    key: '15ProMax',
+    name: 'iPhone 15 Pro Max',
+    simName: 'LociAR Notes - 15ProMax',
+    udid: '86FF9327-8159-4B6B-B834-2981B9A8DD9D',
+    formFactor: '6.7" Slim Bezel Dynamic Island',
+    focus: 'Slim bezel touch targets, 6m map cluster, edge-to-edge UI',
+  },
+  {
+    key: '16Pro',
+    name: 'iPhone 16 Pro',
+    simName: 'LociAR Notes - 16Pro',
+    udid: 'BDCC312C-6CCC-4EE8-9425-3B41B067023B',
+    formFactor: '6.3" Dynamic Island (New Aspect Ratio)',
+    focus: 'New 6.3" screen aspect ratio, safe area adaptation',
+  },
+  {
+    key: '16ProMax',
+    name: 'iPhone 16 Pro Max',
+    simName: 'LociAR Notes - 16ProMax',
+    udid: '55BB3E40-0691-4366-9649-C03E4D29ADBA',
+    formFactor: '6.9" Ultra Dynamic Island (Store Screenshot Spec)',
+    focus: 'App Store Connect 6.9" screenshots (1320x2868) standard capture',
+  },
+];
+
+const TARGET_TESTS = [
+  'testEmulator01SignUpVerifyAndSignIn',
+  'testEmulator02CameraFreeNotePublishesAndAppearsWithoutManualRefresh',
+  'testEmulator02dMapGroupRequiresOnSiteFixAndRanksAllNotes',
+  'testEmulator03BrowseTabsAndEditProfile',
+  'testEmulator04NotificationConsentPersistsWithoutMarketingOrLocationSharing',
+];
+
+function runSimctl(...args) {
+  try {
+    return execFileSync('xcrun', ['simctl', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  } catch (err) {
+    return (err.stdout || '') + (err.stderr || '');
+  }
+}
+
+function ensureNoSimulatorsBooted() {
+  const output = runSimctl('list', 'devices');
+  const bootedLines = output.split('\n').filter(l => l.includes('(Booted)'));
+  if (bootedLines.length > 0) {
+    console.log(`[Matrix-Post14] Shutting down ${bootedLines.length} active simulator(s)...`);
+    for (const line of bootedLines) {
+      const match = line.match(/\(([A-F0-9-]{36})\)/);
+      if (match) {
+        console.log(`[Matrix-Post14] Shutting down ${match[1]}...`);
+        runSimctl('shutdown', match[1]);
+      }
+    }
+  }
+}
+
+function exportXcresultAttachments(xcresultPath, outputDir) {
+  mkdirSync(outputDir, { recursive: true });
+  try {
+    execFileSync('xcrun', [
+      'xcresulttool', 'export', 'attachments',
+      '--path', xcresultPath,
+      '--output-path', outputDir,
+    ], { stdio: 'inherit' });
+  } catch (err) {
+    console.warn(`[Matrix-Post14] Failed exporting attachments from ${xcresultPath}: ${err.message}`);
+  }
+}
+
+async function runDevice(device, index, total) {
+  const baseOutputDir = resolve(root, 'build/post14pro-device-testing-20261031', device.key);
+  const summaryFile = join(baseOutputDir, 'device-summary.json');
+
+  if (process.env.FORCE_RERUN !== '1' && existsSync(summaryFile)) {
+    try {
+      const existing = JSON.parse(readFileSync(summaryFile, 'utf8'));
+      if (existing.success && existing.passedTests?.length === TARGET_TESTS.length) {
+        console.log(`\n[Matrix-Post14] [${index + 1}/${total}] SKIPPING ${device.name} (${device.key}) - Already PASSED 100% (${existing.durationSec}s).`);
+        return existing;
+      }
+    } catch {}
+  }
+
+  console.log(`\n======================================================================`);
+  console.log(`[Matrix-Post14] [${index + 1}/${total}] STARTING DEVICE: ${device.name} (${device.key})`);
+  console.log(`[Matrix-Post14] UDID: ${device.udid}`);
+  console.log(`[Matrix-Post14] Form Factor: ${device.formFactor}`);
+  console.log(`[Matrix-Post14] Focus: ${device.focus}`);
+  console.log(`======================================================================\n`);
+
+  ensureNoSimulatorsBooted();
+
+  if (existsSync(baseOutputDir)) {
+    rmSync(baseOutputDir, { recursive: true, force: true });
+  }
+  mkdirSync(baseOutputDir, { recursive: true });
+
+  const env = {
+    ...process.env,
+    PATH: `/opt/homebrew/opt/node@22/bin:/opt/homebrew/opt/openjdk@21/bin:${process.env.PATH || ''}`,
+    JAVA_HOME: '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home',
+    LOCIAR_TEST_SIMULATOR: device.udid,
+    LOCIAR_TEST_OUTPUT: baseOutputDir,
+    LOCIAR_TEST_DERIVED_DATA: '/Users/khankartal/Library/Developer/Xcode/DerivedData/LociAR-bwrwirqnhlpcaufcrvegqbhlrzrz',
+    LOCIAR_SIMULATOR_TESTS: TARGET_TESTS.join(','),
+  };
+
+  const startTime = Date.now();
+  const runResult = spawnSync(process.execPath, ['scripts/run-simulator-notes.mjs'], {
+    env,
+    stdio: 'inherit',
+    cwd: root,
+  });
+
+  const durationSec = Math.round((Date.now() - startTime) / 1000);
+  const success = runResult.status === 0;
+
+  console.log(`\n[Matrix-Post14] Device ${device.name} run finished in ${durationSec}s with exit code ${runResult.status}`);
+
+  // Export all attachments from each test xcresult
+  const attachmentsDir = join(baseOutputDir, 'attachments');
+  mkdirSync(attachmentsDir, { recursive: true });
+
+  for (const testName of TARGET_TESTS) {
+    const xcresult = join(baseOutputDir, `${testName}.xcresult`);
+    if (existsSync(xcresult)) {
+      const testAttachmentDir = join(attachmentsDir, testName);
+      exportXcresultAttachments(xcresult, testAttachmentDir);
+    }
+  }
+
+  // Shutdown and clean up simulator to enforce single simulator constraint
+  console.log(`[Matrix-Post14] Shutting down and erasing ${device.name}...`);
+  runSimctl('shutdown', device.udid);
+  runSimctl('erase', device.udid);
+
+  ensureNoSimulatorsBooted();
+
+  // Read accepted / failed state
+  let accepted = [], failed = [];
+  try {
+    const accFile = join(baseOutputDir, 'accepted.json');
+    if (existsSync(accFile)) accepted = JSON.parse(readFileSync(accFile, 'utf8'));
+  } catch {}
+  try {
+    const failFile = join(baseOutputDir, 'failed.json');
+    if (existsSync(failFile)) failed = JSON.parse(readFileSync(failFile, 'utf8'));
+  } catch {}
+
+  const deviceSummary = {
+    key: device.key,
+    name: device.name,
+    formFactor: device.formFactor,
+    udid: device.udid,
+    durationSec,
+    success,
+    passedTests: accepted,
+    failedTests: failed,
+    totalTargetTests: TARGET_TESTS.length,
+  };
+
+  writeFileSync(join(baseOutputDir, 'device-summary.json'), JSON.stringify(deviceSummary, null, 2));
+  return deviceSummary;
+}
+
+async function main() {
+  const onlyDevice = process.env.ONLY_DEVICE;
+  const targetDevices = onlyDevice
+    ? DEVICES.filter(d => d.key.toLowerCase() === onlyDevice.toLowerCase())
+    : DEVICES;
+
+  if (targetDevices.length === 0) {
+    console.error(`Unknown ONLY_DEVICE: ${onlyDevice}. Available: ${DEVICES.map(d => d.key).join(', ')}`);
+    process.exit(1);
+  }
+
+  console.log(`[Matrix-Post14] Modern Post-14 Pro Device Testing Matrix Starting.`);
+  console.log(`[Matrix-Post14] Devices to test: ${targetDevices.map(d => d.key).join(', ')}`);
+  console.log(`[Matrix-Post14] Suite per device: ${TARGET_TESTS.join(', ')}`);
+  console.log(`[Matrix-Post14] Single active simulator strictly enforced.\n`);
+
+  const results = [];
+  for (let i = 0; i < targetDevices.length; i++) {
+    const res = await runDevice(targetDevices[i], i, targetDevices.length);
+    results.push(res);
+  }
+
+  const matrixSummaryPath = resolve(root, 'build/post14pro-device-testing-20261031/matrix-summary.json');
+  writeFileSync(matrixSummaryPath, JSON.stringify(results, null, 2));
+
+  console.log(`\n======================================================================`);
+  console.log(`[Matrix-Post14] ALL MODERN DEVICES COMPLETED`);
+  console.log(`======================================================================`);
+  for (const r of results) {
+    console.log(`  * ${r.name.padEnd(25)} | ${r.formFactor.padEnd(25)} | ${r.success ? 'PASS' : 'FAIL'} | Passed: ${r.passedTests.length}/${r.totalTargetTests} | ${r.durationSec}s`);
+  }
+  console.log(`======================================================================\n`);
+
+  const allPassed = results.every(r => r.success);
+  process.exit(allPassed ? 0 : 1);
+}
+
+main().catch(err => {
+  console.error('[Matrix-Post14] Fatal error:', err);
+  ensureNoSimulatorsBooted();
+  process.exit(1);
+});
