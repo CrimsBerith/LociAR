@@ -16,10 +16,12 @@ extension AuthGateUITests {
             // Full-screen flings can skip a short row entirely on an iPhone SE.
             // Use bounded drags and recover upward if the row has passed the viewport.
             let above = element.exists && element.frame.maxY > 0 && element.frame.maxY < app.frame.minY + 100
-            // Use the form gutter: a drag through a map or multiline input scrolls that
-            // nested control instead, and a partially clipped switch can still be hittable.
-            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: above ? 0.42 : 0.72))
-            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: above ? 0.72 : 0.42))
+            // Use the form inner gutter (0.22) so it remains inside the form across all screen widths.
+            let hasKb = app.keyboards.element.exists
+            let bottomY = hasKb ? 0.40 : 0.72
+            let topY = hasKb ? 0.18 : 0.42
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.22, dy: above ? topY : bottomY))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.22, dy: above ? bottomY : topY))
             start.press(forDuration: 0.05, thenDragTo: end)
         }
     }
@@ -250,20 +252,17 @@ extension AuthGateUITests {
 
     func dismissKeyboard(_ app: XCUIApplication) {
         guard app.keyboards.element.exists else { return }
-        if app.buttons["keyboard-done-button"].exists && app.buttons["keyboard-done-button"].isHittable {
-            app.buttons["keyboard-done-button"].tap()
-        } else if app.keyboards.buttons["Return"].exists && app.keyboards.buttons["Return"].isHittable {
-            app.keyboards.buttons["Return"].tap()
-        } else if app.keyboards.buttons["Geç"].exists && app.keyboards.buttons["Geç"].isHittable {
-            app.keyboards.buttons["Geç"].tap()
+        let done = app.buttons["keyboard-done-button"].exists ? app.buttons["keyboard-done-button"] : app.buttons["Bitti"]
+        if done.exists && done.isHittable {
+            done.tap()
         } else if app.navigationBars["Konum notu bırak"].exists {
-            app.navigationBars["Konum notu bırak"].tap()
+            app.navigationBars["Konum notu bırak"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         } else if app.navigationBars["İçerik oluştur"].exists {
-            app.navigationBars["İçerik oluştur"].tap()
+            app.navigationBars["İçerik oluştur"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         } else if app.buttons["create-publish"].exists {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
         } else {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.18)).tap()
         }
         _ = app.keyboards.firstMatch.waitForNonExistence(timeout: 2)
         RunLoop.current.run(until: Date().addingTimeInterval(0.35))

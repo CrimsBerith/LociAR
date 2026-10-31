@@ -299,6 +299,11 @@ struct PlaceNoteComposer: View {
                             .accessibilityIdentifier("keyboard-done-button")
                     }
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Bitti") { isTextFocused = false }
+                        .accessibilityIdentifier("keyboard-done-button")
+                }
             }
         }
         .interactiveDismissDisabled(busy)
