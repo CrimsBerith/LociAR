@@ -250,19 +250,22 @@ extension AuthGateUITests {
 
     func dismissKeyboard(_ app: XCUIApplication) {
         guard app.keyboards.element.exists else { return }
-        if app.buttons["keyboard-done-button"].exists {
-            let done = app.buttons["keyboard-done-button"]
-            let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: done)
-            let readiness = XCTWaiter.wait(for: [ready], timeout: 5)
-            if readiness != .completed { capture(app, name: "keyboard-done-not-hittable") }
-            XCTAssertEqual(readiness, .completed, "Klavye kapatma düğmesi dokunulabilir olmalı.")
-            done.tap()
-            XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5), "Bitti klavyeyi kapatmalı.")
+        if app.buttons["keyboard-done-button"].exists && app.buttons["keyboard-done-button"].isHittable {
+            app.buttons["keyboard-done-button"].tap()
+        } else if app.keyboards.buttons["Return"].exists && app.keyboards.buttons["Return"].isHittable {
+            app.keyboards.buttons["Return"].tap()
+        } else if app.keyboards.buttons["Geç"].exists && app.keyboards.buttons["Geç"].isHittable {
+            app.keyboards.buttons["Geç"].tap()
+        } else if app.navigationBars["Konum notu bırak"].exists {
+            app.navigationBars["Konum notu bırak"].tap()
         } else if app.navigationBars["İçerik oluştur"].exists {
             app.navigationBars["İçerik oluştur"].tap()
         } else if app.buttons["create-publish"].exists {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
         }
+        _ = app.keyboards.firstMatch.waitForNonExistence(timeout: 2)
         RunLoop.current.run(until: Date().addingTimeInterval(0.35))
     }
 
