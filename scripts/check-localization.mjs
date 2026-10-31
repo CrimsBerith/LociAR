@@ -27,7 +27,7 @@ function validateEntry(key, entry, sourceLanguage, release) {
 }
 export function validateCatalog(catalog, release = false) {
   const failures = [];
-  if (catalog.version !== '1.0' || !LANGUAGES.includes(catalog.sourceLanguage)) failures.push('Unsupported catalog metadata');
+  if (!['1.0', '1.1'].includes(catalog.version) || !LANGUAGES.includes(catalog.sourceLanguage)) failures.push('Unsupported catalog metadata');
   for (const [key, entry] of Object.entries(catalog.strings)) failures.push(...validateEntry(key, entry, catalog.sourceLanguage, release));
   return failures;
 }

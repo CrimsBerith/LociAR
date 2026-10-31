@@ -12,3 +12,4 @@ echo "Eşzamanlı Tek Simülatör Garantisi (Sequential Execution)"
 echo "======================================================================"
 
 node scripts/run-post14pro-device-matrix.mjs
+

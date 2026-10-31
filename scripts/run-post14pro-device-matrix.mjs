@@ -24,12 +24,52 @@ const DEVICES = [
     focus: 'Standard modern base model Dynamic Island baseline',
   },
   {
+    key: '15Plus',
+    name: 'iPhone 15 Plus',
+    simName: 'LociAR Notes - 15Plus',
+    udid: '3EEE6C04-ABF9-4962-9DB2-E4D0590BB20F',
+    formFactor: '6.7" Dynamic Island (Base Plus)',
+    focus: 'Base tier large display layout & touch margins',
+  },
+  {
+    key: '15Pro',
+    name: 'iPhone 15 Pro',
+    simName: 'LociAR Notes - 15Pro',
+    udid: '2FE43A6F-15A0-4B9E-A135-903428640F5D',
+    formFactor: '6.1" Titanium Slim Bezel Dynamic Island',
+    focus: 'Pro model 120Hz display simulation & safe area alignment',
+  },
+  {
     key: '15ProMax',
     name: 'iPhone 15 Pro Max',
     simName: 'LociAR Notes - 15ProMax',
     udid: '86FF9327-8159-4B6B-B834-2981B9A8DD9D',
-    formFactor: '6.7" Slim Bezel Dynamic Island',
+    formFactor: '6.7" Titanium Slim Bezel Dynamic Island',
     focus: 'Slim bezel touch targets, 6m map cluster, edge-to-edge UI',
+  },
+  {
+    key: '16e',
+    name: 'iPhone 16e',
+    simName: 'LociAR Notes - 16e',
+    udid: 'EF9B9BB1-1135-4626-945F-DDDD897F7CC7',
+    formFactor: '6.1" Modern Budget Dynamic Island',
+    focus: 'Entry modern form factor UI stability & rendering',
+  },
+  {
+    key: '16',
+    name: 'iPhone 16',
+    simName: 'LociAR Notes - 16',
+    udid: '8E1573C4-7946-4027-B9DC-386B4EBDDD58',
+    formFactor: '6.1" Modern Base Dynamic Island',
+    focus: 'Latest generation 6.1" base model baseline',
+  },
+  {
+    key: '16Plus',
+    name: 'iPhone 16 Plus',
+    simName: 'LociAR Notes - 16Plus',
+    udid: '5E1E593A-04C1-4562-8F98-94CC7DABE7B5',
+    formFactor: '6.7" Modern Base Plus Dynamic Island',
+    focus: 'Latest generation 6.7" base plus layout validation',
   },
   {
     key: '16Pro',
@@ -231,3 +271,4 @@ main().catch(err => {
   ensureNoSimulatorsBooted();
   process.exit(1);
 });
+
