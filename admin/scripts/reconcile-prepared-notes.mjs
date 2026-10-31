@@ -56,4 +56,4 @@ const report={checked_at:new Date().toISOString(),mode:opts.pilot?'pilot':'full'
  complete:issues.length===0&&indexIssues.length===0&&unexpected.length===0&&flags.get('map_cells_version')===1&&(!opts.pilot?actualBatch.size===1260:true),post_writes:0};
 writeFileSync(resolve(folder,opts.pilot?'pilot-reconciliation.json':'full-reconciliation.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});
 console.log(JSON.stringify({mode:report.mode,expected:report.expected,issues:issues.length,index_issues:indexIssues.length,unexpected:unexpected.length,complete:report.complete,post_writes:0}));
-if(!report.complete)process.exitCode=1;
+process.exit(report.complete ? 0 : 1);

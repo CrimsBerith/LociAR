@@ -97,4 +97,4 @@ if(opts.apply){
  }
  }catch(error){result.status='apply_failed_requires_live_reconciliation';result.error=error.message;saveReadiness();throw error;}
 }
-saveReadiness();console.log(JSON.stringify(result));
+saveReadiness();console.log(JSON.stringify(result));process.exit(0);
