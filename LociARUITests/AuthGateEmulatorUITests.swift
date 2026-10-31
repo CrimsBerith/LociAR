@@ -77,9 +77,34 @@ extension AuthGateUITests {
         }
     }
 
+    private func e2eHasMainNavigation(_ app: XCUIApplication, timeout: TimeInterval = 15) -> Bool {
+        if app.tabBars.firstMatch.waitForExistence(timeout: timeout) { return true }
+        return app.buttons["Harita"].waitForExistence(timeout: min(timeout, 4)) ||
+               app.buttons["map.fill"].waitForExistence(timeout: min(timeout, 4)) ||
+               app.buttons["Profil"].waitForExistence(timeout: min(timeout, 4))
+    }
+
+    private func e2eSelectMainTab(_ app: XCUIApplication, _ name: String) {
+        if app.tabBars.buttons[name].exists {
+            app.tabBars.buttons[name].tap()
+        } else if app.buttons[name].exists {
+            app.buttons[name].tap()
+        } else {
+            let identifierMap = [
+                "Harita": "map.fill",
+                "Keşfet": "safari.fill",
+                "AR": "viewfinder",
+                "Profil": "person.crop.circle.fill"
+            ]
+            if let id = identifierMap[name], app.buttons[id].exists {
+                app.buttons[id].tap()
+            }
+        }
+    }
+
     private func e2eSignOutIfNeeded(_ app: XCUIApplication) {
-        guard app.tabBars.firstMatch.waitForExistence(timeout: 4) else { return }
-        app.tabBars.buttons["Profil"].tap()
+        guard e2eHasMainNavigation(app, timeout: 4) else { return }
+        e2eSelectMainTab(app, "Profil")
         let signOut = app.buttons["profile-sign-out"]
         for _ in 0..<6 where !signOut.isHittable { app.swipeUp() }
         signOut.tap()
@@ -96,13 +121,15 @@ extension AuthGateUITests {
 
     private func e2eSignIn(_ app: XCUIApplication) -> Bool {
         for attempt in 0..<4 {
-            app.buttons["auth-mode-signin"].tap()
-            e2eType(app, "auth-email-field", e2eEmail)
-            e2eType(app, "auth-password-field", e2ePassword)
-            dismissKeyboard(app)
-            e2eAcceptTerms(app)
-            e2eField(app, "auth-email-submit").tap()
-            if app.tabBars.firstMatch.waitForExistence(timeout: 30) { return true }
+            if !e2eHasMainNavigation(app, timeout: 1) && app.buttons["auth-mode-signin"].waitForExistence(timeout: 3) {
+                app.buttons["auth-mode-signin"].tap()
+                e2eType(app, "auth-email-field", e2eEmail)
+                e2eType(app, "auth-password-field", e2ePassword)
+                dismissKeyboard(app)
+                e2eAcceptTerms(app)
+                e2eField(app, "auth-email-submit").tap()
+            }
+            if e2eHasMainNavigation(app, timeout: 30) { return true }
             capture(app, name: "e2e-signin-attempt-\(attempt)")
             print("[E2E] giriş denemesi \(attempt) başarısız: \(e2eMessageText(app))")
             RunLoop.current.run(until: Date().addingTimeInterval(4)) // verification loop on the Mac
@@ -188,13 +215,13 @@ extension AuthGateUITests {
         addPrivacyAlertMonitor()
         app.launch()
         e2eAllowSystemAlerts()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15), "Oturum kalıcı değil.")
-        for tab in ["Harita", "Keşfet", "AR", "Profil"] where app.tabBars.buttons[tab].exists {
-            app.tabBars.buttons[tab].tap()
+        XCTAssertTrue(e2eHasMainNavigation(app, timeout: 15), "Oturum kalıcı değil.")
+        for tab in ["Harita", "Keşfet", "AR", "Profil"] {
+            e2eSelectMainTab(app, tab)
             RunLoop.current.run(until: Date().addingTimeInterval(1.5))
             capture(app, name: "e2e-tab-\(tab)")
         }
-        app.tabBars.buttons["Profil"].tap()
+        e2eSelectMainTab(app, "Profil")
         let edit = app.buttons["profile-edit-button"]
         XCTAssertTrue(edit.waitForExistence(timeout: 8))
         edit.tap()
@@ -266,8 +293,8 @@ extension AuthGateUITests {
         let app = XCUIApplication()
         addPrivacyAlertMonitor()
         app.launch()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
-        app.tabBars.buttons["Harita"].tap()
+        XCTAssertTrue(e2eHasMainNavigation(app, timeout: 20))
+        e2eSelectMainTab(app, "Harita")
         let badge = app.buttons["map-note-group-\(groupId)"]
         let map = app.maps.firstMatch
         XCTAssertTrue(map.waitForExistence(timeout: 15))
@@ -321,8 +348,8 @@ extension AuthGateUITests {
         let app = XCUIApplication()
         addPrivacyAlertMonitor()
         app.launch()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Harita"].tap()
+        XCTAssertTrue(e2eHasMainNavigation(app, timeout: 15))
+        e2eSelectMainTab(app, "Harita")
         app.buttons["map-location-note"].tap()
         let field = e2eField(app, "place-note-text")
         XCTAssertTrue(field.waitForExistence(timeout: 10))
@@ -470,8 +497,8 @@ extension AuthGateUITests {
         let app = XCUIApplication()
         addPrivacyAlertMonitor()
         app.launch()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Profil"].tap()
+        XCTAssertTrue(e2eHasMainNavigation(app, timeout: 15))
+        e2eSelectMainTab(app, "Profil")
         scrollUntilHittable(app.buttons["profile-settings"], in: app, maxSwipes: 6)
         app.buttons["profile-settings"].tap()
         app.buttons["settings-open-notifications"].tap()
@@ -750,8 +777,8 @@ extension AuthGateUITests {
         let app = XCUIApplication()
         addPrivacyAlertMonitor()
         app.launch()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Harita"].tap()
+        XCTAssertTrue(e2eHasMainNavigation(app, timeout: 15))
+        e2eSelectMainTab(app, "Harita")
         app.buttons["map-location-note"].tap()
         let field = e2eField(app, "place-note-text")
         scrollUntilHittable(field, in: app, maxSwipes: 6)
