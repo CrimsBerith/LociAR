@@ -102,6 +102,24 @@ extension AuthGateUITests {
         }
     }
 
+    private func e2eDismissSheet(_ app: XCUIApplication) {
+        let kapat = app.buttons["Kapat"].exists ? app.buttons["Kapat"] : app.navigationBars.buttons["Kapat"]
+        if kapat.waitForExistence(timeout: 2) && kapat.isHittable {
+            kapat.tap()
+            return
+        }
+        for _ in 0..<4 {
+            app.swipeDown()
+            if kapat.exists && kapat.isHittable {
+                kapat.tap()
+                return
+            }
+        }
+        if kapat.exists {
+            kapat.tap()
+        }
+    }
+
     private func e2eSignOutIfNeeded(_ app: XCUIApplication) {
         guard e2eHasMainNavigation(app, timeout: 4) else { return }
         e2eSelectMainTab(app, "Profil")
@@ -356,7 +374,7 @@ extension AuthGateUITests {
         let publish = app.buttons["place-note-publish"]
         scrollUntilHittable(publish, in: app, maxSwipes: 6)
         XCTAssertFalse(publish.isEnabled, "Boş not yayınlanmamalı.")
-        app.buttons["Kapat"].tap()
+        e2eDismissSheet(app)
         app.buttons["map-location-note"].tap()
         scrollUntilHittable(field, in: app, maxSwipes: 6)
         field.tap()
@@ -364,7 +382,7 @@ extension AuthGateUITests {
         dismissKeyboard(app)
         scrollUntilHittable(publish, in: app, maxSwipes: 6)
         XCTAssertFalse(publish.isEnabled, "220 karakter sınırı uygulanmalı.")
-        app.buttons["Kapat"].tap()
+        e2eDismissSheet(app)
         app.buttons["map-location-note"].tap()
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         let measured = app.staticTexts.matching(NSPredicate(format:
@@ -392,7 +410,7 @@ extension AuthGateUITests {
         XCTAssertEqual(verified["count"], "1")
         XCTAssertEqual(verified["anonymous"], "true")
         XCTAssertEqual(verified["source"], "gps")
-        app.buttons["Kapat"].tap()
+        e2eDismissSheet(app)
         let groupId = try XCTUnwrap(verified["groupId"])
         let row = app.buttons["map-summary-group-\(groupId)"]
         XCTAssertTrue(row.waitForExistence(timeout: 20), "Yeni notun grup özeti, elle Yenile gerektirmeden görünmeli.")
@@ -528,7 +546,8 @@ extension AuthGateUITests {
         XCTAssertEqual(verified["telemetry"], "false")
         app.terminate()
         app.launch()
-        app.tabBars.buttons["Profil"].tap()
+        XCTAssertTrue(e2eHasMainNavigation(app, timeout: 15))
+        e2eSelectMainTab(app, "Profil")
         scrollUntilHittable(app.buttons["profile-settings"], in: app, maxSwipes: 6)
         app.buttons["profile-settings"].tap()
         app.buttons["settings-open-notifications"].tap()
