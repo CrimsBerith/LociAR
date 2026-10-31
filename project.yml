@@ -9,6 +9,8 @@ options:
     iOS: "17.0"
   xcodeVersion: "26.0"
   groupSortPosition: top
+fileGroups:
+  - scripts
 settings:
   base:
     SWIFT_VERSION: "6.0"
