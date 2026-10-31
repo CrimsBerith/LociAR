@@ -6,7 +6,6 @@ struct OnboardingView: View {
 
     private struct OnboardingStep {
         let title: String
-        let subtitle: String
         let description: String
         let symbol: String
         let accentColor: Color
@@ -14,23 +13,20 @@ struct OnboardingView: View {
 
     private let steps: [OnboardingStep] = [
         OnboardingStep(
-            title: String(localized: "Fiziksel Dünyaya Sabitle"),
-            subtitle: String(localized: "Mekânsal İçerik Üretimi"),
-            description: String(localized: "Düşüncelerini kısa notlar olarak gerçek duvarlara ve mekânlara AR yüzey kilitleme ile sabitle."),
+            title: String(localized: "Bulunduğun yere not bırak"),
+            description: String(localized: "İstersen AR ile bir yüzeye sabitle."),
             symbol: "location.viewfinder",
             accentColor: LociTheme.accent
         ),
         OnboardingStep(
-            title: String(localized: "Mekânları Keşfet"),
-            subtitle: String(localized: "Çevrendeki Dijital İzler"),
-            description: String(localized: "Şehrinde yürürken diğer kaşiflerin bıraktığı mekânsal paylaşımları tam konumlarında AR kameranla keşfet."),
+            title: String(localized: "Yakınındaki notları keşfet"),
+            description: String(localized: "Haritada bul, konum notlarını yerinde aç."),
             symbol: "map.fill",
             accentColor: Color.blue
         ),
         OnboardingStep(
-            title: String(localized: "Güvenli ve Kontrolünde"),
-            subtitle: String(localized: "Kamera ve Konum İzinleri"),
-            description: String(localized: "Kameran sadece yüzey algılamak, konumun ise yakındaki postları açmak için kullanılır. Gizliliğin daima koruma altında."),
+            title: String(localized: "Üyeliğinle gir, nasıl paylaşacağını seç"),
+            description: String(localized: "Notların varsayılan olarak anonimdir. İstersen kullanıcı adını gösterebilirsin."),
             symbol: "shield.checkered",
             accentColor: Color.purple
         )
@@ -68,6 +64,7 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("screen-onboarding")
     }
 
@@ -91,12 +88,6 @@ struct OnboardingView: View {
             }
 
             VStack(spacing: 10) {
-                Text(step.subtitle.localizedUI)
-                    .textCase(.uppercase)
-                    .font(.caption.weight(.bold))
-                    .tracking(2)
-                    .foregroundStyle(step.accentColor)
-
                 Text(step.title.localizedUI)
                     .font(.title.bold())
                     .foregroundStyle(.white)
@@ -131,7 +122,7 @@ struct OnboardingView: View {
                         currentStep += 1
                     }
                 } label: {
-                    Text("Devam Et")
+                    Text("Devam et")
                 }
                 .buttonStyle(LociPrimaryButtonStyle())
                 .accessibilityIdentifier("onboarding-next")

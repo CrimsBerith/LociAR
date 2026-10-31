@@ -1,6 +1,9 @@
 import Foundation
 import Observation
 
+/// A map position to open, e.g. from a dense-spot notification.
+struct MapFocus: Equatable, Sendable { let latitude: Double; let longitude: Double }
+
 @MainActor
 @Observable
 final class AppRouter {
@@ -17,6 +20,7 @@ final class AppRouter {
     var createPinRequested = false
     var pendingPostID: UUID?
     var isActivityPresented = false
+    var pendingMapFocus: MapFocus?
 
     func resetForAuthenticationGate() {
         selectedTab = .map
@@ -24,6 +28,7 @@ final class AppRouter {
         createPinRequested = false
         pendingPostID = nil
         isActivityPresented = false
+        pendingMapFocus = nil
     }
 
     func requestCreatePin() {
@@ -34,6 +39,11 @@ final class AppRouter {
     func selectPost(id: UUID) {
         pendingPostID = id
         selectedTab = .discover
+    }
+
+    func focusMap(_ focus: MapFocus) {
+        pendingMapFocus = focus
+        selectedTab = .map
     }
 
     func selectActivity() {

@@ -44,6 +44,8 @@ struct AuthView: View {
                         )
                     }
                     legalNotice
+                    Text("Üyeliğinle giriş yap. Notlarını anonim paylaşabilir veya kullanıcı adını gösterebilirsin.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 .padding(24)
             }
@@ -229,7 +231,9 @@ struct AuthView: View {
                 }
 
                 #if DEBUG
-                if !UITestFixtures.signedOutSessionEnabled {
+                // Preview is an explicit developer fixture, never a normal app-entry option.
+                if ProcessInfo.processInfo.arguments.contains("UITEST_DEVICE_PREVIEW"),
+                   !UITestFixtures.signedOutSessionEnabled {
                     Button {
                         session.continueInDevicePreview()
                     } label: {
@@ -473,17 +477,17 @@ private struct ConsentAppleSignInButton: UIViewRepresentable {
             controller.performRequests()
         }
 
-        func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        func presentationAnchor(for _: ASAuthorizationController) -> ASPresentationAnchor {
             window ?? ASPresentationAnchor()
         }
 
-        func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        func authorizationController(controller _: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
             self.controller = nil
             window = nil
             parent.onCompletion(.success(authorization))
         }
 
-        func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        func authorizationController(controller _: ASAuthorizationController, didCompleteWithError error: Error) {
             self.controller = nil
             window = nil
             parent.onCompletion(.failure(error))
@@ -563,7 +567,7 @@ private struct ForgotPasswordView: View {
                         Task { await send() }
                     } label: {
                         if isWorking { ProgressView().frame(maxWidth: .infinity, minHeight: 48) }
-                        else { Text("Yenileme bağlantısı gönder").frame(maxWidth: .infinity, minHeight: 48) }
+                        else { Text("Bağlantı gönder").frame(maxWidth: .infinity, minHeight: 48) }
                     }
                     .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
                     .disabled(isWorking || !email.contains("@"))

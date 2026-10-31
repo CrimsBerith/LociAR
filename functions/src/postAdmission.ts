@@ -1,6 +1,7 @@
 import { db, FieldValue, Timestamp } from './core';
 import { distanceMeters, geohashCoverPrefixes } from './geo';
 import { MAX_POSTS_NEARBY } from './anchors';
+import { forEachSequential, readPages } from './async';
 
 export const POST_DENSITY_RADIUS_METERS = 25;
 const EARTH_RADIUS_METERS = 6_371_008.8;
@@ -26,7 +27,8 @@ export function densityLockCells(lat: number, lng: number): { center: string; ne
   for (const x of [-1, 0, 1]) for (const y of [-1, 0, 1]) for (const z of [-1, 0, 1]) {
     neighbors.push(id(cell[0] + x, cell[1] + y, cell[2] + z));
   }
-  return { center: id(cell[0], cell[1], cell[2]), neighbors: neighbors.sort() };
+  neighbors.sort((a, b) => a.localeCompare(b, 'en'));
+  return { center: id(cell[0], cell[1], cell[2]), neighbors };
 }
 
 /** Read before all writes in the admission transaction. Empty query results need this fence too. */
@@ -46,22 +48,24 @@ export function updateDensityLock(tx: FirebaseFirestore.Transaction, ref: Fireba
 }
 
 /** Exact distance filtering, complete pages, and early termination only once rejection is certain. */
-export async function activeDensity(lat: number, lng: number, tx: FirebaseFirestore.Transaction): Promise<number> {
+export async function activeDensity(lat: number, lng: number, tx: FirebaseFirestore.Transaction, max = MAX_POSTS_NEARBY): Promise<number> {
   const prefixes = geohashCoverPrefixes(lat, lng, POST_DENSITY_RADIUS_METERS);
   let count = 0;
-  for (const prefix of prefixes.length ? prefixes : [null]) {
+  await forEachSequential(prefixes.length ? prefixes : [null], async prefix => {
+    if (count >= max) return;
     let query = db.collection('posts').where('status', 'in', ['active', 'pending_review']).orderBy('geohash');
     if (prefix !== null) query = query.startAt(prefix).endAt(`${prefix}~`);
-    let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
-    while (true) {
+    const pages = readPages(async (cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined) => {
       const page: FirebaseFirestore.QuerySnapshot = await tx.get((cursor ? query.startAfter(cursor) : query).limit(PAGE_SIZE));
+      return { value: page, next: page.size < PAGE_SIZE ? undefined : page.docs.at(-1) };
+    });
+    for await (const page of pages) {
       for (const doc of page.docs) {
         const post = doc.data();
-        if (distanceMeters(lat, lng, post.lat, post.lng) <= POST_DENSITY_RADIUS_METERS && ++count >= MAX_POSTS_NEARBY) return count;
+        if (distanceMeters(lat, lng, post.lat, post.lng) <= POST_DENSITY_RADIUS_METERS && ++count >= max) break;
       }
-      if (page.size < PAGE_SIZE) break;
-      cursor = page.docs[page.docs.length - 1];
+      if (count >= max) break;
     }
-  }
+  });
   return count;
 }

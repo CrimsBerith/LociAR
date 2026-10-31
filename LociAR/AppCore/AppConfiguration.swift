@@ -31,7 +31,7 @@ struct AppConfiguration: Sendable {
     /// Set only for local development (Config/Local.xcconfig, DEBUG builds): LAN IP of the Mac
     /// running `firebase emulators:start`. When present, Auth/Firestore/Storage/Functions are
     /// pointed at the local emulator suite instead of production, so app + Cloud Functions can be
-    /// exercised end-to-end before the project is on a paid plan / before a real deploy.
+    /// exercised end-to-end against a disposable demo project.
     let emulatorHost: String?
     let privacyPolicyURL: URL?
     let termsURL: URL?
@@ -141,10 +141,44 @@ struct AppConfiguration: Sendable {
     /// firebase.json's "emulators" block. Debug-only: never compiled into release builds.
     private func connectEmulatorsIfConfigured(functionsRegion: String) {
         guard let host = emulatorHost, !host.isEmpty else { return }
+        let permitsDemoHTTP = Self.permitsDemoEmulatorHTTP(
+            settings: firebase, host: host,
+            optedIn: ProcessInfo.processInfo.environment["LOCIAR_DEMO_EMULATOR_HTTP"] == "1"
+        )
         Auth.auth().useEmulator(withHost: host, port: 9099)
-        Firestore.firestore().useEmulator(withHost: host, port: 8080)
+        let firestore = Firestore.firestore()
+        firestore.useEmulator(withHost: host, port: 8080)
+        if permitsDemoHTTP {
+            // useEmulator changes only the host in Firebase 12.19. The local suite
+            // serves plaintext; keep this opt-in limited to synthetic demo credentials.
+            let settings = firestore.settings
+            settings.isSSLEnabled = false
+            settings.cacheSettings = MemoryCacheSettings()
+            firestore.settings = settings
+        }
         Storage.storage().useEmulator(withHost: host, port: 9199)
-        Functions.functions(region: functionsRegion).useEmulator(withHost: host, port: 5001)
+        let functions = Functions.functions(region: functionsRegion)
+        functions.useEmulator(withHost: host, port: 5001)
+        // Firebase 12.19 blocks credentialed HTTP to a LAN host. Its DEBUG-only emulator
+        // opt-in is allowed solely for our disposable demo project and synthetic identifiers.
+        // No production Auth/App Check/FCM credentials may use this test transport.
+        functions.allowInsecureTokenAttachment = permitsDemoHTTP
+    }
+
+    nonisolated static func permitsDemoEmulatorHTTP(settings: FirebaseSettings?, host: String?, optedIn: Bool) -> Bool {
+        guard optedIn, let settings, let host,
+              settings.projectID == "demo-lociar",
+              settings.apiKey == "AIza" + String(repeating: "A", count: 35),
+              settings.googleAppID == "1:123456789012:ios:abcdef0123456789",
+              settings.gcmSenderID == "123456789012",
+              settings.storageBucket == "demo-lociar.firebasestorage.app",
+              settings.functionsRegion == "us-central1" else { return false }
+        let parts = host.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 4 else { return false }
+        let octets = parts.compactMap { UInt8($0) }
+        guard octets.count == 4, zip(parts, octets).allSatisfy({ String($0.1) == $0.0 }) else { return false }
+        return octets[0] == 10 || (octets[0] == 172 && (16...31).contains(octets[1]))
+            || (octets[0] == 192 && octets[1] == 168)
     }
 #endif
 }

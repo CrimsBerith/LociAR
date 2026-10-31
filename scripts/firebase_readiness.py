@@ -53,6 +53,11 @@ def _dict(value: Any) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def _collected(clean: dict, resource: str) -> bool:
+    command = clean['commands'][resource]
+    return command.get('status') == 'ok' and command.get('return_code') == 0
+
+
 def _list(value: Any) -> list:
     return value if isinstance(value, list) else []
 
@@ -146,17 +151,24 @@ def _check_project(clean: dict, expected: dict, project_ids: set[str], fail) -> 
     resources = clean['resources']
     if clean['schema_version'] != SCHEMA_VERSION:
         fail('report_schema', 'report', f'Metadata report schema_version must be {SCHEMA_VERSION}.')
-    if clean['project_id'] != PROJECT or resources['project'].get('projectId') != PROJECT:
+    if clean['project_id'] != PROJECT or (_collected(clean, 'project') and resources['project'].get('projectId') != PROJECT):
         fail('wrong_project', 'project', f'Both report and observed project must be {PROJECT}.')
-    if resources['project'].get('lifecycleState') != 'ACTIVE':
+    if _collected(clean, 'project') and resources['project'].get('lifecycleState') != 'ACTIVE':
         fail('project_inactive', 'project', 'Project must be ACTIVE.')
     for key in RESOURCE_KEYS:
-        if clean['commands'][key].get('status') != 'ok' or clean['commands'][key].get('return_code') != 0:
+        if not _collected(clean, key):
             fail('command_failed', key, 'Metadata collection did not complete successfully; state is unknown.')
-    services = {_dict(item.get('config')).get('name') for item in resources['services']}
-    for service in sorted(expected['services'] - services):
-        fail('api_missing', service, 'Required API is not enabled.')
-    firestore = resources['firestore']
+    if not _collected(clean, 'project'):
+        return
+    if _collected(clean, 'services'):
+        services = {_dict(item.get('config')).get('name') for item in resources['services']}
+        for service in sorted(expected['services'] - services):
+            fail('api_missing', service, 'Required API is not enabled.')
+    if _collected(clean, 'firestore'):
+        _check_database(resources['firestore'], project_ids, fail)
+
+
+def _check_database(firestore: dict, project_ids: set[str], fail) -> None:
     database = firestore.get('name')
     if not isinstance(database, str) or not any(database == f'projects/{owner}/databases/(default)' for owner in project_ids):
         fail('database_mismatch', 'firestore', 'Expected the default database in the selected project.')
@@ -210,6 +222,10 @@ def _check_scheduler(clean: dict, expected: dict, project_ids: set[str], fail) -
             fail('scheduler_missing', name, 'Firebase Scheduler job is missing from us-central1.')
         elif job.get('state') != 'ENABLED' or not _schedule_equivalent(job.get('schedule'), options['schedule']) or ('timeZone' in options and job.get('timeZone') != options['timeZone']):
             fail('scheduler_configuration', name, 'Scheduler job must be ENABLED with the repository schedule and explicit timezone.')
+    # A job left behind by a retired function keeps running and is billed: three jobs per billing account are free.
+    wanted = {f'firebase-schedule-{name}-{REGION}' for name in expected['schedules']}
+    for job_id in sorted(job_id for job_id in jobs if job_id and job_id not in wanted):
+        fail('scheduler_unexpected', job_id, 'Scheduler job is not defined in functions/src; delete it (scripts/firebase-deploy.mjs removes retired functions).')
 
 
 def _check_storage(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
@@ -226,9 +242,11 @@ def _check_storage(clean: dict, expected: dict, project_ids: set[str], fail) -> 
         fail('lifecycle_missing', prefix, 'Legacy prefix must have a Delete lifecycle rule at age 30 with no extra conditions.')
 
 
-def _check_secrets(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
+def _check_secrets(clean: dict, project_ids: set[str], fail) -> None:
     resources = clean['resources']
     for key, (secret, code, message) in REQUIRED_SECRETS.items():
+        if not _collected(clean, key):
+            continue
         pattern = r'projects/(' + '|'.join(re.escape(p) for p in project_ids) + r')/secrets/' + secret + r'/versions/\d+'
         if not any(isinstance(v.get('name'), str) and re.fullmatch(pattern, v['name']) and v.get('state') == 'ENABLED' for v in resources[key]):
             fail(code, secret, message)
@@ -245,7 +263,13 @@ def validate_report(report: Any, expected: dict[str, Any] | None = None) -> dict
     number = clean['resources']['project'].get('projectNumber')
     if isinstance(number, (str, int)) and str(number).isdigit():
         project_ids.add(str(number))
-    for check in (_check_project, _check_ttl, _check_functions, _check_notifications, _check_scheduler, _check_storage, _check_secrets):
-        check(clean, expected, project_ids, fail)
+    _check_project(clean, expected, project_ids, fail)
+    if _collected(clean, 'project'):
+        checks = (('ttl', _check_ttl), ('functions', _check_functions),
+                  ('storage_notifications', _check_notifications), ('scheduler', _check_scheduler), ('storage', _check_storage))
+        for resource, check in checks:
+            if _collected(clean, resource):
+                check(clean, expected, project_ids, fail)
+        _check_secrets(clean, project_ids, fail)
     clean['readiness'] = {'ready': not findings, 'findings': findings}
     return clean

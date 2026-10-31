@@ -23,6 +23,19 @@ after(async () => env?.cleanup());
 const owner = () => env.authenticatedContext('reclamation-owner', { luid: OWNER });
 const upload = (storage, name) => uploadBytes(ref(storage, name), bytes, { contentType: 'application/x-lociarmap' });
 
+test('anonymous public geometry stays owner-only at its real account path', async () => {
+  const path = `post-world-maps/${OWNER}/${POST}/anonymous.lociarmap`;
+  await env.withSecurityRulesDisabled(async ctx => {
+    await upload(ctx.storage(), path);
+    await setDoc(doc(ctx.firestore(), 'storage_reclamations', POST), {
+      creator_id: OWNER, state: 'committed', world_map_path: path, public_readable: true, is_anonymous: true,
+    });
+  });
+  await assertSucceeds(getBytes(ref(owner().storage(), path)));
+  const other = env.authenticatedContext('another-user', { luid: '88888888-8888-5888-8888-888888888888' });
+  await assertFails(getBytes(ref(other.storage(), path)), 'the callable is the only public map path');
+});
+
 test('pending and reclaimed draft claims block new and replacement maps, including uppercase post paths', async () => {
   const path = `post-world-maps/${OWNER}/${POST.toUpperCase()}/map.lociarmap`;
   await env.withSecurityRulesDisabled(async (ctx) => { await upload(ctx.storage(), path); });

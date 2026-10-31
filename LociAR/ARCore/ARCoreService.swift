@@ -24,6 +24,8 @@ final class ARCoreService {
     /// Earth is tracking and localized; accuracy values are meters / degrees.
     private(set) var isEarthTracking = false
     private(set) var horizontalAccuracy: Double?
+    /// Latest localized camera position (1-5 m outdoors with VPS); used to unlock dense spots.
+    private(set) var cameraFix: LocationSample?
     private(set) var yawAccuracy: Double?
     private(set) var lastError: String?
 
@@ -108,6 +110,7 @@ final class ARCoreService {
             isStartFailed = true
             availability = .unavailable(error.localizedDescription)
             logger.error("ARCore session failed: \(error.localizedDescription, privacy: .public)")
+            DiagnosticsReporter.shared.record(DiagnosticEvent(component: .ar, failure: .arSession))
         }
     }
 
@@ -165,6 +168,10 @@ final class ARCoreService {
         if let transform = earth.cameraGeospatialTransform {
             horizontalAccuracy = transform.horizontalAccuracy
             yawAccuracy = transform.orientationYawAccuracy
+            if tracking {
+                cameraFix = LocationSample(latitude: transform.coordinate.latitude, longitude: transform.coordinate.longitude,
+                                           accuracy: transform.horizontalAccuracy, timestamp: now)
+            }
         }
     }
 

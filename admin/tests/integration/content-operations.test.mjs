@@ -18,7 +18,7 @@ function input(author,extra={}){return parseContentInput({...emptyContent,author
 
 test('selected-author post creation is atomic, idempotent and produces an explicit native approximate placement',async()=>{
  const{actor,author}=await fixture(),key=randomUUID(),body=input(author);const[first,retry]=await Promise.all([saveAdminPost(body,actor,reason,key),saveAdminPost(body,actor,reason,key)]);assert.deepEqual(first,retry);
- const p=(await db.collection('posts').doc(first.id).get()).data();assert.equal(p.creator_id,author);assert.equal(p.created_by_admin,actor);assert.equal(p.multi_user_ready,false);assert.equal(p.status,'active');
+ const p=(await db.collection('posts').doc(first.id).get()).data();assert.equal(p.creator_id,author);assert.equal(p.created_by_admin,actor);assert.equal(p.multi_user_ready,false);assert.equal(p.status,'active');assert.equal(p.admin_managed,false);
  const anchor=JSON.parse(p.anchor_bundle_json);assert.equal(anchor.coordinateSpace,'admin_geo_estimate');assert.equal(anchor.anchor.pinQuality,'freeSpaceApproximate');assert.equal(anchor.anchor.surfaceAlignment,'free_space','iOS SurfaceAlignment raw value');assert.equal(anchor.anchor.transform.length,16);assert.ok(!anchor.anchor.persistence);
  assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('actor_id'),actor);
  await assert.rejects(saveAdminPost({...body,caption:'Changed request'},actor,reason,key),/idempotency_key_reused/);
@@ -28,6 +28,10 @@ test('18+, any link and non-finite placement are refused before a write',()=>{
  // Posts are text only since 9 Oct 2026: even a well-formed social link is refused.
  assert.throws(()=>input(randomUUID(),{platform:'spotify',url:'https://open.spotify.com/track/123'}),/links_not_allowed/);
  assert.equal(input(randomUUID()).platform,'text');
+ for (const text of ['https://example.com/p', 'example.com', 'mailto:a@example.com']) {
+  assert.throws(()=>input(randomUUID(),{caption:text}),/links_not_allowed/);
+  assert.throws(()=>input(randomUUID(),{text}),/links_not_allowed/);
+ }
 });
 test('protected zones require separately authorized, reasoned exceptions and 18+ remains blocked',async()=>{
  const{actor,author}=await fixture(),zone=db.collection('protected_zones').doc(randomUUID());await zone.set({name:'Protected test site',lat:-31,lng:111,radius_meters:100,policy:'hard_block',active:true});
@@ -102,4 +106,59 @@ test('avatar removal commits an exact durable deletion job when Storage fails an
  assert.equal(attempts,1);assert.equal((await db.collection('profiles').doc(author).get()).get('avatar_url'),null);
  const jobs=await db.collection('avatar_deletions').where('luid','==',author).get();assert.equal(jobs.size,1);assert.equal(jobs.docs[0].get('path'),path);
  assert.equal((await db.collection('admin_audit_log').doc(key).get()).get('action'),'avatar_remove');
+});
+
+test('launch seed batches are validated and stored on the post for measuring and retiring',async()=>{
+ const{actor,author}=await fixture();
+ assert.throws(()=>input(author,{seedBatch:'Bad Batch!'}),/invalid_seed_batch/);
+ assert.equal(input(author).seedBatch,undefined,'panel posts carry no seed batch');
+ const created=await saveAdminPost(input(author,{seedBatch:'world-capitals-test',locationNote:true,lat:-32,lng:112}),actor,reason,randomUUID());
+ const post=(await db.collection('posts').doc(created.id).get()).data();
+ assert.equal(post.seed_batch,'world-capitals-test');assert.equal(post.note_kind,'location');assert.equal(post.creator_id,author);
+});
+
+test('managed posts freeze named or anonymous attribution across replay, edits and storage projections',async()=>{
+ const {actor,author}=await fixture();
+ await db.collection('profiles').doc(author).update({admin_managed:true});
+ const {anonymousIdentity}=await import('../../../functions/src/anonymous.ts');
+ for(const authorAttribution of ['named','anonymous']){
+  const key=randomUUID(),body=input(author,{authorAttribution,locationNote:true});
+  const first=await saveAdminPost(body,actor,reason,key);const ref=db.collection('posts').doc(first.id);
+  assert.deepEqual(await saveAdminPost(body,actor,reason,key),first);
+  const post=(await ref.get()).data();const anonymous=authorAttribution==='anonymous';
+  assert.equal(post.is_anonymous,anonymous);assert.equal(post.admin_managed,true);
+  assert.equal(post.creator_id,author);assert.equal(post.created_by_admin,actor);
+  assert.equal((await db.collection('storage_reclamations').doc(first.id).get()).get('is_anonymous'),anonymous);
+  const projected=anonymousIdentity(first.id,post.creator_id,'unrelated-viewer',post.is_anonymous);
+  assert.equal(projected.creator_id,anonymous?first.id:author);
+  assert.equal(projected.creator_handle,anonymous?null:undefined);
+  const opposite=anonymous?'named':'anonymous';
+  await assert.rejects(saveAdminPost({...body,authorAttribution:opposite},actor,reason,key),/idempotency_key_reused/);
+  await assert.rejects(saveAdminPost({...body,authorAttribution:opposite},actor,reason,randomUUID(),first.id),/post_attribution_cannot_be_changed/);
+  const omitted={...body,text:'Edited without changing attribution'};delete omitted.authorAttribution;
+  await saveAdminPost(omitted,actor,reason,randomUUID(),first.id);
+  assert.equal((await ref.get()).get('is_anonymous'),anonymous);
+  assert.equal((await db.collection('storage_reclamations').doc(first.id).get()).get('is_anonymous'),anonymous);
+ }
+});
+
+test('delegated normal users cannot be made anonymous and invalid attribution never silently becomes named',async()=>{
+ const {actor,author}=await fixture();
+ await assert.rejects(saveAdminPost(input(author,{authorAttribution:'anonymous'}),actor,reason,randomUUID()),/anonymous_requires_managed_author/);
+ for(const authorAttribution of [true,false,null,'hidden',''])assert.throws(()=>input(author,{authorAttribution}),/invalid_author_attribution/);
+ for(const field of ['anonymous','isAnonymous','is_anonymous','authorVisibility'])assert.throws(()=>input(author,{[field]:true}),/use_author_attribution/);
+});
+
+test('reviewed bulk edits reject concurrent changes atomically and replay their own completed receipt',async()=>{
+ const{actor,author}=await fixture();const created=await saveAdminPost(input(author),actor,reason,randomUUID());const ref=db.collection('posts').doc(created.id);
+ const old=await ref.get();const version=`${old.updateTime.seconds}:${old.updateTime.nanoseconds}`;
+ const body=input(author,{text:'Reviewed revision',caption:'Reviewed revision',expectedUpdateTime:version});
+ await ref.update({caption:'A newer edit'});const rejected=randomUUID();
+ await assert.rejects(saveAdminPost(body,actor,reason,rejected,created.id),/post_changed_since_review/);
+ assert.equal((await ref.get()).get('caption'),'A newer edit');assert.equal((await db.collection('admin_audit_log').doc(rejected).get()).exists,false);
+ const current=await ref.get();const fresh={...body,expectedUpdateTime:`${current.updateTime.seconds}:${current.updateTime.nanoseconds}`};const key=randomUUID();
+ await saveAdminPost(fresh,actor,reason,key,created.id);await saveAdminPost(fresh,actor,reason,key,created.id);
+ await saveAdminPost({...fresh,expectedUpdateTime:version},actor,reason,key,created.id);
+ await assert.rejects(saveAdminPost({...fresh,text:'A different request'},actor,reason,key,created.id),/idempotency_key_reused/);
+ assert.equal((await ref.get()).get('caption'),'Reviewed revision');
 });

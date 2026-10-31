@@ -27,7 +27,7 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | İndeksler, TTL, Cloud Functions (`us-central1`) | ⚠️ 24 fonksiyon — yeni sürüm (push, kill switch, `terms_version`) deploy bekliyor |
 | Admin + yasal sayfalar (App Hosting, backend `lociar-admin`) | ⚠️ yeni sürüm (EN sayfalar, kill switch paneli, nonce CSP) deploy bekliyor |
 | Identity Platform + ilk süper admin | ✅ yapıldı (proje sahibinin hesabı, TOTP MFA açık) |
-| İnceleme hesabı + seed içerik | ✅ yapıldı (`apple-review@lociar.app`, 7 onaylı post) |
+| İnceleme hesabı + seed içerik | ⚠️ 26 Ekim: yeniden yapılmalı. Eski `apple-review@lociar.app` kayıtsız alan adında (parola sıfırlama başkasına gidebilir); yeni hesap `apple-review@alfagolab.com` |
 
 ## Mimari özeti
 
@@ -42,11 +42,12 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | create_post / delete_account | Callable Cloud Functions | `functions/src/posts.ts`, `account.ts`, `profile.ts` |
 | Sayaçlar, aktivite | Firestore tetikleyicileri | `functions/src/triggers.ts` |
 | Aktivite okundu durumu | Auth + App Check callable; doğrudan istemci yazması yok | `functions/src/activity.ts` |
-| Admin panel + yasal sayfalar | Next.js, Firebase App Hosting (`lociar-admin`), Admin SDK, session cookie, TOTP MFA | `admin/lib/admin.ts`, `admin/lib/ops.ts`, `admin/apphosting.yaml` |
+| Admin panel + yasal sayfalar | Next.js, Firebase App Hosting (`lociar-admin`), Admin SDK, session cookie, e-posta kodu (eski TOTP alternatif) | `admin/lib/admin.ts`, `admin/lib/ops.ts`, `admin/apphosting.yaml` |
 
 Önemli davranışlar:
-- Her yeni post `pending_review` olarak açılır; yüksek kaliteli AR kilidinin otomatik yayını
-  varsayılan olarak kapalı (`LOCIAR_AUTO_PUBLISH_HIGH_QUALITY=true` ile açılabilir). App Review notlarıyla uyumlu.
+- Yeni postlar `createPost` içindeki otomatik kontrollerden (metin filtresi, bağlantı yasağı, korumalı bölge, 18+, hız ve
+  yoğunluk sınırları) geçince doğrudan `active` olur; ön onay yok (sahip kararı, 18 Ekim 2026). Acil durumda Firestore'da
+  `system/flags.post_review_required = true` yeni postları yeniden `pending_review` kuyruğuna alır; `false` yapınca biter.
 - Şifreli hesaplarda e-posta doğrulanmadan uygulamaya girilemez; Apple hesapları doğrulanmış sayılır.
 - "Giriş bağlantısı gönder" (magic link) iOS'ta kaldırıldı; Firebase e-posta bağlantısı Universal Link gerektirir.
 - Hesap silme: iOS Apple veya mevcut parola ile Firebase yeniden doğrulaması yapar
@@ -55,6 +56,30 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
   Akış ve cihaz kabulü: [ACTIVITY_AND_ACCOUNT_DELETION.md](ACTIVITY_AND_ACCOUNT_DELETION.md).
 - Giriş ekranında gizlilik/topluluk kuralları onay kutusu zorunludur; `ensureProfile` kabul edilen sürümü
   `users_private.terms_version` / `terms_accepted_at` olarak kaydeder.
+
+## Canlı 500/503: hesap açıkken harcama engeli
+
+`billingEnabled=true` ve Billing hesabının `open=true` olması, Functions'ın çağrı kabul ettiğini kanıtlamaz.
+28 Ekim 2026'da `LociAR spend cap` bütçesi, Cloud Run Functions (`29E7-DA93-CA13`) için aylık **₺10** ve
+`spendCap.outputState=ENFORCED` durumundaydı. Canlı `readDataPreferences` 503 veriyordu. Billing hesabı
+kapanmamıştı; hizmet düzeyindeki aylık harcama sınırı kullanımı durduruyordu.
+
+Önce `gcloud billing projects describe lociar-2f38c`, ardından dönen hesabın kimliğiyle
+`gcloud billing budgets list --billing-account=ACCOUNT_ID --format=json` çalıştırılır. Proje/hizmet filtresi,
+`spendCap.outputState`, tutar ve `creditTypesTreatment` birlikte kontrol edilir. Uyarı bütçeleri kullanım
+engeli değildir. Spend cap, ücretsiz haklar ve krediler düşülmeden brüt maliyetle hesaplandığı için net faturayla
+aynı değildir; bildirim gecikmeleri nedeniyle kesin fatura üst sınırı da sayılmaz.
+
+`ENFORCED` bütçeyi yeniden dağıtım veya daha çok instance çözmez. Yeni dönem başında otomatik açılır.
+Hemen kurtarmak için sahibin onayladığı yeni tutarla mevcut cap kaldırılır ve **yeniden sınır konur**;
+yalnızca kaldırmak ay sonuna kadar sınırsız bırakabilir. Yeni cap etkinleştirildikten sonra gerçek callable,
+APNs kaydı ve alıcı teslimi doğrulanır; servislerin dönmesi bir saate kadar sürebilir.
+[Google'ın spend cap kurtarma akışı](https://firebase.google.com/docs/projects/billing/spend-caps).
+
+Bakım geçişinde önce yeni üç zamanlayıcı işlevinin çalıştığı doğrulanır, sonra `RETIRED_FUNCTIONS` silinir.
+Eski yedi işin yalnızca kaynak koddan kaldırılması canlı işleri kaldırmaz; pause edilen Scheduler işleri de
+faturalandırılır ([fiyatlandırma](https://cloud.google.com/scheduler/pricing)). Scheduler iş ücreti ile
+Cloud Functions cap'inin brüt işlem maliyeti ayrı kalemlerdir.
 
 ## 0. Tek komutla kurulum (önerilen)
 
@@ -130,9 +155,9 @@ node scripts/import-protected-zones.mjs zones.json           # okul/hastane/ibad
 ```
 
 App Review hesabı:
-1. Uygulamada `apple-review@lociar.app` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
+1. Uygulamada `apple-review@alfagolab.com` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
    uygulamada bir kez giriş yap (profil oluşur).
-2. `node scripts/seed-review-content.mjs apple-review@lociar.app` → İstanbul ve Cupertino'da 7 onaylı örnek post.
+2. `node scripts/seed-review-content.mjs apple-review@alfagolab.com` → İstanbul ve Cupertino'da 7 onaylı örnek post.
 3. Parolayı [CREDENTIALS.md](CREDENTIALS.md) adımlarına göre yenile ve App Store Connect'in Sign-In Information alanına gir; inceleme notlarına veya depoya yazma.
 
 ## 4. iOS uygulaması
@@ -179,7 +204,7 @@ Connect URL'leri birlikte güncellenir.
 Yerel geliştirme: `admin/.env.local` (`admin/.env.example`), `npm run dev`. Yerelde Admin SDK için
 `FIREBASE_SERVICE_ACCOUNT_JSON` yalnız geliştirici makinesinde tutulur; repo'ya ve App Hosting'e girmez.
 
-Admin girişi: e-posta bağlantısı → ilk seferde TOTP kaydı (QR) → yeniden giriş → kod → panel.
+Admin girişi (16 Ekim 2026 ürün kararı): e-posta → 6 haneli tek kullanımlık kod → panel; QR zorunlu değil. Gönderici kurulumu ve canlı kabul şartları: [ADMIN_EMAIL_CODE.md](ADMIN_EMAIL_CODE.md). Önceki Firebase bağlantı/TOTP yöntemi alternatif olarak korunur. Yeni akışın canlıda hazır olması Resend anahtarının Secret Manager'a kaydı ve dağıtım gerektirir.
 
 ## 6. Bilinen farklar / sonraki adımlar
 
@@ -199,26 +224,20 @@ içinde normale döner.
 
 ## 6b. İzleme ve alarmlar (bir kez, owner)
 
-`scripts/monitoring-setup.command` (Mac'te çift tıkla; tekrar çalıştırılabilir) şunları kurar:
+`scripts/monitoring-setup.command` adresi sorar, planı gösterir ve onaydan sonra üç **log eşleşmesi** uyarısı kurar:
 
-- **E-posta bildirim kanalı:** adresi betik sorar. Google'ın doğrulama e-postasını onayla.
-- **Log tabanlı metrikler ve alarmlar** (Cloud Functions ve App Hosting logları):
+- Hesap silme, Apple token iptali, Storage/Cloud Anchor temizliği ve kill switch olayları.
+- Diğer Cloud Functions / App Hosting `ERROR` kayıtları (ARCore, avatar, push dahil) ve kullanılabilir
+  instance olmadığı için oluşan Cloud Run `WARNING` / HTTP 429 kayıtları.
+- iOS fatal crash kayıtları; veri kaynağı ayrıca Firebase → Integrations → Cloud Logging'de bağlanmalıdır.
 
-| Metrik | Alarm koşulu | Ne yapılır |
-|--------|--------------|------------|
-| `lociar_server_errors` | 10 dk'da >10 ERROR satırı | Logs'ta `severity>=ERROR` filtresine bak |
-| `lociar_apple_revoke_failed` | herhangi biri | Apple anahtar/secret'larını kontrol et; hesap silme durdu |
-| `lociar_account_deletion_deferred` | 1 saatte herhangi biri | Silme işi zamanlayıcıyla yeniden denenir; tamamlandığını doğrula |
-| `lociar_storage_cleanup_deferred` | 1 saatte >3 | Storage yetkileri ve temizlik zamanlayıcıları |
-| `lociar_cloud_anchor_cleanup_failed` | 1 saatte herhangi biri | `arcoreManagement.ts` logları; iş kendini yeniden dener |
-| `lociar_arcore_token_failed` | 10 dk'da >3 | Functions servis hesabının Token Creator yetkisi (`google-cloud-setup.command`) |
-| `lociar_avatar_screening_failed` | 1 saatte >3 | Cloud Vision API / kota |
-| `lociar_push_failed` | 1 saatte >20 | Firebase Console → Cloud Messaging → APNs anahtarı |
-| `lociar_service_paused` | herhangi biri | Kill switch açık kaldıysa kapat (6a) |
+Tek eşleşme alarm açar; politika başına e-posta en fazla saatte bir gönderilir. Sayaç eşiği kullanılmaz.
+Özel metrik, yeni Scheduler işi, BigQuery aktarımı veya bütçe değişikliği yapılmaz. Crashlytics bağlantısı
+kurulurken yalnız iOS uygulaması seçilir, sessions export kapalı tutulur. Betik yalnız
+`lociar_diagnostics=v1` etiketli politikaları günceller; tekrar çalıştırılabilir.
 
-- **Aylık bütçe:** varsayılan 50 USD. %50, %90 ve %100'de e-posta gelir.
-
-Crashlytics çökme uyarıları ayrıca Firebase Console → Crashlytics → ⋮ → *Alert settings* üzerinden açılır.
+CLI: `python3 scripts/setup-diagnostics-monitoring.py --email ADRES` planı gösterir; `--apply` uygular.
+Crashlytics toplama, semboller, maliyet sınırları ve gerçek teslim testi: [DIAGNOSTICS.md](DIAGNOSTICS.md).
 
 ## 6c. Büyüme özellikleri (varsayılan kapalı, owner)
 
@@ -233,7 +252,7 @@ Crashlytics çökme uyarıları ayrıca Firebase Console → Crashlytics → ⋮
   3. `firebase deploy --only functions,firestore:indexes` (`searchGifs` callable'ı ve `gif_search_quota` TTL'i). Secret yoksa deploy durur; `scripts/qa-live-firebase.py` `giphy_secret_unavailable` bildirir.
   Arama kullanıcı başına saatte 120 istekle sınırlıdır (`gif_search_quota`, hesap silmede silinir). `createPost` her GIF id'sini GIPHY'den yeniden okur: bilinmeyen ya da `pg-13` üstü GIF `gif_invalid`, GIPHY'ye ulaşılamazsa `gif_unavailable` (uygulama postu kuyrukta tutar ve yeniden dener). Admin post sayfası GIF'i `media.giphy.com` üzerinden gösterir (yalnızca admin CSP'si buna izin verir).
 - **Davet kodu (beta).** `createInvites` (kullanıcı başına 3 kod) ve `redeemInvite` (tek kullanım, saatte en fazla 10 hatalı deneme) `functions/src/invites.ts` içinde; durum `users_private/{luid}` (`invite_redeemed_at`, `invited_by`, `invites_created`, `invite_exempt`). `LOCIAR_INVITE_REQUIRED=true` iken kod kullanmamış hesap post yayınlayamaz (`invite_required`); gezmek serbest. Açmadan önce App Review demo hesabına `invite_exempt: true` yaz ve inceleme notlarını güncelle (`docs/release/APP_STORE_SUBMISSION_GUIDE.md` 6.1). Uygulamada Profil > Davet kodu ekranı vardır. Hesap silme `invites` ve `invite_attempts` kayıtlarını da siler.
-- **Güvenilir yazar otomatik yayını.** `LOCIAR_TRUSTED_AUTO_PUBLISH=true` (varsayılan kapalı). Kural `functions/src/trust.ts`: hesap 7 günden eski, en az 5 herkese açık post (`public_post_count`), `flagged` post yok, `users_private.trust_revoked` değil; ayrıca AR kilidi yüksek kaliteli olmalı. Çizim içeren postlar hiçbir zaman otomatik yayınlanmaz (bu kural `LOCIAR_AUTO_PUBLISH_HIGH_QUALITY` için de geçerli). Moderatör `removed` kararları algılanmaz: tekrar eden ihlalde admin `trust_revoked: true` yazmalı.
+- **Doğrudan yayın.** Güvenilir yazar ve yüksek kaliteli AR kilidi otomatik yayın anahtarları (`LOCIAR_TRUSTED_AUTO_PUBLISH`, `LOCIAR_AUTO_PUBLISH_HIGH_QUALITY`) 18 Ekim 2026'da kaldırıldı; tüm postlar otomatik kontrollerden sonra doğrudan yayınlanır. Ön onayı geri açmak için yalnız `system/flags.post_review_required` kullanılır.
 - **Mekan katmanı.** `places/{id}` (`name`, `city`, `lat`, `lng`, `radius_meters`, `active`) herkese açık okunur, yalnızca betikle yazılır. `createPost` konum bir mekanın yarıçapına düşüyorsa sunucuda `place_id` yazar (en yakın merkez kazanır; istemciye güvenilmez; okunamazsa `null`). Yükleme: `cd functions && FIREBASE_PROJECT_ID=lociar-2f38c node scripts/import-places.mjs scripts/places.sample.json` (kuru çalıştırma), sonra `--apply`. Betik korumalı bölgeyle çakışan mekanı reddeder. `places.sample.json` koordinatları yaklaşıktır; yüklemeden önce haritadan ve ARCore VPS kapsamından doğrula. iOS mekan haritası/sayfası henüz yok. `firebase deploy --only firestore:rules` gerekir.
 - **Çizim katmanı sınırları.** `createPost` en fazla 20 katman, katman metni en fazla 1000 karakter, `#RRGGBB` renk, çizim başına 2000 (toplam 4000) nokta kabul eder.
 - **Keşfet sıralaması.** `readPublicContent` (`mode: discover`) ilk sayfadaki en yeni 50 postu `(1 + engagement_score) / (yaş saat + 2)^1.5` ile sıralar (`functions/src/discoverRanking.ts`); imleç yine `created_at` sırasıyla ilerler, sonraki sayfalar kronolojiktir ve hiçbir post atlanmaz. iOS sunucu sırasını korur.

@@ -21,11 +21,22 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   Cloud Vision SafeSearch; clients may set `avatar_preset` (fixed list) or clear `avatar_url`, nothing else.
 - Identity is the `luid` custom claim (UUIDv5 of the Firebase UID) set by the `ensureProfile` callable.
   Rules and Storage paths key on `request.auth.token.luid`.
-- New posts default to `pending_review`; protected zones, 18+ checks, rate/density limits run in `createPost`.
+- New posts go live (`active`) once `createPost` has run the text filter, link ban, protected zones, 18+ checks and
+  rate/density limits; there is no pre-moderation (owner decision, 18 Oct 2026). Setting `system/flags.post_review_required`
+  to `true` sends new posts back to `pending_review` until the switch is cleared. Reports hide content automatically.
 - `deleteAccount` is a full hard delete (Firestore, Storage, Auth user). Apple sign-in token revocation failure
   aborts deletion (App Store guideline 5.1.1(v)).
 - `firestore.rules` / `storage.rules` are default-deny; changes must keep `functions/test/rules/*` passing.
 - Blaze plan is required (Storage + Functions). Never weaken rules to work around Spark limits.
+- **Three scheduled functions at most** (owner decision, 21 Oct 2026): Cloud Scheduler gives each billing account three
+  jobs free and bills every further job; seven jobs tripped the ₺10 spend cap on 20 Oct 2026 and paused every function.
+  All periodic work is a task in `functions/src/maintenance.ts`, run by `everyFiveMinutes`, `everyFifteenMinutes` or
+  `nightlyMaintenance` (`schedules.ts`); never add another `onSchedule` export. `scripts/firebase-deploy.mjs` deletes
+  retired functions (`RETIRED_FUNCTIONS`) with their jobs after the new code is live. The admin **Maintenance tasks** page
+  (`/admin/maintenance`, permission `system.maintenance`) shows each task's last run and backlog, runs a task now
+  (`maintenance_requests` → `onMaintenanceRequested`) and pauses its automatic runs (`system/maintenance.paused`), all
+  audited; account deletion retries cannot be paused. Keep the task lists in `admin/lib/maintenance.ts` and
+  `functions/src/maintenance.ts` equal (`admin/tests/maintenance.test.mjs`).
 - Service-account keys and Admin SDK credentials never ship in the iOS app or in `NEXT_PUBLIC_*`.
 - Posts are a **message: text and/or one GIPHY GIF** (owner decision, 9 Oct 2026), shown as a chat-style bubble in AR. Device photo/video uploads were removed on 29 Sep 2026; social media links (Spotify, YouTube, TikTok, Instagram, X, Facebook) and new drawings on 9 Oct 2026: `createPost` accepts only `text` and `gif` layers and rejects image layers, drawings, own video and any URL (`functions/src/placement.ts`); the admin content editor creates text posts only (`admin/lib/content-ops.ts`); Storage denies uploads to `post-layer-assets` and `post-video-assets`. Old posts may still carry a drawing (still rendered) or a link in `content_source_json`; clients must decode it without crashing and never show the link. Do not re-add media or links without a product decision.
 - **GIFs come from GIPHY** (Tenor's public API shut down on 30 Jun 2026). The key is the `GIPHY_API_KEY` secret, used only by the `searchGifs` callable and `createPost` (`functions/src/giphy.ts`); never ship it in the app. A GIF layer stores only the GIPHY id (`gifId`, letters and digits); `createPost` re-reads it from GIPHY (rating at most `pg-13`) and writes the size GIPHY reports. The app builds media URLs from the id on `media.giphy.com` only and shows "Powered by GIPHY" wherever search results appear.
@@ -33,19 +44,47 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 ## Product decisions
 
 - SMS auth is disabled unless the owner re-enables it.
+- **Membership and publishing identity** (owner decision, 28 Oct 2026): entering the iOS app requires
+  a verified Apple or email account. No guest entry or automatic anonymous sign-in. Legacy anonymous sessions
+  return to sign-in and may link their account. The Debug preview entry is hidden unless explicitly launched with `UITEST_DEVICE_PREVIEW`. New AR posts and location notes default to anonymous authorship;
+  a member may explicitly show their username. Both choices require verified identity. The server derives the
+  author and handle and freezes the visibility choice for the same client mutation. Public anonymous projections
+  and independent block semantics must stay intact. Do not describe the product as "anonymous chat" in store copy.
+- **Blocks and anonymous authorship** (17 Oct 2026): a profile block (`user_blocks`) affects attributed content,
+  comments and profiles only; "hide this author's notes" (`anonymous_blocks`) affects that author's anonymous notes
+  only, for the muting viewer only. Neither may change any other surface, rule decision or error, or comparing
+  results would reveal who wrote a note (`functions/src/visibility.ts`; rules `blockedOnPost`). Keep the
+  differential test in `functions/test/integration/anonymous.test.mjs` passing.
 - **iOS only.** Do not add Android, Expo, Metro, or React Native.
 - Mobile users cannot publish in protected zones; authorized admins may use a separately permissioned, reasoned zone exception (owner decision, 5 Oct 2026). 18+ content remains hard-blocked for everyone.
 - Admin delegated posts/comments identify the selected user publicly and record the acting admin separately in audit. New managed content identities have disabled, unverified Auth logins and no admin role. See `docs/release/ADMIN_CONTENT_OPERATIONS.md`.
 - Pin uses the center reticle against detected plane geometry. Approximate placement is explicit.
+- **Direct publishing** (owner decision, 18 Oct 2026): AR posts and location notes publish at once after the automated
+  checks in `createPost`; moderation is after the fact (reports, automatic hiding, 24-hour report handling). The trusted-author
+  and high-quality auto-publish switches were removed. Keep the App Review notes, terms and store copy saying the same.
+- **Placement and grouping distances** (owner decision, 29 Oct 2026): a manually corrected location-note pin may move at most **12 m** from the measured fix; physical map/spot and notification grouping use **6 m** fixed-centre membership. Keep iOS and Functions in sync. GPS accuracy, note-reading radii and admission-density limits are separate policies.
+- **Location notes** (owner decision, 12 Oct 2026): written at the author's measured GPS position (no business/POI selection), published at once after the text filter, ordered by likes, never self-expiring (admin end date only). Likes from established accounts approve notifications automatically; reports hide notes. Entry rule `distance ≤ radius + min(accuracy, 20 m)` with 15–100 m radii. See `docs/LOCATION_NOTES.md`; keep `placeNoteRules.ts` and `LocationNotePolicy.swift` in sync.
+- **Map and note reading** (owner decision, 19 Oct 2026): use the Cam Katman glass heat style, with stable density colours and real 6 m groups at close zoom (`10 not`, including multiple notes at the same coordinate). Tapping a group lists every readable note by likes, with pagination. Other people's location-note text stays server-redacted remotely, even for a single note; `readPublicContent` map-group reads require a fresh on-site GPS/Geospatial fix. Zooming the map never grants access. Keep direct Firestore note reads closed, comment access server-granted, and anonymous/profile blocks independent. The dense threshold controls crowded-spot alerts, not location-note reading access.
+  Map opening reads the server-only **map cell index** (`map_cells`, `functions/src/mapCells.ts`, owner request 22 Oct 2026),
+  never a scan of every post in range: keep `map_groups`/`nearby` on it, keep the scan only as the fallback (index not
+  complete, area over 2 km, overflowing cell), and apply the same account fences and block rules to index entries.
+- **Admin persona identities** (owner decision, 29 Oct 2026): prepare 50 distinct persona-linked handles for admin-only content operations. Managed Auth logins stay disabled/unverified and have no admin roles. Some notes are anonymous and others attributed; anonymity is a server-enforced per-post choice, never a blank/obscure handle. Keep server-stamped managed provenance and never imply independent real users or fabricate engagement. The local identity plan does not authorize uploads or changing existing authors; the admin writer needs a tested explicit attribution option before mixed-attribution publishing.
+- **Launch seed content** (owner decision, 19 Oct 2026): the map must not open empty. Seeds are team-written location notes
+  and approximate AR posts under admin-managed content identities (`loci.guide` is the legacy author), loaded only through `admin/scripts/seed-notes.mjs`
+  (dry run first, `saveAdminPost`, tagged `seed_batch`). Never review a business, source every fact, never scrape or quote
+  Google Maps/Tripadvisor reviews. One AR per busy street. Business notes are facts about well-known businesses
+  (`scripts/seed/landmark_businesses.py`), never taste, price or service, and never notify. See `docs/release/LAUNCH_SEED.md`.
+- **Zone campaigns** (owner decision, 12 Oct 2026): multi-step journeys (leaves usual place / enter / stay / leave, circle or street zones, schedules, codes). The usual place is learned and kept on the device only; never upload or label a home location. See `docs/BRAND_CAMPAIGNS.md`; keep `journeyRules.ts` and `CampaignZone.swift` in sync.
 - AR re-localization uses **Google ARCore on top of the ARKit session** (SPM `arcore-ios-sdk`): Cloud Anchors
   (365-day TTL) first, then Geospatial (VPS), then the legacy ARKit world map, then aim-guided reveal.
   Authorization is keyless via the `getArcoreToken` callable; never ship an ARCore API key. Anchors are deleted
   with the post/account (`functions/src/arcoreManagement.ts`). The Google sensor-data notice
   (`ARCoreDisclosure.swift`) must stay on every AR screen. No Android.
-- Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + TOTP MFA + static RBAC), deployed on
+- Admin (`admin/`) is Next.js on the Firebase Admin SDK (session cookie + static RBAC), deployed on
   **Firebase App Hosting** (`admin/apphosting.yaml`, backend `lociar-admin`). It also serves the public
   `/privacy`, `/terms`, `/support` pages the iOS app links to. Everything runs on Firebase: no Docker, no Vercel,
   no Supabase. On App Hosting the Admin SDK uses the backend's service account; no key file.
+- **Admin sign-in** (owner decision, 16 Oct 2026): six-digit single-use email code via a server-only Resend sender; QR/TOTP is not required for this path. Ten-minute codes, five guesses, resend limits, eight-hour opaque sessions, live role/account checks and audit logging are mandatory. Email-only sessions must never be called MFA/AAL2. The previous Firebase email-link/TOTP path remains available. Reading users' location or device/IP data, changing admin roles and exporting audit logs need an authenticator (AAL2) session even then (`STEP_UP_PERMISSIONS` in `admin/lib/rbac.ts`, owner decision 17 Oct 2026). See `docs/ADMIN_EMAIL_CODE.md`; `ADMIN_EMAIL_API_KEY` stays in Secret Manager.
 - **Push notifications:** Enabled via APNs & FirebaseMessaging (`NotificationService.swift`, `LociAR.entitlements` `aps-environment`).
   Tokens go through the `registerPushToken` / `unregisterPushToken` callables (server-only `push_tokens`, keyed by
   installation id); `onActivityCreated` (`functions/src/push.ts`) sends texts localized on the server (`pushPolicy.ts`).
@@ -55,6 +94,23 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   and run `python3 scripts/l10n/build_catalog.py` (CI runs `--check` and verifies the compiler-extracted keys).
   Messages use `String(localized:)`; text kept in `String` properties is shown with `.localizedUI`.
   `node scripts/check-localization.mjs --release` must pass too (no raw Turkish UI strings).
+- **Note translation** (owner decision, 20 Oct 2026): Apple on-device Translation only, iOS 18+. No paid/cloud
+  translation fallback. Already downloaded language pairs translate readable note text into the app language;
+  downloading models requires a user-triggered translation and Apple's permission UI. Keep the original, an
+  original/translation toggle in detail, and the automatic-translation preference in Settings. Unsupported pairs
+  or iOS versions retain the original. Never translate locked text or persist note/translation text on disk;
+  discard late results after content, language, visibility or scene changes. Check language support at runtime.
+  Comments, previews and AR bubbles share this policy; translated AR textures bypass the reusable cache.
+- **Official guide badge:** only server-stamped `admin_managed` post provenance shows the LociAR badge.
+  Admin publishing derives it from the selected managed content identity, never a supplied handle or client flag.
+  Anonymous attribution and independent block semantics still apply. A/B seed drafts are generated by
+  `scripts/seed/turkey_launch.py`; all require coordinate review, and A's 12 AR drafts require field Cloud Anchors.
+- **Creator support payments hidden** (owner decision, 28 Oct 2026): the note's support button and Profile → Earnings
+  stay hidden in normal Debug and Release builds (`PostSupportAvailability.releaseBuilds = false`,
+  `LociAR/Data/PostSupportClient.swift`). Only authenticated payment UI-test fixtures explicitly launched with
+  `UITEST_SUPPORT_UI` keep them, using fake payments; general UI tests keep the entries hidden.
+  Re-enable only at the owner's explicit request, with a live provider and updated terms, privacy, App Privacy
+  (Purchases) and App Review notes. Go-live checklist: `docs/release/APP_STORE_GO_LIVE_2026-10-26.md`.
 - **Crash reporting:** Firebase Crashlytics enabled.
 - **Store availability:** Global (all territories).
 - **Media model:** Text and/or one GIPHY GIF (no photos, videos, drawings or links). Social media links and drawings removed 9 Oct 2026.

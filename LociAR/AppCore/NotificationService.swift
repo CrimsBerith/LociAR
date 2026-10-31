@@ -1,3 +1,4 @@
+import BackgroundTasks
 import Foundation
 import UIKit
 import UserNotifications
@@ -5,6 +6,7 @@ import UserNotifications
 @preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseCrashlytics
 @preconcurrency import FirebaseMessaging
+@preconcurrency import FirebaseInstallations
 
 @MainActor
 protocol PushRegistrationClient: AnyObject {
@@ -26,13 +28,13 @@ private final class CallablePushRegistrationClient: PushRegistrationClient {
     func register(token: String, installationID: UUID, userID: UUID, locale: String) async throws {
         try checkSession(userID)
         struct Payload: Encodable {
-            let token: String
+            let fid: String
             let installationId: String
             let userId: String
             let locale: String
         }
         let response: Response = try await callables.call("registerPushToken", payload: Payload(
-            token: token, installationId: installationID.uuidString.lowercased(),
+            fid: token, installationId: installationID.uuidString.lowercased(),
             userId: userID.uuidString.lowercased(), locale: locale
         ))
         guard response.ok else { throw BackendCallError.invalidResponse }
@@ -116,14 +118,40 @@ struct PushNotificationTarget: Equatable, Sendable {
     let recipientID: UUID
     let postID: UUID?
     let activityID: String?
+    /// Dense-spot alerts open the map here instead of a post.
+    var mapFocus: MapFocus? = nil
 
-    init?(recipient: String?, post: String?, activity: String? = nil) {
+    init?(recipient: String?, post: String?, activity: String? = nil, focusLat: Double? = nil, focusLng: Double? = nil) {
         guard let recipient, let id = UUID(uuidString: recipient) else { return nil }
         if let post, !post.isEmpty, UUID(uuidString: post) == nil { return nil }
-        if let activity, activity.range(of: "^[A-Za-z0-9_-]{1,200}$", options: .regularExpression) != (activity.startIndex..<activity.endIndex) { return nil }
+        if let activity, !SocialActivity.isValidID(activity) { return nil }
         recipientID = id
         postID = post.flatMap(UUID.init(uuidString:))
         activityID = activity
+        if let focusLat, let focusLng, ProximityPolicy.isValidCoordinate(latitude: focusLat, longitude: focusLng) {
+            mapFocus = MapFocus(latitude: focusLat, longitude: focusLng)
+        }
+    }
+}
+
+/// APNs callbacks and foreground refresh share one SDK registration; sign-out drains it first.
+@MainActor
+final class PushSDKRegistrationFlight {
+    private var flight: (id: UUID, task: Task<Void, Error>)?
+    func register(_ operation: @escaping @MainActor () async throws -> Void) async throws {
+        let current: (id: UUID, task: Task<Void, Error>)
+        if let flight { current = flight }
+        else {
+            current = (UUID(), Task { try await operation() })
+            flight = current
+        }
+        defer { if flight?.id == current.id { flight = nil } }
+        try await current.task.value
+    }
+    func drain() async {
+        guard let current = flight else { return }
+        _ = try? await current.task.value
+        if flight?.id == current.id { flight = nil }
     }
 }
 
@@ -134,14 +162,17 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private(set) var authorizationDenied = false
     private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     private(set) var deviceTokenString: String?
-    private(set) var fcmToken: String?
+    private(set) var firebaseInstallationID: String?
     var onPostNotificationTapped: ((UUID) -> Void)? { didSet { consumePendingTap() } }
     var onActivityNotificationTapped: (() -> Void)? { didSet { consumePendingTap() } }
+    var onMapFocusNotificationTapped: ((MapFocus) -> Void)? { didSet { consumePendingTap() } }
     private var coordinator: PushTokenCoordinator?
+    private let messagingRegistration = PushSDKRegistrationFlight()
     private var desiredUserID: UUID?
     private var boundUserID: UUID?
     private var transition: Task<Void, Never>?
     private var acceptsTokens = false
+    private var deliveryEnabled = false
     private var tokenRevision = 0
     private var pendingTap: PushNotificationTarget?
     private var social: (any SocialRepository)?
@@ -165,8 +196,16 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     private static func recordFailure(_ error: Error) {
-        // Firebase errors can include request details; record a value-free error instead.
-        Crashlytics.crashlytics().record(error: NSError(domain: "LociAR.Push", code: (error as NSError).code))
+        debugTrace("failure domain=\((error as NSError).domain) code=\((error as NSError).code)")
+        DiagnosticsReporter.report(error, component: .push)
+    }
+
+    private static func debugTrace(_ message: String) {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--push-diagnostics") {
+            NSLog("[LociAR.Push] %@", message)
+        }
+#endif
     }
 
     func checkAuthorizationStatus() async {
@@ -174,6 +213,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         authorizationStatus = settings.authorizationStatus
         isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
         authorizationDenied = settings.authorizationStatus == .denied
+        Self.debugTrace("authorization=\(settings.authorizationStatus.rawValue) delivery=\(deliveryEnabled) user=\(desiredUserID != nil)")
     }
 
     /// Never prompts at launch: the profile button explicitly requests permission.
@@ -212,6 +252,13 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         scheduleTransition(to: userID)
     }
 
+    func setDeliveryEnabled(_ enabled: Bool) {
+        guard enabled != deliveryEnabled else { return }
+        deliveryEnabled = enabled
+        if !enabled { acceptsTokens = false; coordinator?.updateUser(nil) }
+        scheduleTransition(to: desiredUserID)
+    }
+
     func refreshForCurrentUser() async {
         guard coordinator != nil else { return }
         scheduleTransition(to: desiredUserID)
@@ -232,7 +279,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             guard let userID else { return }
             await self.checkAuthorizationStatus()
             guard self.desiredUserID == userID else { return }
-            if !self.isAuthorized {
+            if !self.isAuthorized || !self.deliveryEnabled {
                 await self.disconnect(userID: userID)
                 return
             }
@@ -241,19 +288,31 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             Messaging.messaging().isAutoInitEnabled = true
             UIApplication.shared.registerForRemoteNotifications()
             self.consumePendingTap()
-            if Messaging.messaging().apnsToken != nil { await self.fetchToken() }
+            if Messaging.messaging().apnsToken != nil { await self.registerMessaging() }
         }
     }
 
-    private func fetchToken() async {
+    private func registerMessaging() async {
         guard acceptsTokens, let userID = desiredUserID else { return }
+        Self.debugTrace("messaging registration started")
         let revision = tokenRevision
         do {
-            let token = try await Messaging.messaging().token()
-            guard acceptsTokens, tokenRevision == revision,
-                  desiredUserID == userID, boundUserID == userID else { return }
-            fcmToken = token
-            coordinator?.updateToken(token)
+            try await messagingRegistration.register { try await Messaging.messaging().register() }
+            guard acceptsTokens, tokenRevision == revision, desiredUserID == userID, boundUserID == userID else { return }
+            await refreshInstallationIdentity()
+        } catch { Self.recordFailure(error) }
+    }
+
+    private func refreshInstallationIdentity() async {
+        guard acceptsTokens, Messaging.messaging().apnsToken != nil, let userID = desiredUserID else { return }
+        let revision = tokenRevision
+        do {
+            // Read current SDK state; a delayed callback's identity may belong to an older session.
+            let fid = try await Installations.installations().installationID()
+            guard acceptsTokens, tokenRevision == revision, desiredUserID == userID, boundUserID == userID else { return }
+            firebaseInstallationID = fid
+            Self.debugTrace("installation identity ready")
+            coordinator?.updateToken(fid)
         } catch { Self.recordFailure(error) }
     }
 
@@ -269,10 +328,11 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         Messaging.messaging().isAutoInitEnabled = false
         UIApplication.shared.unregisterForRemoteNotifications()
         await coordinator?.disconnect(userID: userID)
-        do { try await Messaging.messaging().deleteToken() }
+        await messagingRegistration.drain()
+        do { try await Messaging.messaging().unregister() }
         catch { Self.recordFailure(error) }
         deviceTokenString = nil
-        fcmToken = nil
+        firebaseInstallationID = nil
         if pendingTap?.recipientID == userID || desiredUserID == nil { pendingTap = nil }
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -280,9 +340,10 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func didRegisterForRemoteNotifications(deviceToken: Data) {
+        Self.debugTrace("APNs registration succeeded")
         deviceTokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         Messaging.messaging().apnsToken = deviceToken
-        if acceptsTokens { Task { await fetchToken() } }
+        if acceptsTokens { Task { await registerMessaging() } }
     }
 
     func didFailToRegisterForRemoteNotifications(error: Error) { Self.recordFailure(error) }
@@ -290,7 +351,11 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private func consumePendingTap() {
         guard let target = pendingTap, let userID = desiredUserID, userID == boundUserID else { return }
         guard target.recipientID == userID else { pendingTap = nil; return }
-        if let postID = target.postID {
+        if let focus = target.mapFocus {
+            guard let onMapFocusNotificationTapped else { return }
+            pendingTap = nil
+            onMapFocusNotificationTapped(focus)
+        } else if let postID = target.postID {
             guard let onPostNotificationTapped else { return }
             pendingTap = nil
             onPostNotificationTapped(postID)
@@ -308,39 +373,115 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+    nonisolated func userNotificationCenter(_ _: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                           withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void) {
         let recipient = notification.request.content.userInfo["recipient_id"] as? String
         let id = recipient.flatMap(UUID.init(uuidString:))
-        return await MainActor.run {
-            guard let id, self.acceptsTokens, self.desiredUserID == id, self.boundUserID == id else { return [] }
-            return [.banner, .sound, .badge]
+        Task { @MainActor in
+            guard let id, self.acceptsTokens, self.desiredUserID == id, self.boundUserID == id else {
+                completionHandler([]); return
+            }
+            ContentUpdates.shared.activityChanged()
+            completionHandler([.banner, .sound, .badge])
         }
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+    nonisolated func userNotificationCenter(_ _: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                           withCompletionHandler completionHandler: @escaping @Sendable () -> Void) {
         let info = response.notification.request.content.userInfo
-        let target = PushNotificationTarget(recipient: info["recipient_id"] as? String, post: info["post_id"] as? String, activity: info["activity_id"] as? String)
-        guard let target else { return }
-        await MainActor.run { self.pendingTap = target; self.consumePendingTap() }
+        let target = PushNotificationTarget(recipient: info["recipient_id"] as? String, post: info["post_id"] as? String, activity: info["activity_id"] as? String,
+                                            focusLat: info["focus_lat"] as? Double, focusLng: info["focus_lng"] as? Double)
+        // UIKit's background-to-foreground restoration requires completion on main.
+        // The async Objective-C bridge may otherwise invoke it on a worker executor.
+        Task { @MainActor in
+            defer { completionHandler() }
+            guard let target else { return }
+            self.pendingTap = target
+            self.consumePendingTap()
+        }
     }
 }
 
 extension NotificationService: MessagingDelegate {
-    nonisolated func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        guard fcmToken != nil else { return }
+    nonisolated func messaging(_ _: Messaging, didReceiveRegistration installationID: String?) {
+        guard installationID != nil else { return }
         Task { @MainActor in
             guard self.acceptsTokens else { return }
-            // Read the SDK's current token instead of binding a delayed callback from an old session.
-            await self.fetchToken()
+            // Never register again from this callback: register() itself emits it.
+            await self.refreshInstallationIdentity()
         }
     }
 }
 
+@MainActor
 final class LociAppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    private var backgroundAuthListener: AuthStateDidChangeListenerHandle?
+    private var backgroundIdentityResolved = false
+
+    /// Every launch path restores the same account-scoped services, without profile networking.
+    private func restoreBackgroundServices() {
+        guard !UITestFixtures.authenticatedSessionEnabled else { return }
+        let configuration = AppConfiguration.load()
+        guard configuration.configureFirebaseIfNeeded(), let firebase = configuration.firebase else { return }
+        UserContextService.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
+        if let id = FirebaseIdentity.currentLUID() {
+            NotificationService.shared.setUser(id)
+            UserContextService.shared.setUser(id)
+        }
+        guard backgroundAuthListener == nil else { return }
+        backgroundAuthListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            let id = user.map { FirebaseIdentity.luid(forFirebaseUID: $0.uid) }
+            Task { @MainActor in
+                guard FirebaseIdentity.currentLUID() == id else { return }
+                self?.backgroundIdentityResolved = true
+                NotificationService.shared.setUser(id)
+                UserContextService.shared.setUser(id)
+                if id != nil, UIApplication.shared.applicationState != .active {
+                    CampaignArrivalService.shared.resumeBackgroundLocation()
+                }
+            }
+        }
+    }
+
+    private func prepareBackgroundWake() async -> Bool {
+        restoreBackgroundServices()
+        guard FirebaseApp.app() != nil, !UITestFixtures.authenticatedSessionEnabled else { return false }
+        let deadline = Date().addingTimeInterval(2)
+        while !backgroundIdentityResolved, FirebaseIdentity.currentLUID() == nil, Date() < deadline {
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return false }
+        }
+        guard !Task.isCancelled, let id = FirebaseIdentity.currentLUID() else { return false }
+        NotificationService.shared.setUser(id)
+        UserContextService.shared.setUser(id)
+        return true
+    }
+
+    func application(_ _: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        restoreBackgroundServices()
+        if launchOptions?[.location] != nil { CampaignArrivalService.shared.resumeBackgroundLocation() }
+        // Periodic refresh of monitored note and campaign regions (safety net for missed pushes).
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: CampaignArrivalService.refreshTaskID, using: nil) { task in
+            CampaignArrivalService.scheduleBackgroundRefresh()
+            let work = Task { @MainActor in
+                guard await self.prepareBackgroundWake() else { task.setTaskCompleted(success: false); return }
+                let refreshed = await CampaignArrivalService.shared.handleSilentRefresh()
+                task.setTaskCompleted(success: refreshed && !Task.isCancelled)
+            }
+            task.expirationHandler = { work.cancel() }
+        }
+        return true
+    }
+    /// Silent "region_refresh" pushes arrive when a campaign or notifying note goes live in this area.
+    func application(_ _: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
+        guard userInfo["type"] as? String == "region_refresh" else { return .noData }
+        guard await prepareBackgroundWake() else { return .noData }
+        return await CampaignArrivalService.shared.handleSilentRefresh() ? .newData : .noData
+    }
+    func applicationProtectedDataDidBecomeAvailable(_ _: UIApplication) { restoreBackgroundServices() }
+    func application(_ _: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         NotificationService.shared.didRegisterForRemoteNotifications(deviceToken: deviceToken)
     }
-    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    func application(_ _: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         NotificationService.shared.didFailToRegisterForRemoteNotifications(error: error)
     }
 }
@@ -356,5 +497,6 @@ enum CrashReportingPreference {
     static func apply() {
         guard FirebaseApp.app() != nil else { return }
         Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(isEnabled)
+        if !isEnabled { Crashlytics.crashlytics().deleteUnsentReports() }
     }
 }

@@ -234,6 +234,7 @@ extension LociEmptyState {
 }
 
 struct LociAvatar: View {
+    @Environment(\.displayScale) private var displayScale
     let handle: String
     var avatarURL: URL? = nil
     var size: CGFloat = 44
@@ -271,10 +272,13 @@ struct LociAvatar: View {
         .accessibilityHidden(true)
         .task(id: avatarURL) {
             storageAvatar = nil
+            let generation = ClientReadCaches.generation
             guard let avatarURL, avatarURL.scheme == "storage" else { return }
             let data = await AvatarURLCache.shared.data(for: avatarURL)
-            guard !Task.isCancelled else { return }
-            storageAvatar = data.flatMap { UIImage(data: $0) }
+            guard !Task.isCancelled, ClientReadCaches.generation == generation else { return }
+            let image = if let data { await AvatarReference.thumbnail(from: data, maxPixelSize: Int((size * displayScale).rounded(.up))) } else { nil as UIImage? }
+            guard !Task.isCancelled, ClientReadCaches.generation == generation else { return }
+            storageAvatar = image
         }
     }
 
@@ -317,10 +321,62 @@ struct LociAvatar: View {
 }
 
 extension View {
+    func visibleContentRefresh(gate: ScreenRefreshGate, scope: String, revision: UUID,
+                               enabled: Bool = true, action: @escaping @MainActor (Bool) async -> Void) -> some View {
+        modifier(VisibleContentRefresh(gate: gate, scope: scope, revision: revision, enabled: enabled, action: action))
+    }
+
     func lociListStyle() -> some View {
         self
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(LociScreenBackground())
+    }
+}
+
+private struct ContentRefreshAllowedKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var contentRefreshAllowed: Bool {
+        get { self[ContentRefreshAllowedKey.self] }
+        set { self[ContentRefreshAllowedKey.self] = newValue }
+    }
+}
+
+private struct VisibleContentRefresh: ViewModifier {
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.contentRefreshAllowed) private var presentationAllowed
+    @Environment(AppContainer.self) private var container
+    @State private var visible = false
+    @State private var connectionWake = UUID()
+    let gate: ScreenRefreshGate
+    let scope: String
+    let revision: UUID
+    let enabled: Bool
+    let action: @MainActor (Bool) async -> Void
+
+    private struct Activation: Equatable { let active: Bool; let scope: String; let revision: UUID; let connection: UUID }
+    func body(content: Content) -> some View {
+        let activation = Activation(active: visible && scenePhase == .active && enabled && presentationAllowed,
+                                    scope: scope, revision: revision, connection: connectionWake)
+        content
+            .onAppear { visible = true }
+            .onDisappear { visible = false }
+            .onChange(of: container.connectivity.isOnline) { _, online in
+                if online, gate.connectionRestored() { connectionWake = UUID() }
+            }
+            .task(id: activation) {
+                guard activation.active else { return }
+                var opening = true
+                while !Task.isCancelled {
+                    await action(opening)
+                    opening = false
+                    guard container.isBackendConfigured, !container.session.isLocalPreview,
+                          !UITestFixtures.authenticatedSessionEnabled, !UITestFixtures.sampleContentEnabled else { return }
+                    do { try await Task.sleep(for: .seconds(gate.nextDelay)) } catch { return }
+                }
+            }
     }
 }

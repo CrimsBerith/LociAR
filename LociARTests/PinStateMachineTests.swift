@@ -1,7 +1,38 @@
 import XCTest
+import UIKit
 @testable import LociAR
 
 final class PinStateMachineTests: XCTestCase {
+    @MainActor
+    func testEngineStartupAndCleanupDoNotInitializeRealityKit() {
+        let engine = ARPinningEngine()
+        XCTAssertNil(engine.existingARView)
+        XCTAssertNil(engine.currentCameraTransform)
+        engine.stopSession()
+        engine.unregisterARViewHost(UIView())
+        XCTAssertNil(engine.existingARView, "Non-AR screens and cleanup must not compile Metal pipelines")
+        XCTAssertEqual(engine.state, .idle)
+    }
+
+    @MainActor
+    func testFirstARHostInitializesOneViewAndLaterHostsReuseIt() throws {
+        let engine = ARPinningEngine()
+        let first = UIView(), second = UIView()
+        engine.registerARViewHost(first)
+        let view = try XCTUnwrap(engine.existingARView)
+        XCTAssertTrue(view.superview === first)
+        XCTAssertTrue(view.session.delegate === engine)
+        engine.registerARViewHost(second)
+        XCTAssertTrue(engine.arView === view)
+        XCTAssertTrue(view.superview === second)
+        engine.unregisterARViewHost(first)
+        XCTAssertTrue(view.superview === second)
+        engine.unregisterARViewHost(second)
+        XCTAssertNil(view.superview)
+        engine.stopSession()
+        XCTAssertTrue(engine.existingARView === view)
+    }
+
     func testPhysicalPinPath() {
         let path: [PinSessionState] = [.idle, .initializing, .coaching, .scanning, .candidateReady, .placing, .placed, .mapping, .publishReady]
         for pair in zip(path, path.dropFirst()) {
@@ -56,10 +87,11 @@ final class PinStateMachineTests: XCTestCase {
         XCTAssertFalse(viewerSource?.contains("Yüzeye bağla") == true)
         XCTAssertFalse(viewerSource?.contains("Bu yüzeye bağla") == true)
         // Multi-user world-map relocalization is attempted first, but a failed or timed-out
-        // relocalization must always fall back to aim-assisted reveal, never block the post.
+        // relocalization falls back to aim-assisted reveal while location access remains valid.
         // (Each stage first checks for cancellation, so closing the viewer stops the chain.)
-        let fallback = viewerSource?.range(of: "if await relocalizeFromWorldMap() { return }")
-        let reveal = viewerSource?.range(of: "guard !Task.isCancelled else { return }\n                await revealWithAimGuidance()")
+        let openingSource = viewerSource?.components(separatedBy: "private func verifyAndOpen()").last
+        let fallback = openingSource?.range(of: "if await relocalizeFromWorldMap() { return }")
+        let reveal = openingSource?.range(of: "await revealWithAimGuidance()")
         XCTAssertNotNil(fallback)
         XCTAssertNotNil(reveal)
         if let fallback, let reveal { XCTAssertLessThan(fallback.lowerBound, reveal.lowerBound) }

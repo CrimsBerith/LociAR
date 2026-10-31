@@ -1,3 +1,5 @@
+import { forEachSequential } from './async';
+import { scalarText } from './values';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -7,6 +9,7 @@ import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import { reasonError } from './errors';
 import { v5 as uuidv5, validate as uuidValidate } from 'uuid';
+import { deletePagedStorageFiles, STORAGE_DELETE_PAGE_SIZE } from './storagePaging';
 
 if (getApps().length === 0) initializeApp();
 
@@ -59,6 +62,7 @@ export type Caller = {
   emailVerified: boolean;
   provider: string;
   isAppleUser: boolean;
+  isAnonymous: boolean;
   adminRole: string | null;
 };
 
@@ -77,6 +81,7 @@ export function requireCaller(request: CallableRequest<unknown>): Caller {
     email: typeof token.email === 'string' ? token.email : null,
     emailVerified: token.email_verified === true,
     provider,
+    isAnonymous: provider === 'anonymous' && Object.keys(identities).length === 0,
     isAppleUser: provider === 'apple.com' || Object.prototype.hasOwnProperty.call(identities, 'apple.com'),
     adminRole: typeof token.admin_role === 'string' ? token.admin_role : null,
   };
@@ -124,38 +129,54 @@ export const ANALYTICS_RETENTION_DAYS = 180;
 /** Deletes every object under `<folder>/<prefix>` for each LociAR storage folder. */
 export async function deleteStoragePrefix(prefix: string): Promise<number> {
   let removed = 0;
-  for (const folder of STORAGE_FOLDERS) {
-    const [files] = await bucket().getFiles({ prefix: `${folder}/${prefix}` });
-    await Promise.all(files.map((file) => file.delete({ ignoreNotFound: true })));
-    removed += files.length;
-  }
+  await forEachSequential(STORAGE_FOLDERS, async (folder) => {
+    removed += await deletePagedStorageFiles(async pageToken => {
+      const [files, next] = await bucket().getFiles({ prefix: `${folder}/${prefix}`, autoPaginate: false,
+        maxResults: STORAGE_DELETE_PAGE_SIZE, ...(pageToken ? { pageToken } : {}) });
+      return { files, nextPageToken: next?.pageToken };
+    });
+  });
   return removed;
 }
 
 /**
- * Emergency kill switch: `system/flags` = { kill_switch: true, kill_reason?: string } (admin panel →
- * Sistem, permission system.kill_switch, or the budget alert). While it is on, the admission paths listed below refuse with `unavailable` / reason `service_paused`; reads,
- * reports, blocks and account deletion keep working. Cached per instance for a few seconds.
+ * Emergency switches in `system/flags`, cached per instance for a few seconds:
+ * - `kill_switch: true` (`kill_reason?`; admin panel → Sistem, permission system.kill_switch, or the budget
+ *   alert): the admission paths listed below refuse with `unavailable` / reason `service_paused`; reads,
+ *   reports, blocks and account deletion keep working.
+ * - `post_review_required: true`: new posts wait in `pending_review` for a moderator. Off by default:
+ *   posts go live once they pass the automated checks in `createPost` (owner decision, 18 Oct 2026).
  */
 export type KillableFeature = 'create_post' | 'arcore_token' | 'register_anchor' | 'avatar_upload' | 'push_register';
+type SystemFlags = { killSwitch: boolean; postReview: boolean };
 // No caching in the emulator so tests (and local E2E) see a flag flip immediately.
 const FLAGS_TTL_MS = process.env.FUNCTIONS_EMULATOR === 'true' ? 0 : 15_000;
-let flagsCache: { at: number; on: boolean } | null = null;
+let flagsCache: { at: number; flags: SystemFlags } | null = null;
 
-export async function killSwitchOn(now = Date.now()): Promise<boolean> {
-  if (flagsCache && now - flagsCache.at < FLAGS_TTL_MS) return flagsCache.on;
-  let on = false;
+async function systemFlags(now: number): Promise<SystemFlags> {
+  if (flagsCache && now - flagsCache.at < FLAGS_TTL_MS) return flagsCache.flags;
+  let flags: SystemFlags;
   try {
-    on = (await db.collection('system').doc('flags').get()).data()?.kill_switch === true;
+    const data = (await db.collection('system').doc('flags').get()).data();
+    flags = { killSwitch: data?.kill_switch === true, postReview: data?.post_review_required === true };
   } catch (error) {
     logger.error('kill_switch_read_failed', { code: safeErrorCode(error) });
     throw reasonError('unavailable', 'Service configuration is temporarily unavailable', 'busy_retry');
   }
-  flagsCache = { at: now, on };
-  return on;
+  flagsCache = { at: now, flags };
+  return flags;
 }
 
-/** Test hook: forget the cached flag so the next call reads Firestore again. */
+export async function killSwitchOn(now = Date.now()): Promise<boolean> {
+  return (await systemFlags(now)).killSwitch;
+}
+
+/** True while `system/flags.post_review_required` holds new posts for moderator review. */
+export async function postReviewRequired(now = Date.now()): Promise<boolean> {
+  return (await systemFlags(now)).postReview;
+}
+
+/** Test hook: forget the cached flags so the next call reads Firestore again. */
 export function resetKillSwitchCache(): void {
   flagsCache = null;
 }
@@ -169,7 +190,7 @@ export async function assertServiceEnabled(feature: KillableFeature): Promise<vo
 
 /** Provider messages may include request details; only bounded codes belong in logs. */
 export function safeErrorCode(error: unknown): string {
-  const code = String((error as { code?: unknown; response?: { status?: unknown } } | null)?.code
+  const code = scalarText((error as { code?: unknown; response?: { status?: unknown } } | null)?.code
     ?? (error as { response?: { status?: unknown } } | null)?.response?.status ?? 'unknown');
   return /^[a-z0-9_/-]{1,64}$/i.test(code) ? code : 'unknown';
 }

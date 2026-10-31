@@ -192,6 +192,12 @@ async function screenAvatarObject(luid: string, id: string, path: string): Promi
 
 /** Durable deletion is only for exact, immutable paths previously selected by the server. */
 const AVATAR_OBJECT_PATH = /^avatars\/([^/]+)\/(?:current|pending)\/[0-9a-f-]{36}\.jpg$/;
+export function avatarDeletionRetryDelay(attempts: number, random = Math.random): number {
+  const attempt = Number.isFinite(attempts) ? Math.max(0, Math.min(10, Math.floor(attempts))) : 10;
+  const maximum = 6 * 3_600_000;
+  const base = Math.min(maximum, 5 * 60_000 * 2 ** attempt);
+  return Math.min(maximum, base + Math.floor(base * 0.2 * Math.min(1, Math.max(0, random()))));
+}
 export function enqueueAvatarDelete(tx: FirebaseFirestore.Transaction, luid: string, path: string) {
   if (AVATAR_OBJECT_PATH.exec(path)?.[1] !== luid) throw new Error('invalid_avatar_deletion_path');
   const key = path.split('/').at(-1)!.replace('.jpg', '') + '_' + path.split('/')[2];
@@ -209,8 +215,9 @@ export async function drainAvatarDeletions(now = Date.now(), limit = 100): Promi
       await bucket().file(path).delete({ ignoreNotFound: true });
       await entry.ref.delete(); removed++;
     } catch (error) {
-      logger.error('avatar_deletion_deferred', { code: safeErrorCode(error) });
-      await entry.ref.update({ attempts: FieldValue.increment(1), next_at: Timestamp.fromMillis(now + 5 * 60_000) });
+      const attempts = Number(entry.get('attempts') ?? 0);
+      logger.error('avatar_deletion_deferred', { code: safeErrorCode(error), attempts: attempts + 1, attention_required: attempts >= 4 });
+      await entry.ref.update({ attempts: FieldValue.increment(1), next_at: Timestamp.fromMillis(now + avatarDeletionRetryDelay(attempts)) });
     }
   }
   return removed;

@@ -1,47 +1,62 @@
-import Link from 'next/link';
 import { requireAdmin } from '../../../lib/admin';
+import { getI18n } from '../../../lib/i18n-server';
 import SignOutButton from './SignOutButton';
+import AdminNav, { type NavGroup } from './AdminNav';
+import LanguageSwitcher from '../LanguageSwitcher';
 
-const navigation = [
-  { href: '/admin/dashboard', label: 'Dashboard', enabled: true },
-  { href: '/admin/users', label: 'Users', enabled: true },
-  { href: '/admin/posts', label: 'Posts & media', enabled: true },
-  { href: '/admin/approvals', label: 'Approvals', enabled: true },
-  { href: '/admin/moderation', label: 'Moderation', enabled: true },
-  { href: '/admin/avatars', label: 'Profile photos', enabled: true },
-  { href: '/admin/anchors', label: 'AR anchors', enabled: true },
-  { href: '/admin/places', label: 'Map & places', enabled: true },
-  { href: '/admin/zones', label: 'Restricted zones', enabled: true },
-  { href: '/admin/analytics', label: 'Analytics', enabled: true },
-  { href: '/admin/system', label: 'System health', enabled: true },
-  { href: '/admin/audit', label: 'Audit logs', enabled: true },
+const navigation: NavGroup[] = [
+  { label: 'Overview', items: [
+    { href: '/admin/dashboard', label: 'Dashboard' },
+    { href: '/admin/analytics', label: 'Analytics' },
+  ] },
+  { label: 'Content', items: [
+    { href: '/admin/posts', label: 'Posts & media' },
+    { href: '/admin/place-notes', label: 'Location notes' },
+    { href: '/admin/campaigns', label: 'Brand campaigns' },
+  ] },
+  { label: 'Trust & safety', items: [
+    { href: '/admin/moderation', label: 'Moderation' },
+    { href: '/admin/approvals', label: 'Approvals' },
+    { href: '/admin/avatars', label: 'Profile photos' },
+    { href: '/admin/users', label: 'Users' },
+  ] },
+  { label: 'Spatial', items: [
+    { href: '/admin/anchors', label: 'AR anchors' },
+    { href: '/admin/places', label: 'Map & places' },
+    { href: '/admin/zones', label: 'Restricted zones' },
+  ] },
+  { label: 'System', items: [
+    { href: '/admin/system', label: 'System health' },
+    { href: '/admin/maintenance', label: 'Maintenance tasks' },
+    { href: '/admin/audit', label: 'Audit logs' },
+  ] },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdmin({ permission: 'dashboard.read' });
+  const { t } = await getI18n();
+  const groups = navigation.map(group => ({
+    label: t(group.label),
+    items: group.items.map(item => ({ ...item, label: t(item.label) })),
+  }));
   return (
     <div className="adminFrame">
       <aside className="sidebar">
-        <div className="sidebarBrand"><span className="brandMark small">L</span><span>LociAR</span></div>
-        <nav aria-label="Admin navigation">
-          {navigation.map(item => item.enabled
-            ? <Link key={item.href} href={item.href}>{item.label}</Link>
-            : <span className="navPending" key={item.href} title="Planned for the next operations phase">{item.label}<small>Planned</small></span>
-          )}
-        </nav>
+        <div className="sidebarBrand"><span className="brandMark small">L</span><span>LociAR</span><small>{t('Admin')}</small></div>
+        <AdminNav groups={groups} label={t('Admin navigation')} />
         <div className="sidebarFooter">
           <span>{admin.user.email ?? admin.user.id}</span>
           <small>{admin.roles.join(', ').replaceAll('_', ' ')}</small>
-          <small className="securityOk">MFA verified</small>
-          <SignOutButton />
+          <small className="securityOk">{admin.assuranceLevel === 'email_code' ? t('Email code verified') : t('MFA verified')}</small>
+          <div className="sidebarActions"><LanguageSwitcher /><SignOutButton /></div>
         </div>
       </aside>
       <div className="adminContent">
         <header className="topbar">
           <form action="/admin/search" method="get" role="search">
-            <input name="q" aria-label="Global search" placeholder="Search users, posts, anchors…" />
+            <input name="q" aria-label={t('Global search')} placeholder={t('Search users, posts, anchors…')} />
           </form>
-          <span className="envBadge">Production controls</span>
+          <span className="envBadge">{t('Production controls')}</span>
         </header>
         <main id="main" tabIndex={-1}>{children}</main>
       </div>

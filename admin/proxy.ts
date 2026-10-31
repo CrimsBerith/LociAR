@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getAdminContext, SESSION_COOKIE } from './lib/admin';
+import { getAdminContext, SESSION_COOKIE, verifiedAdminSession } from './lib/admin';
 
 // Resolve page authorization before loading boundaries can begin streaming. Server components
 // and API handlers still independently enforce their session, MFA and permission checks.
@@ -7,6 +7,7 @@ const PAGE_PERMISSIONS: Record<string, string> = {
   users: 'users.read', posts: 'posts.read', moderation: 'posts.read', avatars: 'users.suspend',
   approvals: 'posts.metrics.write', anchors: 'anchors.read', places: 'anchors.read',
   zones: 'anchors.read', audit: 'audit.read',
+  'place-notes': 'posts.read', campaigns: 'campaigns.read',
 };
 
 async function protectedPageRedirect(request: NextRequest) {
@@ -14,7 +15,7 @@ async function protectedPageRedirect(request: NextRequest) {
   if (!pathname.startsWith('/admin/') || ['/admin/login', '/admin/mfa', '/admin/unauthorized'].includes(pathname)) return null;
   const admin = await getAdminContext(request.cookies.get(SESSION_COOKIE)?.value ?? null);
   if (!admin) return NextResponse.redirect(new URL('/admin/login?reason=admin_required', request.url));
-  if (admin.assuranceLevel !== 'aal2') return NextResponse.redirect(new URL('/admin/mfa', request.url));
+  if (!verifiedAdminSession(admin)) return NextResponse.redirect(new URL('/admin/mfa', request.url));
   const permission = pathname === '/admin/posts/new'
     ? 'posts.create'
     : PAGE_PERMISSIONS[pathname.split('/')[2]] ?? 'dashboard.read';
@@ -28,7 +29,8 @@ const CONNECT = "connect-src 'self' https://identitytoolkit.googleapis.com https
 const COMMON = "font-src 'self'; object-src 'none'; frame-src https://*.firebaseapp.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 const IMG = "img-src 'self' data: blob:";
 // Moderators review GIF posts: admin pages may show GIPHY media (images only, no scripts or frames).
-const ADMIN_IMG = `${IMG} https://media.giphy.com`;
+// Map pickers for zones and notes load OpenStreetMap raster tiles (images only).
+const ADMIN_IMG = `${IMG} https://media.giphy.com https://tile.openstreetmap.org`;
 
 /** Admin and sign-in pages are rendered per request, so they get a per-request script nonce. */
 function isDynamicAdminPath(pathname: string): boolean {

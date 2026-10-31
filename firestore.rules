@@ -3,23 +3,32 @@ rules_version = '2';
 // LociAR Firestore rules — server-authoritative design.
 // Posts, profiles (creation), counters, activity, analytics and admin data are written only by
 // Cloud Functions / Admin SDK (which bypass these rules). Clients write only their own social
-// edges, comments, collections and reports, always bound to the `luid` custom claim that the
+// edges, comments and collections, always bound to the `luid` custom claim that the
 // `ensureProfile` callable sets.
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null && request.auth.token.luid is string; }
     function me() { return request.auth.token.luid; }
+    // Guests (Firebase anonymous auth) may browse, like, save, follow, block and report. Writing
+    // comments needs a verified Apple or email identity (App Store 1.2; owner decision 17 Oct
+    // 2026). Mirrors identityVerified() in functions/src/core.ts.
+    function verifiedIdentity() {
+      let firebase = request.auth.token.get('firebase', {});
+      return request.auth.token.get('email_verified', false) == true
+        || firebase.get('sign_in_provider', '') == 'apple.com'
+        || 'apple.com' in firebase.get('identities', {});
+    }
     // The persistent server-only fence survives profile/Auth removal and rejects stale tokens.
     function activeAccount(luid) {
-      return exists(/databases/$(database)/documents/profiles/$(luid))
-        && get(/databases/$(database)/documents/profiles/$(luid)).data.get('deleted_at', null) == null
+      let profile = get(/databases/$(database)/documents/profiles/$(luid)).data;
+      return profile != null && profile.get('deleted_at', null) == null
         && !exists(/databases/$(database)/documents/account_deletion_jobs/$(luid));
     }
     function mayWrite() { return signedIn() && activeAccount(me()); }
     function onlyKeys(keys) { return request.resource.data.keys().hasOnly(keys) && request.resource.data.keys().hasAll(keys); }
     function createdNow() { return request.resource.data.created_at == request.time; }
-    function postExists(postId) { return exists(/databases/$(database)/documents/posts/$(postId)); }
+    function postExists(postId) { return post(postId) != null; }
     function post(postId) { return get(/databases/$(database)/documents/posts/$(postId)).data; }
     function postIsPublicActive(postId) {
       return post(postId).status == 'active' && post(postId).visibility == 'public'
@@ -30,29 +39,29 @@ service cloud.firestore {
     function notSuspended() {
       return get(/databases/$(database)/documents/profiles/$(me())).data.get('suspended', false) != true;
     }
-    // True when `owner` has blocked the caller.
+    // An identity block between the caller and `owner`, in either direction (profile "Block").
+    // Anonymous mutes (anonymous_blocks) are server-only and never change what rules allow: a
+    // denied write would otherwise reveal who wrote an anonymous note (functions/src/visibility.ts).
     function blockedBy(owner) {
       return exists(/databases/$(database)/documents/user_blocks/$(owner + '_' + me()))
         || exists(/databases/$(database)/documents/user_blocks/$(me() + '_' + owner));
     }
+    // Identity blocks fence attributed posts only. An anonymous post behaves the same for every
+    // viewer, so a failed like or comment cannot identify its author.
+    function blockedOnPost(postId) {
+      return post(postId).get('is_anonymous', false) != true && blockedBy(post(postId).creator_id);
+    }
     function collectionDescriptionOk(data) {
       return !('description' in data) || data.description == null
         || (data.description is string && data.description.size() <= 500);
-    }
-    // Report metadata written by the iOS app (SocialRepository.fileReport): known keys only,
-    // each a string of at most 500 characters, so a report cannot carry an unbounded payload.
-    function metaString(m, k) { return !(k in m) || (m[k] is string && m[k].size() <= 500); }
-    function reportMetadataOk(m) {
-      return m.keys().hasOnly(['source', 'target', 'comment_id', 'author_id', 'text', 'reported_user_id'])
-        && metaString(m, 'source') && metaString(m, 'target') && metaString(m, 'comment_id')
-        && metaString(m, 'author_id') && metaString(m, 'text') && metaString(m, 'reported_user_id');
     }
     function avatarPreset(value) {
       return value == null || value in ['hare', 'tortoise', 'cat', 'dog', 'bear', 'bird', 'fish', 'leaf', 'star', 'moon', 'sun', 'bolt'];
     }
 
     match /profiles/{luid} {
-      allow read: if true;
+      // Signed-in (guest or account) reads only: no anonymous bulk scraping of every profile.
+      allow read: if signedIn() && !blockedBy(luid);
       allow create, delete: if false;
       // Handles change only through the updateHandle callable (uniqueness); photo avatars are set
       // only by the moderation function. The owner may pick a preset or remove the photo.
@@ -78,7 +87,9 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
-      allow get: if (resource.data.status == 'active' && resource.data.visibility == 'public'
+      allow get: if (resource.data.get('is_anonymous', false) != true
+          && resource.data.get('note_kind', '') != 'location'
+          && resource.data.status == 'active' && resource.data.visibility == 'public'
           && resource.data.get('age_rating', 'all') != '18_plus' && resource.data.get('deleted_at', null) == null
           && activeAccount(resource.data.creator_id) && (!signedIn() || !blockedBy(resource.data.creator_id)))
         || (signedIn() && resource.data.creator_id == me() && activeAccount(me()));
@@ -89,21 +100,25 @@ service cloud.firestore {
     }
 
     match /likes/{likeId} {
-      allow read: if signedIn();
+      allow get: if signedIn() && ((resource == null && likeId.matches('.*_' + me()))
+        || (resource != null && resource.data.user_id == me()));
+      allow list: if signedIn() && resource.data.user_id == me();
       allow create: if mayWrite()
         && likeId == request.resource.data.post_id + '_' + me()
         && onlyKeys(['post_id', 'user_id', 'created_at'])
         && request.resource.data.user_id == me()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
-        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if mayWrite() && (resource == null || resource.data.user_id == me());
+      allow delete: if mayWrite() && ((resource == null && likeId.matches('.*_' + me()))
+        || (resource != null && resource.data.user_id == me()));
     }
 
     match /post_saves/{saveId} {
-      allow get: if signedIn() && (resource == null || resource.data.user_id == me());
+      allow get: if signedIn() && ((resource == null && saveId.matches(me() + '_.*'))
+        || (resource != null && resource.data.user_id == me()));
       allow list: if signedIn() && resource.data.user_id == me();
       allow create: if mayWrite()
         && saveId == me() + '_' + request.resource.data.post_id
@@ -111,14 +126,19 @@ service cloud.firestore {
         && request.resource.data.user_id == me()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
-        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if mayWrite() && (resource == null || resource.data.user_id == me());
+      allow delete: if mayWrite() && ((resource == null && saveId.matches(me() + '_.*'))
+        || (resource != null && resource.data.user_id == me()));
     }
 
     match /follows/{followId} {
-      allow read: if signedIn();
+      // Only edges that involve the caller; counts come from server-maintained profile fields.
+      // A missing id is readable only when it is the caller's own outbound edge.
+      allow get: if signedIn() && ((resource == null && followId.matches(me() + '_.*'))
+        || (resource != null && (resource.data.follower_id == me() || resource.data.following_id == me())));
+      allow list: if signedIn() && (resource.data.follower_id == me() || resource.data.following_id == me());
       allow create: if mayWrite()
         && onlyKeys(['follower_id', 'following_id', 'created_at'])
         && request.resource.data.follower_id == me()
@@ -130,11 +150,13 @@ service cloud.firestore {
         && !blockedBy(request.resource.data.following_id)
         && notSuspended();
       allow update: if false;
-      allow delete: if mayWrite() && (resource == null || resource.data.follower_id == me());
+      allow delete: if mayWrite() && ((resource == null && followId.matches(me() + '_.*'))
+        || (resource != null && resource.data.follower_id == me()));
     }
 
     match /user_blocks/{blockId} {
-      allow get: if signedIn() && (resource == null || resource.data.blocker_id == me());
+      allow get: if signedIn() && ((resource == null && blockId.matches(me() + '_.*'))
+        || (resource != null && resource.data.blocker_id == me()));
       allow list: if signedIn() && resource.data.blocker_id == me();
       allow create: if mayWrite()
         && onlyKeys(['blocker_id', 'blocked_id', 'created_at'])
@@ -145,14 +167,25 @@ service cloud.firestore {
         && blockId == me() + '_' + request.resource.data.blocked_id
         && createdNow();
       allow update: if false;
-      allow delete: if mayWrite() && (resource == null || resource.data.blocker_id == me());
+      allow delete: if mayWrite() && ((resource == null && blockId.matches(me() + '_.*'))
+        || (resource != null && resource.data.blocker_id == me()));
     }
 
+    function noteCommentsOpen(postId) {
+      let post = get(/databases/$(database)/documents/posts/$(postId)).data;
+      return post.get('note_kind', '') != 'location' || post.creator_id == me()
+        || (get(/databases/$(database)/documents/dense_spot_unlocks/$(me() + '_note_' + postId)).data.kind == 'note_read'
+          && get(/databases/$(database)/documents/dense_spot_unlocks/$(me() + '_note_' + postId)).data.expires_at > request.time);
+    }
     match /comments/{commentId} {
       // Only comments of public, active posts are readable, and only while signed in.
-      allow read: if signedIn()
+      allow get: if signedIn()
         && postIsPublicActive(resource.data.post_id)
-        && !blockedBy(post(resource.data.post_id).creator_id);
+        && noteCommentsOpen(resource.data.post_id)
+        && !blockedOnPost(resource.data.post_id)
+        && !blockedBy(resource.data.user_id);
+      // readPublicContent filters blocked commenters before returning a page.
+      allow list: if false;
       // `username` is not accepted from clients: onCommentCreated fills it from the profile.
       allow create: if mayWrite()
         && onlyKeys(['id', 'post_id', 'user_id', 'text', 'created_at'])
@@ -161,9 +194,11 @@ service cloud.firestore {
         && request.resource.data.post_id is string
         && request.resource.data.text is string
         && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 500
+        && verifiedIdentity()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
-        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && noteCommentsOpen(request.resource.data.post_id)
+        && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
       // The author, or the owner of the post it was left on, may remove a comment.
@@ -207,7 +242,7 @@ service cloud.firestore {
         && request.resource.data.sort_order is int
         && createdNow()
         && request.resource.data.post_id is string
-        && !blockedBy(post(request.resource.data.post_id).creator_id)
+        && !blockedOnPost(request.resource.data.post_id)
         && (postIsPublicActive(request.resource.data.post_id) || post(request.resource.data.post_id).creator_id == me())
         && get(/databases/$(database)/documents/collections/$(request.resource.data.collection_id)).data.owner_id == me();
       allow update: if false;
@@ -215,23 +250,13 @@ service cloud.firestore {
     }
 
     match /moderation_flags/{flagId} {
-      allow read, update, delete: if false;
-      allow create: if mayWrite()
-        && request.resource.data.keys().hasOnly(['post_id', 'user_id', 'reason', 'status', 'metadata', 'created_at'])
-        && request.resource.data.user_id == me()
-        && request.resource.data.status == 'open'
-        && !flagId.matches('comment_.*|profile_.*')
-        && !(request.resource.data.reason in ['comment_filtered', 'profile_text_filtered'])
-        && request.resource.data.reason is string
-        && request.resource.data.reason.size() >= 1 && request.resource.data.reason.size() <= 500
-        && (!('post_id' in request.resource.data) || request.resource.data.post_id == null || request.resource.data.post_id is string)
-        && (!('metadata' in request.resource.data) || request.resource.data.metadata == null
-            || (request.resource.data.metadata is map && reportMetadataOk(request.resource.data.metadata)))
-        && createdNow();
+      // submitReport binds trusted target metadata, idempotency and quotas in one transaction.
+      allow read, write: if false;
     }
 
     match /activity_events/{eventId} {
-      allow read: if signedIn() && resource.data.recipient_id == me();
+      allow read: if signedIn() && resource.data.recipient_id == me()
+        && resource.data.get('anonymous', false) != true;
       // Read state is written by markActivityRead; clients cannot alter server activity.
       allow create, update, delete: if false;
     }

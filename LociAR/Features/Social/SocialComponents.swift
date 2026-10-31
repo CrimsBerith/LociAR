@@ -7,25 +7,16 @@ struct PostCard: View {
     let post: LociPost
     var likeCount: Int? = nil
     var viewCount: Int? = nil
+    var allowsTranslationControls = false
+    var textLineLimit: Int? = 4
+    /// Opt-in only for detail screens: list cards already sit inside their own navigation link.
+    var authorProfile: LociUser? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 10) {
-                LociAvatar(handle: post.creatorHandle ?? "Loci", size: 36)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(post.creatorHandle.map { "@\($0)" } ?? "Loci")
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text(post.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary)
-                }
-                .layoutPriority(1)
-                Spacer()
-                LociStatusPill(
-                    title: post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate ? String(localized: "Yaklaşık") : "Sabit",
-                    symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder" : "exclamationmark",
-                    color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
-                )
+            if post.sponsorship != nil {
+                Label("Sponsorlu", systemImage: "tag.fill").font(.caption.bold()).foregroundStyle(.orange)
             }
+            authorHeader
             if let gif = post.gif {
                 AnimatedGIFView(url: gif.previewURL)
                     .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
@@ -41,21 +32,25 @@ struct PostCard: View {
                     .accessibilityElement()
                     .accessibilityLabel(Text("GIF"))
                 if let text = post.messageText {
-                    Text(text)
+                    TranslatedPostText(text: text, isReadable: !post.isLocked, allowsControls: allowsTranslationControls, lineLimit: textLineLimit)
                         .font(.body.weight(.semibold))
-                        .lineLimit(4)
                         .foregroundStyle(.white.opacity(0.94))
                 }
             } else {
-                Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                    .font(.body.weight(.semibold))
-                    .lineLimit(4)
-                    .foregroundStyle(.white.opacity(0.94))
+                if post.isLocked {
+                    Text("Kilitli not").font(.body.weight(.semibold))
+                } else if post.caption.isEmpty {
+                    Text("AR notu").font(.body.weight(.semibold))
+                } else {
+                    TranslatedPostText(text: post.caption, allowsControls: allowsTranslationControls, lineLimit: textLineLimit)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.94))
+                }
             }
 
             HStack(spacing: 18) {
                 LociMetricLabel(value: likeCount ?? post.counts.likes, title: String(localized: "beğeni"), symbol: "heart.fill", color: .pink)
-                LociMetricLabel(value: viewCount ?? post.counts.views, title: String(localized: "görüntülenme"), symbol: "eye.fill", color: LociTheme.accent)
+                LociMetricLabel(value: viewCount ?? post.counts.views, title: String(localized: "görüntülenme"), symbol: "eye.fill", color: .secondary)
                 LociMetricLabel(value: post.counts.comments, title: String(localized: "yorum"), symbol: "bubble.right.fill", color: .white.opacity(0.8))
                 Spacer()
             }
@@ -66,6 +61,59 @@ struct PostCard: View {
         .accessibilityElement(children: .contain)
     }
 
+    @ViewBuilder
+    private var authorHeader: some View {
+        // Anonymous cards never expose a profile route, even if a caller supplies one.
+        if !post.isAnonymous, let authorProfile {
+            NavigationLink { PublicProfileView(user: authorProfile) } label: { headerContent }
+                .buttonStyle(.plain)
+                .accessibilityHint("Profili görüntüle")
+                .accessibilityIdentifier("post-open-profile")
+        } else {
+            headerContent
+        }
+    }
+
+    private var headerContent: some View {
+        HStack(spacing: 10) {
+            LociAvatar(handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle ?? "Loci", size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle.map { "@\($0)" } ?? "Loci")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                HStack(spacing: 6) {
+                    Text(post.createdAt, style: .relative).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    if post.isOfficialContent { OfficialContentBadge() }
+                }
+            }
+            .layoutPriority(1)
+            Spacer(minLength: 8)
+            if post.isLocationNote {
+                LociStatusPill(title: String(localized: "Konum notu"), symbol: "mappin.and.ellipse", color: LociTheme.accent)
+                    .fixedSize(horizontal: true, vertical: false)
+            } else {
+                LociStatusPill(
+                    title: post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate ? String(localized: "Yaklaşık") : "Sabit",
+                    symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder" : "exclamationmark",
+                    color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
+                )
+                .fixedSize(horizontal: true, vertical: false)
+            }
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+struct OfficialContentBadge: View {
+    var body: some View {
+        Label { Text(verbatim: "LociAR") } icon: { Image(systemName: "checkmark.seal.fill") }
+            .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+            .font(.caption2.weight(.semibold)).foregroundStyle(LociTheme.accent)
+            .padding(.horizontal, 7).padding(.vertical, 5)
+            .background(LociTheme.accent.opacity(0.12), in: Capsule())
+            .accessibilityIdentifier("post-official-badge")
+    }
 }
 
 struct PostActionLabel: View {
@@ -80,7 +128,11 @@ struct PostActionLabel: View {
         VStack(spacing: 6) {
             Image(systemName: symbol).font(.headline).foregroundStyle(color)
                 .symbolEffect(.bounce, value: reduceMotion ? false : effectValue)
-            Text(title.localizedUI).font(.caption.weight(.semibold)).foregroundStyle(.white)
+            Text(title.localizedUI)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, minHeight: 58)
         .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
@@ -104,5 +156,70 @@ struct ProfileLinkRow: View {
                 .frame(width: 26)
         }
         .padding(.vertical, 3)
+    }
+}
+
+/// The composer owns the default and snapshots the selection for its server-authoritative publish request.
+struct PublishingIdentityPicker: View {
+    @Binding var anonymously: Bool
+    var showsExplanation = true
+
+    var body: some View {
+        LociCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle(String(localized: "Anonim paylaş"), isOn: $anonymously)
+                    .tint(LociTheme.accent)
+                    .accessibilityIdentifier("publish-anonymously")
+                if showsExplanation {
+                Text(anonymously
+                     ? String(localized: "Adın diğer kullanıcılara görünmez.")
+                     : String(localized: "Kullanıcı adın notta görünür."))
+                    .font(.footnote)
+                    .foregroundStyle(LociTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+}
+
+/// Shown to guests instead of a composer. Notes and comments need a verified Apple or email
+/// account (App Store 1.2; `mayPublishAnonymously` in functions/src/anonymous.ts).
+/// The app entry gate also rejects legacy guest sessions; linking preserves their data.
+struct AccountRequiredView: View {
+    @Environment(AppSession.self) private var session
+    @State private var showAccountCreation = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.system(size: 52))
+                    .foregroundStyle(LociTheme.accent)
+                    .accessibilityHidden(true)
+                Text("Paylaşmak için giriş yap")
+                    .font(.title3.bold())
+                    .multilineTextAlignment(.center)
+                Text("Not bırakmak ve yorum yapmak için Apple veya e-posta ile devam edebilirsin.")
+                    .font(.subheadline)
+                    .foregroundStyle(LociTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button { showAccountCreation = true } label: { Text("Giriş yap") }
+                    .buttonStyle(LociPrimaryButtonStyle())
+                    .accessibilityIdentifier("account-required-create")
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity)
+        }
+        .background(LociScreenBackground())
+        .onChange(of: isGuest) { _, guest in if !guest { showAccountCreation = false } }
+        .sheet(isPresented: $showAccountCreation) { AuthView() }
+        .accessibilityIdentifier("screen-account-required")
+    }
+
+    private var isGuest: Bool {
+        if case let .signedIn(user) = session.phase { return user.isAnonymousAccount }
+        return false
     }
 }

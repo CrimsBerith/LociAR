@@ -1,5 +1,7 @@
+import { forEachSequential } from './async';
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { createHash, randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { analyticsEventDoc, db, FieldValue, Timestamp } from './core';
 import { applyCountersOnce, isPublicActive } from './counters';
 import { isAccountDeleting } from './profileGuard';
@@ -7,14 +9,7 @@ import { anyBlocked, containsBlockedTerm } from './moderation';
 import { schedulePurgeOnStatusChange } from './cleanup';
 import { getMessaging } from 'firebase-admin/messaging';
 import { deliverPostApprovedPush } from './push';
-
-async function safeUpdate(path: string, data: Record<string, unknown>, owner: string): Promise<void> {
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(db.doc(path));
-    if (await isAccountDeleting(tx, owner) || !snap.exists) return;
-    tx.update(snap.ref, data);
-  });
-}
+import { autoApproveNote, indexNotificationLike } from './noteAutomation';
 
 /**
  * `stableId` makes repeat actions (unlike → like, follow → unfollow → follow) and trigger
@@ -22,15 +17,28 @@ async function safeUpdate(path: string, data: Record<string, unknown>, owner: st
  */
 async function emitActivity(kind: 'like' | 'comment' | 'follow', actorId: string, recipientId: string | null, postId: string | null, body: string, stableId?: string) {
   if (!recipientId || actorId === recipientId) return;
-  const id = stableId ?? randomUUID();
-  const ref = db.collection('activity_events').doc(id);
+  // Comment ids stay on the comment document. Like and follow stable ids are dedup
+  // material only: the client receives act_ + UUID, never a hash of public luids.
+  const commentId = stableId?.startsWith('comment_') ? stableId : undefined;
+  const dedupMaterial = commentId ? undefined : stableId;
+  const publicId = commentId ?? `act_${randomUUID()}`;
+  const ref = db.collection('activity_events').doc(publicId);
+  const keyRef = dedupMaterial
+    ? db.collection('activity_keys').doc(createHash('sha256').update(dedupMaterial).digest('hex'))
+    : null;
   await db.runTransaction(async tx => {
-    const [activity, actorDeleting, recipientDeleting] = await Promise.all([tx.get(ref), isAccountDeleting(tx, actorId), isAccountDeleting(tx, recipientId)]);
-    if (activity.exists || actorDeleting || recipientDeleting) return;
+    const [activity, actorDeleting, recipientDeleting, key] = await Promise.all([
+      tx.get(ref),
+      isAccountDeleting(tx, actorId),
+      isAccountDeleting(tx, recipientId),
+      keyRef ? tx.get(keyRef) : Promise.resolve(null),
+    ]);
+    if (activity.exists || actorDeleting || recipientDeleting || key?.exists) return;
     tx.create(ref, {
-      id,
+      id: publicId,
       kind,
       actor_id: actorId,
+      anonymous: kind === 'like',
       recipient_id: recipientId,
       post_id: postId,
       body,
@@ -38,6 +46,7 @@ async function emitActivity(kind: 'like' | 'comment' | 'follow', actorId: string
       created_at: FieldValue.serverTimestamp(),
       expires_at: Timestamp.fromMillis(Date.now() + 180 * 86_400_000),
     });
+    if (keyRef) tx.create(keyRef, { event_id: publicId, created_at: FieldValue.serverTimestamp() });
   });
 }
 
@@ -51,7 +60,15 @@ export const onLikeCreated = onDocumentCreated({ document: 'likes/{id}', retry: 
   const like = event.data?.data();
   if (!like) return;
   await applyCountersOnce(event.id, [{ path: `posts/${like.post_id}`, fields: ['likes_count'] }]);
-  await emitActivity('like', like.user_id, await postCreator(like.post_id), like.post_id, 'Postunu beğendi.', `like_${like.post_id}_${like.user_id}`);
+  const post = await db.collection('posts').doc(like.post_id).get();
+  if (post.get('note_kind') === 'location' && (post.get('push_state') ?? 'none') === 'none' && isPublicActive(post.data())) {
+    const ref = event.data?.ref ?? db.collection('likes').doc(`${like.post_id}_${like.user_id}`);
+    await indexNotificationLike(ref);
+    // Run after indexing even if a concurrent recount already wrote the same likes_count.
+    await autoApproveNote(like.post_id);
+  }
+  const activityId = createHash('sha256').update(`like_${like.post_id}_${like.user_id}`).digest('hex');
+  await emitActivity('like', like.user_id, typeof post.get('creator_id') === 'string' ? post.get('creator_id') : null, like.post_id, 'Postunu beğendi.', activityId);
 });
 
 export const onLikeDeleted = onDocumentDeleted({ document: 'likes/{id}', retry: true }, async (event) => {
@@ -99,10 +116,19 @@ export const onCommentCreated = onDocumentCreated({ document: 'comments/{id}', r
     });
     return;
   }
-  const profile = await db.collection('profiles').doc(comment.user_id).get();
-  const handle = profile.exists ? String(profile.data()!.handle) : 'loci';
-  // The author may delete the comment right away: a missing document is not an error.
-  if (comment.username !== handle) await safeUpdate(snap.ref.path, { username: handle }, comment.user_id);
+  // Read the live profile in the same transaction as the comment. A rename that
+  // commits after this delivery started must not be overwritten with the old handle.
+  await db.runTransaction(async (tx) => {
+    if (await isAccountDeleting(tx, comment.user_id)) return;
+    const [current, profile] = await Promise.all([
+      tx.get(snap.ref),
+      tx.get(db.collection('profiles').doc(comment.user_id)),
+    ]);
+    if (!current.exists) return;
+    const handle = profile.exists ? String(profile.get('handle')) : 'loci';
+    if (current.get('username') === handle) return;
+    tx.update(current.ref, { username: handle });
+  });
   await applyCountersOnce(event.id, [{ path: `posts/${comment.post_id}`, fields: ['comments_count'] }]);
   await emitActivity('comment', comment.user_id, await postCreator(comment.post_id), comment.post_id, 'Postuna yorum yaptı.', `comment_${snap.id}`);
 });
@@ -149,12 +175,14 @@ export const onPostWritten = onDocumentWritten({ document: 'posts/{postId}', ret
   // Counter-only writes (views, likes, comments, saves) change none of these fields: exit at once.
   if (before && after && before.status === after.status && before.visibility === after.visibility
     && before.age_rating === after.age_rating && Boolean(before.deleted_at) === Boolean(after.deleted_at)
-    && before.creator_id === after.creator_id) return;
+    && before.creator_id === after.creator_id && before.is_anonymous === after.is_anonymous) return;
   // Pending/private posts cannot change the public count. Avoid locking the creator
   // profile for every draft, especially during a large account deletion.
-  if ((isPublicActive(before) || isPublicActive(after))
-    && (isPublicActive(before) !== isPublicActive(after) || before?.creator_id !== after?.creator_id)) {
-    const creators = [...new Set([before?.creator_id, after?.creator_id].filter((creator): creator is string => typeof creator === 'string'))];
+  const publicCreator = (data: FirebaseFirestore.DocumentData | undefined): string | null =>
+    isPublicActive(data) && data?.is_anonymous !== true && typeof data?.creator_id === 'string' ? data.creator_id : null;
+  const previousCreator = publicCreator(before), nextCreator = publicCreator(after);
+  if (previousCreator !== nextCreator) {
+    const creators = [...new Set([previousCreator, nextCreator].filter((creator): creator is string => creator !== null))];
     if (creators.length > 0) await applyCountersOnce(event.id, creators.map((creator) => ({ path: `profiles/${creator}`, fields: ['public_post_count'] })));
   }
   if (after) {
@@ -163,7 +191,7 @@ export const onPostWritten = onDocumentWritten({ document: 'posts/{postId}', ret
       const data = current.data();
       if (!data || typeof data.creator_id !== 'string' || await isAccountDeleting(tx, data.creator_id)) return;
       tx.set(db.collection('storage_reclamations').doc(current.id), { post_id: current.id, creator_id: data.creator_id, state: data.deleted_at ? 'removed' : 'committed',
-        world_map_path: data.world_map_path ?? null, public_readable: isPublicActive(data) }, { merge: true });
+        world_map_path: data.world_map_path ?? null, is_anonymous: data.is_anonymous === true, public_readable: isPublicActive(data) }, { merge: true });
     });
   }
   if (before?.status !== after?.status) await schedulePurgeOnStatusChange(event.params.postId, before, after);
@@ -187,8 +215,12 @@ async function fanOut(collection: string, ownerField: string, luid: string, fiel
     const page = await query.get();
     if (page.empty) return total;
     const batch = db.batch();
-    page.docs.forEach((d) => { if (d.get(field) !== value) batch.update(d.ref, { [field]: value }); });
-    await batch.commit();
+    let changed = 0;
+    page.docs.forEach((d) => {
+      if (collection === 'posts' && d.get('is_anonymous') === true) return;
+      if (d.get(field) !== value) { batch.update(d.ref, { [field]: value }); changed++; }
+    });
+    if (changed) await batch.commit();
     total += page.size;
     last = page.docs[page.size - 1];
     if (page.size < FANOUT_PAGE) return total;
@@ -204,18 +236,25 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
   const before = event.data?.before.data();
   const after = event.data?.after.data();
   if (!before || !after) return;
+  const counterFields = new Set(['follower_count', 'following_count', 'public_post_count']);
+  const changed = [...new Set([...Object.keys(before), ...Object.keys(after)])]
+    .filter(key => !isDeepStrictEqual(before[key], after[key]));
+  // Any additional change, including status/moderation fields, keeps the fresh account path.
+  if (changed.length > 0 && changed.every(key => counterFields.has(key)
+    && Number.isSafeInteger(before[key]) && Number.isSafeInteger(after[key]))) return;
   const luid = event.params.luid;
   const active = await db.runTransaction(async (tx) => {
     const [profile, access, deleting] = await Promise.all([
       tx.get(db.collection('profiles').doc(luid)), tx.get(db.collection('account_access').doc(luid)), isAccountDeleting(tx, luid),
     ]);
     if (deleting || !profile.exists) return false;
-    const state = profile.get('deleted_at') ? 'deleting' : profile.get('suspended') === true ? 'suspended' : 'active';
+    let state = profile.get('suspended') === true ? 'suspended' : 'active';
+    if (profile.get('deleted_at')) state = 'deleting';
     if (access.get('state') !== state) tx.set(access.ref, { state });
     return true;
   });
   if (!active) return;
-  for (const field of ['bio', 'display_name'] as const) {
+  await forEachSequential(['bio', 'display_name'] as const, async (field) => {
     if (before[field] !== after[field] && anyBlocked([after[field]]) && after.moderation_approved_text?.[field] !== after[field]) {
       await db.runTransaction(async (tx) => {
         if (await isAccountDeleting(tx, luid)) return;
@@ -233,7 +272,7 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
         tx.update(current.ref, { [field]: null, updated_at: FieldValue.serverTimestamp() });
       });
     }
-  }
+  });
   if (before.handle === after.handle) return;
   const currentProfile = await db.collection('profiles').doc(luid).get();
   if (!currentProfile.exists || currentProfile.get('deleted_at')) return;

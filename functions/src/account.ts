@@ -1,12 +1,11 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 import { appleConfigFromEnv, revokeAppleAuthorization } from './apple';
 import { reasonError, withContentionGuard } from './errors';
 import { isRecentAuth } from './limits';
-import { CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, HttpsError, logger, requireCaller, safeErrorCode } from './core';
+import { auth, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, HttpsError, logger, requireCaller, safeErrorCode } from './core';
 import { accountDeletionRef } from './profileGuard';
-import { acceptAccountDeletion, retryPendingAccountDeletions, runAccountDeletion } from './accountDeletion';
+import { acceptAccountDeletion, runAccountDeletion } from './accountDeletion';
 
 /** .p8 contents; Secret Manager. No deletion state is accepted before Apple revocation succeeds. */
 const APPLE_PRIVATE_KEY = defineSecret('APPLE_PRIVATE_KEY');
@@ -17,26 +16,16 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
   if (expectedUser !== undefined && expectedUser !== caller.luid) {
     throw reasonError('permission-denied', 'Account deletion session changed', 'session_changed');
   }
-  if (!isRecentAuth(request.auth?.token?.auth_time, Date.now())) {
+  // Anonymous identities have no password/Apple credential to reauthenticate with.
+  // Confirm there is no linked provider before accepting their existing session as proof.
+  const anonymous = caller.isAnonymous && (await auth.getUser(caller.uid)).providerData.length === 0;
+  if (!anonymous && !isRecentAuth(request.auth?.token?.auth_time, Date.now())) {
     throw reasonError('failed-precondition', 'Recent sign-in required', 'reauth_required');
   }
   // Retries resume an already accepted revocation; Apple's one-use code is not reused.
   const accepted = await accountDeletionRef(caller.luid).get();
-  if (!accepted.exists && caller.isAppleUser) {
-    const code = (request.data as { appleAuthorizationCode?: unknown } | null)?.appleAuthorizationCode;
-    const config = appleConfigFromEnv();
-    if (!config) {
-      // Logged for the monitoring alert (scripts/monitoring-setup.command): every Apple user is blocked from deleting.
-      logger.error('apple_revoke_unavailable');
-      throw reasonError('failed-precondition', 'Apple token revocation is not configured', 'apple_revoke_unavailable');
-    }
-    if (typeof code !== 'string' || !code) throw reasonError('failed-precondition', 'Apple token revocation is required', 'apple_revoke_failed');
-    try { await revokeAppleAuthorization(config, code); }
-    catch (error) {
-      logger.error('apple_revoke_failed', { code: safeErrorCode(error) });
-      throw reasonError('failed-precondition', 'Apple token revocation failed', 'apple_revoke_failed');
-    }
-  }
+  if (!accepted.exists && caller.isAppleUser) await revokeAppleAccount(request.data);
+
   await withContentionGuard(() => acceptAccountDeletion(caller));
   try {
     const result = await runAccountDeletion(caller.luid);
@@ -49,7 +38,18 @@ export const deleteAccount = onCall({ timeoutSeconds: 300, memory: '512MiB', enf
   }
 });
 
-/** Runs independently of the deleted user's login/profile, including after worker termination. */
-export const retryAccountDeletions = onSchedule({ schedule: 'every 5 minutes', timeoutSeconds: 540, memory: '512MiB' }, async () => {
-  await retryPendingAccountDeletions(Date.now(), 2);
-});
+async function revokeAppleAccount(data: unknown) {
+  const code = (data as { appleAuthorizationCode?: unknown } | null)?.appleAuthorizationCode;
+  const config = appleConfigFromEnv();
+  if (!config) {
+    // Logged for the monitoring alert (scripts/monitoring-setup.command): every Apple user is blocked from deleting.
+    logger.error('apple_revoke_unavailable');
+    throw reasonError('failed-precondition', 'Apple token revocation is not configured', 'apple_revoke_unavailable');
+  }
+  if (typeof code !== 'string' || !code) throw reasonError('failed-precondition', 'Apple token revocation is required', 'apple_revoke_failed');
+  try { await revokeAppleAuthorization(config, code); }
+  catch (error) {
+    logger.error('apple_revoke_failed', { code: safeErrorCode(error) });
+    throw reasonError('failed-precondition', 'Apple token revocation failed', 'apple_revoke_failed');
+  }
+}

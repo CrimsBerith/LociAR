@@ -27,7 +27,23 @@ enum ProximityPolicy {
     static let lookDownPitchDegrees = -12.0
     static let lookLevelPitchDegrees = 25.0
 
-    static func evaluate(post: LociPost, viewer: CLLocation, viewerHeading: Double?, targeted: Bool) -> ProximityDecision {
+    static let maxFixAge: TimeInterval = 10
+    static let maxHorizontalAccuracy: CLLocationAccuracy = 35
+
+    /// Evaluate at use time, including resolver completion; a retained CLLocation is not proof of presence.
+    static func isUsableFix(_ viewer: CLLocation, at now: Date = Date()) -> Bool {
+        let age = now.timeIntervalSince(viewer.timestamp)
+        return age.isFinite && age >= 0 && age < maxFixAge
+            && viewer.horizontalAccuracy.isFinite && viewer.horizontalAccuracy >= 0
+            && viewer.horizontalAccuracy < maxHorizontalAccuracy
+            && LocationProvenancePolicy.accepts(viewer)
+            && isValidCoordinate(latitude: viewer.coordinate.latitude, longitude: viewer.coordinate.longitude)
+    }
+
+    static func evaluate(post: LociPost, viewer: CLLocation, viewerHeading: Double?, targeted: Bool, at now: Date = Date()) -> ProximityDecision {
+        guard isUsableFix(viewer, at: now) else {
+            return ProximityDecision(allowed: false, distanceMeters: .infinity, headingDelta: 180, reason: String(localized: "Konum doğrulanamadı. AR erişimi açılmadı."))
+        }
         guard let target = post.anchorBundle.anchor.geoPose,
               isValidCoordinate(latitude: target.latitude, longitude: target.longitude),
               isValidCoordinate(
@@ -41,8 +57,7 @@ enum ProximityPolicy {
         guard distance.isFinite, distance >= 0 else {
             return ProximityDecision(allowed: false, distanceMeters: .infinity, headingDelta: 180, reason: String(localized: "Post konum bilgisi geçersiz."))
         }
-        let maxDistance = distanceMeters * (targeted ? 1.35 : 1)
-        guard distance < maxDistance else {
+        guard distance < distanceMeters else {
             return ProximityDecision(allowed: false, distanceMeters: distance, headingDelta: 180, reason: String(localized: "AR görüntüleme için posta yaklaşın."))
         }
 

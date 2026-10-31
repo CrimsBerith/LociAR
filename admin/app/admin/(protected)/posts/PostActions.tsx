@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
+import { useT } from '../../I18nProvider';
 
 type Props = {
   postId: string;
@@ -13,22 +14,23 @@ type Props = {
 };
 
 export default function PostActions(props: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const mutation = useRef(createMutationClient());
 
   async function moderate(action: 'approve' | 'flag' | 'soft_delete' | 'restore') {
-    const reason = window.prompt('Reason (minimum 8 characters)');
+    const reason = window.prompt(t('Reason (minimum 8 characters)'));
     if (!reason) return;
     setBusy(true);
     setMessage('');
     try {
       const { response, result } = await mutation.current.post(`/api/admin/v1/posts/${props.postId}/moderate`, { action, reason });
-      setMessage(response.ok ? 'Post updated. Refreshing…' : result.error ?? 'Update failed. Please retry.');
+      setMessage(response.ok ? t('Post updated. Refreshing…') : t(result.error ?? 'Update failed. Please retry.'));
       if (response.ok) window.location.reload();
     } catch (error) {
-      setMessage(mutationError(error));
+      setMessage(t(mutationError(error)));
     } finally {
       setBusy(false);
     }
@@ -50,14 +52,14 @@ export default function PostActions(props: Props) {
           action: 'post_metrics_set', resourceType: 'post', resourceId: props.postId, reason: payload.reason,
           payload: { viewsCount: payload.viewsCount, likesCount: payload.likesCount, commentsCount: payload.commentsCount },
         });
-        setMessage(approval.response.ok ? 'Large change sent for independent approval.'
-          : approval.result.error ?? 'Approval request failed. Please retry.');
+        setMessage(approval.response.ok ? t('Large change sent for independent approval.')
+          : t(approval.result.error ?? 'Approval request failed. Please retry.'));
         return;
       }
-      setMessage(response.ok ? 'Metrics updated. Refreshing…' : result.error ?? 'Update failed. Please retry.');
+      setMessage(response.ok ? t('Metrics updated. Refreshing…') : t(result.error ?? 'Update failed. Please retry.'));
       if (response.ok) window.location.reload();
     } catch (error) {
-      setMessage(mutationError(error));
+      setMessage(t(mutationError(error)));
     } finally {
       setBusy(false);
     }
@@ -65,24 +67,24 @@ export default function PostActions(props: Props) {
 
   return (
     <div className="postActions">
-      <button type="button" className="secondaryButton" onClick={() => setOpen(value => !value)} aria-expanded={open}>Manage</button>
+      <button type="button" className="secondaryButton" onClick={() => setOpen(value => !value)} aria-expanded={open}>{t('Manage')}</button>
       {open ? (
         <div className="popoverPanel">
           <div className="buttonRow">
             {props.deleted
-              ? <button disabled={busy} onClick={() => moderate('restore')}>Restore</button>
+              ? <button type="button" disabled={busy} onClick={() => moderate('restore')}>{t('Restore')}</button>
               : <>
-                  {props.status !== 'active' ? <button disabled={busy} onClick={() => moderate('approve')}>Approve</button> : null}
-                  <button disabled={busy} className="secondaryButton" onClick={() => moderate('flag')}>Flag</button>
-                  <button disabled={busy} className="dangerButton" onClick={() => moderate('soft_delete')}>Move to trash</button>
+                  {props.status !== 'active' ? <button type="button" disabled={busy} onClick={() => moderate('approve')}>{t('Approve')}</button> : null}
+                  <button type="button" disabled={busy} className="secondaryButton" onClick={() => moderate('flag')}>{t('Flag')}</button>
+                  <button type="button" disabled={busy} className="dangerButton" onClick={() => moderate('soft_delete')}>{t('Move to trash')}</button>
                 </>}
           </div>
           <form className="metricForm" onSubmit={setMetrics}>
-            <label>Views<input name="views" type="number" min={0} step={1} defaultValue={props.views} required /></label>
-            <label>Likes<input name="likes" type="number" min={0} step={1} defaultValue={props.likes} required /></label>
-            <label>Comments<input name="comments" type="number" min={0} step={1} defaultValue={props.comments} required /></label>
-            <label className="wide">Reason<input name="reason" minLength={8} maxLength={1000} required /></label>
-            <button disabled={busy}>Set raw counters</button>
+            <label>{t('Views')}<input name="views" type="number" min={0} step={1} defaultValue={props.views} required /></label>
+            <label>{t('Likes')}<input name="likes" type="number" min={0} step={1} defaultValue={props.likes} required /></label>
+            <label>{t('Comments')}<input name="comments" type="number" min={0} step={1} defaultValue={props.comments} required /></label>
+            <label className="wide">{t('Reason')}<input name="reason" minLength={8} maxLength={1000} required /></label>
+            <button type="submit" disabled={busy}>{t('Set raw counters')}</button>
           </form>
           {message ? <p className="formMessage" role="status">{message}</p> : null}
         </div>

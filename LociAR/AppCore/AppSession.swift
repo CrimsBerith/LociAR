@@ -13,11 +13,20 @@ final class AppSession {
 
     private(set) var phase: Phase = .loading {
         didSet {
+            if !isLocalPreview, case let .signedIn(user) = phase {
+                ClientReadCaches.setViewer(user.id)
+                MapRequestCoordinator.shared.setViewer(user.id)
+            } else {
+                ClientReadCaches.setViewer(nil)
+                MapRequestCoordinator.shared.setViewer(nil)
+            }
             guard backendConfigured else { return }
             if !isLocalPreview, case let .signedIn(user) = phase {
                 NotificationService.shared.setUser(user.id)
+                UserContextService.shared.setUser(user.id)
             } else {
                 NotificationService.shared.setUser(nil)
+                UserContextService.shared.setUser(nil)
             }
         }
     }
@@ -34,6 +43,12 @@ final class AppSession {
         self.backendConfigured = backendConfigured
     }
 
+    /// Membership is required; anonymous authorship is a per-note publishing choice.
+    nonisolated static func memberPhase(_ user: LociUser?) -> Phase {
+        guard let user, !user.isAnonymousAccount else { return .signedOut }
+        return .signedIn(user)
+    }
+
     func bootstrap() async {
 #if DEBUG
         if UITestFixtures.signedOutSessionEnabled {
@@ -43,14 +58,14 @@ final class AppSession {
         }
         if UITestFixtures.authenticatedSessionEnabled {
             isLocalPreview = true
-            phase = .signedIn(UITestFixtures.creator)
+            phase = Self.memberPhase(UITestFixtures.authenticatedUser)
             return
         }
 #endif
         let generation = operationGeneration
         let user = await authRepository.currentUser()
         guard !Task.isCancelled, generation == operationGeneration else { return }
-        if let user { phase = .signedIn(user) }
+        if let user { phase = Self.memberPhase(user) }
         else {
             if !backendConfigured { backendMessage = AppConfiguration.ConfigurationError.missingBackendConfiguration.localizedDescription }
             phase = .signedOut
@@ -67,7 +82,7 @@ final class AppSession {
                 guard let self, !Task.isCancelled else { return }
                 guard !self.isLocalPreview else { continue }
                 if case .passwordRecovery = self.phase { continue }
-                self.phase = user.map(Phase.signedIn) ?? .signedOut
+                self.phase = Self.memberPhase(user)
             }
         }
     }
@@ -77,8 +92,12 @@ final class AppSession {
         let generation = operationGeneration
         let result = try await authRepository.signIn(email: email, password: password)
         guard !Task.isCancelled, generation == operationGeneration else { return }
-        phase = .signedIn(result)
+        phase = Self.memberPhase(result)
         backendMessage = nil
+    }
+
+    func continueAnonymously() async throws {
+        throw AuthFlowError.unsupported
     }
 
     func signUp(email: String, password: String) async throws -> Bool {
@@ -90,7 +109,7 @@ final class AppSession {
             redirectTo: URL(string: "lociar://auth-callback")!
         )
         guard !Task.isCancelled, generation == operationGeneration else { return result.requiresEmailConfirmation }
-        if !result.requiresEmailConfirmation { phase = .signedIn(result.user) }
+        if !result.requiresEmailConfirmation { phase = Self.memberPhase(result.user) }
         backendMessage = nil
         return result.requiresEmailConfirmation
     }
@@ -107,7 +126,7 @@ final class AppSession {
         let generation = operationGeneration
         let result = try await authRepository.updatePassword(password)
         guard !Task.isCancelled, generation == operationGeneration else { return }
-        phase = .signedIn(result)
+        phase = Self.memberPhase(result)
         backendMessage = nil
     }
 
@@ -128,7 +147,7 @@ final class AppSession {
         let generation = operationGeneration
         let result = try await authRepository.verifyEmailOTP(email: email, code: code)
         guard !Task.isCancelled, generation == operationGeneration else { return }
-        phase = .signedIn(result)
+        phase = Self.memberPhase(result)
         backendMessage = nil
     }
 
@@ -169,7 +188,8 @@ final class AppSession {
         do {
             if let user = try await authRepository.completeAuthCallback(url) {
                 guard !Task.isCancelled, generation == operationGeneration else { return }
-                phase = url.host == "password-reset" ? .passwordRecovery(user) : .signedIn(user)
+                phase = user.isAnonymousAccount ? .signedOut
+                    : url.host == "password-reset" ? .passwordRecovery(user) : .signedIn(user)
             }
             else if generation == operationGeneration { phase = .signedOut }
         } catch let error as AuthFlowError {
@@ -197,7 +217,7 @@ final class AppSession {
         let generation = operationGeneration
         let result = try await authRepository.signInWithApple(identityToken: identityToken, nonce: nonce, fullName: fullName)
         guard !Task.isCancelled, generation == operationGeneration else { return }
-        phase = .signedIn(result)
+        phase = Self.memberPhase(result)
     }
 
 #if DEBUG
@@ -210,11 +230,14 @@ final class AppSession {
 
     func signOut() async {
         operationGeneration += 1
+        ClientReadCaches.setViewer(nil)
+        MapRequestCoordinator.shared.setViewer(nil)
         let shouldSignOutRemotely = !isLocalPreview
         if shouldSignOutRemotely { await NotificationService.shared.prepareForSignOut() }
         isLocalPreview = false
         if shouldSignOutRemotely { await authRepository.signOut() }
-        await AvatarURLCache.shared.clear()
+        ClientReadCaches.clear() // Also discard work started while push/Auth sign-out was draining.
+        AvatarURLCache.shared.clear()
         phase = .signedOut
     }
 

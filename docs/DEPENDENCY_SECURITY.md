@@ -43,4 +43,20 @@ node scripts/check-dependency-audit.mjs functions
 node scripts/check-dependency-audit.mjs admin
 ```
 
+## 25 Ekim 2026: Next.js ve Functions advisory'leri
+
+Günlük audit 23 Ekim'den beri yeni advisory'lerle kırmızıydı; uygulama davranışı değiştirilmeden bağımlılık manifestleri ve lockfile'lar güncellendi.
+
+| Ağaç | Paket | Önce | Sonra | Advisory |
+|---|---|---|---|---|
+| Admin (üretim) | next | 16.3.8 | 16.4.3 | `GHSA-2464-fhr4-w9xw`, `GHSA-673q-mjm6-r5xr` (critical), `GHSA-p3m5-59mp-jv5r` |
+| Functions (üretim) | body-parser (firebase-functions → express 5) | 2.3.0 | 2.4.0 | `GHSA-27r3-jxmh-p828` (high) |
+| Functions (geliştirme, CLI) | body-parser 1.x / undici / zod / ip-address | 1.20.8 / 6.29.0 / 4.6.5 / 10.7.3 | 1.20.9 / 6.29.1 / 4.6.7 / 10.7.5 | high/moderate |
+| Functions (geliştirme, CLI) | fast-uri (ajv) | 3.1.8 | 3.1.9 | `GHSA-333x-w4r6-6crp` ve üç moderate |
+
+`fast-uri` CLI'ın override edilen alt ağacında kaldığı için `npm audit fix` onu yükseltmez; Functions manifestinde
+`"fast-uri": "^3.1.9"` override'ı var (tek tüketici ajv `^3.0.1`, aynı major). Upstream ajv/CLI yamalı sürümü
+kilitleyince kaldırılabilir. Admin canlıya ancak App Hosting yeniden dağıtılınca, Functions ise yeniden deploy
+edilince yamalı sürümü alır.
+
 Güncel yayın kapıları: [RELEASE_READINESS.md](release/RELEASE_READINESS.md).

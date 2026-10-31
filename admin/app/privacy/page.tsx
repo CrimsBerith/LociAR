@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated={E.updatedTr}>
+    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="26 Ekim 2026">
       <p>
         LociAR, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.10 kapsamında aydınlatma metni olarak da
@@ -39,16 +39,27 @@ export default function PrivacyPage() {
           hizmet sağlayıcının işlediği IP adresi ve kötüye kullanım kayıtları.</li>
       </ul>
 
+      <h2>İsteğe bağlı yönetici veri paylaşımı</h2>
+      <p>Profil → Ayarlar bölümündeki iki ayrı seçenek varsayılan olarak kapalıdır. Teknik paylaşımı açarsanız
+        cihaz türü, iOS ve uygulama sürümü, dil, saat dilimi, rastgele kurulum kimliği, bağlantı IP adresi ve kullanım zamanları
+        yetkili yöneticilere iletilir. Ayrı konum paylaşımını açarsanız uygulama ön plandayken son koordinatınız,
+        doğruluk değeri ve ölçüm zamanı iletilir. Anonim postlar sunucuda hesabınızla ilişkilendirilebilir.
+        Yöneticiye gösterilen bu konum kaydı arka planda güncellenmez; iOS konum izni ve post konumu bu seçenekten ayrıdır.</p>
+      <p>Yöneticinin konum veya teknik veri erişimi özel yetki, MFA ve gerekçe gerektirir; erişimler denetim kaydına yazılır.
+        Konum raporu 24 saat, son teknik rapor 30 gün sonra panelde erişilemez olur ve otomatik silme sırasına alınır.
+        Kullanım olayları en fazla {E.analyticsRetentionDays} gün tutulur. İlgili seçeneği kapatmak son konum/teknik raporunu siler;
+        çevrimdışıysanız silme bağlantı geri geldiğinde tamamlanır. Hesap silme bu kayıtları ve kullanım olaylarını da siler.</p>
+
       <h2>Amaçlar ve hukuki sebepler</h2>
       <ul>
         <li>Hesap açma, giriş, içerik yayınlama ve gösterme — sözleşmenin kurulması ve ifası (KVKK m.5/2-c).</li>
-        <li>Beğeni, yorum ve takip bildirimleri — izin verdiğiniz sürece sözleşmenin ifası; izni iOS Ayarlar&apos;dan geri alabilirsiniz.</li>
+        <li>Sosyal bildirimler, konum notları ve yönetici mesajları — Profil → Ayarlar → Bildirimler onayınıza bağlıdır; marka kampanyaları ve teklifler ayrıca, varsayılanı kapalı “Kampanyalar ve teklifler” onayını ister. iOS bildirim izni de gerekir.</li>
         <li>Moderasyon, korumalı bölge ve 18+ içerik engelleri, profil fotoğrafı incelemesi, spam ve kötüye kullanımın önlenmesi,
           güvenlik — meşru menfaat (m.5/2-f) ve hukuki yükümlülük (m.5/2-ç).</li>
         <li>Çökme raporlarıyla uygulamanın kararlılığını sağlamak — meşru menfaat (m.5/2-f); Profil → Ayarlar&apos;dan kapatılabilir.</li>
         <li>Yasal talepler ve uyuşmazlıklar — bir hakkın tesisi, kullanılması veya korunması (m.5/2-e).</li>
       </ul>
-      <p>Veriler satılmaz, reklam amaçlı kullanılmaz ve uygulamalar arası izleme (tracking) yapılmaz.</p>
+      <p>Veriler satılmaz ve başka şirketlerin uygulama veya siteleri arasında izleme yapılmaz. Bildirimler açıkken, gönüllü paylaştığınız son konum ve onaylı post performansı size uygun marka indirimlerini seçmek için kullanılabilir. Markalar kişisel konumunuza veya alıcı listesine erişemez.</p>
 
       <h2>Hizmet sağlayıcılar ve yurt dışına aktarım</h2>
       <p>
@@ -66,7 +77,7 @@ export default function PrivacyPage() {
         <li><strong>GIPHY:</strong> GIF arama ve GIF gösterimi (aşağıda).</li>
       </ul>
       <p>
-        Herkese açık gönderiler ve kullanıcı adları diğer kullanıcılara görünür. Yetkili kurumların hukuka uygun talepleri
+        Herkese açık gönderiler diğer kullanıcılara görünür. Yeni notlar varsayılan olarak anonimdir; kullanıcı adınızı göstermeyi seçerseniz adınız ve profiliniz notla birlikte görünür. Anonim gönderilerde yazarın adı ve profili gizlenir. Yetkili kurumların hukuka uygun talepleri
         halinde veriler paylaşılabilir.
       </p>
 
@@ -89,7 +100,56 @@ export default function PrivacyPage() {
         yalnızca seçtiğiniz GIF&apos;in GIPHY kimliğini saklar. Ayrıntılar: <a href="https://giphy.com/privacy">GIPHY Gizlilik Politikası</a>.
       </p>
 
+      <h2>Bildirimler ve konum hatırlatmaları</h2>
+      <p>Profil → Ayarlar&apos;daki varsayılanı kapalı Bildirimler seçeneği beğeni, yorum, takip, konum notları ve yönetici
+        mesajlarını kapsar. Marka kampanyaları ve teklifler, yine varsayılanı kapalı ayrı “Kampanyalar ve teklifler” seçeneğini ister
+        ve istediğiniz an kapatılabilir. Açmadan önce her birinin kapsamı açıklanır. Yönetici konum paylaşımı
+        ve teknik paylaşım ayrı kalır. Ayrıca iOS bildirim izni gerekir; onaylanan metin kilit ekranında görünebilir.
+        Bildirimleri kapatınca bu cihazda alan izleme, belirteç kaydı ve yeni bildirim kabulü durur.
+        Önceki uygulama içi aktiviteler kalabilir.</p>
+      <p>Teklifler metin, indirim koşulları ve geçerlilik süresi içerir ve sponsorlu olarak işaretlenir.
+        Hedefli teklifleri yalnız seçilen alıcılar görebilir. Gönüllü paylaştığınız son konum ve onaylı post performansı
+        teklif seçiminde kullanılabilir; markalar kişisel konumunuzu veya alıcı listelerini göremez.
+        Gönderim FCM kabulü olarak kaydedilir; cihazda teslim veya okunma garantisi değildir.
+        Özel yönetici mesajları otomatik çevrilmez.</p>
+      <p>Yakındaki hatırlatmalar için iOS en fazla 20 alanı izler: onaylı konum notu kümeleri (en fazla 15) ve teklif alanları.
+        Liste uygulama açıkken ve arka planda yaklaşık 500 m hareket ettiğinizde, kaba bir konumla eşitlenir.
+        Büyük GPS alanı hassas konum kontrolünü başlatır: konum notlarında bildirim gidene, alandan çıkana veya en fazla
+        10 dakika; teklif varışlarında en fazla iki dakika. Not uzaktayken daha düşük hassasiyet kullanılır.
+        Konum notu girişi 15–100 m yarıçaplı alanda, ölçüm belirsizliği alana değdiğinde (en fazla 20 m tolerans,
+        35 m'den kötü ölçümler sayılmaz), yürüme hızında ve en az beş saniye arayla iki uyumlu ölçümle kabul edilir.
+        Teklif varışları da aynı kuralla, 15–100 m yarıçapta kontrol edilir; mağazanın önünden yürüyerek veya araçla geçmek yeterlidir.
+        Teklif seçiminde, gönüllü paylaştığınız son konum kampanyanın belirlediği süre kadar (en fazla 24 saat) eski olabilir; hiçbir yer ev olarak etiketlenmez.
+        Arka planda Her zaman konum izni ve Kesin Konum gerekir; iOS konum göstergesini gösterir. İnternet ve güncel sunucu onayı gerekir.
+        Telefon GPS&apos;i genellikle 5–30 m sapar; kapıdan girişi garanti edemez ve ziyaret kaçabilir.
+        Özellikle uygulama zorla kapatıldığında iOS uyandırmayı geciktirebilir veya engelleyebilir.</p>
+      <p>Ön plandaki yakın not sorgusu ve giriş/çıkış ölçümleri geçicidir; yönetici konum kaydını güncellemez.
+        Alandan çıkış kampanyası, gönüllü paylaştığınız başlangıç koordinatlarını en fazla 24 saat veya kampanya bitimine
+        kadar özel olarak tutabilir. Alanın eviniz olduğu çıkarılmaz veya etiketlenmez. Onayı iptal etmek alanları hemen
+        geçersiz kılar; hesap silme bunları kaldırır. Çıkış hatırlatması için telefon önce alanı alıp içinde olduğunu görmelidir.</p>
+      <p>Marka kampanyaları adım adım çalışabilir: örneğin her zaman kaldığınız yerden çıkınca bir davet, sonra kampanya alanına
+        girince veya orada bir süre kalınca bir indirim kodu. Telefonunuz, geceleri genellikle kaldığınız yeri iOS ziyaret kayıtlarından
+        yalnızca cihazda öğrenir; bu yer sunucuya gönderilmez ve ev olarak etiketlenmez. Bu yerden çıktığınızda telefon, kampanya alanının
+        o yeri kapsayıp kapsamadığını kendisi kontrol eder; sunucuya yalnız o anki konumunuz bir kez, adımı doğrulamak için gider ve
+        saklanmaz. Kampanya ilerlemeniz ve size verilen kodlar kampanya bitiminden 30 gün sonra silinir. Yeni kampanya veya not
+        bölgenizde yayına girdiğinde telefon, yaklaşık 39 × 20 km&apos;lik bölge kanalı üzerinden sessiz bir bildirimle listesini yeniler.</p>
+      <p>Bulunduğunuz noktaya anonim konum notu bırakabilirsiniz; otomatik içerik filtresinden geçip hemen yayınlanır. Not, telefonunuzun ölçtüğü
+        konuma veya bu konumun en fazla 50 m yakınına elle koyduğunuz pine kaydedilir; ölçüm doğruluğu ve pinin kaydırıldığı
+        mesafe de saklanır. Ziyaret doğrulanmaz. Yetkili yöneticiler not ve yazar bağlantısını özel panelde görür.
+        Notlar beğeniye göre sıralanır. Bir gününü doldurmuş hesaplardan yeterli beğeni alan not, oraya gelen kişilere bildirim
+        olarak gider; her kişiye her not en fazla bir kez gönderilir. Farklı kişilerden yeterli şikayet alan not otomatik gizlenir. Notlar kendiliğinden eskimez; yönetici bitiş tarihi koyabilir veya
+        notu kaldırabilir. Başkalarının konum notlarının metni, tek bir not olsa da uzaktayken sunucu tarafından gizlenir.
+        Haritadaki bir grubun not metinlerini okumak için bulunduğunuz yerde alınmış taze bir GPS veya Geospatial konum
+        ölçümü sunucuda doğrulanır; haritayı yakınlaştırmak erişim sağlamaz. Yoğun bir noktada 30&apos;dan fazla not bulunması
+        eşiği (yönetici ayarı) yalnız yoğunluk bildirimini belirler: bu noktaya girince 30 günde en fazla bir kez metinsiz bir
+        “burada çok not var” bildirimi gelir. Bu eşik, not metnini okuma iznini belirlemez.
+        Kampanyaların ayrı, ortak günlük üç bildirim sınırı ve kullanıcı/kampanya başına tek hatırlatma sınırı vardır.</p>
+
       <h2>Saklama süreleri</h2>
+      <p>Hedefli teklifler kampanya sonunda erişilemez olur ve otomatik silmeye alınır. Bildirim denemeleri ve kampanya
+        görüntüleme kayıtları 30 gün tutulur. Bir konum notunun size gönderildiğini gösteren kayıt, aynı notun tekrar
+        gönderilmemesi için hesabınız silinene kadar tutulur. Hesap silme bu kişisel kayıtları kaldırır. Not sahibinin hesabını silmek,
+        diğer alıcıların aktivitesindeki saklanan not metnini de kaldırır.</p>
       <ul>
         <li>Hesap verileri ve içerikler: hesap silinene kadar.</li>
         <li>Hesap silindiğinde: profil, gönderiler, yorumlar, beğeniler, takipler, koleksiyonlar, bildirim belirteçleri, AR dosyaları,

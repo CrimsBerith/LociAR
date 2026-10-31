@@ -10,6 +10,7 @@ export const REASONS = [
   'avatar_not_found',
   'account_suspended',
   'identity_unverified',
+  'identity_changed',
   'protected_zone',
   'rate_limited',
   'draft_expired',
@@ -28,6 +29,10 @@ export const REASONS = [
   'invite_invalid',
   'gif_invalid',
   'gif_unavailable',
+  'location_inaccurate',
+  'invalid_caption',
+  'content_not_allowed',
+  'links_not_allowed',
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

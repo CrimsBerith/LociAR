@@ -1,5 +1,5 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { auth, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller } from './core';
+import { auth, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
 import { reasonError } from './errors';
 import { handleIsBlocked, isReservedHandle, anyBlocked } from './moderation';
 import { handleCooldownRemaining } from './limits';
@@ -32,6 +32,29 @@ function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean
   return !snap.exists || snap.data()!.luid === luid;
 }
 
+async function refreshExistingProfile(tx: FirebaseFirestore.Transaction, snap: FirebaseFirestore.DocumentSnapshot,
+  caller: ReturnType<typeof requireCaller>, privateSnap: FirebaseFirestore.DocumentSnapshot, consentFields: Record<string, unknown>) {
+  const existing = snap.data()!;
+  if (existing.deleted_at) throw new HttpsError('permission-denied', 'Account was deleted');
+  // Profiles created before handle reservations existed claim their handle on next sign-in.
+  const handle = String(existing.handle ?? '');
+  const accessRef = db.collection('account_access').doc(caller.luid);
+  const [access, reservation] = await tx.getAll(accessRef, ...(HANDLE_PATTERN.test(handle) ? [handleRef(handle)] : []));
+  if (reservation && !reservation.exists) tx.set(reservation.ref, { luid: caller.luid, created_at: FieldValue.serverTimestamp() });
+  const identity = {
+    uid: caller.uid, email: caller.email, auth_provider: caller.provider,
+    identity_verified: caller.isAppleUser || caller.emailVerified,
+  };
+  const lastSeen = privateSnap.get('last_seen_at'), now = Date.now();
+  const heartbeat = !(lastSeen instanceof Timestamp) || now - lastSeen.toMillis() >= 15 * 60_000 || lastSeen.toMillis() > now;
+  if (heartbeat || Object.keys(consentFields).length || Object.entries(identity).some(([key, value]) => privateSnap.get(key) !== value)) {
+    tx.set(privateSnap.ref, { ...identity, last_seen_at: FieldValue.serverTimestamp(), ...consentFields }, { merge: true });
+  }
+  const state = existing.suspended === true ? 'suspended' : 'active';
+  if (access.get('state') !== state) tx.set(accessRef, { state });
+  return existing;
+}
+
 /**
  * Called by the app after every sign-in. Guarantees:
  *  - the `luid` custom claim exists (Security Rules depend on it),
@@ -42,6 +65,9 @@ function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean
 export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown; termsVersion?: unknown };
+  if (caller.provider === 'anonymous' && data.termsVersion !== '2026-10-04') {
+    throw new HttpsError('failed-precondition', 'Accept the current terms before anonymous use');
+  }
 
   // Reject an already accepted deletion before touching custom Auth claims too.
   await db.runTransaction(tx => assertAccountNotDeleting(tx, caller.luid));
@@ -63,25 +89,11 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
     const snap = await tx.get(profileRef);
     // Explicit consent (checkbox on the sign-in screen): which terms version was accepted and when.
     // users_private is server-only, so this record cannot be forged by a client write.
-    const consent = termsConsentUpdate(data.termsVersion, (await tx.get(privateRef)).data()?.terms_version);
+    const privateSnap = await tx.get(privateRef);
+    const consent = termsConsentUpdate(data.termsVersion, privateSnap.data()?.terms_version);
     const consentFields = consent ? { ...consent, terms_accepted_at: FieldValue.serverTimestamp() } : {};
     if (snap.exists) {
-      const existing = snap.data()!;
-      if (existing.deleted_at) throw new HttpsError('permission-denied', 'Account was deleted');
-      // Profiles created before handle reservations existed claim their handle on next sign-in.
-      const handle = String(existing.handle ?? '');
-      if (HANDLE_PATTERN.test(handle)) {
-        const reservation = await tx.get(handleRef(handle));
-        if (!reservation.exists) tx.set(handleRef(handle), { luid: caller.luid, created_at: FieldValue.serverTimestamp() });
-      }
-      tx.set(privateRef, {
-        uid: caller.uid, email: caller.email, auth_provider: caller.provider,
-        identity_verified: caller.isAppleUser || caller.emailVerified,
-        last_seen_at: FieldValue.serverTimestamp(),
-        ...consentFields,
-      }, { merge: true });
-      tx.set(db.collection('account_access').doc(caller.luid), { state: existing.suspended === true ? 'suspended' : 'active' });
-      return existing;
+      return await refreshExistingProfile(tx, snap, caller, privateSnap, consentFields);
     }
     const requested = typeof data.handle === 'string' ? data.handle.trim().toLowerCase() : '';
     const requestedOk = HANDLE_PATTERN.test(requested) && !isReservedHandle(requested) && !handleIsBlocked(requested);

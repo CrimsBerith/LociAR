@@ -24,7 +24,7 @@ export default function TermsPage() {
 
       <h2>Hesap</h2>
       <p>
-        Yayınlamak için Apple ile Giriş veya doğrulanmış e-posta hesabı gerekir. Hesabınızın güvenliğinden siz sorumlusunuz.
+        Uygulamayı kullanmak için Apple ile Giriş veya doğrulanmış e-posta hesabı gerekir. Yeni notlar varsayılan olarak anonim paylaşılır; isterseniz kullanıcı adınızı göstermeyi seçebilirsiniz. Hesabınızın güvenliğinden siz sorumlusunuz.
         Hesabınızı Profil → Hesabı kalıcı olarak sil ile silebilirsiniz; silme geri alınamaz.
       </p>
 
@@ -45,7 +45,7 @@ export default function TermsPage() {
       <ul>
         <li>Postları, yorumları ve kullanıcıları uygulama içinden bildirebilir, kullanıcıları engelleyebilirsiniz. Engellediğiniz
           kullanıcının içeriği size gösterilmez.</li>
-        <li>Yorumlar ve metinler otomatik filtreden geçer; yeni postlar yayından önce incelenir.</li>
+        <li>Postlar, konum notları ve yorumlar otomatik filtreden geçince hemen yayınlanır; farklı kullanıcılardan yeterli şikâyet gelen içerik otomatik gizlenir.</li>
         <li>Bildirilen içerikler en geç 24 saat içinde incelenir; kurallara aykırı içerik kaldırılır ve içeriği gönderen hesap
           askıya alınır veya kalıcı olarak kapatılır.</li>
       </ul>

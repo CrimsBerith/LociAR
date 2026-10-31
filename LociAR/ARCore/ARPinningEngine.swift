@@ -35,8 +35,25 @@ final class ARPinningEngine: NSObject {
     private(set) var meshAnchorCount = 0
 
     private(set) var hasRecentCameraFrame = false
+    private(set) var renderedPostID: UUID?
+    @ObservationIgnored private var contentRenderGeneration = UUID()
 
-    @ObservationIgnored let arView: ARView
+    @ObservationIgnored private(set) var existingARView: ARView?
+    /// RealityKit can compile Metal pipelines synchronously. Keep that work out of app startup.
+    var arView: ARView {
+        if let existingARView { return existingARView }
+        let view = ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)
+        view.renderOptions = [
+            .disableCameraGrain,
+            .disableMotionBlur,
+            .disableDepthOfField,
+            .disableHDR,
+            .disableAREnvironmentLighting,
+        ]
+        view.session.delegate = self
+        existingARView = view
+        return view
+    }
     @ObservationIgnored private var trackedRaycast: ARTrackedRaycast?
     @ObservationIgnored private var latestEstimatedResult: ARRaycastResult?
     @ObservationIgnored private var candidateSamples: [CandidateSample] = []
@@ -94,16 +111,7 @@ final class ARPinningEngine: NSObject {
     @ObservationIgnored var frameSink: (@MainActor (ARFrame) -> Void)?
 
     override init() {
-        arView = ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)
         super.init()
-        arView.renderOptions = [
-            .disableCameraGrain,
-            .disableMotionBlur,
-            .disableDepthOfField,
-            .disableHDR,
-            .disableAREnvironmentLighting,
-        ]
-        arView.session.delegate = self
         observeLifecycle()
     }
 
@@ -274,6 +282,8 @@ final class ARPinningEngine: NSObject {
     }
 
     func stopSession() {
+        contentRenderGeneration = UUID()
+        renderedPostID = nil
         trackedRaycast?.stopTracking()
         trackedRaycast = nil
         videoPlayers.values.forEach { $0.pause() }
@@ -284,7 +294,7 @@ final class ARPinningEngine: NSObject {
         relocalizationTimeoutTask?.cancel()
         relocalizationTimeoutTask = nil
         relocalizationDeadline = nil
-        arView.session.pause()
+        existingARView?.session.pause()
         activeInitialWorldMap = nil
         lastFrameReceivedAt = nil
         hasRecentCameraFrame = false
@@ -334,7 +344,7 @@ final class ARPinningEngine: NSObject {
 
     func unregisterARViewHost(_ host: UIView) {
         arViewHosts.removeAll { $0.view == nil || $0.view === host }
-        if arView.superview === host { arView.removeFromSuperview() }
+        if existingARView?.superview === host { existingARView?.removeFromSuperview() }
         if let fallback = arViewHosts.reversed().compactMap(\.view).first(where: { $0.window != nil }) {
             activateARViewHost(fallback)
         }
@@ -414,7 +424,7 @@ final class ARPinningEngine: NSObject {
 
     /// Camera transform of the latest frame (what ARCore's hosting-quality estimate expects).
     var currentCameraTransform: simd_float4x4? {
-        arView.session.currentFrame?.camera.transform
+        existingARView?.session.currentFrame?.camera.transform
     }
 
     /// Shows a post at a transform found by ARCore (resolved Cloud Anchor or Geospatial pose).
@@ -732,11 +742,13 @@ final class ARPinningEngine: NSObject {
         return try encoder.encode(diagnostics)
     }
 
-    func render(post: LociPost) async throws {
+    func render(post: LociPost, displayedText: String? = nil) async throws {
         guard let anchorEntity = anchorEntities[post.anchorBundle.anchor.id],
               let model = anchorEntity.findEntity(named: "surface-content") as? ModelEntity else {
             throw ARPinningError.renderAnchorMissing
         }
+        let generation = UUID()
+        contentRenderGeneration = generation
         if case .video(let url)? = post.contentSource {
             let size = SpatialContentRenderer.physicalSize(for: post)
             model.model?.mesh = MeshResource.generatePlane(
@@ -748,9 +760,12 @@ final class ARPinningEngine: NSObject {
             model.model?.materials = [VideoMaterial(avPlayer: player)]
             videoPlayers[post.id] = player
             player.play()
+            renderedPostID = post.id
             return
         }
-        guard let rendered = await contentRenderer.renderPost(post) else { throw ARPinningError.renderContentUnavailable }
+        guard let rendered = await contentRenderer.renderPost(post, displayedText: displayedText) else { throw ARPinningError.renderContentUnavailable }
+        guard !Task.isCancelled, contentRenderGeneration == generation,
+              anchorEntities[post.anchorBundle.anchor.id] === anchorEntity else { throw CancellationError() }
         let image = rendered.image
         let size = SpatialContentRenderer.physicalSize(
             for: post,
@@ -763,7 +778,7 @@ final class ARPinningEngine: NSObject {
         )
         var options = TextureResource.CreateOptions(semantic: .color)
         options.mipmapsMode = .allocateAndGenerateAll
-        let texture = try TextureResource.generate(from: image, withName: "lociar-\(post.id)", options: options)
+        let texture = try TextureResource.generate(from: image, withName: "lociar-\(post.id)-\(generation)", options: options)
         var material = UnlitMaterial()
         material.color = .init(tint: .white, texture: .init(texture))
         material.blending = .transparent(opacity: .init(floatLiteral: 1.0))
@@ -775,6 +790,7 @@ final class ARPinningEngine: NSObject {
         if let gif = post.gif, let area = rendered.gifRect {
             attachGifVideo(gif, area: area, bubbleSize: size, to: model, postID: post.id)
         }
+        renderedPostID = post.id
     }
 
     private static let gifVideoEntityName = "gif-video"
@@ -846,8 +862,8 @@ final class ARPinningEngine: NSObject {
         let center = NotificationCenter.default
         notificationTokens.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.state != .idle else { return }
-                self.arView.session.pause()
+                guard let self, let view = self.existingARView, self.state != .idle else { return }
+                view.session.pause()
                 self.transition(to: .interrupted, message: String(localized: "Uygulama arka planda; AR oturumu duraklatıldı."))
             }
         })
@@ -862,9 +878,9 @@ final class ARPinningEngine: NSObject {
                 guard let self else { return }
                 if ProcessInfo.processInfo.thermalState == .critical {
                     // Nothing to pause (and nothing to resume later) when AR is not running.
-                    guard self.state != .idle else { return }
+                    guard let view = self.existingARView, self.state != .idle else { return }
                     self.pausedForThermalPressure = true
-                    self.arView.session.pause()
+                    view.session.pause()
                     self.transition(to: .interrupted, message: String(localized: "Cihaz sıcaklığı yüksek; AR geçici olarak duraklatıldı."))
                 } else if self.pausedForThermalPressure {
                     self.pausedForThermalPressure = false
@@ -1067,13 +1083,15 @@ final class ARPinningEngine: NSObject {
     }
 
     private func clearPlacedAnchors() {
+        contentRenderGeneration = UUID()
+        renderedPostID = nil
         videoPlayers.values.forEach { $0.pause() }
         videoPlayers.removeAll()
         gifLoopers.removeAll()
         for entity in anchorEntities.values { entity.removeFromParent() }
         anchorEntities.removeAll()
-        for anchor in arView.session.currentFrame?.anchors ?? [] where anchor.name?.hasPrefix("lociar_surface_") == true {
-            arView.session.remove(anchor: anchor)
+        for anchor in existingARView?.session.currentFrame?.anchors ?? [] where anchor.name?.hasPrefix("lociar_surface_") == true {
+            existingARView?.session.remove(anchor: anchor)
         }
         currentAnchor = nil
         isRelocalizedContentVisible = false

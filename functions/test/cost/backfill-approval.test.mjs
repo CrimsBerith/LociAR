@@ -1,0 +1,33 @@
+import test, { after } from 'node:test';
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { deleteApp, getApp } from 'firebase-admin/app';
+process.env.GCLOUD_PROJECT = 'demo-lociar';
+const { db, Timestamp } = await import('../../lib/core.js');
+after(async () => { await deleteApp(getApp()); });
+const script = fileURLToPath(new URL('../../scripts/backfill-note-approval.mjs', import.meta.url));
+const run = (...flags) => execFileSync(process.execPath, [script, '--project=demo-lociar', ...flags], { encoding: 'utf8', timeout: 30_000 });
+
+test('approval migration is read-only by default, skips AR likes, verifies before activation and supports rollback', async () => {
+  const user = randomUUID(), note = randomUUID(), ar = randomUUID();
+  await db.collection('profiles').doc(user).set({ created_at: Timestamp.now() });
+  await db.collection('posts').doc(note).set({ note_kind: 'location', push_state: 'none' });
+  await db.collection('posts').doc(ar).set({ note_kind: null });
+  const noteEdge = db.collection('likes').doc(`${note}_${user}`), arEdge = db.collection('likes').doc(`${ar}_${user}`);
+  await noteEdge.set({ user_id: user, post_id: note }); await arEdge.set({ user_id: user, post_id: ar });
+  await db.collection('system').doc('place_notes').set({ approval_index_version: 0 });
+  run();
+  assert.equal((await noteEdge.get()).get('notification_eligible_at'), undefined);
+  assert.equal((await db.collection('system').doc('place_notes').get()).get('approval_index_version'), 0);
+  run('--apply', '--activate');
+  assert.ok((await noteEdge.get()).get('notification_eligible_at') instanceof Timestamp);
+  assert.equal((await arEdge.get()).get('notification_eligible_at'), undefined, 'unrelated AR likes incur no migration write');
+  assert.equal((await db.collection('system').doc('place_notes').get()).get('approval_index_version'), 1);
+  const before = await noteEdge.get(); run('--apply');
+  assert.equal((await noteEdge.get()).updateTime.isEqual(before.updateTime), true);
+  run('--apply', '--deactivate');
+  assert.equal((await db.collection('system').doc('place_notes').get()).get('approval_index_version'), 0);
+  assert.throws(() => execFileSync(process.execPath, [script, '--project=lociar-2f38c'], { encoding: 'utf8', stdio: 'pipe' }), /Project\/emulator mismatch/);
+});

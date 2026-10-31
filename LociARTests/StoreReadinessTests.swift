@@ -3,6 +3,36 @@ import XCTest
 @testable import LociAR
 
 final class StoreReadinessTests: XCTestCase {
+#if DEBUG
+    func testDemoEmulatorHTTPRequiresOptInAndCannotCarryLiveFirebaseCredentials() {
+        func settings(project: String = "demo-lociar", key: String = "AIza" + String(repeating: "A", count: 35),
+                      app: String = "1:123456789012:ios:abcdef0123456789", sender: String = "123456789012",
+                      bucket: String = "demo-lociar.firebasestorage.app", region: String = "us-central1") -> AppConfiguration.FirebaseSettings {
+            .init(apiKey: key, googleAppID: app, gcmSenderID: sender, projectID: project, storageBucket: bucket, functionsRegion: region)
+        }
+        for host in ["10.0.0.2", "172.16.0.2", "172.31.255.254", "192.168.68.54"] {
+            XCTAssertTrue(AppConfiguration.permitsDemoEmulatorHTTP(settings: settings(), host: host, optedIn: true))
+            XCTAssertFalse(AppConfiguration.permitsDemoEmulatorHTTP(settings: settings(), host: host, optedIn: false))
+        }
+        for host in ["8.8.8.8", "172.15.0.2", "172.32.0.2", "192.169.0.2", "192.168.001.2", "192.168.1.256", "test.local", "https://192.168.1.2", "192.168.1.2/path", "", "::1"] {
+            XCTAssertFalse(AppConfiguration.permitsDemoEmulatorHTTP(settings: settings(), host: host, optedIn: true))
+        }
+        for changed in [settings(project: "lociar-2f38c"), settings(key: "AIzaSyLiveProjectClientKey"),
+                        settings(app: "1:987654321012:ios:abcdef0123456789"), settings(sender: "987654321012"),
+                        settings(bucket: "lociar-2f38c.firebasestorage.app"), settings(region: "europe-west1")] {
+            XCTAssertFalse(AppConfiguration.permitsDemoEmulatorHTTP(settings: changed, host: "192.168.68.54", optedIn: true))
+        }
+        XCTAssertFalse(AppConfiguration.permitsDemoEmulatorHTTP(settings: nil, host: "192.168.68.54", optedIn: true))
+        XCTAssertFalse(AppConfiguration.permitsDemoEmulatorHTTP(settings: settings(), host: nil, optedIn: true))
+    }
+#endif
+
+    func testNormalBuildsHideCreatorSupportUntilExplicitlyEnabled() {
+        // Turning this on also requires terms/privacy, App Privacy (Purchases) and App Review notes updates.
+        XCTAssertFalse(PostSupportAvailability.releaseBuilds)
+        XCTAssertFalse(PostSupportAvailability.showsEntryPoints)
+    }
+
     func testShippedInfoPlistDeclaresStorePackagingRequirements() throws {
         let bundle = appBundle
         // Usage descriptions are localized (InfoPlist.xcstrings); every language names the app and
@@ -54,7 +84,13 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeName"), "Apple full name is sent to ensureProfile")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeProductInteraction"), "views/likes and analytics_events")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCoarseLocation"), "analytics_events keep approximate location")
-        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherDataTypes"), "camera-derived features sent to Google ARCore")
+        let environment = try XCTUnwrap(collected.first {
+            ($0["NSPrivacyCollectedDataType"] as? String) == "NSPrivacyCollectedDataTypeEnvironmentScanning"
+        }, "AR relocalization uploads environment maps and visual features")
+        XCTAssertEqual(environment["NSPrivacyCollectedDataTypeLinked"] as? Bool, true,
+                       "WorldMapStore uploads under the account/post path; anonymous public attribution does not unlink server data")
+        XCTAssertEqual(environment["NSPrivacyCollectedDataTypePurposes"] as? [String],
+                       ["NSPrivacyCollectedDataTypePurposeAppFunctionality"])
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCrashData"), "Firebase Crashlytics")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherDiagnosticData"), "Firebase Crashlytics diagnostics")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeDeviceID"), "FCM registration token stored per account")

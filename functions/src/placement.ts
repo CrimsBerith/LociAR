@@ -1,4 +1,5 @@
-import { anyBlocked } from './moderation';
+import { scalarText } from './values';
+import { anyBlocked, containsURL } from './moderation';
 import { GIF_ID } from './giphyId';
 
 /**
@@ -86,6 +87,8 @@ export type CreatePostBody = {
   editData: Record<string, unknown>;
   contentSource?: Record<string, unknown> | null;
   caption: string;
+  /** Defaults to anonymous; attributed publishing is an explicit verified-member choice. */
+  anonymous?: boolean;
   ageRating: 'all' | '13_plus' | '16_plus' | '18_plus';
   visibility: 'public' | 'friends' | 'private';
   placementState?: string;
@@ -191,6 +194,7 @@ function layerShapeError(layers: unknown[]): string | null {
 
 function contentPolicyError(body: CreatePostBody): string | null {
   if (anyBlocked([body.caption, ...layerTexts(body)])) return 'Content not allowed';
+  if ([body.caption, ...layerTexts(body)].some(containsURL)) return 'Links are not allowed';
   const layers = (body.editData as { layers?: unknown[] }).layers ?? [];
   const shapeError = layerShapeError(layers);
   if (shapeError) return shapeError;
@@ -209,7 +213,7 @@ function contentPolicyError(body: CreatePostBody): string | null {
   const source = body.contentSource;
   if (source != null) {
     if (typeof source !== 'object') return 'Invalid content source';
-    const platform = String(source.platform ?? '').toLowerCase();
+    const platform = scalarText(source.platform ?? '').toLowerCase();
     const mediaKind = String(source.mediaKind ?? '').toLowerCase();
     if (['image', 'photo', 'video'].includes(mediaKind) || platform === 'own_video') return 'Only text and GIF posts are allowed';
     if (source.url != null && source.url !== '') return 'Links are not allowed';
@@ -220,6 +224,7 @@ function contentPolicyError(body: CreatePostBody): string | null {
 /** Returns an error message or null. Messages match what the iOS client maps to Turkish copy. */
 export function validateCreatePostBody(body: CreatePostBody | undefined, luid?: string): string | null {
   if (!body || typeof body !== 'object') return 'Invalid request';
+  if (body.anonymous !== undefined && typeof body.anonymous !== 'boolean') return 'Invalid publishing identity';
   if (!body.clientMutationId || !UUID_V4.test(body.clientMutationId)) return 'Invalid client mutation ID';
   if (!isValidPose(body.pose)) return 'Invalid pose';
   if (body.pose.accuracy != null && body.pose.accuracy > 100) {
@@ -343,6 +348,14 @@ export type PlacementResult = {
   calibration: Record<string, unknown>;
 };
 
+function stateForPlacement(eligible: boolean, space: string | undefined): PlacementResult['placementState'] {
+  if (eligible && space === 'arkit_world') return 'arkit_world_locked';
+  if (eligible && space === 'arcore_world') return 'arcore_world_locked';
+  if (space === 'arkit_world' || space === 'arcore_world') return 'recalibration_required';
+  if (space === 'visual_surface') return 'visual_surface_locked';
+  return 'free_space_approximate';
+}
+
 export async function evaluatePlacement(
   body: CreatePostBody,
   luid: string,
@@ -357,15 +370,7 @@ export async function evaluatePlacement(
   const hasPersistentResolver = hasValidPersistentResolver(anchor, worldMapExists);
   const placementQuality = placementQualityForAnchor(anchor, body.pose.accuracy, hasPersistentResolver);
   const eligible = nativeAnchorEligible(anchor, placementQuality, hasPersistentResolver);
-  const placementState = eligible && space === 'arkit_world'
-    ? 'arkit_world_locked'
-    : eligible && space === 'arcore_world'
-      ? 'arcore_world_locked'
-      : space === 'arkit_world' || space === 'arcore_world'
-        ? 'recalibration_required'
-        : space === 'visual_surface'
-          ? 'visual_surface_locked'
-          : 'free_space_approximate';
+  const placementState = stateForPlacement(eligible, space);
   const nativeProvider = providerForCoordinateSpace(space);
   const resolverStrategy = resolverStrategyForCoordinateSpace(space);
   const calibration = anchor

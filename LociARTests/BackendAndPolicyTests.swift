@@ -3,6 +3,53 @@ import UIKit
 import XCTest
 @testable import LociAR
 
+final class CampaignRegionPolicyTests: XCTestCase {
+    func testCampaignEntryUsesGPSTolerantRadiusAndRejectsUncertainOrStaleGPS() {
+        let now = Date()
+        var region = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 150, expiresAt: now.timeIntervalSince1970 * 1000 + 60000)
+        region.triggerRadius = 30
+        func fix(_ accuracy: Double, _ age: Double = 0, _ offset: Double = 0, speed: Double = -1) -> CLLocation {
+            CLLocation(coordinate: CLLocationCoordinate2D(latitude: 39.92 + offset, longitude: 32.85), altitude: 0,
+                horizontalAccuracy: accuracy, verticalAccuracy: -1, course: -1, courseAccuracy: -1,
+                speed: speed, speedAccuracy: speed >= 0 ? 0.5 : -1, timestamp: now.addingTimeInterval(-age))
+        }
+        XCTAssertTrue(region.permitsPreciseEntry(fix(8, 0, 0.00032), at: now), "~35 m away with 8 m GPS")
+        XCTAssertTrue(region.permitsPreciseEntry(fix(8, 0, 0.00032, speed: 12), at: now), "driving past still counts for campaigns")
+        XCTAssertFalse(region.permitsPreciseEntry(fix(40), at: now), "worse than 35 m")
+        XCTAssertFalse(region.permitsPreciseEntry(fix(5, 20), at: now), "stale")
+        XCTAssertFalse(region.permitsPreciseEntry(fix(8, 0, 0.0006), at: now), "~67 m away")
+        region.triggerRadius = 2.5
+        XCTAssertFalse(region.isUsable(at: now), "the old 2-5 m diameter is no longer accepted")
+    }
+    func testDepartureRegionsDecodeTheirDirectionAndUnknownDirectionsAreRejected() throws {
+        let data = Data("[{\"id\":\"123e4567-e89b-12d3-a456-426614174000\",\"lat\":39.92,\"lng\":32.85,\"radius\":150,\"expiresAt\":2000000,\"transition\":\"exit\"}]".utf8)
+        let decoded = try JSONDecoder().decode([CampaignRegion].self, from: data)
+        XCTAssertTrue(decoded[0].isExit)
+        XCTAssertTrue(decoded[0].isUsable(at: Date(timeIntervalSince1970: 1000)))
+        var invalid = decoded[0]; invalid.transition = "unknown"
+        XCTAssertFalse(invalid.isUsable(at: Date(timeIntervalSince1970: 1000)))
+    }
+    func testOnlyNearestEighteenValidUnexpiredRegionsAreMonitored() {
+        let now = Date(timeIntervalSince1970: 1000)
+        let valid = (0..<25).map { i in
+            CampaignRegion(id: UUID(), lat: 39.92 + Double(i) / 1000, lng: 32.85, radius: 150, expiresAt: 2_000_000)
+        }
+        let expired = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 150, expiresAt: 1_000_000)
+        let invalid = CampaignRegion(id: UUID(), lat: 39.92, lng: 32.85, radius: 5, expiresAt: 2_000_000)
+        let selected = CampaignRegion.nearest(Array(valid.reversed()) + [expired, invalid], to: CLLocationCoordinate2D(latitude: 39.92, longitude: 32.85), at: now)
+        XCTAssertEqual(selected.count, 18, "two slots stay free for the usual place and the refresh boundary")
+        XCTAssertEqual(selected.map(\.id), Array(valid.prefix(18)).map(\.id))
+    }
+
+    func testCachedRegionsDecodeAndCannotUseInvalidCoordinatesOrExpiry() throws {
+        let data = Data("[{\"id\":\"123e4567-e89b-12d3-a456-426614174000\",\"lat\":39.92,\"lng\":32.85,\"radius\":150,\"expiresAt\":2000000}]".utf8)
+        let decoded = try JSONDecoder().decode([CampaignRegion].self, from: data)
+        XCTAssertTrue(decoded[0].isUsable(at: Date(timeIntervalSince1970: 1000)))
+        XCTAssertFalse(decoded[0].isUsable(at: Date(timeIntervalSince1970: 2000)))
+        XCTAssertFalse(CampaignRegion(id: UUID(), lat: .nan, lng: 32.85, radius: 150, expiresAt: 2_000_000).isUsable(at: Date(timeIntervalSince1970: 1000)))
+    }
+}
+
 final class BackendAndPolicyTests: XCTestCase {
     func testV2AnchorEncoderPreservesLegacyTopLevelShape() throws {
         let anchor = SurfaceAnchor(
@@ -133,7 +180,8 @@ final class BackendAndPolicyTests: XCTestCase {
     }
 
     func testProximityWorldMapIgnoresHeadingButApproximateDoesNot() {
-        let viewer = CLLocation(latitude: 41.0, longitude: 29.0)
+        let viewer = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29),
+                                altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: Date())
         let physical = makePost(quality: .planeGeometry, heading: 180)
         let approximate = makePost(quality: .freeSpaceApproximate, heading: 180)
         XCTAssertTrue(ProximityPolicy.evaluate(post: physical, viewer: viewer, viewerHeading: 0, targeted: false).allowed)
@@ -141,7 +189,8 @@ final class BackendAndPolicyTests: XCTestCase {
     }
 
     func testNearbyARDiscoveryReturnsOnlyViewablePostsNearestFirst() {
-        let viewer = CLLocation(latitude: 41.0, longitude: 29.0)
+        let viewer = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29),
+                                altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: Date())
         var near = makePost(quality: .planeGeometry, heading: 0)
         near.anchorBundle.anchor.geoPose = GeoPose(latitude: 41.00005, longitude: 29.0, heading: 0)
         var farther = makePost(quality: .planeGeometry, heading: 0)
@@ -152,6 +201,67 @@ final class BackendAndPolicyTests: XCTestCase {
         let results = ProximityPolicy.viewablePosts([outside, farther, near], viewer: viewer, viewerHeading: 0)
 
         XCTAssertEqual(results.map(\.id), [near.id, farther.id])
+    }
+
+    func testARAccessRejectsStaleCoarseFutureSimulatedAndBoundaryFixes() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let post = makePost(quality: .planeGeometry, heading: 0)
+        func fix(age: Double = 0, accuracy: Double = 4, latitude: Double = 41, simulated: Bool = false) -> CLLocation {
+            CLLocation(coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: 29), altitude: 0,
+                       horizontalAccuracy: accuracy, verticalAccuracy: -1, course: -1, courseAccuracy: -1,
+                       speed: -1, speedAccuracy: -1, timestamp: now.addingTimeInterval(-age),
+                       sourceInfo: CLLocationSourceInformation(softwareSimulationState: simulated, andExternalAccessoryState: false))
+        }
+        func allowed(_ location: CLLocation) -> Bool {
+            ProximityPolicy.evaluate(post: post, viewer: location, viewerHeading: 0, targeted: true, at: now).allowed
+        }
+        XCTAssertTrue(allowed(fix()))
+        XCTAssertTrue(allowed(fix(age: 9.999, accuracy: 34.999)))
+        XCTAssertFalse(allowed(fix(age: 3_600)))
+        XCTAssertFalse(allowed(fix(age: 10)), "exact age boundary fails closed")
+        XCTAssertFalse(allowed(fix(age: -0.001)), "future fix")
+        XCTAssertFalse(allowed(fix(accuracy: 3_000)))
+        XCTAssertFalse(allowed(fix(accuracy: 35)), "exact accuracy boundary fails closed")
+        XCTAssertFalse(allowed(fix(accuracy: -1)))
+        XCTAssertFalse(allowed(fix(accuracy: .nan)))
+        XCTAssertFalse(allowed(fix(accuracy: .infinity)))
+        XCTAssertFalse(allowed(fix(latitude: .nan)))
+        XCTAssertFalse(allowed(fix(simulated: true)))
+        XCTAssertFalse(allowed(fix(latitude: 41.0006)), "targeting cannot widen 60 m access")
+        XCTAssertTrue(allowed(fix(latitude: 41.0005)))
+
+        let metersPerStep = fix().distance(from: fix(latitude: 41.001))
+        XCTAssertTrue(allowed(fix(latitude: 41 + 0.001 * 59.9 / metersPerStep)))
+        XCTAssertFalse(allowed(fix(latitude: 41 + 0.001 * 60.1 / metersPerStep)))
+        XCTAssertFalse(ProximityPolicy.evaluate(post: post, viewer: fix(), viewerHeading: 0,
+                                               targeted: true, at: now.addingTimeInterval(10)).allowed,
+                       "resolver completion must re-evaluate the retained fix")
+    }
+
+    @MainActor
+    func testPlaceNotePendingIntentSurvivesRetryAndReopenWithoutTextOrDigestOnDisk() throws {
+        let suite = "PlaceNotePendingIntentTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = PlaceNotePendingIntentStore(defaults: defaults)
+        let owner = UUID(), other = UUID(), first = UUID(), next = UUID()
+        XCTAssertNil(store.pending(for: owner))
+        store.save(first, for: owner)
+        XCTAssertEqual(store.pending(for: owner), first, "lost response retries the same mutation")
+        let reopened = PlaceNotePendingIntentStore(defaults: try XCTUnwrap(UserDefaults(suiteName: suite)))
+        XCTAssertEqual(reopened.pending(for: owner), first)
+        XCTAssertNil(store.pending(for: other), "a different account must not reuse this intent")
+        store.save(next, for: owner)
+        store.clear(first, for: owner)
+        XCTAssertEqual(store.pending(for: owner), next, "late receipt cannot clear the replacement intent")
+        let disk = try XCTUnwrap(defaults.persistentDomain(forName: suite))
+        XCTAssertTrue(disk.values.allSatisfy { ($0 as? String).flatMap(UUID.init(uuidString:)) != nil },
+                      "only an opaque UUID is persisted; no note, translation, caption or text hash")
+        XCTAssertEqual(Set(disk.keys), ["place-note.pending-intent.\(owner.uuidString.lowercased())"])
+        XCTAssertEqual(disk.values.compactMap { $0 as? String }, [next.uuidString.lowercased()])
+        store.clear(next, for: owner)
+        XCTAssertNil(store.pending(for: owner))
+        XCTAssertTrue(defaults.persistentDomain(forName: suite)?.isEmpty ?? true)
     }
 
     func testRetryPolicyCapsAndDeadLetters() {
@@ -381,6 +491,14 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text and GIF posts are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Links are not allowed"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Only moderated text without links is allowed"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "links_not_allowed"), textOnly)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "content_not_allowed"),
+                       String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene."))
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "invalid_caption"),
+                       String(localized: "Caption boş olamaz ve 220 karakteri geçemez."))
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "location_inaccurate"),
+                       String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin."))
         // Older servers still answer with the social-link wording.
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts and social media links are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Invalid social media link"), textOnly)
@@ -392,6 +510,20 @@ final class BackendAndPolicyTests: XCTestCase {
             String(localized: "Paylaşmak için davet kodu gerekiyor. Profil > Davet kodu bölümünden sana verilen kodu gir.")
         )
         XCTAssertNotEqual(InviteFlowError.invalid.errorDescription, InviteFlowError.rateLimited.errorDescription)
+    }
+
+    @MainActor
+    func testLocationNoteReplayDoesNotClaimRemovedOrReviewedContentIsVisible() throws {
+        let published = String(localized: "Notun yayınlandı. Haritada görünüyor.")
+        for status in [PostStatus.active, .pendingReview, .removed, .flagged, .blockedProtectedZone, .draft] {
+            let json = Data("{\"publishStatus\":\"\(status.rawValue)\"}".utf8)
+            let response = try JSONDecoder().decode(PlaceNoteClient.Response.self, from: json)
+            XCTAssertEqual(response.confirmationMessage == published, status == .active)
+            if status == .pendingReview {
+                XCTAssertEqual(response.confirmationMessage,
+                               String(localized: "Post gönderildi ve incelemeye alındı. Durumu Profil > Postlarım'dan takip edebilirsin."))
+            }
+        }
     }
 
     func testQueuedDeviceMediaPostsAreDetected() {
@@ -518,6 +650,74 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(cache.read(b)?.count, 1_000)
     }
 
+    func testDeletedWorldMapCacheRejectsCapturedAndNewDownloadHandles() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("wm-delete-\(UUID().uuidString)")
+        let other = FileManager.default.temporaryDirectory.appendingPathComponent("wm-other-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir); try? FileManager.default.removeItem(at: other) }
+        let cache = WorldMapDownloadCache(directory: dir), unrelated = WorldMapDownloadCache(directory: other)
+        let locator = "storage://post-world-maps/u/p/a.lociarmap", data = Data(repeating: 1, count: 128)
+        XCTAssertTrue(cache.write(data, for: locator))
+        try WorldMapDownloadCache(directory: dir).removeAll()
+        XCTAssertFalse(cache.write(data, for: locator), "late completion must not recreate deleted geometry")
+        XCTAssertFalse(WorldMapDownloadCache(directory: dir).write(data, for: locator))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path))
+        XCTAssertTrue(unrelated.write(data, for: locator))
+        XCTAssertEqual(unrelated.read(locator), data)
+    }
+
+    func testCancelledWorldMapDownloadCannotCommitAfterItsAwait() async {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("wm-cancel-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let cache = WorldMapDownloadCache(directory: dir)
+        let task = Task {
+            try? await Task.sleep(for: .seconds(30))
+            return cache.write(Data(repeating: 1, count: 128), for: "storage://post-world-maps/u/p/a.lociarmap")
+        }
+        task.cancel()
+        let committed = await task.value
+        XCTAssertFalse(committed)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path))
+    }
+
+    @MainActor
+    func testSDKRegistrationIsSingleFlightAndDrainWaitsForCompletion() async throws {
+        let gate = PushSDKRegistrationFlight()
+        let started = AsyncStream<Void>.makeStream(), release = AsyncStream<Void>.makeStream()
+        var calls = 0, completed = false, drained = false
+        let first = Task { try await gate.register {
+            calls += 1; started.continuation.yield(()); started.continuation.finish()
+            for await _ in release.stream { break }
+            completed = true
+        } }
+        for await _ in started.stream { break }
+        let joined = AsyncStream<Void>.makeStream()
+        let second = Task {
+            joined.continuation.yield(()); joined.continuation.finish()
+            try await gate.register { calls += 1 }
+        }
+        for await _ in joined.stream { break }
+        let draining = AsyncStream<Void>.makeStream()
+        let drain = Task {
+            draining.continuation.yield(()); draining.continuation.finish()
+            await gate.drain(); drained = true
+        }
+        for await _ in draining.stream { break }
+        XCTAssertEqual(calls, 1); XCTAssertFalse(drained)
+        release.continuation.yield(()); release.continuation.finish()
+        try await first.value; try await second.value; await drain.value
+        XCTAssertTrue(completed); XCTAssertTrue(drained); XCTAssertEqual(calls, 1)
+    }
+
+    @MainActor
+    func testSDKRegistrationFailureDoesNotPreventRetry() async throws {
+        let gate = PushSDKRegistrationFlight()
+        do { try await gate.register { throw URLError(.notConnectedToInternet) }; XCTFail("Expected failure") }
+        catch { XCTAssertTrue(error is URLError) }
+        var calls = 0
+        try await gate.register { calls += 1 }
+        XCTAssertEqual(calls, 1)
+    }
+
     @MainActor
     func testPushRegistrationWaitsForSessionAndDeduplicatesSuccessfulRegistration() async {
         let client = RecordingPushClient()
@@ -617,28 +817,61 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(PushNotificationTarget(recipient: recipient.uuidString, post: post.uuidString)?.postID, post)
         XCTAssertNil(PushNotificationTarget(recipient: recipient.uuidString, post: "")?.postID)
         XCTAssertEqual(PushNotificationTarget(recipient: recipient.uuidString, post: nil)?.recipientID, recipient)
-        let activity = "like_\(post.uuidString.lowercased())_\(recipient.uuidString.lowercased())"
+        let activity = "act_123e4567-e89b-12d3-a456-426614174000"
         XCTAssertEqual(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: activity)?.activityID, activity)
         XCTAssertNil(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: "a/b"))
         XCTAssertNil(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: "a\n"))
     }
 
-    func testActivityKeepsCompositeDocumentIdentityThroughDecoding() throws {
+    func testActivityDecodesServerOpaqueAndLegacyIDsWithoutActorAttribution() throws {
         let recipient = UUID()
-        let id = "follow_\(UUID().uuidString.lowercased())_\(recipient.uuidString.lowercased())"
-        let fixture: [String: Any] = ["id": id, "kind": "follow", "recipient_id": recipient.uuidString,
-                                    "body": "fixture", "created_at": "2026-10-04T12:00:00.000Z"]
-        let item = try FirestoreJSON.decoder().decode(SocialActivity.self, from: JSONSerialization.data(withJSONObject: fixture))
-        XCTAssertEqual(item.id, id)
-        XCTAssertEqual(item.recipientID, recipient)
-        XCTAssertNil(item.readAt)
+        for id in ["act_123e4567-e89b-12d3-a456-426614174000", String(repeating: "a", count: 64),
+                   "legacy_opaque-123", "comment_existing-id", "A", String(repeating: "Z", count: 200)] {
+            let fixture: [String: Any] = ["id": id, "kind": "follow", "actor_id": NSNull(),
+                                        "recipient_id": recipient.uuidString, "body": "fixture",
+                                        "created_at": "2026-10-04T12:00:00.000Z"]
+            let item = try FirestoreJSON.decoder().decode(SocialActivity.self, from: JSONSerialization.data(withJSONObject: fixture))
+            XCTAssertEqual(item.id, id)
+            XCTAssertEqual(item.recipientID, recipient)
+            XCTAssertNil(item.actorID)
+            XCTAssertNil(item.readAt)
+            XCTAssertEqual(SocialActivity.unreadIDs(in: [item]), [id])
+            XCTAssertEqual(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: id)?.activityID, id)
+        }
+    }
+
+    func testMalformedActivityIDsRejectDecodingAndPushWithoutCrashing() throws {
+        let recipient = UUID()
+        for id in ["", "a/b", "a.b", " a", "a ", "a\n", "a\r\n", "é", "💬", String(repeating: "a", count: 201)] {
+            let fixture: [String: Any] = ["id": id, "kind": "follow", "recipient_id": recipient.uuidString,
+                                        "body": "fixture", "created_at": "2026-10-04T12:00:00.000Z"]
+            XCTAssertThrowsError(try FirestoreJSON.decoder().decode(SocialActivity.self, from: JSONSerialization.data(withJSONObject: fixture)))
+            XCTAssertNil(PushNotificationTarget(recipient: recipient.uuidString, post: nil, activity: id))
+            XCTAssertFalse(SocialActivity.isValidID(id))
+        }
+        for id: Any in [NSNull(), 42, ["act_invalid-type"]] {
+            let fixture: [String: Any] = ["id": id, "kind": "follow", "recipient_id": recipient.uuidString,
+                                        "body": "fixture", "created_at": "2026-10-04T12:00:00.000Z"]
+            XCTAssertThrowsError(try FirestoreJSON.decoder().decode(SocialActivity.self, from: JSONSerialization.data(withJSONObject: fixture)))
+        }
+    }
+
+    func testActivityReadIDsComeFromUnreadRowsAndSkipMalformedIDs() {
+        let now = Date(timeIntervalSince1970: 10)
+        let item = SocialActivity(id: "act_123e4567-e89b-12d3-a456-426614174000", kind: "like", actorID: nil,
+                                  recipientID: UUID(), postID: UUID(), body: "", createdAt: now, readAt: nil)
+        let invalid = SocialActivity(id: "a/b", kind: "like", actorID: nil, recipientID: item.recipientID,
+                                     postID: item.postID, body: "", createdAt: now, readAt: nil)
+        XCTAssertEqual(SocialActivity.unreadIDs(in: [item, invalid, item]), [item.id])
+        XCTAssertTrue(SocialActivity.unreadIDs(in: [item.markingRead(at: now), invalid]).isEmpty)
     }
 
     func testActivityReadAcknowledgementPreservesIdentityAndFirstReadTime() {
-        let item = SocialActivity(id: "like_composite", kind: "like", actorID: nil, recipientID: UUID(), postID: nil,
+        let item = SocialActivity(id: "act_123e4567-e89b-12d3-a456-426614174000", kind: "like", actorID: nil, recipientID: UUID(), postID: nil,
                                   body: "fixture", createdAt: Date(timeIntervalSince1970: 10), readAt: nil)
         let first = item.markingRead(at: Date(timeIntervalSince1970: 20))
         XCTAssertEqual(first.id, item.id)
+        XCTAssertNil(first.actorID)
         XCTAssertEqual(first.readAt, Date(timeIntervalSince1970: 20))
         XCTAssertEqual(first.markingRead(at: Date(timeIntervalSince1970: 30)), first)
     }
@@ -860,6 +1093,16 @@ final class AcceptedDeletionErrorPolicyTests: XCTestCase {
 }
 
 final class AdminContentDecodingTests: XCTestCase {
+    func testAnonymousPostFlagSurvivesLocalStorageAndLegacyDraftsRemainReadable() throws {
+        var post = UITestFixtures.post
+        post.anonymous = true
+        let data = try JSONEncoder().encode(post)
+        XCTAssertTrue(try JSONDecoder().decode(LociPost.self, from: data).isAnonymous)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        legacy.removeValue(forKey: "anonymous")
+        XCTAssertFalse(try JSONDecoder().decode(LociPost.self, from: JSONSerialization.data(withJSONObject: legacy)).isAnonymous)
+    }
+
     func testPanelPostRemainsApproximateWhenDecodedByTheNativeReader() throws {
         let postID = UUID(), authorID = UUID(), anchorID = UUID(), layerID = UUID()
         let geo: [String: Any] = ["latitude": 41.0, "longitude": 29.0, "altitude": 0, "heading": 0]
@@ -886,6 +1129,22 @@ final class AdminContentDecodingTests: XCTestCase {
         XCTAssertNil(post.anchorBundle.anchor.persistence)
         XCTAssertEqual(post.editData.layers.first?.colorHex, "#00FF00")
         XCTAssertEqual(post.contentSource, ContentSource.text("AR text"))
+        var noteRow = row
+        noteRow["note_kind"] = "location"
+        noteRow["is_anonymous"] = true
+        let note = try FirestoreJSON.decoder().decode(BackendPostRow.self, from: JSONSerialization.data(withJSONObject: noteRow)).domainPost()
+        XCTAssertTrue(note.isLocationNote)
+        XCTAssertTrue(note.isAnonymous)
+        XCTAssertEqual(try JSONDecoder().decode(LociPost.self, from: JSONEncoder().encode(note)).noteKind, "location")
+        var targetedRow = row
+        targetedRow["visibility"] = "private"
+        targetedRow["sponsorship"] = ["brand_name": "Coffee Brand", "terms": "Use LOCI20 before expiry.", "expires_at": "2026-11-01T00:00:00Z"]
+        let offer = try FirestoreJSON.decoder().decode(BackendPostRow.self, from: JSONSerialization.data(withJSONObject: targetedRow)).domainPost()
+        XCTAssertEqual(offer.sponsorship?.brandName, "Coffee Brand")
+        XCTAssertEqual(offer.sponsorship?.terms, "Use LOCI20 before expiry.")
+        XCTAssertFalse(PublicSafetyPolicy.isListedInPublicDiscover(offer), "A private offer must not enter public discovery")
+        let stored = try JSONEncoder().encode(offer)
+        XCTAssertEqual(try JSONDecoder().decode(LociPost.self, from: stored).sponsorship, offer.sponsorship)
         let pageJSON: [String: Any] = ["posts": [["invalid_legacy_row": true], row], "next": "raw-page-cursor"]
         let page = try FirestoreJSON.decoder().decode(BackendPostPageResponse.self, from: JSONSerialization.data(withJSONObject: pageJSON))
         XCTAssertEqual(page.posts.map(\.id), [postID])

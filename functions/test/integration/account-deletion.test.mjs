@@ -45,7 +45,7 @@ test('account deletion propagates a rejected Firestore batch and retries without
   await absentAuth(user);
 });
 
-test('storage failure keeps a durable fence after profile removal and rejects callable resurrection', async () => {
+test('storage failure keeps a durable fence and resumes without repeating the completed Firestore phase', async t => {
   const user = await newUser();
   const file = object(user);
   await file.save(Buffer.from('synthetic-world-map'));
@@ -68,7 +68,12 @@ test('storage failure keeps a durable fence after profile removal and rejects ca
   }
   assert.equal((await adminDb.collection('profiles').doc(user.luid).get()).exists, false);
   assert.equal((await adminDb.collection('users_private').doc(user.luid).get()).exists, false);
+  const collection = adminDb.collection.bind(adminDb);
+  let repeatedPostQueries = 0;
+  t.mock.method(adminDb, 'collection', name => { if (name === 'posts') repeatedPostQueries++; return collection(name); });
   assert.equal(await runAccountDeletion(user.luid), 'done');
+  t.mock.restoreAll();
+  assert.equal(repeatedPostQueries, 0);
   assert.equal((await file.exists())[0], false);
   await absentAuth(user);
   const done = (await jobRef(user).get()).data();
@@ -86,6 +91,8 @@ test('Auth failure retries the accepted deletion without losing the job or resto
   await mfa.set({ factor_ids: ['synthetic-factor-id'] });
   await role.set({ user_id: user.uid, role_key: 'moderator', revoked_at: null });
   await invite.set({ invited_user_id: user.uid, email: user.user.email, status: 'sent' });
+  const emailAuthRecords = ['admin_email_challenges', 'admin_email_sessions', 'admin_email_limits'].map(c => adminDb.collection(c).doc(randomUUID()));
+  for (const record of emailAuthRecords) await record.set({ owner_uid: user.uid });
   const file = object(user);
   await file.save(Buffer.from('synthetic-world-map'));
   await accepted(user);
@@ -95,6 +102,7 @@ test('Auth failure retries the accepted deletion without losing the job or resto
   assert.equal((await role.get()).exists, false);
   assert.equal((await invite.get()).exists, false);
   assert.equal((await mfa.get()).exists, false, 'MFA factor identifiers do not survive account deletion or an Auth outage');
+  for (const record of emailAuthRecords) assert.equal((await record.get()).exists, false, 'Email authentication records do not survive account deletion');
   assert.ok(await adminAuth.getUser(user.uid));
   assert.deepEqual(await user.call('deleteAccount', { userId: user.luid }), { ok: true });
   assert.equal((await jobRef(user).get()).get('status'), 'done');
