@@ -166,11 +166,28 @@ final class ARCoreService {
         let tracking = earth.trackingState == .tracking
         if isEarthTracking != tracking { isEarthTracking = tracking }
         if let transform = earth.cameraGeospatialTransform {
-            horizontalAccuracy = transform.horizontalAccuracy
-            yawAccuracy = transform.orientationYawAccuracy
+            let newHAcc = transform.horizontalAccuracy
+            let newYAcc = transform.orientationYawAccuracy
+            // Gating: avoid invalidating observing SwiftUI views on sub-millimeter noise
+            if horizontalAccuracy == nil || abs(newHAcc - (horizontalAccuracy ?? 0)) >= 0.1 {
+                horizontalAccuracy = newHAcc
+            }
+            if yawAccuracy == nil || abs(newYAcc - (yawAccuracy ?? 0)) >= 0.5 {
+                yawAccuracy = newYAcc
+            }
             if tracking {
-                cameraFix = LocationSample(latitude: transform.coordinate.latitude, longitude: transform.coordinate.longitude,
-                                           accuracy: transform.horizontalAccuracy, timestamp: now)
+                let shouldUpdateFix: Bool
+                if let lastFix = cameraFix {
+                    let dLat = abs(transform.coordinate.latitude - lastFix.latitude)
+                    let dLon = abs(transform.coordinate.longitude - lastFix.longitude)
+                    shouldUpdateFix = dLat > 0.00001 || dLon > 0.00001 || abs(newHAcc - lastFix.accuracy) >= 0.2
+                } else {
+                    shouldUpdateFix = true
+                }
+                if shouldUpdateFix {
+                    cameraFix = LocationSample(latitude: transform.coordinate.latitude, longitude: transform.coordinate.longitude,
+                                               accuracy: transform.horizontalAccuracy, timestamp: now)
+                }
             }
         }
     }
@@ -303,13 +320,25 @@ final class ARCoreService {
                 // onCancel may already have resumed `once` (task cancelled after the guard above).
                 guard !Task.isCancelled else { return }
                 do {
-                    pendingFutures[id] = try start(once)
+                    let future = try start(once)
+                    if once.isFinished {
+                        if future.state == .pending { _ = future.cancel() }
+                    } else {
+                        pendingFutures[id] = future
+                    }
                 } catch {
                     logger.error("ARCore future failed to start: \(error.localizedDescription, privacy: .public)")
                     once.resume(nil)
                 }
                 let timeoutTask = Task { try? await Task.sleep(for: timeout); once.resume(nil) }
-                once.setOnResume { timeoutTask.cancel() }
+                once.setOnResume { [weak self] in
+                    timeoutTask.cancel()
+                    Task { @MainActor [weak self] in
+                        if let future = self?.pendingFutures.removeValue(forKey: id), future.state == .pending {
+                            _ = future.cancel()
+                        }
+                    }
+                }
             }
         } onCancel: {
             once.resume(nil)
@@ -384,6 +413,12 @@ final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
     private var earlyValue: Value?
     private var onResume: (() -> Void)?
     private let lock = NSLock()
+
+    var isFinished: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return finished
+    }
 
     init() {}
 

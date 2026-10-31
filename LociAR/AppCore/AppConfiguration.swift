@@ -183,10 +183,14 @@ struct AppConfiguration: Sendable {
 #endif
 }
 
-/// App Attest in release builds. Enforcement is switched on in the Firebase console once
-/// TestFlight builds are verified.
+/// App Attest in release builds with DeviceCheck fallback for devices or environments
+/// that do not support App Attest.
 final class LociAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
     func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
-        AppAttestProvider(app: app)
+        if #available(iOS 14.0, *) {
+            return AppAttestProvider(app: app) ?? DeviceCheckProvider(app: app)
+        } else {
+            return DeviceCheckProvider(app: app)
+        }
     }
 }

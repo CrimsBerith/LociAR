@@ -44,8 +44,13 @@ enum SyncQueueProcessor {
         defer { isProcessing = false }
         let now = Date()
         let owner: UUID? = authenticatedUserID
+        // When force-syncing, pick up retryable dead-lettered/deferred records,
+        // but never steal active in-flight records currently being published in the foreground.
         var descriptor = force
-            ? FetchDescriptor<SyncQueueRecord>(predicate: #Predicate { $0.ownerID == owner }, sortBy: [SortDescriptor(\.nextAttemptAt)])
+            ? FetchDescriptor<SyncQueueRecord>(
+                predicate: #Predicate { $0.ownerID == owner && ($0.nextAttemptAt <= now || $0.deadLetterReason != nil) },
+                sortBy: [SortDescriptor(\.nextAttemptAt)]
+            )
             : FetchDescriptor<SyncQueueRecord>(
                 predicate: #Predicate { $0.ownerID == owner && $0.deadLetterReason == nil && $0.nextAttemptAt <= now },
                 sortBy: [SortDescriptor(\.nextAttemptAt)]
@@ -78,20 +83,27 @@ enum SyncQueueProcessor {
                 }
                 logger.info("Sync committed operation=\(record.operation, privacy: .public) id=\(record.id.uuidString, privacy: .public)")
                 modelContext.delete(record)
+                // Atomic commit per processed record: ensures successful publishing is committed
+                // immediately and avoids orphaned local assets or duplicate publishing on task cancellation.
+                try? modelContext.save()
             } catch AuthFlowError.notSignedIn {
+                try? modelContext.save()
                 return // Another account must not consume this owner's retry budget.
             } catch is CancellationError {
+                try? modelContext.save()
                 return
             } catch BackendTransientError.servicePaused {
                 // Paused for everyone: wait without spending an attempt (no dead-lettering).
                 record.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.servicePausedDelay)
                 record.lastErrorMessage = BackendTransientError.servicePaused.localizedDescription
                 logger.info("Sync paused id=\(record.id.uuidString, privacy: .public)")
+                try? modelContext.save()
             } catch let error as PostPublishError {
                 record.attemptCount = RetryPolicy.maximumAttempts
                 record.deadLetterReason = error.localizedDescription
                 record.lastErrorMessage = error.localizedDescription
                 logger.error("Sync rejected operation=\(record.operation, privacy: .public) id=\(record.id.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+                try? modelContext.save()
             } catch {
                 record.attemptCount += 1
                 if RetryPolicy.shouldDeadLetter(afterAttempt: record.attemptCount) {
@@ -101,6 +113,7 @@ enum SyncQueueProcessor {
                 }
                 record.lastErrorMessage = error.localizedDescription
                 logger.error("Sync deferred operation=\(record.operation, privacy: .public) id=\(record.id.uuidString, privacy: .public) attempt=\(record.attemptCount) error=\(error.localizedDescription, privacy: .public)")
+                try? modelContext.save()
             }
         }
         try? modelContext.save()

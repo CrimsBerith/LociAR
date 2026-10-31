@@ -17,8 +17,8 @@ actor SpatialContentRenderer {
     private var inFlightAssetTasks: [URL: Task<Data?, Never>] = [:]
     private var renderedPostCache: [String: RenderedPost] = [:]
     private var renderedCacheOrder: [String] = []
-    private static let maximumRenderCacheCount = 30
-    private static let maximumAssetCacheCount = 40
+    private static let maximumRenderCacheCount = 10
+    private static let maximumAssetCacheCount = 15
 
     func render(_ editData: EditData) async -> CGImage? {
         let assets = await loadAssets(editData)

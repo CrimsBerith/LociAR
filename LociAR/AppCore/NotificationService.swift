@@ -263,6 +263,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         guard coordinator != nil else { return }
         scheduleTransition(to: desiredUserID)
         await transition?.value
+        if isAuthorized { try? await UNUserNotificationCenter.current().setBadgeCount(0) }
     }
 
     private func scheduleTransition(to userID: UUID?) {
@@ -320,6 +321,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     func prepareForSignOut() async {
         setUser(nil)
         await transition?.value
+        if isAuthorized { try? await UNUserNotificationCenter.current().setBadgeCount(0) }
     }
 
     private func disconnect(userID: UUID) async {

@@ -35,6 +35,7 @@ actor GifDataCache {
 struct AnimatedGIFView: View {
     let url: URL
     var contentMode: ContentMode = .fit
+    var accessibilityLabel: String? = nil
 
     @State private var data: Data?
 
@@ -49,7 +50,8 @@ struct AnimatedGIFView: View {
         }
         .clipped()
         .task(id: url) { data = await GifDataCache.shared.data(for: url) }
-        .accessibilityHidden(true)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel ?? String(localized: "GIF animasyonu"))
     }
 }
 
