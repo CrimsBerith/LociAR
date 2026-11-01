@@ -13,7 +13,7 @@ const rules = [
   ['literal-credential', /\b[\w]*(?:password|passwd|client_?secret|access_?token|refresh_?token|private_?key|api_?key)[\w]*["']?\s*[:=]\s*["']([^"'`\r\n]{8,})["']/gi],
   ['document-password', /(?<![\p{L}\p{N}_])(?:Password|Şifre|Parola)\s*(?:\([^)]+\))?\s*(?:\*\*)?\s*[:|]\s*(?:\*\*)?\s*`([^`\r\n]+)`/giu],
   // Detect unquoted credentials in Markdown (not merely backtick-wrapped passwords).
-  ['document-password-unquoted', /^[ \t]*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*)?(?:Password|Şifre|Parola)(?:\s*\([^)]+\))?(?:\*\*)?\s*:\s*(?![\x60<$\[])([A-Za-z0-9][^\s|\x60]{7,})/gimu],
+  ['document-password-unquoted', /^[ \t]*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*)?(?:Password|Şifre|Parola)(?:\s*\([^)]+\))?(?:\*\*)?\s*:\s*(?:\*\*)?\s*(?![\x60<$\[])([A-Za-z0-9][^\s|\x60]{7,})/gimu],
 ];
 
 function placeholder(value) {

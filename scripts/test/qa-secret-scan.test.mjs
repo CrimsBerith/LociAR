@@ -70,6 +70,12 @@ test('still detects unquoted document passwords in numbered and bold Markdown fi
   ]);
 });
 
+test('also catches a bold label with the colon inside the bold span', t => {
+  const root = fixture(t);
+  writeFileSync(join(root, 'notes.md'), '- **Şifre:** synthetic-fixture123!\\n');
+  assert.deepEqual(scanRepository(root), [{ path: 'notes.md', line: 1, rule: 'document-password-unquoted' }]);
+});
+
 test('ignored local credentials stay local; force-tracked environment files fail', t => {
   const root = fixture(t);
   writeFileSync(join(root, '.gitignore'), '.env*\n');
