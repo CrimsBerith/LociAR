@@ -48,20 +48,26 @@ export async function syncMapCell(postId: string): Promise<void> {
     const previousCell = typeof member.get('cell') === 'string' ? member.get('cell') as string : null;
     const previousOverflow = member.get('overflow') === true;
     const moving = previousCell !== (desired?.cell ?? null);
-    if (!moving && JSON.stringify(member.get('entry') ?? null) === JSON.stringify(desired?.entry ?? null)) return;
-    // Reads come first in a transaction: the target cell's size decides whether there is still room.
-    const target = desired && (moving || previousOverflow) ? await tx.get(cellRef(desired.cell)) : null;
+    const memberMatches = !moving && JSON.stringify(member.get('entry') ?? null) === JSON.stringify(desired?.entry ?? null);
+    // The member document alone is not proof that its cell survived a missed write/deletion.
+    // Inspect the target even for an unchanged member so nightly reconciliation can repair it.
+    const target = desired ? await tx.get(cellRef(desired.cell)) : null;
+    const indexedEntry = target?.get(`posts.${postId}`);
+    const entryMatches = JSON.stringify(indexedEntry ?? null) === JSON.stringify(desired?.entry ?? null);
+    if (memberMatches && (!desired || (previousOverflow && target?.get('overflow') === true) || entryMatches)) return;
     if (previousCell && moving && !previousOverflow) {
       tx.set(cellRef(previousCell), { posts: { [postId]: FieldValue.delete() }, count: FieldValue.increment(-1), updated_at: FieldValue.serverTimestamp() }, { merge: true });
     }
     if (!desired) { tx.delete(member.ref); return; }
-    const full = target ? Number(target.get('count') ?? 0) >= MAP_CELL_CAPACITY : previousOverflow;
+    const replacing = !moving && indexedEntry !== undefined;
+    const full = target ? Number(target.get('count') ?? 0) >= MAP_CELL_CAPACITY && !replacing : previousOverflow;
     if (full) {
       // Readers scan an overflowing cell's posts directly, so its notes still appear.
       tx.set(cellRef(desired.cell), { cell: desired.cell, overflow: true, updated_at: FieldValue.serverTimestamp() }, { merge: true });
     } else {
       tx.set(cellRef(desired.cell), { cell: desired.cell, posts: { [postId]: desired.entry },
-        ...(target ? { count: FieldValue.increment(1) } : {}), updated_at: FieldValue.serverTimestamp() }, { merge: true });
+        count: target ? (replacing ? Number(target.get('count') ?? 1) : FieldValue.increment(1)) : 1,
+        updated_at: FieldValue.serverTimestamp() }, { merge: true });
     }
     tx.set(member.ref, { cell: desired.cell, entry: desired.entry, overflow: full, updated_at: FieldValue.serverTimestamp() });
   });

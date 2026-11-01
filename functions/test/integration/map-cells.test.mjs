@@ -116,6 +116,17 @@ test('map opening reads the cell index with the same results, blocks and account
     assert.equal(ids(await viewer.call('readPublicContent', nearby)).includes(ghost), false);
     await adminDb.collection('map_cells').doc(cell).update({ [`posts.${ghost}`]: FieldValue.delete() });
 
+    // A lost cell but intact membership must be rebuilt on a same-post reconciliation.
+    const cellRef = adminDb.collection('map_cells').doc(cell);
+    const savedCell = (await cellRef.get()).data();
+    await cellRef.delete();
+    await syncMapCell(samePlace.id);
+    const repaired = await cellRef.get();
+    assert.deepEqual(repaired.get(`posts.${samePlace.id}`), mapCellPlacement((await samePlace.get()).data()).entry);
+    assert.equal(repaired.get('count'), 1, 'rebuild starts from one entry, never a phantom increment');
+    // Restore the rest of this test's shared index fixture without touching post records.
+    await cellRef.set(savedCell);
+
     // Removal and moves keep the index and its count exact, including redelivered syncs.
     const before = Number((await adminDb.collection('map_cells').doc(cell).get()).get('count'));
     await samePlace.update({ status: 'removed' });

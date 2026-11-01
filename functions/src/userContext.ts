@@ -57,6 +57,9 @@ export const setDataPreferences = onCall(options, async request => {
     const data = { owner_luid: caller.luid, telemetry: body.telemetry, location: body.location,
       notifications,
       notifications_notice_version: body.notifications !== undefined ? '2026-10-11-notifications' : current.get('notifications_notice_version') ?? null,
+      // Campaign arrival/departure are deliberately one combined marketing opt-in in
+      // the current iOS settings. Legacy arrivals/departures payload fields are notice-checked
+      // for compatibility, but never grant extra consent independently of promotions.
       // Marketing needs its own explicit opt-in (App Review 4.5.4) on top of Notifications; campaign
       // arrivals and departures follow it. Turning Notifications off turns marketing off too.
       ...(() => {
