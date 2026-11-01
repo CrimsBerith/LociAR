@@ -58,9 +58,13 @@ if (!profileSnap.exists) {
     firebase_uid: user.uid,
     created_at: FieldValue.serverTimestamp(),
   });
-  console.log('Created profile, handle reservation, and private record for luid:', luid);
+  await db.collection('account_access').doc(luid).set({
+    state: 'active',
+  });
+  console.log('Created profile, handle reservation, account_access, and private record for luid:', luid);
 } else {
-  console.log('Profile already exists for luid:', luid);
+  await db.collection('account_access').doc(luid).set({ state: 'active' }, { merge: true });
+  console.log('Profile already exists for luid:', luid, '- ensured account_access active');
 }
 
 console.log('Provisioning complete. Transfer the private file to your password manager and App Store Connect.');
