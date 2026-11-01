@@ -18123,7 +18123,6 @@
       }
     },
     "GIF animasyonu" : {
-      "comment" : "A description of a GIF.",
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
