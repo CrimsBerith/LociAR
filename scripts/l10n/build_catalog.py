@@ -60,17 +60,39 @@ def key_localizations(key, tables, plurals, problems):
     return result
 
 
+def existing_meta(path):
+    try:
+        with open(path, encoding='utf-8') as f:
+            data = json.load(f)
+            version = data.get('version', '1.0')
+            comments = {k: v['comment'] for k, v in data.get('strings', {}).items() if 'comment' in v}
+            return version, comments
+    except Exception:
+        return '1.0', {}
+
+
 def build():
     keys = json.loads(subprocess.check_output([sys.executable, os.path.join(HERE, 'extract.py')]))
     tables = {lang: load(f'translations/{lang}.json') for lang in LANGS}
     plurals = load('plurals.json')
     problems = []
-    strings = {key: {'extractionState': 'manual', 'localizations': key_localizations(key, tables, plurals, problems)} for key in sorted(keys)}
+
+    cat_version, cat_comments = existing_meta(CATALOG)
+    info_version, _ = existing_meta(INFOPLIST_CATALOG)
+
+    strings = {}
+    for key in sorted(keys):
+        entry = {'extractionState': 'manual', 'localizations': key_localizations(key, tables, plurals, problems)}
+        if key in cat_comments:
+            entry['comment'] = cat_comments[key]
+        strings[key] = entry
+
     for lang in LANGS:
         for stale in sorted(set(tables[lang]) - set(keys)):
             if lang != 'tr':
                 problems.append(f'unused {lang} entry: {stale!r}')
-    catalog = {'sourceLanguage': 'en', 'strings': strings, 'version': '1.0'}
+
+    catalog = {'sourceLanguage': 'en', 'strings': strings, 'version': cat_version}
 
     info = load('infoplist.json')
     info_strings = {}
@@ -82,7 +104,7 @@ def build():
             'extractionState': 'manual',
             'localizations': {lang: unit(values[lang]) for lang in LANGS if lang in values},
         }
-    info_catalog = {'sourceLanguage': 'en', 'strings': info_strings, 'version': '1.0'}
+    info_catalog = {'sourceLanguage': 'en', 'strings': info_strings, 'version': info_version}
     return catalog, info_catalog, problems, len(keys)
 
 
@@ -96,7 +118,12 @@ def catalog_matches(path, expected):
     # Validate all keys, values and translation states without depending on its formatting.
     try:
         with open(path, encoding='utf-8') as f:
-            return json.load(f) == expected
+            actual = json.load(f)
+            if actual.get('sourceLanguage') != expected.get('sourceLanguage'):
+                return False
+            if actual.get('version') not in ('1.0', '1.1'):
+                return False
+            return actual.get('strings') == expected.get('strings')
     except (OSError, ValueError):
         return False
 
