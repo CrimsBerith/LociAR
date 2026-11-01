@@ -69,10 +69,11 @@ fi
 step "3/8  Firebase girişi ve harcama sınırı"
 [[ -x "$FIREBASE" ]] || (cd functions && npm ci --no-audit --no-fund) || fail "Firebase CLI kurulamadı."
 "$FIREBASE" projects:list --json >/dev/null 2>&1 || "$FIREBASE" login || fail "Firebase girişi yapılamadı."
-echo "Google Cloud → Billing → Budgets & alerts → \"LociAR spend cap\" (Cloud Run için ₺10/ay sert sınır)."
-echo "Sınır doluysa deploy edilen fonksiyonlar çalışmaz; App Review sırasında dolarsa uygulama reddedilir."
+echo "Google Cloud → Billing → Budgets & alerts: bütçe uyarıları tek başına harcamayı durdurmaz."
+echo "Uygulanabilir enforced spend cap varsa kapsamını ve etkin durumunu; yoksa kotaları, alarmları ve operasyon planını doğrula."
+echo "App Review süresince yeterli bakiye ve hizmet sürekliliğini ayrıca doğrula."
 open "https://console.cloud.google.com/billing/budgets?project=$PROJECT" >/dev/null 2>&1 || true
-ask "Harcama sınırını kontrol ettim (dolu değil ya da yükselttim), devam edeyim mi?" || fail "Harcama sınırı kontrol edilmeden deploy yapılmadı."
+ask "Gerçek cap/uyarı/kota durumunu ve hizmet sürekliliğini kontrol ettim, devam edeyim mi?" || fail "Billing türü ve hizmet sürekliliği kontrol edilmeden deploy yapılmadı."
 
 # ---------------------------------------------------------------- 4
 step "4/8  Eksik secret'lar (Firebase deploy her secret'ı ister)"

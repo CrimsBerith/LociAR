@@ -43,6 +43,17 @@ test('finds passwords in Markdown fields and never prints their values', t => {
   assert.ok(!`${result.stdout}${result.stderr}`.includes(value));
 });
 
+test('detects plain-text review passwords and redacts the value', t => {
+  const root = fixture(t);
+  const label = ['Pass', 'word'].join('');
+  const synthetic = ['synthetic', 'unguarded', 'fixture123!'].join('-');
+  writeFileSync(join(root, 'review.md'), `- ${label}: ${synthetic}\n`);
+  const result = spawnSync(process.execPath, [scanner], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /document-password-unquoted/);
+  assert.ok(!`${result.stdout}${result.stderr}`.includes(synthetic));
+});
+
 test('ignored local credentials stay local; force-tracked environment files fail', t => {
   const root = fixture(t);
   writeFileSync(join(root, '.gitignore'), '.env*\n');
