@@ -35,7 +35,7 @@ service firebase.storage {
     // Needs the cross-service grant for Storage rules to read Firestore (see docs/FIREBASE_SETUP.md).
     function mapAccess(postId, luid, file) {
       let claim = firestore.get(/databases/(default)/documents/storage_reclamations/$(postId.lower())).data;
-      let access = firestore.get(/databases/(default)/documents/account_access/$(luid)).data;
+      let access = firestore.get(/databases/(default)/documents/account_access/$(request.auth.token.luid)).data;
       return access.state == 'active' && claim.creator_id == luid
         && (claim.state == 'draft' && owner(luid)
           || claim.state == 'committed' && claim.get('world_map_path', null) == 'post-world-maps/' + luid + '/' + postId + '/' + file
