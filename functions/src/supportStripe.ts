@@ -184,15 +184,23 @@ export const supportStripeWebhook = onRequest({ maxInstances: CALLABLE_MAX_INSTA
       await fulfillSupportCheckout(stripe, event.data.object.id, settings);
     } else if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
       const chargeId = event.type === 'charge.refunded' ? event.data.object.id : event.data.object.charge;
-      const charge = await stripe.charges.retrieve(typeof chargeId === 'string' ? chargeId : chargeId.id);
-      if (charge.metadata.support_intent && charge.payment_intent) {
-        const pi = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id;
-        const refunded = event.type === 'charge.dispute.created' ? charge.amount : charge.amount_refunded;
-        if (refunded > 0) await reverseSupport(`stripe_${pi}`, stripeSupportAmount(refunded, charge.currency));
+      if (chargeId) {
+        const id = typeof chargeId === 'string' ? chargeId : (chargeId as { id?: string }).id;
+        if (id) {
+          const charge = await stripe.charges.retrieve(id);
+          if (charge.metadata.support_intent && charge.payment_intent) {
+            const pi = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id;
+            const refunded = event.type === 'charge.dispute.created' ? charge.amount : charge.amount_refunded;
+            if (refunded > 0) await reverseSupport(`stripe_${pi}`, stripeSupportAmount(refunded, charge.currency));
+          }
+        }
       }
     }
     response.status(200).send('OK');
-  } catch { response.status(503).send('Retry'); }
+  } catch (err) {
+    logger.error('support_stripe_webhook_failed', { err, eventType: event?.type });
+    response.status(503).send('Retry');
+  }
 });
 
 export const readSupportCatalog = onCall(options, async request => {
