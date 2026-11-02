@@ -861,7 +861,7 @@ final class ARPinningEngine: NSObject {
     private func observeLifecycle() {
         let center = NotificationCenter.default
         notificationTokens.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 guard let self, let view = self.existingARView, self.state != .idle else { return }
                 view.session.pause()
                 self.transition(to: .interrupted, message: String(localized: "Uygulama arka planda; AR oturumu duraklatıldı."))
