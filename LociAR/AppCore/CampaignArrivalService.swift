@@ -781,12 +781,19 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         let epoch = generation
         let lease = UUID()
         refreshLeaseID = lease
-        refreshBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "lociar.regions.refresh") { [weak self] in
+        var taskID = UIBackgroundTaskIdentifier.invalid
+        taskID = UIApplication.shared.beginBackgroundTask(withName: "lociar.regions.refresh") { [weak self] in
+            let expiredTask = taskID
+            taskID = .invalid
+            if expiredTask != .invalid {
+                UIApplication.shared.endBackgroundTask(expiredTask)
+            }
             Task { @MainActor in
                 guard let self, self.generation == epoch, self.refreshLeaseID == lease else { return }
                 self.endRefreshBackgroundTask(cancelWork: true)
             }
         }
+        refreshBackgroundTask = taskID
         refreshExpiration = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(28)) } catch { return }
             guard let self, self.generation == epoch, self.refreshLeaseID == lease else { return }
@@ -799,7 +806,9 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
         refreshExpiration?.cancel(); refreshExpiration = nil
         if cancelWork { refreshCoordinator.cancel(); freshFixRetry?.cancel(); freshFixRetry = nil }
         if refreshBackgroundTask != .invalid {
-            UIApplication.shared.endBackgroundTask(refreshBackgroundTask); refreshBackgroundTask = .invalid
+            let current = refreshBackgroundTask
+            refreshBackgroundTask = .invalid
+            UIApplication.shared.endBackgroundTask(current)
         }
     }
 
@@ -854,9 +863,16 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     private func beginProcessing() {
         guard !handling else { return }
         handling = true
-        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: nil) { [weak self] in
+        var taskID = UIBackgroundTaskIdentifier.invalid
+        taskID = UIApplication.shared.beginBackgroundTask(withName: nil) { [weak self] in
+            let expiredTask = taskID
+            taskID = .invalid
+            if expiredTask != .invalid {
+                UIApplication.shared.endBackgroundTask(expiredTask)
+            }
             Task { @MainActor in self?.endBackgroundTask() }
         }
+        backgroundTask = taskID
         timeout = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(20)) } catch { return }
             self?.endBackgroundTask()
@@ -1162,7 +1178,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                     scheduleNoteAcknowledgements(account: id, epoch: epoch)
                 }
                 if !placeNote, stepRegion == nil {
-                    if let region = manager.monitoredRegions.first(where: { $0.identifier == prefix(id) + post }) { stopMonitoring(region) }
+                    let campaignRegionID = prefix(id) + campaign.uuidString.lowercased()
+                    if let region = manager.monitoredRegions.first(where: { $0.identifier == campaignRegionID }) { stopMonitoring(region) }
                     regions.removeValue(forKey: campaign)
                     armedExits.remove(campaign); persistArmedExits()
                 }
@@ -1190,7 +1207,11 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
 
     private func endBackgroundTask() {
         handling = false; pending.removeAll(); timeout?.cancel(); timeout = nil
-        if backgroundTask != .invalid { UIApplication.shared.endBackgroundTask(backgroundTask); backgroundTask = .invalid }
+        if backgroundTask != .invalid {
+            let current = backgroundTask
+            backgroundTask = .invalid
+            UIApplication.shared.endBackgroundTask(current)
+        }
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
