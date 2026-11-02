@@ -3,7 +3,7 @@
 **Date:** 2026-11-02  
 **Environment:** macOS (Darwin 24), Node.js v20.x, Xcode 16 / Swift 6, Firebase Emulators  
 **Branch:** `origin/codex/fix-anonymous-location-audit`  
-**Latest Verification Commit:** `79a1353`
+**Latest Verification Commit:** `10c5229` (Release Candidate `v1.0.0-rc1`)
 
 ---
 
@@ -22,7 +22,8 @@
 | **Repository Secret Scan** | `bash scripts/qa-secret-scan.sh` | All tracked files | Pass (0 secrets found) | 0 | 0 | 0.15s |
 | **Dependency Audits** | `node scripts/check-dependency-audit.mjs functions admin` | Both packages | Pass (0 vulnerabilities) | 0 | 0 | 0.35s |
 | **Xcode Project Build** | `BuildProject` (xcode-tools MCP) | Target: `LociAR` | Pass (0 errors) | 0 | 0 | 18.32s |
-| **Xcode Unit Test Runner** | `RunSomeTests` (xcode-tools MCP) | Scheme: `LociAR` | Pass | 0 | 0 | 3.12s |
+| **Xcode Native Unit Tests** | `xcodebuild test` (iPhone 18 Pro) | **276** | **276** | 0 | 0 | 8.61s |
+| **Total Tests Passed** | **All Test Environments Combined** | **581** | **581** | **0** | **0** | **~26s** |
 
 ---
 
