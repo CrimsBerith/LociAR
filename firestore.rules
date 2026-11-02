@@ -32,8 +32,7 @@ service cloud.firestore {
     function post(postId) { return get(/databases/$(database)/documents/posts/$(postId)).data; }
     function postIsPublicActive(postId) {
       return post(postId).status == 'active' && post(postId).visibility == 'public'
-        && post(postId).get('age_rating', 'all') != '18_plus' && post(postId).get('deleted_at', null) == null
-        && activeAccount(post(postId).creator_id);
+        && post(postId).get('age_rating', 'all') != '18_plus' && post(postId).get('deleted_at', null) == null;
     }
     // Suspended accounts keep read access and can still file reports, but cannot interact.
     function notSuspended() {
