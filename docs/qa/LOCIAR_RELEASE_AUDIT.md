@@ -74,7 +74,18 @@ All critical P0 and P1 issues previously identified have been resolved, verified
 
 ---
 
+### Flawless Refactoring & Runtime Hardening (Completed)
+- **Watchdog Protection:** `CampaignArrivalService.swift` ends background tasks synchronously in expiration handlers, eliminating `0xbaadca11` timeout kills.
+- **ARKit Lifecycle:** `ARPinningEngine.swift` synchronously pauses `ARSession` on background notifications, eliminating `0x8badf00d` camera lockups.
+- **Battery Optimization:** `ARExperienceView.swift` stops GPS immediately when `scenePhase` leaves `.active`, avoiding battery drain on screen lock.
+- **Publish Idempotency:** `SyncQueueProcessor.swift` cleans local drafts unconditionally upon successful publish, eliminating duplicate post creation.
+- **Storage Rules Hardening:** `storage.rules` verifies active account status against `request.auth.token.luid` of the requester in `mapAccess`.
+- **Payment Webhook Resilience:** `supportStripe.ts` safely guards `chargeId` retrieval and logs error context without unhandled exceptions.
+
+---
+
 ## Release Readiness Verdict
 
 **Verdict:** **READY FOR RELEASE VERIFICATION (PASS)**  
+**Release Candidate Tag:** `v1.0.0-rc1`  
 All automated quality gates, security scans, compilation checks, and multi-agent audits are green and synchronized with Git remote.
