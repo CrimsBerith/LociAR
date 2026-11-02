@@ -1,0 +1,22 @@
+Path,Domain,Agent,AuditStatus,FindingsSummary
+LociAR/LociAR/AppCore/AppContainer.swift,iOS Architecture,Agent 1,Audited,DI container; main actor isolation verified
+LociAR/LociAR/AppCore/LocationController.swift,Location & Sensors,Agent 1,Audited,Precise stream and warmup lifecycle reviewed
+LociAR/LociAR/AppCore/CampaignArrivalService.swift,Geofencing,Agent 1,Audited,Expiration handler and region identifier cleanup identified
+LociAR/LociAR/ARCore/ARCoreService.swift,ARCore Geospatial,Agent 1,Audited,GARSession teardown and delegate isolation noted
+LociAR/LociAR/ARCore/ARPinningEngine.swift,ARKit Lifecycle,Agent 1,Audited,ARSession pause on background transition identified
+LociAR/LociAR/ARCore/SpatialContentRenderer.swift,RealityKit Rendering,Agent 1,Audited,Texture resource naming pattern reviewed
+LociAR/LociAR/Data/SyncQueueProcessor.swift,Offline Sync & SwiftData,Agent 1,Audited,Cancellation guard after successful publish reviewed
+LociAR/LociAR/Resources/Localizable.xcstrings,Localization,Agent 3,Verified,714 keys in 12 languages with 0 review flags
+LociAR/LociAR/Resources/InfoPlist.xcstrings,App Metadata,Agent 3,Verified,Permissions and plist keys in 12 languages
+LociAR/LociAR/Resources/PrivacyInfo.xcprivacy,Privacy & App Store,Agent 8,Verified,No tracking; declared required reason APIs
+LociAR/LociAR/Resources/LociAR.Release.entitlements,Entitlements,Agent 8,Verified,Apple sign-in; App Attest; production APS
+firestore.rules,Database Security,Agent 2,Audited,Rule evaluation budget and creator profile lookup documented
+storage.rules,Storage Security,Agent 2,Audited,World map authorization check swapped for requester access
+functions/src/mapCells.ts,Spatial Indexing,Agent 2 & 5,Verified,Transaction read order fixed; negative counter prevented
+functions/src/posts.ts,Content Operations,Agent 2,Audited,Post deletion idempotency and retry behavior reviewed
+functions/src/supportStripe.ts,Monetization & Webhooks,Agent 2,Audited,503 retry storm on deleted creator accounts analyzed
+functions/scripts/provision-review-account.mjs,App Store Review,Agent 4,Verified,Atomic transaction and handle check before Auth mutation
+admin/lib/policy.ts,Admin Operations,Agent 6,Verified,MFA gating; audit logs; same-origin write handlers
+scripts/l10n/build_catalog.py,Localization CI,Agent 3 & 7,Verified,Xcode 16 metadata tolerance and comment preservation implemented
+scripts/qa-secret-scan.mjs,Security Scanning,Agent 4 & 7,Verified,Multi-line markdown and credential scanning passing 100%
+aso_check.py,ASO & Store Compliance,Agent 8,Verified,Character limits checked for 12 languages (30/30/170)
