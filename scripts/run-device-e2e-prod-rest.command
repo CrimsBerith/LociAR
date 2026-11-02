@@ -5,6 +5,7 @@
 set -uo pipefail
 : "${TEST_RUNNER_E2E_PASSWORD:?TEST_RUNNER_E2E_PASSWORD ortam değişkeni gerekli; parola kaydedilmez.}"
 export TEST_RUNNER_E2E_PASSWORD
+export TEST_RUNNER_E2E_PRODUCTION=1
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 OUT="$ROOT/scripts/.e2e"
@@ -15,14 +16,13 @@ DEVICE_ID="${DEVICE_ID:-$(xcrun devicectl list devices 2>/dev/null | grep availa
 log() { echo "$(date +%H:%M:%S) $*" | tee -a "$SUMMARY"; }
 : > "$SUMMARY"
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-sed -i '' "s/^LOCIAR_EMULATOR_HOST.*/LOCIAR_EMULATOR_HOST =/" Config/Local.xcconfig
-log "Emulator adresi temizlendi (canli Firebase)."
+log "Canlı Firebase Release testi; yerel konfigürasyon değiştirilmez."
 EMAIL="$(cat scripts/.prod-email.txt 2>/dev/null | tr -d '[:space:]')"
 [ -z "$EMAIL" ] && { log "HATA: scripts/.prod-email.txt yok"; exit 1; }
 rm -f "$OUT/verified"
 export TEST_RUNNER_E2E_EMAIL="$EMAIL"
 log "Test hesabi: $EMAIL"
-COMMON=(-project LociAR.xcodeproj -scheme LociAR -destination "id=$DEVICE_ID" -allowProvisioningUpdates)
+COMMON=(-project LociAR.xcodeproj -scheme LociAR -configuration Release -destination "id=$DEVICE_ID" -allowProvisioningUpdates -parallel-testing-enabled NO ENABLE_TESTABILITY=YES LOCIAR_EMULATOR_HOST=)
 log "build-for-testing..."
 xcodebuild build-for-testing "${COMMON[@]}" > "$OUT/build-prod-rest.log" 2>&1 || { log "HATA: build-for-testing"; grep -E "error:" "$OUT/build-prod-rest.log" | head -20 | tee -a "$SUMMARY"; exit 1; }
 log "build OK"
@@ -32,12 +32,12 @@ run_test() {
   xcodebuild test-without-building "${COMMON[@]}" -only-testing:"LociARUITests/AuthGateUITests/$t" \
     -resultBundlePath "$OUT/$t.xcresult" > "$OUT/$t.log" 2>&1
   code=$?
-  if grep -q "Test Case .*$t.* passed" "$OUT/$t.log"; then log "  PASS $t"; return 0
-  elif grep -q "skipped" "$OUT/$t.log"; then log "  SKIP $t"; return 0
+  if [ "$code" -eq 0 ] && grep -q "Test Case .*$t.* passed" "$OUT/$t.log"; then log "  PASS $t"; return 0
+  elif grep -q "skipped" "$OUT/$t.log"; then log "  SKIP $t (zorunlu test tamamlanmadı)"; return 1
   else log "  FAIL $t (kod $code)"; grep -E "error: |XCTAssert|failed -|\[E2E\]|\[DEBUG\]|\[LociAR auth\]" "$OUT/$t.log" | head -15 | tee -a "$SUMMARY"; return 1; fi
 }
 
 for t in testProd01SignIn testEmulator03BrowseTabsAndEditProfile testEmulator05SignOutAndBackIn testEmulator09DeleteAccount; do
-  run_test "$t" || { [ "$t" = testProd01SignIn ] && break; }
+  run_test "$t" || exit 1
 done
 log "BITTI"

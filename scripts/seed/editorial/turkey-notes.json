@@ -1,0 +1,3150 @@
+{
+  "revision": "2026-10-30-humanize-v4",
+  "status": "editorial_draft_coordinate_and_identity_review_pending",
+  "items": [
+    {
+      "id": "kadikoy-1",
+      "text": "bir sokağı iyice öğrenince daha az mı bakıyoruz etrafa",
+      "persona_id": "P01",
+      "editorial_type": "reflection",
+      "author_handle": "geceyedevam",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-2",
+      "text": "Yol sorarken bütün tarifi anlıyormuş gibi başımı sallama huyum var. Hiç yardımcı olmuyor.",
+      "persona_id": "P09",
+      "editorial_type": "comic",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-3",
+      "text": "Bugün açıklama yapacak hâlim yok.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-4",
+      "text": "bir çekmeceyi toplarken neden bütün odayı dağıtıyorum (bunu bir ara çözmem lazım)",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-5",
+      "text": "Biraz bu tarafta yürüyeyim. Sonrasına bakarım.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-6",
+      "text": "belki geri dönerken aynı fikirde olmam. ona da yer ayırdım",
+      "persona_id": "P35",
+      "editorial_type": "reflection",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-7",
+      "text": "Sokağın sonuna kadar gidip geri dönmek de bir plan.",
+      "persona_id": "P27",
+      "editorial_type": "wordplay",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-8",
+      "text": "Limon al. Pil al. Çantayı yine evde unutma.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-9",
+      "text": "bir gün aynı evi toplasak sen müziği aç, ben nereden başlayacağımızı bulurum",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-10",
+      "text": "Erken geldim diye beklemem kısalmıyor. Bunu her seferinde yeniden öğreniyorum.",
+      "persona_id": "P18",
+      "editorial_type": "comic",
+      "author_handle": "beklerizbiz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-11",
+      "text": "Yönümü bulurum ben. Biraz dolaşarak bulurum.",
+      "persona_id": "P31",
+      "editorial_type": "comic",
+      "author_handle": "rotayiyineyaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-12",
+      "text": "Aklımda bir şarkı var. Sözlerini sormayın.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-13",
+      "text": "Kırılan şeyi atmadan önce parçaları yan yana koyuyorum. Belki tutar.",
+      "persona_id": "P24",
+      "editorial_type": "reflection",
+      "author_handle": "ekyerinebak",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-14",
+      "text": "kapıda sen buyur desem mi, geçsem mi? ikimiz de buyur dersek bir süre daha buradayız",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-15",
+      "text": "moda'ya gelince saate bakmamayı denesem",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-16",
+      "text": "Eve hemen dönmek istemiyorum.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-17",
+      "text": "ayakkabıyı giydim. evden çıkabilmem için üç küçük iş daha çıkacak şimdi",
+      "persona_id": "P06",
+      "editorial_type": "reflection",
+      "author_handle": "icimdebirfilm",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-18",
+      "text": "“Biliyorum orayı” dedim ama nasıl gidildiğini sormayın.",
+      "persona_id": "P34",
+      "editorial_type": "reflection",
+      "author_handle": "eminmiyiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-19",
+      "text": "bir kediyle anlaşacaksak koltuğun paylaşımı baştan konuşulsun. benim de oturacak yerim olsun",
+      "persona_id": "P29",
+      "editorial_type": "comic",
+      "author_handle": "kedionaylamadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-20",
+      "text": "birlikte çıkabiliriz. dönüşte biraz kendi başıma kalmak isterim",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-21",
+      "text": "General Asım Gündüz Caddesi. Mesaja adres yazarken bir nefes alıyorum.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-22",
+      "text": "Bir şey iptal olursa listeyi baştan yapmıyorum. Üzerini çizmek de seçenek.",
+      "persona_id": "P02",
+      "editorial_type": "reflection",
+      "author_handle": "bplanivar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-23",
+      "text": "Ben önce dönüşleri öğreniyorum. Sokak isimleri biraz geriden geliyor.",
+      "persona_id": "P37",
+      "editorial_type": "question",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-24",
+      "text": "Anahtarın çantanın dibinde olduğunu biliyorum. Dibini bulamıyorum.",
+      "persona_id": "P33",
+      "editorial_type": "comic",
+      "author_handle": "tasindavasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-25",
+      "text": "aynı kitabı sevsek de aynı karakteri savunmak zorunda değiliz bence",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-26",
+      "text": "Biraz da kendi başıma kalayım.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-27",
+      "text": "yemek yapacaksam önce tariflere bakmam gerekiyor. bakmaya başlayınca yemek kısmı gecikiyor",
+      "persona_id": "P25",
+      "editorial_type": "reflection",
+      "author_handle": "yangorev",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-28",
+      "text": "biri bana atkı örse ipliğin ucunu bile saklarım. o kadar uğraşmış olacak",
+      "persona_id": "P08",
+      "editorial_type": "reflection",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-29",
+      "text": "son bir şey soracağım deyip gerçekten tek bir şey sorabilsem",
+      "persona_id": "P45",
+      "editorial_type": "comic",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-30",
+      "text": "Güvercinler bir yere toplandı mı ben de ne olduğuna bakıyorum.",
+      "persona_id": "P28",
+      "editorial_type": "comic",
+      "author_handle": "guvercinmuduru",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-31",
+      "text": "konuşmaya başlayıp devamını getirmesen de beklerim",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-32",
+      "text": "masaya parmakla ritim tutunca aynı yeri tekrar tekrar çalıyorum. orayı seviyorum",
+      "persona_id": "P20",
+      "editorial_type": "reflection",
+      "author_handle": "adimritmi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-33",
+      "text": "Bir evi hatırlarken niye önce mutfağı geliyor aklıma?",
+      "persona_id": "P41",
+      "editorial_type": "reflection",
+      "author_handle": "eskidenburalar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-34",
+      "text": "Üç nokta koydun. Şimdi akşam boyunca devamını ben yazacağım.",
+      "persona_id": "P12",
+      "editorial_type": "comic",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-35",
+      "text": "aklımdaki sekmelerin hangisinden ses geldiğini bulamıyorum",
+      "persona_id": "P30",
+      "editorial_type": "comic",
+      "author_handle": "sehircevrimici",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-36",
+      "text": "Salyangozu acele ettiremiyoruz. Kendim için de bunu denesem.",
+      "persona_id": "P44",
+      "editorial_type": "reflection",
+      "author_handle": "koklayagidelim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-37",
+      "text": "anahtar tamam. çanta tamam. az önce ne söyleyecektim",
+      "persona_id": "P38",
+      "editorial_type": "reflection",
+      "author_handle": "sonbirbakis",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-38",
+      "text": "Yanıma katlanmış poşet alayım. Bir şey almam diye çıkıyorum ama.",
+      "persona_id": "P23",
+      "editorial_type": "comic",
+      "author_handle": "birdonusaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-39",
+      "text": "“Herkese yakın” bir buluşma yeri bulmak ne kadar zor.",
+      "persona_id": "P07",
+      "editorial_type": "reflection",
+      "author_handle": "itirazimvar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-40",
+      "text": "bir fotoğrafın dışında kalmayı seçmek de seçenekmiş. bunu yeni yeni seviyorum",
+      "persona_id": "P40",
+      "editorial_type": "reflection",
+      "author_handle": "kadrajdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-41",
+      "text": "Bir şey anlatacaktım. Acelem yok, önce sen anlat.",
+      "persona_id": "P15",
+      "editorial_type": "quiet",
+      "author_handle": "birazdur",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-42",
+      "text": "Saksının altından taşan suyu silmek. Bitki bakmanın konuşulmayan kısmı.",
+      "persona_id": "P04",
+      "editorial_type": "observation",
+      "author_handle": "detaydefteri",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-43",
+      "text": "Bu köşede karar veririm ne tarafa gideceğime.",
+      "persona_id": "P47",
+      "editorial_type": "quiet",
+      "author_handle": "kendi_tempom",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-44",
+      "text": "Kararı grupta konuşmuşuz ama ben son kırk mesajı okuyamamışım.",
+      "persona_id": "P36",
+      "editorial_type": "reflection",
+      "author_handle": "yeracalim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-45",
+      "text": "biraz serin hava iyi gelir bana",
+      "persona_id": "P48",
+      "editorial_type": "reflection",
+      "author_handle": "hafif_esinti",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-46",
+      "text": "çamaşırın dışarıda kurumuş hâlinin kokusunu seviyorum",
+      "persona_id": "P05",
+      "editorial_type": "reflection",
+      "author_handle": "tasvekoku",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-47",
+      "text": "Elimde bardak olunca ellerimi nereye koyacağımı düşünmüyorum.",
+      "persona_id": "P09",
+      "editorial_type": "comic",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-48",
+      "text": "vazgeçtim diyorum. sonra dönüp bir daha bakıyorum",
+      "persona_id": "P01",
+      "editorial_type": "reflection",
+      "author_handle": "geceyedevam",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-49",
+      "text": "Önce çamaşır. Katlamak sonra.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-50",
+      "text": "Bu konuda söz vermiyorum.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-51",
+      "text": "Son parça da oturdu mu bir süre elime alıp bakıyorum. Yaptım diye.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-52",
+      "text": "Bir mesajı noktayla bitirince kızgınmışım gibi duruyor. Kızgın değilim.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-53",
+      "text": "cebe konmuş fazladan bir mandalina. birinin aklında olmak böyle bir şey olsa",
+      "persona_id": "P08",
+      "editorial_type": "reflection",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-54",
+      "text": "Her sessizliği dolduramayabilirim.",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-55",
+      "text": "“Çok yakın” dediler. Kime göre olduğunu sormamışım.",
+      "persona_id": "P31",
+      "editorial_type": "comic",
+      "author_handle": "rotayiyineyaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-56",
+      "text": "Herkes başka bir tarafını seviyor buranın. Benimki daha belli değil.",
+      "persona_id": "P34",
+      "editorial_type": "quiet",
+      "author_handle": "eminmiyiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-57",
+      "text": "bir işi bitirince burayı düşünürüm diyordum. düşünmeye önce başladım",
+      "persona_id": "P25",
+      "editorial_type": "reflection",
+      "author_handle": "yangorev",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-58",
+      "text": "Biraz deniz tarafına insem iyi olacak.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-59",
+      "text": "adım. boşluk. adım. kafamdaki ölçü böyle",
+      "persona_id": "P20",
+      "editorial_type": "reflection",
+      "author_handle": "adimritmi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-60",
+      "text": "şu konuşurken kelime seçmediğim insanlar var ya. onları özlüyorum",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-61",
+      "text": "Yeni bir sabunun ilk köpüğü. Çok seviyorum.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-62",
+      "text": "yan yana yürürken anlatacak çok şeyim varmış gibi geliyor. yüz yüze gelince hangisinden başlasam diye duruyorum",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-63",
+      "text": "Bir yere dalıp gidince biri nereye diye sorsa adres veremem.",
+      "persona_id": "P27",
+      "editorial_type": "wordplay",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-64",
+      "text": "Kuşun niye tam oraya konduğunu merak ediyorum. Oraya kadar gidemem ben.",
+      "persona_id": "P44",
+      "editorial_type": "reflection",
+      "author_handle": "koklayagidelim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-65",
+      "text": "Çizgili bir şey dikerken iki tarafı denk getirmek var ya. Asıl sabır orada.",
+      "persona_id": "P04",
+      "editorial_type": "observation",
+      "author_handle": "detaydefteri",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-66",
+      "text": "Denize bakmaya geldim diye bir açıklama gerekmese.",
+      "persona_id": "P28",
+      "editorial_type": "comic",
+      "author_handle": "guvercinmuduru",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-67",
+      "text": "Beraber biraz dolaşsak? Gidecek yer seçmeden.",
+      "persona_id": "P15",
+      "editorial_type": "quiet",
+      "author_handle": "birazdur",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-68",
+      "text": "kutuyu açmadan kılavuzu okumayı bir gün deneyeceğim",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-69",
+      "text": "Buranın on yıl sonra en çok hangi hâlini hatırlarım acaba?",
+      "persona_id": "P41",
+      "editorial_type": "reflection",
+      "author_handle": "eskidenburalar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-70",
+      "text": "Dönüşü sonra düşünürüm.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-71",
+      "text": "Anahtar için küçük bir göz var çantada. Kullanmayı hatırlarsam çok iyi fikir.",
+      "persona_id": "P23",
+      "editorial_type": "comic",
+      "author_handle": "birdonusaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-72",
+      "text": "asansör çağırınca yürüyüp gelemeyecekmiş gibi düğmeye tekrar basıyorum",
+      "persona_id": "P06",
+      "editorial_type": "reflection",
+      "author_handle": "icimdebirfilm",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-73",
+      "text": "ılık havada ceketi elde taşımak. üzerimdeyken neden bu kadar hafif değil",
+      "persona_id": "P48",
+      "editorial_type": "reflection",
+      "author_handle": "hafif_esinti",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-74",
+      "text": "Giderken hızlı yürüyüp dönüşte söylenmek istemiyorum bu sefer.",
+      "persona_id": "P47",
+      "editorial_type": "quiet",
+      "author_handle": "kendi_tempom",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-75",
+      "text": "Mandalın biri yine eksik. Bunu araştıracak enerjim yok.",
+      "persona_id": "P33",
+      "editorial_type": "comic",
+      "author_handle": "tasindavasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-76",
+      "text": "Kadıköy'de yol tarifini anlayıp yine de ters tarafa dönebilirim. Bende o var.",
+      "persona_id": "P37",
+      "editorial_type": "reflection",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-77",
+      "text": "“Sen bilirsin” kadar ayrıntılı bir cevaba karşı ne denir bilemiyorum.",
+      "persona_id": "P12",
+      "editorial_type": "comic",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-78",
+      "text": "Düğümü çözmeye uğraşırken iyice sıkıştırmam umarım.",
+      "persona_id": "P24",
+      "editorial_type": "reflection",
+      "author_handle": "ekyerinebak",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-79",
+      "text": "bazı düşünceleri eve götürmesem. burada biraz dursalar",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-80",
+      "text": "Fotoğrafa sığan denizle yetinemiyorum. Bir de telefonu indirip bakayım.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-81",
+      "text": "“Deniz tarafına dön” iyi tarif. Deniz hangi tarafımda, onu bulayım önce.",
+      "persona_id": "P07",
+      "editorial_type": "reflection",
+      "author_handle": "itirazimvar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-82",
+      "text": "fotoğrafın kenarında kesilen bir şey olunca asıl onu merak ediyorum",
+      "persona_id": "P40",
+      "editorial_type": "reflection",
+      "author_handle": "kadrajdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-83",
+      "text": "Beklerken bir başkasına “ben de bekliyorum” yazınca hafifliyor biraz.",
+      "persona_id": "P18",
+      "editorial_type": "comic",
+      "author_handle": "beklerizbiz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-84",
+      "text": "Bizim grupta birinin sadece dinlemesi de katılmak sayılsın.",
+      "persona_id": "P36",
+      "editorial_type": "quiet",
+      "author_handle": "yeracalim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-85",
+      "text": "Bir şey iptal oldu diye bütün gün bozulmasın. Boşluğu da kullanırım.",
+      "persona_id": "P02",
+      "editorial_type": "reflection",
+      "author_handle": "bplanivar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-86",
+      "text": "kedinin beni seçmesini bekliyorum. kedinin böyle bir gündemi yok",
+      "persona_id": "P29",
+      "editorial_type": "comic",
+      "author_handle": "kedionaylamadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-87",
+      "text": "belki gelirsin diye bütün günü boş bıraktığımı söylemeyeceğim",
+      "persona_id": "P35",
+      "editorial_type": "reflection",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-88",
+      "text": "İstemiyorsan planı uzatmayız.",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-89",
+      "text": "Denize bakıyorum. İşe yarıyor mu bilmiyorum, hoşuma gidiyor.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-90",
+      "text": "kıyıya kadar inelim mi. sonrasını orada konuşuruz",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-91",
+      "text": "birlikte bir yere gitsek dönüş yolunda konuşacaklarımızı gidişte bitirir miyiz diye düşünüyorum",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-92",
+      "text": "şal da aldım hırka da. havaya değil kararsızlığıma hazırlanıyorum",
+      "persona_id": "P38",
+      "editorial_type": "reflection",
+      "author_handle": "sonbirbakis",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-93",
+      "text": "deniz havası deyince burnuma geliyormuş gibi oluyor",
+      "persona_id": "P05",
+      "editorial_type": "reflection",
+      "author_handle": "tasvekoku",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-94",
+      "text": "Geldiğim yoldan döneyim. Bu sefer yolu düşünüp durmayayım.",
+      "persona_id": "P47",
+      "editorial_type": "quiet",
+      "author_handle": "kendi_tempom",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-95",
+      "text": "denizin sesini açıp uyumayı seviyorum. reklam girmezse",
+      "persona_id": "P19",
+      "editorial_type": "reflection",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-96",
+      "text": "fotoğraf çekmedim diye bir şey eksik kalmış gibi oluyor bazen",
+      "persona_id": "P30",
+      "editorial_type": "comic",
+      "author_handle": "sehircevrimici",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-97",
+      "text": "Şöyle bir dolaşıp dönmek istiyorum.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-98",
+      "text": "Bu sokaktan bir daha geçerim ben.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-99",
+      "text": "bir yere alıştığımı dönüş yolunu düşünmeyince anlıyorum galiba",
+      "persona_id": "P01",
+      "editorial_type": "reflection",
+      "author_handle": "geceyedevam",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-100",
+      "text": "Karar verirken “hiç fark etmez” deyip içimden seçenek sıralıyorum. Bu nasıl fark etmemek.",
+      "persona_id": "P09",
+      "editorial_type": "comic",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-101",
+      "text": "Eve gidince bitkileri sulamam lazım. Buraya da yazayım unutmayayım.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-102",
+      "text": "mutfağa bir bardak almaya girsem baharat kavanozlarını sıralarken bulabilirim kendimi",
+      "persona_id": "P25",
+      "editorial_type": "reflection",
+      "author_handle": "yangorev",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-103",
+      "text": "Bazen biri adımı söyleyene kadar daldığımı anlamıyorum.",
+      "persona_id": "P27",
+      "editorial_type": "wordplay",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-104",
+      "text": "boş bir zarfı atmaya kıyamıyorum. içine ne koyulacağı belli değil daha",
+      "persona_id": "P08",
+      "editorial_type": "reflection",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-105",
+      "text": "Her davete gitmeyeceğim.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-106",
+      "text": "Bir sokağı sessiz bir saatinde sevince hep öyle sanıyorum.",
+      "persona_id": "P34",
+      "editorial_type": "reflection",
+      "author_handle": "eminmiyiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-107",
+      "text": "Kısaca anlatacağım. Yalnız bir öncesi var.",
+      "persona_id": "P12",
+      "editorial_type": "comic",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-108",
+      "text": "Kâğıdı küçücük katlayıp cebime koyuyorum. Gerektiğinde de bulamıyorum.",
+      "persona_id": "P23",
+      "editorial_type": "comic",
+      "author_handle": "birdonusaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-109",
+      "text": "bir gün pastayı kendim yapsam dilimler eşit olsun diye cetvel de alırım. hayalim biraz yamuk",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-110",
+      "text": "kaybolan eşyanın yerine yenisini alsam eskisi hemen çıkar. o kısmından eminim",
+      "persona_id": "P19",
+      "editorial_type": "reflection",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-111",
+      "text": "Köpeklerin uykuda patilerini oynatmasını çok seviyorum.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-112",
+      "text": "Kitabı açmadan kapağıyla fazla vakit geçiriyorum. Kötü bir alışkanlık sayılmaz herhalde.",
+      "persona_id": "P04",
+      "editorial_type": "observation",
+      "author_handle": "detaydefteri",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-113",
+      "text": "Haritayı çevirmeden anlamaya çalışıyorum. Yalnız benim kafam kendiliğinden çeviriyor.",
+      "persona_id": "P31",
+      "editorial_type": "reflection",
+      "author_handle": "rotayiyineyaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-114",
+      "text": "Beklerken saate bakmamaya çalışıyorum. Telefonu açınca saat zaten orada.",
+      "persona_id": "P18",
+      "editorial_type": "comic",
+      "author_handle": "beklerizbiz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-115",
+      "text": "kediyle aynı evde yaşasam kuralları sırayla koysak. sıra bana ne kadar sık gelir bilmiyorum",
+      "persona_id": "P29",
+      "editorial_type": "reflection",
+      "author_handle": "kedionaylamadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-116",
+      "text": "“Tam karşısı” diyene göre ben yanlış karşıya bakıyorum sanırım.",
+      "persona_id": "P07",
+      "editorial_type": "reflection",
+      "author_handle": "itirazimvar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-117",
+      "text": "Cevap bırakmak zorunda değilsin.",
+      "persona_id": "P15",
+      "editorial_type": "quiet",
+      "author_handle": "birazdur",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-118",
+      "text": "bulaşık makinesinde koca tencereyi nereye koyacağım konusu ayrı bir ders olmalı",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-119",
+      "text": "mühürdar fuat. sokak isimlerini aklımda tutabilsem adres sormam kolaylaşacak",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-120",
+      "text": "Bir şey nasıl yapılmış diye bakarken arkasını çeviriyorum. Önünü beğenmek yetmiyor bana.",
+      "persona_id": "P24",
+      "editorial_type": "reflection",
+      "author_handle": "ekyerinebak",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-121",
+      "text": "bir filmde olsam ben konuşmaya hazırlanana kadar sahne değişirdi",
+      "persona_id": "P06",
+      "editorial_type": "reflection",
+      "author_handle": "icimdebirfilm",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-122",
+      "text": "bir sohbeti sevip yine de bitirmek isteyebilirim",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-123",
+      "text": "Tur bitti diye eve dönmek zorunda değilim. Bir tur daha atabilirim.",
+      "persona_id": "P47",
+      "editorial_type": "quiet",
+      "author_handle": "kendi_tempom",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-124",
+      "text": "Yürümeye çıkıyorum deyince nereye diye sorulmasa. Henüz bilmiyorum.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-125",
+      "text": "“Küçük bir rica” denince günün kalanını merak ediyorum.",
+      "persona_id": "P33",
+      "editorial_type": "comic",
+      "author_handle": "tasindavasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-126",
+      "text": "bir şey sorabilir miyim diye sormak da bir soru. asıl soruya kadar iyice tanışmış oluyoruz",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-127",
+      "text": "Aklıma gelirse söylerim.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-128",
+      "text": "iki seçenek arasında üçüncüyü düşünmeye başladım. kararın değil listenin sonu yok",
+      "persona_id": "P35",
+      "editorial_type": "reflection",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-129",
+      "text": "mektuptan seni ikna etmeye çalıştığım yerleri çıkarsam geriye az şey kalıyor. ama daha doğru",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-130",
+      "text": "Kadıköy'ü biraz da işim yokken dolaşmak istiyorum.",
+      "persona_id": "P37",
+      "editorial_type": "reflection",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-131",
+      "text": "listeyi hazırlamak da yapılacak işlere girdi",
+      "persona_id": "P45",
+      "editorial_type": "comic",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-132",
+      "text": "bir hırka için bu kadar dolap karıştırmaya değmez diyeceğim. aklımda o hırka var ama",
+      "persona_id": "P38",
+      "editorial_type": "reflection",
+      "author_handle": "sonbirbakis",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-133",
+      "text": "İlk defa geldiğim yerde biraz etrafa bakmadan soru soramıyorum.",
+      "persona_id": "P37",
+      "editorial_type": "reflection",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-134",
+      "text": "aklımdaki her şeyi not etsem bu sefer de notları bulamam",
+      "persona_id": "P30",
+      "editorial_type": "comic",
+      "author_handle": "sehircevrimici",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-135",
+      "text": "yeni açılmış bir defterin kokusu. yanına koyacak başka bir şey bulamıyorum",
+      "persona_id": "P05",
+      "editorial_type": "reflection",
+      "author_handle": "tasvekoku",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-136",
+      "text": "Bir köpek aynı yeri uzun uzun koklayınca merak ediyorum. Ben neyi kaçırıyorum orada?",
+      "persona_id": "P44",
+      "editorial_type": "reflection",
+      "author_handle": "koklayagidelim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-137",
+      "text": "planı değiştirmek istersen bana uzun bir gerekçe hazırlamana gerek yok",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-138",
+      "text": "Çanta dolu. Anahtar dışarıda. İşin bu kısmını düşünmemişim.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-139",
+      "text": "Güvercine yol verince kendimi biraz fazla nazik buluyorum.",
+      "persona_id": "P28",
+      "editorial_type": "comic",
+      "author_handle": "guvercinmuduru",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-140",
+      "text": "“Bana uyar” dedin ama gerçekten ne istediğini de merak ediyorum.",
+      "persona_id": "P36",
+      "editorial_type": "reflection",
+      "author_handle": "yeracalim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-141",
+      "text": "Denizi seyretmek istiyorum.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-142",
+      "text": "fotoğrafı paylaşırken dağınık tarafı göstermemek de epey iş",
+      "persona_id": "P40",
+      "editorial_type": "reflection",
+      "author_handle": "kadrajdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-143",
+      "text": "rüzgârın sesini duyunca önce pencere açık mı diye bakıyorum",
+      "persona_id": "P48",
+      "editorial_type": "reflection",
+      "author_handle": "hafif_esinti",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-144",
+      "text": "Yemek yapmaya heveslenirsem önce dolaba bakacağım. Eksik çıkarsa daha az malzemeli bir şey olur.",
+      "persona_id": "P02",
+      "editorial_type": "reflection",
+      "author_handle": "bplanivar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-145",
+      "text": "Bir evi düşününce içindeki sesler de geliyor mu size?",
+      "persona_id": "P41",
+      "editorial_type": "reflection",
+      "author_handle": "eskidenburalar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-146",
+      "text": "şarkı başlamadan ben içimden nakarata geçmiş oluyorum",
+      "persona_id": "P20",
+      "editorial_type": "reflection",
+      "author_handle": "adimritmi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-147",
+      "text": "denizi haritada görünce küçücük sanıyorum. karşısına geçince düzeliyor",
+      "persona_id": "P19",
+      "editorial_type": "reflection",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-148",
+      "text": "Aynı sokak sabah başka, akşam başka geliyor. Bir de benim keyfime bağlı.",
+      "persona_id": "P43",
+      "editorial_type": "reflection",
+      "author_handle": "sehrinsaati",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-149",
+      "text": "Sabah buluşalım demek kolay. Sabah hazırlanmak ayrıca konuşulsun.",
+      "persona_id": "P43",
+      "editorial_type": "reflection",
+      "author_handle": "sehrinsaati",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-150",
+      "text": "Bir yere yetişmiyorsam yolun uzaması o kadar sorun değil.",
+      "persona_id": "P43",
+      "editorial_type": "reflection",
+      "author_handle": "sehrinsaati",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-1",
+      "text": "Birine adımı söylerken neden soyadımı da ekleyesim geliyor? Yoklama alınmıyor sonuçta.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-2",
+      "text": "Canım istemiyor. Sebebini büyütmeyeceğim.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-3",
+      "text": "kendime not: bir şeyi unuttuğumu sanıp tekrar tekrar kontrol etmek de epey oyalıyor",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-4",
+      "text": "Kumbaracı Yokuşu. İsmini seviyorum, yokuş kısmıyla ayrıca anlaşacağız.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-5",
+      "text": "seninle bir şeye karar verememek nasıl bu kadar keyifli olabilir, onu anlamıyorum",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-6",
+      "text": "bir işe başlamadan önce masayı toplamaya girişme isteği. işin kendisinden daha çekici",
+      "persona_id": "P25",
+      "editorial_type": "reflection",
+      "author_handle": "yangorev",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-7",
+      "text": "Ellerim doluyken önce anahtarı bulmak istiyorum. Diğerleri sonra.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-8",
+      "text": "İstiklal'i birine anlatmaya kalksam nereden başlayacağımı bilemem.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-9",
+      "text": "aynı masada herkes konuşurken biraz dinleyen tarafta kalmak hoşuma gidiyor",
+      "persona_id": "P26",
+      "editorial_type": "reflection",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-10",
+      "text": "Bir şey seçmeden de bakınabilirim.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-11",
+      "text": "biraz daha düşünsem fikrim değişecek. değişsin istemiyorum ama düşünmeyi de bırakmıyorum",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-12",
+      "text": "Kâğıdı katlayınca kenarları denk gelsin. Küçük bir sevincim var.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-13",
+      "text": "bir fikre katılmadığımı söylerken önce gülümsemeyi bırakmam mı gerekir, onu kestiremiyorum",
+      "persona_id": "P14",
+      "editorial_type": "comic",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-14",
+      "text": "İstemediğim bir şeye hevesliymişim gibi yapmayacağım.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-15",
+      "text": "biri bana bir çizimini gösterse kafamda hemen birlikte asacak yer arıyorum",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-16",
+      "text": "bir yere girerken herkes bana bakacak sanıyorum. herkesin kendi işi var aslında",
+      "persona_id": "P06",
+      "editorial_type": "reflection",
+      "author_handle": "icimdebirfilm",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-17",
+      "text": "Önce şu çantanın fermuarı. Ucu kumaşa takılmasın yeter.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-18",
+      "text": "Bunu iyi söylediğin için mi haklı buluyorum, bir düşüneyim.",
+      "persona_id": "P34",
+      "editorial_type": "reflection",
+      "author_handle": "eminmiyiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-19",
+      "text": "küçücük bir hediyeyi paketlemek için gösterilen özene zaafım var",
+      "persona_id": "P08",
+      "editorial_type": "reflection",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-20",
+      "text": "Sadece etrafa bakmak istiyorum.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-21",
+      "text": "Sokak adını biliyorum diye orayı biliyor sayılmam. Yol sorunca anlaşılıyor.",
+      "persona_id": "P37",
+      "editorial_type": "question",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-22",
+      "text": "Yedek düğmeleri saklıyorum. Hangi kıyafetindi diye ayrı bir düşünme işim var.",
+      "persona_id": "P28",
+      "editorial_type": "comic",
+      "author_handle": "guvercinmuduru",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-23",
+      "text": "Hevesim kaçmadan başlayayım. Ayrıntıları sonra anlatırım.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-24",
+      "text": "“Lafı uzatmayayım” diyorsan bitireceğin yere gelmişizdir umarım.",
+      "persona_id": "P27",
+      "editorial_type": "wordplay",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-25",
+      "text": "Hediyeyi tahmin etmeye çalışmayacağım. Paketi açarken öğreneyim.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-26",
+      "text": "Listeyle uğraşırken listedekilere vakit kalmadı.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-27",
+      "text": "fotoğrafta biraz da dağıttığımız yer görünsün. orada da biz varız",
+      "persona_id": "P40",
+      "editorial_type": "reflection",
+      "author_handle": "kadrajdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-28",
+      "text": "Beyoğlu'nu bir kelimeyle anlatmam gerekse epey susarım.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-29",
+      "text": "Biraz da ben anlatayım mı?",
+      "persona_id": "P12",
+      "editorial_type": "reflection",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-30",
+      "text": "bir şey anlatmak zorunda değilsin. aynı yerde susabiliriz de",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-31",
+      "text": "lüleci hendek. adı aklımda kalıyor, ne tarafa döneceğim kalmıyor",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-32",
+      "text": "Eşyaları üst üste yığmayayım. Alttakini de almam gerekecek.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-33",
+      "text": "belki de seçeceğim şeyden çok, diğerini seçmemiş olmaya takılacağım",
+      "persona_id": "P35",
+      "editorial_type": "reflection",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-34",
+      "text": "Havada yavaş yavaş düşen bir tüyü sonuna kadar izleyebilirim.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-35",
+      "text": "İnsanlara “tanıştığımıza memnun oldum” derken sesimi neden resmileştiriyorum, bilmiyorum.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-36",
+      "text": "Aklıma geldi diye hemen söylemem gerekmiyor. Biraz durayım.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-37",
+      "text": "sana nasıl sesleneceğimi düşünürken yazacağım şeyi unutuyorum",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-38",
+      "text": "bir şeyi sökmeden önce nasıl durduğuna bakmak. sonra neden geri takamıyorum diye düşünmemek için",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-39",
+      "text": "Herkese yetişmeye çalışmayacağım.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-40",
+      "text": "Sıra yavaş gidiyorsa öndekilerin ne aldığına bakıyorum. İşe yaramıyor tabii.",
+      "persona_id": "P18",
+      "editorial_type": "comic",
+      "author_handle": "beklerizbiz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-41",
+      "text": "sohbete dönmek istiyorum ama son söylediğim cümleyi kafamda bir kez daha duymadan olmuyor",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-42",
+      "text": "Bir şeyle uğraşırken etrafı biraz unutmayı seviyorum. Bitince bakarım.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-43",
+      "text": "iltifat edince karşılık bekliyormuş gibi durur muyum? bir şey söylemeden önce oraya takılıyorum",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-44",
+      "text": "Buranın eski fotoğrafına baksam önce aynı kalan şeyi ararım galiba.",
+      "persona_id": "P41",
+      "editorial_type": "question",
+      "author_handle": "eskidenburalar",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-45",
+      "text": "Kâğıdın üstüne bastırmadan yazayım. Arka sayfaya izi çıkmasın.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-46",
+      "text": "o rengi seviyorum. ama her şeyimi o renkte seçmeye başlayınca başka renkleri de özlüyorum",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-47",
+      "text": "Meşrutiyet'i mesajda yanlış yazdım mı diye dönüp kontrol ediyorum.",
+      "persona_id": "P37",
+      "editorial_type": "reflection",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-48",
+      "text": "kafamdaki tartışmada sözümü hiç kesmiyorsun. gerçektekinden en büyük farkı bu",
+      "persona_id": "P06",
+      "editorial_type": "reflection",
+      "author_handle": "icimdebirfilm",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-49",
+      "text": "Beni ilgilendirmeyen kısmına karışmayacağım.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-50",
+      "text": "mumhane. bir sokak adını sevince her tabelada görmeye başlıyorum",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-51",
+      "text": "Yok, fikrim değişmedi. Yine de tekrar sorduğun için sağ ol.",
+      "persona_id": "P12",
+      "editorial_type": "comic",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-52",
+      "text": "bir kitabın arasına kuru bir yaprak koyma fikrini seviyorum",
+      "persona_id": "P08",
+      "editorial_type": "reflection",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-53",
+      "text": "belki sen bambaşka bir şey düşünüyorsun şimdi",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-54",
+      "text": "aklımdaki itiraza güncelleme gelmiş. eski sürümünü savunurken fark etmedim",
+      "persona_id": "P30",
+      "editorial_type": "comic",
+      "author_handle": "sehircevrimici",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-55",
+      "text": "Sonu geldi diye işi aceleye getirmesem. En çok orada bozuyorum.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-56",
+      "text": "İçimden geldiği gibi yazınca çok silmem gerekiyor.",
+      "persona_id": "P27",
+      "editorial_type": "wordplay",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-57",
+      "text": "Makasla düz kesebildiğim gün kendime biraz güven geliyor.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-58",
+      "text": "bir çekmeceyi düzenlemeye kalksam içindekileri tek tek inceleyerek asıl işi unuturum",
+      "persona_id": "P25",
+      "editorial_type": "reflection",
+      "author_handle": "yangorev",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-59",
+      "text": "Hoşuma giden her şeyi saklamayacağım.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-60",
+      "text": "Saat seçerken en erken kalkacak kişiyi de soralım. Sonradan üzülmeyelim.",
+      "persona_id": "P36",
+      "editorial_type": "reflection",
+      "author_handle": "yeracalim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-61",
+      "text": "Kendime cuma dedim. Kendim de inanmışım.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-62",
+      "text": "Bağcığın bir ucu kısacık kaldı. Yeniden başlayacağım mecbur.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-63",
+      "text": "biri bir yere oturmak için yer sorsa kafamda bütün bir dostluk başlıyor",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-64",
+      "text": "Biraz da nereye varacağımı düşünmeden yürüyeyim.",
+      "persona_id": "P47",
+      "editorial_type": "quiet",
+      "author_handle": "kendi_tempom",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-65",
+      "text": "Biri gülümseyince hemen neye güldüğünü anlamaya çalışıyorum. Belki bana bile değil.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-66",
+      "text": "sana bir şey beğendirmek için fazla uğraşınca beğendiğim şeyi unutuyorum",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-67",
+      "text": "Elim değmişken bitireyim. Yarın aynı işe başlamak daha zor gelecek.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-68",
+      "text": "Sana hemen hak verince son söylediğini kaçırdım. Bir daha söyler misin?",
+      "persona_id": "P34",
+      "editorial_type": "reflection",
+      "author_handle": "eminmiyiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-69",
+      "text": "Üstüme olmuyor. Sırf seviyorum diye saklamasam mı?",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-70",
+      "text": "“bilmiyorum” cevabını eksik sanıyorum bazen. altına bir şey eklemeden bırakmayı deneyeyim",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-71",
+      "text": "iki seçenek arasında kaldım diyorum. belki ikisini de istemiyorum",
+      "persona_id": "P35",
+      "editorial_type": "question",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-72",
+      "text": "Kurcalaya kurcalaya bir şeyin nasıl çalıştığını çözmek hoşuma gidiyor.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-73",
+      "text": "Kalemi açtıkça yazacağım şeyden süre gidiyor.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-74",
+      "text": "Bir yere sadece ismini sevdiğim için gitmek istiyorum.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-75",
+      "text": "aynı şeye gülünce sohbet daha kolay geliyor. hemen bir şey anlatmam gerekmiyor",
+      "persona_id": "P26",
+      "editorial_type": "reflection",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-76",
+      "text": "Çorabın dikişini düzelttim sanıyorum. Ayakkabıyı giyince yeniden başlıyoruz.",
+      "persona_id": "P33",
+      "editorial_type": "comic",
+      "author_handle": "tasindavasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-77",
+      "text": "En küçüğünü ayrı koyayım. Kaybolursa bütün kutuyu boşaltacağım.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-78",
+      "text": "birine adımı hatırlatırken kendimden üçüncü kişi gibi söz etmeden nasıl söyleyeceğim",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-79",
+      "text": "Başlayayım da. Devamını oturup düşündüğüm yetti.",
+      "persona_id": "P47",
+      "editorial_type": "quiet",
+      "author_handle": "kendi_tempom",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-80",
+      "text": "bazı kelimeleri anlamından çok sesinden seviyorum",
+      "persona_id": "P20",
+      "editorial_type": "reflection",
+      "author_handle": "adimritmi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-81",
+      "text": "birinin sevdiği rengi aklımda tutmak istiyorum. sorarsa nedenini söylemeyebilirim",
+      "persona_id": "P08",
+      "editorial_type": "reflection",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-82",
+      "text": "Bankalar Caddesi'nde adres ararken yokuşu da hesaba katmak lazım.",
+      "persona_id": "P03",
+      "editorial_type": "observation",
+      "author_handle": "izbirakan",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-83",
+      "text": "gitmeye karar verince ilk çantayı hazırlıyorum. ne düşündüğümü sonra anlıyorum",
+      "persona_id": "P38",
+      "editorial_type": "reflection",
+      "author_handle": "sonbirbakis",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-84",
+      "text": "Bitirdim ama elimden bırakmak istemiyorum. Bir bakayım daha.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-85",
+      "text": "Sözünüzü bitirmenizi bekliyorum. Benimkine daha başlamadık.",
+      "persona_id": "P12",
+      "editorial_type": "reflection",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-86",
+      "text": "Bir yere alışınca tabelaları okumayı bırakıyorum. Sonra adres sorulunca kalakalıyorum.",
+      "persona_id": "P37",
+      "editorial_type": "question",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-87",
+      "text": "Yanlış anlattım. Aynısını daha yüksek sesle söylemek çözmeyecek.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-88",
+      "text": "küçük mumhane sokağı. adı bile tarifin bir parçası gibi",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-89",
+      "text": "Her şeyi sıraladım. Şimdi neyi aradığımı hatırlamam gerekiyor.",
+      "persona_id": "P23",
+      "editorial_type": "comic",
+      "author_handle": "birdonusaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-90",
+      "text": "Tek başıma dolaşma fikrini sevdim.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-91",
+      "text": "Yazınca iyi duruyor. Sesli okuyunca kendim konuşuyormuşum gibi gelmiyor.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-92",
+      "text": "bulmacada bir kelimeyi bulunca kalemi daha kararlı tutmaya başlıyorum",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-93",
+      "text": "Bir şeyi koyacağım yere önce boş yer açmam gerekiyor. Hep o kısmı atlıyorum.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-94",
+      "text": "söyleyeceğin şeyi seçmek uzarsa bekleyebilirim. hemen cevap istemiyorum",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-95",
+      "text": "yedek aldım. nereye kaydettiğimi yazdığım notun da yedeği lazım şimdi",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-96",
+      "text": "Aradığım kelimeyi hatırladım. Konu değişti ama ben söyleyeceğim.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-97",
+      "text": "bir kapak kapanmıyorsa hep daha çok bastırmayı düşünüyorum. içindekileri düzeltmek sonra aklıma geliyor",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-98",
+      "text": "Bu sefer fikrimi değiştirdiğim için özür dilemeyeceğim.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-99",
+      "text": "Boya kururken bakıp duruyorum. Dokunmazsam daha çabuk bitecek iş aslında.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-100",
+      "text": "mektubun sonuna geldim. bitirmek için bir cümle daha yazdım. şimdi yine sonuna geldim",
+      "persona_id": "P38",
+      "editorial_type": "reflection",
+      "author_handle": "sonbirbakis",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-1",
+      "text": "Şaşırınca ağzımdan önce bir “aa” çıkıyor. Ne diyeceğimi sonra düşünüyorum.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-2",
+      "text": "Bu sefer açıklamayı kısa tutacağım.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-3",
+      "text": "tunalı'da bir işim olmasa da yürüyebilirim",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-4",
+      "text": "Anahtarları aynı göze koyacağım. Her çantada yerlerini yeniden aramak istemiyorum.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-5",
+      "text": "Erken gelince bekleme hakkı kazanmış gibi oluyorum. Pek iyi bir ödül değil.",
+      "persona_id": "P18",
+      "editorial_type": "comic",
+      "author_handle": "beklerizbiz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-6",
+      "text": "veda ederken el mi sallasam, baş mı sallasam? ikisini birden yapınca tören oluyor.",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-7",
+      "text": "şarkının bilmediğim yerine geldim. sesimi biraz kısayım",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-8",
+      "text": "“Bir ara görüşelim”i takvimde bir yere koysak artık.",
+      "persona_id": "P27",
+      "editorial_type": "question",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-9",
+      "text": "kalabalık bir masayı severim. masanın en konuşkan kişisi olmayı değil.",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-10",
+      "text": "bir yarışmaya katılsam önce kazanmış gibi ne diyeceğimi düşünürüm. henüz başvurmadım",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-11",
+      "text": "Yarım bıraktığım hikâyenin sonunu bulunca başını beğenmeyebilirim. Olsun, bir bitsin.",
+      "persona_id": "P33",
+      "editorial_type": "comic",
+      "author_handle": "tasindavasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-12",
+      "text": "İki kelimeyle anlaştık. Uzatmayayım.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-13",
+      "text": "Hemen sevmemem, onda bir sorun olduğu anlamına gelmiyor. Bazen bana zaman gerekiyor.",
+      "persona_id": "P34",
+      "editorial_type": "reflection",
+      "author_handle": "eminmiyiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-14",
+      "text": "sana yazacak olsam giriş cümlesini atlarım. en çok orada oyalanıyorum.",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-15",
+      "text": "Kutunun her yüzünü okudum. Açma kısmına yeni geliyorum.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-16",
+      "text": "Tunalı'da buluşalım deyip tam nerede olduğunu söylemeyi unutmayalım.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-17",
+      "text": "bir şarkıyı çok dinleyince sevdiğimden mi alıştığımdan mı açıyorum, ayıramıyorum",
+      "persona_id": "P35",
+      "editorial_type": "reflection",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-18",
+      "text": "yemek tarifine bakarken tarifi anlatan kişinin başka neler yazdığını merak ederim. sıra yemeğe gelmeyebilir.",
+      "persona_id": "P25",
+      "editorial_type": "reflection",
+      "author_handle": "yangorev",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-19",
+      "text": "bir şey demeyecektim. ama yanlış anlaşıldım diye biraz daha anlatacağım",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-20",
+      "text": "birinin adını defterin kenarına küçük yazmak. fazla yer kaplamasın diye değil.",
+      "persona_id": "P08",
+      "editorial_type": "quiet",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-21",
+      "text": "Adrese hep aynı taraftan gelmeye alışınca öbür tarafta aynı yeri tanıyamıyorum.",
+      "persona_id": "P31",
+      "editorial_type": "comic",
+      "author_handle": "rotayiyineyaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-22",
+      "text": "bir cevap beklemiyorum. söylemek istedim sadece",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-23",
+      "text": "çok havalı gireceğim bir yerde montun koluna takılmam ihtimal dahilinde",
+      "persona_id": "P06",
+      "editorial_type": "reflection",
+      "author_handle": "icimdebirfilm",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-24",
+      "text": "vedalaştık. şimdi aynı tarafa yürürsek yeniden konuşmamız gerekecek",
+      "persona_id": "P38",
+      "editorial_type": "quiet",
+      "author_handle": "sonbirbakis",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-25",
+      "text": "Kısa açıklama deyince sevindim. Henüz o kısa kısma gelemedik.",
+      "persona_id": "P12",
+      "editorial_type": "comic",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "ankara-26",
+      "text": "Biraz daha dışarıda kalmak isterim. Özel bir sebebi yok.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "ankara-27",
+      "text": "Perde: Gün ışığı girmesin mi? Pencere: Biraz girsin. Uyanmış gibi yapalım.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmir-1",
+      "text": "Teşekkür edene ben de teşekkür ediyorum. Konuşmayı biri kapatsın artık.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmir-2",
+      "text": "İstemediğim şeye ayrıca bir bahane bulmayacağım.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmir-3",
+      "text": "Bir yerin tabeladaki adıyla herkesin kullandığı adı aynı olmayınca afallıyorum.",
+      "persona_id": "P37",
+      "editorial_type": "question",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmir-4",
+      "text": "kıbrıs şehitleri'nde buluşalım. tamam ama cadde uzun, biraz daha tarif et",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmir-5",
+      "text": "Önce kime yazdığımı kontrol edeceğim. Sonra selam. Asıl konuya ondan sonra girerim.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmir-6",
+      "text": "birine adını yeniden sormak için kaç cümle hazırlamak gerekiyor? doğrudan sormak var bir de.",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmir-7",
+      "text": "birlikte susabildiğim insanlarla konuşmayı da seviyorum.",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmir-8",
+      "text": "Aklımdaki melodiyi bulabilsem. Mırıldanınca da şarkıya benzemiyor.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmir-9",
+      "text": "Bir çırpıda yapılacak işin hazırlığı iki saat sürdü.",
+      "persona_id": "P27",
+      "editorial_type": "question",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmir-10",
+      "text": "kapıyı kapatınca anahtar var mı diye bakma alışkanlığım var. sırayı değiştirebilirim aslında",
+      "persona_id": "P20",
+      "editorial_type": "reflection",
+      "author_handle": "adimritmi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmir-11",
+      "text": "Taş: Üzerime basıp duruyorlar. Derz: Benim üstümden atlıyorlar, alınmıyorum.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "bursa-1",
+      "text": "birinin benim için seçtiği lakabı sevmem biraz da onun söyleyişinden.",
+      "persona_id": "P08",
+      "editorial_type": "quiet",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "bursa-2",
+      "text": "İki soru sordum. “Evet” geldi. Hangisine olduğunu yeni bir mesajda soracağım.",
+      "persona_id": "P23",
+      "editorial_type": "comic",
+      "author_handle": "birdonusaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "bursa-3",
+      "text": "Burayı biriyle gezmek isterim.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "bursa-4",
+      "text": "sana bir mektup yazsam “nasılsın”dan sonra dururum. asıl cevabı orada isterim.",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "bursa-5",
+      "text": "Bekliyorum. Başka bir şey yapıyormuş gibi görünmeye çalışmıyorum.",
+      "persona_id": "P18",
+      "editorial_type": "quiet",
+      "author_handle": "beklerizbiz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "bursa-6",
+      "text": "oyunda hangi taşı alacağımı çok düşünüyorum. daha oyun başlamadı",
+      "persona_id": "P35",
+      "editorial_type": "quiet",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "bursa-7",
+      "text": "kılavuzu tekrar aynı şekilde katlamak kurmaktan zor",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "bursa-8",
+      "text": "Fotoğrafta olmak istemeyen varsa zorlamayalım. Bir sonraki karede de sorup durmayalım.",
+      "persona_id": "P36",
+      "editorial_type": "quiet",
+      "author_handle": "yeracalim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "bursa-9",
+      "text": "Dönüş için ayrı bir hedef koymayacağım. Eve dönmek yeter.",
+      "persona_id": "P47",
+      "editorial_type": "quiet",
+      "author_handle": "kendi_tempom",
+      "author_attribution": "named"
+    },
+    {
+      "id": "bursa-10",
+      "text": "Duvar: Biraz renk ister misin? Boya: Önce şu eskisini çıkaralım.",
+      "persona_id": "P19",
+      "editorial_type": "comic",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "antalya-1",
+      "text": "şapka bana yakışmıyor diyorum. bir tane daha deneyip yine söyleyeceğim",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "antalya-2",
+      "text": "“Sen bilirsin” cümlesinin gerçekten bana bırakılan çeşidini rica ediyorum.",
+      "persona_id": "P12",
+      "editorial_type": "comic",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "antalya-3",
+      "text": "Gömlek askıya. Ceket ayrı yere. Sandalyeye bir şey yığmamayı deneyeceğim.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "antalya-4",
+      "text": "ışıklar'da buluşalım deyince trafik ışıklarını kastetmiyorum. bir kere daha açıklayayım",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "antalya-5",
+      "text": "Bir şaka var, sana anlatmam lazım. Şimdi yazarsam komik olmayacak.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "antalya-6",
+      "text": "birine el sallamayı düşünürken fazla düşünürsem hareketin kendisi tuhaflaşacak.",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "antalya-7",
+      "text": "Nereye oturalım diye konuşurken oturma isteğim biraz azalıyor.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "antalya-8",
+      "text": "birlikte oturuyorsak konuşacak konu bulmaya çalışmayabiliriz.",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "antalya-9",
+      "text": "Bunu nereden biliyorum? Bilen biri gibi söyledim ama.",
+      "persona_id": "P34",
+      "editorial_type": "reflection",
+      "author_handle": "eminmiyiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "antalya-10",
+      "text": "arkadaşlarımı çizebilsem beni hemen tanırlar mı diye merak ediyorum. kendimi değil, onları",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "antalya-11",
+      "text": "Tabela: Bağırmıyorum. Yazı tipim böyle.",
+      "persona_id": "P28",
+      "editorial_type": "comic",
+      "author_handle": "guvercinmuduru",
+      "author_attribution": "named"
+    },
+    {
+      "id": "eskisehir-1",
+      "text": "Duyamadım. Anlamış gibi başımı sallamak yerine yeniden sorayım.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "eskisehir-2",
+      "text": "Bunu bir yarışa çevirmeyeceğim.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "eskisehir-3",
+      "text": "“Aklının bir köşesinde kalsın” iyi de benim köşeler hep dolu.",
+      "persona_id": "P27",
+      "editorial_type": "question",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "eskisehir-4",
+      "text": "bazı insanların hoşça kal derken sesi değişiyor. o hâlini de tanıyorum",
+      "persona_id": "P38",
+      "editorial_type": "quiet",
+      "author_handle": "sonbirbakis",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "eskisehir-5",
+      "text": "misafir ağırlamayı seviyorum. evin her köşesini ayrıca anlatmam gerekmese daha da severim.",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "eskisehir-6",
+      "text": "adresi yazarken sokaktaki kişinin kim olduğunu merak ettim. ev numarası aklımdan çıktı",
+      "persona_id": "P25",
+      "editorial_type": "reflection",
+      "author_handle": "yangorev",
+      "author_attribution": "named"
+    },
+    {
+      "id": "eskisehir-7",
+      "text": "Buraya ayıracak bir öğleden sonram olsun isterim.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "eskisehir-8",
+      "text": "bu lafı kimden duyduğumu unuttum. sanki kendim bulmuşum gibi de söylemeyeyim",
+      "persona_id": "P01",
+      "editorial_type": "question",
+      "author_handle": "geceyedevam",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "eskisehir-9",
+      "text": "Fıkranın sonu aklımdan çıktı. Buraya kadar siz de geldiniz, biraz bekleyin.",
+      "persona_id": "P33",
+      "editorial_type": "comic",
+      "author_handle": "tasindavasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "eskisehir-10",
+      "text": "boş evde kendi ayak sesimi duymak garip geliyor",
+      "persona_id": "P20",
+      "editorial_type": "reflection",
+      "author_handle": "adimritmi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "eskisehir-11",
+      "text": "Köşe: Dönmeyecek misin? Cetvel: Ben buradan böyle devam ediyorum.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "konya-1",
+      "text": "filmi anlatmıyorum, sadece hangi film olduğunu bulmaya çalışıyorum. biraz uzadı",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "konya-2",
+      "text": "Anahtarlık hafif olsun diye anahtarları ayırdım. Şimdi iki anahtarlık taşıyorum.",
+      "persona_id": "P23",
+      "editorial_type": "comic",
+      "author_handle": "birdonusaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "konya-3",
+      "text": "benimle aynı şeye gülecek birini düşünmek. anlatmadan önceki kısmı da güzel.",
+      "persona_id": "P08",
+      "editorial_type": "quiet",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "konya-4",
+      "text": "biri “rahatına bak” derse daha mı rahat oturmalıyım? oturuşumu düşünmeye başlayacağım kesin.",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "konya-5",
+      "text": "anlatırken komik olacak sandım. henüz gülmeyin, bir yeri daha var",
+      "persona_id": "P35",
+      "editorial_type": "quiet",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "konya-6",
+      "text": "Yapacaklarımı yazdım. Erteleyeceklerimi başka renk kalemle işaretlemesem de olur.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "konya-7",
+      "text": "İki parça tam oturunca çıkan o sesi seviyorum.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "konya-8",
+      "text": "sana bir şey anlatacaksam en komik kısmını saklamak isterim. yüzünü görmeden sonuna geçmeyeyim.",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "konya-9",
+      "text": "Bir süre ne yapacağıma karar vermeyeceğim. Öyle daha rahatım.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "konya-10",
+      "text": "kutusunu atacağım. kutu güzel ama. en azından içine ne koyabileceğimi bir düşüneyim.",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "konya-11",
+      "text": "Lamba: Kapatacak mısın? Kablo: Birbirimize bakıp durmayalım artık.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "gaziantep-1",
+      "text": "Bu konuya geri dönmeyeceğim.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "gaziantep-2",
+      "text": "Cevabı “hı?” dedikten hemen sonra anlıyorum. Tekrar anlatıyorlar, dinliyorum mecbur.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "gaziantep-3",
+      "text": "Gaziler Caddesi'ni biri tarif etse isimleri sırayla unuturum. Bir köşe söylese daha iyi.",
+      "persona_id": "P37",
+      "editorial_type": "question",
+      "author_handle": "semtacemisi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "gaziantep-4",
+      "text": "Fikrimi değiştirmeye açık olduğumu söyledim. Her cümlede değiştireceğimi söylemedim.",
+      "persona_id": "P12",
+      "editorial_type": "comic",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "gaziantep-5",
+      "text": "gaziler caddesi'ne bir de acelem yokken bakmak isterim",
+      "persona_id": "P40",
+      "editorial_type": "reflection",
+      "author_handle": "kadrajdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "gaziantep-6",
+      "text": "bir pencere rüya görse, çerçevenin dışına çıkabilir mi?",
+      "persona_id": "P19",
+      "editorial_type": "question",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmit-1",
+      "text": "“Şöyle bak” diyorsun ama eli de oynatman gerekiyor. Şöyle hangi taraf?",
+      "persona_id": "P27",
+      "editorial_type": "question",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmit-2",
+      "text": "birlikte bir şey yaparken herkesin sürekli konuşması gerekmese iyi olur.",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmit-3",
+      "text": "Dosya adı: son. Dosya adı: son2. İnsan bir yere kadar kararlı olabiliyor.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmit-4",
+      "text": "Oyunun nasıl oynandığını bilmeyen biri varsa baştan anlatmayı dert etmem.",
+      "persona_id": "P36",
+      "editorial_type": "quiet",
+      "author_handle": "yeracalim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmit-5",
+      "text": "oyunu biliyorum. kuralları anlatırken bilmediğim yerler çıkıyor",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmit-6",
+      "text": "Önce ne soracağımı düşüneceğim. Sonra ararım. Konuşurken konu ekleniyor zaten.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmit-7",
+      "text": "“az çok” kadar rahat anlaşan iki kelime daha var mı?",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmit-8",
+      "text": "Ben bunu böyle anladım. Senin demek istediğin o olmayabilir.",
+      "persona_id": "P34",
+      "editorial_type": "reflection",
+      "author_handle": "eminmiyiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmit-9",
+      "text": "vedalaştıktan sonra söyleyeceğim esas şeyi hatırlıyorum genelde",
+      "persona_id": "P38",
+      "editorial_type": "quiet",
+      "author_handle": "sonbirbakis",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "izmit-10",
+      "text": "Beklemeyeceğim demiyorum. Ne kadar bekleyeceğimi bilsem yeter.",
+      "persona_id": "P18",
+      "editorial_type": "comic",
+      "author_handle": "beklerizbiz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "izmit-11",
+      "text": "Bina: Yoruldun mu? Temel: Oturacak yerim yok.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "samsun-1",
+      "text": "Rica edeceğim diye o kadar giriş yaptım ki ne istediğimi unuttum.",
+      "persona_id": "P09",
+      "editorial_type": "reflection",
+      "author_handle": "azicikmahcup",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "samsun-2",
+      "text": "ellerimi kullanmadan yol tarif edemiyorum. telefonda olduğumu sonradan hatırlıyorum",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "samsun-3",
+      "text": "Her soruya bir cevabım olmayacak.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "samsun-4",
+      "text": "filmde anlatıcı yanlış biliyorsa ben kime inanacağım şimdi",
+      "persona_id": "P06",
+      "editorial_type": "reflection",
+      "author_handle": "icimdebirfilm",
+      "author_attribution": "named"
+    },
+    {
+      "id": "samsun-5",
+      "text": "Aynı iş için üç liste yapmışım. Birleştirmek dördüncü iş olacak.",
+      "persona_id": "P23",
+      "editorial_type": "comic",
+      "author_handle": "birdonusaz",
+      "author_attribution": "named"
+    },
+    {
+      "id": "samsun-6",
+      "text": "anlatmak istemiyorsan başka bir şeyden konuşabiliriz.",
+      "persona_id": "P16",
+      "editorial_type": "quiet",
+      "author_handle": "yanyana_sessiz",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "samsun-7",
+      "text": "fotoğraf seçerken o gün çekmediğim bir kare geliyor aklıma. onu seçemiyoruz tabii",
+      "persona_id": "P25",
+      "editorial_type": "reflection",
+      "author_handle": "yangorev",
+      "author_attribution": "named"
+    },
+    {
+      "id": "samsun-8",
+      "text": "bir eşya daha koymayacağım çantaya. ince bir şeyse ayrı tabii.",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "samsun-9",
+      "text": "Bir şeye beraber gülme ihtimalini seviyorum.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "samsun-10",
+      "text": "Ne kadar yürüdüğüme sonra bakarım. Şimdi başlamak istiyorum.",
+      "persona_id": "P47",
+      "editorial_type": "quiet",
+      "author_handle": "kendi_tempom",
+      "author_attribution": "named"
+    },
+    {
+      "id": "samsun-11",
+      "text": "Kaldırım: Sakızını bana bırakma. Onu isteyen yok zaten.",
+      "persona_id": "P28",
+      "editorial_type": "comic",
+      "author_handle": "guvercinmuduru",
+      "author_attribution": "named"
+    },
+    {
+      "id": "trabzon-1",
+      "text": "uzun sokak'ta “az ileride” tarifine hemen güvenmeyeyim",
+      "persona_id": "P42",
+      "editorial_type": "wordplay",
+      "author_handle": "kelimearasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "trabzon-2",
+      "text": "Bu kadar kısa cevap gelince kendi mesajımı gereksiz uzun buldum.",
+      "persona_id": "P12",
+      "editorial_type": "comic",
+      "author_handle": "pekalaefendim",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "trabzon-3",
+      "text": "anlatacağım şeyin en komik yerine gelmeden gülmeye başlıyorum. ne anlattığımı ben de duyamıyorum",
+      "persona_id": "P35",
+      "editorial_type": "reflection",
+      "author_handle": "ihtimalkaldi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "trabzon-4",
+      "text": "birinin adımı kendi cümlesine yerleştirme biçimini sevebilirim. başka bir şey gerekmiyor.",
+      "persona_id": "P08",
+      "editorial_type": "quiet",
+      "author_handle": "cebimdebirani",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "trabzon-5",
+      "text": "Başlamadan ne kadar iş var bakayım. Yoksa yarısını açıp bırakıyorum.",
+      "persona_id": "P50",
+      "editorial_type": "quiet",
+      "author_handle": "oncecanta",
+      "author_attribution": "named"
+    },
+    {
+      "id": "trabzon-6",
+      "text": "“neyse” dedim ama daha bitirmedim. o biraz ara vermek içindi",
+      "persona_id": "P14",
+      "editorial_type": "reflection",
+      "author_handle": "selamprovasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "trabzon-7",
+      "text": "Buradan geçmeyi bir işin arasına sıkıştırmak istemem.",
+      "persona_id": "P46",
+      "editorial_type": "quiet",
+      "author_handle": "yol_ustu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "trabzon-8",
+      "text": "Bekleme salonunda boş koltuk seçerken bu kadar düşünmesem.",
+      "persona_id": "P27",
+      "editorial_type": "comic",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "trabzon-9",
+      "text": "aynı kelimeyi evde başka, dışarıda başka söylüyorum. kimse fark ediyor mu acaba",
+      "persona_id": "P01",
+      "editorial_type": "question",
+      "author_handle": "geceyedevam",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "trabzon-10",
+      "text": "Fikrimi hemen söylemek istemiyorum. Biraz bende dursun.",
+      "persona_id": "P49",
+      "editorial_type": "quiet",
+      "author_handle": "acelemkalmadi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "trabzon-11",
+      "text": "Duvar: Hazır mısın? Sıva: Şu bir kurusun, öyle konuşalım.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kayseri-1",
+      "text": "sana anlatınca başka oluyor. aynı şeyi başkasına anlatmaya hevesim yok",
+      "persona_id": "P10",
+      "editorial_type": "reflection",
+      "author_handle": "gonderilmedi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kayseri-2",
+      "text": "Elimde olmayınca da bir şey yapmam bekleniyor. Elimdekileri bir bitireyim önce.",
+      "persona_id": "P27",
+      "editorial_type": "question",
+      "author_handle": "harfiyenaldim",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kayseri-3",
+      "text": "bir masada sadece dinlediğimde de oradayım. arada yoklama yapılmasa olur.",
+      "persona_id": "P26",
+      "editorial_type": "quiet",
+      "author_handle": "birazkendime",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kayseri-4",
+      "text": "Liste yapmayacağım. Aklımda tutmam gerekenleri bir yere yazayım yalnız.",
+      "persona_id": "P21",
+      "editorial_type": "comic",
+      "author_handle": "gundemdisi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kayseri-5",
+      "text": "bir fotoğrafta iyi çıkınca onu her yere koyasım geliyor. değişik kıyafetlerle de çekilsem keşke",
+      "persona_id": "P11",
+      "editorial_type": "reflection",
+      "author_handle": "merhabasonrasi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kayseri-6",
+      "text": "Bu kez sözümü geri almayacağım.",
+      "persona_id": "P13",
+      "editorial_type": "quiet",
+      "author_handle": "kararimnet",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kayseri-7",
+      "text": "Cebin astarı yine kıvrılmış. Elimi sokup hiçbir şey bulamayınca anahtarı kaybettim sandım.",
+      "persona_id": "P33",
+      "editorial_type": "comic",
+      "author_handle": "tasindavasi",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kayseri-8",
+      "text": "Sevdiğim konu açıldı mı ne kadar konuştuğumu anlamıyorum.",
+      "persona_id": "P39",
+      "editorial_type": "quiet",
+      "author_handle": "durdukyere",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kayseri-9",
+      "text": "sivas bulvarı'nın ismini hatırladım. numarayı da yazsaymışım",
+      "persona_id": "P22",
+      "editorial_type": "reflection",
+      "author_handle": "kenarnotu",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kayseri-10",
+      "text": "bir kelimeyi değiştirip kapatacaktım. yarım saattir buradayım",
+      "persona_id": "P45",
+      "editorial_type": "reflection",
+      "author_handle": "birturdaha",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kayseri-11",
+      "text": "Tabela: Beni okuyan var mı? Vida: Düz dur önce.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-151",
+      "text": "Taş: Beni buraya kim koydu? Harç: Ben gelince buradaydın.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-152",
+      "text": "Binanın da canı dışarı çıkmak istese ne yapar acaba?",
+      "persona_id": "P19",
+      "editorial_type": "question",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "kadikoy-153",
+      "text": "Köşe: Buradan mı? Çizgi: Ben de sana soracaktım.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-154",
+      "text": "Lamba: Beni açık mı unuttular? Düğme: Bana dokunan olmadı.",
+      "persona_id": "P28",
+      "editorial_type": "comic",
+      "author_handle": "guvercinmuduru",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-155",
+      "text": "Pencere: İçerisi sıcak mı? Cam: İki tarafta da ben varım, karar veremedim.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "kadikoy-156",
+      "text": "Kaldırım taşı: Biraz kenara kayabilir misin? Öteki: Yerim belli benim.",
+      "persona_id": "P19",
+      "editorial_type": "question",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-101",
+      "text": "Duvar: Bir şey asacak mısın? Tuğla: Önce neremi deleceğini söyle.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-102",
+      "text": "Tabela: O tarafa git. Vida: Bana bakma, ben yerimdeyim.",
+      "persona_id": "P28",
+      "editorial_type": "comic",
+      "author_handle": "guvercinmuduru",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-103",
+      "text": "Bina: Geldiler mi? Kapı: Birazdan anlarız.",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-104",
+      "text": "Köşe: Nereden geldin? Sokak: Ben de buraya çıkıyormuşum, yeni anladım.",
+      "persona_id": "P19",
+      "editorial_type": "question",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    },
+    {
+      "id": "beyoglu-105",
+      "text": "Duvar: Duydun mu? Yankı: Duydun mu?",
+      "persona_id": "P32",
+      "editorial_type": "dialogue",
+      "author_handle": "banklasohbet",
+      "author_attribution": "named"
+    },
+    {
+      "id": "beyoglu-106",
+      "text": "Lamba: Şimdi kapatsalar uyurum. Kablo: Bunu her akşam söylüyorsun.",
+      "persona_id": "P19",
+      "editorial_type": "question",
+      "author_handle": "tasinbirbildigi",
+      "author_attribution": "anonymous"
+    }
+  ]
+}

@@ -20,7 +20,7 @@ Pin notes to real places
 Leave short messages and GIFs on real surfaces and discover what others left nearby, in AR, right where it was placed.
 ```
 
-## Description (1036/4000)
+## Description (1479/4000)
 
 ```text
 Leave notes on real places.
@@ -30,12 +30,13 @@ LociAR lets you pin short messages and GIFs to real surfaces (a table, the floor
 FEATURES
 • Pin to real surfaces: the center reticle locks onto surfaces detected by ARKit; Google ARCore Cloud Anchors and Geospatial bring your post back in the same spot.
 • Discover nearby: see posts around you on the map and open them in AR.
-• Social: like, comment, save to collections, follow creators and get notified about likes, comments and follows.
-• Safe community: new posts are reviewed before they go public, protected places and 18+ content are blocked, and you can report or block anyone.
+• Location notes: leave a tip at the exact spot where you stand ("Wi-Fi password is at the counter"); the most-liked notes come first, and with Always location access a liked note can notify you when you arrive.
+• Social: like, comment, save to collections and get notified about likes and comments.
+• Safe community: every post passes an automatic filter before it goes live, protected places and 18+ content are blocked, content reported by several users is hidden automatically, reports are reviewed within 24 hours, and you can report or block anyone.
 • Your data, your choice: permanently delete your account and all its data from your profile at any time.
 
 PRIVACY
-Camera and location are used only for the AR experience. For AR positioning, Google ARCore processes sensor data (e.g., camera and location). No tracking, no ads.
+Location is used to show and place notes and, only if you allow it, to tell you about a liked note when you arrive at its place; your location history is not stored. Brand offers are optional and off by default. For AR positioning, Google ARCore processes sensor data (e.g., camera and location). No tracking.
 
 Requires an iPhone with ARKit support.
 ```
@@ -46,8 +47,8 @@ Requires an iPhone with ARKit support.
 augmented reality,spatial,map,camera,social,note,surface,discover,location,pin,gif
 ```
 
-## What's New in This Version (173/4000)
+## What's New in This Version (202/4000)
 
 ```text
-First release: pin short messages and GIFs to real surfaces, discover nearby posts on the map, plus likes, comments, collections, follows and notifications. In 12 languages.
+First release: pin short messages and GIFs to real surfaces, leave location notes where you stand, discover nearby notes on the map, plus likes, comments, collections and notifications. In 12 languages.
 ```

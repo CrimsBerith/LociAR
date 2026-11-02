@@ -7,7 +7,7 @@
   <key>FirebaseMessagingAutoInitEnabled</key>
   <false/>
   <key>FirebaseMessagingInstallationIdEnabled</key>
-  <false/>
+  <true/>
   <key>CFBundleDevelopmentRegion</key>
   <string>$(DEVELOPMENT_LANGUAGE)</string>
   <key>CFBundleDisplayName</key>
@@ -33,12 +33,18 @@
   <key>NSCameraUsageDescription</key>
 	<string>LociAR, gerçek yüzeyleri algılamak ve postları sabitlemek için kamerayı kullanır. Görsel özellik verileri Google ARCore ile güvenli biçimde işlenir.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
-	<string>LociAR, yakındaki AR içeriklerini listelemek ve Google ARCore Geospatial ile doğru konumda görüntülemek için konumunuzu kullanır.</string>
+	<string>LociAR, bulunduğun yerdeki notları ve AR içeriklerini göstermek, notunu tam durduğun noktaya bırakmak ve içeriği kamerada doğru yerde açmak için konumunu kullanır. Örneğin bir kafede bırakılan “Wi-Fi şifresi kasada” notunu o kafedeyken görürsün. AR konumlandırması için konum Google ARCore ile işlenir.</string>
   <key>NSLocationTemporaryUsageDescriptionDictionary</key>
   <dict>
     <key>GeospatialAccuracy</key>
-    <string>LociAR, AR postlarını harita ve cadde üzerinde tam doğrulukla yerleştirebilmek için geçici hassas konum iznine ihtiyaç duyar.</string>
+    <string>Notunu tam durduğun noktaya bırakmak ve AR içeriğini doğru yerde göstermek için LociAR bu seferlik kesin konuma ihtiyaç duyar.</string>
   </dict>
+  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+  <string>“Her Zaman” izni verirsen LociAR, uygulama kapalıyken de beğenilen bir notun bulunduğu yere geldiğinde haber verir; örneğin kafeye girince “Wi-Fi şifresi kasada” notu bildirim olarak gelir. Kampanyaları ayrıca açtıysan kampanya alanına girince teklif de gelebilir. Yalnızca not ve kampanya alanları izlenir, alana yaklaşınca kısa süre hassas konum kullanılır ve konum geçmişin saklanmaz. Bildirimleri Ayarlar’dan istediğin an kapatabilirsin.</string>
+  <key>BGTaskSchedulerPermittedIdentifiers</key>
+  <array><string>com.khankartal.lociar.regions</string></array>
+  <key>UIBackgroundModes</key>
+  <array><string>location</string><string>remote-notification</string><string>fetch</string></array>
   <key>UIRequiredDeviceCapabilities</key>
   <array>
     <string>arm64</string>

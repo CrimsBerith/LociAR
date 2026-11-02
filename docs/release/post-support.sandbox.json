@@ -1,0 +1,23 @@
+{
+  "enabled": false,
+  "environment": "sandbox",
+  "merchant_country": "GB",
+  "merchant_approved": false,
+  "stripe_enabled": true,
+  "external_ios_us_enabled": false,
+  "stripe_prices": {
+    "com.khankartal.lociar.support.small": "price_1USjRqAnuhYobes5zbwsuWDI",
+    "com.khankartal.lociar.support.medium": "price_1USjSOAnuhYobes5Hi0BJc1f",
+    "com.khankartal.lociar.support.large": "price_1USjSkAnuhYobes52CCkQ7RP"
+  },
+  "crypto_enabled": false,
+  "crypto_provider": "nowpayments",
+  "crypto_approved": false,
+  "crypto_offers": [
+    { "product_id": "com.khankartal.lociar.support.small", "currency": "GBP", "gross_milliunits": 1990 },
+    { "product_id": "com.khankartal.lociar.support.medium", "currency": "GBP", "gross_milliunits": 4990 },
+    { "product_id": "com.khankartal.lociar.support.large", "currency": "GBP", "gross_milliunits": 9990 }
+  ],
+  "apple_enabled": false,
+  "apple_id": 0
+}

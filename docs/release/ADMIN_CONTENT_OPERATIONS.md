@@ -9,6 +9,13 @@ bir içerik hesabı oluşturabilir. İsteğe bağlı e-posta doğrulanmış kabu
 kimliği oluşturulur fakat giriş kapalıdır. Hesaba admin rolü verilmez. Gerçek bir kişinin
 uygulamada oturum açması için mevcut normal kullanıcı davet akışı kullanılmalıdır.
 
+30 Ekim yerel güncellemesi: yeni yönetilen içerik notunda **Author attribution** alanıyla
+adlı veya anonim yayın açıkça seçilebilir. Normal kullanıcı adına admin yayını adlı kalır;
+anonim seçenek yalnız `admin_managed` kimliğine açıktır. Sunucu aynı tercihi post ve Storage
+claim'e yazar; mevcut postun yazarı veya atfı düzenleme ile değişmez. Aynı istek anahtarında
+tercihi değiştirmek de reddedilir. Ekip provenance rozeti anonimlikten bağımsız korunmalıdır.
+Bu yol emülatörde test edildi; canlı admin/Functions dağıtımı bu güncellemeyle yapılmadı.
+
 **Posts → Create post** ekranında mevcut kullanıcı handle/UUID ile seçilir. Koordinat seçici veya
 latitude/longitude alanlarıyla yer, metin, renk, ölçek, dönüş, opaklık, fiziksel
 boyut, yön, yükseklik, görünürlük ve yaş derecesi düzenlenir. Admin postları yalnızca metindir

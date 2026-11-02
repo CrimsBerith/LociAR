@@ -5,6 +5,26 @@ import { spawnSync } from 'node:child_process';
 import { preflight, REPOSITORY_ROOT } from './release-preflight.mjs';
 
 export const PROJECT = 'lociar-2f38c';
+const REGION = 'us-central1';
+
+/**
+ * Functions removed from functions/src. Deploys target each function with `--only functions:<name>`,
+ * which never deletes anything, so these are deleted explicitly once the new code is live. Deleting a
+ * scheduled function also deletes its Cloud Scheduler job: the seven retired schedules now run as tasks
+ * of the three free jobs in functions/src/schedules.ts (21 Oct 2026).
+ */
+export const RETIRED_FUNCTIONS = Object.freeze(['retryAccountDeletions', 'retryAvatarDeletions', 'retryRemovedMedia',
+  'expireScheduledNotes', 'cleanupPostMedia', 'reconcilePostCounters', 'reconcileNoteDensity']);
+
+/** Retired functions still deployed in the region, from `firebase functions:list --json` output. */
+export function retiredFunctionsToDelete(listOutput, retired = RETIRED_FUNCTIONS, exported = []) {
+  let listed;
+  try { listed = JSON.parse(String(listOutput ?? '')); } catch { listed = null; }
+  if (!Array.isArray(listed?.result)) throw new Error('Firebase functions:list returned no function inventory; retired functions were not checked.');
+  const deployed = new Set(listed.result.filter(fn => fn?.region === REGION).map(fn => fn.id));
+  // A name exported again from functions/src is live code, never something to delete.
+  return retired.filter(name => deployed.has(name) && !exported.includes(name));
+}
 
 /** Bound startup/deploy pressure without changing CPU, regions or the security contract. */
 export function functionDeploymentBatches(root = REPOSITORY_ROOT, size = 1) {
@@ -37,18 +57,25 @@ export function deploy({ dryRun = false, planOnly = false, alias, runner = spawn
   if (dryRun) { console.log('Dry run: all local checks passed; no live authentication or deployment was attempted.'); return; }
   const selectedEnv = deploymentEnvironment(env, alias);
   const command = path.join(root, 'functions/node_modules/.bin/firebase');
-  for (const args of [
-    ['apps:list', '--project', PROJECT, '--non-interactive'],
-    ['deploy', '--only', 'firestore,storage', '--project', PROJECT, '--non-interactive'],
-    ...functionDeploymentBatches(root).map(batch => ['deploy', '--only', batch.map(name => 'functions:' + name).join(','), '--project', PROJECT, '--non-interactive']),
-  ]) {
-    const result = runner(command, args, { cwd: root, env: selectedEnv, stdio: 'inherit' });
+  const run = (args, options = { stdio: 'inherit' }) => {
+    const result = runner(command, args, { cwd: root, env: selectedEnv, ...options });
     if (result.error || result.status !== 0) {
       const error = new Error('Firebase ' + args[0] + ' failed; inspect the reported permission or configuration error.');
       error.exitCode = Number.isInteger(result.status) && result.status > 0 ? result.status : 1;
       throw error;
     }
-  }
+    return result;
+  };
+  const batches = functionDeploymentBatches(root);
+  for (const args of [
+    ['apps:list', '--project', PROJECT, '--non-interactive'],
+    ['deploy', '--only', 'firestore,storage', '--project', PROJECT, '--non-interactive'],
+    ...batches.map(batch => ['deploy', '--only', batch.map(name => 'functions:' + name).join(','), '--project', PROJECT, '--non-interactive']),
+  ]) run(args);
+  // Only after every current function is live: remove the retired ones (and with them their Scheduler jobs).
+  const listed = run(['functions:list', '--project', PROJECT, '--json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+  const retired = retiredFunctionsToDelete(listed.stdout, RETIRED_FUNCTIONS, batches.flat());
+  if (retired.length) run(['functions:delete', ...retired, '--region', REGION, '--project', PROJECT, '--force', '--non-interactive']);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

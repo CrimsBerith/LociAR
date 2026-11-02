@@ -1,10 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { enqueueAvatarDelete } from '../lib/avatar.js';
+import { enqueueAvatarDelete, avatarDeletionRetryDelay } from '../lib/avatar.js';
 
 const luid = '11111111-1111-5111-8111-111111111111';
 const id = 'cccccccc-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const recorder = () => { const writes = []; return { writes, set: (ref, data) => writes.push({ id: ref.id, data }) }; };
+
+test('avatar deletion retries back off with bounded jitter and retain a retry after persistent failures', () => {
+  assert.equal(avatarDeletionRetryDelay(0, () => 0), 5 * 60_000);
+  assert.equal(avatarDeletionRetryDelay(1, () => 0), 10 * 60_000);
+  assert.equal(avatarDeletionRetryDelay(2, () => 1), 24 * 60_000);
+  assert.equal(avatarDeletionRetryDelay(99, () => 1), 6 * 3_600_000);
+  assert.equal(avatarDeletionRetryDelay(NaN, () => 0), 6 * 3_600_000);
+});
 
 test('enqueueAvatarDelete accepts only the owner\'s current or pending JPEG', () => {
   for (const folder of ['current', 'pending']) {

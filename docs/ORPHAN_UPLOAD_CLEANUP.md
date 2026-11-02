@@ -1,6 +1,6 @@
 # Orphan AR upload cleanup
 
-`cleanupPostMedia` keeps the existing 48-hour orphan-upload grace period. Its world-map
+`cleanupPostMedia` (a task of the `nightlyMaintenance` job, `functions/src/schedules.ts`) keeps the existing 48-hour orphan-upload grace period. Its world-map
 scan now resumes from `system/world_map_orphan_cursor`; valid old posts consume the scan
 budget and the next invocation continues after them. A folder split across pages remains
 unfinished until every sibling is seen. The cursor wraps at the end, so inserts behind it

@@ -37,13 +37,18 @@ test('read state preserves its first timestamp on duplicate and concurrent calls
   assert.deepEqual(await user.call('markActivityRead', payload), responses[0]);
 });
 
-test('a foreign activity rejects the entire batch and no record changes', async () => {
+test('a foreign activity is omitted like a missing id and does not change that row', async () => {
   const alice = await newUser(); const bob = await newUser();
   const own = await event(alice); const other = await event(bob);
-  const rejected = await expectFailure(alice.call('markActivityRead', request(alice, [own.id, other.id])));
-  assert.equal(rejected.code, 'functions/permission-denied');
-  assert.equal((await own.get()).get('read_at'), null);
+  const missing = `missing-${randomUUID()}`;
+  const mixed = await alice.call('markActivityRead', request(alice, [own.id, other.id]));
+  assert.deepEqual(mixed.activities.map(item => item.id), [own.id]);
+  assert.notEqual((await own.get()).get('read_at'), null);
   assert.equal((await other.get()).get('read_at'), null);
+  const onlyForeign = await alice.call('markActivityRead', request(alice, [other.id]));
+  const onlyMissing = await alice.call('markActivityRead', request(alice, [missing]));
+  assert.deepEqual(onlyForeign.activities, []);
+  assert.deepEqual(onlyMissing.activities, []);
   assert.equal((await expectFailure(alice.call('markActivityRead', request(bob, [own.id])))).code, 'functions/permission-denied');
 });
 

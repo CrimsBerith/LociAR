@@ -43,6 +43,39 @@ test('finds passwords in Markdown fields and never prints their values', t => {
   assert.ok(!`${result.stdout}${result.stderr}`.includes(value));
 });
 
+test('detects plain-text review passwords and redacts the value', t => {
+  const root = fixture(t);
+  const label = ['Pass', 'word'].join('');
+  const synthetic = ['synthetic', 'unguarded', 'fixture123!'].join('-');
+  writeFileSync(join(root, 'review.md'), `- ${label}: ${synthetic}\n`);
+  const result = spawnSync(process.execPath, [scanner], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /document-password-unquoted/);
+  assert.ok(!`${result.stdout}${result.stderr}`.includes(synthetic));
+});
+
+test('ignores password parameter labels and explanatory documentation prose', t => {
+  const root = fixture(t);
+  writeFileSync(join(root, 'AuthView.swift'), 'func login(password: String) { call(password: password) }\\n    password: password,\\n');
+  writeFileSync(join(root, 'server.mjs'), 'const request = { password: password };\\n');
+  writeFileSync(join(root, 'policy.md'), '- E-posta/parola: SecureField mevcut parolayı ister. Firebase\\n');
+  assert.deepEqual(scanRepository(root), []);
+});
+
+test('still detects unquoted document passwords in numbered and bold Markdown fields', t => {
+  const root = fixture(t);
+  writeFileSync(join(root, 'instructions.md'), '1. **Password:** synthetic-credential-fixture123!\\n');
+  assert.deepEqual(scanRepository(root), [
+    { path: 'instructions.md', line: 1, rule: 'document-password-unquoted' },
+  ]);
+});
+
+test('also catches a bold label with the colon inside the bold span', t => {
+  const root = fixture(t);
+  writeFileSync(join(root, 'notes.md'), '- **Şifre:** synthetic-fixture123!\\n');
+  assert.deepEqual(scanRepository(root), [{ path: 'notes.md', line: 1, rule: 'document-password-unquoted' }]);
+});
+
 test('ignored local credentials stay local; force-tracked environment files fail', t => {
   const root = fixture(t);
   writeFileSync(join(root, '.gitignore'), '.env*\n');

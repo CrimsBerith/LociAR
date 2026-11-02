@@ -12,6 +12,7 @@ struct ARExperienceView: View {
 
     var mode: Mode = .discover
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppContainer.self) private var container
     @Environment(AppSession.self) private var session
@@ -110,6 +111,11 @@ struct ARExperienceView: View {
             pinRequestTask?.cancel()
             pinRequestTask = Task { await startCreationMode() }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                location.stop()
+            }
+        }
         .onDisappear {
             tabChangeTask?.cancel()
             pinRequestTask?.cancel()
@@ -156,7 +162,7 @@ struct ARExperienceView: View {
                 )
                 .accessibilityIdentifier("ar-camera-status")
                 VStack(spacing: 6) {
-                    Text(isDiscovering ? String(localized: "Yayınlar aranıyor") : nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar"))
+                    Text(discoveryHeading)
                         .font(.title3.bold())
                     Text(discoveryMessage.localizedUI)
                         .font(.footnote)
@@ -182,8 +188,10 @@ struct ARExperienceView: View {
                                 Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
                                     .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                                        .font(.subheadline.weight(.semibold)).lineLimit(1)
+                                    if post.isLocked { Text("Kilitli not").font(.subheadline.weight(.semibold)) }
+                                    else if post.caption.isEmpty { Text("Mekânsal post").font(.subheadline.weight(.semibold)) }
+                                    else { TranslatedPostText(text: post.caption, lineLimit: 1).font(.subheadline.weight(.semibold)) }
+                                    if post.isOfficialContent { OfficialContentBadge() }
                                     Text(distanceText(for: post).localizedUI)
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
@@ -272,12 +280,16 @@ struct ARExperienceView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
                         .accessibilityIdentifier("ar-pin-diagnostic")
-                } else {
+                }
+#if DEBUG
+                DisclosureGroup(String(localized: "Tanılama")) {
                     Text(engine.mappingDiagnosticSummary)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.68))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
                         .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
+                .font(.caption)
+#endif
             }
         }
     }
@@ -291,9 +303,6 @@ struct ARExperienceView: View {
                     symbol: "exclamationmark.triangle.fill",
                     color: .orange
                 )
-                Button("Yaklaşık yerleştir · 0,8 m") { engine.placeApproximate() }
-                    .buttonStyle(LociSecondaryButtonStyle())
-                    .accessibilityIdentifier("ar-place-approximate")
             }
             if engine.state == .failed {
                 if isUnsupported {
@@ -324,11 +333,6 @@ struct ARExperienceView: View {
                         symbol: "viewfinder",
                         color: .orange
                     )
-                    Text(engine.mappingDiagnosticSummary)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
                 if let prepareStatus {
                     Text(prepareStatus.localizedUI)
@@ -369,7 +373,7 @@ struct ARExperienceView: View {
                     engine.placeApproximate()
                     startPreparingContent()
                 } label: {
-                    Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
+                    Label("Yaklaşık yerleştir", systemImage: "cube.transparent")
                 }
                 .buttonStyle(LociSecondaryButtonStyle())
                 .accessibilityIdentifier("ar-place-approximate-direct")
@@ -427,6 +431,11 @@ struct ARExperienceView: View {
         if UITestFixtures.cameraPermissionDenied { return true }
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         return status == .denied || status == .restricted
+    }
+
+    private var discoveryHeading: String {
+        if isDiscovering { return String(localized: "Yayınlar aranıyor") }
+        return nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar")
     }
 
     private var discoveryCameraTitle: String {
@@ -491,10 +500,12 @@ struct ARExperienceView: View {
         }
         location.start()
 
-        for _ in 0..<30 where location.location == nil && location.errorMessage == nil {
-            try? await Task.sleep(for: .milliseconds(200))
+        for _ in 0..<30 where location.freshLocation() == nil && location.errorMessage == nil {
+            guard !Task.isCancelled else { isDiscovering = false; return }
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { isDiscovering = false; return }
         }
-        guard let currentLocation = location.location else {
+        guard !Task.isCancelled else { isDiscovering = false; return }
+        guard let currentLocation = location.freshLocation() else {
             isDiscovering = false
             discoveryMessage = location.errorMessage ?? String(localized: "Konum alınamadı. Yeni pin oluşturabilir veya tekrar deneyebilirsin.")
             return
@@ -509,11 +520,9 @@ struct ARExperienceView: View {
                 longitude: currentLocation.coordinate.longitude,
                 radiusMeters: 120
             )
-            async let ownRequest = container.posts.myPosts(limit: 50)
             var networkError: Error?
             do { collected.append(contentsOf: try await nearbyRequest) } catch { networkError = error }
-            do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
-            if collected.isEmpty, let networkError {
+            if collected.isEmpty, networkError != nil {
                 isDiscovering = false
                 discoveryMessage = String(localized: "Bağlantı kurulamadı. Biraz sonra tekrar dene.")
                 return

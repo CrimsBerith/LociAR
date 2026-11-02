@@ -13,7 +13,8 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
     /// createPost rejects poses with worse horizontal accuracy (functions/src/placement.ts).
     nonisolated static let maximumPublishAccuracyMeters: Double = 100
     /// Cached fixes older than this are not reused for a new post.
-    nonisolated static let maximumCachedFixAge: TimeInterval = 60
+    nonisolated static let maximumCachedFixAge: TimeInterval = 10
+    nonisolated static let preferredPublishAccuracyMeters: Double = 15
 
     override init() {
         super.init()
@@ -31,10 +32,10 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
             timeoutTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: timeout)
+                do { try await Task.sleep(for: timeout) } catch { return }
                 guard let self else { return }
                 // Timed out: return the best fix seen (the caller checks its accuracy).
-                self.finish(self.bestLocation.map(self.makeGeoPose(from:)))
+                self.finish(self.bestLocation.flatMap { Self.isPublishable($0) ? self.makeGeoPose(from: $0) : nil })
             }
             beginLocationRequest()
         }
@@ -48,12 +49,15 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
             guard !locationRequestStarted else { return }
             locationRequestStarted = true
             manager.startUpdatingHeading()
+            if manager.accuracyAuthorization == .reducedAccuracy {
+                manager.requestTemporaryFullAccuracyAuthorization(withPurposeKey: LocationController.geospatialAccuracyPurposeKey)
+            }
             if let location = manager.location,
                Self.isPublishable(location),
-               abs(location.timestamp.timeIntervalSinceNow) < Self.maximumCachedFixAge {
+               location.horizontalAccuracy <= Self.preferredPublishAccuracyMeters {
                 finish(makeGeoPose(from: location))
             } else {
-                manager.requestLocation()
+                manager.startUpdatingLocation()
             }
         case .denied, .restricted:
             finish(nil)
@@ -68,18 +72,18 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        guard newHeading.headingAccuracy >= 0, abs(newHeading.timestamp.timeIntervalSinceNow) <= 10 else { return }
         latestHeading = newHeading
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last, location.horizontalAccuracy >= 0 else { return }
+    func locationManager(_ _: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard continuation != nil, let location = locations.last, Self.isPublishable(location) else { return }
+        if let bestLocation, !Self.isPublishable(bestLocation) { self.bestLocation = nil }
         if location.horizontalAccuracy < (bestLocation?.horizontalAccuracy ?? .infinity) {
             bestLocation = location
         }
-        if Self.isPublishable(location) {
+        if location.horizontalAccuracy <= Self.preferredPublishAccuracyMeters {
             finish(makeGeoPose(from: location))
-        } else {
-            manager.requestLocation()
         }
     }
 
@@ -97,9 +101,8 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
         )
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationManager(_ _: CLLocationManager, didFailWithError error: Error) {
         if let locationError = error as? CLError, locationError.code == .locationUnknown {
-            manager.requestLocation()
             return
         }
         finish(nil)
@@ -112,12 +115,15 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
         timeoutTask = nil
         locationRequestStarted = false
         bestLocation = nil
+        latestHeading = nil
+        manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
         continuation.resume(returning: pose)
     }
 
-    nonisolated static func isPublishable(_ location: CLLocation) -> Bool {
-        location.horizontalAccuracy >= 0 && location.horizontalAccuracy <= maximumPublishAccuracyMeters
+    nonisolated static func isPublishable(_ location: CLLocation, at now: Date = Date()) -> Bool {
+        LocationSample(location).isUsable(at: now, maxAge: maximumCachedFixAge)
+            && location.horizontalAccuracy <= maximumPublishAccuracyMeters
     }
 
     nonisolated static func validHeading(_ value: CLLocationDirection?) -> CLLocationDirection? {

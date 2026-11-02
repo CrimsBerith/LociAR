@@ -118,7 +118,7 @@ test('createPost: newly activated/deactivated protected zones apply on the next 
     const denied = await expectFailure(user.call('createPost', postBody({ pose: spot })));
     assert.equal(denied.details?.reason, 'protected_zone');
     await ref.update({ active: false });
-    assert.equal((await user.call('createPost', postBody({ pose: spot }))).publishStatus, 'pending_review');
+    assert.equal((await user.call('createPost', postBody({ pose: spot }))).publishStatus, 'active');
   } finally { await ref.delete(); }
 });
 

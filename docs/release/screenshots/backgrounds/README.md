@@ -19,6 +19,6 @@ series. Generated art was exported to the required pixel canvas as RGB PNG.
 
 Claude will supply the composition script. The release owner must capture and
 place **real iPhone screenshots** in the device area; these backgrounds alone
-are not App Store screenshots. Use genuine nearby pins and real text/link notes,
+are not App Store screenshots. Use genuine nearby pins and real text/GIF notes (links were removed on 9 Oct 2026),
 and keep localized headlines separate. Do not draw or generate a substitute app
 screen. No Swift, localization catalog or existing screenshot was changed here.

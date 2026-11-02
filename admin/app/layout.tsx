@@ -1,4 +1,5 @@
 import './styles.css';
+import SkipLink from './skip-link';
 
 export const metadata = {
   title: 'LociAR Admin',
@@ -9,7 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <a className="skipLink" href="#main" lang="tr">İçeriğe geç</a>
+        <SkipLink />
         {children}
       </body>
     </html>

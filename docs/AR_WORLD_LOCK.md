@@ -16,7 +16,7 @@ Map/geo gets the user near the place; unlock for native posts is distance-first 
 ## Publishing
 
 - The pin is an `ARAnchor` from an ARKit raycast on a tracked plane (centre reticle + "Yüzeye sabitle").
-- Publish hosts a Cloud Anchor and then calls **`registerCloudAnchor`** so the backend binds the anchor id to its owner. `createPost` accepts an anchor only if it is registered to the caller and not yet used, and binds it to the post in one transaction. Delete paths remove only an anchor bound to that post; failures go to `cloud_anchor_deletions` and are retried by `cleanupPostMedia`.
+- Publish hosts a Cloud Anchor and then calls **`registerCloudAnchor`** so the backend binds the anchor id to its owner. `createPost` accepts an anchor only if it is registered to the caller and not yet used, and binds it to the post in one transaction. Delete paths remove only an anchor bound to that post; failures go to `cloud_anchor_deletions` and are retried by `cleanupPostMedia` in the nightly maintenance job.
 - The world map is uploaded to `post-world-maps/{luid}/{postId}/…` (readable by the owner, or by any signed-in user while the post is `active`).
 - The server derives `placement_state`, `native_provider` and `resolver_strategy` itself; the client cannot choose them.
 - Camera reference frames are not collected (privacy). The Cloud Anchor feature sends visual feature data to Google; this is disclosed in the in-app notice and privacy pages.

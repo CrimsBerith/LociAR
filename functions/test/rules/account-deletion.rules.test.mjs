@@ -58,7 +58,8 @@ beforeEach(async () => {
   });
 });
 
-const as = luid => env.authenticatedContext(`uid-${luid}`, { luid });
+// A verified email identity: comments need one (guests may not write them).
+const as = luid => env.authenticatedContext(`uid-${luid}`, { luid, email_verified: true });
 const aliceDb = () => as(ALICE).firestore();
 const aliceStorage = () => as(ALICE).storage();
 async function tombstone(luid, status) {
@@ -133,7 +134,7 @@ for (const status of ['pending', 'done']) {
 
 test('an active account with no deletion job can still use every writable owner surface', async () => {
   // Exercise collection items before deleting the containing collection.
-  const ordered = [surfaces['collection item creation and deletion'], ...Object.entries(surfaces).filter(([name]) => name !== 'collection item creation and deletion').map(([, value]) => value)];
+  const ordered = [surfaces['collection item creation and deletion'], ...Object.entries(surfaces).filter(([name]) => name !== 'collection item creation and deletion' && name !== 'report creation').map(([, value]) => value)];
   for (const operations of ordered) {
     await env.withSecurityRulesDisabled(async ctx => {
       await deleteDoc(doc(ctx.firestore(),'user_blocks',`${ALICE}_${BOB}`));

@@ -1,19 +1,39 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test('admin login is branded, responsive and security-hardened', async ({ page }) => {
-  const response = await page.goto('/admin/login');
-  expect(response?.ok()).toBeTruthy();
-  await expect(page).toHaveTitle(/LociAR Admin/);
-  await expect(page.getByText('LociAR operations', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /admin/i })).toBeVisible();
-  await expect(page.getByLabel(/email/i)).toBeVisible();
-  await expect(page.locator('body')).not.toContainText('FIREBASE_SERVICE_ACCOUNT_JSON');
-  expect(response?.headers()['x-frame-options']).toBe('DENY');
-  expect(response?.headers()['x-content-type-options']).toBe('nosniff');
-  expect(response?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-  expect(overflow).toBeFalsy();
+test.describe('admin login in English', () => {
+  test.use({ locale: 'en-US' });
+
+  test('admin login is branded, responsive and security-hardened', async ({ page }) => {
+    const response = await page.goto('/admin/login');
+    expect(response?.ok()).toBeTruthy();
+    await expect(page).toHaveTitle(/LociAR Admin/);
+    await expect(page.getByText('LociAR administration', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Administrator sign-in' })).toBeVisible();
+    // The email-code form is the default; the older link form stays collapsed in <details>.
+    await expect(page.locator('#otp-email')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send sign-in code' })).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('FIREBASE_SERVICE_ACCOUNT_JSON');
+    expect(response?.headers()['x-frame-options']).toBe('DENY');
+    expect(response?.headers()['x-content-type-options']).toBe('nosniff');
+    expect(response?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBeFalsy();
+  });
+});
+
+test.describe('admin login in Turkish', () => {
+  test.use({ locale: 'tr-TR' });
+
+  test('admin login follows a Turkish browser language', async ({ page }) => {
+    const response = await page.goto('/admin/login');
+    expect(response?.ok()).toBeTruthy();
+    await expect(page.getByText('LociAR yönetim', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Yönetici girişi' })).toBeVisible();
+    await expect(page.locator('#otp-email')).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBeFalsy();
+  });
 });
 
 test('cross-origin admin write is rejected before authentication', async ({ request, baseURL }) => {

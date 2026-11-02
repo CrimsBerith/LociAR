@@ -24,7 +24,7 @@ test("approval workflow rejects self approval and stale targets", () => {
 
 test("privileged admin collections are unavailable to client SDKs", () => {
   assert.match(rules, /match \/\{document=\*\*\} \{\n\s+allow read, write: if false;/);
-  for (const collection of ["admin_audit_log", "admin_role_assignments", "admin_approval_requests", "admin_rate_limits"]) {
+  for (const collection of ["admin_audit_log", "admin_role_assignments", "admin_approval_requests", "admin_rate_limits", "admin_email_challenges", "admin_email_sessions", "admin_email_limits"]) {
     assert.doesNotMatch(rules, new RegExp(`match /${collection}/`));
   }
 });
@@ -83,9 +83,10 @@ test("posts deleted by their author cannot be restored by moderators", () => {
 test("all planned operations pages are enabled", () => {
   const layout = readFileSync(join(repoRoot, "admin/app/admin/(protected)/layout.tsx"), "utf8");
   for (const route of ["moderation", "avatars", "anchors", "places", "zones", "analytics", "system"]) {
-    assert.match(layout, new RegExp(`href: '/admin/${route}', label: .* enabled: true`));
+    assert.match(layout, new RegExp(`href: '/admin/${route}', label: '`));
     assert.ok(globSync(join(repoRoot, `admin/app/admin/(protected)/${route}/page.tsx`)).length === 1);
   }
+  assert.doesNotMatch(layout, /navPending|enabled: false/);
   assert.ok(globSync(join(repoRoot, "admin/app/admin/(protected)/search/page.tsx")).length === 1);
 });
 
@@ -104,10 +105,10 @@ test("service-role secret is never exposed through a public variable", () => {
 });
 
 test("admin magic links support cross-browser completion without weakening MFA", () => {
-  const login = readFileSync(join(repoRoot, "admin/app/admin/login/page.tsx"), "utf8");
+  const login = readFileSync(join(repoRoot, "admin/app/admin/login/MagicLinkForm.tsx"), "utf8");
   const callback = readFileSync(join(repoRoot, "admin/app/auth/callback/page.tsx"), "utf8");
   const sessionRoute = readFileSync(join(repoRoot, "admin/app/api/auth/session/route.ts"), "utf8");
-  const admin = readFileSync(join(repoRoot, "admin/lib/admin.ts"), "utf8");
+  const admin = readFileSync(join(repoRoot, "admin/lib/admin-session.ts"), "utf8");
 
   assert.match(login, /sendSignInLinkToEmail/);
   assert.match(login, /handleCodeInApp: true/);

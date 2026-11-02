@@ -1,8 +1,9 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { assertServiceEnabled, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, requireCaller, Timestamp } from './core';
+import { assertServiceEnabled, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, requireCaller, Timestamp } from './core';
 import { reasonError, withContentionGuard } from './errors';
 import { deleteAnchorOrQueue, anchorDeletionRef } from './anchorQueue';
 import { requireActiveAccount } from './profileGuard';
+import { mayPublishAnonymously } from './anonymous';
 
 /** Same alphabet as placement.ts CLOUD_ANCHOR_ID. */
 export const CLOUD_ANCHOR_ID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
@@ -21,7 +22,7 @@ const DAY_MS = 86_400_000;
 export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   await assertServiceEnabled('register_anchor');
-  if (!identityVerified(caller)) {
+  if (!mayPublishAnonymously(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
   }
   const id = (request.data as { cloudAnchorId?: unknown })?.cloudAnchorId;
@@ -91,6 +92,8 @@ export function quotaDecision(hourly: number, daily: number): 'ok' | 'limited' {
 }
 
 export const MAX_POSTS_NEARBY = 5;
+/** Location notes may crowd a spot (dense spots open on site); this is only an abuse ceiling. */
+export const MAX_NOTES_NEARBY = 200;
 
 export type PostAdmission = { ok: boolean; reason: 'rate' | 'density' | null; flag: boolean; hourly: number; daily: number; density: number };
 
@@ -110,6 +113,7 @@ export async function admitPost(
   luid: string,
   nowMs: number,
   countNearby: () => Promise<number>,
+  maxNearby = MAX_POSTS_NEARBY,
 ): Promise<PostAdmission> {
   const { hourRef, dayRef } = postQuotaRefs(luid, nowMs);
   const [h, d] = await Promise.all([tx.get(hourRef), tx.get(dayRef)]);
@@ -122,7 +126,7 @@ export async function admitPost(
     return { ok: false, reason: 'rate', flag, hourly, daily, density: 0 };
   }
   const density = await countNearby();
-  if (density >= MAX_POSTS_NEARBY) {
+  if (density >= maxNearby) {
     const flag = h.data()?.density_flagged !== true;
     if (flag) tx.set(hourRef, { owner_luid: luid, count: hourly, density_flagged: true, expires_at: hourExpiry }, { merge: true });
     return { ok: false, reason: 'density', flag, hourly, daily, density };
@@ -136,7 +140,7 @@ export async function admitPost(
  * survive remote deletion and every retry, so the provider ID can never be re-bound. */
 export async function claimAnchorDeletion(anchorId: string, postId: string | null): Promise<boolean> {
   const ref = db.collection('cloud_anchors').doc(anchorId);
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     const [record, queue] = await tx.getAll(ref, anchorDeletionRef(anchorId));
     const posts = await tx.get(db.collection('posts').where('cloud_anchor_id', '==', anchorId).limit(2));
     if (postId == null) {

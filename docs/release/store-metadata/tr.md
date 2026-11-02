@@ -20,7 +20,7 @@ Mekânsal Hikâyeler ve Paylaşım
 Kısa mesajlar ve GIF'ler bırak, gerçek yüzeylere sabitle; çevrende bırakılanları, bırakıldıkları yerde AR ile keşfet.
 ```
 
-## Description (1122/4000)
+## Description (1578/4000)
 
 ```text
 Gerçek dünyayı dijital hikâyelerle zenginleştirin.
@@ -30,12 +30,13 @@ LociAR, kısa mesajlarınızı ve GIF'lerinizi gerçek yüzeylere (masa, zemin, 
 ÖZELLİKLER
 • Gerçek yüzeye sabitle: Merkez nişangâh ARKit ile algılanan yüzeye kilitlenir; Google ARCore Cloud Anchors ve Geospatial gönderinizi aynı noktada yeniden gösterir.
 • Yakında keşfet: Çevrenizdeki gönderileri haritada görün, AR'da açın.
-• Sosyal: Beğenin, yorum yapın, koleksiyonlara kaydedin, içerik üreticilerini takip edin; beğeni, yorum ve takipler için bildirim alın.
-• Güvenli topluluk: Yeni gönderiler yayından önce incelenir, korumalı bölgeler ve 18+ içerik engellenir, herkesi şikâyet edebilir veya engelleyebilirsiniz.
+• Konum notları: Tam bulunduğunuz noktaya ipucu bırakın ("Wi-Fi şifresi kasada"); en çok beğenilen notlar üstte görünür, Her Zaman konum izniyle beğenilen bir not oraya vardığınızda bildirim olarak gelebilir.
+• Sosyal: Beğenin, yorum yapın, koleksiyonlara kaydedin; beğeni ve yorumlar için bildirim alın.
+• Güvenli topluluk: tüm gönderiler yayından önce otomatik filtreden geçer, korumalı bölgeler ve 18+ içerik engellenir, birden fazla kullanıcının şikâyet ettiği içerik otomatik gizlenir, şikâyetler 24 saat içinde incelenir ve herkesi şikâyet edebilir veya engelleyebilirsiniz.
 • Verileriniz sizin: Hesabınızı ve tüm verilerinizi profilinizden istediğiniz an kalıcı olarak silebilirsiniz.
 
 GİZLİLİK
-Kamera ve konum yalnızca AR deneyimi için kullanılır. AR konumlandırma için Google ARCore sensör verilerini (ör. kamera ve konum) işler. İzleme yok, reklam yok.
+Konum, notları göstermek ve bırakmak için ve yalnızca izin verirseniz beğenilen bir notun yerine vardığınızda haber vermek için kullanılır; konum geçmişiniz saklanmaz. Marka teklifleri isteğe bağlıdır ve varsayılan olarak kapalıdır. AR konumlandırma için Google ARCore sensör verilerini (ör. kamera ve konum) işler. İzleme yok.
 
 ARKit destekli bir iPhone gerektirir.
 ```
@@ -46,8 +47,8 @@ ARKit destekli bir iPhone gerektirir.
 artırılmış gerçeklik,mekan,harita,kamera,sosyal,hikaye,not,yüzey,keşfet,konum,gif
 ```
 
-## What's New in This Version (161/4000)
+## What's New in This Version (184/4000)
 
 ```text
-İlk sürüm: kısa mesajları ve GIF'leri gerçek yüzeylere sabitle, yakındaki gönderileri haritada keşfet; beğeni, yorum, koleksiyon, takip ve bildirimler. 12 dilde.
+İlk sürüm: kısa mesajları ve GIF'leri gerçek yüzeylere sabitle, bulunduğun yere konum notu bırak, yakındaki notları haritada keşfet; beğeni, yorum, koleksiyon ve bildirimler. 12 dilde.
 ```

@@ -28,6 +28,11 @@ struct BackendPostRow: Decodable, Sendable {
     let viewsCount: Int?
     let likesCount: Int?
     let commentsCount: Int?
+    let isAnonymous: Bool?
+    let sponsorship: Sponsorship?
+    let noteKind: String?
+    let denseSpot: DenseSpotInfo?
+    let adminManaged: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, pose, caption, status, visibility
@@ -41,6 +46,11 @@ struct BackendPostRow: Decodable, Sendable {
         case viewsCount = "views_count"
         case likesCount = "likes_count"
         case commentsCount = "comments_count"
+        case isAnonymous = "is_anonymous"
+        case sponsorship
+        case noteKind = "note_kind"
+        case denseSpot = "dense_spot"
+        case adminManaged = "admin_managed"
     }
 
     func domainPost() -> LociPost {
@@ -55,7 +65,8 @@ struct BackendPostRow: Decodable, Sendable {
             id: id, creatorID: creatorID, creatorHandle: creatorHandle, createdAt: createdAt,
             caption: caption, status: status, visibility: visibility, ageRating: ageRating,
             anchorBundle: bundle, editData: editData, contentSource: contentSource,
-            counts: PostCounts(views: viewsCount ?? 0, likes: likesCount ?? 0, comments: commentsCount ?? 0)
+            counts: PostCounts(views: viewsCount ?? 0, likes: likesCount ?? 0, comments: commentsCount ?? 0),
+            anonymous: isAnonymous, sponsorship: sponsorship, noteKind: noteKind, denseSpot: denseSpot, adminManaged: adminManaged
         )
     }
 }

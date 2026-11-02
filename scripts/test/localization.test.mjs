@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { validateCatalog, missingSourceKeys, localizationKey, LANGUAGES } from '../check-localization.mjs';
+import { execFileSync } from 'node:child_process';
+import { validateCatalog, catalogReviewCount, missingSourceKeys, localizationKey, LANGUAGES } from '../check-localization.mjs';
 
 function catalog() {
   const localizations = Object.fromEntries(LANGUAGES.map(language => [language, {
@@ -8,6 +9,37 @@ function catalog() {
   }]));
   return { version: '1.0', sourceLanguage: 'en', strings: { 'Message %lld %@': { localizations } } };
 }
+test('Xcode entries without translations report missing source without crashing review counting', () => {
+  const c = catalog();
+  c.strings['@%@'] = { comment: 'A user handle' };
+  c.strings['Message %lld %@'].localizations.ar.stringUnit.state = 'needs_review';
+  assert.ok(validateCatalog(c, true).includes('@%@: missing source translation'));
+  assert.equal(catalogReviewCount(c), 1);
+});
+test('catalog generation tolerates Xcode formatting but rejects changed translations and missing files', () => {
+  execFileSync('python3', ['-c', `
+import json, pathlib, runpy, tempfile
+matches = runpy.run_path('scripts/l10n/build_catalog.py')['catalog_matches']
+expected = {'strings': {'CFBundleName': {'localizations': {'en': {'stringUnit': {'state': 'translated', 'value': 'LociAR'}}}}}, 'version': '1.0'}
+with tempfile.TemporaryDirectory() as folder:
+    path = pathlib.Path(folder) / 'InfoPlist.xcstrings'
+    path.write_text(json.dumps(expected, sort_keys=True, separators=(',', ':')))
+    assert matches(path, expected), 'Xcode key ordering and whitespace must be accepted'
+    changed = json.loads(json.dumps(expected))
+    changed['strings']['CFBundleName']['localizations']['en']['stringUnit']['state'] = 'needs_review'
+    path.write_text(json.dumps(changed))
+    assert not matches(path, expected), 'Translation state changes must fail'
+    changed['strings']['CFBundleName']['localizations']['en']['stringUnit'] = {'state': 'translated', 'value': 'Wrong name'}
+    path.write_text(json.dumps(changed))
+    assert not matches(path, expected), 'Translation value changes must fail'
+    path.write_text('{}')
+    assert not matches(path, expected), 'Missing translations must fail'
+    path.write_text('{')
+    assert not matches(path, expected), 'Invalid JSON must fail'
+    path.unlink()
+    assert not matches(path, expected), 'Missing catalogs must fail'
+`], { cwd: new URL('../..', import.meta.url), stdio: 'pipe' });
+});
 test('missing languages, changed argument types and duplicated arguments are rejected', () => {
   for (const mutate of [
     c => { delete c.strings['Message %lld %@'].localizations.ar; },

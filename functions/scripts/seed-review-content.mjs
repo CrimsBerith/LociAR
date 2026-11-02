@@ -1,5 +1,7 @@
-// Seeds approved (active) text posts so App Review never sees an empty map.
-// Usage: FIREBASE_PROJECT_ID=my-project node scripts/seed-review-content.mjs apple-review@lociar.app
+// Seeds approved (active) text posts and anonymous location notes so App Review never sees an empty map.
+// Location notes are approved for arrival notifications ('system:review-seed') so a reviewer standing
+// at one could receive it; they carry no likes (counters stay server-authoritative).
+// Usage: FIREBASE_PROJECT_ID=my-project node scripts/seed-review-content.mjs apple-review@alfagolab.com
 // The review account must exist and have signed in once (so its profile exists).
 // Rerunning is safe: post IDs are derived from the account and place, so posts are overwritten.
 import { readFileSync } from 'node:fs';
@@ -31,6 +33,16 @@ const PLACES = [
   { lat: 37.3230, lng: -122.0322, caption: 'Spatial story sample · Main Street' },
 ];
 
+// Location notes near Apple Park Visitor Center (several within 25 m form one map group) and in Istanbul.
+const NOTES = [
+  { lat: 37.33270, lng: -122.00530, caption: 'Wi-Fi password is on the card at the café counter' },
+  { lat: 37.33276, lng: -122.00541, caption: 'The rooftop terrace has the best view of the ring building' },
+  { lat: 37.33264, lng: -122.00522, caption: 'Ask for the AR model of the campus at the centre table' },
+  { lat: 37.32300, lng: -122.03215, caption: 'Free parking behind this block after 6 pm' },
+  { lat: 41.02560, lng: 28.97410, caption: 'Galata Kulesi: bilet kuyruğu sabah 9’da en kısa' },
+  { lat: 41.03350, lng: 28.97790, caption: 'İstiklal: tramvay durağının yanındaki pasaj kısa yol' },
+];
+
 // Seed posts bypass createPost, so enforce the same protected-zone hard block here.
 const ZONES = JSON.parse(readFileSync(new URL('./zones.json', import.meta.url), 'utf8'));
 function distanceMeters(lat1, lng1, lat2, lng2) {
@@ -39,7 +51,7 @@ function distanceMeters(lat1, lng1, lat2, lng2) {
     + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
   return 2 * 6_371_000 * Math.asin(Math.sqrt(a));
 }
-for (const place of PLACES) {
+for (const place of [...PLACES, ...NOTES]) {
   const zone = ZONES.find((z) => distanceMeters(place.lat, place.lng, z.lat, z.lng) <= z.radius_meters);
   if (zone) {
     console.error(`"${place.caption}" is inside protected zone "${zone.name}". Move it and rerun.`);
@@ -57,7 +69,7 @@ if (!profile.exists) {
   process.exit(1);
 }
 const handle = profile.data().handle;
-for (const place of PLACES) {
+for (const place of [...PLACES, ...NOTES.map(note => ({ ...note, note: true }))]) {
   const id = uuidv5(`${luid}:${place.lat},${place.lng}`, SEED_NAMESPACE);
   const now = new Date().toISOString();
   const pose = {
@@ -65,8 +77,11 @@ for (const place of PLACES) {
     anchor: { coordinateSpace: 'camera_free_space', provider: 'native_ios_camera', x: 0, y: 0, z: -0.8, yaw: 0, pitch: 0, roll: 0, capturedAt: now.replace(/\.\d{3}Z$/, 'Z'), nativeAnchorId: uuidv5(`${id}:anchor`, SEED_NAMESPACE), trackingQuality: 'normal', surfaceAlignment: 'freeSpace' },
   };
   const editData = { version: 1, canvas: { width: 1080, height: 1920 }, layers: [{ id: uuidv5(`${id}:layer`, SEED_NAMESPACE), type: 'text', text: place.caption, color: '#FFFFFF', opacity: 1, scale: 1, rotation: 0, x: 0, y: 0, zIndex: 0, fontSize: 32 }] };
+  // Same fields createPlaceNote writes for a GPS note; anonymous like every user location note.
+  const noteFields = place.note ? { note_kind: 'location', is_anonymous: true, location_note: { source: 'gps', accuracy_m: 5, pin_drag_m: 0 },
+    notify_radius_m: 25, push_state: 'approved', push_approved_by: 'system:review-seed', push_approved_at: FieldValue.serverTimestamp() } : {};
   await db.collection('posts').doc(id).set({
-    id, creator_id: luid, creator_handle: handle, lat: place.lat, lng: place.lng, geohash: geohash(place.lat, place.lng),
+    id, creator_id: luid, creator_handle: place.note ? '' : handle, lat: place.lat, lng: place.lng, geohash: geohash(place.lat, place.lng), ...noteFields,
     pose_json: JSON.stringify(pose), ref_image_url: 'native-ar-reference://pending', edit_data_json: JSON.stringify(editData),
     content_source_json: null, anchor_bundle_json: null, calibration_json: JSON.stringify({ state: 'free_space_approximate' }),
     caption: place.caption, age_rating: 'all', visibility: 'public', status: 'active',

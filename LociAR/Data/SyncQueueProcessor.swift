@@ -21,36 +21,45 @@ enum SyncQueueProcessor {
     private static var isProcessing = false
     private static let logger = Logger(subsystem: "com.khankartal.lociar", category: "sync")
 
+    /// Compatibility work happens once at launch, not in every 15-second queue poll.
+    static func migrateLegacyOwners(in context: ModelContext) throws {
+        let descriptor = FetchDescriptor<SyncQueueRecord>(predicate: #Predicate { $0.ownerID == nil })
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        for record in try context.fetch(descriptor) {
+            let post = (try? decoder.decode(LociPost.self, from: record.payload))
+                ?? (try? FirestoreJSON.decoder().decode(BackendPostRow.self, from: record.payload))?.domainPost()
+            if let post { record.ownerID = post.creatorID }
+        }
+        try context.save()
+    }
+
     static func process(
         modelContext: ModelContext,
         repository: any PostRepository,
         authenticatedUserID: UUID? = nil,
         force: Bool = false
     ) async {
-        guard !isProcessing else { return }
+        guard !isProcessing, let authenticatedUserID else { return }
         isProcessing = true
         defer { isProcessing = false }
         let now = Date()
-        let descriptor = force
-            ? FetchDescriptor<SyncQueueRecord>(sortBy: [SortDescriptor(\.nextAttemptAt)])
-            : FetchDescriptor<SyncQueueRecord>(
-                predicate: #Predicate { $0.deadLetterReason == nil && $0.nextAttemptAt <= now },
+        let owner: UUID? = authenticatedUserID
+        // When force-syncing, pick up retryable dead-lettered/deferred records,
+        // but never steal active in-flight records currently being published in the foreground.
+        var descriptor = force
+            ? FetchDescriptor<SyncQueueRecord>(
+                predicate: #Predicate { $0.ownerID == owner && ($0.nextAttemptAt <= now || $0.deadLetterReason != nil) },
                 sortBy: [SortDescriptor(\.nextAttemptAt)]
             )
+            : FetchDescriptor<SyncQueueRecord>(
+                predicate: #Predicate { $0.ownerID == owner && $0.deadLetterReason == nil && $0.nextAttemptAt <= now },
+                sortBy: [SortDescriptor(\.nextAttemptAt)]
+            )
+        descriptor.fetchLimit = 10
         guard let records = try? modelContext.fetch(descriptor) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        for record in records where record.ownerID == nil {
-            if let post = try? decoder.decode(LociPost.self, from: record.payload) {
-                record.ownerID = post.creatorID
-            }
-        }
-        try? modelContext.save()
-        let ownedRecords = records.filter { record in
-            guard let authenticatedUserID else { return false }
-            return record.ownerID == authenticatedUserID
-        }
-        for record in ownedRecords.prefix(10) {
+        for record in records {
             guard !Task.isCancelled else { return }
             do {
                 if force {
@@ -64,7 +73,8 @@ enum SyncQueueProcessor {
                     let post = try decoder.decode(LociPost.self, from: record.payload)
                     guard post.creatorID == authenticatedUserID else { throw QueueError.creatorMismatch }
                     _ = try await repository.publish(post)
-                    guard !Task.isCancelled else { return }
+                    // Once published to backend, unconditionally clean up local draft and queue record
+                    // even if the task was cancelled, preventing duplicate publishing on next launch.
                     await MediaAssetStore.removeLocalAssets(in: post)
                     let postID = post.id
                     let draftDescriptor = FetchDescriptor<DraftRecord>(predicate: #Predicate { $0.id == postID })
@@ -74,20 +84,27 @@ enum SyncQueueProcessor {
                 }
                 logger.info("Sync committed operation=\(record.operation, privacy: .public) id=\(record.id.uuidString, privacy: .public)")
                 modelContext.delete(record)
+                // Atomic commit per processed record: ensures successful publishing is committed
+                // immediately and avoids orphaned local assets or duplicate publishing on task cancellation.
+                try? modelContext.save()
             } catch AuthFlowError.notSignedIn {
+                try? modelContext.save()
                 return // Another account must not consume this owner's retry budget.
             } catch is CancellationError {
+                try? modelContext.save()
                 return
             } catch BackendTransientError.servicePaused {
                 // Paused for everyone: wait without spending an attempt (no dead-lettering).
                 record.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.servicePausedDelay)
                 record.lastErrorMessage = BackendTransientError.servicePaused.localizedDescription
                 logger.info("Sync paused id=\(record.id.uuidString, privacy: .public)")
+                try? modelContext.save()
             } catch let error as PostPublishError {
                 record.attemptCount = RetryPolicy.maximumAttempts
                 record.deadLetterReason = error.localizedDescription
                 record.lastErrorMessage = error.localizedDescription
                 logger.error("Sync rejected operation=\(record.operation, privacy: .public) id=\(record.id.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+                try? modelContext.save()
             } catch {
                 record.attemptCount += 1
                 if RetryPolicy.shouldDeadLetter(afterAttempt: record.attemptCount) {
@@ -97,6 +114,7 @@ enum SyncQueueProcessor {
                 }
                 record.lastErrorMessage = error.localizedDescription
                 logger.error("Sync deferred operation=\(record.operation, privacy: .public) id=\(record.id.uuidString, privacy: .public) attempt=\(record.attemptCount) error=\(error.localizedDescription, privacy: .public)")
+                try? modelContext.save()
             }
         }
         try? modelContext.save()

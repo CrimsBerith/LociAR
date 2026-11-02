@@ -15,6 +15,8 @@ final class AppContainer {
     let arcore: ARCoreService
     let connectivity: ConnectivityMonitor
     let router: AppRouter
+    let postSupport: any PostSupportServing
+    let mapRequests = MapRequestCoordinator.shared
 
     var isBackendConfigured: Bool { configuration.isBackendConfigured }
 
@@ -68,9 +70,19 @@ final class AppContainer {
         self.arcore = arcore
         self.connectivity = ConnectivityMonitor()
         self.router = AppRouter()
+        #if DEBUG
+        self.postSupport = UITestFixtures.authenticatedSessionEnabled ? SupportUITestClient() : PostSupportClient.shared
+        #else
+        self.postSupport = PostSupportClient.shared
+        #endif
         self.session = AppSession(authRepository: auth, backendConfigured: configuration.isBackendConfigured)
         if firebaseReady, !UITestFixtures.authenticatedSessionEnabled, let firebase = configuration.firebase {
+            UserContextService.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
+            PlaceNoteClient.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
+            NoteDensityClient.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
+            DenseSpotClient.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
             NotificationService.shared.configure(callables: CallableClient(region: firebase.functionsRegion), social: social)
+            PostSupportClient.shared.configure(callables: CallableClient(region: firebase.functionsRegion))
         }
         // After every stored property is set (Swift requires it before using self).
         arSession.frameSink = { [weak arcore] frame in arcore?.consume(frame) }

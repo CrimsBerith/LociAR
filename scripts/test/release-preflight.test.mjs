@@ -4,7 +4,10 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkPrerequisites, completedTests, preflight, releaseSteps, runSteps } from '../release-preflight.mjs';
-import { deploy, deploymentEnvironment, functionDeploymentBatches } from '../firebase-deploy.mjs';
+import { deploy, deploymentEnvironment, functionDeploymentBatches, RETIRED_FUNCTIONS, retiredFunctionsToDelete } from '../firebase-deploy.mjs';
+
+const NO_FUNCTIONS = JSON.stringify({ status: 'success', result: [] });
+const ok = args => ({ status: 0, ...(args[0] === 'functions:list' ? { stdout: NO_FUNCTIONS } : {}) });
 
 const completeNode = 'TAP version 13\n1..2\n# tests 2\n# pass 2\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 2.5\n';
 
@@ -35,6 +38,22 @@ test('an audit failure prevents emulator acceptance and deployment', () => {
   assert.equal(called.some(args => args.includes('test:rules')), false);
 });
 
+test('isolated location-note acceptance is mandatory and incomplete evidence stops release', () => {
+  const steps = releaseSteps();
+  const index = steps.findIndex(step => step.args.includes('test:notes'));
+  assert.ok(index > steps.findIndex(step => step.args.includes('test:emulator')));
+  assert.equal(steps[index].testSummary, 'node');
+  for (const result of [{ status: 17 }, { status: 0, stdout: '' }]) {
+    const called = [];
+    assert.throws(() => runSteps(steps, { onStep() {}, onOutput() {}, runner(command, args) {
+      called.push(args);
+      return args.includes('test:notes') ? result : { status: 0, stdout: completeNode };
+    } }));
+    assert.equal(called.at(-1).includes('test:notes'), true);
+    assert.equal(called.some(args => args.includes('build:ci')), false);
+  }
+});
+
 test('dry run validates but never selects live credentials or calls Firebase', () => {
   let checked = 0;
   deploy({ dryRun: true, env: { OIC_MANIFEST_PATH: '/must-not-read' }, validate() { checked++; }, runner() { throw new Error('Live call'); } });
@@ -62,7 +81,7 @@ test('Firebase project access failure prevents deploy and keeps its status', () 
 
 test('successful deployment explicitly targets the fixed project and does not force resource deletion', () => {
   const called = [];
-  deploy({ env: {}, validate() {}, runner(command, args) { called.push(args); return { status: 0 }; } });
+  deploy({ env: {}, validate() {}, runner(command, args) { called.push(args); return ok(args); } });
   const args = called[1];
   assert.equal(args[0], 'deploy');
   assert.equal(args[args.indexOf('--project') + 1], 'lociar-2f38c');
@@ -73,9 +92,9 @@ test('successful deployment explicitly targets the fixed project and does not fo
 
 test('deployment visits every exported function exactly once in bounded sequential batches', () => {
   const calls = [];
-  deploy({ env: {}, validate() {}, runner(command, args) { calls.push(args); return { status: 0 }; } });
+  deploy({ env: {}, validate() {}, runner(command, args) { calls.push(args); return ok(args); } });
   const batches = functionDeploymentBatches();
-  const targeted = calls.slice(2).map(args => args[args.indexOf('--only') + 1].split(',').map(name => name.slice('functions:'.length)));
+  const targeted = calls.slice(2).filter(args => args[0] === 'deploy').map(args => args[args.indexOf('--only') + 1].split(',').map(name => name.slice('functions:'.length)));
   assert.deepEqual(targeted, batches);
   assert.ok(batches.length > 1);
   assert.ok(batches.every(batch => batch.length === 1));
@@ -160,4 +179,30 @@ test('complete child evidence permits the next gate and keeps its output visible
   } });
   assert.deepEqual(called, ['node', 'next']);
   assert.deepEqual(output, [completeNode, 'child warning\n']);
+});
+
+test('retired functions are deleted by name, last, and only while they are still deployed', () => {
+  const calls = [];
+  const listed = JSON.stringify({ status: 'success', result: [
+    { id: 'retryAccountDeletions', region: 'us-central1' }, { id: 'cleanupPostMedia', region: 'us-central1' },
+    { id: 'reconcileNoteDensity', region: 'europe-west1' }, { id: 'createPost', region: 'us-central1' },
+  ] });
+  deploy({ env: {}, validate() {}, runner(command, args) {
+    calls.push(args);
+    return { status: 0, ...(args[0] === 'functions:list' ? { stdout: listed } : {}) };
+  } });
+  const last = calls.at(-1);
+  assert.deepEqual(last, ['functions:delete', 'retryAccountDeletions', 'cleanupPostMedia', '--region', 'us-central1', '--project', 'lociar-2f38c', '--force', '--non-interactive']);
+  assert.equal(calls.at(-2)[0], 'functions:list');
+  assert.ok(calls.slice(0, -2).every(args => args[0] !== 'functions:delete'), 'nothing is deleted before every current function is deployed');
+
+  const quiet = [];
+  deploy({ env: {}, validate() {}, runner(command, args) { quiet.push(args); return ok(args); } });
+  assert.equal(quiet.some(args => args[0] === 'functions:delete'), false, 'a rerun deletes nothing');
+
+  assert.throws(() => retiredFunctionsToDelete('not json'), /no function inventory/);
+  assert.deepEqual(retiredFunctionsToDelete(listed, RETIRED_FUNCTIONS, ['cleanupPostMedia']), ['retryAccountDeletions'],
+    'a name exported again is live code');
+  const exported = functionDeploymentBatches().flat();
+  assert.deepEqual(RETIRED_FUNCTIONS.filter(name => exported.includes(name)), [], 'retired names are not exported');
 });

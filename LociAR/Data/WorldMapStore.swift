@@ -38,6 +38,7 @@ actor LocalWorldMapStore: WorldMapRepository {
     }
 
     func download(_ persistence: WorldLockPersistence) async throws -> Data {
+        try Task.checkCancellation()
         guard let raw = persistence.assetURI,
               let url = URL(string: raw) else { throw LocalStoreError.invalidLocalURL }
         return try await read(
@@ -159,6 +160,34 @@ final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
     /// Storage SDK downloads re-evaluate current access. Permanent bearer URLs and HTTP
     /// fallbacks are forbidden for maps, including old locator fields.
     func download(_ persistence: WorldLockPersistence) async throws -> Data {
+        if let path = persistence.storagePath ?? persistence.assetURI,
+           path.hasPrefix("anonymous-world-map://") {
+            guard let id = UUID(uuidString: String(path.dropFirst("anonymous-world-map://".count))) else { throw StoreError.missingStoragePath }
+            struct Payload: Encodable { let postId: String; let offset: Int }
+            struct Response: Decodable { let data: String; let total: Int; let next: Int? }
+            let callables = CallableClient(region: AppConfiguration.load().firebase?.functionsRegion ?? "us-central1")
+            var encoded = Data()
+            var offset = 0
+            var expectedTotal: Int?
+            repeat {
+                let response: Response = try await callables.call("readAnonymousWorldMap", payload: Payload(postId: FirebaseIdentity.key(id), offset: offset), timeout: 60)
+                guard response.total >= 64, response.total <= WorldMapCodec.maximumUploadBytes,
+                      expectedTotal == nil || expectedTotal == response.total,
+                      let chunk = Data(base64Encoded: response.data), !chunk.isEmpty,
+                      chunk.count <= 2 * 1024 * 1024,
+                      encoded.count + chunk.count <= response.total else { throw StoreError.invalidSize }
+                expectedTotal = response.total
+                encoded.append(chunk)
+                if let next = response.next {
+                    guard next == encoded.count, next < response.total else { throw StoreError.invalidSize }
+                    offset = next
+                } else {
+                    guard encoded.count == response.total else { throw StoreError.invalidSize }
+                    break
+                }
+            } while true
+            return try WorldMapCodec.decode(encoded)
+        }
         if let local = persistence.assetURI.flatMap(URL.init(string:)), local.isFileURL {
             let data = try await LocalWorldMapStore().download(persistence)
             return try WorldMapCodec.decode(data)
@@ -169,13 +198,18 @@ final class WorldMapStore: WorldMapRepository, @unchecked Sendable {
         let ref = MediaAssetStore.storageReference(reference)
         // Even a cache hit needs current authorization; removed/private posts cannot reopen
         // geometry downloaded in an earlier session. Cache directories are scoped per account.
-        let metadata = try await ref.getMetadata()
-        guard metadata.size > 0, metadata.size <= Int64(WorldMapCodec.maximumUploadBytes) else { throw StoreError.invalidSize }
+        let viewer = FirebaseIdentity.currentLUID()
         let cache = WorldMapDownloadCache.standard
+        let metadata = try await ref.getMetadata()
+        try Task.checkCancellation()
+        guard FirebaseIdentity.currentLUID() == viewer, cache?.isCurrent != false else { throw CancellationError() }
+        guard metadata.size > 0, metadata.size <= Int64(WorldMapCodec.maximumUploadBytes) else { throw StoreError.invalidSize }
         if let cached = cache?.read(path) { return try WorldMapCodec.decode(cached) }
         let data = try await ref.data(maxSize: Int64(WorldMapCodec.maximumUploadBytes))
+        try Task.checkCancellation()
+        guard FirebaseIdentity.currentLUID() == viewer, cache?.isCurrent != false else { throw CancellationError() }
         let raw = try WorldMapCodec.decode(data)
-        cache?.write(data, for: path)
+        if let cache, !cache.write(data, for: path) { throw CancellationError() }
         return raw
     }
 

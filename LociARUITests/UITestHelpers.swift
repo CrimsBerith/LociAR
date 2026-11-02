@@ -10,8 +10,19 @@ extension AuthGateUITests {
 
     func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 4) {
         for _ in 0..<maxSwipes {
-            if element.exists && element.isHittable { return }
-            app.swipeUp()
+            if element.exists && element.isHittable,
+               element.frame.midY >= app.frame.minY + 100,
+               element.frame.midY <= app.frame.maxY - 90 { return }
+            // Full-screen flings can skip a short row entirely on an iPhone SE.
+            // Use bounded drags and recover upward if the row has passed the viewport.
+            let above = element.exists && element.frame.maxY > 0 && element.frame.maxY < app.frame.minY + 100
+            // Use the form inner gutter (0.22) so it remains inside the form across all screen widths.
+            let hasKb = app.keyboards.element.exists
+            let bottomY = hasKb ? 0.40 : 0.72
+            let topY = hasKb ? 0.18 : 0.42
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.22, dy: above ? topY : bottomY))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.22, dy: above ? bottomY : topY))
+            start.press(forDuration: 0.05, thenDragTo: end)
         }
     }
 
@@ -133,7 +144,7 @@ extension AuthGateUITests {
             return false
         }
         if mapRow.exists { mapRow.tap() } else { captionLabel.tap() }
-        guard app.navigationBars["Post"].waitForExistence(timeout: 8) else {
+        guard app.navigationBars["Not"].waitForExistence(timeout: 8) else {
             capture(app, name: "map-open-failed-\(shotName)")
             XCTFail("Post haritadan açılmadı: \(caption)")
             return false
@@ -153,7 +164,7 @@ extension AuthGateUITests {
         _ = app.staticTexts["Yüzey bulundu. İçerik hazır."].waitForExistence(timeout: 25)
         capture(app, name: "map-ar-\(shotName)")
         app.buttons["Kapat"].tap()
-        if !app.navigationBars["Post"].waitForExistence(timeout: 8) {
+        if !app.navigationBars["Not"].waitForExistence(timeout: 8) {
             recoverToMap(app)
             return true
         }
@@ -228,7 +239,7 @@ extension AuthGateUITests {
         if app.buttons["Kapat"].exists {
             app.buttons["Kapat"].tap()
         }
-        if app.navigationBars["Post"].exists {
+        if app.navigationBars["Not"].exists {
             app.navigationBars.buttons.element(boundBy: 0).tap()
         }
         if app.tabBars.buttons["Harita"].exists {
@@ -241,13 +252,19 @@ extension AuthGateUITests {
 
     func dismissKeyboard(_ app: XCUIApplication) {
         guard app.keyboards.element.exists else { return }
-        if app.buttons["keyboard-done-button"].exists {
-            app.buttons["keyboard-done-button"].tap()
+        let done = app.buttons["keyboard-done-button"].exists ? app.buttons["keyboard-done-button"] : app.buttons["Bitti"]
+        if done.exists && done.isHittable {
+            done.tap()
+        } else if app.navigationBars["Konum notu bırak"].exists {
+            app.navigationBars["Konum notu bırak"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         } else if app.navigationBars["İçerik oluştur"].exists {
-            app.navigationBars["İçerik oluştur"].tap()
+            app.navigationBars["İçerik oluştur"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         } else if app.buttons["create-publish"].exists {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.18)).tap()
         }
+        _ = app.keyboards.firstMatch.waitForNonExistence(timeout: 2)
         RunLoop.current.run(until: Date().addingTimeInterval(0.35))
     }
 
@@ -261,8 +278,8 @@ extension AuthGateUITests {
 
     func waitForPhysicalSurfaceCandidate(_ app: XCUIApplication, timeout: TimeInterval) -> Bool {
         let exactSurface = app.staticTexts.matching(NSPredicate(
-            format: "label == %@",
-            "Kesin yüzey hazır"
+            format: "label == %@ OR label == %@",
+            "Kesin yüzey hazır", "Gerçek yüzey hazır"
         )).firstMatch
         let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
         let deadline = Date().addingTimeInterval(timeout)
@@ -274,13 +291,13 @@ extension AuthGateUITests {
             if exactSurface.exists, trackingOK { return true }
             RunLoop.current.run(until: Date().addingTimeInterval(0.25))
         }
-        return exactSurface.exists
+        return false
     }
 
     func waitForPersistablePhysicalSurface(_ app: XCUIApplication, timeout: TimeInterval) -> Bool {
         let exactSurface = app.staticTexts.matching(NSPredicate(
-            format: "label == %@",
-            "Kesin yüzey hazır"
+            format: "label == %@ OR label == %@",
+            "Kesin yüzey hazır", "Gerçek yüzey hazır"
         )).firstMatch
         let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
         let deadline = Date().addingTimeInterval(timeout)

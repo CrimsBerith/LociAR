@@ -1,0 +1,107 @@
+{
+  "source_commit": "6052dcddc2ea59b9016d71b8ed66b70c3fb2f5e2",
+  "render_validation": [
+    {
+      "file": "lociar-kullanici-analizi-2026-10-13.pdf",
+      "pages": 8,
+      "issues": []
+    },
+    {
+      "file": "lociar-teknik-mimari-2026-10-13.pdf",
+      "pages": 27,
+      "issues": []
+    }
+  ],
+  "visual_review": "All 35 final PDF pages and all 8 diagrams reviewed; no clipping or missing glyphs.",
+  "files": [
+    {
+      "path": "output/pdf/lociar-kullanici-analizi-2026-10-13.pdf",
+      "bytes": 594466,
+      "sha256": "80da0bc1ab46c1f4a67cbf834393096cdcdf2c88bf46b5a582f2f75e4b934f8e",
+      "pages": 8
+    },
+    {
+      "path": "output/pdf/lociar-teknik-mimari-2026-10-13.pdf",
+      "bytes": 997069,
+      "sha256": "4816f3f28c272742e6944747f3fdfb613c0577d14aba58b2f279b868c827993a",
+      "pages": 27
+    },
+    {
+      "path": "output/pdf/images/01-kullanici-deneyimi.png",
+      "bytes": 152197,
+      "sha256": "bd66afc418b84a82e5cd8511919b5e2118ff84e761d152c17f40510702986c54",
+      "size": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "path": "output/pdf/images/02-magaza-notu.png",
+      "bytes": 157551,
+      "sha256": "cd3154d81291732fa4c2d4ceb806f5e95bdbfaea928b03abc507e2c925e0700c",
+      "size": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "path": "output/pdf/images/03-gizlilik-ve-izinler.png",
+      "bytes": 165399,
+      "sha256": "9c8bb2783755d9c0c662c5e20b6f6d142b0ca2be84d5d2126c0dc0601268d2f4",
+      "size": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "path": "output/pdf/images/04-sistem-mimarisi.png",
+      "bytes": 180737,
+      "sha256": "8281f509e2adb95c2ca17f5fda7687c5686f277fae969e0ce3ba986cae4111aa",
+      "size": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "path": "output/pdf/images/05-admin-islem-zinciri.png",
+      "bytes": 127769,
+      "sha256": "bdb95f6e9f8b0bcec8968976b9da319b60c8a507a8254179836b6495e820b951",
+      "size": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "path": "output/pdf/images/06-ar-cozumleme.png",
+      "bytes": 157462,
+      "sha256": "ca6f6f772bcfec5cbcb1acab4e256b800431ffcf3715b29de62870475db20af9",
+      "size": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "path": "output/pdf/images/07-veri-ve-guven-sinirlari.png",
+      "bytes": 197847,
+      "sha256": "3f0dbecbeef03a2acba669abf64e95d4f5a3f4fc26541ca071797ab3c5bb7822",
+      "size": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "path": "output/pdf/images/08-yayin-durumlari.png",
+      "bytes": 129643,
+      "sha256": "180343f4f7dfbfa8cc336cac3a8e3992085a07529875e927c49e23b450ee0a8e",
+      "size": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "path": "output/pdf/lociar-semalar-2026-10-13.zip",
+      "bytes": 1183647,
+      "sha256": "7ae6cd91d3d3d07bbdc74b6fd4157458c6f44dabe25ff3df4d207495a8d25778"
+    }
+  ]
+}
