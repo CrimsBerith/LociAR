@@ -12,6 +12,7 @@ struct ARExperienceView: View {
 
     var mode: Mode = .discover
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppContainer.self) private var container
     @Environment(AppSession.self) private var session
@@ -109,6 +110,11 @@ struct ARExperienceView: View {
             router.createPinRequested = false
             pinRequestTask?.cancel()
             pinRequestTask = Task { await startCreationMode() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                location.stop()
+            }
         }
         .onDisappear {
             tabChangeTask?.cancel()
