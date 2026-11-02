@@ -778,7 +778,7 @@ final class ARPinningEngine: NSObject {
         )
         var options = TextureResource.CreateOptions(semantic: .color)
         options.mipmapsMode = .allocateAndGenerateAll
-        let texture = try TextureResource.generate(from: image, withName: "lociar-\(post.id)-\(generation)", options: options)
+        let texture = try TextureResource.generate(from: image, withName: nil, options: options)
         var material = UnlitMaterial()
         material.color = .init(tint: .white, texture: .init(texture))
         material.blending = .transparent(opacity: .init(floatLiteral: 1.0))

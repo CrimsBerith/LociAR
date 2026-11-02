@@ -1,5 +1,5 @@
 import ARKit
-import CoreLocation
+@preconcurrency import CoreLocation
 import Foundation
 import Observation
 import OSLog
@@ -53,7 +53,7 @@ final class ARCoreService {
         locationAuthDelegate = delegate
         locationAuthObserver.delegate = delegate
         delegate.onAuthChange = { [weak self] in
-            Task { @MainActor [weak self] in self?.retryGeospatialIfNeeded() }
+            self?.retryGeospatialIfNeeded()
         }
     }
 
@@ -468,8 +468,9 @@ final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
 }
 
 /// Minimal CLLocationManagerDelegate that forwards authorization-change events.
-private final class ARCoreLocationAuthDelegate: NSObject, CLLocationManagerDelegate, @unchecked Sendable {
-    var onAuthChange: (() -> Void)?
+@MainActor
+private final class ARCoreLocationAuthDelegate: NSObject, @preconcurrency CLLocationManagerDelegate {
+    var onAuthChange: (@MainActor () -> Void)?
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         onAuthChange?()
