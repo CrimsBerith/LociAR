@@ -7,6 +7,7 @@ import InviteUserForm from './InviteUserForm';
 import CreateUserForm from './CreateUserForm';
 import PersonaTransfer from './PersonaTransfer';
 import ManagedProfileEditor from './ManagedProfileEditor';
+import PersonaBulkRefresh from './PersonaBulkRefresh';
 import AdminDecision from '../AdminDecision';
 import UserContextPanel from '../UserContextPanel';
 import PageNavigation from '../PageNavigation';
@@ -47,6 +48,7 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
         <InviteUserForm />
       </div>
       {admin.permissions.has('users.create') ? <CreateUserForm /> : null}
+      {canManageProfiles ? <PersonaBulkRefresh /> : null}
       <PersonaTransfer canImport={admin.permissions.has('users.create')} canExport={canExportAllUsers} exportStepUpRequired={needsStepUp(admin, 'users.full_export')} />
       <section className="panel" aria-label={t('User profiles')}>
         <div className="panelHeader">
