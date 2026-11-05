@@ -72,7 +72,7 @@ struct GifPickerView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .background(.ultraThinMaterial)
+                    .lociGlassSurface(cornerRadius: 0)
                     .accessibilityIdentifier("gif-attribution")
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("GIF ara"))

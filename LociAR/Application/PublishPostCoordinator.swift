@@ -91,6 +91,13 @@ final class PublishPostCoordinator: PublishPostUseCase {
             try modelContext.save()
             logger.info("Publish paused post=\(postID.uuidString, privacy: .public)")
             return .queued(.servicePaused)
+        } catch is CancellationError {
+            // Task cancellation (navigation away, backgrounding, etc.) should preserve
+            // queue state without incrementing attemptCount or dead-lettering.
+            queue.nextAttemptAt = Date()
+            try? modelContext.save()
+            logger.info("Publish cancelled by caller post=\(postID.uuidString, privacy: .public)")
+            return .queued(.backendUnavailable)
         } catch {
             queue.attemptCount += 1
             queue.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.delay(afterAttempt: queue.attemptCount))

@@ -148,7 +148,6 @@
  "Hesap engellenemedi. Tekrar dene.": "无法屏蔽此账户。请重试。",
  "Hesap oluştur": "创建帐户",
  "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.": "无法创建该帐户。该电子邮件可能正在使用或密码强度不够。",
- "Hesap silme işlemi geri alınamaz.": "账号删除后无法恢复。",
  "Hesap şu anda silinemiyor. Biraz sonra tekrar dene.": "暂时无法删除账号。请稍后重试。",
  "Kamera ayarlarını aç": "打开相机设置",
  "Kamera açık": "相机处于活动状态",
@@ -712,5 +711,18 @@
  "LociAR diagnostic category %@": "LociAR diagnostic category %@",
  "LociAR.%@": "LociAR.%@",
  "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.": "无法更改此笔记的发布身份。请创建新笔记。",
- "GIF animasyonu": "GIF动画"
+ "GIF animasyonu": "GIF动画",
+ "3D AR Notu": "3D AR笔记",
+ "AR Notları": "AR笔记",
+ "ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.": "在ARCore Geospatial和Cloud Anchors位置会话期间，Google会处理相机和位置数据。",
+ "Davet kodları yüklenemedi": "无法加载邀请码",
+ "Davet kodları yükleniyor…": "正在加载邀请码…",
+ "Filtre": "筛选",
+ "Gelişmiş AR Servisleri": "高级AR服务",
+ "Google AR ve Sensör Verisi": "Google AR与传感器数据",
+ "Konum": "位置",
+ "Konum Notları": "位置笔记",
+ "Konum Notu": "位置笔记",
+ "Oturumun doğrulanamadı. Tekrar dene.": "无法验证你的会话。请重试。",
+ "Tümü": "全部"
 }

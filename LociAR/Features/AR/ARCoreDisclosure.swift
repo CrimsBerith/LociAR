@@ -19,7 +19,7 @@ struct ARCoreDisclosureModifier: ViewModifier {
     }
 }
 
-/// Small persistent "Google AR" control for AR screens; reopens the sensor-data notice.
+/// Persistent access to the sensor-data notice on every active AR screen.
 struct ARCoreNoticeButton: View {
     @Environment(AppContainer.self) private var container
     @AppStorage(ARCoreService.disclosureAcknowledgedKey) private var acknowledged = false
@@ -33,7 +33,7 @@ struct ARCoreNoticeButton: View {
                     .foregroundStyle(.white.opacity(0.85))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .lociGlassSurface(in: Capsule())
             }
             .buttonStyle(.plain)
             .frame(minHeight: 44)

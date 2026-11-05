@@ -77,7 +77,7 @@ final class AuditMediaProtocol: URLProtocol, @unchecked Sendable {
         }
         let requests = RequestCount.shared.read()
         _ = await GifDataCache.shared.data(for: url)
-        precondition(consumers == 8 && requests == 8 && RequestCount.shared.read() == requests)
+        precondition(consumers == 8 && requests == 1 && RequestCount.shared.read() == requests)
         let regions = await RegionProbe().run()
         let data = try JSONSerialization.data(withJSONObject: [
             "gifMedia": ["concurrentConsumers": consumers, "syntheticURLRequests": requests,

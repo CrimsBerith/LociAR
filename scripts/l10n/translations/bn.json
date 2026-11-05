@@ -148,7 +148,6 @@
  "Hesap engellenemedi. Tekrar dene.": "অ্যাকাউন্ট ব্লক করা যায়নি। আবার চেষ্টা করুন।",
  "Hesap oluştur": "অ্যাকাউন্ট তৈরি করুন",
  "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.": "অ্যাকাউন্ট তৈরি করা যায়নি। ইমেল ব্যবহার করা হতে পারে বা পাসওয়ার্ড যথেষ্ট শক্তিশালী নয়।",
- "Hesap silme işlemi geri alınamaz.": "অ্যাকাউন্ট মুছে ফেলার কাজ পূর্বাবস্থায় ফেরানো যায় না।",
  "Hesap şu anda silinemiyor. Biraz sonra tekrar dene.": "এখন অ্যাকাউন্ট মুছে ফেলা যাচ্ছে না। কিছুক্ষণ পরে আবার চেষ্টা করুন।",
  "Kamera ayarlarını aç": "ক্যামেরা সেটিংস খুলুন",
  "Kamera açık": "ক্যামেরা সক্রিয়",
@@ -712,5 +711,18 @@
  "LociAR diagnostic category %@": "LociAR diagnostic category %@",
  "LociAR.%@": "LociAR.%@",
  "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.": "এই নোটের প্রকাশনার পরিচয় বদলানো যাবে না। নতুন নোট তৈরি করুন।",
- "GIF animasyonu": "জিআইএফ অ্যানিমেশন"
+ "GIF animasyonu": "জিআইএফ অ্যানিমেশন",
+ "3D AR Notu": "3D AR নোট",
+ "AR Notları": "AR নোট",
+ "ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.": "ARCore Geospatial ও Cloud Anchors-এর অবস্থান সেশন চলাকালে ক্যামেরা ও অবস্থানের ডেটা Google প্রক্রিয়া করে।",
+ "Davet kodları yüklenemedi": "আমন্ত্রণ কোড লোড করা যায়নি",
+ "Davet kodları yükleniyor…": "আমন্ত্রণ কোড লোড হচ্ছে…",
+ "Filtre": "ফিল্টার",
+ "Gelişmiş AR Servisleri": "উন্নত AR পরিষেবা",
+ "Google AR ve Sensör Verisi": "Google AR ও সেন্সর ডেটা",
+ "Konum": "অবস্থান",
+ "Konum Notları": "অবস্থানের নোট",
+ "Konum Notu": "অবস্থানের নোট",
+ "Oturumun doğrulanamadı. Tekrar dene.": "তোমার সেশন যাচাই করা যায়নি। আবার চেষ্টা করো।",
+ "Tümü": "সব"
 }

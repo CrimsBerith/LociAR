@@ -289,7 +289,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     /// and appear once the server has screened them.
     func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
-        let clean = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let clean = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(with: Locale(identifier: "en_US_POSIX"))
         guard clean.range(of: "^[a-z0-9_.]{3,30}$", options: .regularExpression) != nil else {
             throw AuthFlowError.invalidHandle
         }
@@ -506,7 +506,7 @@ enum AppleAuthorizationNonce {
     static func make() -> String {
         let characters = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
         var generator = SystemRandomNumberGenerator()
-        return String((0..<32).map { _ in characters.randomElement(using: &generator)! })
+        return String((0..<32).map { _ in characters.randomElement(using: &generator) ?? "a" })
     }
     static func hash(_ value: String) -> String {
         SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
@@ -531,16 +531,25 @@ final class AppleReauthenticator: NSObject, ASAuthorizationControllerDelegate, A
     }
 
     private func run() async throws -> AppleReauthenticationCredential {
-        try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
-            let request = ASAuthorizationAppleIDProvider().createRequest()
-            request.requestedScopes = []
-            request.nonce = AppleAuthorizationNonce.hash(nonce)
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            self.controller = controller
-            controller.delegate = self
-            controller.presentationContextProvider = self
-            controller.performRequests()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                self.continuation = continuation
+                let request = ASAuthorizationAppleIDProvider().createRequest()
+                request.requestedScopes = []
+                request.nonce = AppleAuthorizationNonce.hash(nonce)
+                let controller = ASAuthorizationController(authorizationRequests: [request])
+                self.controller = controller
+                controller.delegate = self
+                controller.presentationContextProvider = self
+                controller.performRequests()
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.continuation?.resume(throwing: CancellationError())
+                self?.continuation = nil
+                self?.controller = nil
+                AppleReauthenticator.active = nil
+            }
         }
     }
 

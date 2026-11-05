@@ -2,6 +2,7 @@
   "name": "lociar-admin",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,6 +15,7 @@
     "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
+    "@google-cloud/vision": "^5.3.7",
     "firebase": "^12.3.0",
     "firebase-admin": "^14.5.0",
     "next": "16.4.3",

@@ -298,6 +298,19 @@ struct MapNoteGroupSheet: View {
                     ForEach(readablePosts) { post in
                         NavigationLink(value: post) {
                             HStack(spacing: 12) {
+                                if post.isLocationNote {
+                                    Label("Konum", systemImage: "mappin.and.ellipse")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.cyan)
+                                        .padding(.horizontal, 6).padding(.vertical, 3)
+                                        .background(Color.cyan.opacity(0.15), in: Capsule())
+                                } else {
+                                    Label("AR", systemImage: "viewfinder")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(LociTheme.accent)
+                                        .padding(.horizontal, 6).padding(.vertical, 3)
+                                        .background(LociTheme.accent.opacity(0.15), in: Capsule())
+                                }
                                 TranslatedPostText(text: post.caption, lineLimit: 3).font(.body).foregroundStyle(.white)
                                     .multilineTextAlignment(.leading)
                                 Spacer(minLength: 8)
@@ -507,7 +520,7 @@ struct NoteHeatGlow: View {
         let opacity = (colorScheme == .dark ? 0.28 : 0.20) + 0.14 * t
         ZStack {
             if reduceTransparency {
-                shape.fill(colorScheme == .dark ? LociTheme.surfaceStrong : Color.white)
+                shape.fill(colorScheme == .dark ? LociTheme.surfaceStrong : LociTheme.surface)
             } else {
                 shape.fill(.ultraThinMaterial).opacity(0.48)
             }

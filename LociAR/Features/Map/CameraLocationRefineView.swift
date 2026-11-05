@@ -21,6 +21,7 @@ struct CameraLocationRefineView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppContainer.self) private var container
     @Environment(ARPinningEngine.self) private var engine
+    @State private var cameraSessionGeneration: UUID?
     @State private var cameraReady = true
     @State private var used = false
 
@@ -41,7 +42,7 @@ struct CameraLocationRefineView: View {
                     ARCoreNoticeButton()
                     Spacer()
                     Button("Kapat") { dismiss() }
-                        .buttonStyle(.borderedProminent).tint(.black.opacity(0.55))
+                        .buttonStyle(.borderedProminent).tint(LociTheme.background.opacity(0.55))
                         .accessibilityIdentifier("camera-refine-close")
                 }
                 Spacer()
@@ -51,8 +52,14 @@ struct CameraLocationRefineView: View {
         }
         .background(LociTheme.background)
         .arcoreDisclosure()
-        .task { cameraReady = await engine.ensureLiveCameraSession() }
-        .onDisappear { engine.stopSession() }
+        .task {
+            let ready = await engine.ensureLiveCameraSession { generation in
+                cameraSessionGeneration = generation
+            }
+            guard !Task.isCancelled else { return }
+            cameraReady = ready
+        }
+        .onDisappear { engine.stopSession(ifGenerationMatches: cameraSessionGeneration) }
         .onChange(of: container.arcore.cameraFix) { _, _ in
             if let fix, fix.accuracy <= Self.autoAcceptAccuracy { use(fix) }
         }
@@ -83,7 +90,7 @@ struct CameraLocationRefineView: View {
             .accessibilityIdentifier("camera-refine-use")
         }
         .padding()
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .lociGlassSurface(cornerRadius: 16)
     }
 
     private func use(_ fix: LocationSample) {

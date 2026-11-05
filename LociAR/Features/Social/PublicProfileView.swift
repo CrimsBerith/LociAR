@@ -73,7 +73,9 @@ struct PublicProfileView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped).scrollContentBackground(.hidden).background(LociScreenBackground())
+        .listStyle(.insetGrouped).scrollContentBackground(.hidden)
+        .lociGlassRowBackground()
+        .background(LociScreenBackground())
         .navigationTitle("Profil")
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
         .refreshable { await load() }
@@ -89,7 +91,7 @@ struct PublicProfileView: View {
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
                 Button("Daha fazla göster") { Task { await loadMore() } }
-                    .disabled(isLoadingMore || isLoading).padding().background(.ultraThinMaterial)
+                    .disabled(isLoadingMore || isLoading).padding().lociGlassSurface(cornerRadius: 0)
             }
         }
         .confirmationDialog("Kullanıcı engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {

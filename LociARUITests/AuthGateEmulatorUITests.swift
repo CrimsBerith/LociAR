@@ -10,6 +10,19 @@ extension AuthGateUITests {
     private var e2eEmail: String { ProcessInfo.processInfo.environment["E2E_EMAIL"] ?? "" }
     private var e2ePassword: String { ProcessInfo.processInfo.environment["E2E_PASSWORD"] ?? "" }
 
+    func testEmulator00AuthEndpointReachable() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        let host = environment["E2E_EMULATOR_HOST"] ?? environment["TEST_RUNNER_E2E_EMULATOR_HOST"] ?? ""
+        guard !host.isEmpty else { throw XCTSkip("Emulator host yok") }
+        let url = try XCTUnwrap(URL(string: "http://\(host):9099/emulator/v1/projects/demo-lociar/config"))
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200,
+                       "iPhone test runner could not reach Firebase Auth emulator at \(host):9099: \(String(decoding: data, as: UTF8.self))")
+        XCTAssertTrue(String(decoding: data, as: UTF8.self).contains("allowDuplicateEmails"))
+    }
+
     private func e2eField(_ app: XCUIApplication, _ id: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: id).firstMatch
     }

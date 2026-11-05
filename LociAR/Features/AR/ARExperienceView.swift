@@ -19,6 +19,7 @@ struct ARExperienceView: View {
     @Environment(AppRouter.self) private var router
     @Environment(ARPinningEngine.self) private var engine
     @Environment(\.modelContext) private var modelContext
+    @State private var cameraSessionGeneration: UUID?
     @State private var showCreate = false
     @State private var errorMessage: String?
     @State private var isPreparingContent = false
@@ -123,8 +124,8 @@ struct ARExperienceView: View {
             location.stop()
             let siblingARTabActive = (mode == .discover && router.selectedTab == .create)
                 || (mode == .create && router.selectedTab == .ar)
-            if viewingPost == nil, !siblingARTabActive {
-                engine.stopSession()
+            if viewingPost == nil, !siblingARTabActive, !showCreate, !router.isCreatePresented {
+                engine.stopSession(ifGenerationMatches: cameraSessionGeneration)
             }
         }
         .sheet(isPresented: $showCreate) { CreatePostView(anchor: engine.currentAnchor) }
@@ -147,6 +148,10 @@ struct ARExperienceView: View {
         ZStack {
             Color.black.opacity(engine.hasRecentCameraFrame ? 0.08 : 0.12).ignoresSafeArea()
             VStack(spacing: 18) {
+                HStack {
+                    Spacer()
+                    ARCoreNoticeButton()
+                }
                 Spacer()
                 ZStack {
                     Circle().fill(LociTheme.accent.opacity(0.12)).frame(width: 82, height: 82)
@@ -200,8 +205,9 @@ struct ARExperienceView: View {
                                     .foregroundStyle(LociTheme.accent)
                             }
                             .padding(14)
-                            .background(LociTheme.surface, in: RoundedRectangle(cornerRadius: 16))
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(LociTheme.hairline))
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                            .overlay(RoundedRectangle(cornerRadius: 16).fill(LociTheme.glassTint))
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(LociTheme.glassBorder))
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("ar-nearby-post-\(post.id.uuidString.lowercased())")
@@ -264,7 +270,7 @@ struct ARExperienceView: View {
     }
 
     private var statusPanel: some View {
-        LociCard {
+        LociCard(appearance: .floating) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     LociStatusPill(title: arStatusTitle, symbol: arStatusSymbol, color: arStatusColor)
@@ -309,7 +315,7 @@ struct ARExperienceView: View {
                     Label("AR bu cihazda desteklenmiyor", systemImage: "iphone.slash")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 48)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .lociGlassSurface(cornerRadius: 16)
                 } else if cameraPermissionDenied {
                     Button("Kamera ayarlarını aç", systemImage: "gear") {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -380,8 +386,7 @@ struct ARExperienceView: View {
             }
         }
         .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(LociTheme.hairline))
+        .lociGlassSurface(cornerRadius: 22)
         .padding(.bottom, 4)
     }
 
@@ -454,6 +459,7 @@ struct ARExperienceView: View {
     }
 
     private func handleAppearance() async {
+        guard !Task.isCancelled, (mode == .create ? router.selectedTab == .create : router.selectedTab == .ar) else { return }
         if mode == .create {
             await startCreationMode()
             return
@@ -464,7 +470,9 @@ struct ARExperienceView: View {
     }
 
     private func startCameraForDiscovery() async {
-        _ = await engine.ensureLiveCameraSession()
+        _ = await engine.ensureLiveCameraSession { generation in
+            cameraSessionGeneration = generation
+        }
     }
 
     private func handleARSelection() async {
@@ -481,6 +489,7 @@ struct ARExperienceView: View {
         isCreationMode = false
         guard viewingPost == nil else { return }
         await startCameraForDiscovery()
+        guard !Task.isCancelled, router.selectedTab == .ar else { return }
         await discoverAndOpenNearestPost(automaticallyOpen: false)
     }
 
@@ -554,7 +563,8 @@ struct ARExperienceView: View {
     }
 
     private func startCreationMode() async {
-        guard !isStartingCreationMode else { return }
+        guard !isStartingCreationMode, !Task.isCancelled,
+              mode == .create ? router.selectedTab == .create : router.selectedTab == .ar else { return }
         location.stop()
         isStartingCreationMode = true
         defer { isStartingCreationMode = false }
@@ -562,8 +572,8 @@ struct ARExperienceView: View {
         viewingPost = nil
         // Geo-tagging the new pin (ARCore Geospatial) needs precise location.
         location.requestPreciseAccuracyIfNeeded()
-        if await engine.prepareNewPinSession() == false {
-            return
+        _ = await engine.prepareNewPinSession { generation in
+            cameraSessionGeneration = generation
         }
     }
 

@@ -19,7 +19,7 @@ const DAY_MS = 86_400_000;
  * is not bound to the post being deleted, so a leaked anchor id cannot be used to take over or
  * delete someone else's anchor.
  */
-export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
+export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 30 }, async (request) => {
   const caller = requireCaller(request);
   await assertServiceEnabled('register_anchor');
   if (!mayPublishAnonymously(caller)) {

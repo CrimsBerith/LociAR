@@ -29,6 +29,7 @@ struct AppSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
+        .lociGlassRowBackground()
         .background(LociScreenBackground())
         .tint(LociTheme.accent)
         .navigationTitle(title)
@@ -60,6 +61,7 @@ struct AppSettingsView: View {
                          summary: crashReports ? String(localized: "Açık") : String(localized: "Kapalı"),
                          destination: .diagnostics, identifier: "settings-open-diagnostics")
         }
+        .lociGlassRowBackground()
     }
 
     private func settingsLink(_ label: String, symbol: String, summary: String,
@@ -97,6 +99,7 @@ struct AppSettingsView: View {
         } footer: {
             Text("Beğeni, yorum, takip ve yönetici mesajı bildirimlerini al. Mesajlar kilit ekranında görünebilir.")
         }
+        .lociGlassRowBackground()
         .disabled(sharing.isBusy)
 
         Section {
@@ -122,6 +125,7 @@ struct AppSettingsView: View {
         } footer: {
             Text("Beğenilen bir notun bulunduğu yere gelince haber verir. Arka planda çalışması için Her zaman konum izni gerekir. Bildirimler kapalıyken haber verilmez.")
         }
+        .lociGlassRowBackground()
         .disabled(sharing.isBusy)
 
         Section {
@@ -143,6 +147,7 @@ struct AppSettingsView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
         } footer: { Text("Konumuna göre kampanya ve teklif bildirimleri al. Bu tercih isteğe bağlıdır.") }
+        .lociGlassRowBackground()
         .disabled(sharing.isBusy)
 
         if sharing.notificationsEnabled && (sharing.placeNotesEnabled || sharing.promotionsEnabled) {
@@ -174,6 +179,7 @@ struct AppSettingsView: View {
                 Button("Tekrar dene") { arrivals.retryMonitoring(); Task { await arrivals.synchronize() } }
             }
         }
+        .lociGlassRowBackground()
     }
 
     @ViewBuilder private var privacy: some View {
@@ -190,6 +196,7 @@ struct AppSettingsView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
+        .lociGlassRowBackground()
         .disabled(sharing.isBusy)
 
         Section {
@@ -207,7 +214,22 @@ struct AppSettingsView: View {
                 Button("Ayarları aç") { openAppSettings() }
             }
         }
+        .lociGlassRowBackground()
         .disabled(sharing.isBusy)
+        Section(String(localized: "Gelişmiş AR Servisleri")) {
+            Link(destination: ARCoreDisclosureModifier.learnMoreURL) {
+                HStack {
+                    Text("Google AR ve Sensör Verisi")
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Text("ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+        .lociGlassRowBackground()
         preferenceError
     }
 
@@ -219,10 +241,12 @@ struct AppSettingsView: View {
         } footer: {
             Text("Çeviri cihazında yapılır. Desteklenmeyen dillerde orijinal metin gösterilir.")
         }
+        .lociGlassRowBackground()
         Section {
             Text("Yalnızca okunabilir notlar çevrilir. Orijinal metne her zaman dönebilirsin.")
             Text("Dil paketi gerektiğinde çeviriyi sen başlatırsın ve Apple indirme izni ister. Notlar ve çeviriler diske kaydedilmez.")
         } header: { Text("Dil paketleri") }
+        .lociGlassRowBackground()
     }
 
     private var diagnostics: some View {
@@ -233,6 +257,7 @@ struct AppSettingsView: View {
         } footer: {
             Text("Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.")
         }
+        .lociGlassRowBackground()
     }
 
     @ViewBuilder private var preferenceError: some View {
@@ -243,6 +268,7 @@ struct AppSettingsView: View {
                     Task { await sharing.setSharing(telemetry: sharing.telemetryEnabled, location: sharing.locationEnabled) }
                 }
             }
+            .lociGlassRowBackground()
         }
     }
 

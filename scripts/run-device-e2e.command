@@ -99,9 +99,20 @@ VERIFY_PID=$!
 export TEST_RUNNER_E2E_EMAIL="e2e$(date +%s)@lociar.test"
 export TEST_RUNNER_E2E_PASSWORD="$(openssl rand -hex 24)"
 export TEST_RUNNER_E2E_DEMO_EMULATOR_HTTP=1
+export TEST_RUNNER_E2E_EMULATOR_HOST="$LAN_IP"
+export E2E_EMULATOR_HOST="$LAN_IP"
 [ -n "$TEST_RUNNER_E2E_PASSWORD" ] || { log "HATA: test parolası üretilemedi"; exit 1; }
 log "Test hesabi: $TEST_RUNNER_E2E_EMAIL"
+python3 - "$ROOT/LociAR/Resources/Info.plist" "$OUT/Info-Debug.plist" <<'PY'
+import plistlib, sys
+with open(sys.argv[1], "rb") as source:
+    info = plistlib.load(source)
+info["NSLocalNetworkUsageDescription"] = "LociAR device tests connect to the local Firebase Emulator Suite."
+with open(sys.argv[2], "wb") as target:
+    plistlib.dump(info, target, sort_keys=False)
+PY
 COMMON=(-project LociAR.xcodeproj -scheme LociAR -configuration Debug -destination "id=$DEVICE_ID" -allowProvisioningUpdates -parallel-testing-enabled NO -derivedDataPath "$OUT/DerivedData"
+  "INFOPLIST_FILE=$OUT/Info-Debug.plist"
   "LOCIAR_EMULATOR_HOST=$LAN_IP"
   "LOCIAR_FIREBASE_PROJECT_ID=$PROJECT_ID"
   "LOCIAR_FIREBASE_STORAGE_BUCKET=$PROJECT_ID.firebasestorage.app"
@@ -123,6 +134,7 @@ assert d["LOCIAR_FIREBASE_GCM_SENDER_ID"]=="123456789012"
 PY
 
 TESTS=(
+  testEmulator00AuthEndpointReachable
   testEmulator01SignUpVerifyAndSignIn
   testPhysicalNormalAccountARTabReceivesCameraFrame
   testPhysicalNormalAccountPublishesTextARPostAndDeletesIt
@@ -146,6 +158,10 @@ for t in "${TESTS[@]}"; do
     FAILED_TESTS=$((FAILED_TESTS + 1))
     log "  FAIL $t (kod $code)"
     grep -E "error: |XCTAssert|failed -|\[E2E\]|\[LociAR auth\]" "$OUT/$t.log" | head -15 | tee -a "$SUMMARY"
+    if [ "$t" = "testEmulator00AuthEndpointReachable" ]; then
+      log "STOP: iPhone local ağdan Auth emulator'a erişemiyor; bağımlı E2E senaryoları çalıştırılmadı."
+      break
+    fi
   fi
 done
 log "BITTI"

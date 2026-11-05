@@ -148,7 +148,6 @@
  "Hesap engellenemedi. Tekrar dene.": "खाते को ब्लॉक नहीं किया जा सका। फिर से प्रयास करें।",
  "Hesap oluştur": "खाता बनाएं",
  "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.": "खाता नहीं बनाया जा सका. हो सकता है कि ईमेल उपयोग में हो या पासवर्ड पर्याप्त मजबूत न हो।",
- "Hesap silme işlemi geri alınamaz.": "खाता मिटाने की कार्रवाई वापस नहीं ली जा सकती।",
  "Hesap şu anda silinemiyor. Biraz sonra tekrar dene.": "अभी खाता मिटाया नहीं जा सकता। कुछ देर बाद फिर प्रयास करें।",
  "Kamera ayarlarını aç": "कैमरा सेटिंग खोलें",
  "Kamera açık": "कैमरा सक्रिय",
@@ -712,5 +711,18 @@
  "LociAR diagnostic category %@": "LociAR diagnostic category %@",
  "LociAR.%@": "LociAR.%@",
  "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.": "इस नोट की प्रकाशन पहचान नहीं बदल सकती। नया नोट बनाएँ।",
- "GIF animasyonu": "जीआईएफ एनीमेशन"
+ "GIF animasyonu": "जीआईएफ एनीमेशन",
+ "3D AR Notu": "3D AR नोट",
+ "AR Notları": "AR नोट्स",
+ "ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.": "ARCore Geospatial और Cloud Anchors के स्थान सत्रों के दौरान कैमरा और स्थान डेटा Google द्वारा प्रोसेस किया जाता है।",
+ "Davet kodları yüklenemedi": "आमंत्रण कोड लोड नहीं हो सके",
+ "Davet kodları yükleniyor…": "आमंत्रण कोड लोड हो रहे हैं…",
+ "Filtre": "फ़िल्टर",
+ "Gelişmiş AR Servisleri": "उन्नत AR सेवाएँ",
+ "Google AR ve Sensör Verisi": "Google AR और सेंसर डेटा",
+ "Konum": "स्थान",
+ "Konum Notları": "स्थान नोट्स",
+ "Konum Notu": "स्थान नोट",
+ "Oturumun doğrulanamadı. Tekrar dene.": "तुम्हारे सत्र की पुष्टि नहीं हो सकी। फिर से कोशिश करो।",
+ "Tümü": "सभी"
 }

@@ -13,6 +13,8 @@ struct MapFeatureView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRouter.self) private var router
     @Binding var showCreate: Bool
+    @ScaledMetric(relativeTo: .subheadline) private var previewRowHeight: CGFloat = 44
+    @ScaledMetric(relativeTo: .subheadline) private var previewListLimit: CGFloat = 176
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var selection: UUID?
     @State private var posts: [LociPost] = []
@@ -38,6 +40,14 @@ struct MapFeatureView: View {
     @State private var clusterFocus: Set<UUID>?
     @State private var showCameraUnlock = false
 
+    enum MapFilter: String, CaseIterable, Identifiable {
+        case all = "Tümü"
+        case arOnly = "AR Notları"
+        case locationOnly = "Konum Notları"
+        var id: String { rawValue }
+    }
+    @State private var filter: MapFilter = .all
+
     /// Guests browse only; leaving a note needs a verified account (AccountRequiredView).
     private var isGuest: Bool {
         if case let .signedIn(user) = session.phase { return user.isAnonymousAccount }
@@ -57,7 +67,12 @@ struct MapFeatureView: View {
     private var unlistedOwnPosts: [LociPost] {
         guard case let .signedIn(user) = session.phase else { return [] }
         let listed = Set(mapGroups.flatMap(\.postIDs))
-        return posts.filter { $0.creatorID == user.id && !listed.contains($0.id.uuidString.lowercased()) }
+        let userPosts = posts.filter { $0.creatorID == user.id && !listed.contains($0.id.uuidString.lowercased()) }
+        switch filter {
+        case .all: return userPosts
+        case .arOnly: return userPosts.filter { !$0.isLocationNote }
+        case .locationOnly: return userPosts.filter { $0.isLocationNote }
+        }
     }
 
     var body: some View {
@@ -89,12 +104,13 @@ struct MapFeatureView: View {
             if layer == .notes && !usesMapGroups {
             ForEach(clusters) { cluster in
                 if cluster.posts.count == 1, let post = cluster.posts.first {
+                    let isLoc = post.isLocationNote
                     Marker(
                         postTitle(post),
-                        systemImage: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill",
+                        systemImage: isLoc ? "mappin.circle.fill" : (post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill"),
                         coordinate: cluster.coordinate
                     )
-                    .tint(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
+                    .tint(isLoc ? MapNoteKindStyle.location : MapNoteKindStyle.ar)
                     .tag(post.id)
                 } else {
                     Annotation("\(cluster.posts.count) not", coordinate: cluster.coordinate) {
@@ -112,9 +128,10 @@ struct MapFeatureView: View {
             if layer == .notes && usesMapGroups {
                 ForEach(unlistedOwnPosts) { post in
                     if let geo = post.anchorBundle.anchor.geoPose {
-                        Marker(postTitle(post), systemImage: "mappin.and.ellipse",
+                        let isLoc = post.isLocationNote
+                        Marker(postTitle(post), systemImage: isLoc ? "mappin.and.ellipse" : "viewfinder",
                                coordinate: CLLocationCoordinate2D(latitude: geo.latitude, longitude: geo.longitude))
-                            .tint(LociTheme.accent).tag(post.id)
+                            .tint(isLoc ? MapNoteKindStyle.location : MapNoteKindStyle.ar).tag(post.id)
                     }
                 }
             }
@@ -155,6 +172,28 @@ struct MapFeatureView: View {
         }
         .fullScreenCover(isPresented: $showCameraUnlock) {
             CameraLocationRefineView { fix in Task { await unlockHere(cameraFix: fix) } }
+        }
+        .safeAreaInset(edge: .top) {
+            if !layer.isHeat {
+                VStack(spacing: 6) {
+                    Picker("Filtre", selection: $filter) {
+                        ForEach(MapFilter.allCases) { item in
+                            Text(item.rawValue).tag(item)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    HStack(spacing: 14) {
+                        mapNoteLegendItem("3D AR Notu", color: MapNoteKindStyle.ar, symbol: "viewfinder.circle.fill")
+                        mapNoteLegendItem("Konum Notu", color: MapNoteKindStyle.location, symbol: "mappin.circle.fill")
+                        Spacer(minLength: 0)
+                    }
+                    .font(.caption2.weight(.medium))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .lociGlassSurface(cornerRadius: 12)
+                .padding(.horizontal, 14)
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 8) { mapPanel.padding(.horizontal, 14) }
         .navigationTitle("Harita")
@@ -204,6 +243,7 @@ struct MapFeatureView: View {
             router.pendingMapFocus = nil
             zoom(into: CLLocationCoordinate2D(latitude: focus.latitude, longitude: focus.longitude))
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("screen-map")
     }
 
@@ -213,12 +253,20 @@ struct MapFeatureView: View {
         let posts: [LociPost]
     }
 
+    private var filteredPosts: [LociPost] {
+        switch filter {
+        case .all: return posts
+        case .arOnly: return posts.filter { !$0.isLocationNote }
+        case .locationOnly: return posts.filter { $0.isLocationNote }
+        }
+    }
+
     private var clusters: [PostCluster] {
         var result: [PostCluster] = []
         // Same fixed-distance grouping as the server's notification clusters.
         let thresholdMeters = LocationNotePolicy.spotJoinRadius
 
-        for post in posts {
+        for post in filteredPosts {
             guard let geo = post.anchorBundle.anchor.geoPose else { continue }
             let postCoord = CLLocationCoordinate2D(latitude: geo.latitude, longitude: geo.longitude)
             let postLocation = CLLocation(latitude: geo.latitude, longitude: geo.longitude)
@@ -250,13 +298,28 @@ struct MapFeatureView: View {
     private var selectedPost: LociPost? { posts.first { $0.id == selection } }
 
     @ViewBuilder private var mapPanel: some View {
-        LociCard {
+        LociCard(appearance: .floating) {
             if container.isBackendConfigured, !session.isLocalPreview, selectedPost == nil {
                 summaryPanel
             } else if let selectedPost {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                if selectedPost.isLocationNote {
+                                    Label("Konum Notu", systemImage: "mappin.and.ellipse")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(MapNoteKindStyle.location)
+                                        .padding(.horizontal, 6).padding(.vertical, 2)
+                                        .background(MapNoteKindStyle.location.opacity(0.15), in: Capsule())
+                                } else {
+                                    Label("3D AR Notu", systemImage: "viewfinder")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(MapNoteKindStyle.ar)
+                                        .padding(.horizontal, 6).padding(.vertical, 2)
+                                        .background(MapNoteKindStyle.ar.opacity(0.15), in: Capsule())
+                                }
+                            }
                             Text(postTitle(selectedPost))
                                 .font(.headline).lineLimit(2)
                             Label(distanceText(for: selectedPost).localizedUI, systemImage: "location.fill")
@@ -330,10 +393,10 @@ struct MapFeatureView: View {
                         if let spot = listedPosts.lazy.compactMap(\.denseSpot).first {
                             denseSpotBanner(spot)
                         }
-                        if listedPosts.contains(where: { !$0.isLocked }) {
+                        if !readablePreviewPosts.isEmpty {
                         ScrollView {
                             LazyVStack(spacing: 10) {
-                                ForEach(listedPosts.filter { !$0.isLocked }) { post in
+                                ForEach(readablePreviewPosts) { post in
                                     NavigationLink(value: post) {
                                         HStack(spacing: 10) {
                                             Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
@@ -351,7 +414,7 @@ struct MapFeatureView: View {
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
-                                        .frame(minHeight: 44)
+                                        .frame(height: previewRowHeight)
                                         .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
@@ -363,12 +426,18 @@ struct MapFeatureView: View {
                                 }
                             }
                         }
-                        .frame(maxHeight: 220)
+                        // A vertical ScrollView otherwise takes the entire proposed cap,
+                        // leaving a large empty glass panel when only one note is present.
+                        .frame(height: min(previewListLimit,
+                            CGFloat(readablePreviewPosts.count) * previewRowHeight
+                                + CGFloat(max(0, readablePreviewPosts.count - 1)) * 10))
                         }
                     }
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("map-preview-panel")
     }
 
     private var summaryPanel: some View {
@@ -402,11 +471,14 @@ struct MapFeatureView: View {
                         }
                     }
                 }
+                .frame(height: previewRowHeight)
             }
         }
     }
 
     private var statusSymbol: String { posts.isEmpty ? "location.magnifyingglass" : "mappin.and.ellipse" }
+
+    private var readablePreviewPosts: [LociPost] { listedPosts.filter { !$0.isLocked } }
 
     /// Panel order follows likes so the most useful note at a place comes first.
     private var listedPosts: [LociPost] {
@@ -477,6 +549,12 @@ struct MapFeatureView: View {
 
     private func countBubble(_ count: Int, intensity: Double = 0) -> some View {
         NoteDensityBadge(count: count, intensity: intensity)
+    }
+
+    private func mapNoteLegendItem(_ title: LocalizedStringKey, color: Color, symbol: String) -> some View {
+        Label(title, systemImage: symbol)
+            .foregroundStyle(color)
+            .accessibilityElement(children: .combine)
     }
 
     private func zoom(into coordinate: CLLocationCoordinate2D) {
@@ -609,4 +687,9 @@ struct MapFeatureView: View {
         guard let meters = ProximityPolicy.roundedMeters(distance) else { return String(localized: "Mesafe hesaplanamadı") }
         return meters < 1_000 ? "\(meters.formatted()) m" : String(format: "%.1f km", locale: Locale.current, distance / 1_000)
     }
+}
+
+private enum MapNoteKindStyle {
+    static let ar = Color(red: 0.22, green: 0.52, blue: 1.0)
+    static let location = Color(red: 1.0, green: 0.62, blue: 0.24)
 }

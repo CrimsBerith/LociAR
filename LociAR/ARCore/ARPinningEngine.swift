@@ -1,5 +1,6 @@
 @preconcurrency import ARKit
 @preconcurrency import AVFoundation
+import CoreVideo
 import Foundation
 import Observation
 import OSLog
@@ -73,12 +74,19 @@ final class ARPinningEngine: NSObject {
     var isPausedForThermalPressure: Bool { state == .interrupted && pausedForThermalPressure }
     @ObservationIgnored private var compassWorldAlignment = false
     @ObservationIgnored private var lastFrameReceivedAt: Date?
+    @ObservationIgnored private var sessionGeneration = UUID()
+    @ObservationIgnored private var cameraOwnerGeneration = UUID()
     @ObservationIgnored private var lastFrameCountersAt = Date.distantPast
     @ObservationIgnored private var sessionStartedAt: Date?
     @ObservationIgnored private var physicalPinPlacedAt: Date?
     @ObservationIgnored private var lastFrameDiagnosticAt: Date?
     @ObservationIgnored private var arViewHosts: [WeakARViewHost] = []
     @ObservationIgnored private let logger = Logger(subsystem: "com.khankartal.lociar", category: "ARPinning")
+
+#if DEBUG
+    @ObservationIgnored private var cameraDiagnosticSampledAt: Date?
+    @ObservationIgnored private var cachedCameraRenderDiagnostic = ""
+#endif
 
     private struct CandidateSample {
         var date: Date
@@ -99,8 +107,66 @@ final class ARPinningEngine: NSObject {
         case .extending: String(localized: "genişliyor")
         case .mapped: String(localized: "hazır")
         }
-        return String(localized: "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh")
+        let summary = String(localized: "Takip \(tracking) · Harita \(mapping) · \(rawFeaturePointCount) özellik · \(planeAnchorCount) düzlem · \(meshAnchorCount) mesh")
+#if DEBUG
+        return summary + "\n" + cameraRenderDiagnostic
+#else
+        return summary
+#endif
     }
+
+#if DEBUG
+    /// Read only when diagnostics are requested; never saves or retains camera image data.
+    /// Coarse sensor brightness distinguishes a dark input from an unmounted camera view.
+    private var cameraRenderDiagnostic: String {
+        let now = Date()
+        if let sampledAt = cameraDiagnosticSampledAt, now.timeIntervalSince(sampledAt) < 1 {
+            return cachedCameraRenderDiagnostic
+        }
+        cameraDiagnosticSampledAt = now
+        guard let view = existingARView else {
+            cachedCameraRenderDiagnostic = "camera view=none"
+            return cachedCameraRenderDiagnostic
+        }
+        let hosts = arViewHosts.compactMap(\.view)
+        let attached = hosts.filter { $0.window != nil }
+        let owner = hosts.firstIndex(where: { $0 === view.superview }).map(String.init) ?? "none"
+        let preferred = hosts.lastIndex(where: { $0.window != nil }).map(String.init) ?? "none"
+        var hidden = false
+        var ancestor: UIView? = view
+        while let current = ancestor {
+            hidden = hidden || current.isHidden || current.alpha <= 0.01
+            ancestor = current.superview
+        }
+        let bounds = "\(Int(view.bounds.width.rounded()))x\(Int(view.bounds.height.rounded()))"
+        let hostBounds = view.superview.map { "\(Int($0.bounds.width.rounded()))x\(Int($0.bounds.height.rounded()))" } ?? "none"
+        var luma = "none"
+        if let buffer = view.session.currentFrame?.capturedImage,
+           CVPixelBufferGetPlaneCount(buffer) > 0,
+           CVPixelBufferLockBaseAddress(buffer, .readOnly) == kCVReturnSuccess {
+            defer { _ = CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+            if let base = CVPixelBufferGetBaseAddressOfPlane(buffer, 0) {
+                let width = CVPixelBufferGetWidthOfPlane(buffer, 0)
+                let height = CVPixelBufferGetHeightOfPlane(buffer, 0)
+                let stride = CVPixelBufferGetBytesPerRowOfPlane(buffer, 0)
+                if width > 0, height > 0 {
+                    let pixels = base.assumingMemoryBound(to: UInt8.self)
+                    var total = 0
+                    for row in 0..<16 {
+                        let y = min(height - 1, (row * 2 + 1) * height / 32)
+                        for column in 0..<16 {
+                            let x = min(width - 1, (column * 2 + 1) * width / 32)
+                            total += Int(pixels[y * stride + x])
+                        }
+                    }
+                    luma = String(total / 256)
+                }
+            }
+        }
+        cachedCameraRenderDiagnostic = "camera view=\(bounds) host=\(hostBounds) window=\(view.window != nil ? 1 : 0) hidden=\(hidden ? 1 : 0) owner=\(owner)/\(preferred) hosts=\(hosts.count)/\(attached.count) luma=\(luma)"
+        return cachedCameraRenderDiagnostic
+    }
+#endif
 
     /// Same counters for logs and exported diagnostics: language-independent, so support can search them.
     var mappingDiagnosticLog: String {
@@ -117,18 +183,21 @@ final class ARPinningEngine: NSObject {
 
     deinit { notificationTokens.forEach(NotificationCenter.default.removeObserver) }
 
-    func requestCameraAndStart() async {
+    @discardableResult
+    func requestCameraAndStart() async -> UUID? {
+        guard !Task.isCancelled else { return nil }
+        let requestGeneration = sessionGeneration
         if UITestFixtures.cameraPermissionDenied {
             transition(to: .failed, error: .cameraDenied)
-            return
+            return nil
         }
 #if targetEnvironment(simulator)
         markSimulatorCameraReady()
-        return
+        return sessionGeneration
 #else
         guard ARWorldTrackingConfiguration.isSupported else {
             transition(to: .failed, error: .unsupported)
-            return
+            return nil
         }
 
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -137,36 +206,52 @@ final class ARPinningEngine: NSObject {
         case .notDetermined:
             transition(to: .permissionRequired, message: String(localized: "Yüzey taraması için kamera izni gerekiyor."))
             let allowed = await AVCaptureDevice.requestAccess(for: .video)
+            guard !Task.isCancelled, sessionGeneration == requestGeneration else { return nil }
             if allowed { startSession(reset: true) }
             else { transition(to: .failed, error: .cameraDenied) }
         default:
             transition(to: .failed, error: .cameraDenied)
         }
+        return state == .failed ? nil : sessionGeneration
 #endif
     }
 
     /// Ensures a previously paused AR view receives a current camera frame.
     /// Used when SwiftUI keeps the AR tab alive while switching tabs.
-    func ensureLiveCameraSession() async -> Bool {
+    func ensureLiveCameraSession(onSessionStarted: ((UUID) -> Void)? = nil) async -> Bool {
+        guard !Task.isCancelled else { return false }
         if UITestFixtures.cameraPermissionDenied {
             transition(to: .failed, error: .cameraDenied)
             return false
         }
 #if targetEnvironment(simulator)
+        cameraOwnerGeneration = UUID()
         markSimulatorCameraReady()
+        onSessionStarted?(cameraOwnerGeneration)
         return true
 #else
         if let lastFrameReceivedAt,
            Date().timeIntervalSince(lastFrameReceivedAt) < 1 {
+            cameraOwnerGeneration = UUID()
+            onSessionStarted?(cameraOwnerGeneration)
             return true
         }
         if state != .idle && state != .failed && state != .permissionRequired {
             stopSession()
         }
         lastFrameReceivedAt = nil
-        await requestCameraAndStart()
-        guard state != .failed else { return false }
-        if await waitForLiveCameraFrame() { return true }
+        guard let generation = await requestCameraAndStart() else { return false }
+        cameraOwnerGeneration = UUID()
+        let ownerGeneration = cameraOwnerGeneration
+        onSessionStarted?(ownerGeneration)
+        if await waitForLiveCameraFrame(generation: generation) {
+            return !Task.isCancelled
+                && sessionGeneration == generation
+                && ownsCameraSession(ownerGeneration)
+        }
+        guard !Task.isCancelled,
+              sessionGeneration == generation,
+              ownsCameraSession(ownerGeneration) else { return false }
         transition(to: .failed, message: String(localized: "Kameradan canlı görüntü alınamadı. Tekrar deneyin."))
         return false
 #endif
@@ -175,7 +260,9 @@ final class ARPinningEngine: NSObject {
     /// Starts a clean placement session and does not return success until the
     /// physical camera has delivered a new frame. This prevents a paused or
     /// stale AR session from presenting a black surface when creating a pin.
-    func prepareNewPinSession(compassAligned: Bool = false) async -> Bool {
+    func prepareNewPinSession(compassAligned: Bool = false, onSessionStarted: ((UUID) -> Void)? = nil) async -> Bool {
+        guard !Task.isCancelled else { return false }
+        let requestGeneration = sessionGeneration
         if UITestFixtures.cameraPermissionDenied {
             transition(to: .failed, error: .cameraDenied)
             return false
@@ -190,6 +277,7 @@ final class ARPinningEngine: NSObject {
         candidateSamples.removeAll()
         candidateQuality = nil
         markSimulatorCameraReady()
+        onSessionStarted?(cameraOwnerGeneration)
         return true
 #else
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -197,7 +285,9 @@ final class ARPinningEngine: NSObject {
             break
         case .notDetermined:
             transition(to: .permissionRequired, message: String(localized: "Yüzey taraması için kamera izni gerekiyor."))
-            guard await AVCaptureDevice.requestAccess(for: .video) else {
+            let allowed = await AVCaptureDevice.requestAccess(for: .video)
+            guard !Task.isCancelled, sessionGeneration == requestGeneration else { return false }
+            guard allowed else {
                 transition(to: .failed, error: .cameraDenied)
                 return false
             }
@@ -219,19 +309,23 @@ final class ARPinningEngine: NSObject {
         lastFrameReceivedAt = nil
         startSession(reset: true)
 
-        if await waitForLiveCameraFrame() { return true }
+        let generation = sessionGeneration
+        onSessionStarted?(cameraOwnerGeneration)
+        if await waitForLiveCameraFrame(generation: generation) { return true }
+        guard !Task.isCancelled, sessionGeneration == generation else { return false }
         transition(to: .failed, message: String(localized: "Kameradan canlı görüntü alınamadı. Tekrar deneyin."))
         return false
 #endif
     }
 
-    private func waitForLiveCameraFrame() async -> Bool {
+    private func waitForLiveCameraFrame(generation: UUID) async -> Bool {
         for _ in 0..<60 {
+            guard !Task.isCancelled, sessionGeneration == generation else { return false }
             if let lastFrameReceivedAt,
                Date().timeIntervalSince(lastFrameReceivedAt) < 1 {
                 return true
             }
-            try? await Task.sleep(for: .milliseconds(100))
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return false }
         }
         return false
     }
@@ -255,6 +349,7 @@ final class ARPinningEngine: NSObject {
 #endif
 
     func startSession(reset: Bool = false) {
+        sessionGeneration = UUID()
 #if targetEnvironment(simulator)
         markSimulatorCameraReady()
         return
@@ -281,7 +376,30 @@ final class ARPinningEngine: NSObject {
 #endif
     }
 
+    func ownsCameraSession(_ generation: UUID?) -> Bool {
+        generation == cameraOwnerGeneration
+    }
+
+    /// An explicitly presented AR surface takes over the singleton camera synchronously.
+    func claimCameraSession() -> UUID {
+        stopSession()
+        return cameraOwnerGeneration
+    }
+
+    @discardableResult
+    func resetCameraSession(ifGenerationMatches generation: UUID?) -> UUID? {
+        guard ownsCameraSession(generation) else { return nil }
+        return claimCameraSession()
+    }
+
+    func stopSession(ifGenerationMatches generation: UUID?) {
+        guard ownsCameraSession(generation) else { return }
+        stopSession()
+    }
+
     func stopSession() {
+        sessionGeneration = UUID()
+        cameraOwnerGeneration = UUID()
         contentRenderGeneration = UUID()
         renderedPostID = nil
         trackedRaycast?.stopTracking()
@@ -315,7 +433,9 @@ final class ARPinningEngine: NSObject {
     }
 
     func restartTracking() {
+        let owner = cameraOwnerGeneration
         stopSession()
+        cameraOwnerGeneration = owner
         activeInitialWorldMap = nil
         clearPlacedAnchors()
         latestEstimatedResult = nil
@@ -331,7 +451,27 @@ final class ARPinningEngine: NSObject {
         activateARViewHost(host)
     }
 
+    /// Window attachment, rather than every SwiftUI update, establishes foreground priority.
+    /// A still-mounted view underneath a sheet must not reclaim the shared camera view.
+    func arViewHostDidMoveToWindow(_ host: UIView) {
+        if host.window != nil {
+            arViewHosts.removeAll { $0.view == nil || $0.view === host }
+            arViewHosts.append(WeakARViewHost(host))
+            activateARViewHost(host)
+        } else if let fallback = arViewHosts.reversed().compactMap(\.view).first(where: { $0.window != nil }) {
+            activateARViewHost(fallback)
+        }
+    }
+
     func activateARViewHost(_ host: UIView) {
+        arViewHosts.removeAll { $0.view == nil }
+        // SwiftUI updates every mounted host when shared engine state changes. Only
+        // window attachment may change their priority; an update underneath a sheet
+        // must leave the foreground camera where it is.
+        let preferred = arViewHosts.reversed().compactMap(\.view).first(where: { $0.window != nil })
+            ?? arViewHosts.last?.view
+        guard preferred === host else { return }
+
         guard arView.superview !== host else {
             arView.frame = host.bounds
             return
@@ -593,11 +733,16 @@ final class ARPinningEngine: NSObject {
     }
 
     func restoreWorldMap(data: Data, expectedAnchor: SurfaceAnchor?) async throws {
+        try Task.checkCancellation()
+        let generation = sessionGeneration
+        let owner = cameraOwnerGeneration
         let unarchived = try await Task.detached(priority: .userInitiated) {
             // Accepts both compressed (uploaded) and raw archives.
             let raw = try WorldMapCodec.decode(data)
             return try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: raw).map(SendableWorldMap.init(map:))
         }.value
+        try Task.checkCancellation()
+        guard sessionGeneration == generation, cameraOwnerGeneration == owner else { throw CancellationError() }
         guard let worldMap = unarchived?.map else {
             throw ARPinningError.invalidWorldMap
         }
@@ -631,15 +776,23 @@ final class ARPinningEngine: NSObject {
     /// Reuses a still-valid ARKit world coordinate space when a post is opened
     /// immediately after it was pinned. A fresh app launch has no preserved
     /// anchor/entity, so persisted posts still go through ARWorldMap relocalization.
-    func resumePreservedWorldLock(anchorID: UUID) async -> Bool {
+    func resumePreservedWorldLock(anchorID: UUID, onSessionStarted: ((UUID) -> Void)? = nil) async -> Bool {
         guard currentAnchor?.id == anchorID,
               let entity = anchorEntities[anchorID] else { return false }
 
-        guard await ensureLiveCameraSession() else { return false }
+        guard await ensureLiveCameraSession(onSessionStarted: onSessionStarted) else { return false }
+        let generation = sessionGeneration
+        let ownerGeneration = cameraOwnerGeneration
         for _ in 0..<50 where trackingQuality != .normal {
-            try? await Task.sleep(for: .milliseconds(100))
+            guard !Task.isCancelled,
+                  sessionGeneration == generation,
+                  ownsCameraSession(ownerGeneration) else { return false }
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return false }
         }
-        guard trackingQuality == .normal,
+        guard !Task.isCancelled,
+              sessionGeneration == generation,
+              ownsCameraSession(ownerGeneration),
+              trackingQuality == .normal,
               arView.session.currentFrame?.anchors.contains(where: {
                   $0.name == anchorName(for: anchorID)
               }) == true else { return false }
@@ -669,12 +822,13 @@ final class ARPinningEngine: NSObject {
         throw ARPinningError.noAnchor
     }
 
-    func beginAimAssistedReveal() async -> Bool {
+    func beginAimAssistedReveal(onSessionStarted: ((UUID) -> Void)? = nil) async -> Bool {
+        guard !Task.isCancelled else { return false }
         relocalizationTimeoutTask?.cancel()
         relocalizationTimeoutTask = nil
         relocalizationDeadline = nil
         activeInitialWorldMap = nil
-        return await prepareNewPinSession(compassAligned: true)
+        return await prepareNewPinSession(compassAligned: true, onSessionStarted: onSessionStarted)
     }
 
     /// Places the saved post on the plane currently in front of the camera.
@@ -864,6 +1018,8 @@ final class ARPinningEngine: NSObject {
             MainActor.assumeIsolated {
                 guard let self, let view = self.existingARView, self.state != .idle else { return }
                 view.session.pause()
+                self.hasRecentCameraFrame = false
+                self.lastFrameReceivedAt = nil
                 self.transition(to: .interrupted, message: String(localized: "Uygulama arka planda; AR oturumu duraklatıldı."))
             }
         })
@@ -881,6 +1037,8 @@ final class ARPinningEngine: NSObject {
                     guard let view = self.existingARView, self.state != .idle else { return }
                     self.pausedForThermalPressure = true
                     view.session.pause()
+                    self.hasRecentCameraFrame = false
+                    self.lastFrameReceivedAt = nil
                     self.transition(to: .interrupted, message: String(localized: "Cihaz sıcaklığı yüksek; AR geçici olarak duraklatıldı."))
                 } else if self.pausedForThermalPressure {
                     self.pausedForThermalPressure = false
@@ -910,7 +1068,7 @@ final class ARPinningEngine: NSObject {
         beginRelocalizationTimeout()
     }
 
-    private func beginTrackedRaycastWhenReady(attempt: Int = 0) {
+    func beginTrackedRaycastWhenReady(attempt: Int = 0) {
         guard state != .idle, state != .failed else { return }
         guard trackedRaycast == nil else { return }
         guard arView.bounds.width > 1,
@@ -924,9 +1082,13 @@ final class ARPinningEngine: NSObject {
             scheduleTrackedRaycastRetry(attempt: attempt)
             return
         }
+        let generation = sessionGeneration
         trackedRaycast = arView.session.trackedRaycast(query) { [weak self] results in
             guard let result = results.first else { return }
-            Task { @MainActor in self?.acceptCandidate(result) }
+            Task { @MainActor in
+                guard let self, self.sessionGeneration == generation else { return }
+                self.acceptCandidate(result)
+            }
         }
     }
 
@@ -935,10 +1097,11 @@ final class ARPinningEngine: NSObject {
             transition(to: .failed, message: String(localized: "AR raycast hazırlanamadı. Tekrar deneyin."))
             return
         }
+        let generation = sessionGeneration
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(50))
-            guard !Task.isCancelled else { return }
-            self?.beginTrackedRaycastWhenReady(attempt: attempt + 1)
+            do { try await Task.sleep(for: .milliseconds(50)) } catch { return }
+            guard !Task.isCancelled, let self, self.sessionGeneration == generation else { return }
+            self.beginTrackedRaycastWhenReady(attempt: attempt + 1)
         }
     }
 
@@ -1046,15 +1209,23 @@ final class ARPinningEngine: NSObject {
         currentAnchor = surfaceAnchor
         if quality.isPhysicalSurface { physicalPinPlacedAt = Date() }
         if captureGeoPose {
+            let owner = cameraOwnerGeneration
             Task { @MainActor [weak self] in
                 guard let self, let pose = await geoPoseCapture.capture() else { return }
-                self.currentAnchor?.geoPose = pose
-                self.recordDiagnostic("GPS ve heading placement'a eklendi.")
+                self.applyCapturedGeoPose(pose, to: id, cameraOwner: owner)
             }
         }
         candidateQuality = quality
         let label = quality == .freeSpaceApproximate ? String(localized: "Yaklaşık yerleştirme · 0,8 m") : String(localized: "Fiziksel yüzeye sabitlendi")
         transition(to: .placed, message: label)
+    }
+
+    @discardableResult
+    func applyCapturedGeoPose(_ pose: GeoPose, to anchorID: UUID, cameraOwner: UUID) -> Bool {
+        guard ownsCameraSession(cameraOwner), currentAnchor?.id == anchorID else { return false }
+        currentAnchor?.geoPose = pose
+        recordDiagnostic("GPS ve heading placement'a eklendi.")
+        return true
     }
 
     private func installEntity(for anchor: ARAnchor, visible: Bool, quality: PinQuality?, alignment: SurfaceAlignment) {
@@ -1282,7 +1453,7 @@ extension ARPinningEngine: ARSessionDelegate {
             message = String(localized: "Tracking kullanılamıyor.")
         }
         Task { @MainActor [weak self] in
-            guard let self else { return }
+            guard let self, ![.idle, .permissionRequired, .failed].contains(self.state) else { return }
             self.trackingQuality = quality
             let contentLocked: Bool = {
                 switch self.state {
@@ -1381,6 +1552,7 @@ extension ARPinningEngine: ARSessionDelegate {
     nonisolated static let frameCountersMinimumInterval: TimeInterval = 0.25
 
     private func handleFrame(_ frame: ARFrame, sample: FrameSample) {
+        guard ![.idle, .permissionRequired, .failed, .interrupted].contains(state) else { return }
         // ARCore (Geospatial + Cloud Anchors) runs on these same ARKit frames, every frame.
         frameSink?(frame)
         let now = Date()
@@ -1418,18 +1590,20 @@ extension ARPinningEngine: ARSessionDelegate {
 
     nonisolated func sessionWasInterrupted(_ session: ARSession) {
         Task { @MainActor [weak self] in
+            guard let self, ![.idle, .permissionRequired, .failed].contains(self.state) else { return }
 #if targetEnvironment(simulator)
-            self?.hasRecentCameraFrame = true
+            self.hasRecentCameraFrame = true
 #else
-            self?.hasRecentCameraFrame = false
-            self?.transition(to: .interrupted, message: String(localized: "AR oturumu kesildi."))
+            self.hasRecentCameraFrame = false
+            self.lastFrameReceivedAt = nil
+            self.transition(to: .interrupted, message: String(localized: "AR oturumu kesildi."))
 #endif
         }
     }
 
     nonisolated func sessionInterruptionEnded(_ session: ARSession) {
         Task { @MainActor [weak self] in
-            guard let self, !self.pausedForThermalPressure else { return }
+            guard let self, self.state == .interrupted, !self.pausedForThermalPressure else { return }
 #if targetEnvironment(simulator)
             self.hasRecentCameraFrame = true
             if self.state == .interrupted { self.transition(to: .scanning, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık.")) }
@@ -1441,18 +1615,19 @@ extension ARPinningEngine: ARSessionDelegate {
 
     nonisolated func session(_ session: ARSession, didFailWithError error: Error) {
         Task { @MainActor [weak self] in
+            guard let self, ![.idle, .permissionRequired].contains(self.state) else { return }
 #if targetEnvironment(simulator)
-            self?.hasRecentCameraFrame = true
-            self?.trackingQuality = .normal
-            if self?.state == .failed || self?.state == .interrupted {
-                self?.transition(to: .initializing, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık."))
+            self.hasRecentCameraFrame = true
+            self.trackingQuality = .normal
+            if self.state == .failed || self.state == .interrupted {
+                self.transition(to: .initializing, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık."))
             }
-            if self?.state == .initializing {
-                self?.transition(to: .scanning, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık."))
+            if self.state == .initializing {
+                self.transition(to: .scanning, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık."))
             }
 #else
-            self?.hasRecentCameraFrame = false
-            self?.transition(to: .failed, message: String(localized: "AR oturumu beklenmedik şekilde durdu. Tekrar deneyin."))
+            self.hasRecentCameraFrame = false
+            self.transition(to: .failed, message: String(localized: "AR oturumu beklenmedik şekilde durdu. Tekrar deneyin."))
 #endif
         }
     }

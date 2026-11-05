@@ -31,8 +31,10 @@ struct MainTabView: View {
                 // Guests browse only; publishing needs a verified account (AccountRequiredView).
                 if user.isAnonymousAccount {
                     AccountRequiredView().navigationTitle("Paylaş")
-                } else {
+                } else if router.selectedTab == .create {
                     ARExperienceView(mode: .create)
+                } else {
+                    Color.clear
                 }
             }
                 .id("tab-create")
@@ -58,8 +60,6 @@ struct MainTabView: View {
         }
         .environment(\.contentRefreshAllowed, !createPresented.wrappedValue && deepLinkedPost == nil && !UITestFixtures.openPostDirectly)
         .tint(LociTheme.accent)
-        .toolbarBackground(.visible, for: .tabBar)
-        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .sheet(isPresented: createPresented) {
             Group {
             if user.isAnonymousAccount {

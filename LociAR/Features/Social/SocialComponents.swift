@@ -26,7 +26,7 @@ struct PostCard: View {
                         Text(verbatim: "GIPHY")
                             .font(.caption2.weight(.heavy))
                             .padding(.horizontal, 6).padding(.vertical, 3)
-                            .background(.black.opacity(0.55), in: Capsule())
+                            .background(LociTheme.background.opacity(0.72), in: Capsule()).overlay(Capsule().stroke(LociTheme.hairline))
                             .padding(6)
                     }
                     .accessibilityElement()
@@ -50,14 +50,13 @@ struct PostCard: View {
 
             HStack(spacing: 18) {
                 LociMetricLabel(value: likeCount ?? post.counts.likes, title: String(localized: "beğeni"), symbol: "heart.fill", color: .pink)
-                LociMetricLabel(value: viewCount ?? post.counts.views, title: String(localized: "görüntülenme"), symbol: "eye.fill", color: .secondary)
+                LociMetricLabel(value: viewCount ?? post.counts.views, title: String(localized: "görüntülenme"), symbol: "eye.fill", color: LociTheme.tertiaryText)
                 LociMetricLabel(value: post.counts.comments, title: String(localized: "yorum"), symbol: "bubble.right.fill", color: .white.opacity(0.8))
                 Spacer()
             }
         }
         .padding(17)
-        .background(LociTheme.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: 21, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 21, style: .continuous).stroke(LociTheme.hairline))
+        .lociGlassSurface(cornerRadius: 21)
         .accessibilityElement(children: .contain)
     }
 
@@ -91,14 +90,18 @@ struct PostCard: View {
             Spacer(minLength: 8)
             if post.isLocationNote {
                 LociStatusPill(title: String(localized: "Konum notu"), symbol: "mappin.and.ellipse", color: LociTheme.accent)
-                    .fixedSize(horizontal: true, vertical: false)
+                    .fixedSize(horizontal: true, vertical: true)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("post-kind-badge")
             } else {
                 LociStatusPill(
                     title: post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate ? String(localized: "Yaklaşık") : "Sabit",
                     symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder" : "exclamationmark",
                     color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
                 )
-                .fixedSize(horizontal: true, vertical: false)
+                .fixedSize(horizontal: true, vertical: true)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("post-kind-badge")
             }
         }
         .contentShape(Rectangle())
@@ -135,8 +138,9 @@ struct PostActionLabel: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, minHeight: 58)
-        .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(LociTheme.hairline))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).fill(LociTheme.glassTint))
+        .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(LociTheme.glassBorder))
     }
 }
 
@@ -149,6 +153,7 @@ struct ProfileLinkRow: View {
         Label {
             Text(title.localizedUI)
                 .font(.body)
+                .foregroundStyle(LociTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: symbol)

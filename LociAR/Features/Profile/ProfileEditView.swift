@@ -126,7 +126,7 @@ struct ProfileEditView: View {
                         .font(.body)
                 }
                 .padding(12)
-                .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 12))
+                .lociGlassSurface(cornerRadius: 12)
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(LociTheme.hairline))
                 Text("3–30 karakter; küçük harf, rakam, alt çizgi ve nokta.")
                     .font(.footnote)

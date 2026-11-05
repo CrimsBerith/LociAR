@@ -229,8 +229,25 @@ actor SpatialContentRenderer {
         let bounds = CGRect(x: 0, y: 0, width: width, height: height)
         let bubble = CGPath(roundedRect: bounds, cornerWidth: 30, cornerHeight: 30, transform: nil)
         context.addPath(bubble)
-        context.setFillColor(CGColor(red: 0.0, green: 0.30, blue: 0.25, alpha: 0.94))
+        // Keep the AR note legible while letting the real surface show through its tinted glass.
+        context.setFillColor(CGColor(red: 0.025, green: 0.13, blue: 0.15, alpha: 0.76))
         context.fillPath()
+        context.saveGState()
+        context.addPath(bubble)
+        context.clip()
+        let sheenColors = [
+            CGColor(red: 0.78, green: 1, blue: 0.96, alpha: 0.20),
+            CGColor(red: 0.38, green: 0.87, blue: 0.79, alpha: 0.035),
+            CGColor(red: 0.10, green: 0.32, blue: 0.35, alpha: 0.0)
+        ] as CFArray
+        if let sheen = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: sheenColors, locations: [0, 0.45, 1]) {
+            context.drawLinearGradient(sheen, start: CGPoint(x: 0, y: CGFloat(height)), end: CGPoint(x: 0, y: CGFloat(height) * 0.38), options: [])
+        }
+        context.restoreGState()
+        context.addPath(bubble)
+        context.setStrokeColor(CGColor(red: 0.82, green: 1, blue: 0.97, alpha: 0.58))
+        context.setLineWidth(4)
+        context.strokePath()
 
         // CoreGraphics draws bottom-up: walk down from the top edge.
         var top = CGFloat(height) - padding
@@ -408,6 +425,8 @@ actor SpatialContentRenderer {
         let height = image.height
         let bytesPerRow = image.bytesPerRow
         let bytesPerPixel = max(1, image.bitsPerPixel / 8)
+        let dataLength = CFDataGetLength(data)
+        guard dataLength >= height * bytesPerRow else { return image }
         let alphaOffset: Int
         switch image.alphaInfo {
         case .premultipliedLast, .last: alphaOffset = min(3, bytesPerPixel - 1)
@@ -419,8 +438,11 @@ actor SpatialContentRenderer {
         var maxX = 0
         var maxY = 0
         for y in 0..<height {
+            let rowOffset = y * bytesPerRow
             for x in 0..<width {
-                if pointer[y * bytesPerRow + x * bytesPerPixel + alphaOffset] > 16 {
+                let pixelOffset = rowOffset + x * bytesPerPixel + alphaOffset
+                guard pixelOffset < dataLength else { continue }
+                if pointer[pixelOffset] > 16 {
                     minX = min(minX, x)
                     maxX = max(maxX, x)
                     minY = min(minY, y)

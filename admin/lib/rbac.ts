@@ -1,7 +1,7 @@
 /** Static role → permission catalogue (ported from the Supabase admin_roles seed). */
 export const PERMISSIONS = [
   'dashboard.read', 'users.read', 'users.invite', 'users.suspend', 'users.terminate',
-  'users.location.read', 'users.telemetry.read',
+  'users.location.read', 'users.telemetry.read', 'users.full_export', 'users.managed_profiles.write',
   'brands.write', 'campaigns.read', 'campaigns.write', 'campaigns.audience', 'notifications.send',
   'posts.read', 'posts.create', 'posts.edit', 'comments.write', 'users.create', 'zones.override', 'posts.moderate', 'posts.purge', 'posts.metrics.write',
   'anchors.read', 'anchors.disable', 'anchors.retire', 'places.write', 'zones.write',
@@ -29,7 +29,7 @@ export const ROLE_PERMISSIONS: Record<string, readonly Permission[]> = {
  * default: they expose people's precise location, device and network data or bulk audit exports, or
  * change who holds admin power. An email inbox alone must not unlock them (owner decision 17 Oct 2026).
  */
-export const STEP_UP_PERMISSIONS: ReadonlySet<string> = new Set(['users.location.read', 'users.telemetry.read', 'admin_users.write', 'audit.export']);
+export const STEP_UP_PERMISSIONS: ReadonlySet<string> = new Set(['users.location.read', 'users.telemetry.read', 'users.full_export', 'admin_users.write', 'audit.export']);
 
 /** Role permissions for a session; an email-code session never carries the step-up permissions. */
 export function sessionPermissions(roles: string[], assurance: 'aal1' | 'aal2' | 'email_code'): Set<string> {

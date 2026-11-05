@@ -33,6 +33,176 @@ final class PinStateMachineTests: XCTestCase {
         XCTAssertTrue(engine.existingARView === view)
     }
 
+    @MainActor
+    func testUnderlyingHostUpdateCannotStealCameraFromPresentedHost() throws {
+        let engine = ARPinningEngine()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        let underlying = UIView(frame: window.bounds)
+        let presented = UIView(frame: window.bounds)
+        window.addSubview(underlying)
+        engine.registerARViewHost(underlying)
+        window.addSubview(presented)
+        engine.registerARViewHost(presented)
+        let cameraView = try XCTUnwrap(engine.existingARView)
+        XCTAssertTrue(cameraView.superview === presented)
+
+        // SwiftUI updates the still-mounted parent as shared engine diagnostics change.
+        engine.activateARViewHost(underlying)
+        XCTAssertTrue(cameraView.superview === presented)
+        engine.unregisterARViewHost(presented)
+        presented.removeFromSuperview()
+        XCTAssertTrue(cameraView.superview === underlying)
+        engine.unregisterARViewHost(underlying)
+        engine.stopSession()
+    }
+
+    @MainActor
+    func testReattachedHostBecomesForegroundWithoutBeingStolenByOlderUpdates() throws {
+        let engine = ARPinningEngine()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        let first = UIView(frame: window.bounds), second = UIView(frame: window.bounds)
+        window.addSubview(first)
+        window.addSubview(second)
+        engine.registerARViewHost(first)
+        engine.registerARViewHost(second)
+        engine.arViewHostDidMoveToWindow(first)
+        engine.activateARViewHost(second)
+        XCTAssertTrue(engine.existingARView?.superview === first)
+        engine.unregisterARViewHost(first)
+        engine.unregisterARViewHost(second)
+        engine.stopSession()
+    }
+
+    @MainActor
+    func testDeferredRaycastFromOldRunCannotFailReplacementRun() async throws {
+#if targetEnvironment(simulator)
+        let engine = ARPinningEngine()
+        defer { engine.stopSession() }
+        engine.startSession()
+        // Leave the previous run one retry from its deadline, with no native frame.
+        engine.beginTrackedRaycastWhenReady(attempt: 119)
+        engine.stopSession()
+        engine.startSession()
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(engine.state, .scanning)
+        XCTAssertTrue(engine.hasRecentCameraFrame)
+#else
+        throw XCTSkip("Deferred raycast isolation uses the simulator camera fixture.")
+#endif
+    }
+
+    @MainActor
+    func testLateGeoPoseCannotOverwriteReplacementPin() async throws {
+#if targetEnvironment(simulator)
+        let engine = ARPinningEngine()
+        defer { engine.stopSession() }
+        var firstOwner: UUID?
+        let firstReady = await engine.prepareNewPinSession { firstOwner = $0 }
+        XCTAssertTrue(firstReady)
+        engine.offerApproximatePlacement()
+        engine.placeApproximate()
+        let firstPin = try XCTUnwrap(engine.currentAnchor?.id)
+
+        var secondOwner: UUID?
+        let secondReady = await engine.prepareNewPinSession { secondOwner = $0 }
+        XCTAssertTrue(secondReady)
+        engine.offerApproximatePlacement()
+        engine.placeApproximate()
+        let secondPin = try XCTUnwrap(engine.currentAnchor?.id)
+        let pose = try XCTUnwrap(UITestFixtures.anchor.geoPose)
+        XCTAssertNotEqual(firstPin, secondPin)
+        XCTAssertFalse(engine.applyCapturedGeoPose(pose, to: firstPin, cameraOwner: try XCTUnwrap(firstOwner)))
+        XCTAssertFalse(engine.applyCapturedGeoPose(pose, to: secondPin, cameraOwner: try XCTUnwrap(firstOwner)))
+        XCTAssertTrue(engine.applyCapturedGeoPose(pose, to: secondPin, cameraOwner: try XCTUnwrap(secondOwner)))
+        XCTAssertEqual(engine.currentAnchor?.geoPose, pose)
+#else
+        throw XCTSkip("Delayed placement completion uses the simulator camera fixture.")
+#endif
+    }
+
+    @MainActor
+    func testCancelledCameraPreparationDoesNotStartOrFailAnotherSession() async {
+        let engine = ARPinningEngine()
+        let task = Task { @MainActor in await engine.prepareNewPinSession() }
+        task.cancel()
+        let ready = await task.value
+        XCTAssertFalse(ready)
+        XCTAssertEqual(engine.state, .idle)
+        XCTAssertNil(engine.existingARView)
+    }
+
+    @MainActor
+    func testStaleCameraOwnerCannotStopNewerSession() async throws {
+#if targetEnvironment(simulator)
+        let engine = ARPinningEngine()
+        var firstOwner: UUID?
+        let firstReady = await engine.prepareNewPinSession { firstOwner = $0 }
+        XCTAssertTrue(firstReady)
+        var secondOwner: UUID?
+        let secondReady = await engine.ensureLiveCameraSession { secondOwner = $0 }
+        XCTAssertTrue(secondReady)
+        XCTAssertNotEqual(firstOwner, secondOwner)
+        engine.stopSession(ifGenerationMatches: firstOwner)
+        XCTAssertTrue(engine.hasRecentCameraFrame)
+        XCTAssertEqual(engine.state, .scanning)
+        // A retry restarts ARKit, but ownership still belongs to the same foreground screen.
+        engine.restartTracking()
+        engine.stopSession(ifGenerationMatches: secondOwner)
+        XCTAssertEqual(engine.state, .idle)
+        XCTAssertFalse(engine.hasRecentCameraFrame)
+#else
+        throw XCTSkip("Camera owner handoff without hardware runs in the simulator fixture.")
+#endif
+    }
+
+    @MainActor
+    func testCancelledViewerResolverCannotPauseReplacementCamera() async throws {
+#if targetEnvironment(simulator)
+        let engine = ARPinningEngine()
+        let oldOwner = engine.claimCameraSession()
+        let gate = AsyncStream<Void>.makeStream()
+        let resolver = Task { @MainActor in
+            defer { engine.stopSession(ifGenerationMatches: oldOwner) }
+            for await _ in gate.stream { break }
+        }
+        var replacement: UUID?
+        let ready = await engine.prepareNewPinSession { replacement = $0 }
+        XCTAssertTrue(ready)
+        resolver.cancel()
+        gate.continuation.finish()
+        await resolver.value
+        XCTAssertTrue(engine.ownsCameraSession(replacement))
+        XCTAssertTrue(engine.hasRecentCameraFrame)
+        XCTAssertEqual(engine.state, .scanning)
+        XCTAssertNil(engine.resetCameraSession(ifGenerationMatches: oldOwner))
+        engine.stopSession(ifGenerationMatches: replacement)
+#else
+        throw XCTSkip("Resolver handoff uses the simulator camera fixture.")
+#endif
+    }
+
+    @MainActor
+    func testCancelledWorldMapRestoreFailsClosedBeforeNativeDecode() async {
+        let engine = ARPinningEngine()
+        let owner = engine.claimCameraSession()
+        let resolver = Task { @MainActor in
+            do {
+                try await engine.restoreWorldMap(data: Data([0, 1, 2]), expectedAnchor: nil)
+                return false
+            } catch is CancellationError {
+                return true
+            } catch {
+                return false
+            }
+        }
+        resolver.cancel()
+        let wasCancelled = await resolver.value
+        XCTAssertTrue(wasCancelled)
+        XCTAssertTrue(engine.ownsCameraSession(owner))
+        XCTAssertEqual(engine.state, .idle)
+        XCTAssertNil(engine.existingARView)
+    }
+
     func testPhysicalPinPath() {
         let path: [PinSessionState] = [.idle, .initializing, .coaching, .scanning, .candidateReady, .placing, .placed, .mapping, .publishReady]
         for pair in zip(path, path.dropFirst()) {

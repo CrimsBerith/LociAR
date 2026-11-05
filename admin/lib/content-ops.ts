@@ -256,15 +256,79 @@ async function getManagedAuth(input: ManagedAuthInput) {
 
 /** Create a disabled Auth identity, not a verified login or an admin role. Two external systems
  * use a durable reservation; retries reconcile the same UID and finish one profile/audit. */
-export async function createManagedUser(input:{handle:string;displayName:string;email:string},actorId:string,reason:string,key:string){
+export const MANAGED_AVATAR_PRESETS = ['hare','tortoise','cat','dog','bear','bird','fish','leaf','star','moon','sun','bolt'] as const;
+
+export function normalizeManagedUser(input:{handle:unknown;displayName:unknown;email?:unknown;bio?:unknown;avatarPreset?:unknown}){
   const handle=requiredString(input.handle,'handle',3,30).toLowerCase();
   if(!/^[a-z0-9_.]{3,30}$/.test(handle)||isReservedHandle(handle)||handleIsBlocked(handle))throw new ValidationError('invalid_handle');
   const displayName=requiredString(input.displayName,'displayName',1,60);
   if(anyBlocked([displayName]))throw new ValidationError('display_name_not_allowed');
-  const email=input.email.trim().toLowerCase();
+  const email=typeof input.email==='string'?input.email.trim().toLowerCase():'';
   if(email && !isEmailAddress(email))throw new ValidationError('invalid_email');
+  const bio=typeof input.bio==='string'?input.bio.trim():'';
+  if(bio.length>300||anyBlocked([bio]))throw new ValidationError('invalid_bio');
+  const avatarPreset=input.avatarPreset==null||input.avatarPreset===''?null:requiredString(input.avatarPreset,'avatarPreset',1,20);
+  if(avatarPreset&&!MANAGED_AVATAR_PRESETS.includes(avatarPreset as typeof MANAGED_AVATAR_PRESETS[number]))throw new ValidationError('invalid_avatar_preset');
+  return {handle,displayName,email,bio:bio||null,avatarPreset};
+}
+
+export function normalizeManagedProfileUpdate(input:Record<string,unknown>) {
+  const allowed = new Set(['luid','displayName','display_name','bio','avatarPreset','avatar_preset']);
+  if (Object.keys(input).some(key => !allowed.has(key))) throw new ValidationError('unsupported_managed_profile_field');
+  const patch: Record<string,unknown> = {};
+  const displayName = Object.hasOwn(input,'displayName') ? input.displayName : input.display_name;
+  if (Object.hasOwn(input,'displayName') || Object.hasOwn(input,'display_name')) {
+    const value = requiredString(displayName,'displayName',1,60);
+    if (anyBlocked([value])) throw new ValidationError('display_name_not_allowed');
+    patch.display_name = value;
+  }
+  if (Object.hasOwn(input,'bio')) {
+    if (typeof input.bio !== 'string') throw new ValidationError('bio must be a string');
+    const value = input.bio.trim();
+    if (value.length > 300 || anyBlocked([value])) throw new ValidationError('invalid_bio');
+    patch.bio = value || null;
+  }
+  const avatarPreset = Object.hasOwn(input,'avatarPreset') ? input.avatarPreset : input.avatar_preset;
+  if (Object.hasOwn(input,'avatarPreset') || Object.hasOwn(input,'avatar_preset')) {
+    if (avatarPreset == null || avatarPreset === '') patch.avatar_preset = null;
+    else {
+      const value = requiredString(avatarPreset,'avatarPreset',1,20);
+      if (!MANAGED_AVATAR_PRESETS.includes(value as typeof MANAGED_AVATAR_PRESETS[number])) throw new ValidationError('invalid_avatar_preset');
+      patch.avatar_preset = value;
+      patch.avatar_url = null;
+    }
+  }
+  if (!Object.keys(patch).length) throw new ValidationError('managed_profile_update_has_no_fields');
+  return patch;
+}
+
+export async function updateManagedProfile(luid:string, patch:Record<string,unknown>, actorId:string, reason:string, key:string) {
+  const db=adminDb(),profileRef=db.collection('profiles').doc(luid),auditRef=db.collection('admin_audit_log').doc(key);
+  const hash=mutationHash(actorId,'managed_profile_update',luid,{patch,reason});
+  await db.runTransaction(async tx=>{
+    await requirePermission(tx,actorId,'users.managed_profiles.write');
+    await requireTargetAccountActive(tx,luid);
+    const [audit,profile]=await tx.getAll(auditRef,profileRef);
+    if(checkReceipt(audit,hash))return;
+    if(!profile.exists||profile.get('deleted_at'))throw new ConflictError('managed_profile_unavailable');
+    if(profile.get('admin_managed')!==true)throw new ConflictError('target_not_admin_managed');
+    const before=Object.fromEntries(Object.keys(patch).filter(field=>field!=='avatar_url').map(field=>[field,profile.get(field)]));
+    const after={...patch};
+    const oldAvatar=profile.get('avatar_url');
+    if(patch.avatar_url===null&&typeof oldAvatar==='string'&&oldAvatar.startsWith('storage://avatars/')){
+      const path=oldAvatar.slice('storage://'.length),match=/^avatars\/([0-9a-f-]{36})\/(current|pending)\/([0-9a-f-]{36})\.jpg$/.exec(path);
+      if(match&&match[1]===luid)tx.set(db.collection('avatar_deletions').doc(`${match[3]}_${match[2]}`),{luid,path,next_at:Timestamp.now(),attempts:0});
+    }
+    tx.update(profileRef,{...patch,updated_at:FieldValue.serverTimestamp()});
+    writeAudit(tx,key,{requestHash:hash,actorId,action:'managed_profile_update',resourceType:'user',resourceId:luid,
+      before,after,reason,permissionKey:'users.managed_profiles.write',riskLevel:'sensitive'});
+  });
+}
+
+export async function createManagedUser(input:{handle:string;displayName:string;email?:string;bio?:string|null;avatarPreset?:string|null},actorId:string,reason:string,key:string){
+  const normalized=normalizeManagedUser(input),{handle,displayName,email,bio,avatarPreset}=normalized;
   const db=adminDb(),uid='admin-managed-'+derivedKey(key,'identity'),luid=luidForUid(uid);
-  const hash=mutationHash(actorId,'managed_user_create',luid,{handle,displayName,email,reason});
+  const hash=mutationHash(actorId,'managed_user_create',luid,{...normalized,reason});
   const job=db.collection('admin_user_creations').doc(key);
   await db.runTransaction(async tx=>{
     await requirePermission(tx,actorId,'users.create');
@@ -286,7 +350,7 @@ export async function createManagedUser(input:{handle:string;displayName:string;
     if(checkReceipt(audit,hash))return;
     if(deletion.exists||reservation.get('luid')!==luid)throw new ConflictError('identity_reservation_changed');
     if(profile.exists)throw new ConflictError('profile_already_exists');
-    const data={id:luid,handle,display_name:displayName,avatar_url:null,avatar_preset:null,bio:null,follower_count:0,following_count:0,public_post_count:0,
+    const data={id:luid,handle,display_name:displayName,avatar_url:null,avatar_preset:avatarPreset,bio,follower_count:0,following_count:0,public_post_count:0,
       suspended:false,deleted_at:null,admin_managed:true,created_by_admin:actorId,created_at:FieldValue.serverTimestamp(),updated_at:FieldValue.serverTimestamp()};
     tx.create(profile.ref,data);tx.set(db.collection('account_access').doc(luid),{state:'active'});
     tx.set(db.collection('users_private').doc(luid),{uid,email:email||null,auth_provider:'admin_managed',identity_verified:false});

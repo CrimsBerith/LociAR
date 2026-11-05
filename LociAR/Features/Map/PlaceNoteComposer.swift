@@ -242,6 +242,7 @@ struct PlaceNoteComposer: View {
                         Button("Konumuma dön", systemImage: "location.fill") { manualPin = nil; follow(measurement.estimate) }
                     }
                 }
+                .lociGlassRowBackground()
                 .disabled(busy || submitted)
                 Section {
                     TextField("Bu konum için notun", text: $text, axis: .vertical).lineLimit(3...6)
@@ -271,6 +272,7 @@ struct PlaceNoteComposer: View {
                     .disabled(busy || submitted || trimmed.isEmpty || textLength > 220 || measurement.denied)
                     .accessibilityIdentifier("place-note-publish")
                 }
+                .lociGlassRowBackground()
                 .disabled(busy || submitted)
                 if hasPendingIntent || submitted {
                     Button("Yeni not", systemImage: "plus") { startNewIntent(clearText: true) }
@@ -280,11 +282,14 @@ struct PlaceNoteComposer: View {
                 if busy && !waiting { ProgressView() }
             }
             .scrollDismissesKeyboard(.interactively)
+            .scrollContentBackground(.hidden)
+            .lociGlassRowBackground()
+            .background(LociScreenBackground())
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if let message {
                     Text(message).font(.caption).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding().background(.regularMaterial)
+                        .padding().lociGlassSurface(cornerRadius: 16)
                         .accessibilityIdentifier("place-note-status")
                 }
             }
@@ -293,12 +298,6 @@ struct PlaceNoteComposer: View {
             .tint(LociTheme.accent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() }.disabled(busy) }
-                ToolbarItem(placement: .confirmationAction) {
-                    if isTextFocused {
-                        Button("Bitti") { isTextFocused = false }
-                            .accessibilityIdentifier("keyboard-done-button")
-                    }
-                }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Bitti") { isTextFocused = false }

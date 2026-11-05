@@ -148,7 +148,6 @@
  "Hesap engellenemedi. Tekrar dene.": "Не удалось заблокировать аккаунт. Повторите попытку.",
  "Hesap oluştur": "Создать учетную запись",
  "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.": "Не удалось создать учетную запись. Возможно, адрес электронной почты используется или пароль недостаточно надежный.",
- "Hesap silme işlemi geri alınamaz.": "Удаление аккаунта нельзя отменить.",
  "Hesap şu anda silinemiyor. Biraz sonra tekrar dene.": "Сейчас не удаётся удалить аккаунт. Повторите попытку позже.",
  "Kamera ayarlarını aç": "Открыть настройки камеры",
  "Kamera açık": "Камера активна",
@@ -712,5 +711,18 @@
  "LociAR diagnostic category %@": "LociAR diagnostic category %@",
  "LociAR.%@": "LociAR.%@",
  "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.": "Нельзя изменить личность автора этой заметки. Создайте новую заметку.",
- "GIF animasyonu": "GIF-анимация"
+ "GIF animasyonu": "GIF-анимация",
+ "3D AR Notu": "3D AR-заметка",
+ "AR Notları": "AR-заметки",
+ "ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.": "Во время сеансов определения местоположения ARCore Geospatial и Cloud Anchors данные камеры и местоположения обрабатываются Google.",
+ "Davet kodları yüklenemedi": "Не удалось загрузить коды приглашения",
+ "Davet kodları yükleniyor…": "Загрузка кодов приглашения…",
+ "Filtre": "Фильтр",
+ "Gelişmiş AR Servisleri": "Расширенные AR-сервисы",
+ "Google AR ve Sensör Verisi": "Google AR и данные датчиков",
+ "Konum": "Место",
+ "Konum Notları": "Заметки о месте",
+ "Konum Notu": "Заметка о месте",
+ "Oturumun doğrulanamadı. Tekrar dene.": "Не удалось подтвердить сеанс. Попробуй ещё раз.",
+ "Tümü": "Все"
 }

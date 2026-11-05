@@ -13,6 +13,8 @@ enum UITestFixtures {
         return user
     }
     static var sampleContentEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_SAMPLE_CONTENT") }
+    static var discoverPaginationEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_DISCOVER_PAGINATION") }
+    static var discoverFailureEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_DISCOVER_ERROR") }
     static var socialARPreviewEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_SOCIAL_AR_PREVIEW") }
     static var editorPreviewEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_EDITOR_PREVIEW") }
     static var openEditorDirectly: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_OPEN_EDITOR_DIRECTLY") }
@@ -25,6 +27,8 @@ enum UITestFixtures {
     static let signedOutSessionEnabled = false
     static let authenticatedSessionEnabled = false
     static let sampleContentEnabled = false
+    static let discoverPaginationEnabled = false
+    static let discoverFailureEnabled = false
     static let socialARPreviewEnabled = false
     static let editorPreviewEnabled = false
     static let openEditorDirectly = false

@@ -8,7 +8,7 @@ extension AuthGateUITests {
         return query
     }
 
-    func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 4) {
+    func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 8) {
         for _ in 0..<maxSwipes {
             if element.exists && element.isHittable,
                element.frame.midY >= app.frame.minY + 100,

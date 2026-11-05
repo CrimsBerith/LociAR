@@ -234,7 +234,11 @@ struct SavedPostsView: View {
         Group {
             if isLoading { LociLoadingView(title: String(localized: "Kaydedilenler yükleniyor…")) }
             else if posts.isEmpty && nextCursor == nil {
-                LociEmptyState(title: String(localized: "Kaydedilen not yok"), message: message ?? String(localized: "Kaydettiğin notlar burada görünür."), symbol: "bookmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+                if let message {
+                    LociEmptyState.failure(message: message, retry: container.isBackendConfigured ? { Task { await load() } } : nil)
+                } else {
+                    LociEmptyState(title: String(localized: "Kaydedilen not yok"), message: String(localized: "Kaydettiğin notlar burada görünür."), symbol: "bookmark")
+                }
             } else {
                 List {
                     if let message {
@@ -307,7 +311,11 @@ struct BlockedUsersView: View {
         Group {
             if isLoading { LociLoadingView(title: String(localized: "Engellenen hesaplar yükleniyor…")) }
             else if ids.isEmpty {
-                LociEmptyState(title: String(localized: "Engellenen hesap yok"), message: message ?? String(localized: "Engellediğin hesaplar burada görünür."), symbol: "person.crop.circle.badge.xmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+                if let message {
+                    LociEmptyState.failure(message: message, retry: container.isBackendConfigured ? { Task { await load() } } : nil)
+                } else {
+                    LociEmptyState(title: String(localized: "Engellenen hesap yok"), message: String(localized: "Engellediğin hesaplar burada görünür."), symbol: "person.crop.circle.badge.xmark")
+                }
             } else {
                 List(ids, id: \.self) { id in
                     HStack(spacing: 12) {
@@ -361,14 +369,32 @@ struct MyPostsView: View {
     @State private var postToDelete: LociPost?
     @State private var deleteError: String?
     @State private var isDeleting = false
+    @State private var displayOwnerID: UUID?
+
+    private var viewerID: UUID? {
+        if case let .signedIn(user) = session.phase { return user.id }
+        return nil
+    }
 
     var body: some View {
         Group {
-            if isLoading { LociLoadingView(title: String(localized: "Notların yükleniyor…")) }
+            if isLoading || displayOwnerID != viewerID { LociLoadingView(title: String(localized: "Notların yükleniyor…")) }
             else if posts.isEmpty {
-                LociEmptyState(title: String(localized: "Henüz not yok"), message: message ?? String(localized: "Yayınlanan ve incelemedeki notların burada görünür."), symbol: "rectangle.stack.badge.plus", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+                if let message {
+                    LociEmptyState.failure(message: message, retry: container.isBackendConfigured ? { Task { await load() } } : nil)
+                } else {
+                    LociEmptyState(title: String(localized: "Henüz not yok"), message: String(localized: "Yayınlanan ve incelemedeki notların burada görünür."), symbol: "rectangle.stack.badge.plus")
+                }
             } else {
-                List(posts) { post in
+                List {
+                    if let message {
+                        LociInlineNotice(title: String(localized: "Şu anda yüklenemiyor"), message: message,
+                                         symbol: "exclamationmark.triangle.fill", color: .orange)
+                            .listRowBackground(Color.clear)
+                        Button("Tekrar dene") { Task { await load() } }
+                            .listRowBackground(Color.clear)
+                    }
+                    ForEach(posts) { post in
                     NavigationLink(value: post) {
                         VStack(alignment: .leading, spacing: 8) {
                             if failedIDs.contains(post.id) {
@@ -387,6 +413,7 @@ struct MyPostsView: View {
                             .disabled(isDeleting)
                             .accessibilityIdentifier("my-post-delete-\(post.id.uuidString)")
                     }
+                    }
                 }
                 .lociListStyle().refreshable { await load() }
             }
@@ -403,11 +430,12 @@ struct MyPostsView: View {
                 }
             }
         }
-        .task { await load() }
+        .task(id: viewerID) { await load() }
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
-                Button("Daha fazla göster") { Task { await loadMore() } }
-                    .disabled(isLoadingMore || isLoading).padding().background(.ultraThinMaterial)
+                LociPaginationFooter(isLoading: isLoadingMore, isEnabled: !isLoading) {
+                    Task { await loadMore() }
+                }
             }
         }
         .confirmationDialog(
@@ -439,23 +467,30 @@ struct MyPostsView: View {
 
     private func load() async {
         pageGeneration += 1
+        let generation = pageGeneration
         nextCursor = nil
         isLoading = posts.isEmpty
         message = nil
-        defer { isLoading = false }
+        defer { if pageGeneration == generation { isLoading = false } }
         guard case let .signedIn(user) = session.phase else {
+            displayOwnerID = nil
             posts = []
             pendingIDs = []
             failedIDs = []
             message = String(localized: "Notları görmek için tekrar giriş yap.")
             return
         }
+        let previousPosts = displayOwnerID == user.id ? posts : []
+        displayOwnerID = user.id
         let localPosts = loadLocalDrafts(ownerID: user.id)
         let queueDescriptor = FetchDescriptor<SyncQueueRecord>()
         let queues = ((try? modelContext.fetch(queueDescriptor)) ?? []).filter { $0.ownerID == user.id }
         failedIDs = Set(queues.filter { $0.deadLetterReason != nil }.map(\.id))
         pendingIDs = Set(localPosts.map(\.id)).subtracting(failedIDs)
-        posts = localPosts
+        let localIDs = Set(localPosts.map(\.id))
+        // Retain already displayed remote posts while refreshing; never carry them across accounts.
+        posts = (localPosts + previousPosts.filter { !localIDs.contains($0.id) })
+            .sorted { $0.createdAt > $1.createdAt }
         if session.isLocalPreview {
             if posts.isEmpty { posts = [UITestFixtures.post] }
             return
@@ -463,6 +498,7 @@ struct MyPostsView: View {
         guard container.isBackendConfigured else { message = String(localized: "Notların için sunucu bağlantısı gerekiyor."); return }
         do {
             let page = try await container.posts.myPostsPage(cursor: nil)
+            guard !Task.isCancelled, pageGeneration == generation, viewerID == user.id else { return }
             let remotePosts = page.posts
             nextCursor = page.next
             let remoteIDs = Set(remotePosts.map(\.id))
@@ -471,6 +507,7 @@ struct MyPostsView: View {
             posts = (remotePosts + localPosts.filter { !remoteIDs.contains($0.id) })
                 .sorted { $0.createdAt > $1.createdAt }
         } catch {
+            guard !Task.isCancelled, pageGeneration == generation, viewerID == user.id else { return }
             message = localPosts.isEmpty ? String(localized: "Notların şu anda yüklenemiyor.") : String(localized: "Bekleyen not cihazda güvende. Yayını tekrar deneyebilirsin.")
         }
     }
@@ -551,6 +588,7 @@ struct MyPostsView: View {
 
 struct InviteView: View {
     @Environment(AppContainer.self) private var container
+    @Environment(AppSession.self) private var session
     @State private var codeInput = ""
     @State private var invites: [InviteCode] = []
     @State private var message: String?
@@ -558,6 +596,14 @@ struct InviteView: View {
     @State private var isBusy = false
     @State private var isLoading = true
     @State private var needsInvite = false
+    @State private var loadMessage: String?
+    @State private var activeLoadID: UUID?
+    @State private var accountGeneration = UUID()
+
+    private var signedInID: UUID? {
+        if case let .signedIn(user) = session.phase { return user.id }
+        return nil
+    }
 
     private var normalizedInput: String {
         codeInput.uppercased().filter { $0.isLetter || $0.isNumber }
@@ -576,7 +622,7 @@ struct InviteView: View {
                 } label: {
                     Label("Kodu kullan", systemImage: "ticket.fill")
                 }
-                .disabled(isBusy || normalizedInput.count < 8)
+                .disabled(isBusy || activeLoadID != nil || normalizedInput.count < 8)
                 .accessibilityIdentifier("invite-redeem-button")
             } header: {
                 Text("Sana verilen kod")
@@ -585,12 +631,20 @@ struct InviteView: View {
             }
             Section {
                 if isLoading {
-                    ProgressView()
-                } else if invites.isEmpty {
+                    ProgressView().accessibilityLabel("Davet kodları yükleniyor…")
+                } else if let loadMessage {
+                    LociInlineNotice(title: String(localized: "Davet kodları yüklenemedi"), message: loadMessage,
+                                     symbol: "exclamationmark.triangle.fill", color: .orange)
+                    Button("Tekrar dene") { Task { await loadInvites() } }
+                        .disabled(isBusy)
+                        .accessibilityIdentifier("invite-retry-load")
+                }
+                if !isLoading && loadMessage == nil && invites.isEmpty {
                     Text(needsInvite ? String(localized: "Kodlarını görmek için önce sana verilen kodu gir.") : String(localized: "Henüz davet kodun yok."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                } else {
+                }
+                if !isLoading && !invites.isEmpty {
                     ForEach(invites) { invite in
                         HStack {
                             Text(invite.code)
@@ -623,39 +677,63 @@ struct InviteView: View {
         }
         .lociListStyle()
         .navigationTitle("Davet kodu")
-        .task { await loadInvites() }
+        .task(id: signedInID) {
+            // Discard state from the previous account, including in-flight read results and drafts.
+            accountGeneration = UUID()
+            activeLoadID = nil
+            invites = []; codeInput = ""; message = nil; info = nil; loadMessage = nil
+            needsInvite = false; isBusy = false; isLoading = true
+            await loadInvites()
+        }
     }
 
     private func redeem() async {
-        guard !isBusy else { return }
+        guard !isBusy, let userID = signedInID else { return }
+        let generation = accountGeneration
         isBusy = true
         message = nil
         info = nil
-        defer { isBusy = false }
+        defer { if signedInID == userID, accountGeneration == generation { isBusy = false } }
         do {
             try await container.invites.redeem(code: normalizedInput)
+            guard !Task.isCancelled, signedInID == userID, accountGeneration == generation else { return }
             codeInput = ""
             info = String(localized: "Davet kodu kabul edildi.")
             await loadInvites()
         } catch {
-            message = error.localizedDescription
+            guard !Task.isCancelled, signedInID == userID, accountGeneration == generation else { return }
+            // Preserve the typed code so a recoverable failure can be retried.
+            message = InviteFailurePresentation.message(for: error)
         }
     }
 
     private func loadInvites() async {
-        needsInvite = false
-        guard container.isBackendConfigured else {
+        guard activeLoadID == nil else { return }
+        guard container.isBackendConfigured else { isLoading = false; return }
+        guard let userID = signedInID else {
             isLoading = false
+            loadMessage = InviteFailurePresentation.message(for: AuthFlowError.notSignedIn)
             return
         }
-        defer { isLoading = false }
+        let ticket = UUID()
+        activeLoadID = ticket
+        isLoading = invites.isEmpty
+        loadMessage = nil
+        defer {
+            if activeLoadID == ticket { activeLoadID = nil; isLoading = false }
+        }
         do {
-            invites = try await container.invites.myInvites()
+            let loaded = try await container.invites.myInvites()
+            guard !Task.isCancelled, activeLoadID == ticket, signedInID == userID else { return }
+            invites = loaded
+            needsInvite = false
         } catch InviteFlowError.needsInviteFirst {
+            guard !Task.isCancelled, activeLoadID == ticket, signedInID == userID else { return }
             invites = []
             needsInvite = true
         } catch {
-            message = error.localizedDescription
+            guard !Task.isCancelled, activeLoadID == ticket, signedInID == userID else { return }
+            loadMessage = InviteFailurePresentation.message(for: error)
         }
     }
 }

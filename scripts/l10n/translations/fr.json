@@ -148,7 +148,6 @@
  "Hesap engellenemedi. Tekrar dene.": "Impossible de bloquer le compte. Réessayez.",
  "Hesap oluştur": "Créer un compte",
  "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.": "Le compte n'a pas pu être créé. L'e-mail est peut-être en cours d'utilisation ou le mot de passe n'est pas assez fort.",
- "Hesap silme işlemi geri alınamaz.": "La suppression du compte est irréversible.",
  "Hesap şu anda silinemiyor. Biraz sonra tekrar dene.": "Votre compte ne peut pas être supprimé pour le moment. Réessayez bientôt.",
  "Kamera ayarlarını aç": "Ouvrir les paramètres de la caméra",
  "Kamera açık": "Caméra active",
@@ -712,5 +711,18 @@
  "LociAR diagnostic category %@": "LociAR diagnostic category %@",
  "LociAR.%@": "LociAR.%@",
  "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.": "L’identité de publication de cette note ne peut pas changer. Créez une nouvelle note.",
- "GIF animasyonu": "Animation GIF"
+ "GIF animasyonu": "Animation GIF",
+ "3D AR Notu": "Note AR en 3D",
+ "AR Notları": "Notes AR",
+ "ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.": "Google traite les données de la caméra et de localisation pendant les sessions de localisation ARCore Geospatial et Cloud Anchors.",
+ "Davet kodları yüklenemedi": "Impossible de charger les codes d’invitation",
+ "Davet kodları yükleniyor…": "Chargement des codes d’invitation…",
+ "Filtre": "Filtre",
+ "Gelişmiş AR Servisleri": "Services AR avancés",
+ "Google AR ve Sensör Verisi": "Google AR et données des capteurs",
+ "Konum": "Lieu",
+ "Konum Notları": "Notes de lieu",
+ "Konum Notu": "Note de lieu",
+ "Oturumun doğrulanamadı. Tekrar dene.": "Ta session n’a pas pu être vérifiée. Réessaie.",
+ "Tümü": "Toutes"
 }

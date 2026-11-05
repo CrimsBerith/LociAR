@@ -11,6 +11,7 @@ struct CreatePostView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(ARPinningEngine.self) private var engine
+    @State private var placementSessionGeneration: UUID?
     @State private var selectedAnchor: SurfaceAnchor?
     @State private var caption = ""
     @State private var publishAnonymously = true
@@ -56,7 +57,7 @@ struct CreatePostView: View {
                         Text(savingStatus.localizedUI).font(.subheadline.weight(.semibold))
                     }
                     .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .lociGlassSurface(in: Capsule())
                     .padding(.top, 8)
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("create-saving-status")
@@ -118,7 +119,7 @@ struct CreatePostView: View {
         .onDisappear {
             placementTask?.cancel()
             if selectedAnchor == nil {
-                engine.stopSession()
+                engine.stopSession(ifGenerationMatches: placementSessionGeneration)
             }
         }
     }
@@ -131,7 +132,7 @@ struct CreatePostView: View {
             }
             Circle().stroke(engine.candidateQuality != nil ? LociTheme.accent : .white, lineWidth: 3).frame(width: 54, height: 54)
             VStack {
-                LociCard {
+                LociCard(appearance: .floating) {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: placementSymbol)
@@ -228,12 +229,16 @@ struct CreatePostView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
+                .lociGlassSurface(cornerRadius: 24)
             }
             .padding()
         }
-        .task { _ = await engine.prepareNewPinSession() }
-        .onDisappear { if selectedAnchor == nil { engine.stopSession() } }
+        .task {
+            _ = await engine.prepareNewPinSession { generation in
+                placementSessionGeneration = generation
+            }
+        }
+        .onDisappear { if selectedAnchor == nil { engine.stopSession(ifGenerationMatches: placementSessionGeneration) } }
     }
 
     private var placementTitle: String {
@@ -341,13 +346,13 @@ struct CreatePostView: View {
                         TextField("Bir mesaj yaz…", text: $caption, axis: .vertical)
                             .lineLimit(2...6)
                             .padding(12)
-                            .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .lociGlassSurface(cornerRadius: 14)
                             .focused($isCaptionFocused)
                             .accessibilityIdentifier("create-caption")
                         HStack {
                             Spacer(minLength: 8)
                             Text(verbatim: "\(captionLength.formatted())/220").font(.caption.monospacedDigit())
-                                .foregroundStyle(captionLength <= 220 ? Color.secondary : Color.red)
+                                .foregroundStyle(captionLength <= 220 ? LociTheme.secondaryText : LociTheme.danger)
                         }
                         if captionLength > 220 {
                             Label("En fazla 220 karakter yazabilirsin.", systemImage: "exclamationmark.circle.fill")
@@ -435,7 +440,7 @@ struct CreatePostView: View {
             }
         }
         .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 6)
-        .background(.ultraThinMaterial)
+        .lociGlassSurface(cornerRadius: 0)
     }
 
     private var canPublish: Bool {

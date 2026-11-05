@@ -21,6 +21,10 @@ SKIP_PREFIXES = (
     '.child(', 'URL(string:', 'order(by:', 'httpsCallable(', 'call(', 'logger.', 'Logger(',
     'print(', 'NSLog(', 'debugTrace(', 'fatalError(', 'precondition', 'assert', 'predicate',
     'NSPredicate', 'environment[', 'arguments.contains(', 'AppStorage(', 'font(', 'format:',
+    'UserDefaults.standard.set(',
+    'Locale(identifier:',
+    # DEBUG-only camera metrics use stable diagnostic field names, like log records.
+    'cachedCameraRenderDiagnostic =',
 )
 
 

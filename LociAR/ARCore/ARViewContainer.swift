@@ -7,8 +7,13 @@ final class ARViewHostView: UIView {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        if window != nil, let engine {
-            engine.activateARViewHost(self)
+        engine?.arViewHostDidMoveToWindow(self)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if let view = engine?.existingARView, view.superview === self {
+            view.frame = bounds
         }
     }
 }
@@ -18,7 +23,7 @@ struct ARViewContainer: UIViewRepresentable {
 
     func makeUIView(context: Context) -> ARViewHostView {
         let host = ARViewHostView(frame: .zero)
-        host.backgroundColor = UIColor(red: 0.025, green: 0.035, blue: 0.055, alpha: 1)
+        host.backgroundColor = .clear
         host.engine = engine
         engine.registerARViewHost(host)
         return host

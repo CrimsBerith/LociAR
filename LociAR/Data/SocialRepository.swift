@@ -1,5 +1,6 @@
 import Foundation
 @preconcurrency import FirebaseFirestore
+@preconcurrency import FirebaseFunctions
 
 struct SocialActivity: Codable, Identifiable, Hashable, Sendable {
     let id: String
@@ -555,6 +556,23 @@ enum InviteFlowError: LocalizedError, Equatable, Sendable {
         case .needsInviteFirst: String(localized: "Kendi kodlarını görmek için önce sana verilen davet kodunu gir.")
         case .unavailable: String(localized: "Davet işlemi şu anda yapılamıyor. Tekrar dene.")
         }
+    }
+}
+
+/// The invite screen must never render raw provider diagnostics (for example UNAUTHENTICATED).
+/// Both passive loading and explicit redemption use these safe, localized explanations.
+enum InviteFailurePresentation {
+    nonisolated static func message(for error: Error) -> String {
+        if let invite = error as? InviteFlowError { return invite.localizedDescription }
+        if case AuthFlowError.notSignedIn = error {
+            return String(localized: "Oturumun doğrulanamadı. Tekrar dene.")
+        }
+        let failure = error as NSError
+        if failure.domain == FunctionsErrorDomain,
+           FunctionsErrorCode(rawValue: failure.code) == .unauthenticated {
+            return String(localized: "Oturumun doğrulanamadı. Tekrar dene.")
+        }
+        return String(localized: "Davet işlemi şu anda yapılamıyor. Tekrar dene.")
     }
 }
 

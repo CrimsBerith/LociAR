@@ -23,6 +23,9 @@ struct DiscoverView: View {
         Group {
             if isLoading {
                 LociLoadingView(title: String(localized: "Keşfet hazırlanıyor…"))
+            } else if posts.isEmpty, let message {
+                LociEmptyState.failure(message: message) { Task { await load() } }
+                    .accessibilityIdentifier("discover-load-error")
             } else if filteredPosts.isEmpty {
                 LociEmptyState(
                     title: query.isEmpty ? String(localized: "Henüz not yok") : String(localized: "Sonuç bulunamadı"),
@@ -32,16 +35,29 @@ struct DiscoverView: View {
                     action: message == nil ? nil : { Task { await load() } }
                 )
             } else {
-                List(filteredPosts) { post in
-                    NavigationLink(value: post) { PostCard(post: post) }
+                List {
+                    ForEach(filteredPosts) { post in
+                        NavigationLink(value: post) { PostCard(post: post) }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
+                    }
+                    if nextCursor != nil {
+                        LociPaginationFooter(isLoading: isLoadingMore, isEnabled: !isLoading,
+                                             accessibilityID: "discover-load-more") {
+                            Task { await loadMore() }
+                        }
+                        .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .refreshable { await load() }
                 .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
+                .accessibilityIdentifier("discover-post-list")
             }
         }
         .background(LociScreenBackground())
@@ -56,12 +72,9 @@ struct DiscoverView: View {
         .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.revision) { opening in
             await load(force: false, automatic: !opening)
         }
-        .safeAreaInset(edge: .bottom) {
-            if nextCursor != nil {
-                Button("Daha fazla göster") { Task { await loadMore() } }
-                    .disabled(isLoadingMore || isLoading).padding().background(.ultraThinMaterial)
-            }
-        }
+        // Establish a screen container; otherwise the identifier is inherited by
+        // the list and pagination Button, replacing their individual selectors.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("screen-discover")
     }
 
@@ -97,7 +110,14 @@ struct DiscoverView: View {
         }
         let local = localDiscoverDrafts()
         if UITestFixtures.sampleContentEnabled || session.isLocalPreview {
+            if UITestFixtures.discoverFailureEnabled {
+                posts = []; nextCursor = nil
+                message = String(localized: "Notlar yüklenemedi. Tekrar dene.")
+                succeeded = true; loadedRevision = revision
+                return
+            }
             posts = mergedDiscoverPosts(local + [UITestFixtures.post]); succeeded = true; loadedRevision = revision
+            nextCursor = UITestFixtures.discoverPaginationEnabled ? "ui-pagination" : nil
             return
         }
         guard container.isBackendConfigured else {
@@ -157,6 +177,10 @@ struct DiscoverView: View {
         let generation = pageGeneration
         isLoadingMore = true
         defer { isLoadingMore = false }
+        if UITestFixtures.discoverPaginationEnabled && (UITestFixtures.sampleContentEnabled || session.isLocalPreview) {
+            nextCursor = nil; hasLoadedMore = true; pageSucceeded = true
+            return
+        }
         do {
             let page = try await container.posts.discoverPage(cursor: cursor)
             guard !Task.isCancelled, revision == ContentUpdates.shared.revision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }

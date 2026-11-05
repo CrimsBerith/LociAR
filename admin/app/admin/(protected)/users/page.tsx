@@ -5,6 +5,8 @@ import { adminDb, iso } from '../../../../lib/firebase-admin';
 import { getI18n } from '../../../../lib/i18n-server';
 import InviteUserForm from './InviteUserForm';
 import CreateUserForm from './CreateUserForm';
+import PersonaTransfer from './PersonaTransfer';
+import ManagedProfileEditor from './ManagedProfileEditor';
 import AdminDecision from '../AdminDecision';
 import UserContextPanel from '../UserContextPanel';
 import PageNavigation from '../PageNavigation';
@@ -16,7 +18,9 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
   const admin = await requireAdmin({ permission: 'users.read' });
   const { t, locale } = await getI18n();
   const canManageAdmins = admin.permissions.has('admin_users.write');
-  const contextStepUp = needsStepUp(admin, 'users.location.read') || needsStepUp(admin, 'users.telemetry.read');
+  const canManageProfiles = admin.permissions.has('users.managed_profiles.write');
+  const contextStepUp = needsStepUp(admin, 'users.full_export') || needsStepUp(admin, 'users.location.read') || needsStepUp(admin, 'users.telemetry.read');
+  const canExportAllUsers = admin.permissions.has('users.full_export') && admin.permissions.has('users.location.read') && admin.permissions.has('users.telemetry.read') && !contextStepUp;
   const rolesStepUp = needsStepUp(admin, 'admin_users.write');
   const canSuspend = admin.permissions.has('users.suspend');
   const params = await searchParams;
@@ -43,6 +47,7 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
         <InviteUserForm />
       </div>
       {admin.permissions.has('users.create') ? <CreateUserForm /> : null}
+      <PersonaTransfer canImport={admin.permissions.has('users.create')} canExport={canExportAllUsers} exportStepUpRequired={needsStepUp(admin, 'users.full_export')} />
       <section className="panel" aria-label={t('User profiles')}>
         <div className="panelHeader">
           <form method="get" className="inlineSearch">
@@ -56,6 +61,7 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
             {users.length === 0 ? <p className="emptyState">{t('No matching users.')}</p> : users.map(user => (
               <div className="dataRow user" key={user.id}>
                 <span><b>@{String(user.handle)}</b><small>{user.id}</small>
+                  {canManageProfiles && user.admin_managed === true ? <details><summary>{t('Manage profile')}</summary><ManagedProfileEditor luid={user.id} displayName={scalarText(user.display_name)} bio={scalarText(user.bio)} /></details> : null}
                   {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') || contextStepUp ? <details><summary>{t('Private data')}</summary><UserContextPanel luid={user.id} stepUp={contextStepUp} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
                 </span>
                 <span>{identityStatus(user, t)}</span>

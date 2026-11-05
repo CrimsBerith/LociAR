@@ -28,16 +28,24 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
         if UITestFixtures.authenticatedSessionEnabled || UITestFixtures.sampleContentEnabled {
             return UITestFixtures.anchor.geoPose
         }
-        guard continuation == nil else { return nil }
-        return await withCheckedContinuation { continuation in
-            self.continuation = continuation
-            timeoutTask = Task { @MainActor [weak self] in
-                do { try await Task.sleep(for: timeout) } catch { return }
-                guard let self else { return }
-                // Timed out: return the best fix seen (the caller checks its accuracy).
-                self.finish(self.bestLocation.flatMap { Self.isPublishable($0) ? self.makeGeoPose(from: $0) : nil })
+        if continuation != nil {
+            finish(nil)
+        }
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                self.continuation = continuation
+                timeoutTask = Task { @MainActor [weak self] in
+                    do { try await Task.sleep(for: timeout) } catch { return }
+                    guard let self else { return }
+                    // Timed out: return the best fix seen (the caller checks its accuracy).
+                    self.finish(self.bestLocation.flatMap { Self.isPublishable($0) ? self.makeGeoPose(from: $0) : nil })
+                }
+                beginLocationRequest()
             }
-            beginLocationRequest()
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.finish(nil)
+            }
         }
     }
 

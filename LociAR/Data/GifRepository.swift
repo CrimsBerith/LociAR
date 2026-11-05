@@ -56,7 +56,7 @@ final class FirebaseGifRepository: GifRepository, @unchecked Sendable {
         let offset = max(0, min(offset, 480))
         let key = "\(owner.uuidString)|\(locale)|\(offset)|\(normalized)"
         let client = callables
-        let page = try await ClientReadCaches.gifs.value(for: key, ttl: 120, cost: { page in
+        let page = try await ClientReadCaches.gifs.value(for: key, ttl: 300, cost: { page in
             page.results.reduce(64) { $0 + $1.title.utf8.count + $1.gif.id.utf8.count + 64 }
         }) {
             guard FirebaseIdentity.currentLUID() == owner else { throw AuthFlowError.notSignedIn }

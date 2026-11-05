@@ -18,7 +18,7 @@ export const REGION = process.env.LOCIAR_FUNCTIONS_REGION || 'us-central1';
 // Quota budget: event triggers get maxInstances:1 (async, latency-insensitive); user-facing
 // callables get maxInstances:2 via CALLABLE_MAX_INSTANCES. Check the regional CPU quota against
 // the deployed function inventory, including headroom for rolling revision startup.
-setGlobalOptions({ region: REGION, maxInstances: 1 });
+setGlobalOptions({ region: REGION, maxInstances: 1, minInstances: 0 });
 
 /** User-facing callables need a second instance to avoid cold-start queuing under light load. */
 export const CALLABLE_MAX_INSTANCES = 2;

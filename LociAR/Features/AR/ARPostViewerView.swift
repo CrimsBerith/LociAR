@@ -2,6 +2,14 @@ import CoreLocation
 import SwiftUI
 import UIKit
 
+/// One resolver attempt owns one lease object. A cancelled task retains its own token even
+/// after SwiftUI installs a replacement attempt, so its deferred cleanup cannot stop the new owner.
+@MainActor
+private final class ARViewerCameraLease {
+    var generation: UUID
+    init(generation: UUID) { self.generation = generation }
+}
+
 struct ARPostViewerView: View {
     @Environment(ARPinningEngine.self) private var engine
     @Environment(AppSession.self) private var session
@@ -18,6 +26,7 @@ struct ARPostViewerView: View {
     @State private var isLocalSurfaceScan = false
     /// The resolver chain (Cloud Anchor → Geospatial → world map → aim-guided reveal); stored so
     /// "Yaklaşık göster", "Tekrar dene" and closing the viewer can cancel it.
+    @State private var cameraLease: ARViewerCameraLease?
     @State private var resolveTask: Task<Void, Never>?
     @State private var offerTask: Task<Void, Never>?
     /// Shown when exact resolving takes long: skip straight to the approximate, aim-guided view.
@@ -49,7 +58,7 @@ struct ARPostViewerView: View {
                         Image(systemName: "xmark")
                             .font(.headline)
                             .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial, in: Circle())
+                            .lociGlassSurface(in: Circle())
                     }
                     .accessibilityLabel("Kapat")
                     Spacer()
@@ -262,10 +271,12 @@ struct ARPostViewerView: View {
     }
 
     private func startResolving() {
+        guard isVisible, scenePhase == .active else { return }
         let previous = resolveTask
         previous?.cancel()
         offerTask?.cancel()
-        engine.stopSession()
+        let lease = ARViewerCameraLease(generation: engine.claimCameraSession())
+        cameraLease = lease
         offerApproximate = false
         isApproximateView = false
         proximityVerified = false
@@ -273,9 +284,9 @@ struct ARPostViewerView: View {
             // Some native resolvers finish after cancellation. Drain the previous attempt before
             // starting another, then clear any late placement from that attempt.
             await previous?.value
-            guard !Task.isCancelled, isVisible, scenePhase == .active else { return }
-            engine.stopSession()
-            defer { if Task.isCancelled { engine.stopSession() } }
+            guard !Task.isCancelled, isVisible, scenePhase == .active,
+                  engine.ownsCameraSession(lease.generation) else { return }
+            defer { if Task.isCancelled { engine.stopSession(ifGenerationMatches: lease.generation) } }
             await verifyAndOpen()
         }
         offerTask = Task {
@@ -298,11 +309,12 @@ struct ARPostViewerView: View {
         offerTask?.cancel()
         offerApproximate = false
         isApproximateView = true
+        let lease = ARViewerCameraLease(generation: engine.claimCameraSession())
+        cameraLease = lease
         resolveTask = Task {
             await running?.value
-            guard !Task.isCancelled, revalidateProximity() else { return }
-            engine.stopSession()
-            defer { if Task.isCancelled { engine.stopSession() } }
+            guard !Task.isCancelled, engine.ownsCameraSession(lease.generation), revalidateProximity() else { return }
+            defer { if Task.isCancelled { engine.stopSession(ifGenerationMatches: lease.generation) } }
             await revealWithAimGuidance()
         }
     }
@@ -334,7 +346,8 @@ struct ARPostViewerView: View {
                 }
                 message = decision.reason
                 proximityVerified = true
-                if await engine.resumePreservedWorldLock(anchorID: post.anchorBundle.anchor.id) {
+                let lease = cameraLease
+                if await engine.resumePreservedWorldLock(anchorID: post.anchorBundle.anchor.id, onSessionStarted: { lease?.generation = $0 }) {
                     _ = await renderResolvedContent()
                     return
                 }
@@ -368,13 +381,20 @@ struct ARPostViewerView: View {
         displayedTranslation = nil
         resolveTask?.cancel()
         offerTask?.cancel()
-        engine.stopSession()
+        stopOwnedCamera()
         if let reason { message = reason }
+    }
+
+    private func stopOwnedCamera() {
+        guard let lease = cameraLease,
+              let generation = engine.resetCameraSession(ifGenerationMatches: lease.generation) else { return }
+        lease.generation = generation
     }
 
     @discardableResult
     private func revalidateProximity() -> Bool {
         guard !Task.isCancelled else { return false }
+        guard engine.ownsCameraSession(cameraLease?.generation) else { return false }
         guard isVisible, scenePhase == .active else { revokeAccess(); return false }
         if session.isLocalPreview { return true }
         let now = Date()
@@ -452,7 +472,7 @@ struct ARPostViewerView: View {
             guard revalidateProximity() else { return true }
         } catch {
             guard revalidateProximity() else { return true }
-            engine.stopSession()
+            stopOwnedCamera()
             return false
         }
         message = String(localized: "Kaydedilen çevre aranıyor. Kamerayı postun sabitlendiği yüzeye doğru yavaşça gezdir.")
@@ -463,7 +483,7 @@ struct ARPostViewerView: View {
                 return await renderResolvedContent()
             case .failed, .idle:
                 // Relocalization timed out; clear the initial world map before falling back.
-                engine.stopSession()
+                stopOwnedCamera()
                 message = String(localized: "Kaydedilen çevre bulunamadı. Yaklaşık konuma göre yönlendiriliyorsun.")
                 return false
             default:
@@ -509,7 +529,8 @@ struct ARPostViewerView: View {
 #endif
         isLocalSurfaceScan = true
         message = String(localized: "Kartı açmak için kamerayı dokulu bir duvar, masa veya zemin üzerinde yavaşça gezdir.")
-        guard await engine.beginAimAssistedReveal() else {
+        let lease = cameraLease
+        guard await engine.beginAimAssistedReveal(onSessionStarted: { lease?.generation = $0 }) else {
             message = engine.statusMessage
             isLocalSurfaceScan = false
             return
@@ -560,7 +581,8 @@ struct ARPostViewerView: View {
             return
         }
 
-        guard await engine.beginAimAssistedReveal() else {
+        let lease = cameraLease
+        guard await engine.beginAimAssistedReveal(onSessionStarted: { lease?.generation = $0 }) else {
             message = engine.statusMessage
             isAiming = false
             return

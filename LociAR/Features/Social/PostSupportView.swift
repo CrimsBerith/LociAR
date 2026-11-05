@@ -157,7 +157,7 @@ struct PostSupportView: View {
         Button { selection = id } label: {
             HStack { Text(verbatim: title).font(.headline); Spacer(); Image(systemName: selection == id ? "checkmark.circle.fill" : "circle") }
                 .padding(18).foregroundStyle(selection == id ? LociTheme.accent : .white)
-                .background(LociTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+                .lociGlassSurface(cornerRadius: 16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(selection == id ? LociTheme.accent : LociTheme.hairline))
         }.buttonStyle(.plain).disabled(busy || pendingIntent != nil)
     }

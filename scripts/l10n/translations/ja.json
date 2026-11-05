@@ -148,7 +148,6 @@
  "Hesap engellenemedi. Tekrar dene.": "アカウントをブロックできませんでした。再試行してください。",
  "Hesap oluştur": "アカウントを作成する",
  "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.": "アカウントを作成できませんでした。電子メールが使用中であるか、パスワードが十分に強力ではない可能性があります。",
- "Hesap silme işlemi geri alınamaz.": "アカウントの削除は取り消せません。",
  "Hesap şu anda silinemiyor. Biraz sonra tekrar dene.": "現在アカウントを削除できません。しばらくしてから再試行してください。",
  "Kamera ayarlarını aç": "カメラ設定を開く",
  "Kamera açık": "カメラがアクティブです",
@@ -712,5 +711,18 @@
  "LociAR diagnostic category %@": "LociAR diagnostic category %@",
  "LociAR.%@": "LociAR.%@",
  "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.": "このノートの公開時の名前表示は変更できません。新しいノートを作成してください。",
- "GIF animasyonu": "GIFアニメーション"
+ "GIF animasyonu": "GIFアニメーション",
+ "3D AR Notu": "3D ARノート",
+ "AR Notları": "ARノート",
+ "ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.": "ARCore GeospatialおよびCloud Anchorsの位置情報セッション中、カメラと位置情報のデータはGoogleによって処理されます。",
+ "Davet kodları yüklenemedi": "招待コードを読み込めませんでした",
+ "Davet kodları yükleniyor…": "招待コードを読み込み中…",
+ "Filtre": "フィルター",
+ "Gelişmiş AR Servisleri": "高度なARサービス",
+ "Google AR ve Sensör Verisi": "Google ARとセンサーデータ",
+ "Konum": "場所",
+ "Konum Notları": "場所のノート",
+ "Konum Notu": "場所のノート",
+ "Oturumun doğrulanamadı. Tekrar dene.": "セッションを確認できませんでした。もう一度お試しください。",
+ "Tümü": "すべて"
 }

@@ -133,7 +133,7 @@ export async function resolveGifLayers(editData: { layers?: unknown[] }, fetcher
 }
 
 /** GIF search for the post editor. An empty query returns trending GIFs. */
-export const searchGifs = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [GIPHY_API_KEY] }, async (request) => {
+export const searchGifs = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 30, secrets: [GIPHY_API_KEY] }, async (request) => {
   const caller = requireCaller(request);
   const data = (request.data ?? {}) as { query?: unknown; offset?: unknown; locale?: unknown };
   const query = typeof data.query === 'string' ? data.query.trim().slice(0, MAX_QUERY) : '';

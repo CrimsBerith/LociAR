@@ -194,7 +194,10 @@ final class ClientRequestCache<Value: Sendable> {
             try Task.checkCancellation()
             return value
         } catch {
-            if flights[key]?.id == flight.id { flights.removeValue(forKey: key); wakeCapacityWaiters() }
+            if !(error is CancellationError) && flights[key]?.id == flight.id {
+                flights.removeValue(forKey: key)
+                wakeCapacityWaiters()
+            }
             throw error
         }
     }

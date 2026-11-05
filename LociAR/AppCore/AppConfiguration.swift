@@ -119,6 +119,11 @@ struct AppConfiguration: Sendable {
         if FirebaseApp.app() != nil { return true }
         guard let firebase else { return false }
 #if DEBUG
+        // Sabit kayıtlı debug token: Uygulama silinip yeniden kurulsa bile
+        // her seferinde Firebase Console'a yeni token ekleme zorunluluğunu ortadan kaldırır.
+        if UserDefaults.standard.string(forKey: "FIRAAppCheckDebugToken") == nil {
+            UserDefaults.standard.set("95430D36-01E8-4A1D-AFE9-F61DA6447CDA", forKey: "FIRAAppCheckDebugToken")
+        }
         AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
 #else
         AppCheck.setAppCheckProviderFactory(LociAppCheckProviderFactory())

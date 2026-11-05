@@ -148,7 +148,6 @@
  "Hesap engellenemedi. Tekrar dene.": "تعذر حظر الحساب. حاول مجددًا.",
  "Hesap oluştur": "إنشاء حساب",
  "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.": "لا يمكن إنشاء الحساب. ربما يكون البريد الإلكتروني قيد الاستخدام أو أن كلمة المرور ليست قوية بدرجة كافية.",
- "Hesap silme işlemi geri alınamaz.": "لا يمكن التراجع عن حذف الحساب.",
  "Hesap şu anda silinemiyor. Biraz sonra tekrar dene.": "يتعذّر حذف حسابك حاليًا. حاول مجددًا بعد قليل.",
  "Kamera ayarlarını aç": "افتح إعدادات الكاميرا",
  "Kamera açık": "الكاميرا نشطة",
@@ -712,5 +711,18 @@
  "LociAR diagnostic category %@": "LociAR diagnostic category %@",
  "LociAR.%@": "LociAR.%@",
  "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.": "لا يمكن تغيير هوية نشر هذه الملاحظة. أنشئ ملاحظة جديدة.",
- "GIF animasyonu": "رسوم GIF متحركة"
+ "GIF animasyonu": "رسوم GIF متحركة",
+ "3D AR Notu": "ملاحظة AR ثلاثية الأبعاد",
+ "AR Notları": "ملاحظات AR",
+ "ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.": "تعالج Google بيانات الكاميرا والموقع أثناء جلسات تحديد الموقع في ARCore Geospatial وCloud Anchors.",
+ "Davet kodları yüklenemedi": "تعذّر تحميل رموز الدعوة",
+ "Davet kodları yükleniyor…": "جارٍ تحميل رموز الدعوة…",
+ "Filtre": "تصفية",
+ "Gelişmiş AR Servisleri": "خدمات AR المتقدمة",
+ "Google AR ve Sensör Verisi": "Google AR وبيانات المستشعرات",
+ "Konum": "الموقع",
+ "Konum Notları": "ملاحظات الموقع",
+ "Konum Notu": "ملاحظة موقع",
+ "Oturumun doğrulanamadı. Tekrar dene.": "تعذّر التحقق من جلستك. حاول مرة أخرى.",
+ "Tümü": "الكل"
 }

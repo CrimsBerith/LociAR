@@ -2,17 +2,20 @@ import SwiftUI
 import UIKit
 
 enum LociTheme {
-    static let background = Color(red: 0.025, green: 0.035, blue: 0.055)
-    static let surface = Color(red: 0.065, green: 0.088, blue: 0.125)
-    static let elevated = Color(red: 0.095, green: 0.125, blue: 0.175)
-    static let surfaceStrong = Color(red: 0.075, green: 0.105, blue: 0.15)
+    static let background = Color(red: 11 / 255, green: 17 / 255, blue: 24 / 255)
+    static let surface = Color(red: 18 / 255, green: 28 / 255, blue: 40 / 255)
+    static let elevated = Color(red: 26 / 255, green: 40 / 255, blue: 55 / 255)
+    static let surfaceStrong = elevated
     static let accent = Color(red: 0.22, green: 0.88, blue: 0.72)
+    static let ambientBlue = Color(red: 0.20, green: 0.48, blue: 1.0)
     static let warning = Color.orange
     static let danger = Color.red
-    static let secondaryText = Color.white.opacity(0.74)
-    static let tertiaryText = Color.white.opacity(0.58)
+    static let secondaryText = Color(red: 184 / 255, green: 195 / 255, blue: 204 / 255)
+    static let tertiaryText = Color(red: 147 / 255, green: 162 / 255, blue: 176 / 255)
     static let hairline = Color.white.opacity(0.10)
     static let field = Color.white.opacity(0.07)
+    static let glassTint = accent.opacity(0.07)
+    static let glassBorder = Color.white.opacity(0.15)
     /// Text/icons drawn on the accent color (primary buttons).
     static let onAccent = Color.black
 
@@ -31,10 +34,87 @@ enum LociTheme {
     }
 
     static let spatialGradient = LinearGradient(
-        colors: [Color(red: 0.03, green: 0.06, blue: 0.1), Color(red: 0.02, green: 0.03, blue: 0.055)],
+        colors: [surface, background],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+}
+
+/// App surfaces share one glass language; floating controls and reading cards use different tint strengths.
+enum LociSurfaceAppearance {
+    case content
+    case floating
+}
+
+private struct LociGlassPanelKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private extension EnvironmentValues {
+    var lociGlassPanel: Bool {
+        get { self[LociGlassPanelKey.self] }
+        set { self[LociGlassPanelKey.self] = newValue }
+    }
+}
+
+private struct LociGlassSurface: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let shape: AnyShape
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content
+                .environment(\.lociGlassPanel, true)
+                .background(LociTheme.surfaceStrong, in: shape)
+                .overlay(shape.stroke(LociTheme.glassBorder))
+        } else if #available(iOS 26.0, *) {
+            content
+                .environment(\.lociGlassPanel, true)
+                .glassEffect(.regular.tint(LociTheme.glassTint), in: shape)
+                .overlay(shape.stroke(LociTheme.glassBorder))
+                .shadow(color: Color.black.opacity(0.18), radius: 18, y: 8)
+        } else {
+            content
+                .environment(\.lociGlassPanel, true)
+                .background(.regularMaterial, in: shape)
+                .overlay(shape.fill(LociTheme.glassTint))
+                .overlay(shape.stroke(LociTheme.glassBorder))
+                .shadow(color: Color.black.opacity(0.18), radius: 18, y: 8)
+        }
+    }
+}
+
+private struct LociGlassRowSurface: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    var cornerRadius: CGFloat
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        if reduceTransparency {
+            shape.fill(LociTheme.surfaceStrong).overlay(shape.stroke(LociTheme.glassBorder))
+        } else if #available(iOS 26.0, *) {
+            shape.fill(.clear)
+                .glassEffect(.regular.tint(LociTheme.glassTint), in: shape)
+                .overlay(shape.stroke(LociTheme.glassBorder))
+        } else {
+            shape.fill(.ultraThinMaterial)
+                .overlay(shape.fill(LociTheme.glassTint))
+                .overlay(shape.stroke(LociTheme.glassBorder))
+        }
+    }
+}
+
+extension View {
+    /// A single glass layer for a floating group; nested buttons use flat fills.
+    func lociGlassSurface(cornerRadius: CGFloat = LociTheme.Radius.large) -> some View {
+        modifier(LociGlassSurface(shape: AnyShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))))
+    }
+
+    /// Applies the same glass treatment to controls whose geometry is not a rounded rectangle.
+    func lociGlassSurface<S: Shape>(in shape: S) -> some View {
+        modifier(LociGlassSurface(shape: AnyShape(shape)))
+    }
 }
 
 struct LociScreenBackground: View {
@@ -46,6 +126,11 @@ struct LociScreenBackground: View {
                 .frame(width: 330, height: 330)
                 .blur(radius: 28)
                 .offset(x: 170, y: -310)
+            Circle()
+                .fill(LociTheme.ambientBlue.opacity(0.045))
+                .frame(width: 280, height: 280)
+                .blur(radius: 34)
+                .offset(x: -180, y: 300)
         }
         .ignoresSafeArea()
         .accessibilityHidden(true)
@@ -54,17 +139,17 @@ struct LociScreenBackground: View {
 
 struct LociCard<Content: View>: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    var appearance: LociSurfaceAppearance = .content
     @ViewBuilder var content: Content
 
+    @ViewBuilder
     var body: some View {
-        content
-            .padding(16)
-            .background {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(reduceTransparency ? LociTheme.surfaceStrong : LociTheme.surface.opacity(0.86))
-            }
-            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(LociTheme.hairline))
-            .shadow(color: .black.opacity(0.14), radius: 14, y: 7)
+        switch appearance {
+        case .content:
+            content.padding(16).lociGlassSurface(cornerRadius: 20)
+        case .floating:
+            content.padding(16).lociGlassSurface()
+        }
     }
 }
 
@@ -75,12 +160,15 @@ struct LociStatusPill: View {
 
     var body: some View {
         Label(title.localizedUI, systemImage: symbol)
+            .labelStyle(.titleAndIcon)
             .font(.caption.weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
-            .background(color.opacity(0.14), in: Capsule())
-            .overlay(Capsule().stroke(color.opacity(0.18)))
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().fill(color.opacity(0.10)))
+        .overlay(Capsule().stroke(color.opacity(0.30)))
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -131,42 +219,58 @@ struct LociInlineNotice: View {
             Spacer(minLength: 0)
         }
         .padding(12)
-        .background(color.opacity(0.09), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(color.opacity(0.16)))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.07)))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(color.opacity(0.24)))
     }
 }
 
 struct LociPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.lociGlassPanel) private var isInsideGlassPanel
 
+    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let label = configuration.label
             .font(.headline)
             // Disabled: light text on a subtle fill stays readable (white on white 24% was ~2:1).
             .foregroundStyle(isEnabled ? LociTheme.onAccent : LociTheme.tertiaryText)
             .frame(maxWidth: .infinity, minHeight: 50)
             .padding(.horizontal, 16)
-            .background(
-                isEnabled ? LociTheme.accent.opacity(configuration.isPressed ? 0.76 : 1) : Color.white.opacity(0.14),
-                in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous)
-            )
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
+        let shape = RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous)
+        if #available(iOS 26.0, *), isEnabled, !reduceTransparency, !isInsideGlassPanel {
+            label.glassEffect(.regular.tint(LociTheme.accent).interactive(), in: shape)
+        } else {
+            label
+                .background(isEnabled ? LociTheme.accent.opacity(configuration.isPressed ? 0.76 : 1) : LociTheme.elevated, in: shape)
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
+        }
     }
 }
 
 struct LociSecondaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.lociGlassPanel) private var isInsideGlassPanel
 
+    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let label = configuration.label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(isEnabled ? Color.white : LociTheme.tertiaryText)
             .frame(maxWidth: .infinity, minHeight: 46)
             .padding(.horizontal, 14)
-            .background(LociTheme.field.opacity(configuration.isPressed ? 0.65 : 1), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(LociTheme.hairline))
+        let shape = RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous)
+        if #available(iOS 26.0, *), isEnabled, !reduceTransparency, !isInsideGlassPanel {
+            label.glassEffect(.regular.interactive(), in: shape)
+        } else {
+            label
+                .background(reduceTransparency ? LociTheme.elevated : LociTheme.field.opacity(configuration.isPressed ? 0.65 : 1), in: shape)
+                .overlay(shape.stroke(LociTheme.hairline))
+        }
     }
 }
 
@@ -194,18 +298,50 @@ struct LociLoadingView: View {
     }
 }
 
+/// Content-sized pagination, with an explicit style so native defaults cannot grow an inset.
+struct LociPaginationFooter: View {
+    let isLoading: Bool
+    var isEnabled = true
+    var accessibilityID = "pagination-load-more"
+    let action: () -> Void
+
+    var body: some View {
+        HStack {
+            Spacer(minLength: 0)
+            Button(action: action) {
+                HStack(spacing: 8) {
+                    if isLoading { ProgressView().tint(LociTheme.accent) }
+                    Text("Daha fazla göster")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isEnabled && !isLoading ? Color.white : LociTheme.tertiaryText)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 11)
+                .background(Color.white.opacity(0.08), in: Capsule())
+                .overlay(Capsule().stroke(LociTheme.glassBorder))
+            }
+            .buttonStyle(.plain)
+            .disabled(isLoading || !isEnabled)
+            .accessibilityIdentifier(accessibilityID)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 struct LociEmptyState: View {
     let title: String
     let message: String
     let symbol: String
     var actionTitle: String?
     var action: (() -> Void)?
+    var symbolColor: Color = LociTheme.accent
 
     var body: some View {
         VStack(spacing: 16) {
             ZStack {
-                Circle().fill(LociTheme.accent.opacity(0.12)).frame(width: 74, height: 74)
-                Image(systemName: symbol).font(.system(size: 29, weight: .semibold)).foregroundStyle(LociTheme.accent)
+                Circle().fill(symbolColor.opacity(0.12)).frame(width: 74, height: 74)
+                Image(systemName: symbol).font(.system(size: 29, weight: .semibold)).foregroundStyle(symbolColor)
             }
             VStack(spacing: 7) {
                 Text(title.localizedUI).font(.title3.bold())
@@ -228,7 +364,8 @@ extension LociEmptyState {
     static func failure(title: String = String(localized: "Şu anda yüklenemiyor"), message: String, retry: (() -> Void)? = nil) -> LociEmptyState {
         LociEmptyState(
             title: title, message: message, symbol: "exclamationmark.triangle",
-            actionTitle: retry == nil ? nil : "Tekrar dene", action: retry
+            actionTitle: retry == nil ? nil : "Tekrar dene", action: retry,
+            symbolColor: LociTheme.warning
         )
     }
 }
@@ -321,6 +458,10 @@ struct LociAvatar: View {
 }
 
 extension View {
+    func lociGlassRowBackground(cornerRadius: CGFloat = 16) -> some View {
+        listRowBackground(LociGlassRowSurface(cornerRadius: cornerRadius))
+    }
+
     func visibleContentRefresh(gate: ScreenRefreshGate, scope: String, revision: UUID,
                                enabled: Bool = true, action: @escaping @MainActor (Bool) async -> Void) -> some View {
         modifier(VisibleContentRefresh(gate: gate, scope: scope, revision: revision, enabled: enabled, action: action))
@@ -330,6 +471,7 @@ extension View {
         self
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .lociGlassRowBackground()
             .background(LociScreenBackground())
     }
 }

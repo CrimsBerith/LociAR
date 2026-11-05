@@ -51,7 +51,6 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
             errorMessage = String(localized: "Konum izni gerekli. Ayarlar'dan konum erişimini açın.")
             return
         }
-        authorizationStatus = manager.authorizationStatus
         if authorizationStatus == .notDetermined {
             manager.requestWhenInUseAuthorization()
             return
@@ -69,7 +68,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     /// ask once per AR session for temporary full accuracy (iOS shows the purpose string).
     func requestPreciseAccuracyIfNeeded() {
         guard !didRequestPreciseAccuracy else { return }
-        let status = manager.authorizationStatus
+        let status = authorizationStatus
         // Not decided yet: ask once the user answers the location prompt (authorization callback).
         wantsPreciseAccuracy = status == .notDetermined
         guard status == .authorizedWhenInUse || status == .authorizedAlways,

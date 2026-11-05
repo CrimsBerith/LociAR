@@ -124,7 +124,7 @@ struct AuthView: View {
     }
 
     private var authCard: some View {
-        LociCard {
+        LociCard(appearance: .floating) {
             VStack(spacing: 14) {
                 modeControl
 
@@ -258,7 +258,8 @@ struct AuthView: View {
             modeButton("Kayıt ol", value: .signUp, identifier: "auth-mode-signup")
         }
         .padding(4)
-        .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .lociGlassSurface(cornerRadius: 13)
+        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(LociTheme.hairline))
     }
 
     private func modeButton(_ title: String, value: Mode, identifier: String) -> some View {
@@ -603,7 +604,8 @@ private struct ForgotPasswordView: View {
 private extension View {
     func authFieldStyle() -> some View {
         padding(14)
-            .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .lociGlassSurface(cornerRadius: 14)
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(LociTheme.hairline))
     }
 }
 

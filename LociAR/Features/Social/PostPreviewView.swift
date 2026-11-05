@@ -201,7 +201,7 @@ struct PostPreviewView: View {
                             .lineLimit(1...4)
                             .padding(.horizontal, 13)
                             .padding(.vertical, 10)
-                            .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 14))
+                            .lociGlassSurface(cornerRadius: 14)
                         Button {
                             if commentRevealsAuthor { confirmOwnAnonymousComment = true } else { Task { await addComment() } }
                         } label: {
@@ -211,7 +211,7 @@ struct PostPreviewView: View {
                             } else {
                                 Image(systemName: "paperplane.fill")
                                     .font(.headline)
-                                    .foregroundStyle(commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.secondary : LociTheme.accent)
+                                    .foregroundStyle(commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? LociTheme.secondaryText : LociTheme.accent)
                                     .frame(width: 44, height: 44)
                             }
                         }
@@ -266,7 +266,7 @@ struct PostPreviewView: View {
                 openARButton
                     .buttonStyle(LociPrimaryButtonStyle())
                     .padding(.horizontal, 16).padding(.vertical, 9)
-                    .background(.ultraThinMaterial)
+                    .lociGlassSurface(cornerRadius: 0)
             }
         }
         .fullScreenCover(isPresented: $showAR) { ARPostViewerView(post: post) }

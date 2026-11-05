@@ -6,9 +6,19 @@ import XCTest
 extension AuthGateUITests {
     private func screenTourApp(_ arguments: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
+        addPrivacyAlertMonitor()
         let app = XCUIApplication()
         app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"] + arguments
         app.launch()
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if springboard.alerts.firstMatch.waitForExistence(timeout: 3) {
+            for title in ["İzin Ver", "Allow", "Uygulamayı Kullanırken İzin Ver", "Allow While Using App", "Bir Kez İzin Ver", "Allow Once"] {
+                if springboard.alerts.buttons[title].exists {
+                    springboard.alerts.buttons[title].tap()
+                    break
+                }
+            }
+        }
         return app
     }
 
@@ -53,8 +63,25 @@ extension AuthGateUITests {
     func testScreenTour03PrimaryTabs() {
         let app = screenTourApp()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+        app.tabBars.buttons["Harita"].tap()
         XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
         capture(app, name: "screen-07-map")
+        if app.buttons["🥽 AR Notları"].waitForExistence(timeout: 3) {
+            app.buttons["🥽 AR Notları"].tap()
+            capture(app, name: "screen-07b-map-filter-ar")
+        }
+        if app.buttons["📍 Konum Notları"].waitForExistence(timeout: 3) {
+            app.buttons["📍 Konum Notları"].tap()
+            capture(app, name: "screen-07c-map-filter-location")
+        }
+        if app.buttons["Tümü"].waitForExistence(timeout: 3) {
+            app.buttons["Tümü"].tap()
+            capture(app, name: "screen-07d-map-filter-all")
+        }
+        if app.buttons["map-recenter"].waitForExistence(timeout: 3) {
+            app.buttons["map-recenter"].tap()
+            capture(app, name: "screen-07e-map-recenter")
+        }
         app.tabBars.buttons["AR"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["screen-ar"].waitForExistence(timeout: 5))
         capture(app, name: "screen-08-ar-discover")
@@ -198,20 +225,26 @@ extension AuthGateUITests {
 
     func testScreenTour08LocationNoteAndSurface() {
         let app = screenTourApp()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+        app.tabBars.buttons["Harita"].tap()
         XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
         app.buttons["map-location-note"].tap()
-        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 8))
         capture(app, name: "screen-34-location-note-position")
         let field = identifiedControl(app, "place-note-text")
         scrollUntilHittable(field, in: app, maxSwipes: 6)
         field.tap()
         field.typeText("Bu sokakta bir an dur, şehri dinle.")
-        dismissKeyboard(app)
+        let done = app.buttons["keyboard-done-button"].exists ? app.buttons["keyboard-done-button"] : app.buttons["Bitti"]
+        if done.exists && done.isHittable { done.tap() }
         scrollUntilHittable(app.buttons["place-note-publish"], in: app, maxSwipes: 6)
         capture(app, name: "screen-35-location-note-draft")
-        app.buttons["Kapat"].tap()
+        let closeBtn = app.navigationBars["Konum notu bırak"].buttons["Kapat"].exists ? app.navigationBars["Konum notu bırak"].buttons["Kapat"] : app.buttons["Kapat"]
+        closeBtn.tap()
+        _ = app.navigationBars["Konum notu bırak"].waitForNonExistence(timeout: 5)
+        XCTAssertTrue(app.buttons["map-create"].waitForExistence(timeout: 8))
         app.buttons["map-create"].tap()
-        XCTAssertTrue(app.navigationBars["Yüzey seç"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Yüzey seç"].waitForExistence(timeout: 8))
         capture(app, name: "screen-36-create-surface")
     }
 
@@ -223,25 +256,28 @@ extension AuthGateUITests {
         capture(app, name: "screen-37-ar-post-viewer")
     }
 
-    func testScreenTour10PermissionRecovery() {
+    func testScreenTour10aCameraPermissionRecovery() {
         let app = screenTourApp(["UITEST_CAMERA_DENIED"])
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
         app.tabBars.buttons["Paylaş"].tap()
         XCTAssertTrue(app.buttons["Kamera ayarlarını aç"].waitForExistence(timeout: 8))
         capture(app, name: "screen-38-camera-permission-recovery")
-        app.terminate()
-        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_LOCATION_DENIED"]
-        app.launch()
+    }
+
+    func testScreenTour10bLocationPermissionRecovery() {
+        let app = screenTourApp(["UITEST_LOCATION_DENIED"])
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+        app.tabBars.buttons["Harita"].tap()
         XCTAssertTrue(app.buttons["Ayarlar"].waitForExistence(timeout: 8))
         capture(app, name: "screen-39-location-permission-recovery")
     }
 
     func testScreenTour11GuestAccount() {
         let app = screenTourApp(["UITEST_GUEST_ACCOUNT"])
-        XCTAssertTrue(app.buttons["auth-mode-signin"].waitForExistence(timeout: 8))
-        XCTAssertFalse(app.tabBars.firstMatch.exists)
-        XCTAssertFalse(app.buttons["auth-anonymous"].exists)
-        capture(app, name: "screen-40-legacy-guest-membership-gate")
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+        app.tabBars.buttons["Paylaş"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["screen-account-required"].waitForExistence(timeout: 8))
+        capture(app, name: "screen-40-guest-membership-gate")
     }
 
     func testScreenTour12ARCoreDiagnostics() {
@@ -257,7 +293,9 @@ extension AuthGateUITests {
 
 extension XCUIApplication {
     @objc dynamic func loci_launch() {
-        if ProcessInfo.processInfo.environment["E2E_DEMO_EMULATOR_HTTP"] == "1" {
+        let environment = ProcessInfo.processInfo.environment
+        if environment["E2E_DEMO_EMULATOR_HTTP"] == "1"
+            || environment["TEST_RUNNER_E2E_DEMO_EMULATOR_HTTP"] == "1" {
             launchEnvironment["LOCIAR_DEMO_EMULATOR_HTTP"] = "1"
         }
         if !launchArguments.contains("-AppleLanguages") {

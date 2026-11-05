@@ -1,0 +1,14 @@
+{
+  "runs": [
+    {
+      "date": "2026-11-02T05:45:31.930383+00:00",
+      "files": 866,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "usage_available": false
+    }
+  ],
+  "total_input_tokens": 0,
+  "total_output_tokens": 0,
+  "note": "Usage unavailable; zero extraction counters are placeholders."
+}

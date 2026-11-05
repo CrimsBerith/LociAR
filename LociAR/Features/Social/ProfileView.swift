@@ -16,8 +16,8 @@ struct ProfileView: View {
     @State private var isSigningOut = false
 
     var body: some View {
-        List {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 16) {
                     LociAvatar(handle: user.isAnonymousAccount ? "guest" : user.handle,
                                avatarURL: user.isAnonymousAccount ? nil : user.avatarURL, size: 66)
@@ -44,17 +44,19 @@ struct ProfileView: View {
                     .accessibilityLabel("Profili düzenle")
                     .accessibilityIdentifier("profile-edit-button")
                     }
-                }.padding(.vertical, 8)
-            }
+                }
+                .padding(18)
+                .lociGlassSurface(cornerRadius: 24)
             if user.isAnonymousAccount {
-                Section {
+                profileGroup {
                     Button("Giriş yap") { showAccountCreation = true }
                         .accessibilityIdentifier("profile-create-account")
                     Text("Devam etmek için giriş yap.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline)
+                        .foregroundStyle(LociTheme.secondaryText)
                 }
             }
-            Section {
+            profileGroup(title: "İçerik") {
                 NavigationLink { MyPostsView() } label: { ProfileLinkRow(title: String(localized: "Notlarım"), symbol: "rectangle.stack.fill", color: LociTheme.accent) }
                 NavigationLink { ActivityView() } label: {
                     ProfileLinkRow(title: "Aktivite", symbol: "bell.fill", color: LociTheme.accent)
@@ -69,19 +71,15 @@ struct ProfileView: View {
                         ProfileLinkRow(title: String(localized: "Kazançlarım"), symbol: "heart.circle", color: LociTheme.accent)
                     }.accessibilityIdentifier("profile-support-earnings")
                 }
-            } header: {
-                profileSectionText("İçerik")
             }
-            Section {
-                NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: .gray) }
+            profileGroup(title: String(localized: "Tercihler")) {
+                NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: LociTheme.tertiaryText) }
                     .accessibilityIdentifier("profile-settings")
-                NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: .gray) }
-                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket", color: .gray) }
+                NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: LociTheme.tertiaryText) }
+                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket", color: LociTheme.tertiaryText) }
                     .accessibilityIdentifier("profile-invite")
-            } header: {
-                profileSectionText(String(localized: "Tercihler"))
             }
-            Section {
+            profileGroup(title: "Yasal") {
                 if let url = container.configuration.privacyPolicyURL {
                     Link("Gizlilik politikası", destination: url)
                         .accessibilityIdentifier("profile-privacy")
@@ -94,18 +92,16 @@ struct ProfileView: View {
                     Link("Destek", destination: url)
                         .accessibilityIdentifier("profile-support")
                 }
-            } header: {
-                profileSectionText("Yasal")
             }
 #if DEBUG
-            Section {
+            profileGroup {
                 NavigationLink { ARCoreCoverageDebugView() } label: {
                     ProfileLinkRow(title: "ARCore kapsam kontrolü (debug)", symbol: "globe.europe.africa", color: .blue)
                 }
                 .accessibilityIdentifier("profile-debug-arcore")
             }
 #endif
-            Section {
+            profileGroup {
                 Button {
                     guard !isSigningOut else { return }
                     isSigningOut = true
@@ -120,12 +116,11 @@ struct ProfileView: View {
                 }
                     .disabled(isDeletingAccount || isSigningOut || session.isLocalPreview || !container.isBackendConfigured)
                     .accessibilityIdentifier("profile-delete-account")
-            } footer: {
-                profileSectionText("Hesap silme işlemi geri alınamaz.")
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 24)
+        }
         .background(LociScreenBackground())
         .navigationTitle("Profil")
         .alert("Hesabı kalıcı olarak sil?", isPresented: $confirmDeletion) {
@@ -154,6 +149,25 @@ struct ProfileView: View {
             .foregroundStyle(.white)
             .textCase(nil)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func profileGroup<Content: View>(
+        title: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let title {
+                profileSectionText(title)
+                    .padding(.leading, 8)
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .lociGlassSurface(cornerRadius: 22)
+        }
     }
 
     private func deleteAccount(password: String?) async throws {
@@ -193,7 +207,7 @@ private struct AccountDeletionView: View {
                             .disabled(isWorking || deletionAccepted)
                             .accessibilityIdentifier("account-delete-password")
                     } else if method == nil, message == nil { ProgressView() }
-                    if let message { Text(message).foregroundStyle(deletionAccepted ? Color.secondary : Color.red) }
+                    if let message { Text(message).foregroundStyle(deletionAccepted ? LociTheme.secondaryText : LociTheme.danger) }
                 }
                 Section {
                     if method == .apple {
@@ -216,6 +230,9 @@ private struct AccountDeletionView: View {
                     Text("Notların ve sosyal verilerin sunucudan silinir. Bu işlem geri alınamaz.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .lociGlassRowBackground()
+            .background(LociScreenBackground())
             .navigationTitle("Hesabı sil")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

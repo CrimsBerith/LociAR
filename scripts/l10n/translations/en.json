@@ -148,7 +148,6 @@
  "Hesap engellenemedi. Tekrar dene.": "Could not block the account. Try again.",
  "Hesap oluştur": "Create account",
  "Hesap oluşturulamadı. E-posta kullanımda olabilir veya şifre yeterince güçlü değil.": "The account could not be created. The email may be in use or the password is not strong enough.",
- "Hesap silme işlemi geri alınamaz.": "Account deletion cannot be undone.",
  "Hesap şu anda silinemiyor. Biraz sonra tekrar dene.": "Your account cannot be deleted right now. Try again shortly.",
  "Kamera ayarlarını aç": "Open camera settings",
  "Kamera açık": "Camera active",
@@ -712,5 +711,18 @@
  "LociAR diagnostic category %@": "LociAR diagnostic category %@",
  "LociAR.%@": "LociAR.%@",
  "Bu notun paylaşım kimliği değiştirilemez. Yeni bir not oluştur.": "This note’s publishing identity cannot change. Create a new note.",
- "GIF animasyonu": "GIF animation"
+ "GIF animasyonu": "GIF animation",
+ "3D AR Notu": "3D AR note",
+ "AR Notları": "AR notes",
+ "ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.": "Camera and location data are processed by Google during ARCore Geospatial and Cloud Anchors location sessions.",
+ "Davet kodları yüklenemedi": "Couldn’t load invite codes",
+ "Davet kodları yükleniyor…": "Loading invite codes…",
+ "Filtre": "Filter",
+ "Gelişmiş AR Servisleri": "Advanced AR services",
+ "Google AR ve Sensör Verisi": "Google AR and sensor data",
+ "Konum": "Location",
+ "Konum Notları": "Location notes",
+ "Konum Notu": "Location note",
+ "Oturumun doğrulanamadı. Tekrar dene.": "Your session couldn’t be verified. Try again.",
+ "Tümü": "All"
 }

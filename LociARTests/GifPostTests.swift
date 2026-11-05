@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import LociAR
 
 final class GifPostTests: XCTestCase {
@@ -59,5 +60,19 @@ final class GifPostTests: XCTestCase {
         let textOnly = try XCTUnwrap(SpatialContentRenderer.drawMessageBubble(text: "Merhaba", handle: nil, gif: nil, gifStill: nil))
         XCTAssertNil(textOnly.gifRect)
         XCTAssertNil(SpatialContentRenderer.drawMessageBubble(text: "  ", handle: "loci", gif: nil, gifStill: nil))
+
+        let previewSize = CGSize(width: textOnly.image.width, height: textOnly.image.height)
+        let preview = UIGraphicsImageRenderer(size: previewSize).image { renderer in
+            let midpoint = previewSize.width / 2
+            renderer.cgContext.setFillColor(UIColor(red: 0.11, green: 0.30, blue: 0.48, alpha: 1).cgColor)
+            renderer.cgContext.fill(CGRect(x: 0, y: 0, width: midpoint, height: previewSize.height))
+            renderer.cgContext.setFillColor(UIColor(red: 0.30, green: 0.16, blue: 0.40, alpha: 1).cgColor)
+            renderer.cgContext.fill(CGRect(x: midpoint, y: 0, width: previewSize.width - midpoint, height: previewSize.height))
+            UIImage(cgImage: textOnly.image).draw(in: CGRect(origin: .zero, size: previewSize))
+        }
+        let attachment = XCTAttachment(image: preview)
+        attachment.name = "AR-glass-note-texture-preview"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 }

@@ -77,7 +77,7 @@ struct ActivityView: View {
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
                 Button("Daha fazla göster") { Task { await loadMore() } }
-                    .disabled(isLoadingMore || isLoading).padding().background(.ultraThinMaterial)
+                    .disabled(isLoadingMore || isLoading).padding().lociGlassSurface(cornerRadius: 0)
             }
         }
         .accessibilityIdentifier("screen-activity")
