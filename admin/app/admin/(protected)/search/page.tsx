@@ -1,15 +1,19 @@
+import QueryResult from '../QueryResult';
+import { scalarText } from '../../../../lib/values';
 import { recordPersonalDataRead } from '../../../../lib/ops';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb } from '../../../../lib/firebase-admin';
 import { InvalidCursorError, pageCursors, readCaptionPage, readDocumentPage, textParameter, type DocumentPage, type SearchParameters } from '../../../../lib/pagination';
 import PageNavigation from '../PageNavigation';
+import { getI18n } from '../../../../lib/i18n-server';
 
 export const dynamic = 'force-dynamic';
 
 type Row = Record<string, unknown> & { id: string };
 
-export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function SearchPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const admin = await requireAdmin({ permission: 'dashboard.read' });
+  const { t } = await getI18n();
   const params = await searchParams;
   const term = textParameter(params.q);
   const needle = term.toLowerCase();
@@ -52,16 +56,16 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   return (
     <section className="page">
-      <div className="pageHeading"><div><p className="eyebrow">Inventory lookup</p><h1>Search</h1></div><p className="muted">Users (handle prefix), posts (caption or exact ID) and AR anchor diagnostics.</p></div>
-      <p className="queryEcho">{term ? `Results for “${term}”` : 'Enter a search term in the top bar.'}</p>
-      {invalid ? <p className="emptyState">Invalid page link. <a href={`/admin/search?${new URLSearchParams({ q: term })}`}>Restart this search.</a></p> : null}
-      {term && !failed ? <p className="readOnlyNotice">Caption and anchor matches in this batch of {postPage.documents.length} posts. {postPage.next ? 'Continue searching older records to scan the remaining posts, even when this batch has no matches.' : 'There are no older posts after this batch.'} Exact post IDs are looked up directly.</p> : null}
+      <div className="pageHeading"><div><p className="eyebrow">{t('Inventory lookup')}</p><h1>{t('Search')}</h1></div><p className="muted">{t('Users (handle prefix), posts (caption or exact ID) and AR anchor diagnostics.')}</p></div>
+      <p className="queryEcho">{term ? t('Results for “{term}”', { term }) : t('Enter a search term in the top bar.')}</p>
+      {invalid ? <p className="emptyState">{t('Invalid page link.')} <a href={`/admin/search?${new URLSearchParams({ q: term })}`}>{t('Restart this search.')}</a></p> : null}
+      {term && !failed ? <p className="readOnlyNotice">{t('Caption and anchor matches in this batch of {count} posts.', { count: postPage.documents.length })} {postPage.next ? t('Continue searching older records to scan the remaining posts, even when this batch has no matches.') : t('There are no older posts after this batch.')} {t('Exact post IDs are looked up directly.')}</p> : null}
       <section className="dashboardGrid">
         <div className="stack">
-          <section className="panel"><div className="panelHeader"><h2>Users</h2></div>{failed ? <p className="emptyState">User search failed.</p> : users.length === 0 ? <p className="emptyState">No users in this page.</p> : users.map(user => <div className="dataRow" key={user.id}><span><b>@{String(user.handle)}</b><small>{user.id}</small></span><span>{user.suspended ? 'Suspended' : 'Active'}</span></div>)}{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="users" next={userPage.next} previous={userPage.previous} /> : null}</section>
-          <section className="panel"><div className="panelHeader"><h2>Posts</h2></div>{failed ? <p className="emptyState">Post search failed.</p> : posts.length === 0 ? <p className="emptyState">No matching posts in this batch.</p> : posts.map(post => <div className="dataRow" key={post.id}><span><b>{String(post.caption || 'Untitled post')}</b><small>{post.id}</small></span><span>{post.deleted_at ? 'trash' : String(post.status)}</span></div>)}{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="posts" next={postPage.next} previous={postPage.previous} scan /> : null}</section>
+          <section className="panel"><div className="panelHeader"><h2>{t('Users')}</h2></div><QueryResult failed={failed} isEmpty={users.length === 0} failure={<p className="emptyState">{t('User search failed.')}</p>} empty={<p className="emptyState">{t('No users in this page.')}</p>}>{() => users.map(user => <div className="dataRow" key={user.id}><span><b>@{String(user.handle)}</b><small>{user.id}</small></span><span>{user.suspended ? t('Suspended') : t('Active')}</span></div>)}</QueryResult>{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="users" next={userPage.next} previous={userPage.previous} /> : null}</section>
+          <section className="panel"><div className="panelHeader"><h2>{t('Posts')}</h2></div><QueryResult failed={failed} isEmpty={posts.length === 0} failure={<p className="emptyState">{t('Post search failed.')}</p>} empty={<p className="emptyState">{t('No matching posts in this batch.')}</p>}>{() => posts.map(post => <div className="dataRow" key={post.id}><span><b>{scalarText(post.caption || t('Untitled post'))}</b><small>{post.id}</small></span><span>{post.deleted_at ? t('trash') : t(String(post.status).replaceAll('_', ' '))}</span></div>)}</QueryResult>{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="posts" next={postPage.next} previous={postPage.previous} scan /> : null}</section>
         </div>
-        <section className="panel"><div className="panelHeader"><h2>AR anchors</h2></div>{failed ? <p className="emptyState">Anchor search failed.</p> : anchors.length === 0 ? <p className="emptyState">No matching anchors in this batch.</p> : anchors.map(anchor => <div className="auditList" key={anchor.id}><article><span className="auditIcon">⌖</span><div><b>{String(anchor.caption || 'Untitled post')}</b><small>{String(anchor.native_provider)} · {String(anchor.placement_state)} · quality {anchor.placement_quality == null ? 'unmeasured' : Number(anchor.placement_quality).toFixed(2)}</small></div></article></div>)}</section>
+        <section className="panel"><div className="panelHeader"><h2>{t('AR anchors')}</h2></div><QueryResult failed={failed} isEmpty={anchors.length === 0} failure={<p className="emptyState">{t('Anchor search failed.')}</p>} empty={<p className="emptyState">{t('No matching anchors in this batch.')}</p>}>{() => anchors.map(anchor => <div className="auditList" key={anchor.id}><article><span className="auditIcon">⌖</span><div><b>{scalarText(anchor.caption || t('Untitled post'))}</b><small>{String(anchor.native_provider)} · {String(anchor.placement_state)} · {t('quality')} {anchor.placement_quality == null ? t('unmeasured') : Number(anchor.placement_quality).toFixed(2)}</small></div></article></div>)}</QueryResult></section>
       </section>
     </section>
   );
