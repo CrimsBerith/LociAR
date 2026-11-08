@@ -58,6 +58,9 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
             errorMessage = String(localized: "Konum izni gerekli. Ayarlar'dan konum erişimini açın.")
             return
         }
+        // A new acquisition never inherits the previous stream's error, even while it waits for the
+        // first authorization callback; a denied status re-sets the message in that callback.
+        errorMessage = nil
         guard receivedInitialAuthorizationStatus else { return }
         if authorizationStatus == .notDetermined {
             manager.requestWhenInUseAuthorization()
