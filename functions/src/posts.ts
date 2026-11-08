@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import {
   analyticsEventDoc, bucket, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID,
-  requireCaller, Timestamp, assertServiceEnabled, postReviewRequired,
+  requireCaller, Timestamp, assertServiceEnabled,
 } from './core';
 import { encodeGeohash } from './geo';
 import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type CreatePostBody } from './placement';
@@ -88,10 +88,8 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
   const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
   // A GIF layer keeps only the GIPHY id; its size comes from GIPHY, never from the client.
   await resolveGifLayers(body.editData as { layers?: unknown[] });
-  // Direct publishing (owner decision, 18 Oct 2026; location notes since 12 Oct): a post that passed the
-  // text filter, link ban and placement checks above, and the protected-zone, 18+ and rate/density checks
-  // below, goes live at once; reports hide it. `system/flags.post_review_required` restores review.
-  const publishStatus = await postReviewRequired() ? 'pending_review' : 'active';
+  // Posts passing automated content, placement, protected-zone, age and rate/density checks go live at once.
+  const publishStatus = 'active';
   // Landmark layer (growth plan 2.5): computed here, never trusted from the client; null on failure.
   const place = await placeAt(lat, lng);
   const worldMapPath = worldMapPathFor(body);
@@ -181,10 +179,10 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
     updateDensityLock(tx, densityLock, Date.now());
     if (anchorRef) tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp(), expires_at: FieldValue.delete() });
     tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', is_anonymous: body.anonymous !== false, world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
-    tx.create(postRef, { ...document, creator_handle: String(profile.handle ?? '') });
+    tx.create(postRef, { ...document, creator_handle: String(profile.handle ?? ''), creator_avatar_url: typeof profile.avatar_url === 'string' ? profile.avatar_url : null });
     tx.create(db.collection('analytics_events').doc(randomUUID()), analyticsEventDoc({
       userId: caller.luid, postId,
-      name: publishStatus === 'active' ? 'post_published_active' : 'post_pending_review_created',
+      name: 'post_published_active',
       properties: {
         layerCount: (body.editData as { layers: unknown[] }).layers.length,
         placementState: placement.placementState,

@@ -29,44 +29,46 @@ struct PublicProfileView: View {
     var body: some View {
         List {
             Section {
-                VStack(spacing: 14) {
+                VStack(spacing: LociTheme.Spacing.m) {
                     LociAvatar(handle: profile?.handle ?? user.handle, avatarURL: isBlocked ? nil : profile?.avatarURL, size: 78)
-                    VStack(spacing: 5) {
+                    VStack(spacing: LociTheme.Spacing.xs) {
                         Text(verbatim: "@\(profile?.handle ?? user.handle)").font(.title2.bold())
-                        if let bio = profile?.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center) }
+                        if let bio = profile?.bio, !bio.isEmpty { Text(bio).font(.subheadline).foregroundStyle(LociTheme.secondaryText).multilineTextAlignment(.center) }
                     }
-                    HStack(spacing: 22) {
+                    HStack(spacing: LociTheme.Spacing.xl2) {
                         profileMetric(value: profile?.publicPostCount ?? posts.count, label: String(localized: "Not"))
                         profileMetric(value: profile?.followerCount ?? 0, label: String(localized: "Takipçi"))
                     }
                     Button(following ? String(localized: "Takibi bırak") : String(localized: "Takip et")) { Task { await toggleFollow() } }
-                        .buttonStyle(.borderedProminent).tint(following ? .white.opacity(0.16) : LociTheme.accent)
-                        .foregroundStyle(following ? .white : .black).frame(maxWidth: .infinity)
+                        .buttonStyle(LociPrimaryButtonStyle())
                         .disabled(isFollowMutating || isBlockMutating || isBlocked)
                     if isBlocked {
                         Text("Bu kullanıcıyı engelledin. İçerikleri gizlendi; engeli Profil > Engellenenler'den kaldırabilirsin.")
-                            .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            .font(.footnote).foregroundStyle(LociTheme.secondaryText).multilineTextAlignment(.center)
                     } else {
                         Button("Kullanıcıyı engelle", role: .destructive) { confirmBlock = true }
                             .buttonStyle(.borderless)
-                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .frame(maxWidth: .infinity, minHeight: LociTheme.Control.minimumTapTarget)
                             .disabled(isFollowMutating || isBlockMutating)
                             .accessibilityIdentifier("profile-block-user")
                     }
                     Button("Kullanıcıyı bildir") { reportingUser = true }
                         .buttonStyle(.borderless)
                         .font(.footnote)
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .frame(maxWidth: .infinity, minHeight: LociTheme.Control.minimumTapTarget)
                         .accessibilityIdentifier("profile-report-user")
                     if let message, !posts.isEmpty {
-                        Text(message.localizedUI).font(.caption).foregroundStyle(.secondary)
+                        Text(message.localizedUI).font(.caption).foregroundStyle(LociTheme.secondaryText)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(LociTheme.Spacing.l)
+                .background(LociTheme.profileSurface, in: RoundedRectangle(cornerRadius: LociTheme.Radius.large, style: .continuous))
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
             }
             Section("Notlar") {
-                if isLoading { HStack { Spacer(); ProgressView().tint(LociTheme.accent); Spacer() }.padding() }
+                if isLoading { HStack { Spacer(); ProgressView().tint(LociTheme.accent); Spacer() }.padding(LociTheme.Spacing.l) }
                 else if posts.isEmpty { LociEmptyState(title: String(localized: "Henüz not yok"), message: message ?? String(localized: "Bu hesap henüz bir not paylaşmadı."), symbol: "rectangle.stack") }
                 ForEach(posts) { post in
                     NavigationLink(value: post) { PostCard(post: post) }.listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -74,7 +76,8 @@ struct PublicProfileView: View {
             }
         }
         .listStyle(.insetGrouped).scrollContentBackground(.hidden)
-        .lociGlassRowBackground()
+        .listRowSpacing(LociTheme.Spacing.m)
+        .listSectionSpacing(LociTheme.Spacing.xl)
         .background(LociScreenBackground())
         .navigationTitle("Profil")
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
@@ -88,23 +91,69 @@ struct PublicProfileView: View {
         .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.revision, enabled: !isBlocked) { opening in
             await load(force: false, automatic: !opening)
         }
+        .overlay { blockConfirmationOverlay }
+        .animation(.easeInOut(duration: 0.18), value: confirmBlock)
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
                 Button("Daha fazla göster") { Task { await loadMore() } }
-                    .disabled(isLoadingMore || isLoading).padding().lociGlassSurface(cornerRadius: 0)
+                    .disabled(isLoadingMore || isLoading)
+                    .buttonStyle(LociSecondaryButtonStyle())
+                    .padding(.horizontal, LociTheme.Spacing.l)
+                    .padding(.vertical, LociTheme.Spacing.m)
+                    .background(LociTheme.background.opacity(0.98))
             }
-        }
-        .confirmationDialog("Kullanıcı engellensin mi?", isPresented: $confirmBlock, titleVisibility: .visible) {
-            Button("Engelle", role: .destructive) { Task { await block() } }
-            Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
-        } message: {
-            Text("Bu hesabın adıyla paylaştığı notları ve yorumları görmezsin; seni takip edemez. Anonim notlar bu engelden etkilenmez.")
         }
         .confirmationDialog("Neden bildiriyorsun?", isPresented: $reportingUser, titleVisibility: .visible) {
             ForEach(ReportReason.allCases) { reason in
                 Button(NSLocalizedString(reason.rawValue, comment: "Report reason")) { Task { await reportUser(reason) } }
             }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
+        }
+    }
+
+    @ViewBuilder
+    private var blockConfirmationOverlay: some View {
+        if confirmBlock {
+            ZStack {
+                LociTheme.scrim.opacity(0.76)
+                    .ignoresSafeArea()
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: LociTheme.Spacing.l) {
+                    Text("Kullanıcı engellensin mi?")
+                        .font(.title3.bold())
+                        .foregroundStyle(LociTheme.textPrimary)
+                    Text("Bu hesabın adıyla paylaştığı notları ve yorumları görmezsin; seni takip edemez. Anonim notlar bu engelden etkilenmez.")
+                        .font(.body)
+                        .foregroundStyle(LociTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: LociTheme.Spacing.s) {
+                        Button("Vazgeç") { confirmBlock = false }
+                            .buttonStyle(LociSecondaryButtonStyle())
+                        Button(role: .destructive) {
+                            confirmBlock = false
+                            Task { await block() }
+                        } label: {
+                            Text("Engelle")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(LociTheme.onDanger)
+                                .frame(maxWidth: .infinity, minHeight: LociTheme.Control.secondaryButtonHeight)
+                                .background(LociTheme.danger, in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous))
+                        }
+                    }
+                }
+                .padding(LociTheme.Spacing.xl)
+                .background(LociTheme.profileSurface, in: RoundedRectangle(cornerRadius: LociTheme.Radius.extraLarge, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: LociTheme.Radius.extraLarge, style: .continuous)
+                        .stroke(LociTheme.glassBorder)
+                }
+                .padding(.horizontal, LociTheme.Spacing.xl)
+                .accessibilityElement(children: .contain)
+                .accessibilityAddTraits(.isModal)
+                .accessibilityIdentifier("profile-block-confirmation")
+            }
+            .transition(.opacity)
+            .zIndex(1)
         }
     }
 
@@ -230,7 +279,7 @@ struct PublicProfileView: View {
     }
 
     private func profileMetric(value: Int, label: String) -> some View {
-        VStack(spacing: 2) { Text(value, format: .number).font(.headline); Text(label.localizedUI).font(.caption).foregroundStyle(.secondary) }
+        VStack(spacing: LociTheme.Spacing.xxs) { Text(value, format: .number).font(.headline); Text(label.localizedUI).font(.caption).foregroundStyle(LociTheme.secondaryText) }
     }
 }
 

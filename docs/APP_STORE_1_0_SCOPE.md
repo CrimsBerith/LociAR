@@ -24,7 +24,7 @@ Güncel native iOS / Firebase yayın planı: [RELEASE_READINESS.md](release/RELE
 - **AR primary:** Markerless **Visual Surface** (Vision + reference-image match). Fully digital; no QR/AprilTag.
 - **AR secondary:** ARKit world-map same-device precision enhancer; fail → honest recalibration UX (not silent)
 - **Auth (production create):** **Policy A (OWNER CONFIRMED):** Apple + Google + email magic link. **SMS off for now.** Server identity = email or phone confirmation helpers (phone unused while SMS off).
-- **Moderation:** Valid creates → `pending_review` → admin approve → `active`. No client status escalation.
+- **Moderation:** Valid mobile creates pass automated checks and go directly to `active`; reports and admin removal remain available. No client status escalation.
 - **Safety:** Protected zones hard-block; 18+ reject; report/block; account deletion edge
 - **Backend:** Hosted Supabase + Storage + `create_post` + `delete_account`
 - **Admin:** Magic-link + TOTP MFA (`aal2`) + RBAC writes via `/api/admin/v1/*` + audit

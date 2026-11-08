@@ -14,10 +14,10 @@ LociAR: Notas AR en lugares
 Fija notas en lugares reales
 ```
 
-## Promotional Text (117/170)
+## Promotional Text (127/140)
 
 ```text
-Deja mensajes cortos y GIF en superficies reales y descubre en AR lo que otros dejaron cerca, justo donde lo dejaron.
+¡Fija mensajes y GIF en superficies reales! Descubre notas y consejos locales en AR justo donde se dejaron. Explora tu entorno.
 ```
 
 ## Description (1678/4000)

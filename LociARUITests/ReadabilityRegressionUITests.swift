@@ -84,4 +84,20 @@ final class ReadabilityRegressionUITests: XCTestCase {
                           "A single preview should leave the map visible rather than fill the 220pt cap")
         XCTAssertTrue(app.descendants(matching: .any)["map-open-Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."].firstMatch.isHittable)
     }
+
+    func testAppearancePickerOffersSystemLightAndDarkModes() {
+        let app = launch()
+        app.tabBars.buttons["Profil"].tap()
+        let settings = app.buttons["profile-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        settings.tap()
+
+        let picker = app.segmentedControls["settings-appearance"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        for option in ["Sistem", "Aydınlık", "Karanlık"] {
+            XCTAssertTrue(picker.buttons[option].exists, "Missing appearance option: \(option)")
+            picker.buttons[option].tap()
+            XCTAssertEqual(picker.value as? String, option)
+        }
+    }
 }

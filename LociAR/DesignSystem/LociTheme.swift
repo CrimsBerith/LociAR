@@ -2,35 +2,192 @@ import SwiftUI
 import UIKit
 
 enum LociTheme {
-    static let background = Color(red: 11 / 255, green: 17 / 255, blue: 24 / 255)
-    static let surface = Color(red: 18 / 255, green: 28 / 255, blue: 40 / 255)
-    static let elevated = Color(red: 26 / 255, green: 40 / 255, blue: 55 / 255)
+    private static func rgb(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat) -> UIColor {
+        UIColor(red: red / 255, green: green / 255, blue: blue / 255, alpha: 1)
+    }
+
+    struct Palette {
+        let background: UIColor
+        let surface: UIColor
+        let elevated: UIColor
+        let rowSurface: UIColor
+        let authSurface: UIColor
+        let authField: UIColor
+        let profileSurface: UIColor
+        let arSearchSurface: UIColor
+        let arSearchInk: UIColor
+        let accent: UIColor
+        let ambientBlue: UIColor
+        let warning: UIColor
+        let danger: UIColor
+        let textPrimary: UIColor
+        let secondaryText: UIColor
+        let tertiaryText: UIColor
+        let hairline: UIColor
+        let field: UIColor
+        let glassBorder: UIColor
+        let onAccent: UIColor
+        let onDanger: UIColor
+        let social: UIColor
+        let discoveryAccent: UIColor
+        let identityAccent: UIColor
+        let mapAR: UIColor
+        let mapLocation: UIColor
+        let mediaOverlayText: UIColor
+        let mediaOverlayScrim: UIColor
+        let scrim: UIColor
+
+        init(style: UIUserInterfaceStyle, highContrast: Bool = false) {
+            let dark = style == .dark
+            background = dark ? LociTheme.rgb(6, 9, 18) : LociTheme.rgb(246, 248, 251)
+            surface = dark ? LociTheme.rgb(17, 22, 31) : .white
+            elevated = dark ? LociTheme.rgb(24, 32, 45) : LociTheme.rgb(234, 240, 245)
+            rowSurface = dark ? LociTheme.rgb(21, 31, 43) : LociTheme.rgb(240, 244, 247)
+            authSurface = dark ? LociTheme.rgb(54, 85, 96) : LociTheme.rgb(226, 242, 241)
+            authField = dark ? LociTheme.rgb(67, 103, 114) : LociTheme.rgb(249, 252, 252)
+            profileSurface = dark ? LociTheme.rgb(13, 27, 38) : LociTheme.rgb(240, 245, 247)
+            arSearchSurface = LociTheme.rgb(184, 220, 245)
+            arSearchInk = LociTheme.rgb(13, 35, 57)
+            accent = dark ? LociTheme.rgb(56, 224, 184) : LociTheme.rgb(0, 125, 101)
+            ambientBlue = dark ? LociTheme.rgb(51, 122, 255) : LociTheme.rgb(57, 98, 194)
+            warning = dark ? LociTheme.rgb(255, 193, 107) : LociTheme.rgb(151, 91, 0)
+            danger = dark ? LociTheme.rgb(255, 124, 131) : LociTheme.rgb(180, 35, 45)
+            textPrimary = dark ? LociTheme.rgb(243, 246, 248) : LociTheme.rgb(24, 31, 38)
+            secondaryText = dark ? LociTheme.rgb(184, 195, 204) : LociTheme.rgb(77, 91, 102)
+            tertiaryText = dark ? LociTheme.rgb(147, 162, 176) : LociTheme.rgb(85, 99, 110)
+            hairline = dark
+                ? UIColor.white.withAlphaComponent(0.12)
+                : UIColor.black.withAlphaComponent(0.12)
+            field = dark ? UIColor.white.withAlphaComponent(0.07) : LociTheme.rgb(246, 249, 251)
+            glassBorder = highContrast
+                ? (dark ? LociTheme.rgb(179, 193, 204) : LociTheme.rgb(60, 74, 85))
+                : (dark ? LociTheme.rgb(104, 119, 132) : LociTheme.rgb(115, 129, 139))
+            onAccent = dark ? LociTheme.rgb(5, 37, 29) : .white
+            onDanger = dark ? LociTheme.rgb(53, 16, 20) : .white
+            social = dark ? LociTheme.rgb(255, 126, 171) : LociTheme.rgb(171, 37, 92)
+            discoveryAccent = dark ? LociTheme.rgb(112, 169, 255) : LociTheme.rgb(35, 85, 176)
+            identityAccent = dark ? LociTheme.rgb(196, 165, 255) : LociTheme.rgb(104, 64, 163)
+            mapAR = dark ? LociTheme.rgb(90, 150, 255) : LociTheme.rgb(36, 82, 176)
+            mapLocation = dark ? LociTheme.rgb(255, 161, 70) : LociTheme.rgb(163, 78, 0)
+            mediaOverlayText = .white
+            mediaOverlayScrim = .black
+            scrim = .black
+        }
+    }
+
+    static func palette(for style: UIUserInterfaceStyle, highContrast: Bool = false) -> Palette {
+        Palette(style: style, highContrast: highContrast)
+    }
+
+    private static func color(_ keyPath: KeyPath<Palette, UIColor>) -> Color {
+        Color(uiColor: UIColor { traits in
+            Self.palette(for: traits.userInterfaceStyle, highContrast: traits.accessibilityContrast == .high)[keyPath: keyPath]
+        })
+    }
+
+    static let background = color(\.background)
+    static let surface = color(\.surface)
+    static let elevated = color(\.elevated)
     static let surfaceStrong = elevated
-    static let accent = Color(red: 0.22, green: 0.88, blue: 0.72)
-    static let ambientBlue = Color(red: 0.20, green: 0.48, blue: 1.0)
-    static let warning = Color.orange
-    static let danger = Color.red
-    static let secondaryText = Color(red: 184 / 255, green: 195 / 255, blue: 204 / 255)
-    static let tertiaryText = Color(red: 147 / 255, green: 162 / 255, blue: 176 / 255)
-    static let hairline = Color.white.opacity(0.10)
-    static let field = Color.white.opacity(0.07)
+    static let rowSurface = color(\.rowSurface)
+    static let authSurface = color(\.authSurface)
+    static let authField = color(\.authField)
+    static let profileSurface = color(\.profileSurface)
+    static let arSearchSurface = color(\.arSearchSurface)
+    static let arSearchInk = color(\.arSearchInk)
+    static let accent = color(\.accent)
+    static let ambientBlue = color(\.ambientBlue)
+    static let warning = color(\.warning)
+    static let danger = color(\.danger)
+    static let textPrimary = color(\.textPrimary)
+    static let secondaryText = color(\.secondaryText)
+    static let tertiaryText = color(\.tertiaryText)
+    static let hairline = color(\.hairline)
+    static let field = color(\.field)
     static let glassTint = accent.opacity(0.07)
-    static let glassBorder = Color.white.opacity(0.15)
-    /// Text/icons drawn on the accent color (primary buttons).
-    static let onAccent = Color.black
+    static let glassBorder = color(\.glassBorder)
+    static let onAccent = color(\.onAccent)
+    static let onDanger = color(\.onDanger)
+    static let scrim = color(\.scrim)
+
+    static let textSecondary = secondaryText
+    static let textTertiary = tertiaryText
+    static let actionPrimary = accent
+    static let onActionPrimary = onAccent
+    static let border = hairline
+    static let divider = hairline
+    static let focus = accent
+    static let success = accent
+    static let error = danger
+    static let social = color(\.social)
+    static let discoveryAccent = color(\.discoveryAccent)
+    static let identityAccent = color(\.identityAccent)
+    static let mapAR = color(\.mapAR)
+    static let mapLocation = color(\.mapLocation)
+    static let mediaOverlayText = color(\.mediaOverlayText)
+    static let mediaOverlayScrim = color(\.mediaOverlayScrim)
+
+    enum Typography {
+        static let display = Font.system(.largeTitle, design: .rounded).weight(.bold)
+        static let title = Font.system(.title2, design: .default).weight(.bold)
+        static let headline = Font.system(.headline, design: .default)
+        static let body = Font.system(.body, design: .default)
+        static let bodyEmphasis = Font.system(.body, design: .default).weight(.semibold)
+        static let callout = Font.system(.callout, design: .default)
+        static let label = Font.system(.subheadline, design: .default).weight(.semibold)
+        static let caption = Font.system(.caption, design: .default)
+        static let numeric = Font.system(.subheadline, design: .rounded).weight(.bold)
+    }
 
     enum Radius {
         static let small: CGFloat = 12
         static let medium: CGFloat = 16
         static let large: CGFloat = 20
+        static let extraLarge: CGFloat = 24
+        static let pill: CGFloat = 999
+    }
+
+    enum Stroke {
+        static let hairline: CGFloat = 1
+        static let subtle: CGFloat = 1.5
+        static let focus: CGFloat = 2
+        static let emphasis: CGFloat = 3
     }
 
     enum Spacing {
+        static let xxs: CGFloat = 2
         static let xs: CGFloat = 4
         static let s: CGFloat = 8
         static let m: CGFloat = 12
         static let l: CGFloat = 16
+        static let xl2: CGFloat = 20
         static let xl: CGFloat = 24
+        static let xxl: CGFloat = 32
+        static let xxxl: CGFloat = 40
+    }
+
+    enum Control {
+        static let minimumTapTarget: CGFloat = 44
+        static let primaryButtonHeight: CGFloat = 50
+        static let secondaryButtonHeight: CGFloat = 46
+        static let formButtonHeight: CGFloat = 48
+        static let actionTileHeight: CGFloat = 58
+    }
+
+    enum Depth {
+        static let smallRadius: CGFloat = 4
+        static let mediumRadius: CGFloat = 12
+        static let cardRadius: CGFloat = 14
+        static let cardOffset: CGFloat = 6
+        static let floatingRadius: CGFloat = 18
+        static let floatingOffset: CGFloat = 8
+        static let shadowOpacity: CGFloat = 0.18
+    }
+
+    enum Layout {
+        static let readableContentWidth: CGFloat = 640
+        static let gridGutter: CGFloat = 16
+        static let characterCountClearance: CGFloat = 34
     }
 
     static let spatialGradient = LinearGradient(
@@ -44,17 +201,8 @@ enum LociTheme {
 enum LociSurfaceAppearance {
     case content
     case floating
-}
-
-private struct LociGlassPanelKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
-private extension EnvironmentValues {
-    var lociGlassPanel: Bool {
-        get { self[LociGlassPanelKey.self] }
-        set { self[LociGlassPanelKey.self] = newValue }
-    }
+    case auth
+    case arSearch
 }
 
 private struct LociGlassSurface: ViewModifier {
@@ -65,22 +213,19 @@ private struct LociGlassSurface: ViewModifier {
     func body(content: Content) -> some View {
         if reduceTransparency {
             content
-                .environment(\.lociGlassPanel, true)
                 .background(LociTheme.surfaceStrong, in: shape)
                 .overlay(shape.stroke(LociTheme.glassBorder))
         } else if #available(iOS 26.0, *) {
             content
-                .environment(\.lociGlassPanel, true)
                 .glassEffect(.regular.tint(LociTheme.glassTint), in: shape)
                 .overlay(shape.stroke(LociTheme.glassBorder))
-                .shadow(color: Color.black.opacity(0.18), radius: 18, y: 8)
+                .shadow(color: Color.black.opacity(LociTheme.Depth.shadowOpacity), radius: LociTheme.Depth.floatingRadius, y: LociTheme.Depth.floatingOffset)
         } else {
             content
-                .environment(\.lociGlassPanel, true)
                 .background(.regularMaterial, in: shape)
                 .overlay(shape.fill(LociTheme.glassTint))
                 .overlay(shape.stroke(LociTheme.glassBorder))
-                .shadow(color: Color.black.opacity(0.18), radius: 18, y: 8)
+                .shadow(color: Color.black.opacity(LociTheme.Depth.shadowOpacity), radius: LociTheme.Depth.floatingRadius, y: LociTheme.Depth.floatingOffset)
         }
     }
 }
@@ -95,10 +240,11 @@ private struct LociGlassRowSurface: View {
             shape.fill(LociTheme.surfaceStrong).overlay(shape.stroke(LociTheme.glassBorder))
         } else if #available(iOS 26.0, *) {
             shape.fill(.clear)
+                .background(shape.fill(LociTheme.rowSurface.opacity(0.94)))
                 .glassEffect(.regular.tint(LociTheme.glassTint), in: shape)
                 .overlay(shape.stroke(LociTheme.glassBorder))
         } else {
-            shape.fill(.ultraThinMaterial)
+            shape.fill(LociTheme.rowSurface.opacity(0.96))
                 .overlay(shape.fill(LociTheme.glassTint))
                 .overlay(shape.stroke(LociTheme.glassBorder))
         }
@@ -146,9 +292,25 @@ struct LociCard<Content: View>: View {
     var body: some View {
         switch appearance {
         case .content:
-            content.padding(16).lociGlassSurface(cornerRadius: 20)
+            content.padding(LociTheme.Spacing.l).lociGlassSurface(cornerRadius: LociTheme.Radius.large)
         case .floating:
-            content.padding(16).lociGlassSurface()
+            content.padding(LociTheme.Spacing.l).lociGlassSurface()
+        case .auth:
+            let shape = RoundedRectangle(cornerRadius: LociTheme.Radius.extraLarge, style: .continuous)
+            content
+                .padding(LociTheme.Spacing.l)
+                .background(LociTheme.authSurface, in: shape)
+                .overlay(shape.stroke(LociTheme.glassBorder))
+                .shadow(color: .black.opacity(LociTheme.Depth.shadowOpacity), radius: LociTheme.Depth.cardRadius, y: LociTheme.Depth.cardOffset)
+        case .arSearch:
+            let shape = RoundedRectangle(cornerRadius: LociTheme.Radius.large, style: .continuous)
+            content
+                // This surface intentionally stays light while AR is scanning, including in Dark Mode.
+                // Do not inherit the system's white primary text into it.
+                .foregroundStyle(LociTheme.arSearchInk)
+                .padding(LociTheme.Spacing.l)
+                .background(LociTheme.arSearchSurface, in: shape)
+                .overlay(shape.stroke(LociTheme.arSearchInk.opacity(0.14)))
         }
     }
 }
@@ -157,17 +319,17 @@ struct LociStatusPill: View {
     let title: String
     let symbol: String
     let color: Color
+    var isARSearching = false
 
     var body: some View {
         Label(title.localizedUI, systemImage: symbol)
             .labelStyle(.titleAndIcon)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().fill(color.opacity(0.10)))
-        .overlay(Capsule().stroke(color.opacity(0.30)))
+            .font(LociTheme.Typography.caption.weight(.semibold))
+            .foregroundStyle(isARSearching ? LociTheme.arSearchInk : color)
+            .padding(.horizontal, LociTheme.Spacing.m)
+            .padding(.vertical, LociTheme.Spacing.xs)
+        .background(isARSearching ? LociTheme.arSearchSurface : LociTheme.rowSurface, in: Capsule())
+        .overlay(Capsule().stroke(isARSearching ? LociTheme.arSearchInk.opacity(0.16) : color.opacity(0.30)))
             .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -177,16 +339,16 @@ struct LociMetricLabel: View {
     let value: Int
     let title: String
     let symbol: String
-    var color: Color = .white
+    var color: Color = LociTheme.textPrimary
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: LociTheme.Spacing.xs) {
             Image(systemName: symbol)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(color)
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.xxs) {
                 Text(value >= 10_000 ? value.formatted(.number.notation(.compactName)) : value.formatted())
-                    .font(.subheadline.weight(.bold))
+                    .font(LociTheme.Typography.numeric)
                     .monospacedDigit()
                     .contentTransition(.numericText(value: Double(value)))
                     .animation(reduceMotion ? nil : .snappy, value: value)
@@ -196,7 +358,7 @@ struct LociMetricLabel: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(value) " + title.localizedUI)
+        .accessibilityLabel(Text("\(value) \(title.localizedUI)"))
     }
 }
 
@@ -207,70 +369,86 @@ struct LociInlineNotice: View {
     var color: Color = LociTheme.accent
 
     var body: some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: LociTheme.Spacing.m) {
             Image(systemName: symbol)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(color)
-                .frame(width: 22)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title.localizedUI).font(.subheadline.weight(.semibold))
-                Text(message.localizedUI).font(.caption).foregroundStyle(LociTheme.secondaryText)
+                .frame(width: LociTheme.Control.minimumTapTarget / 2)
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
+                Text(title.localizedUI).font(LociTheme.Typography.label)
+                Text(message.localizedUI).font(.footnote).foregroundStyle(LociTheme.secondaryText)
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.07)))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(color.opacity(0.24)))
+        .padding(LociTheme.Spacing.m)
+        .background(LociTheme.rowSurface, in: RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous).stroke(color.opacity(0.24)))
     }
 }
 
 struct LociPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.lociGlassPanel) private var isInsideGlassPanel
 
     @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
         let label = configuration.label
-            .font(.headline)
-            // Disabled: light text on a subtle fill stays readable (white on white 24% was ~2:1).
+            .font(LociTheme.Typography.headline)
+            // High-contrast legible text on solid accent; dim tertiaryText when disabled
             .foregroundStyle(isEnabled ? LociTheme.onAccent : LociTheme.tertiaryText)
-            .frame(maxWidth: .infinity, minHeight: 50)
-            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, minHeight: LociTheme.Control.primaryButtonHeight)
+            .padding(.horizontal, LociTheme.Spacing.l)
         let shape = RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous)
-        if #available(iOS 26.0, *), isEnabled, !reduceTransparency, !isInsideGlassPanel {
-            label.glassEffect(.regular.tint(LociTheme.accent).interactive(), in: shape)
-        } else {
-            label
-                .background(isEnabled ? LociTheme.accent.opacity(configuration.isPressed ? 0.76 : 1) : LociTheme.elevated, in: shape)
-                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
-        }
+        label
+            .background {
+                if isEnabled {
+                    shape.fill(LociTheme.accent.opacity(configuration.isPressed ? 0.76 : 1))
+                } else {
+                    shape.fill(LociTheme.rowSurface)
+                        .overlay(shape.fill(LociTheme.accent.opacity(0.14)))
+                }
+            }
+            .overlay(
+                shape.stroke(
+                    isEnabled ? LociTheme.glassBorder : LociTheme.glassBorder.opacity(0.8),
+                    lineWidth: 1
+                )
+            )
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
     }
 }
 
 struct LociSecondaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.lociGlassPanel) private var isInsideGlassPanel
 
     @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
         let label = configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isEnabled ? Color.white : LociTheme.tertiaryText)
-            .frame(maxWidth: .infinity, minHeight: 46)
-            .padding(.horizontal, 14)
+            .font(LociTheme.Typography.label)
+            .foregroundStyle(isEnabled ? LociTheme.textPrimary : LociTheme.tertiaryText)
+            .frame(maxWidth: .infinity, minHeight: LociTheme.Control.secondaryButtonHeight)
+            .padding(.horizontal, LociTheme.Spacing.m)
         let shape = RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous)
-        if #available(iOS 26.0, *), isEnabled, !reduceTransparency, !isInsideGlassPanel {
-            label.glassEffect(.regular.interactive(), in: shape)
-        } else {
-            label
-                .background(reduceTransparency ? LociTheme.elevated : LociTheme.field.opacity(configuration.isPressed ? 0.65 : 1), in: shape)
-                .overlay(shape.stroke(LociTheme.hairline))
-        }
+        label
+            .background(reduceTransparency ? LociTheme.elevated : LociTheme.rowSurface.opacity(configuration.isPressed ? 0.78 : 1), in: shape)
+            .overlay(shape.stroke(LociTheme.glassBorder))
+    }
+}
+
+struct LociCompactButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous)
+        return configuration.label
+            .font(LociTheme.Typography.caption.weight(.semibold))
+            .foregroundStyle(isEnabled ? LociTheme.textPrimary : LociTheme.tertiaryText)
+            .padding(.horizontal, LociTheme.Spacing.m)
+            .frame(minHeight: LociTheme.Control.minimumTapTarget)
+            .background(LociTheme.rowSurface.opacity(configuration.isPressed ? 0.78 : 1), in: shape)
+            .overlay(shape.stroke(LociTheme.glassBorder))
     }
 }
 
@@ -280,8 +458,8 @@ struct LociSectionLabel: View {
 
     var body: some View {
         Label(title.localizedUI, systemImage: symbol)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.88))
+            .font(LociTheme.Typography.label)
+            .foregroundStyle(LociTheme.textPrimary)
     }
 }
 
@@ -289,9 +467,9 @@ struct LociLoadingView: View {
     let title: String
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: LociTheme.Spacing.m) {
             ProgressView().controlSize(.large).tint(LociTheme.accent)
-            Text(title.localizedUI).font(.subheadline.weight(.medium)).foregroundStyle(LociTheme.secondaryText)
+            Text(title.localizedUI).font(LociTheme.Typography.label).foregroundStyle(LociTheme.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
@@ -309,15 +487,15 @@ struct LociPaginationFooter: View {
         HStack {
             Spacer(minLength: 0)
             Button(action: action) {
-                HStack(spacing: 8) {
+                HStack(spacing: LociTheme.Spacing.s) {
                     if isLoading { ProgressView().tint(LociTheme.accent) }
                     Text("Daha fazla göster")
                 }
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isEnabled && !isLoading ? Color.white : LociTheme.tertiaryText)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 11)
-                .background(Color.white.opacity(0.08), in: Capsule())
+                .foregroundStyle(isEnabled && !isLoading ? LociTheme.textPrimary : LociTheme.tertiaryText)
+                .padding(.horizontal, LociTheme.Spacing.m)
+                .padding(.vertical, LociTheme.Spacing.s)
+                .background(LociTheme.field, in: Capsule())
                 .overlay(Capsule().stroke(LociTheme.glassBorder))
             }
             .buttonStyle(.plain)
@@ -338,22 +516,22 @@ struct LociEmptyState: View {
     var symbolColor: Color = LociTheme.accent
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: LociTheme.Spacing.l) {
             ZStack {
                 Circle().fill(symbolColor.opacity(0.12)).frame(width: 74, height: 74)
                 Image(systemName: symbol).font(.system(size: 29, weight: .semibold)).foregroundStyle(symbolColor)
             }
-            VStack(spacing: 7) {
+            VStack(spacing: LociTheme.Spacing.s) {
                 Text(title.localizedUI).font(.title3.bold())
                 Text(message.localizedUI).font(.subheadline).foregroundStyle(LociTheme.secondaryText).multilineTextAlignment(.center)
             }
             if let actionTitle, let action {
                 Button(actionTitle.localizedUI, action: action)
-                    .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
+                    .buttonStyle(LociPrimaryButtonStyle())
             }
         }
-        .padding(28)
-        .frame(maxWidth: 430)
+        .padding(LociTheme.Spacing.xxl)
+        .frame(maxWidth: LociTheme.Layout.readableContentWidth)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -367,6 +545,24 @@ extension LociEmptyState {
             actionTitle: retry == nil ? nil : "Tekrar dene", action: retry,
             symbolColor: LociTheme.warning
         )
+    }
+}
+
+enum LociAppearancePreference: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    static let storageKey = "loci.appearance"
+
+    var id: String { rawValue }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
     }
 }
 
@@ -422,28 +618,34 @@ struct LociAvatar: View {
     private func presetAvatar(_ name: String) -> some View {
         let style = LociAvatar.presetStyle(name)
         return ZStack {
-            Circle().fill(style.color.gradient)
+            Circle().fill(LinearGradient(colors: style.colors, startPoint: .topLeading, endPoint: .bottomTrailing))
+            Circle()
+                .fill(.white.opacity(0.13))
+                .frame(width: size * 0.48, height: size * 0.48)
+                .offset(x: size * 0.23, y: -size * 0.22)
             Image(systemName: style.symbol)
                 .font(.system(size: size * 0.46, weight: .semibold))
                 .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
         }
+        .clipShape(Circle())
     }
 
     /// SF Symbols only: no bundled artwork, no licensing or likeness questions.
-    static func presetStyle(_ name: String) -> (symbol: String, color: Color) {
+    static func presetStyle(_ name: String) -> (symbol: String, colors: [Color]) {
         switch name {
-        case "hare": ("hare.fill", .orange)
-        case "tortoise": ("tortoise.fill", .green)
-        case "cat": ("cat.fill", .purple)
-        case "dog": ("dog.fill", .brown)
-        case "bear": ("teddybear.fill", .pink)
-        case "bird": ("bird.fill", .cyan)
-        case "fish": ("fish.fill", .blue)
-        case "leaf": ("leaf.fill", .mint)
-        case "star": ("star.fill", .yellow)
-        case "moon": ("moon.fill", .indigo)
-        case "sun": ("sun.max.fill", .red)
-        default: ("bolt.fill", .teal)
+        case "hare": ("hare.fill", [Color(red: 1, green: 0.55, blue: 0.31), Color(red: 0.85, green: 0.20, blue: 0.32)])
+        case "tortoise": ("tortoise.fill", [Color(red: 0.49, green: 0.78, blue: 0.35), Color(red: 0.10, green: 0.48, blue: 0.42)])
+        case "cat": ("cat.fill", [Color(red: 0.72, green: 0.48, blue: 0.96), Color(red: 0.37, green: 0.27, blue: 0.76)])
+        case "dog": ("dog.fill", [Color(red: 0.87, green: 0.65, blue: 0.42), Color(red: 0.56, green: 0.32, blue: 0.22)])
+        case "bear": ("teddybear.fill", [Color(red: 1, green: 0.49, blue: 0.61), Color(red: 0.76, green: 0.25, blue: 0.49)])
+        case "bird": ("bird.fill", [Color(red: 0.30, green: 0.82, blue: 0.93), Color(red: 0.13, green: 0.43, blue: 0.79)])
+        case "fish": ("fish.fill", [Color(red: 0.30, green: 0.63, blue: 1), Color(red: 0.20, green: 0.32, blue: 0.80)])
+        case "leaf": ("leaf.fill", [Color(red: 0.33, green: 0.88, blue: 0.67), Color(red: 0.08, green: 0.49, blue: 0.46)])
+        case "star": ("star.fill", [Color(red: 1, green: 0.82, blue: 0.33), Color(red: 0.93, green: 0.49, blue: 0.20)])
+        case "moon": ("moon.fill", [Color(red: 0.56, green: 0.62, blue: 1), Color(red: 0.34, green: 0.32, blue: 0.78)])
+        case "sun": ("sun.max.fill", [Color(red: 1, green: 0.53, blue: 0.36), Color(red: 0.87, green: 0.27, blue: 0.36)])
+        default: ("bolt.fill", [Color(red: 0.31, green: 0.86, blue: 0.80), Color(red: 0.11, green: 0.45, blue: 0.68)])
         }
     }
 
@@ -458,7 +660,7 @@ struct LociAvatar: View {
 }
 
 extension View {
-    func lociGlassRowBackground(cornerRadius: CGFloat = 16) -> some View {
+    func lociGlassRowBackground(cornerRadius: CGFloat = LociTheme.Radius.medium) -> some View {
         listRowBackground(LociGlassRowSurface(cornerRadius: cornerRadius))
     }
 
@@ -471,6 +673,8 @@ extension View {
         self
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .listRowSpacing(LociTheme.Spacing.m)
+            .listSectionSpacing(LociTheme.Spacing.xl)
             .lociGlassRowBackground()
             .background(LociScreenBackground())
     }

@@ -139,6 +139,7 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
     handle: String(profile.handle),
     avatarURL: typeof profile.avatar_url === 'string' ? profile.avatar_url : null,
     avatarPreset: typeof profile.avatar_preset === 'string' ? profile.avatar_preset : null,
+    bio: typeof profile.bio === 'string' ? profile.bio : null,
     claimsUpdated,
   };
 });

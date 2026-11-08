@@ -96,7 +96,7 @@ TestFlight ve App Store gönderimi bu otomatik sonuçlarla onaylanmaz.
 - Firebase `lociar-2f38c`: Firestore `nam5`, Functions `us-central1`; üretimde callable App Check zorunlu.
 - Postlar metin ve/veya 1 GIPHY GIF'i içerir (GIPHY anahtarı `GIPHY_API_KEY` secret'ı). Sosyal medya bağlantısı, çizim ve fotoğraf/video post yüklemesi kapalıdır;
   avatar fotoğrafları Cloud Vision incelemesinden geçer.
-- Mobil yeni postlar `pending_review`; korumalı bölge ve 18+ engelleri korunur.
+- Mobil postlar otomatik kontroller sonrası `active`; korumalı bölge ve 18+ engelleri korunur.
   Yetkili admin seçilen kullanıcı adına yayın/yorum oluşturabilir; korumalı bölge istisnası
   gerekçe ve ayrı yetki ister. 18+ admin için de kapalıdır.
 - Post/profil/sayaç/aktivite/admin yazmaları sunucu denetimindedir. Apple hesabı silinmeden önce

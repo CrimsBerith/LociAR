@@ -11,12 +11,14 @@ const giphyGifs = {
 };
 const giphyStub = createServer((req, res) => {
   const url = new URL(req.url, 'http://stub');
+  const isSearch = url.pathname === '/v1/gifs/trending' || url.pathname === '/v1/gifs/search';
   const gif = giphyGifs[url.pathname.replace('/v1/gifs/', '')];
-  if (url.searchParams.get('api_key') !== 'emulator-giphy-key' || !gif) {
+  if (url.searchParams.get('api_key') !== 'emulator-giphy-key' || (!gif && !isSearch)) {
     res.writeHead(404, { 'content-type': 'application/json' }).end('{}');
     return;
   }
-  res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ data: gif }));
+  const data = isSearch ? [giphyGifs.okGif1] : gif;
+  res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ data }));
 });
 before(() => new Promise((resolve) => giphyStub.listen(GIPHY_STUB_PORT, '127.0.0.1', resolve)));
 after(() => new Promise((resolve) => giphyStub.close(resolve)));
@@ -82,15 +84,17 @@ test('createPost: text post goes live directly and replays idempotently', async 
   assert.equal(stored.likes_count, 0);
 });
 
-test('createPost: system/flags.post_review_required holds new posts for moderator review', async () => {
+test('createPost: new posts go live even when the legacy review flag is enabled', async () => {
   const user = await newUser();
   // Own spot: the shared default pose is close to the per-area density limit for later tests.
   const pose = { latitude: -44.701, longitude: 169.132, heading: 0, accuracy: 5 };
   const flags = adminDb.collection('system').doc('flags');
   await flags.set({ post_review_required: true }, { merge: true });
   try {
-    const held = await user.call('createPost', postBody({ pose }));
-    assert.equal(held.publishStatus, 'pending_review');
+    const body = postBody({ pose });
+    const published = await user.call('createPost', body);
+    assert.equal(published.publishStatus, 'active');
+    assert.equal((await adminDb.collection('posts').doc(body.clientMutationId).get()).get('status'), 'active');
   } finally {
     await flags.set({ post_review_required: false }, { merge: true });
   }
@@ -127,6 +131,15 @@ test('createPost: a GIPHY GIF is stored by id with the size GIPHY reports', asyn
     const refused = await expectFailure(user.call('createPost', gif(gifId)));
     assert.equal(refused.details?.reason, 'gif_invalid', gifId);
   }
+});
+
+test('searchGifs: trending results are served through the callable without exposing provider URLs', async () => {
+  const user = await newUser();
+  const result = await user.call('searchGifs', { query: '', offset: 0, locale: 'en' });
+  assert.deepEqual(result, {
+    gifs: [{ id: 'okGif1', title: 'Wave', width: 480, height: 270 }],
+    nextOffset: null,
+  });
 });
 
 test('createPost: protected zones are hard-blocked with a reason', async () => {

@@ -5,8 +5,9 @@ import XCTest
 @testable import LociAR
 
 private final class ForegroundLocationManagerStub: CLLocationManager {
+    private(set) var startUpdatingLocationCallCount = 0
     override var authorizationStatus: CLAuthorizationStatus { .authorizedWhenInUse }
-    override func startUpdatingLocation() {}
+    override func startUpdatingLocation() { startUpdatingLocationCallCount += 1 }
     override func stopUpdatingLocation() {}
     override func startUpdatingHeading() {}
     override func stopUpdatingHeading() {}
@@ -18,6 +19,19 @@ private final class ForegroundHeadingStub: CLHeading {
 }
 
 final class ArrivalRuntimeTests: XCTestCase {
+    @MainActor
+    func testLocationStartWaitsForInitialAuthorizationCallback() {
+        let manager = ForegroundLocationManagerStub()
+        let controller = LocationController(locationManager: manager)
+
+        controller.start()
+        XCTAssertEqual(manager.startUpdatingLocationCallCount, 0)
+
+        controller.locationManagerDidChangeAuthorization(manager)
+        XCTAssertEqual(controller.authorizationStatus, .authorizedWhenInUse)
+        XCTAssertEqual(manager.startUpdatingLocationCallCount, 1)
+    }
+
     @MainActor
     func testPhysicalCameraFramesResumeAcrossNewPinSessions() async throws {
 #if targetEnvironment(simulator)

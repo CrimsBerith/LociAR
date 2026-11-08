@@ -10,6 +10,7 @@ import { denseSpotsNear, spotReceiptRef, spotSettings } from './denseSpots';
 import { distanceMeters } from './geo';
 import { geoCandidates } from './geoQuery';
 import { reasonError } from './errors';
+import { MAX_CAPTION_UTF16_LENGTH } from './contentPolicy';
 import {
   clampNotifyRadius, clusterNotes, compareByLikes, confirmationValid, defaultNotifyRadius, fixInsideNote, fixIsFresh,
   validCoordinates, WAKE_RADIUS_MIN_M, ENTRY_TOLERANCE_CAP_M, MAX_CREATE_ACCURACY_M, MAX_ENTRY_ACCURACY_M, MAX_NOTIFY_RADIUS_M, MAX_PIN_DRAG_M,
@@ -52,7 +53,7 @@ export const createPlaceNote = onCall(options, async request => {
     if (drag > MAX_PIN_DRAG_M) throw new HttpsError('invalid-argument', 'The pin is too far from your position');
   }
   const note: LocationNoteMetadata = { source, accuracy_m: Math.round(accuracy * 10) / 10, pin_drag_m: Math.round(drag * 10) / 10, notify_radius_m: defaultNotifyRadius(source, accuracy) };
-  const text = plain(b.text, 220);
+  const text = plain(b.text, MAX_CAPTION_UTF16_LENGTH);
   const data = { userId: caller.luid, clientMutationId: b.clientMutationId, caption: text, anonymous: b.anonymous, ageRating: 'all' as const, visibility: 'public' as const,
     pose: { latitude: b.lat, longitude: b.lng, heading: 0, anchor: { coordinateSpace: 'camera_free_space' as const,
       provider: 'native_ios_map', x: 0, y: 0, z: -2, yaw: 0, pitch: 0, roll: 0, capturedAt: new Date().toISOString() } },
@@ -62,10 +63,13 @@ export const createPlaceNote = onCall(options, async request => {
 });
 
 function parseFix(value: unknown): Fix {
-  const f = value as Fix;
-  if (!f || !validCoordinates(f.lat, f.lng) || typeof f.accuracy !== 'number' || !Number.isFinite(f.accuracy) || f.accuracy < 0
-      || typeof f.measuredAt !== 'number' || !Number.isFinite(f.measuredAt)) throw new HttpsError('invalid-argument', 'A location fix is required');
-  return f;
+  if (typeof value !== 'object' || value === null) throw new HttpsError('invalid-argument', 'A location fix is required');
+  const { lat, lng, accuracy, measuredAt } = value as { lat?: unknown; lng?: unknown; accuracy?: unknown; measuredAt?: unknown };
+  if (typeof lat !== 'number' || !Number.isFinite(lat) || Math.abs(lat) > 90) throw new HttpsError('invalid-argument', 'Invalid latitude');
+  if (typeof lng !== 'number' || !Number.isFinite(lng) || Math.abs(lng) > 180) throw new HttpsError('invalid-argument', 'Invalid longitude');
+  if (typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy < 0) throw new HttpsError('invalid-argument', 'Invalid accuracy');
+  if (typeof measuredAt !== 'number' || !Number.isFinite(measuredAt)) throw new HttpsError('invalid-argument', 'Invalid measuredAt timestamp');
+  return { lat, lng, accuracy, measuredAt } as Fix;
 }
 
 /** Complete coverage of the requested radius, including polar searches. */

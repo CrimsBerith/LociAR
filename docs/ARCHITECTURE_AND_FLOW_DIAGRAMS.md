@@ -42,9 +42,10 @@ flowchart TD
   Identity -- Yes --> Capture["Capture detailed surface"]
   Capture --> Compose["Image / drawing / text / video / platform media"]
   Compose --> Publish["Upload assets + create_post"]
-  Publish --> Review["pending_review"]
-  Review -->|Admin approves| Active["active + discoverable"]
-  Review -->|Admin rejects/removes| Hidden["Not public"]
+  Publish --> Checks["Automated content, placement, safety and rate checks"]
+  Checks -->|Pass| Active["active + discoverable"]
+  Checks -->|Fail| Hidden["Rejected / not public"]
+  Active -->|User report or admin action| Hidden
 ```
 
 ## 2. Wireflow Diagram

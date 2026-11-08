@@ -3,6 +3,26 @@ import XCTest
 
 /// Shared helpers for the AuthGateUITests suites.
 extension AuthGateUITests {
+    func resolveLocationOrCameraPromptIfPresent() {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let alert = springboard.alerts.firstMatch
+        guard alert.waitForExistence(timeout: 1) else { return }
+        let prompt = ([alert.label] + alert.staticTexts.allElementsBoundByIndex.map(\.label))
+            .joined(separator: " ").lowercased()
+        guard prompt.contains("location") || prompt.contains("konum")
+                || prompt.contains("camera") || prompt.contains("kamera") else { return }
+        for title in [
+            "İzin Ver", "Allow", "Uygulamayı Kullanırken İzin Ver", "Allow While Using App",
+            "Bir Kez İzin Ver", "Allow Once"
+        ] {
+            let button = alert.buttons[title]
+            if button.exists {
+                button.tap()
+                return
+            }
+        }
+    }
+
     func identifiedControl(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         let query = app.descendants(matching: .any)[identifier]
         return query

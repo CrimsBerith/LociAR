@@ -45,13 +45,13 @@ struct AnimatedGIFView: View {
             if let data {
                 AnimatedGIFRepresentable(data: data, contentMode: contentMode)
             } else {
-                ProgressView().tint(.white.opacity(0.6))
+                ProgressView().tint(LociTheme.mediaOverlayText.opacity(0.8))
             }
         }
         .clipped()
         .task(id: url) { data = await GifDataCache.shared.data(for: url) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel ?? String(localized: "GIF animasyonu"))
+        .accessibilityLabel(Text(accessibilityLabel ?? String(localized: "GIF animasyonu")))
     }
 }
 

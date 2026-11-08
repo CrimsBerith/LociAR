@@ -46,8 +46,8 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 
 Önemli davranışlar:
 - Yeni postlar `createPost` içindeki otomatik kontrollerden (metin filtresi, bağlantı yasağı, korumalı bölge, 18+, hız ve
-  yoğunluk sınırları) geçince doğrudan `active` olur; ön onay yok (sahip kararı, 18 Ekim 2026). Acil durumda Firestore'da
-  `system/flags.post_review_required = true` yeni postları yeniden `pending_review` kuyruğuna alır; `false` yapınca biter.
+  yoğunluk sınırları) geçince doğrudan `active` olur; yönetici ön onayı yok. `post_review_required` eski bir bayraktır ve
+  artık yayın akışını etkilemez. Acil durumda `system/flags.kill_switch = true` yeni içerik oluşturma çağrılarını durdurur.
 - Şifreli hesaplarda e-posta doğrulanmadan uygulamaya girilemez; Apple hesapları doğrulanmış sayılır.
 - "Giriş bağlantısı gönder" (magic link) iOS'ta kaldırıldı; Firebase e-posta bağlantısı Universal Link gerektirir.
 - Hesap silme: iOS Apple veya mevcut parola ile Firebase yeniden doğrulaması yapar
@@ -252,12 +252,12 @@ Crashlytics toplama, semboller, maliyet sınırları ve gerçek teslim testi: [D
   3. `firebase deploy --only functions,firestore:indexes` (`searchGifs` callable'ı ve `gif_search_quota` TTL'i). Secret yoksa deploy durur; `scripts/qa-live-firebase.py` `giphy_secret_unavailable` bildirir.
   Arama kullanıcı başına saatte 120 istekle sınırlıdır (`gif_search_quota`, hesap silmede silinir). `createPost` her GIF id'sini GIPHY'den yeniden okur: bilinmeyen ya da `pg-13` üstü GIF `gif_invalid`, GIPHY'ye ulaşılamazsa `gif_unavailable` (uygulama postu kuyrukta tutar ve yeniden dener). Admin post sayfası GIF'i `media.giphy.com` üzerinden gösterir (yalnızca admin CSP'si buna izin verir).
 - **Davet kodu (beta).** `createInvites` (kullanıcı başına 3 kod) ve `redeemInvite` (tek kullanım, saatte en fazla 10 hatalı deneme) `functions/src/invites.ts` içinde; durum `users_private/{luid}` (`invite_redeemed_at`, `invited_by`, `invites_created`, `invite_exempt`). `LOCIAR_INVITE_REQUIRED=true` iken kod kullanmamış hesap post yayınlayamaz (`invite_required`); gezmek serbest. Açmadan önce App Review demo hesabına `invite_exempt: true` yaz ve inceleme notlarını güncelle (`docs/release/APP_STORE_SUBMISSION_GUIDE.md` 6.1). Uygulamada Profil > Davet kodu ekranı vardır. Hesap silme `invites` ve `invite_attempts` kayıtlarını da siler.
-- **Doğrudan yayın.** Güvenilir yazar ve yüksek kaliteli AR kilidi otomatik yayın anahtarları (`LOCIAR_TRUSTED_AUTO_PUBLISH`, `LOCIAR_AUTO_PUBLISH_HIGH_QUALITY`) 18 Ekim 2026'da kaldırıldı; tüm postlar otomatik kontrollerden sonra doğrudan yayınlanır. Ön onayı geri açmak için yalnız `system/flags.post_review_required` kullanılır.
+- **Doğrudan yayın.** Tüm postlar otomatik içerik, yerleşim, korumalı bölge, yaş ve hız/yoğunluk kontrollerini geçince `active` olur. Ön onay yoktur; `system/flags.post_review_required` yok sayılır. Acil durumda `system/flags.kill_switch` yeni içerik oluşturmayı durdurabilir.
 - **Mekan katmanı.** `places/{id}` (`name`, `city`, `lat`, `lng`, `radius_meters`, `active`) herkese açık okunur, yalnızca betikle yazılır. `createPost` konum bir mekanın yarıçapına düşüyorsa sunucuda `place_id` yazar (en yakın merkez kazanır; istemciye güvenilmez; okunamazsa `null`). Yükleme: `cd functions && FIREBASE_PROJECT_ID=lociar-2f38c node scripts/import-places.mjs scripts/places.sample.json` (kuru çalıştırma), sonra `--apply`. Betik korumalı bölgeyle çakışan mekanı reddeder. `places.sample.json` koordinatları yaklaşıktır; yüklemeden önce haritadan ve ARCore VPS kapsamından doğrula. iOS mekan haritası/sayfası henüz yok. `firebase deploy --only firestore:rules` gerekir.
 - **Çizim katmanı sınırları.** `createPost` en fazla 20 katman, katman metni en fazla 1000 karakter, `#RRGGBB` renk, çizim başına 2000 (toplam 4000) nokta kabul eder.
 - **Keşfet sıralaması.** `readPublicContent` (`mode: discover`) ilk sayfadaki en yeni 50 postu `(1 + engagement_score) / (yaş saat + 2)^1.5` ile sıralar (`functions/src/discoverRanking.ts`); imleç yine `created_at` sırasıyla ilerler, sonraki sayfalar kronolojiktir ve hiçbir post atlanmaz. iOS sunucu sırasını korur.
 - **Bildirim sınırı ve post onayı.** Beğeni/yorum/takip bildirimleri alıcı başına günde en fazla 3'tür (`push_quota`, TTL 2 gün; `firebase deploy --only firestore:indexes` gerekir). Moderatör onayında yazara bir kez "Postun onaylandı" bildirimi gider. Ayrıntı: [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md).
-- **Huni olayı.** Davet kullanımı `analytics_events` içinde `invite_redeemed` olarak sayılır; `post_published_active` / `post_pending_review_created` ile karşılaştırarak davetten ilk posta geçiş okunur.
+- **Huni olayı.** Davet kullanımı `analytics_events` içinde `invite_redeemed`, başarılı yayın `post_published_active` olarak sayılır; ikisi karşılaştırılarak davetten ilk posta geçiş okunur.
 
 ## 7. Güvenlik/maliyet ek adımları (owner)
 

@@ -101,7 +101,6 @@
 		D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */; };
 		D208F4B728D6F0F7FD84C54E /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2C002889FAF74276EADB893 /* ActivityView.swift */; };
 		D5D44603AAEDBFBE61BC3067 /* GifPostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24971089F9EF41DDADCD30AC /* GifPostTests.swift */; };
-		D761C9CEA29A60B3F1ED10AF /* ARCoreCoverageDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */; };
 		D79733A2FF29F7EC54C148D0 /* WorldMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */; };
 		DA7E6D5169E31200A4B2A026 /* ClientRequestCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07471D9DD5F568CCD5B6981C /* ClientRequestCacheTests.swift */; };
 		DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D3113CEC157B882DCE675A /* AvatarStore.swift */; };
@@ -65728,7 +65727,6 @@
 		F6A5E6ADA032B0D5CFDCA1F1 /* cmp.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = cmp.js; sourceTree = "<group>"; };
 		F6A64BC7FFE3D1DC52B0FFAD /* setup-emulators-database.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "setup-emulators-database.js"; sourceTree = "<group>"; };
 		F6A8D6650E63979F1416608B /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreCoverageDebugView.swift; sourceTree = "<group>"; };
 		F6A90C39284233FAAA8D1F8A /* arithmetic.test.d.ts */ = {isa = PBXFileReference; path = arithmetic.test.d.ts; sourceTree = "<group>"; };
 		F6AA4BCE1A6D3B87D0A83FF6 /* rbtree.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = rbtree.js; sourceTree = "<group>"; };
 		F6AB959013E665F577A87C3E /* index.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = index.js; sourceTree = "<group>"; };
@@ -69080,7 +69078,6 @@
 			isa = PBXGroup;
 			children = (
 				53768F263588C9A54C898060 /* AppSettingsView.swift */,
-				F6A8DF7E29F37D331AA78D4E /* ARCoreCoverageDebugView.swift */,
 				AEB27EE9BF00970A9F3F149F /* ProfileEditView.swift */,
 			);
 			path = Profile;
@@ -243831,7 +243828,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D761C9CEA29A60B3F1ED10AF /* ARCoreCoverageDebugView.swift in Sources */,
 				C9BCF2F1BCC8DB65916C2B78 /* ARCoreDisclosure.swift in Sources */,
 				F47756884CAD320CDDFE52CA /* ARCoreService.swift in Sources */,
 				89009A411211647CBFFD0CC1 /* ARExperienceView.swift in Sources */,

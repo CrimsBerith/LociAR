@@ -84,6 +84,12 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeName"), "Apple full name is sent to ensureProfile")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeProductInteraction"), "views/likes and analytics_events")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCoarseLocation"), "analytics_events keep approximate location")
+        for locationType in ["NSPrivacyCollectedDataTypePreciseLocation", "NSPrivacyCollectedDataTypeCoarseLocation"] {
+            let entry = collected.first { ($0["NSPrivacyCollectedDataType"] as? String) == locationType }
+            XCTAssertTrue((entry?["NSPrivacyCollectedDataTypePurposes"] as? [String] ?? [])
+                .contains("NSPrivacyCollectedDataTypePurposeDeveloperAdvertising"),
+                "\(locationType): campaign offers use location; must match App Privacy answers in APP_STORE_SUBMISSION_GUIDE.md")
+        }
         let environment = try XCTUnwrap(collected.first {
             ($0["NSPrivacyCollectedDataType"] as? String) == "NSPrivacyCollectedDataTypeEnvironmentScanning"
         }, "AR relocalization uploads environment maps and visual features")
@@ -200,7 +206,10 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(auth.contains("accessibilityIdentifier(\"auth-apple\")"))
         XCTAssertTrue(auth.contains("ASAuthorizationAppleIDButton"))
         XCTAssertTrue(auth.contains("accessibilityIdentifier(\"auth-privacy\")"))
-        XCTAssertTrue(auth.contains(".frame(minWidth: 44, minHeight: 44)"))
+        XCTAssertTrue(
+            auth.contains(".frame(minWidth: 44, minHeight: 44)") ||
+            auth.contains(".frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)")
+        )
     }
 
     func testAppIconIsOpaque1024PNG() throws {

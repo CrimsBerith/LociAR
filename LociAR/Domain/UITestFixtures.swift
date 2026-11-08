@@ -20,6 +20,7 @@ enum UITestFixtures {
     static var openEditorDirectly: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_OPEN_EDITOR_DIRECTLY") }
     static var openPostDirectly: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_OPEN_POST_DIRECTLY") }
     static var officialContentEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_OFFICIAL_CONTENT") }
+    static var translationUnavailableEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_TRANSLATION_UNAVAILABLE") }
     static var cameraPermissionDenied: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_CAMERA_DENIED") }
     static var locationPermissionDenied: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_LOCATION_DENIED") }
     static var attachSampleImageEnabled: Bool { ProcessInfo.processInfo.arguments.contains("UITEST_ATTACH_SAMPLE_IMAGE") }
@@ -34,6 +35,7 @@ enum UITestFixtures {
     static let openEditorDirectly = false
     static let openPostDirectly = false
     static let officialContentEnabled = false
+    static let translationUnavailableEnabled = false
     static let cameraPermissionDenied = false
     static let locationPermissionDenied = false
     static let attachSampleImageEnabled = false

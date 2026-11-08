@@ -19,11 +19,11 @@
 
 ## 2. Emergency Operational Playbooks
 
-### Playbook A: Immediate Kill-Switch Activation (Block Malicious / Broken Posts)
+### Playbook A: Immediate Content-Creation Halt
 1. Open Google Cloud Console -> Firestore -> `(default)` database.
 2. Navigate to collection `system`, document `flags`.
-3. Set `post_review_required: true`.
-4. Result: All newly submitted posts are held in `pending_review` status; public feeds reject unreviewed entries.
+3. Set `kill_switch: true`.
+4. Result: New post creation and other kill-switch-protected admission calls are refused. Existing reads, reports, blocks and account deletion remain available.
 
 ### Playbook B: Halting App Store Phased Rollout
 1. Open **App Store Connect** -> LociAR -> iOS App -> 1.0.0.
@@ -49,4 +49,3 @@ Every P0 or P1 incident requires a documented postmortem within 48 hours of reso
 - **What Went Well**: Rapid detection, automated alerts, graceful degradation.
 - **What Went Wrong**: Missing edge-case test, deployment friction.
 - **Action Items & Preventative Measures**: New regression test added, alert threshold adjusted, documentation updated.
-

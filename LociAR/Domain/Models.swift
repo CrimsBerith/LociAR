@@ -1,5 +1,9 @@
 import Foundation
 
+enum PostContentPolicy {
+    static let maxCaptionUTF16Length = 140
+}
+
 enum PinSessionState: String, Codable, Sendable, CaseIterable {
     case idle
     case permissionRequired
@@ -306,6 +310,7 @@ struct LociUser: Codable, Hashable, Sendable, Identifiable {
     var avatarURL: URL?
     var email: String?
     var role: String = "user"
+    var bio: String? = nil
     var isAnonymousAccount: Bool { role == "anonymous" }
 }
 
@@ -383,7 +388,11 @@ struct GifReference: Hashable, Sendable {
     var stillURL: URL { media("giphy_s.gif") }
 
     private func media(_ file: String) -> URL {
-        URL(string: "https://media.giphy.com/media/\(id)/\(file)")!
+        let safeID = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        let safeFile = file.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? file
+        return URL(string: "https://media.giphy.com/media/\(safeID)/\(safeFile)")
+            ?? URL(string: "https://media.giphy.com")
+            ?? URL(fileURLWithPath: "/dev/null")
     }
 }
 
@@ -556,6 +565,7 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var denseSpot: DenseSpotInfo? = nil
     /// Server-only content provenance; never inferred from the anonymous author's profile.
     var adminManaged: Bool? = nil
+    var creatorAvatarURL: URL? = nil
     var isOfficialContent: Bool { adminManaged == true }
     var isAnonymous: Bool { anonymous == true }
     var isLocationNote: Bool { noteKind == "location" }

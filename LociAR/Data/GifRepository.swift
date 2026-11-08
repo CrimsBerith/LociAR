@@ -87,9 +87,15 @@ final class FirebaseGifRepository: GifRepository, @unchecked Sendable {
     }
 }
 
-/// Preview/UI-test builds: no backend, so there are no GIFs to search.
+/// Preview builds stay empty; sample-content UI tests receive one selectable fixture.
 struct PreviewGifRepository: GifRepository {
     func search(query: String, offset: Int) async throws -> GifSearchPage {
-        GifSearchPage(results: [], nextOffset: nil)
+#if DEBUG
+        if UITestFixtures.sampleContentEnabled, offset == 0,
+           let gif = GifReference(id: "l0MYt5jPR6QX5pnqM", width: 200, height: 200) {
+            return GifSearchPage(results: [GifSearchResult(gif: gif, title: "")], nextOffset: nil)
+        }
+#endif
+        return GifSearchPage(results: [], nextOffset: nil)
     }
 }

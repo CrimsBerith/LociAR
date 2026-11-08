@@ -15,7 +15,7 @@ protocol AuthRepository: Sendable {
     func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult
     func requestPasswordReset(email: String, redirectTo: URL) async throws
     func updatePassword(_ password: String) async throws -> LociUser
-    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser
+    func updateProfile(handle: String, avatar: AvatarChoice, bio: String?) async throws -> LociUser
     func resendVerificationEmail(email: String) async throws
     func sendMagicLink(email: String, redirectTo: URL) async throws
     func verifyEmailOTP(email: String, code: String) async throws -> LociUser
@@ -28,6 +28,9 @@ protocol AuthRepository: Sendable {
 
 extension AuthRepository {
     func signInAnonymously() async throws -> LociUser { throw AuthFlowError.unsupported }
+    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser {
+        try await updateProfile(handle: handle, avatar: avatar, bio: nil)
+    }
 }
 
 /// Explicit consent to the privacy policy and community rules (App Store guideline 1.2):
@@ -134,6 +137,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         let handle: String
         let avatarURL: String?
         let avatarPreset: String?
+        let bio: String?
         let claimsUpdated: Bool
     }
 
@@ -150,7 +154,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         return user.providerData.contains { $0.providerID == "apple.com" }
     }
 
-    nonisolated private static func domainUser(_ user: User, handle: String? = nil, avatarURL: URL? = nil) -> LociUser {
+    nonisolated private static func domainUser(_ user: User, handle: String? = nil, avatarURL: URL? = nil, bio: String? = nil) -> LociUser {
         let fallbackHandle = user.email?.components(separatedBy: "@").first ?? "loci"
         // Auth's photoURL is deliberately ignored: only server-screened avatars are shown.
         return LociUser(
@@ -158,7 +162,8 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             handle: user.isAnonymous ? String(localized: "Anonim") : handle ?? user.displayName.flatMap { $0.isEmpty ? nil : $0 } ?? fallbackHandle,
             avatarURL: avatarURL,
             email: user.email,
-            role: user.isAnonymous ? "anonymous" : "user"
+            role: user.isAnonymous ? "anonymous" : "user",
+            bio: bio
         )
     }
 
@@ -175,14 +180,24 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             _ = try await user.getIDTokenResult(forcingRefresh: true)
         }
         try Self.assertSession(user)
-        let avatar = await AvatarReference.resolve(avatarURL: response.avatarURL, preset: response.avatarPreset)
+        var avatarRaw = response.avatarURL
+        var presetRaw = response.avatarPreset
+        var bioRaw = response.bio
+        let luid = FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: user.uid))
+        if let doc = try? await Firestore.firestore().collection("profiles").document(luid).getDocument(), doc.exists {
+            let data = doc.data() ?? [:]
+            if bioRaw == nil { bioRaw = data["bio"] as? String }
+            if avatarRaw == nil { avatarRaw = data["avatar_url"] as? String }
+            if presetRaw == nil { presetRaw = data["avatar_preset"] as? String }
+        }
+        let avatar = await AvatarReference.resolve(avatarURL: avatarRaw, preset: presetRaw)
         try Self.assertSession(user)
         if user.displayName != response.handle {
             let change = user.createProfileChangeRequest()
             change.displayName = response.handle
             try? await change.commitChanges()
         }
-        let hydrated = Self.domainUser(user, handle: response.handle, avatarURL: avatar)
+        let hydrated = Self.domainUser(user, handle: response.handle, avatarURL: avatar, bio: bioRaw)
         userCacheLock.withLock {
             hydratedUsers[user.uid] = hydrated
             hydratedAt[user.uid] = ProcessInfo.processInfo.systemUptime
@@ -287,7 +302,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     /// Handles change through the `updateHandle` callable (server-side uniqueness). Presets are
     /// written directly (rules allow only the preset list); photos go to `avatars/<luid>/pending/`
     /// and appear once the server has screened them.
-    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser {
+    func updateProfile(handle: String, avatar: AvatarChoice, bio: String? = nil) async throws -> LociUser {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
         let clean = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(with: Locale(identifier: "en_US_POSIX"))
         guard clean.range(of: "^[a-z0-9_.]{3,30}$", options: .regularExpression) != nil else {
@@ -310,17 +325,28 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         }
 
         try Self.assertSession(user)
+        var profileUpdates: [String: Any] = [
+            "updated_at": FieldValue.serverTimestamp()
+        ]
+        if let bio {
+            let cleanBio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard cleanBio.count <= 300 else { throw AuthFlowError.invalidHandle }
+            profileUpdates["bio"] = cleanBio.isEmpty ? NSNull() : cleanBio
+        }
         switch avatar {
         case .unchanged:
-            break
+            if profileUpdates.count > 1 {
+                try await Firestore.firestore().collection("profiles").document(luid).updateData(profileUpdates)
+            }
         case .preset(let name):
             guard AvatarReference.presets.contains(name) else { throw AuthFlowError.invalidPhoto }
-            try await Firestore.firestore().collection("profiles").document(luid).updateData([
-                "avatar_preset": name,
-                "avatar_url": NSNull(),
-                "updated_at": FieldValue.serverTimestamp(),
-            ])
+            profileUpdates["avatar_preset"] = name
+            profileUpdates["avatar_url"] = NSNull()
+            try await Firestore.firestore().collection("profiles").document(luid).updateData(profileUpdates)
         case .photo(let data):
+            if profileUpdates.count > 1 {
+                try await Firestore.firestore().collection("profiles").document(luid).updateData(profileUpdates)
+            }
             guard let jpeg = AvatarReference.preparedJPEG(from: data) else { throw AuthFlowError.invalidPhoto }
             // Every upload needs a slot from the server (hourly quota); Storage rules check it.
             struct EmptyPayload: Encodable, Sendable { let userId: String }
@@ -592,7 +618,7 @@ actor UnavailableAuthRepository: AuthRepository {
     func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult { throw missing }
     func requestPasswordReset(email: String, redirectTo: URL) async throws { throw missing }
     func updatePassword(_ password: String) async throws -> LociUser { throw missing }
-    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser { throw missing }
+    func updateProfile(handle: String, avatar: AvatarChoice, bio: String? = nil) async throws -> LociUser { throw missing }
     func resendVerificationEmail(email: String) async throws { throw missing }
     func sendMagicLink(email: String, redirectTo: URL) async throws { throw missing }
     func verifyEmailOTP(email: String, code: String) async throws -> LociUser { throw missing }

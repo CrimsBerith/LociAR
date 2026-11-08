@@ -59,11 +59,10 @@ A build candidate may only be submitted to App Store Review if:
 ## 5. Emergency Rollback & Mitigation Procedures
 
 1. **Server-Authoritative Kill-Switch**:
-   - `system/flags.post_review_required`: Halts new post publishing instantly without requiring App Store update.
-   - Client queries this flag on startup and caches it safely.
+   - `system/flags.kill_switch`: Refuses kill-switch-protected admission calls without requiring an App Store update.
+   - The server reads this flag; clients cannot override it. Reports, blocks, reads and account deletion remain available.
 2. **Phased Release Halt**:
    - Version 1.0.0 will utilize Apple Phased Release (7-day rollout: 1%, 2%, 5%, 10%, 20%, 50%, 100%).
    - At any time during rollout, the release can be paused for up to 30 days in App Store Connect.
 3. **Hotfix Protocol**:
    - Critical regression hotfixes branch from the release tag, apply minimal surgical diff, execute full automated regression, and submit for expedited review.
-

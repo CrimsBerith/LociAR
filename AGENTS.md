@@ -22,8 +22,8 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - Identity is the `luid` custom claim (UUIDv5 of the Firebase UID) set by the `ensureProfile` callable.
   Rules and Storage paths key on `request.auth.token.luid`.
 - New posts go live (`active`) once `createPost` has run the text filter, link ban, protected zones, 18+ checks and
-  rate/density limits; there is no pre-moderation (owner decision, 18 Oct 2026). Setting `system/flags.post_review_required`
-  to `true` sends new posts back to `pending_review` until the switch is cleared. Reports hide content automatically.
+  rate/density limits; there is no pre-moderation. The legacy `system/flags.post_review_required` field is ignored.
+  `system/flags.kill_switch` can stop new post creation; reports hide content automatically.
 - `deleteAccount` is a full hard delete (Firestore, Storage, Auth user). Apple sign-in token revocation failure
   aborts deletion (App Store guideline 5.1.1(v)).
 - `firestore.rules` / `storage.rules` are default-deny; changes must keep `functions/test/rules/*` passing.
@@ -114,4 +114,3 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
 - **Crash reporting:** Firebase Crashlytics enabled.
 - **Store availability:** Global (all territories).
 - **Media model:** Text and/or one GIPHY GIF (no photos, videos, drawings or links). Social media links and drawings removed 9 Oct 2026.
-

@@ -230,7 +230,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         // Prefer the server's machine-readable reason; the English-text checks below stay as the
         // fallback for older server versions and for errors that carry no reason.
         switch reason {
-        case "invalid_caption": return String(localized: "Caption boş olamaz ve 220 karakteri geçemez.")
+        case "invalid_caption": return String(localized: "Caption boş olamaz ve 140 karakteri geçemez.")
         case "content_not_allowed": return String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene.")
         case "links_not_allowed": return String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
         case "location_inaccurate": return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
@@ -248,7 +248,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             return String(localized: "Yayınlamak için doğrulanmış Apple veya e-posta hesabı gerekiyor.")
         }
         if raw.contains("Content not allowed") { return String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene.") }
-        if raw.contains("Invalid caption") { return String(localized: "Caption boş olamaz ve 220 karakteri geçemez.") }
+        if raw.contains("Invalid caption") { return String(localized: "Caption boş olamaz ve 140 karakteri geçemez.") }
         if raw.contains("Invalid pose") || raw.contains("GPS accuracy") {
             return String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin.")
         }

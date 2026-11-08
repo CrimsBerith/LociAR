@@ -9,6 +9,7 @@ struct AuthView: View {
 
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
+    @Environment(\.colorScheme) private var colorScheme
     @State private var mode: Mode = .signIn
     @State private var email = ""
     @State private var password = ""
@@ -28,7 +29,7 @@ struct AuthView: View {
         ZStack {
             LociTheme.spatialGradient.ignoresSafeArea()
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: LociTheme.Spacing.xl) {
                     Spacer(minLength: 44)
                     brandHeader
                     authCard
@@ -40,14 +41,14 @@ struct AuthView: View {
                             title: String(localized: "İşlem tamamlanamadı"),
                             message: message,
                             symbol: "exclamationmark.circle.fill",
-                            color: .orange
+                            color: LociTheme.warning
                         )
                     }
                     legalNotice
                     Text("Üyeliğinle giriş yap. Notlarını anonim paylaşabilir veya kullanıcı adını gösterebilirsin.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(LociTheme.secondaryText)
                 }
-                .padding(24)
+                .padding(LociTheme.Spacing.xl)
             }
             .scrollDismissesKeyboard(.interactively)
             .scrollBounceBehavior(.basedOnSize)
@@ -58,7 +59,7 @@ struct AuthView: View {
     }
 
     private var brandHeader: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: LociTheme.Spacing.m) {
             ZStack {
                 Circle().fill(LociTheme.accent.opacity(0.12)).frame(width: 92, height: 92)
                 Circle().stroke(LociTheme.accent.opacity(0.22), lineWidth: 1).frame(width: 74, height: 74)
@@ -67,7 +68,7 @@ struct AuthView: View {
                     .foregroundStyle(LociTheme.accent)
             }
             .accessibilityHidden(true)
-            VStack(spacing: 6) {
+            VStack(spacing: LociTheme.Spacing.s) {
                 Text("LociAR").font(.largeTitle.bold())
                 Text("Gerçek mekânlara bağlı hikâyeler.")
                     .foregroundStyle(LociTheme.secondaryText)
@@ -77,26 +78,26 @@ struct AuthView: View {
 
     @ViewBuilder
     private var legalNotice: some View {
-        VStack(spacing: 7) {
+        VStack(spacing: LociTheme.Spacing.s) {
             Button {
                 acceptedTermsVersion = termsAccepted ? "" : TermsConsent.currentVersion
             } label: {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .top, spacing: LociTheme.Spacing.m) {
                     Image(systemName: termsAccepted ? "checkmark.square.fill" : "square")
                         .font(.title3)
-                        .foregroundStyle(termsAccepted ? LociTheme.accent : .white)
+                        .foregroundStyle(termsAccepted ? LociTheme.accent : LociTheme.textPrimary)
                     Text("Gizlilik politikasını ve topluluk kurallarını okudum, kabul ediyorum. Sakıncalı içerik ve kötüye kullanıma sıfır tolerans uygulanır.")
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: LociTheme.Control.minimumTapTarget, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(termsAccepted ? [.isButton, .isSelected] : .isButton)
             .accessibilityIdentifier("auth-terms-consent")
-            HStack(spacing: 8) {
+            HStack(spacing: LociTheme.Spacing.s) {
                 if let url = container.configuration.privacyPolicyURL {
                     Link("Gizlilik", destination: url)
                         .frame(minWidth: 44, minHeight: 44)
@@ -119,20 +120,20 @@ struct AuthView: View {
             .fontWeight(.semibold)
         }
         .font(.caption)
-        .foregroundStyle(.white)
+        .foregroundStyle(LociTheme.textPrimary)
         .multilineTextAlignment(.center)
     }
 
     private var authCard: some View {
-        LociCard(appearance: .floating) {
-            VStack(spacing: 14) {
+        LociCard(appearance: .auth) {
+            VStack(spacing: LociTheme.Spacing.m) {
                 modeControl
 
                 if container.configuration.appleAuthEnabled {
                     appleButton
-                    HStack(spacing: 12) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         Rectangle().fill(LociTheme.hairline).frame(height: 1)
-                        Text("veya").font(.caption).foregroundStyle(.white)
+                        Text("veya").font(.caption).foregroundStyle(LociTheme.textPrimary)
                         Rectangle().fill(LociTheme.hairline).frame(height: 1)
                     }
                 }
@@ -147,7 +148,7 @@ struct AuthView: View {
                     .authFieldStyle()
                     .accessibilityIdentifier("auth-email-field")
 
-                HStack(spacing: 8) {
+                HStack(spacing: LociTheme.Spacing.s) {
                     Group {
                         if showPassword {
                             TextField("Şifre", text: $password)
@@ -168,12 +169,12 @@ struct AuthView: View {
                         showPassword.toggle()
                     } label: {
                         Image(systemName: showPassword ? "eye.slash" : "eye")
-                            .frame(width: 44, height: 44)
+                            .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel(showPassword ? String(localized: "Şifreyi gizle") : String(localized: "Şifreyi göster"))
+                    .foregroundStyle(LociTheme.secondaryText)
+                    .accessibilityLabel(showPassword ? Text("Şifreyi gizle") : Text("Şifreyi göster"))
                 }
                 .authFieldStyle()
 
@@ -186,21 +187,21 @@ struct AuthView: View {
                         .authFieldStyle()
                         .accessibilityIdentifier("auth-confirm-password-field")
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
                         Label("En az 8 karakter", systemImage: password.count >= 8 ? "checkmark.circle.fill" : "circle")
                         if !passwordConfirmation.isEmpty {
                             Label(passwordsMatch ? String(localized: "Şifreler eşleşiyor") : String(localized: "Şifreler farklı"), systemImage: passwordsMatch ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                         }
                     }
                     .font(.caption2)
-                    .foregroundStyle(password.count >= 8 && passwordsMatch ? LociTheme.accent : .secondary)
+                    .foregroundStyle(password.count >= 8 && passwordsMatch ? LociTheme.accent : LociTheme.secondaryText)
                 }
 
                 Button {
                     Task { await submit() }
                 } label: {
                     if isWorking {
-                        ProgressView().tint(.black)
+                        ProgressView().tint(LociTheme.onAccent)
                     } else {
                         Text(mode == .signIn ? String(localized: "Giriş yap") : String(localized: "Hesap oluştur"))
                     }
@@ -210,13 +211,13 @@ struct AuthView: View {
                 .accessibilityIdentifier("auth-email-submit")
 
                 if mode == .signIn {
-                    HStack(spacing: 16) {
+                    HStack(spacing: LociTheme.Spacing.l) {
                         Button {
                             forgotEmail = email
                             showForgotPassword = true
                         } label: {
                             Text("Şifremi unuttum")
-                                .frame(minHeight: 44)
+                                .frame(minHeight: LociTheme.Control.minimumTapTarget)
                                 .contentShape(Rectangle())
                         }
                         .accessibilityIdentifier("auth-forgot-password")
@@ -226,7 +227,7 @@ struct AuthView: View {
                 } else {
                     Text("Kayıttan sonra e-posta adresine gönderilen bağlantıyla hesabını doğrula.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LociTheme.secondaryText)
                         .multilineTextAlignment(.center)
                 }
 
@@ -239,7 +240,7 @@ struct AuthView: View {
                     } label: {
                         Label("Giriş Yapmadan Test Et (Önizleme)", systemImage: "play.circle.fill")
                             .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .frame(maxWidth: .infinity, minHeight: LociTheme.Control.minimumTapTarget)
                             .contentShape(Rectangle())
                             .foregroundStyle(LociTheme.accent)
                     }
@@ -253,17 +254,17 @@ struct AuthView: View {
     }
 
     private var modeControl: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: LociTheme.Spacing.xs) {
             modeButton("Giriş yap", value: .signIn, identifier: "auth-mode-signin")
             modeButton("Kayıt ol", value: .signUp, identifier: "auth-mode-signup")
         }
-        .padding(4)
-        .lociGlassSurface(cornerRadius: 13)
-        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(LociTheme.hairline))
+        .padding(LociTheme.Spacing.xs)
+        .background(LociTheme.authField.opacity(0.72), in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous))
     }
 
     private func modeButton(_ title: String, value: Mode, identifier: String) -> some View {
-        Button {
+        let isSelected = mode == value
+        return Button {
             withAnimation(.easeOut(duration: 0.18)) {
                 mode = value
                 message = nil
@@ -273,10 +274,11 @@ struct AuthView: View {
         } label: {
             Text(title.localizedUI)
                 .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity, minHeight: LociTheme.Control.minimumTapTarget)
                 .contentShape(Rectangle())
-                .background(mode == value ? LociTheme.surface : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .foregroundStyle(mode == value ? Color.white : LociTheme.secondaryText)
+                .background(isSelected ? LociTheme.accent : Color.clear,
+                            in: RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
+                .foregroundStyle(isSelected ? LociTheme.onAccent : LociTheme.textPrimary)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(identifier)
@@ -299,9 +301,9 @@ struct AuthView: View {
             let fullName = credential.fullName.map { PersonNameComponentsFormatter().string(from: $0) }
             Task { await authenticateApple(token: token, fullName: fullName) }
         }
-        .id(mode == .signUp)
+        .id("\(mode == .signUp)-\(colorScheme)")
         .frame(height: 52)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
         // Apple sign-in can create an account, so it also needs the consent checkbox.
         .disabled(!termsAccepted)
         .opacity(termsAccepted ? 1 : 0.5)
@@ -360,12 +362,12 @@ struct AuthView: View {
 
     private func emailVerificationNotice(_ targetEmail: String) -> some View {
         LociCard {
-            VStack(spacing: 12) {
-                HStack(spacing: 10) {
+            VStack(spacing: LociTheme.Spacing.m) {
+                HStack(spacing: LociTheme.Spacing.m) {
                     Image(systemName: "envelope.badge.shield.half.filled")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(LociTheme.accent)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: LociTheme.Spacing.xxs) {
                         Text("E-posta Doğrulaması")
                             .font(.subheadline.bold())
                         Text(String(localized: "\(targetEmail) adresine doğrulama bağlantısı gönderildi."))
@@ -385,8 +387,7 @@ struct AuthView: View {
                                 .font(.caption.weight(.semibold))
                         }
                     }
-                    .buttonStyle(.bordered)
-                    .tint(LociTheme.accent)
+                    .buttonStyle(LociCompactButtonStyle())
                     .disabled(isResendingEmail)
 
                     Spacer()
@@ -395,7 +396,8 @@ struct AuthView: View {
                         withAnimation { unconfirmedEmail = nil }
                     }
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LociTheme.secondaryText)
+                    .frame(minWidth: 44, minHeight: 44)
                 }
             }
         }
@@ -414,10 +416,12 @@ struct AuthView: View {
     }
 
     private func authenticateApple(token: String, fullName: String?) async {
+        let nonce = currentNonce
+        currentNonce = ""
         isWorking = true
         defer { isWorking = false }
         do {
-            try await session.acceptAppleCredential(identityToken: token, nonce: currentNonce, fullName: fullName)
+            try await session.acceptAppleCredential(identityToken: token, nonce: nonce, fullName: fullName)
         } catch {
             message = String(localized: "Apple ile giriş şu anda tamamlanamadı. Tekrar dene.")
         }
@@ -426,6 +430,7 @@ struct AuthView: View {
 
 /// Keep Apple's native button and authorization flow; expose its disabled state to VoiceOver.
 private struct ConsentAppleSignInButton: UIViewRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
     let type: ASAuthorizationAppleIDButton.ButtonType
     let enabled: Bool
     let onRequest: (ASAuthorizationAppleIDRequest) -> Void
@@ -434,7 +439,8 @@ private struct ConsentAppleSignInButton: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeUIView(context: Context) -> AccessibleAppleIDButton {
-        let button = AccessibleAppleIDButton(type: type, style: .white)
+        let style: ASAuthorizationAppleIDButton.Style = colorScheme == .dark ? .white : .black
+        let button = AccessibleAppleIDButton(type: type, style: style)
         button.accessibilityIdentifier = "auth-apple"
         button.addTarget(context.coordinator, action: #selector(Coordinator.signIn), for: .touchUpInside)
         context.coordinator.button = button
@@ -506,29 +512,32 @@ struct PasswordRecoveryView: View {
     var body: some View {
         ZStack {
             LociTheme.spatialGradient.ignoresSafeArea()
-            VStack(spacing: 20) {
-                Spacer()
-                Image(systemName: "lock.rotation").font(.system(size: 44)).foregroundStyle(LociTheme.accent)
-                Text("Yeni şifre oluştur").font(.title2.bold())
-                Text("Hesabın için en az 8 karakterli yeni bir şifre belirle.")
-                    .foregroundStyle(.secondary).multilineTextAlignment(.center)
-                LociCard {
-                    VStack(spacing: 12) {
-                        SecureField("Yeni şifre", text: $password).textContentType(.newPassword).authFieldStyle()
-                        SecureField("Yeni şifreyi tekrar yaz", text: $confirmation).textContentType(.newPassword).authFieldStyle()
-                        Button("Şifreyi güncelle") { Task { await updatePassword() } }
-                            .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
-                            .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
-                            .disabled(isWorking || password.count < 8 || password != confirmation)
-                            .accessibilityIdentifier("auth-password-update")
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: LociTheme.Spacing.xl2) {
+                    Spacer(minLength: 32)
+                    Image(systemName: "lock.rotation").font(.system(size: 44)).foregroundStyle(LociTheme.accent)
+                    Text("Yeni şifre oluştur").font(.title2.bold())
+                    Text("Hesabın için en az 8 karakterli yeni bir şifre belirle.")
+                        .foregroundStyle(LociTheme.secondaryText).multilineTextAlignment(.center)
+                    LociCard {
+                        VStack(spacing: LociTheme.Spacing.m) {
+                            SecureField("Yeni şifre", text: $password).textContentType(.newPassword).authFieldStyle()
+                            SecureField("Yeni şifreyi tekrar yaz", text: $confirmation).textContentType(.newPassword).authFieldStyle()
+                            Button("Şifreyi güncelle") { Task { await updatePassword() } }
+                                .buttonStyle(LociPrimaryButtonStyle())
+                                .disabled(isWorking || password.count < 8 || password != confirmation)
+                                .accessibilityIdentifier("auth-password-update")
+                        }
                     }
+                    if let message { Text(message.localizedUI).font(.footnote).foregroundStyle(LociTheme.secondaryText) }
+                    Button("Giriş ekranına dön") { Task { await session.cancelPasswordRecovery() } }
+                        .foregroundStyle(LociTheme.secondaryText)
+                        .frame(minHeight: LociTheme.Control.minimumTapTarget)
+                    Spacer(minLength: 32)
                 }
-                if let message { Text(message.localizedUI).font(.footnote).foregroundStyle(.secondary) }
-                Button("Giriş ekranına dön") { Task { await session.cancelPasswordRecovery() } }
-                    .foregroundStyle(.secondary)
-                Spacer()
+                .padding(LociTheme.Spacing.xl)
             }
-            .padding(24)
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 
@@ -550,7 +559,8 @@ private struct ForgotPasswordView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 18) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: LociTheme.Spacing.xl2) {
                 Image(systemName: sent ? "envelope.badge.fill" : "key.horizontal.fill")
                     .font(.system(size: 38)).foregroundStyle(LociTheme.accent)
                 Text(sent ? String(localized: "E-postanı kontrol et") : String(localized: "Şifreni yenile"))
@@ -558,7 +568,7 @@ private struct ForgotPasswordView: View {
                 Text(sent
                      ? String(localized: "Şifre yenileme bağlantısını gönderdik. Bağlantı LociAR’da yeni şifre ekranını açacak.")
                      : String(localized: "Hesabında kullandığın e-posta adresini yaz."))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LociTheme.secondaryText)
 
                 if !sent {
                     TextField("E-posta", text: $email)
@@ -567,27 +577,29 @@ private struct ForgotPasswordView: View {
                     Button {
                         Task { await send() }
                     } label: {
-                        if isWorking { ProgressView().frame(maxWidth: .infinity, minHeight: 48) }
-                        else { Text("Bağlantı gönder").frame(maxWidth: .infinity, minHeight: 48) }
+                        if isWorking { ProgressView().tint(LociTheme.onAccent) }
+                        else { Text("Bağlantı gönder") }
                     }
-                    .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
+                    .buttonStyle(LociPrimaryButtonStyle())
                     .disabled(isWorking || !email.contains("@"))
                     .accessibilityIdentifier("auth-reset-submit")
                 } else {
                     Button("Tamam") { dismiss() }
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
+                        .buttonStyle(LociPrimaryButtonStyle())
                 }
-                if let message { Text(message.localizedUI).font(.footnote).foregroundStyle(.orange) }
-                Spacer()
+                if let message { Text(message.localizedUI).font(.footnote).foregroundStyle(LociTheme.warning) }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(LociTheme.Spacing.xl)
             }
-            .padding(24)
             .background(LociScreenBackground())
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Şifremi unuttum")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } } }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
 
@@ -603,18 +615,19 @@ private struct ForgotPasswordView: View {
 
 private extension View {
     func authFieldStyle() -> some View {
-        padding(14)
-            .lociGlassSurface(cornerRadius: 14)
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(LociTheme.hairline))
+        let shape = RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous)
+        return padding(LociTheme.Spacing.m)
+            .background(LociTheme.authField, in: shape)
+            .overlay(shape.stroke(LociTheme.glassBorder))
     }
 }
 
 /// Sign in with Apple nonce (also used by AppleReauthenticator for account deletion).
 enum Nonce {
     static func make(length: Int = 32) -> String {
-        let characters = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        let characters = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
         var generator = SystemRandomNumberGenerator()
-        return String((0..<length).map { _ in characters.randomElement(using: &generator)! })
+        return String((0..<length).map { _ in characters.randomElement(using: &generator) ?? "a" })
     }
 
     static func sha256(_ input: String) -> String {

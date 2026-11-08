@@ -30,21 +30,21 @@ struct CollectionsView: View {
             } else {
                 List {
                     if let message {
-                        LociInlineNotice(title: String(localized: "Bir sorun oluştu"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                        LociInlineNotice(title: String(localized: "Bir sorun oluştu"), message: message, symbol: "exclamationmark.triangle.fill", color: LociTheme.danger)
                             .listRowBackground(Color.clear)
                     }
                     ForEach(collections) { collection in
                     NavigationLink {
                         CollectionDetailView(collection: collection)
                     } label: {
-                        HStack(spacing: 13) {
+                        HStack(spacing: LociTheme.Spacing.m) {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 10).fill(Color.purple.opacity(0.16)).frame(width: 42, height: 42)
-                                Image(systemName: "folder.fill").foregroundStyle(.purple)
+                                RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous).fill(LociTheme.identityAccent.opacity(0.16)).frame(width: 42, height: 42)
+                                Image(systemName: "folder.fill").foregroundStyle(LociTheme.identityAccent)
                             }
-                            VStack(alignment: .leading, spacing: 3) {
+                            VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
                                 Text(collection.title).font(.headline)
-                                Text("Özel koleksiyon").font(.caption).foregroundStyle(.secondary)
+                                Text("Özel koleksiyon").font(.caption).foregroundStyle(LociTheme.secondaryText)
                             }
                         }
                     }
@@ -127,23 +127,23 @@ struct CollectionDetailView: View {
             } else {
                 List {
                     if let message {
-                        LociInlineNotice(title: String(localized: "Bazı notlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                        LociInlineNotice(title: String(localized: "Bazı notlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
                             .listRowBackground(Color.clear)
                     }
                     ForEach(posts) { post in
                         NavigationLink {
                             PostPreviewView(post: post)
                         } label: {
-                            HStack(spacing: 12) {
-                                LociAvatar(handle: String(post.creatorID.uuidString.prefix(6)), size: 36)
-                                VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: LociTheme.Spacing.m) {
+                                LociAvatar(handle: String(post.creatorID.uuidString.prefix(6)), avatarURL: post.creatorAvatarURL, size: 36)
+                                VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
                                     if post.isLocked { Text("Kilitli not").font(.subheadline.bold()) }
                                     else if post.caption.isEmpty { Text("AR notu").font(.subheadline.bold()) }
                                     else { TranslatedPostText(text: post.caption, lineLimit: 2).font(.subheadline.bold()) }
                                     if post.isOfficialContent { OfficialContentBadge() }
                                     Text(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "Fiziksel yüzey") : String(localized: "Yaklaşık"))
                                         .font(.caption2)
-                                        .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
+                                        .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : LociTheme.warning)
                                 }
                             }
                         }
@@ -242,7 +242,7 @@ struct SavedPostsView: View {
             } else {
                 List {
                     if let message {
-                        LociInlineNotice(title: String(localized: "Bazı notlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                        LociInlineNotice(title: String(localized: "Bazı notlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
                             .listRowBackground(Color.clear)
                     }
                     ForEach(posts) { post in
@@ -318,11 +318,11 @@ struct BlockedUsersView: View {
                 }
             } else {
                 List(ids, id: \.self) { id in
-                    HStack(spacing: 12) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         LociAvatar(handle: "E", size: 42)
                         Text("Engellenen hesap").font(.headline)
                         Spacer()
-                        Button("Engeli kaldır") { Task { await unblock(id) } }.buttonStyle(.bordered).controlSize(.small)
+                        Button("Engeli kaldır") { Task { await unblock(id) } }.buttonStyle(LociCompactButtonStyle())
                     }
                     .listRowBackground(Color.clear)
                 }
@@ -389,20 +389,20 @@ struct MyPostsView: View {
                 List {
                     if let message {
                         LociInlineNotice(title: String(localized: "Şu anda yüklenemiyor"), message: message,
-                                         symbol: "exclamationmark.triangle.fill", color: .orange)
+                                         symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
                             .listRowBackground(Color.clear)
                         Button("Tekrar dene") { Task { await load() } }
                             .listRowBackground(Color.clear)
                     }
                     ForEach(posts) { post in
                     NavigationLink(value: post) {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
                             if failedIDs.contains(post.id) {
-                                LociStatusPill(title: String(localized: "İşlem gerekiyor"), symbol: "exclamationmark.triangle.fill", color: .red)
+                                LociStatusPill(title: String(localized: "İşlem gerekiyor"), symbol: "exclamationmark.triangle.fill", color: LociTheme.danger)
                             } else if pendingIDs.contains(post.id) {
-                                LociStatusPill(title: String(localized: "Yayın bekliyor"), symbol: "arrow.triangle.2.circlepath", color: .orange)
+                                LociStatusPill(title: String(localized: "Yayın bekliyor"), symbol: "arrow.triangle.2.circlepath", color: LociTheme.warning)
                             } else if post.status == .pendingReview {
-                                LociStatusPill(title: String(localized: "İncelemede"), symbol: "clock.fill", color: .orange)
+                                LociStatusPill(title: String(localized: "İncelemede"), symbol: "clock.fill", color: LociTheme.warning)
                             }
                             PostCard(post: post)
                         }
@@ -617,32 +617,44 @@ struct InviteView: View {
                     .autocorrectionDisabled()
                     .font(.system(.body, design: .monospaced))
                     .accessibilityIdentifier("invite-code-field")
+                    .lociGlassRowBackground()
                 Button {
                     Task { await redeem() }
                 } label: {
                     Label("Kodu kullan", systemImage: "ticket.fill")
                 }
+                .buttonStyle(LociPrimaryButtonStyle())
                 .disabled(isBusy || activeLoadID != nil || normalizedInput.count < 8)
                 .accessibilityIdentifier("invite-redeem-button")
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                if needsInvite {
+                    Text("Paylaşmak için davet kodunu gir.")
+                        .font(.footnote)
+                        .foregroundStyle(LociTheme.secondaryText)
+                        .lociGlassRowBackground()
+                }
             } header: {
                 Text("Sana verilen kod")
-            } footer: {
-                if needsInvite { Text("Paylaşmak için davet kodunu gir.") }
             }
             Section {
                 if isLoading {
-                    ProgressView().accessibilityLabel("Davet kodları yükleniyor…")
+                    ProgressView().accessibilityLabel(Text("Davet kodları yükleniyor…"))
+                        .lociGlassRowBackground()
                 } else if let loadMessage {
                     LociInlineNotice(title: String(localized: "Davet kodları yüklenemedi"), message: loadMessage,
-                                     symbol: "exclamationmark.triangle.fill", color: .orange)
+                                     symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
+                        .lociGlassRowBackground()
                     Button("Tekrar dene") { Task { await loadInvites() } }
                         .disabled(isBusy)
                         .accessibilityIdentifier("invite-retry-load")
+                        .lociGlassRowBackground()
                 }
                 if !isLoading && loadMessage == nil && invites.isEmpty {
                     Text(needsInvite ? String(localized: "Kodlarını görmek için önce sana verilen kodu gir.") : String(localized: "Henüz davet kodun yok."))
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LociTheme.secondaryText)
+                        .lociGlassRowBackground()
                 }
                 if !isLoading && !invites.isEmpty {
                     ForEach(invites) { invite in
@@ -650,29 +662,36 @@ struct InviteView: View {
                             Text(invite.code)
                                 .font(.system(.body, design: .monospaced).weight(.semibold))
                                 .strikethrough(invite.redeemed)
-                                .foregroundStyle(invite.redeemed ? .secondary : .primary)
+                                .foregroundStyle(invite.redeemed ? LociTheme.secondaryText : LociTheme.textPrimary)
                             Spacer()
                             if invite.redeemed {
-                                Text("Kullanıldı").font(.caption).foregroundStyle(.secondary)
+                                Text("Kullanıldı").font(.caption).foregroundStyle(LociTheme.secondaryText)
                             } else {
                                 ShareLink(item: String(localized: "LociAR'a davetlisin. Davet kodun: \(invite.code)")) {
                                     Image(systemName: "square.and.arrow.up")
+                                        .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
+                                        .background(LociTheme.field, in: RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
+                                        .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous).stroke(LociTheme.glassBorder))
                                 }
-                                .accessibilityLabel("Kodu paylaş")
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(Text("Kodu paylaş"))
                             }
                         }
+                        .lociGlassRowBackground()
                     }
                 }
+                Text("Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.")
+                    .font(.footnote)
+                    .foregroundStyle(LociTheme.secondaryText)
+                    .lociGlassRowBackground()
             } header: {
                 Text("Senin kodların")
-            } footer: {
-                Text("Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.")
             }
             if let info {
-                Section { Text(info).foregroundStyle(LociTheme.accent) }
+                Section { Text(info).foregroundStyle(LociTheme.accent).lociGlassRowBackground() }
             }
             if let message {
-                Section { Text(message).foregroundStyle(.red) }
+                Section { Text(message).foregroundStyle(LociTheme.danger).lociGlassRowBackground() }
             }
         }
         .lociListStyle()

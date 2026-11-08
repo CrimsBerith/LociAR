@@ -15,6 +15,7 @@ struct MapFeatureView: View {
     @Binding var showCreate: Bool
     @ScaledMetric(relativeTo: .subheadline) private var previewRowHeight: CGFloat = 44
     @ScaledMetric(relativeTo: .subheadline) private var previewListLimit: CGFloat = 176
+    @State private var nearbyPanelExpanded = false
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var selection: UUID?
     @State private var posts: [LociPost] = []
@@ -55,8 +56,14 @@ struct MapFeatureView: View {
     }
 
     private var mayFetchMap: Bool {
-        isVisible && scenePhase == .active && router.selectedTab == .map && presentationAllowed
+#if DEBUG
+        let isUsingSampleContent = UITestFixtures.sampleContentEnabled
+#else
+        let isUsingSampleContent = false
+#endif
+        return isVisible && scenePhase == .active && router.selectedTab == .map && presentationAllowed
             && !showCreate && !showPlaceNote && selectedMapGroup == nil && !showCameraUnlock
+            && !isUsingSampleContent
     }
 
     private var usesMapGroups: Bool { !layer.isHeat && container.isBackendConfigured && !session.isLocalPreview }
@@ -140,13 +147,17 @@ struct MapFeatureView: View {
                             emphasis: layer.isHeat ? .muted : .automatic,
                             pointsOfInterest: layer.isHeat ? .excludingAll : .including([.cafe, .museum, .park])))
         .mapControls { MapCompass(); MapUserLocationButton() }
-        .onGeometryChange(for: Double.self) { Double($0.size.width) } action: { mapWidth = $0 }
+        .onGeometryChange(for: Double.self) { Double($0.size.width) } action: { width in
+            guard abs(mapWidth - width) > 0.5 else { return }
+            mapWidth = width
+        }
         .overlay(alignment: .topLeading) {
-            if layer.isHeat { NoteHeatLegend().padding(12) }
+            if layer.isHeat { NoteHeatLegend().padding(LociTheme.Spacing.m) }
         }
         .onMapCameraChange(frequency: .continuous) { context in
+            guard !showCreate, !showPlaceNote, selectedMapGroup == nil, !showCameraUnlock else { return }
             guard container.isBackendConfigured, !session.isLocalPreview else {
-                visibleRegion = context.region
+                updatePreviewRegion(context.region)
                 return
             }
             container.mapRequests.cameraChanged(context.region, byUser: camera.positionedByUser)
@@ -174,46 +185,56 @@ struct MapFeatureView: View {
             CameraLocationRefineView { fix in Task { await unlockHere(cameraFix: fix) } }
         }
         .safeAreaInset(edge: .top) {
-            if !layer.isHeat {
-                VStack(spacing: 6) {
+            VStack(spacing: LociTheme.Spacing.s) {
+                if !layer.isHeat {
                     Picker("Filtre", selection: $filter) {
                         ForEach(MapFilter.allCases) { item in
                             Text(item.rawValue).tag(item)
                         }
                     }
                     .pickerStyle(.segmented)
-                    HStack(spacing: 14) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         mapNoteLegendItem("3D AR Notu", color: MapNoteKindStyle.ar, symbol: "viewfinder.circle.fill")
                         mapNoteLegendItem("Konum Notu", color: MapNoteKindStyle.location, symbol: "mappin.circle.fill")
                         Spacer(minLength: 0)
+                        mapLocationNoteButton
                     }
                     .font(.caption2.weight(.medium))
+                } else {
+                    HStack {
+                        Spacer()
+                        mapLocationNoteButton
+                    }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .lociGlassSurface(cornerRadius: 12)
-                .padding(.horizontal, 14)
             }
+            .padding(.horizontal, LociTheme.Spacing.l)
+            .padding(.vertical, LociTheme.Spacing.s)
+            .lociGlassSurface(cornerRadius: LociTheme.Radius.small)
+            .padding(.horizontal, LociTheme.Spacing.l)
         }
-        .safeAreaInset(edge: .bottom, spacing: 8) { mapPanel.padding(.horizontal, 14) }
+        .safeAreaInset(edge: .bottom, spacing: LociTheme.Spacing.s) { mapPanel.padding(.horizontal, LociTheme.Spacing.m) }
         .navigationTitle("Harita")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: location.authorizationStatus) { _, status in
+            guard status == .authorizedAlways || status == .authorizedWhenInUse,
+                  !UITestFixtures.locationPermissionDenied else { return }
+            message = nil
+            Task { await startAndLoad(force: true) }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { Task { await startAndLoad(force: true) } } label: {
                     Label("Yenile", systemImage: "arrow.clockwise")
+                        .labelStyle(.iconOnly)
+                        .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
                 }
+                .accessibilityLabel(Text("Yenile"))
                 .accessibilityIdentifier("map-refresh")
             }
-            ToolbarItem(placement: .topBarLeading) {
-                Button { showPlaceNote = true } label: { Label("Konum notu", systemImage: "square.and.pencil") }
-                    .labelStyle(.titleOnly)
-                    .fontWeight(.semibold)
-                    .accessibilityIdentifier("map-location-note")
-            }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showCreate = true } label: { Label("AR notu", systemImage: "viewfinder") }
-                    .labelStyle(.titleAndIcon)
+                Button { showCreate = true } label: { Label("AR notu", systemImage: "viewfinder").labelStyle(.iconOnly) }
+                    .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
+                    .accessibilityLabel(Text("AR notu"))
                     .accessibilityIdentifier("map-create")
             }
         }
@@ -297,151 +318,249 @@ struct MapFeatureView: View {
 
     private var selectedPost: LociPost? { posts.first { $0.id == selection } }
 
+    private func updatePreviewRegion(_ region: MKCoordinateRegion) {
+        guard let current = visibleRegion else {
+            visibleRegion = region
+            return
+        }
+        let centerChanged = abs(current.center.latitude - region.center.latitude) > 0.00001
+            || abs(current.center.longitude - region.center.longitude) > 0.00001
+        let spanChanged = abs(current.span.latitudeDelta - region.span.latitudeDelta) > 0.00001
+            || abs(current.span.longitudeDelta - region.span.longitudeDelta) > 0.00001
+        guard centerChanged || spanChanged else { return }
+        visibleRegion = region
+    }
+
     @ViewBuilder private var mapPanel: some View {
         LociCard(appearance: .floating) {
-            if container.isBackendConfigured, !session.isLocalPreview, selectedPost == nil {
-                summaryPanel
-            } else if let selectedPost {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 6) {
-                                if selectedPost.isLocationNote {
-                                    Label("Konum Notu", systemImage: "mappin.and.ellipse")
-                                        .font(.caption2.weight(.bold))
-                                        .foregroundStyle(MapNoteKindStyle.location)
-                                        .padding(.horizontal, 6).padding(.vertical, 2)
-                                        .background(MapNoteKindStyle.location.opacity(0.15), in: Capsule())
-                                } else {
-                                    Label("3D AR Notu", systemImage: "viewfinder")
-                                        .font(.caption2.weight(.bold))
-                                        .foregroundStyle(MapNoteKindStyle.ar)
-                                        .padding(.horizontal, 6).padding(.vertical, 2)
-                                        .background(MapNoteKindStyle.ar.opacity(0.15), in: Capsule())
-                                }
-                            }
-                            Text(postTitle(selectedPost))
-                                .font(.headline).lineLimit(2)
-                            Label(distanceText(for: selectedPost).localizedUI, systemImage: "location.fill")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button { selection = nil } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .frame(minWidth: 44, minHeight: 44)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain).foregroundStyle(.secondary).font(.title3)
-                        .accessibilityLabel("Seçimi kapat")
-                        .accessibilityIdentifier("map-clear-selection")
-                    }
-                    if let spot = selectedPost.denseSpot {
-                        denseSpotBanner(spot)
-                    } else {
-                    NavigationLink(value: selectedPost) {
-                        Label("Postu aç", systemImage: "arrow.up.right")
-                            .frame(maxWidth: .infinity, minHeight: 34)
-                    }
-                    .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
-                    .accessibilityIdentifier("map-open-selected-post")
-                    }
+            VStack(spacing: LociTheme.Spacing.s) {
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) { nearbyPanelExpanded.toggle() }
+                } label: {
+                    Capsule()
+                        .fill(LociTheme.secondaryText.opacity(0.55))
+                        .frame(width: 38, height: 4)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: LociTheme.Control.minimumTapTarget)
+                        .contentShape(Rectangle())
                 }
-            } else {
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle().fill(LociTheme.accent.opacity(0.16)).frame(width: 42, height: 42)
-                            if isLoading { ProgressView().tint(LociTheme.accent) }
-                            else { Image(systemName: statusSymbol).foregroundStyle(LociTheme.accent) }
-                        }
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(isLoading ? String(localized: "Yakın çevre taranıyor") : String(localized: "Yakındaki notlar"))
-                                .font(.headline)
-                            Text(message?.localizedUI ?? (posts.isEmpty ? String(localized: "Henüz not yok") : String(localized: "\(posts.count) not")))
-                                .font(.caption).foregroundStyle(LociTheme.secondaryText).lineLimit(2)
-                        }
-                        Spacer(minLength: 0)
-                        if message != nil && !isLoading {
-                            if location.authorizationStatus == .denied
-                                || location.authorizationStatus == .restricted
-                                || UITestFixtures.locationPermissionDenied {
-                                Button("Ayarlar") {
-                                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                                        openURL(url)
-                                    }
-                                }
-                                    .buttonStyle(.bordered).controlSize(.small)
-                            } else {
-                                Button { Task { await startAndLoad() } } label: { Image(systemName: "arrow.clockwise") }
-                                    .buttonStyle(.bordered).controlSize(.small).accessibilityLabel("Tekrar dene")
-                            }
+                .buttonStyle(.plain)
+                .highPriorityGesture(
+                    DragGesture(minimumDistance: 12).onEnded { value in
+                        guard abs(value.translation.height) > 24 else { return }
+                        withAnimation(.snappy(duration: 0.25)) {
+                            nearbyPanelExpanded = value.translation.height < 0
                         }
                     }
-                    if !isLoading && posts.isEmpty {
-                        Button("İlk yüzeyi sen oluştur", systemImage: "plus.viewfinder") { showCreate = true }
-                            .buttonStyle(LociPrimaryButtonStyle())
-                    } else if !isLoading {
-                        if clusterFocus != nil {
-                            HStack {
-                                Text("Bu noktadaki notlar · en çok beğenilen önce").font(.caption.weight(.semibold))
-                                Spacer()
-                                Button { clusterFocus = nil } label: { Image(systemName: "xmark.circle.fill") }
-                                    .buttonStyle(.plain).foregroundStyle(.secondary)
-                                    .accessibilityLabel("Seçimi kapat")
-                            }
-                        }
-                        if let spot = listedPosts.lazy.compactMap(\.denseSpot).first {
-                            denseSpotBanner(spot)
-                        }
-                        if !readablePreviewPosts.isEmpty {
-                        ScrollView {
-                            LazyVStack(spacing: 10) {
-                                ForEach(readablePreviewPosts) { post in
-                                    NavigationLink(value: post) {
-                                        HStack(spacing: 10) {
-                                            Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
-                                                .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
-                                            Text(postTitle(post))
-                                                .font(.subheadline.weight(.semibold))
-                                                .foregroundStyle(.white)
-                                                .lineLimit(1)
-                                            Spacer()
-                                            if post.counts.likes > 0 {
-                                                Label { Text(post.counts.likes, format: .number) } icon: { Image(systemName: "heart.fill") }
-                                                    .font(.caption).foregroundStyle(.secondary)
-                                            }
-                                            Image(systemName: "chevron.right")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
+                )
+                .accessibilityLabel(
+                    Text(nearbyPanelExpanded
+                        ? String(localized: "Yakındaki notları küçült")
+                        : String(localized: "Yakındaki notları genişlet"))
+                )
+                .accessibilityIdentifier("map-nearby-panel-toggle")
+                Group {
+                    if container.isBackendConfigured, !session.isLocalPreview, selectedPost == nil {
+                        summaryPanel
+                    } else if let selectedPost {
+                        VStack(alignment: .leading, spacing: LociTheme.Spacing.m) {
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
+                                    HStack(spacing: LociTheme.Spacing.s) {
+                                        if selectedPost.isLocationNote {
+                                            Label("Konum Notu", systemImage: "mappin.and.ellipse")
+                                                .font(.caption2.weight(.bold))
+                                                .foregroundStyle(MapNoteKindStyle.location)
+                                                .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xxs)
+                                                .background(
+                                                    MapNoteKindStyle.location.opacity(0.15),
+                                                    in: Capsule())
+                                        } else {
+                                            Label("3D AR Notu", systemImage: "viewfinder")
+                                                .font(.caption2.weight(.bold))
+                                                .foregroundStyle(MapNoteKindStyle.ar)
+                                                .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xxs)
+                                                .background(
+                                                    MapNoteKindStyle.ar.opacity(0.15), in: Capsule()
+                                                )
                                         }
-                                        .frame(height: previewRowHeight)
-                                        .contentShape(Rectangle())
                                     }
-                                    .buttonStyle(.plain)
-                                    .disabled(post.isLocked)
-                                    .accessibilityElement(children: .ignore)
-                                    .accessibilityLabel(postTitle(post))
-                                    .accessibilityAddTraits(.isButton)
-                                    .accessibilityIdentifier("map-open-\(post.caption)")
+                                    Text(postTitle(selectedPost))
+                                        .font(.headline).lineLimit(2)
+                                    Label(
+                                        distanceText(for: selectedPost).localizedUI,
+                                        systemImage: "location.fill"
+                                    )
+                                    .font(.caption).foregroundStyle(LociTheme.secondaryText)
                                 }
+                                Spacer()
+                                Button {
+                                    selection = nil
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain).foregroundStyle(LociTheme.secondaryText).font(.title3)
+                                .accessibilityLabel(Text("Seçimi kapat"))
+                                .accessibilityIdentifier("map-clear-selection")
+                            }
+                            if let spot = selectedPost.denseSpot {
+                                denseSpotBanner(spot)
+                            } else {
+                                NavigationLink(value: selectedPost) {
+                                    Label("Postu aç", systemImage: "arrow.up.right")
+                                        .frame(maxWidth: .infinity, minHeight: 34)
+                                }
+                                .buttonStyle(LociPrimaryButtonStyle())
+                                .accessibilityIdentifier("map-open-selected-post")
                             }
                         }
-                        // A vertical ScrollView otherwise takes the entire proposed cap,
-                        // leaving a large empty glass panel when only one note is present.
-                        .frame(height: min(previewListLimit,
-                            CGFloat(readablePreviewPosts.count) * previewRowHeight
-                                + CGFloat(max(0, readablePreviewPosts.count - 1)) * 10))
+                    } else {
+                        VStack(spacing: LociTheme.Spacing.m) {
+                            HStack(spacing: LociTheme.Spacing.m) {
+                                ZStack {
+                                    Circle().fill(LociTheme.accent.opacity(0.16)).frame(
+                                        width: 42, height: 42)
+                                    if isLoading {
+                                        ProgressView().tint(LociTheme.accent)
+                                    } else {
+                                        Image(systemName: statusSymbol).foregroundStyle(
+                                            LociTheme.accent)
+                                    }
+                                }
+                                VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
+                                    Text(
+                                        isLoading
+                                            ? String(localized: "Yakın çevre taranıyor")
+                                            : String(localized: "Yakındaki notlar")
+                                    )
+                                    .font(.headline)
+                                    Text(
+                                        message?.localizedUI
+                                            ?? (posts.isEmpty
+                                                ? String(localized: "Henüz not yok")
+                                                : String(localized: "\(posts.count) not"))
+                                    )
+                                    .font(.caption).foregroundStyle(LociTheme.secondaryText)
+                                    .lineLimit(2)
+                                }
+                                Spacer(minLength: 0)
+                                if message != nil && !isLoading {
+                                    if location.authorizationStatus == .denied
+                                        || location.authorizationStatus == .restricted
+                                        || UITestFixtures.locationPermissionDenied
+                                    {
+                                        Button("Ayarlar") {
+                                            if let url = URL(
+                                                string: UIApplication.openSettingsURLString)
+                                            {
+                                                openURL(url)
+                                            }
+                                        }
+                                        .buttonStyle(LociCompactButtonStyle())
+                                        .accessibilityIdentifier("map-location-settings")
+                                    } else {
+                                        Button {
+                                            Task { await startAndLoad() }
+                                        } label: {
+                                            Image(systemName: "arrow.clockwise")
+                                                .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
+                                        }
+                                        .buttonStyle(LociCompactButtonStyle())
+                                        .accessibilityLabel(Text("Tekrar dene"))
+                                    }
+                                }
+                            }
+                            if !isLoading && posts.isEmpty {
+                                Button("İlk yüzeyi sen oluştur", systemImage: "plus.viewfinder") {
+                                    showCreate = true
+                                }
+                                .buttonStyle(LociPrimaryButtonStyle())
+                            } else if !isLoading {
+                                if clusterFocus != nil {
+                                    HStack {
+                                        Text("Bu noktadaki notlar · en çok beğenilen önce").font(
+                                            .caption.weight(.semibold))
+                                        Spacer()
+                                        Button {
+                                            clusterFocus = nil
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(.plain).foregroundStyle(LociTheme.secondaryText)
+                                        .accessibilityLabel(Text("Seçimi kapat"))
+                                    }
+                                }
+                                if let spot = listedPosts.lazy.compactMap(\.denseSpot).first {
+                                    denseSpotBanner(spot)
+                                }
+                                if !readablePreviewPosts.isEmpty {
+                                    ScrollView {
+                                        LazyVStack(spacing: LociTheme.Spacing.m) {
+                                            ForEach(readablePreviewPosts) { post in
+                                                NavigationLink(value: post) {
+                                                    HStack(spacing: LociTheme.Spacing.m) {
+                                                        Image(
+                                                            systemName: post.anchorBundle.anchor
+                                                                .pinQuality.isPhysicalSurface
+                                                                ? "viewfinder.circle.fill"
+                                                                : "exclamationmark.triangle.fill"
+                                                        )
+                                                        .foregroundStyle(
+                                                            post.anchorBundle.anchor.pinQuality
+                                                                .isPhysicalSurface
+                                                                ? LociTheme.accent : LociTheme.warning)
+                                                        Text(postTitle(post))
+                                                            .font(.subheadline.weight(.semibold))
+                                                            .foregroundStyle(LociTheme.textPrimary)
+                                                            .lineLimit(1)
+                                                        Spacer()
+                                                        if post.counts.likes > 0 {
+                                                            Label {
+                                                                Text(
+                                                                    post.counts.likes,
+                                                                    format: .number)
+                                                            } icon: {
+                                                                Image(systemName: "heart.fill")
+                                                            }
+                              .font(.caption).foregroundStyle(LociTheme.secondaryText)
+                            }
+                            Image(systemName: "chevron.right")
+                              .font(.caption)
+                              .foregroundStyle(LociTheme.secondaryText)
+                          }
+                          .frame(height: previewRowHeight)
+                          .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+                        .disabled(post.isLocked)
+                        .accessibilityIdentifier("map-open-\(post.caption)")
+                      }
                     }
+                  }
+                  // A vertical ScrollView otherwise takes the entire proposed cap,
+                  // leaving a large empty glass panel when only one note is present.
+                  .frame(
+                    height: min(
+                      nearbyPanelExpanded ? max(previewListLimit, 300) : previewListLimit,
+                      CGFloat(readablePreviewPosts.count) * previewRowHeight
+                        + CGFloat(max(0, readablePreviewPosts.count - 1)) * 10))
                 }
+              }
             }
+          }
         }
+      }
+    }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("map-preview-panel")
     }
 
     private var summaryPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: LociTheme.Spacing.m) {
             HStack {
                 if container.mapRequests.isLoading { ProgressView().tint(LociTheme.accent) }
                 Label("Yakındaki notlar", systemImage: "map")
@@ -449,15 +568,15 @@ struct MapFeatureView: View {
                 Spacer()
                 if !mapGroups.isEmpty {
                     let noteCount = mapGroups.reduce(0) { $0 + $1.count }
-                    Text("\(noteCount) not").font(.caption).foregroundStyle(.secondary)
+                    Text("\(noteCount) not").font(.caption).foregroundStyle(LociTheme.secondaryText)
                 }
             }
             if container.mapRequests.failed {
                 Text("Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(LociTheme.secondaryText)
             } else if !layer.isHeat, !mapGroups.isEmpty {
                 ScrollView(.horizontal) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         ForEach(mapGroups.prefix(15)) { group in
                             Button {
                                 selectedMapGroupFix = nil
@@ -466,7 +585,7 @@ struct MapFeatureView: View {
                                 let noteCount = group.count
                                 Label("\(noteCount) not", systemImage: "mappin.and.ellipse")
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(LociCompactButtonStyle())
                             .accessibilityIdentifier("map-summary-group-\(group.id)")
                         }
                     }
@@ -500,19 +619,19 @@ struct MapFeatureView: View {
     /// Dense spot: the count is public, the text opens only on site (GPS ~15 m, AR camera 2-5 m).
     private func denseSpotBanner(_ spot: DenseSpotInfo) -> some View {
         let noteCount = spot.count
-        return VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
             Label(String(localized: "\(noteCount) not"), systemImage: "lock.fill")
                 .font(.caption.weight(.semibold))
-            Text("Notları görmek için yaklaş ve haritada aç.").font(.caption).foregroundStyle(.secondary)
+            Text("Notları görmek için yaklaş ve haritada aç.").font(.caption).foregroundStyle(LociTheme.secondaryText)
             HStack {
                 Button { Task { await unlockHere() } } label: {
                     Label("Burada aç", systemImage: "lock.open")
                 }
-                .buttonStyle(.bordered).controlSize(.small)
+                .buttonStyle(LociCompactButtonStyle())
                 .accessibilityIdentifier("map-unlock-dense-spot")
                 if container.arcore.isEnabled, CameraLocationRefineView.isSupported {
                     Button { showCameraUnlock = true } label: { Label("Kamerayla aç", systemImage: "camera.viewfinder") }
-                        .buttonStyle(.bordered).controlSize(.small)
+                        .buttonStyle(LociCompactButtonStyle())
                         .accessibilityIdentifier("map-unlock-dense-spot-camera")
                 }
             }
@@ -557,6 +676,18 @@ struct MapFeatureView: View {
             .accessibilityElement(children: .combine)
     }
 
+    private var mapLocationNoteButton: some View {
+        Button { showPlaceNote = true } label: {
+            Image(systemName: "square.and.pencil")
+                .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(LociTheme.accent)
+        .accessibilityLabel(Text("Konum notu"))
+        .accessibilityIdentifier("map-location-note")
+    }
+
     private func zoom(into coordinate: CLLocationCoordinate2D) {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.5)) {
             camera = .camera(MapCamera(centerCoordinate: coordinate, distance: 400))
@@ -595,6 +726,13 @@ struct MapFeatureView: View {
     }
 
     private func startAndLoad(force: Bool = false) async {
+#if DEBUG
+        if UITestFixtures.sampleContentEnabled && !UITestFixtures.locationPermissionDenied {
+            posts = mergedPosts([UITestFixtures.post])
+            message = nil
+            return
+        }
+#endif
         if container.isBackendConfigured, !session.isLocalPreview {
             posts = localDraftsForCurrentUser()
             if mayFetchMap { container.mapRequests.resume() }
@@ -690,6 +828,6 @@ struct MapFeatureView: View {
 }
 
 private enum MapNoteKindStyle {
-    static let ar = Color(red: 0.22, green: 0.52, blue: 1.0)
-    static let location = Color(red: 1.0, green: 0.62, blue: 0.24)
+    static let ar = LociTheme.mapAR
+    static let location = LociTheme.mapLocation
 }

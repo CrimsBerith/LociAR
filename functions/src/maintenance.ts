@@ -79,7 +79,9 @@ export async function runMaintenanceTask(task: MaintenanceTask, by: MaintenanceT
     return { status: 'ok', result };
   } catch (error) {
     await runRef.set({ ...finished, last_status: 'failed', last_code: safeErrorCode(error), last_duration_ms: Math.max(0, now() - started),
-      consecutive_failures: FieldValue.increment(1) }, { merge: true }).catch(() => undefined);
+      consecutive_failures: FieldValue.increment(1) }, { merge: true }).catch(err => {
+        logger.warn('maintenance_run_ref_update_failed', { task: task.name, code: safeErrorCode(err) });
+      });
     throw error;
   }
 }

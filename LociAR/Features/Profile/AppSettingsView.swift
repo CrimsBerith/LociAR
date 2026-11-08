@@ -14,6 +14,7 @@ struct AppSettingsView: View {
     @State private var sharing = UserContextService.shared
     @State private var arrivals = CampaignArrivalService.shared
     @AppStorage(NoteTranslationPreference.key) private var translateNotes = true
+    @AppStorage(LociAppearancePreference.storageKey) private var appearancePreference = LociAppearancePreference.system.rawValue
 
     init(page: Page = .overview) { self.page = page }
 
@@ -29,7 +30,8 @@ struct AppSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .lociGlassRowBackground()
+        .listRowSpacing(LociTheme.Spacing.m)
+        .listSectionSpacing(LociTheme.Spacing.xl)
         .background(LociScreenBackground())
         .tint(LociTheme.accent)
         .navigationTitle(title)
@@ -49,32 +51,47 @@ struct AppSettingsView: View {
     }
 
     private var overview: some View {
-        Section {
-            settingsLink(String(localized: "Bildirimler"), symbol: "bell", summary: notificationSummary,
-                         destination: .notifications, identifier: "settings-open-notifications")
-            settingsLink(String(localized: "Gizlilik ve veri"), symbol: "hand.raised",
-                         summary: String(localized: "Paylaşım tercihleri"), destination: .privacy, identifier: "settings-open-privacy")
-            settingsLink(String(localized: "Çeviri"), symbol: "character.bubble",
-                         summary: translateNotes && supportsDeviceTranslation ? String(localized: "Otomatik") : String(localized: "Kapalı"),
-                         destination: .translation, identifier: "settings-open-translation")
-            settingsLink(String(localized: "Tanılama"), symbol: "waveform.path.ecg",
-                         summary: crashReports ? String(localized: "Açık") : String(localized: "Kapalı"),
-                         destination: .diagnostics, identifier: "settings-open-diagnostics")
+        Group {
+            Section {
+                settingsLink(String(localized: "Bildirimler"), symbol: "bell", summary: notificationSummary,
+                             destination: .notifications, identifier: "settings-open-notifications")
+                settingsLink(String(localized: "Gizlilik ve veri"), symbol: "hand.raised",
+                             summary: String(localized: "Paylaşım tercihleri"), destination: .privacy, identifier: "settings-open-privacy")
+                settingsLink(String(localized: "Çeviri"), symbol: "character.bubble",
+                             summary: translateNotes && supportsDeviceTranslation ? String(localized: "Otomatik") : String(localized: "Kapalı"),
+                             destination: .translation, identifier: "settings-open-translation")
+                settingsLink(String(localized: "Tanılama"), symbol: "waveform.path.ecg",
+                             summary: crashReports ? String(localized: "Açık") : String(localized: "Kapalı"),
+                             destination: .diagnostics, identifier: "settings-open-diagnostics")
+            }
+            .lociGlassRowBackground()
+
+            Section {
+                Picker(String(localized: "Görünüm"), selection: $appearancePreference) {
+                    Text("Sistem").tag(LociAppearancePreference.system.rawValue)
+                    Text("Aydınlık").tag(LociAppearancePreference.light.rawValue)
+                    Text("Karanlık").tag(LociAppearancePreference.dark.rawValue)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("settings-appearance")
+            }
+            .lociGlassRowBackground()
         }
-        .lociGlassRowBackground()
     }
 
     private func settingsLink(_ label: String, symbol: String, summary: String,
                               destination: Page, identifier: String) -> some View {
         NavigationLink { AppSettingsView(page: destination) } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: LociTheme.Spacing.m) {
                 Image(systemName: symbol).foregroundStyle(LociTheme.accent).frame(width: 26)
                 Text(verbatim: label)
                 Spacer(minLength: 8)
-                Text(verbatim: summary).font(.subheadline).foregroundStyle(.secondary)
+                Text(verbatim: summary).font(.subheadline).foregroundStyle(LociTheme.secondaryText)
                     .multilineTextAlignment(.trailing)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, LociTheme.Spacing.s)
         }
         .accessibilityIdentifier(identifier)
     }
@@ -116,11 +133,15 @@ struct AppSettingsView: View {
             ))
             .accessibilityIdentifier("settings-place-notes")
             .disabled(!sharing.notificationsEnabled)
+            DisclosureGroup(String(localized: "Notlar nasıl çalışır?")) {
+                Text("Güvenlik kontrollerini geçen notlar hemen görünür; yönetici onayı gerekmez. Otomatik güvenlik sistemleri çalışır ve şikâyet edilen notlar gizlenebilir veya kaldırılabilir.")
+                    .font(.footnote).foregroundStyle(LociTheme.secondaryText)
+            }
             DisclosureGroup(String(localized: "Nasıl çalışır?")) {
                 Text("Yalnızca not alanları izlenir. Alana yaklaşınca en fazla 30 dakika hassas GPS kullanılır; konum geçmişin saklanmaz ve ölçümler yönetici konumuna eklenmez. Kesin Konum ve internet gerekir. Telefon GPS’i genellikle 5–30 m sapar.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(LociTheme.secondaryText)
                 Text("iOS arka plan çalışmasını sınırlayabilir. Uygulamayı zorla kapatırsan konum bildirimi gecikebilir veya gelmeyebilir.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(LociTheme.secondaryText)
             }
         } footer: {
             Text("Beğenilen bir notun bulunduğu yere gelince haber verir. Arka planda çalışması için Her zaman konum izni gerekir. Bildirimler kapalıyken haber verilmez.")
@@ -144,7 +165,7 @@ struct AppSettingsView: View {
             .accessibilityIdentifier("settings-promotions")
             DisclosureGroup(String(localized: "Nasıl çalışır?")) {
                 Text("Kampanya alanına girince, orada kalınca veya sık kaldığın yerden çıkınca bildirim gelebilir. Sık kaldığın yer yalnızca telefonunda öğrenilir; bize gönderilmez ve ev olarak etiketlenmez. Markalar konumunu ve kim olduğunu görmez. İstediğin an kapatabilirsin.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(LociTheme.secondaryText)
             }
         } footer: { Text("Konumuna göre kampanya ve teklif bildirimleri al. Bu tercih isteğe bağlıdır.") }
         .lociGlassRowBackground()
@@ -160,7 +181,7 @@ struct AppSettingsView: View {
         Section {
             Label(locationNotificationsReady ? String(localized: "Konum bildirimleri hazır") : String(localized: "Konum bildirimleri için ayarları kontrol et"),
                   systemImage: locationNotificationsReady ? "checkmark.circle.fill" : "exclamationmark.circle")
-                .foregroundStyle(locationNotificationsReady ? Color.green : Color.orange)
+                .foregroundStyle(locationNotificationsReady ? LociTheme.success : LociTheme.warning)
                 .accessibilityIdentifier("settings-location-notification-status")
             if arrivals.needsPreciseLocation {
                 Text("Yakındaki notlar için Kesin Konum’u aç.").font(.footnote)
@@ -190,10 +211,10 @@ struct AppSettingsView: View {
             ))
             .accessibilityIdentifier("settings-share-telemetry")
             Text("Cihaz, kullanım ve IP bilgileri yetkili yöneticilere iletilir.")
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(LociTheme.secondaryText)
             DisclosureGroup(String(localized: "Paylaşılan veriler")) {
                 Text("Paylaşılanlar: cihaz türü, iOS ve uygulama sürümü, dil, saat dilimi, rastgele kurulum kimliği, bağlantı IP adresi ve kullanım zamanları. Yetkili yöneticiler görebilir.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(LociTheme.secondaryText)
             }
         }
         .lociGlassRowBackground()
@@ -206,9 +227,9 @@ struct AppSettingsView: View {
             ))
             .accessibilityIdentifier("settings-share-admin-location")
             Text("Uygulama açıkken son konumun, doğruluğu ve zamanı yetkili yöneticilere gönderilir. Anonim notların hesabınla ilişkilendirilebilir.")
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(LociTheme.secondaryText)
             Text("Arka planda paylaşılmaz. Kapatınca paylaşılan son konum silinir; notlarının konumu ve iOS konum izni değişmez.")
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(LociTheme.secondaryText)
             if sharing.locationPermissionDenied {
                 Text("Konum izni kapalı. Ayarlar’dan LociAR için konumu açın.").font(.footnote)
                 Button("Ayarları aç") { openAppSettings() }
@@ -223,11 +244,11 @@ struct AppSettingsView: View {
                     Spacer()
                     Image(systemName: "arrow.up.right")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LociTheme.secondaryText)
                 }
             }
             Text("ARCore Geospatial ve Cloud Anchors konum oturumlarında kamera ve konum verileri Google tarafından işlenir.")
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(LociTheme.secondaryText)
         }
         .lociGlassRowBackground()
         preferenceError
@@ -263,7 +284,7 @@ struct AppSettingsView: View {
     @ViewBuilder private var preferenceError: some View {
         if let message = sharing.errorMessage {
             Section {
-                Text(message).font(.footnote).foregroundStyle(.orange)
+                Text(message).font(.footnote).foregroundStyle(LociTheme.warning)
                 Button("Tekrar dene") {
                     Task { await sharing.setSharing(telemetry: sharing.telemetryEnabled, location: sharing.locationEnabled) }
                 }

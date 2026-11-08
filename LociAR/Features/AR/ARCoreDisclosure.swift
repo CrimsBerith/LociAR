@@ -21,6 +21,7 @@ struct ARCoreDisclosureModifier: ViewModifier {
 
 /// Persistent access to the sensor-data notice on every active AR screen.
 struct ARCoreNoticeButton: View {
+    var usesARSearchSurface = false
     @Environment(AppContainer.self) private var container
     @AppStorage(ARCoreService.disclosureAcknowledgedKey) private var acknowledged = false
     @State private var isPresented = false
@@ -28,17 +29,27 @@ struct ARCoreNoticeButton: View {
     var body: some View {
         if container.arcore.isEnabled {
             Button { isPresented = true } label: {
-                Label("Google AR", systemImage: "info.circle")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .lociGlassSurface(in: Capsule())
+                if usesARSearchSurface {
+                    Label("Google AR", systemImage: "info.circle")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(LociTheme.arSearchInk)
+                        .padding(.horizontal, LociTheme.Spacing.s)
+                        .padding(.vertical, LociTheme.Spacing.xs)
+                        .background(LociTheme.arSearchSurface, in: Capsule())
+                        .overlay(Capsule().stroke(LociTheme.arSearchInk.opacity(0.16)))
+                } else {
+                    Label("Google AR", systemImage: "info.circle")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(LociTheme.textPrimary)
+                        .padding(.horizontal, LociTheme.Spacing.s)
+                        .padding(.vertical, LociTheme.Spacing.xs)
+                        .lociGlassSurface(in: Capsule())
+                }
             }
             .buttonStyle(.plain)
-            .frame(minHeight: 44)
+            .frame(minHeight: LociTheme.Control.minimumTapTarget)
             .contentShape(Rectangle())
-            .accessibilityHint("Google'ın sensör verisi bildirimini gösterir")
+            .accessibilityHint(Text("Google'ın sensör verisi bildirimini gösterir"))
             .accessibilityIdentifier("arcore-notice")
             .arcoreNoticeAlert(isPresented: $isPresented) { acknowledged = true }
         }

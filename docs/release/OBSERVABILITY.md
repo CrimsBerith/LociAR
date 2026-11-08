@@ -31,9 +31,8 @@
 
 - **Configuration Path**: `databases/(default)/documents/system/flags`
 - **Fields**:
-  - `post_review_required` (Boolean): When set to `true`, newly submitted posts are placed in moderation hold before becoming visible on the map.
+  - `kill_switch` (Boolean): When set to `true`, kill-switch-protected admission calls are refused. New posts are otherwise published directly after automated checks.
   - `emergency_stop` (Boolean): Temporarily blocks creation of new spatial notes during system anomalies.
 - **Client Cache Behavior**:
   - App reads `system/flags` on initial cold launch and caches the values in memory.
   - In the event of an unreadable flag document, the client fails closed (admission refused), preventing unreviewed spam from leaking into public feeds.
-

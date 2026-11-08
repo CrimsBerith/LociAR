@@ -29,8 +29,8 @@ postun konumunu/boyutunu değiştirmek açık onay ister ve eski anchor silme ku
 
 Korumalı bölgede yayın için `zones.override` yetkisi ve ayrı istisna gerekçesi gerekir. Bölge
 kimlikleri, gerekçe ve işlemi yapan admin kaydedilir. **18+ engeli admin için de geçerlidir.**
-Mobil kullanıcılar korumalı bölge engelini atlayamaz. Varsayılan yayın durumu `pending_review`;
-yetkili admin doğrudan `active` seçebilir.
+Mobil kullanıcılar korumalı bölge engelini atlayamaz. Güvenlik kontrollerini geçen mobil postlar
+doğrudan `active` olur; kullanıcı raporları ve yönetici kaldırma akışı devam eder.
 
 Post detayında kullanıcı seçilerek yorum açılır; yorumlar düzenlenir veya silinir. Görünen yazar
 seçilen kullanıcıdır; admin ayrı audit aktörüdür. Yazar değiştirilmez. Silinmiş/askıdaki hesaplar,

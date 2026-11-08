@@ -40,12 +40,26 @@ enum AvatarReference {
         return presets.contains(name) ? name : nil
     }
 
-    /// Resolves profile fields into something `LociAvatar` can draw. Only server-screened storage
-    /// photos are shown; any other URL (legacy or external) is ignored.
+    /// Resolves profile fields into something `LociAvatar` can draw. Supports server-screened storage
+    /// photos, external / admin web URLs, and presets.
     nonisolated static func resolve(avatarURL raw: String?, preset: String?) async -> URL? {
-        if let raw, raw.hasPrefix("storage://avatars/"),
-           let url = URL(string: raw), StorageAssetReference(url: url) != nil {
-            return url
+        if let raw {
+            if raw.hasPrefix("storage://avatars/"),
+               let url = URL(string: raw), StorageAssetReference(url: url) != nil {
+                return url
+            }
+            if (raw.hasPrefix("https://") || raw.hasPrefix("http://")),
+               let url = URL(string: raw) {
+                return url
+            }
+            if raw.hasPrefix(presetScheme + ":"),
+               let name = presetName(URL(string: raw)),
+               let url = presetURL(name) {
+                return url
+            }
+            if presets.contains(raw), let url = presetURL(raw) {
+                return url
+            }
         }
         return preset.flatMap(presetURL)
     }

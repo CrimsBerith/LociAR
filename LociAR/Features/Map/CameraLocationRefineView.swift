@@ -37,18 +37,25 @@ struct CameraLocationRefineView: View {
             if !engine.hasRecentCameraFrame {
                 ARCameraBackdrop(failed: !cameraReady || engine.state == .failed, message: engine.statusMessage)
             }
-            VStack(spacing: 12) {
+            VStack(spacing: LociTheme.Spacing.m) {
                 HStack {
                     ARCoreNoticeButton()
                     Spacer()
-                    Button("Kapat") { dismiss() }
-                        .buttonStyle(.borderedProminent).tint(LociTheme.background.opacity(0.55))
-                        .accessibilityIdentifier("camera-refine-close")
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundStyle(LociTheme.textPrimary)
+                            .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
+                            .lociGlassSurface(in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Kapat"))
+                    .accessibilityIdentifier("camera-refine-close")
                 }
                 Spacer()
                 panel
             }
-            .padding()
+            .padding(LociTheme.Spacing.l)
         }
         .background(LociTheme.background)
         .arcoreDisclosure()
@@ -66,7 +73,7 @@ struct CameraLocationRefineView: View {
     }
 
     private var panel: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
             if case .unavailable = container.arcore.availability {
                 Text("Bu cihazda kamerayla konum hassaslaştırma kullanılamıyor.").font(.callout)
             } else if let accuracy = container.arcore.horizontalAccuracy, container.arcore.isEarthTracking {
@@ -74,23 +81,23 @@ struct CameraLocationRefineView: View {
                 Label(String(localized: "Kamera konumu · ±\(meters) m"), systemImage: fix == nil ? "camera.viewfinder" : "checkmark.circle.fill")
                     .font(.headline)
                 Text("Telefonu yavaşça çevirmeye devam et; ±5 m’ye inince konum otomatik kullanılır.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(LociTheme.secondaryText)
             } else {
                 Label("Çevre taranıyor…", systemImage: "camera.viewfinder").font(.headline)
                 Text("Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(LociTheme.secondaryText)
             }
             Button {
                 if let fix { use(fix) }
             } label: {
-                Label("Bu konumu kullan", systemImage: "location.fill").frame(maxWidth: .infinity)
+                Label("Bu konumu kullan", systemImage: "location.fill")
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(LociPrimaryButtonStyle())
             .disabled(fix == nil)
             .accessibilityIdentifier("camera-refine-use")
         }
-        .padding()
-        .lociGlassSurface(cornerRadius: 16)
+        .padding(LociTheme.Spacing.l)
+        .lociGlassSurface(cornerRadius: LociTheme.Radius.medium)
     }
 
     private func use(_ fix: LocationSample) {

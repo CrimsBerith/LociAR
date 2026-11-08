@@ -14,10 +14,10 @@ LociAR: AR-Notizen vor Ort
 Notizen an echte Orte heften
 ```
 
-## Promotional Text (159/170)
+## Promotional Text (133/140)
 
 ```text
-Hinterlasse kurze Nachrichten und GIFs auf echten Flächen und entdecke in AR, was andere in deiner Nähe hinterlassen haben – genau dort, wo es platziert wurde.
+Befestige Nachrichten und GIFs an echten Flächen! Entdecke Ortsnotizen und lokale Tipps in AR genau dort, wo sie hinterlassen wurden.
 ```
 
 ## Description (1722/4000)

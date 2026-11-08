@@ -14,6 +14,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     @ObservationIgnored private let manager: CLLocationManager
     @ObservationIgnored private var wantsLocationUpdates = false
     @ObservationIgnored private var wantsPreciseAccuracy = false
+    @ObservationIgnored private var receivedInitialAuthorizationStatus = false
     /// One temporary full-accuracy prompt per AR session (reset by stop()), not one per retry.
     @ObservationIgnored private var didRequestPreciseAccuracy = false
 
@@ -32,7 +33,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
 
     init(locationManager: CLLocationManager) {
         manager = locationManager
-        authorizationStatus = manager.authorizationStatus
+        authorizationStatus = .notDetermined
         errorMessage = nil
         super.init()
         manager.delegate = self
@@ -44,6 +45,12 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
         manager.headingFilter = 1
     }
 
+    deinit {
+        manager.stopUpdatingLocation()
+        manager.stopUpdatingHeading()
+        manager.delegate = nil
+    }
+
     func start() {
         wantsLocationUpdates = true
         if UITestFixtures.locationPermissionDenied {
@@ -51,6 +58,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
             errorMessage = String(localized: "Konum izni gerekli. Ayarlar'dan konum erişimini açın.")
             return
         }
+        guard receivedInitialAuthorizationStatus else { return }
         if authorizationStatus == .notDetermined {
             manager.requestWhenInUseAuthorization()
             return
@@ -90,6 +98,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorizationStatus = manager.authorizationStatus
+        receivedInitialAuthorizationStatus = true
         guard wantsLocationUpdates else { return }
         if authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse {
             errorMessage = nil

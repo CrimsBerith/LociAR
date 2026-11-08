@@ -248,14 +248,23 @@ export async function POST(request: Request) {
         await recheckExportAccess();
         await auditExport('completed');completed=true;
       } catch(error){
-        await auditExport('failed').catch(()=>undefined);
+        await auditExport('failed').catch(err => {
+          console.error('[admin-user-export] auditExport(failed) failed', err);
+        });
         console.error('[admin-user-export]',{code:String((error as {code?:unknown})?.code??'unexpected')});
         throw error;
       }
     })();
     const stream=new ReadableStream<Uint8Array>({
-      async pull(controller){try{const next=await iterator.next();if(next.done)controller.close();else controller.enqueue(encode.encode(next.value));}catch{controller.error(new Error('User-data export failed'));}},
-      async cancel(){if(!completed){await iterator.return(undefined).catch(()=>undefined);await auditExport('cancelled').catch(()=>undefined);}},
+      async pull(controller){try{const next=await iterator.next();if(next.done)controller.close();else controller.enqueue(encode.encode(next.value));}catch(err){console.error('[admin-user-export] stream pull failed', err);controller.error(new Error('User-data export failed'));}},
+      async cancel(){if(!completed){
+        await iterator.return(undefined).catch(err => {
+          console.error('[admin-user-export] iterator return failed', err);
+        });
+        await auditExport('cancelled').catch(err => {
+          console.error('[admin-user-export] auditExport(cancelled) failed', err);
+        });
+      }},
     });
     const filename=`lociar-${scope==='all_users'?'all-users':'admin-managed-users'}-complete.json`;
     return new Response(stream,{headers:{'Content-Type':'application/json; charset=utf-8','Content-Disposition':`attachment; filename="${filename}"`,

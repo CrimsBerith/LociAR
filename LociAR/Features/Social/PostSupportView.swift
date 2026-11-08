@@ -70,7 +70,7 @@ struct PostSupportView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 22) {
+                VStack(spacing: LociTheme.Spacing.xl2) {
                     if recorded {
                         Image(systemName: "checkmark.circle.fill").font(.system(size: 54, weight: .light))
                             .foregroundStyle(LociTheme.accent).accessibilityHidden(true)
@@ -84,7 +84,7 @@ struct PostSupportView: View {
                     Label("Yazarın kimliği ve ödeme hesabı paylaşılmaz.", systemImage: "lock")
                         .font(.caption).foregroundStyle(LociTheme.secondaryText)
                     if paymentEnvironment == "sandbox" || catalog?.environment == "sandbox" {
-                        Text("Test ödemesi · gerçek para değildir.").font(.caption).foregroundStyle(.orange)
+                        Text("Test ödemesi · gerçek para değildir.").font(.caption).foregroundStyle(LociTheme.warning)
                     }
                     if recorded {
                         Text("Notlar ücretsizdir. Destek göndermek görünürlüğü veya sıralamayı değiştirmez.")
@@ -131,17 +131,17 @@ struct PostSupportView: View {
                             }
                         }
                         Button { Task { await pay() } } label: {
-                            if busy { ProgressView().tint(.black).frame(maxWidth: .infinity) }
+                            if busy { ProgressView().tint(LociTheme.onAccent).frame(maxWidth: .infinity) }
                             else { Text("Desteği gönder").frame(maxWidth: .infinity) }
                         }
                         .buttonStyle(LociPrimaryButtonStyle()).disabled(busy || selection == nil)
                         .accessibilityIdentifier("support-pay")
                     }
-                    if let message { Text(message).font(.callout).foregroundStyle(.orange).accessibilityIdentifier("support-status") }
+                    if let message { Text(message).font(.callout).foregroundStyle(LociTheme.warning).accessibilityIdentifier("support-status") }
                     if didLoad && methods.isEmpty && pendingIntent == nil && !recorded && !refunded {
                         Button("Tekrar dene") { Task { await load() } }.disabled(busy)
                     }
-                }.padding(24)
+                }.padding(LociTheme.Spacing.xl)
             }
             .background(LociScreenBackground())
             .navigationTitle("Yazara destek ol").navigationBarTitleDisplayMode(.inline)
@@ -156,9 +156,9 @@ struct PostSupportView: View {
     private func amountButton(id: String, title: String) -> some View {
         Button { selection = id } label: {
             HStack { Text(verbatim: title).font(.headline); Spacer(); Image(systemName: selection == id ? "checkmark.circle.fill" : "circle") }
-                .padding(18).foregroundStyle(selection == id ? LociTheme.accent : .white)
-                .lociGlassSurface(cornerRadius: 16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(selection == id ? LociTheme.accent : LociTheme.hairline))
+                .padding(LociTheme.Spacing.xl2).foregroundStyle(selection == id ? LociTheme.accent : LociTheme.textPrimary)
+                .lociGlassSurface(cornerRadius: LociTheme.Radius.medium)
+                .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous).stroke(selection == id ? LociTheme.accent : LociTheme.hairline))
         }.buttonStyle(.plain).disabled(busy || pendingIntent != nil)
     }
 
@@ -293,20 +293,20 @@ struct SupportEarningsView: View {
     var body: some View {
         List {
             Section {
-                Text("Yalnızca sen görebilirsin.").font(.caption).foregroundStyle(.secondary)
+                Text("Yalnızca sen görebilirsin.").font(.caption).foregroundStyle(LociTheme.secondaryText)
                 Text("Destek tutarının %72’si yazar kazancı olarak kaydedilir.")
             }
             if let earnings {
                 ForEach(earnings.balances) { balance in
                     Section {
                         LabeledContent(String(localized: "Bekleyen kazanç"), value: balance.amount)
-                        if balance.environment == "sandbox" { Text("Test ödemesi · gerçek para değildir.").font(.caption).foregroundStyle(.orange) }
+                        if balance.environment == "sandbox" { Text("Test ödemesi · gerçek para değildir.").font(.caption).foregroundStyle(LociTheme.warning) }
                     }
                 }
-                if earnings.balances.isEmpty { Text("Henüz destek kazancın yok.").foregroundStyle(.secondary) }
+                if earnings.balances.isEmpty { Text("Henüz destek kazancın yok.").foregroundStyle(LociTheme.secondaryText) }
                 Text("Banka aktarımı, ödeme hesabı ve mutabakat kurulumu tamamlandığında açılacak.")
-                    .font(.caption).foregroundStyle(.secondary)
-            } else if let message { Text(message).foregroundStyle(.secondary) }
+                    .font(.caption).foregroundStyle(LociTheme.secondaryText)
+            } else if let message { Text(message).foregroundStyle(LociTheme.secondaryText) }
             else { ProgressView() }
         }
         .navigationTitle("Kazançlarım")

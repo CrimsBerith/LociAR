@@ -14,10 +14,10 @@ LociAR : notes AR in situ
 Des notes sur des lieux réels
 ```
 
-## Promotional Text (139/170)
+## Promotional Text (126/140)
 
 ```text
-Laissez de courts messages et des GIF sur de vraies surfaces et découvrez en AR ce que d'autres ont laissé près de vous, à l'endroit exact.
+Épinglez messages et GIF sur de vraies surfaces ! Découvrez des notes et conseils locaux en AR pile là où ils ont été laissés.
 ```
 
 ## Description (1820/4000)

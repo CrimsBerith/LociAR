@@ -65,7 +65,7 @@ private struct DeviceTranslatedPostText: View {
                 if showsText { Text(verbatim: state.displayedText(for: request)).lineLimit(lineLimit) }
                 if state.request == request, state.translatedText != nil {
                     HStack(spacing: 8) {
-                        Text("Cihazında çevrildi").foregroundStyle(.secondary)
+                        Text("Cihazında çevrildi").foregroundStyle(LociTheme.secondaryText)
                         if allowsControls {
                             Button(state.showsOriginal ? String(localized: "Çeviriyi göster") : String(localized: "Orijinali göster")) {
                                 state.toggleOriginal()
@@ -93,15 +93,16 @@ private struct DeviceTranslatedPostText: View {
             HStack(spacing: 6) { ProgressView(); Text("Çevriliyor…") }.font(.caption)
         } else if readiness == .installed || readiness == .downloadable {
             Button { start(permitsDownload: true) } label: { Label("Çevir", systemImage: "translate") }
-                .font(.caption).accessibilityIdentifier("note-translate")
+                .font(.caption).padding(.vertical, 4).contentShape(Rectangle())
+                .accessibilityIdentifier("note-translate")
             if failed {
-                Text("Çeviri tamamlanamadı. Tekrar deneyebilirsin.").font(.caption).foregroundStyle(.secondary)
+                Text("Çeviri tamamlanamadı. Tekrar deneyebilirsin.").font(.caption).foregroundStyle(LociTheme.secondaryText)
             } else if readiness == .downloadable {
-                Text("Çeviri için dil paketi indirmen gerekebilir.").font(.caption).foregroundStyle(.secondary)
+                Text("Çeviri için dil paketi indirmen gerekebilir.").font(.caption).foregroundStyle(LociTheme.secondaryText)
             }
         } else if readiness == .unsupported {
             Text("Bu cihazda veya dilde çeviri kullanılamıyor.")
-                .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("note-translation-unavailable")
+                .font(.caption).foregroundStyle(LociTheme.secondaryText).accessibilityIdentifier("note-translation-unavailable")
         }
     }
 
@@ -111,6 +112,12 @@ private struct DeviceTranslatedPostText: View {
         state.reset(to: request)
         let generation = state.generation
         if request.isAlreadyInTargetLanguage { readiness = .sameLanguage; return }
+#if DEBUG
+        if UITestFixtures.translationUnavailableEnabled {
+            readiness = .unsupported
+            return
+        }
+#endif
 #if targetEnvironment(simulator)
         // Apple does not run Translation models in iOS simulators. Do not fake a translation.
         readiness = .unsupported

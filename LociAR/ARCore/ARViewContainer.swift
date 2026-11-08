@@ -50,13 +50,13 @@ struct ARCameraBackdrop: View {
             VStack(spacing: 14) {
                 Image(systemName: failed ? "exclamationmark.triangle.fill" : "camera.aperture")
                     .font(.system(size: 38, weight: .semibold))
-                    .foregroundStyle(failed ? Color.orange : LociTheme.accent)
+                    .foregroundStyle(failed ? LociTheme.warning : LociTheme.accent)
                     .symbolEffect(.pulse, isActive: !failed)
                 Text(failed ? String(localized: "Kamera görüntüsü alınamadı") : String(localized: "Canlı kamera hazırlanıyor"))
                     .font(.headline)
                 Text(message.localizedUI)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LociTheme.secondaryText)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 280)
                 if !failed { ProgressView().tint(LociTheme.accent) }

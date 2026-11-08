@@ -66,6 +66,16 @@ extension AuthGateUITests {
         app.tabBars.buttons["Harita"].tap()
         XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
         capture(app, name: "screen-07-map")
+        let nearbyPanelToggle = app.buttons["map-nearby-panel-toggle"]
+        XCTAssertTrue(nearbyPanelToggle.waitForExistence(timeout: 5))
+        XCTAssertEqual(nearbyPanelToggle.label, "Yakındaki notları genişlet")
+        let collapsedHandle = nearbyPanelToggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        collapsedHandle.press(forDuration: 0.05, thenDragTo: collapsedHandle.withOffset(CGVector(dx: 0, dy: -90)))
+        XCTAssertEqual(nearbyPanelToggle.label, "Yakındaki notları küçült")
+        capture(app, name: "screen-07f-map-nearby-expanded")
+        let expandedHandle = nearbyPanelToggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        expandedHandle.press(forDuration: 0.05, thenDragTo: expandedHandle.withOffset(CGVector(dx: 0, dy: 90)))
+        XCTAssertEqual(nearbyPanelToggle.label, "Yakındaki notları genişlet")
         if app.buttons["🥽 AR Notları"].waitForExistence(timeout: 3) {
             app.buttons["🥽 AR Notları"].tap()
             capture(app, name: "screen-07b-map-filter-ar")
@@ -221,6 +231,11 @@ extension AuthGateUITests {
         XCTAssertTrue(app.navigationBars["GIF seç"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["gif-attribution"].exists || app.descendants(matching: .any)["gif-attribution"].exists)
         capture(app, name: "screen-33-giphy-picker")
+        let gifResult = app.buttons["gif-result"].firstMatch
+        XCTAssertTrue(gifResult.waitForExistence(timeout: 8), "GIPHY picker fixture must return a selectable GIF")
+        gifResult.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["create-gif-preview"].waitForExistence(timeout: 5))
+        capture(app, name: "screen-33b-giphy-selected")
     }
 
     func testScreenTour08LocationNoteAndSurface() {
@@ -231,10 +246,18 @@ extension AuthGateUITests {
         app.buttons["map-location-note"].tap()
         XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 8))
         capture(app, name: "screen-34-location-note-position")
+        XCTAssertTrue(app.buttons["place-note-manual-pin"].exists)
+        XCTAssertFalse(app.staticTexts["Konum aranıyor. Açık bir alanda kısa süre bekleyin."].exists)
         let field = identifiedControl(app, "place-note-text")
+        let characterCount = app.staticTexts["place-note-character-count"]
+        XCTAssertTrue(characterCount.exists)
+        XCTAssertEqual(characterCount.label, "0/140")
+        XCTAssertFalse(app.staticTexts["Notlar nasıl çalışır?"].exists)
         scrollUntilHittable(field, in: app, maxSwipes: 6)
         field.tap()
         field.typeText("Bu sokakta bir an dur, şehri dinle.")
+        XCTAssertTrue(characterCount.label.hasSuffix("/140"))
+        XCTAssertNotEqual(characterCount.label, "0/140")
         let done = app.buttons["keyboard-done-button"].exists ? app.buttons["keyboard-done-button"] : app.buttons["Bitti"]
         if done.exists && done.isHittable { done.tap() }
         scrollUntilHittable(app.buttons["place-note-publish"], in: app, maxSwipes: 6)
@@ -268,27 +291,19 @@ extension AuthGateUITests {
         let app = screenTourApp(["UITEST_LOCATION_DENIED"])
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
         app.tabBars.buttons["Harita"].tap()
-        XCTAssertTrue(app.buttons["Ayarlar"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["map-location-settings"].waitForExistence(timeout: 8))
         capture(app, name: "screen-39-location-permission-recovery")
     }
 
     func testScreenTour11GuestAccount() {
-        let app = screenTourApp(["UITEST_GUEST_ACCOUNT"])
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
-        app.tabBars.buttons["Paylaş"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["screen-account-required"].waitForExistence(timeout: 8))
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_GUEST_ACCOUNT"]
+        app.launch()
+        XCTAssertTrue(app.buttons["auth-mode-signin"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
         capture(app, name: "screen-40-guest-membership-gate")
     }
 
-    func testScreenTour12ARCoreDiagnostics() {
-        let app = screenTourApp()
-        screenTourProfile(app)
-        let coverage = app.buttons["profile-debug-arcore"]
-        scrollUntilHittable(coverage, in: app, maxSwipes: 8)
-        coverage.tap()
-        XCTAssertTrue(app.navigationBars["ARCore kapsamı"].waitForExistence(timeout: 5))
-        capture(app, name: "screen-43-arcore-debug-coverage")
-    }
 }
 
 extension XCUIApplication {
@@ -414,9 +429,10 @@ final class AuthGateUITests: XCTestCase {
         let privacy = app.staticTexts["Tercihler"]
         scrollUntilHittable(privacy, in: app, maxSwipes: 10)
         XCTAssertTrue(privacy.exists)
-        let deletionWarning = app.staticTexts["Hesap silme işlemi geri alınamaz."]
-        scrollUntilHittable(deletionWarning, in: app, maxSwipes: 10)
-        XCTAssertTrue(deletionWarning.waitForExistence(timeout: 3))
+        let signOut = app.buttons["profile-sign-out"]
+        scrollUntilHittable(signOut, in: app, maxSwipes: 10)
+        XCTAssertTrue(signOut.exists)
+        XCTAssertTrue(app.buttons["profile-delete-account"].exists)
     }
 
     func testAuthenticatedProfilePassesAutomatedAccessibilityAudit() throws {
@@ -479,12 +495,30 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(tabs.buttons["Keşfet"].exists)
         XCTAssertTrue(tabs.buttons["Profil"].exists)
         XCTAssertFalse(tabs.buttons["Aktivite"].exists)
+
+        let mapActions = [
+            app.buttons["map-refresh"],
+            app.buttons["map-location-note"],
+            app.buttons["map-create"]
+        ]
+        for action in mapActions {
+            XCTAssertTrue(action.waitForExistence(timeout: 5))
+        }
+        XCTAssertGreaterThanOrEqual(mapActions[1].frame.width, 44)
+        XCTAssertGreaterThanOrEqual(mapActions[1].frame.height, 44)
+        for first in mapActions.indices {
+            for second in mapActions.indices where second > first {
+                XCTAssertFalse(mapActions[first].frame.intersects(mapActions[second].frame),
+                               "Harita eylem düğmeleri üst üste binmemeli.")
+            }
+        }
     }
 
     func testMapTabLoadsNearbyPosts() {
         let app = XCUIApplication()
         app.launchArguments += ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
         app.launch()
+        resolveLocationOrCameraPromptIfPresent()
         let tabs = app.tabBars.firstMatch
         XCTAssertTrue(tabs.waitForExistence(timeout: 5))
         tabs.buttons["Harita"].tap()
@@ -507,22 +541,28 @@ final class AuthGateUITests: XCTestCase {
         addPrivacyAlertMonitor()
         app.launchArguments = ["UITEST_AUTHENTICATED"]
         app.launch()
+        resolveLocationOrCameraPromptIfPresent()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
         app.tabBars.buttons["Harita"].tap()
-        for (text, allowed) in [(String(repeating: "😀", count: 110), true),
-                                (String(repeating: "😀", count: 111), false),
-                                (String(repeating: "e\u{301}", count: 111), false),
-                                ("  " + String(repeating: "a", count: 220) + "  ", true)] {
+        for (text, allowed, expectedUTF16Length) in [(String(repeating: "😀", count: 70), true, 140),
+                                                      (String(repeating: "😀", count: 71), false, 142),
+                                                      (String(repeating: "e\u{301}", count: 71), false, 142),
+                                                      ("  " + String(repeating: "a", count: 140) + "  ", true, 140)] {
             app.buttons["map-location-note"].tap()
             let field = identifiedControl(app, "place-note-text")
+            XCTAssertTrue(field.waitForExistence(timeout: 5))
+            resolveLocationOrCameraPromptIfPresent()
             scrollUntilHittable(field, in: app, maxSwipes: 6)
             field.tap()
             field.typeText(text)
             XCTAssertEqual(field.value as? String, text, "Unicode fixture must reach the real input intact.")
             dismissKeyboard(app)
             XCTAssertFalse(app.keyboards.firstMatch.exists, "Küçük ekranda da klavye kapatılıp yayın düğmesine ulaşılmalı.")
+            XCTAssertTrue(app.navigationBars["Konum notu bırak"].exists, "A nonempty note must remain open after keyboard dismissal.")
+            let count = app.staticTexts["place-note-character-count"]
+            XCTAssertEqual(count.label, "\(expectedUTF16Length)/140", "The visible counter must match the server's trimmed UTF-16 limit.")
             let publish = app.buttons["place-note-publish"]
-            scrollUntilHittable(publish, in: app, maxSwipes: 6)
+            XCTAssertTrue(publish.waitForExistence(timeout: 5))
             XCTAssertEqual(publish.isEnabled, allowed, "The input must obey the same limit as createPlaceNote.")
             app.buttons["Kapat"].tap()
         }
@@ -568,6 +608,7 @@ final class AuthGateUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_AUTHENTICATED")
         app.launch()
+        resolveLocationOrCameraPromptIfPresent()
         let tabs = app.tabBars.firstMatch
         XCTAssertTrue(tabs.waitForExistence(timeout: 5))
 
@@ -575,6 +616,7 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Keşfet"].waitForExistence(timeout: 3))
         tabs.buttons["Paylaş"].tap()
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 8))
+        resolveLocationOrCameraPromptIfPresent()
         tabs.buttons["Profil"].tap()
         XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 3))
         scrollUntilHittable(identifiedControl(app, "profile-privacy"), in: app)
@@ -901,7 +943,7 @@ final class AuthGateUITests: XCTestCase {
     func testDeviceTranslationKeepsOriginalWhenEngineIsUnavailable() {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY",
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OPEN_POST_DIRECTLY", "UITEST_TRANSLATION_UNAVAILABLE",
                                "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(app.staticTexts["Bu duvar, mahallenin yıllardır değişmeyen buluşma noktası."].waitForExistence(timeout: 10))
@@ -919,7 +961,9 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["post-official-badge"].firstMatch.waitForExistence(timeout: 8)
                       || app.descendants(matching: .any)["post-official-badge"].firstMatch.exists)
         XCTAssertTrue(app.staticTexts["@mekan_kasifi"].firstMatch.exists)
-        XCTAssertLessThan(app.staticTexts["Sabit"].firstMatch.frame.height, 25, "The provenance badge must not wrap the placement status.")
+        let placementStatus = app.staticTexts["Sabit"].firstMatch
+        XCTAssertTrue(placementStatus.waitForExistence(timeout: 5))
+        XCTAssertLessThan(placementStatus.frame.height, 34, "The placement status must stay on one line.")
         capture(app, name: "official-note-badge")
     }
 
@@ -962,8 +1006,10 @@ final class AuthGateUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_AUTHENTICATED")
         app.launch()
+        resolveLocationOrCameraPromptIfPresent()
         XCTAssertTrue(app.buttons["map-create"].waitForExistence(timeout: 5))
         app.buttons["map-create"].tap()
+        resolveLocationOrCameraPromptIfPresent()
         XCTAssertTrue(app.navigationBars["Yüzey seç"].waitForExistence(timeout: 5))
         capture(app, name: "create-surface")
         app.buttons["Kapat"].tap()

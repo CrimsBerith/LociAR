@@ -51,6 +51,13 @@ final class CampaignRegionPolicyTests: XCTestCase {
 }
 
 final class BackendAndPolicyTests: XCTestCase {
+    func testPostCaptionLimitUsesUTF16CodeUnits() {
+        XCTAssertEqual(PostContentPolicy.maxCaptionUTF16Length, 140)
+        XCTAssertEqual(String(repeating: "😀", count: 70).utf16.count, PostContentPolicy.maxCaptionUTF16Length)
+        XCTAssertEqual(String(repeating: "e\u{301}", count: 70).utf16.count, PostContentPolicy.maxCaptionUTF16Length)
+        XCTAssertEqual(String(repeating: "a", count: 141).utf16.count, PostContentPolicy.maxCaptionUTF16Length + 1)
+    }
+
     func testV2AnchorEncoderPreservesLegacyTopLevelShape() throws {
         let anchor = SurfaceAnchor(
             transform: Array(repeating: 0, count: 16), pinQuality: .estimatedPlane,
@@ -496,7 +503,7 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "content_not_allowed"),
                        String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene."))
         XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "invalid_caption"),
-                       String(localized: "Caption boş olamaz ve 220 karakteri geçemez."))
+                       String(localized: "Caption boş olamaz ve 140 karakteri geçemez."))
         XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "location_inaccurate"),
                        String(localized: "Konum doğruluğu yayın için yeterli değil. Açık bir alanda tekrar deneyin."))
         // Older servers still answer with the social-link wording.
@@ -546,6 +553,39 @@ final class BackendAndPolicyTests: XCTestCase {
         }
         XCTAssertNil(AvatarReference.presetURL("https://example.org/a.jpg"))
         XCTAssertNil(AvatarReference.presetName(URL(string: "https://example.org/a.jpg")))
+    }
+
+    func testAvatarReferenceResolvesAdminWebAndStorageAndPresetURLs() async {
+        let httpsURL = "https://firebasestorage.googleapis.com/v0/b/lociar.appspot.com/o/admin_avatar.jpg?alt=media"
+        let resolvedHttps = await AvatarReference.resolve(avatarURL: httpsURL, preset: nil)
+        XCTAssertEqual(resolvedHttps?.absoluteString, httpsURL)
+
+        let storageURL = "storage://avatars/00000000-0000-0000-0000-000000000001/current/avatar.jpg"
+        let resolvedStorage = await AvatarReference.resolve(avatarURL: storageURL, preset: nil)
+        XCTAssertEqual(resolvedStorage?.absoluteString, storageURL)
+
+        let presetDirect = await AvatarReference.resolve(avatarURL: "cat", preset: nil)
+        XCTAssertEqual(presetDirect, AvatarReference.presetURL("cat"))
+
+        let presetScheme = await AvatarReference.resolve(avatarURL: "avatar-preset:dog", preset: nil)
+        XCTAssertEqual(presetScheme, AvatarReference.presetURL("dog"))
+
+        let presetParam = await AvatarReference.resolve(avatarURL: nil, preset: "star")
+        XCTAssertEqual(presetParam, AvatarReference.presetURL("star"))
+
+        let invalid = await AvatarReference.resolve(avatarURL: "invalid://scheme/test", preset: nil)
+        XCTAssertNil(invalid)
+    }
+
+    func testLociUserCarriesAndEncodesBio() throws {
+        var user = LociUser(id: UUID(), handle: "admin_user", avatarURL: URL(string: "https://example.com/avatar.jpg"), email: "admin@loci.app")
+        XCTAssertNil(user.bio)
+        user.bio = "Official LociAR Administrator Account"
+        let data = try JSONEncoder().encode(user)
+        let decoded = try JSONDecoder().decode(LociUser.self, from: data)
+        XCTAssertEqual(decoded.bio, "Official LociAR Administrator Account")
+        XCTAssertEqual(decoded.handle, "admin_user")
+        XCTAssertEqual(decoded.avatarURL?.absoluteString, "https://example.com/avatar.jpg")
     }
 
     // gRPC status codes used by FunctionsErrorCode: invalidArgument 3, notFound 5, alreadyExists 6,
@@ -1149,5 +1189,28 @@ final class AdminContentDecodingTests: XCTestCase {
         let page = try FirestoreJSON.decoder().decode(BackendPostPageResponse.self, from: JSONSerialization.data(withJSONObject: pageJSON))
         XCTAssertEqual(page.posts.map(\.id), [postID])
         XCTAssertEqual(page.next, "raw-page-cursor", "A discarded row must not stop pagination")
+    }
+
+    func testAdminManagedPostDecodesAvatarAndOfficialBadge() throws {
+        let postID = UUID(), authorID = UUID()
+        let geo: [String: Any] = ["latitude": 41.0, "longitude": 29.0, "altitude": 0, "heading": 0]
+        let row: [String: Any] = [
+            "id": postID.uuidString, "creator_id": authorID.uuidString, "creator_handle": "admin_team",
+            "creator_avatar_url": "https://example.com/admin_avatar.png",
+            "created_at": "2026-10-05T00:00:00.123Z", "pose": geo, "caption": "Official Announcement",
+            "status": "active", "visibility": "public", "age_rating": "all",
+            "admin_managed": true,
+            "anchor_bundle": ["schemaVersion": 2, "provider": "admin", "coordinateSpace": "admin_geo_estimate", "anchor": [
+                "id": UUID().uuidString, "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -1.5, 1],
+                "pinQuality": "freeSpaceApproximate", "hitSource": "frontOfCamera", "surfaceAlignment": "free_space",
+                "trackingQuality": "unknown", "worldMappingStatus": "notAvailable", "geoPose": geo,
+                "physicalRectMeters": ["width": 0.45, "height": 0.51], "capturedAt": "2026-10-05T00:00:00Z"
+            ]],
+            "edit_data": ["version": 1, "canvas": ["width": 1080, "height": 1920], "layers": []]
+        ]
+        let post = try FirestoreJSON.decoder().decode(BackendPostRow.self, from: JSONSerialization.data(withJSONObject: row)).domainPost()
+        XCTAssertTrue(post.isOfficialContent)
+        XCTAssertEqual(post.creatorAvatarURL?.absoluteString, "https://example.com/admin_avatar.png")
+        XCTAssertEqual(post.creatorHandle, "admin_team")
     }
 }

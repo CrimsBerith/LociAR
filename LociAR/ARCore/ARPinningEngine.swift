@@ -4,6 +4,7 @@ import CoreVideo
 import Foundation
 import Observation
 import OSLog
+import QuartzCore
 @preconcurrency import RealityKit
 import UIKit
 
@@ -56,6 +57,7 @@ final class ARPinningEngine: NSObject {
         return view
     }
     @ObservationIgnored private var trackedRaycast: ARTrackedRaycast?
+    @ObservationIgnored private var raycastThrottler: TrackedRaycastThrottler?
     @ObservationIgnored private var latestEstimatedResult: ARRaycastResult?
     @ObservationIgnored private var candidateSamples: [CandidateSample] = []
     @ObservationIgnored private var lastCandidateProbeDate: Date?
@@ -181,7 +183,10 @@ final class ARPinningEngine: NSObject {
         observeLifecycle()
     }
 
-    deinit { notificationTokens.forEach(NotificationCenter.default.removeObserver) }
+    deinit {
+        trackedRaycast?.stopTracking()
+        notificationTokens.forEach(NotificationCenter.default.removeObserver)
+    }
 
     @discardableResult
     func requestCameraAndStart() async -> UUID? {
@@ -348,6 +353,12 @@ final class ARPinningEngine: NSObject {
     }
 #endif
 
+    private func stopTrackedRaycast() {
+        trackedRaycast?.stopTracking()
+        trackedRaycast = nil
+        raycastThrottler = nil
+    }
+
     func startSession(reset: Bool = false) {
         sessionGeneration = UUID()
 #if targetEnvironment(simulator)
@@ -361,8 +372,7 @@ final class ARPinningEngine: NSObject {
         transition(to: .initializing, message: String(localized: "Kamera hazırlanıyor…"))
         hasRecentCameraFrame = false
         lastFrameReceivedAt = nil
-        trackedRaycast?.stopTracking()
-        trackedRaycast = nil
+        stopTrackedRaycast()
         let configuration = makeConfiguration()
         let options: ARSession.RunOptions = reset ? [.resetTracking, .removeExistingAnchors] : []
         sessionStartedAt = Date()
@@ -402,8 +412,7 @@ final class ARPinningEngine: NSObject {
         cameraOwnerGeneration = UUID()
         contentRenderGeneration = UUID()
         renderedPostID = nil
-        trackedRaycast?.stopTracking()
-        trackedRaycast = nil
+        stopTrackedRaycast()
         videoPlayers.values.forEach { $0.pause() }
         videoPlayers.removeAll()
         gifLoopers.removeAll()
@@ -758,8 +767,7 @@ final class ARPinningEngine: NSObject {
         clearPlacedAnchors()
         currentAnchor = expectedAnchor
         activeInitialWorldMap = worldMap
-        trackedRaycast?.stopTracking()
-        trackedRaycast = nil
+        stopTrackedRaycast()
         let configuration = makeConfiguration()
         configuration.initialWorldMap = worldMap
         isRelocalizedContentVisible = false
@@ -1024,13 +1032,13 @@ final class ARPinningEngine: NSObject {
             }
         })
         notificationTokens.append(center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self, self.state == .interrupted, !self.pausedForThermalPressure else { return }
                 self.resumeInterruptedSession()
             }
         })
         notificationTokens.append(center.addObserver(forName: ProcessInfo.thermalStateDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 if ProcessInfo.processInfo.thermalState == .critical {
                     // Nothing to pause (and nothing to resume later) when AR is not running.
@@ -1083,9 +1091,12 @@ final class ARPinningEngine: NSObject {
             return
         }
         let generation = sessionGeneration
-        trackedRaycast = arView.session.trackedRaycast(query) { [weak self] results in
-            guard let result = results.first else { return }
-            Task { @MainActor in
+        let throttler = TrackedRaycastThrottler()
+        self.raycastThrottler = throttler
+        trackedRaycast = arView.session.trackedRaycast(query) { [weak self, weak throttler] results in
+            guard let result = results.first, let throttler, throttler.shouldDispatch() else { return }
+            Task { @MainActor [weak self] in
+                defer { throttler.didFinish() }
                 guard let self, self.sessionGeneration == generation else { return }
                 self.acceptCandidate(result)
             }
@@ -1106,7 +1117,10 @@ final class ARPinningEngine: NSObject {
     }
 
     private func acceptCandidate(_ result: ARRaycastResult) {
-        guard currentAnchor == nil else { return }
+        guard currentAnchor == nil else {
+            stopTrackedRaycast()
+            return
+        }
         switch state {
         case .placed, .mapping, .publishReady, .resolved, .relocalizing, .idle, .failed, .interrupted:
             return
@@ -1188,8 +1202,7 @@ final class ARPinningEngine: NSObject {
         id: UUID = UUID(),
         captureGeoPose: Bool = true
     ) {
-        trackedRaycast?.stopTracking()
-        trackedRaycast = nil
+        stopTrackedRaycast()
         clearPlacedAnchors()
         let anchor = ARAnchor(name: anchorName(for: id), transform: transform)
         arView.session.add(anchor: anchor)
@@ -1296,6 +1309,7 @@ final class ARPinningEngine: NSObject {
             return
         }
         state = next
+        if next == .failed || next == .idle || next == .interrupted { stopTrackedRaycast() }
         if next != .failed { failureReason = nil }
         statusMessage = message
         logger.info("AR state=\(next.rawValue, privacy: .public) tracking=\(self.trackingQuality.rawValue, privacy: .public) mapping=\(self.mappingQuality.rawValue, privacy: .public) message=\(message, privacy: .public)")
@@ -1426,6 +1440,29 @@ final class ARPinningEngine: NSObject {
 private struct SendableWorldMap: @unchecked Sendable { let map: ARWorldMap }
 /// ARFrame is not Sendable; it is handed to the main actor once and not retained there.
 private struct SendableARFrame: @unchecked Sendable { let frame: ARFrame }
+private final class TrackedRaycastThrottler: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isDispatching = false
+    private var lastDispatchTime: TimeInterval = 0
+    private let minimumInterval: TimeInterval = 0.05
+
+    func shouldDispatch() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let now = CACurrentMediaTime()
+        guard !isDispatching, (now - lastDispatchTime) >= minimumInterval else { return false }
+        isDispatching = true
+        lastDispatchTime = now
+        return true
+    }
+
+    func didFinish() {
+        lock.lock()
+        defer { lock.unlock() }
+        isDispatching = false
+    }
+}
+
 private final class WeakARViewHost {
     weak var view: UIView?
     init(_ view: UIView) { self.view = view }

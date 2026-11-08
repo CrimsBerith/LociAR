@@ -286,7 +286,7 @@ struct MapNoteGroupSheet: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                LazyVStack(alignment: .leading, spacing: LociTheme.Spacing.l) {
                     Text("En çok beğenilenler")
                         .font(.subheadline).foregroundStyle(LociTheme.secondaryText)
                     if !isNear || posts.contains(where: \.isLocked) {
@@ -297,21 +297,22 @@ struct MapNoteGroupSheet: View {
                     if isLoading && posts.isEmpty { ProgressView().frame(maxWidth: .infinity) }
                     ForEach(readablePosts) { post in
                         NavigationLink(value: post) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: LociTheme.Spacing.m) {
                                 if post.isLocationNote {
                                     Label("Konum", systemImage: "mappin.and.ellipse")
                                         .font(.caption2.weight(.bold))
-                                        .foregroundStyle(.cyan)
-                                        .padding(.horizontal, 6).padding(.vertical, 3)
-                                        .background(Color.cyan.opacity(0.15), in: Capsule())
+                                        .foregroundStyle(LociTheme.mapLocation)
+                                        .padding(.horizontal, LociTheme.Spacing.s)
+                                        .padding(.vertical, LociTheme.Spacing.xs)
+                                        .background(LociTheme.mapLocation.opacity(0.15), in: Capsule())
                                 } else {
                                     Label("AR", systemImage: "viewfinder")
                                         .font(.caption2.weight(.bold))
-                                        .foregroundStyle(LociTheme.accent)
-                                        .padding(.horizontal, 6).padding(.vertical, 3)
-                                        .background(LociTheme.accent.opacity(0.15), in: Capsule())
+                                        .foregroundStyle(LociTheme.mapAR)
+                                        .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xs)
+                                        .background(LociTheme.mapAR.opacity(0.15), in: Capsule())
                                 }
-                                TranslatedPostText(text: post.caption, lineLimit: 3).font(.body).foregroundStyle(.white)
+                                TranslatedPostText(text: post.caption, lineLimit: 3).font(LociTheme.Typography.body).foregroundStyle(LociTheme.textPrimary)
                                     .multilineTextAlignment(.leading)
                                 Spacer(minLength: 8)
                                 if post.isOfficialContent { OfficialContentBadge() }
@@ -319,8 +320,8 @@ struct MapNoteGroupSheet: View {
                                     .font(.caption).foregroundStyle(LociTheme.secondaryText)
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(LociTheme.tertiaryText)
                             }
-                            .padding(16).frame(minHeight: 56)
-                            .background(LociTheme.surfaceStrong, in: RoundedRectangle(cornerRadius: 16))
+                            .padding(LociTheme.Spacing.l).frame(minHeight: 56)
+                            .background(LociTheme.surfaceStrong, in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous))
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("map-group-post-\(post.id)")
@@ -335,7 +336,7 @@ struct MapNoteGroupSheet: View {
                         Button("Daha fazla göster") { Task { await load(reset: false) } }
                             .buttonStyle(LociSecondaryButtonStyle()).disabled(isLoading)
                     }
-                }.padding(20)
+                }.padding(LociTheme.Spacing.xl2)
             }
             .background(LociTheme.background)
             .navigationTitle(Text("\(noteCount) not"))
@@ -534,7 +535,7 @@ struct NoteHeatGlow: View {
                          lineWidth: contrast == .increased ? 1.5 : 0.7)
         }
         .frame(width: size, height: size * 0.88)
-        .shadow(color: tint.opacity(0.10), radius: 8, y: 2)
+        .shadow(color: tint.opacity(0.10), radius: LociTheme.Depth.smallRadius * 2, y: LociTheme.Spacing.xxs)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.4), value: intensity)
     }
 }
@@ -548,36 +549,35 @@ struct NoteDensityBadge: View {
     var body: some View {
         let tint = NoteHeatPalette.color(intensity)
         let noteCount = count
-        HStack(spacing: 6) {
+        HStack(spacing: LociTheme.Spacing.xs) {
             Circle().fill(tint).frame(width: 5, height: 5)
             Text("\(noteCount) not")
                 .font(.subheadline.weight(.semibold))
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(LociTheme.textPrimary)
                 .contentTransition(.numericText(value: Double(count)))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 12)
-        .frame(minWidth: 44, minHeight: 44)
+        .padding(.horizontal, LociTheme.Spacing.m)
+        .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
         .background(LociTheme.surfaceStrong, in: Capsule())
-        .overlay(Capsule().strokeBorder(tint.opacity(0.32), lineWidth: 1))
-        .shadow(color: .black.opacity(0.16), radius: 6, y: 3)
+        .overlay(Capsule().strokeBorder(tint.opacity(0.32), lineWidth: LociTheme.Stroke.hairline))
+        .shadow(color: .black.opacity(0.16), radius: LociTheme.Depth.smallRadius + LociTheme.Spacing.xxs, y: LociTheme.Spacing.xs)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: count)
     }
 }
 
 struct NoteHeatLegend: View {
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: LociTheme.Spacing.s) {
             Text("Not yoğunluğu").font(.caption2.weight(.medium))
             LinearGradient(colors: [NoteHeatPalette.color(0), NoteHeatPalette.color(0.55), NoteHeatPalette.color(1)],
                            startPoint: .leading, endPoint: .trailing)
                 .frame(width: 64, height: 4).clipShape(Capsule())
             Text(verbatim: "\(1.formatted())–\(100.formatted())+").font(.caption2.monospacedDigit())
         }
-        .foregroundStyle(.white.opacity(0.85))
-        .padding(.horizontal, 10).padding(.vertical, 8)
+        .foregroundStyle(LociTheme.textPrimary)
+        .padding(.horizontal, LociTheme.Spacing.m).padding(.vertical, LociTheme.Spacing.s)
         .background(LociTheme.surfaceStrong, in: Capsule())
         .accessibilityElement(children: .combine)
         .allowsHitTesting(false)

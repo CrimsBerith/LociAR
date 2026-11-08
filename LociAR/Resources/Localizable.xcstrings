@@ -506,6 +506,84 @@
         }
       }
     },
+    "%lld/300" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/300"
+          }
+        }
+      },
+      "comment" : "A text field that shows the number of characters in the user's biography."
+    },
     "1 yayın var. Dokun, sonra nokta atışı yönlendirme başlar." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3971,6 +4049,83 @@
         }
       }
     },
+    "Aydınlık" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aydınlık"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hell"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clair"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claro"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Светлая"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فاتح"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हल्का"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হালকা"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライト"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浅色"
+          }
+        }
+      }
+    },
     "Açık" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7282,79 +7437,79 @@
         }
       }
     },
-    "Bu konum için notun" : {
+    "Bu konum için bir not yaz, en fazla 140 karakter." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bu konum için notun"
+            "value" : "Bu konum için bir not yaz, en fazla 140 karakter."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your note for this spot"
+            "value" : "Write a note for this location, up to 140 characters."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Notiz für diesen Ort"
+            "value" : "Schreibe eine Notiz für diesen Ort, bis zu 140 Zeichen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu nota para este lugar"
+            "value" : "Escribe una nota para este lugar, hasta 140 caracteres."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ta note pour cet endroit"
+            "value" : "Écris une note pour cet endroit, jusqu’à 140 caractères."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sua nota para este local"
+            "value" : "Escreva uma nota para este local, até 140 caracteres."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ваша заметка для этого места"
+            "value" : "Напишите заметку для этого места (до 140 символов)."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ملاحظتك لهذا المكان"
+            "value" : "اكتب ملاحظة لهذا الموقع، بحد أقصى 140 حرفًا."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "इस जगह के लिए आपका नोट"
+            "value" : "इस जगह के लिए 140 अक्षरों तक का नोट लिखें।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "এই জায়গার জন্য আপনার নোট"
+            "value" : "এই স্থানের জন্য সর্বোচ্চ ১৪০ অক্ষরের একটি নোট লিখুন।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この場所へのメモ"
+            "value" : "この場所について140文字以内でメモを入力"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你对这个地点的笔记"
+            "value" : "为此地点写一条便笺，最多 140 个字符。"
           }
         }
       }
@@ -9806,79 +9961,79 @@
         }
       }
     },
-    "Caption boş olamaz ve 220 karakteri geçemez." : {
+    "Caption boş olamaz ve 140 karakteri geçemez." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Caption boş olamaz ve 220 karakteri geçemez."
+            "value" : "Caption boş olamaz ve 140 karakteri geçemez."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A caption is required and must not exceed 220 characters."
+            "value" : "A caption is required and must not exceed 140 characters."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine Beschreibung ist erforderlich und darf 220 Zeichen nicht überschreiten."
+            "value" : "Eine Beschreibung ist erforderlich und darf 140 Zeichen nicht überschreiten."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La descripción es obligatoria y no puede superar los 220 caracteres."
+            "value" : "La descripción es obligatoria y no puede superar los 140 caracteres."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une légende est obligatoire et ne doit pas dépasser 220 caractères."
+            "value" : "Une légende est obligatoire et ne doit pas dépasser 140 caractères."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uma legenda é obrigatória e não deve exceder 220 caracteres."
+            "value" : "Uma legenda é obrigatória e não deve exceder 140 caracteres."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Подпись обязательна и не должна превышать 220 символов."
+            "value" : "Подпись обязательна и не должна превышать 140 символов."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الوصف مطلوب ويجب ألا يتجاوز 220 حرفًا."
+            "value" : "الوصف مطلوب ويجب ألا يتجاوز 140 حرفًا."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "एक कैप्शन आवश्यक है और 220 अक्षरों से अधिक नहीं होना चाहिए।"
+            "value" : "कैप्शन आवश्यक है और 140 अक्षरों से अधिक नहीं होना चाहिए।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "একটি ক্যাপশন প্রয়োজন এবং 220 অক্ষরের বেশি হওয়া উচিত নয়৷"
+            "value" : "একটি ক্যাপশন প্রয়োজন এবং ১৪০ অক্ষরের বেশি হওয়া উচিত নয়৷"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "キャプションは必須であり、220 文字を超えてはなりません。"
+            "value" : "キャプションは必須であり、140 文字を超えてはなりません。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请填写说明，且不得超过 220 个字符。"
+            "value" : "请填写说明，且不得超过 140 个字符。"
           }
         }
       }
@@ -13810,156 +13965,79 @@
         }
       }
     },
-    "En fazla 220 karakter yazabilirsin." : {
+    "En fazla 140 karakter yazabilirsin." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En fazla 220 karakter yazabilirsin."
+            "value" : "En fazla 140 karakter yazabilirsin."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Up to 220 characters."
+            "value" : "Up to 140 characters."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bis zu 220 Zeichen."
+            "value" : "Bis zu 140 Zeichen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hasta 220 caracteres."
+            "value" : "Hasta 140 caracteres."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "220 caractères maximum."
+            "value" : "140 caractères maximum."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Até 220 caracteres."
+            "value" : "Até 140 caracteres."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "До 220 символов."
+            "value" : "До 140 символов."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حتى 220 حرفًا."
+            "value" : "حتى 140 حرفًا."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "अधिकतम 220 अक्षर।"
+            "value" : "अधिकतम 140 अक्षर।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "সর্বোচ্চ 220 অক্ষর।"
+            "value" : "সর্বোচ্চ ১৪০ অক্ষর।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "220文字まで。"
+            "value" : "140文字まで。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最多220个字符。"
-          }
-        }
-      }
-    },
-    "En fazla 220 karakter." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En fazla 220 karakter."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Up to 220 characters."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bis zu 220 Zeichen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hasta 220 caracteres."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "220 caractères maximum."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Até 220 caracteres."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "До 220 символов."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "حتى 220 حرفًا."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "अधिकतम 220 अक्षर।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "সর্বোচ্চ 220 অক্ষর।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "220文字まで。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最多220个字符。"
+            "value" : "最多 140 个字符。"
           }
         }
       }
@@ -17814,6 +17892,83 @@
         }
       }
     },
+    "Görünüm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görünüm"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erscheinungsbild"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apariencia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apparence"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aparência"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оформление"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المظهر"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रूप-रंग"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "চেহারা"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外観"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外观"
+          }
+        }
+      }
+    },
     "Güvenlik için hesabı silmeden önce yeniden doğrulama gerekiyor." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17890,6 +18045,161 @@
           }
         }
       }
+    },
+    "Güvenlik kontrollerini geçen notlar hemen görünür; yönetici onayı gerekmez. Otomatik güvenlik sistemleri çalışır ve şikâyet edilen notlar gizlenebilir veya kaldırılabilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Güvenlik kontrollerini geçen notlar hemen görünür; yönetici onayı gerekmez. Otomatik güvenlik sistemleri çalışır ve şikâyet edilen notlar gizlenebilir veya kaldırılabilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes that pass safety checks appear immediately; no admin approval is needed. Automated safety systems remain active, and reported notes may be hidden or removed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizen, die die Sicherheitsprüfungen bestehen, sind sofort sichtbar; eine Admin-Freigabe ist nicht nötig. Automatische Sicherheitsprüfungen bleiben aktiv, und gemeldete Notizen können ausgeblendet oder entfernt werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las notas que superan las comprobaciones de seguridad aparecen al instante; no necesitan aprobación administrativa. Los sistemas automáticos de seguridad siguen activos y las notas denunciadas pueden ocultarse o eliminarse."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les notes qui passent les contrôles de sécurité apparaissent immédiatement, sans validation par un administrateur. Les systèmes automatiques restent actifs et les notes signalées peuvent être masquées ou supprimées."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As notas aprovadas nas verificações de segurança aparecem imediatamente, sem aprovação de um administrador. Os sistemas automáticos continuam ativos, e notas denunciadas podem ser ocultadas ou removidas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заметки, прошедшие проверку безопасности, сразу становятся видны — одобрение администратора не требуется. Автоматические проверки продолжают работать, а на заметки можно пожаловаться, после чего они могут быть скрыты или удалены."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تظهر الملاحظات التي تجتاز فحوصات الأمان فورًا دون موافقة المسؤول. تظل أنظمة الأمان التلقائية نشطة، وقد تُخفى الملاحظات المُبلّغ عنها أو تُزال."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सुरक्षा जाँच पास करने वाले नोट तुरंत दिखाई देते हैं; व्यवस्थापक की मंज़ूरी ज़रूरी नहीं है। स्वचालित सुरक्षा प्रणालियाँ सक्रिय रहती हैं, और रिपोर्ट किए गए नोट छिपाए या हटाए जा सकते हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিরাপত্তা যাচাইয়ে উত্তীর্ণ নোট সঙ্গে সঙ্গে দেখা যায়; প্রশাসকের অনুমোদন লাগে না। স্বয়ংক্রিয় নিরাপত্তা ব্যবস্থা সক্রিয় থাকে, এবং রিপোর্ট করা নোট লুকানো বা সরানো হতে পারে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全確認を通過したノートは管理者の承認を待たずにすぐ表示されます。自動安全対策は引き続き機能し、報告されたノートは非表示または削除される場合があります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过安全检查的笔记会立即显示，无需管理员审核。自动安全机制仍会运行，被举报的笔记可能会被隐藏或移除。"
+          }
+        }
+      }
+    },
+    "Hakkında" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakkında"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über mich"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre mí"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À propos"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre mim"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "О себе"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نبذة عني"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मेरे बारे में"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আমার সম্পর্কে"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自己紹介"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于我"
+          }
+        }
+      },
+      "comment" : "A label displayed above the user's biography."
     },
     "Halkayı duvar veya masaya yönelt." : {
       "extractionState" : "manual",
@@ -21664,6 +21974,83 @@
         }
       }
     },
+    "Karanlık" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karanlık"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dunkel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oscuro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sombre"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escuro"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тёмная"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "داكن"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "गहरा"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গাঢ়"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダーク"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深色"
+          }
+        }
+      }
+    },
     "Kartlar, Apple Pay ve diğer uygun yöntemler ödeme sayfasında gösterilir." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23434,6 +23821,84 @@
           }
         }
       }
+    },
+    "Kendinden kısaca bahset..." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kendinden kısaca bahset..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tell people a little about yourself..."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erzähl kurz etwas über dich..."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuéntanos un poco sobre ti..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parle un peu de toi..."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fale um pouco sobre você..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расскажите немного о себе..."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اكتب نبذة قصيرة عن نفسك..."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपने बारे में थोड़ा बताएं..."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিজের সম্পর্কে একটু বলুন..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自己紹介を書いてください..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简单介绍一下自己..."
+          }
+        }
+      },
+      "comment" : "A placeholder text for the user's bio."
     },
     "Kesin yüzey hazır" : {
       "extractionState" : "manual",
@@ -37834,6 +38299,83 @@
         }
       }
     },
+    "Sistem" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistem"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistema"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Système"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistema"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Системная"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "النظام"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिस्टम"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সিস্টেম"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统"
+          }
+        }
+      }
+    },
     "Sola dön" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -43070,6 +43612,160 @@
         }
       }
     },
+    "Yakındaki notları genişlet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yakındaki notları genişlet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand nearby notes"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nahe Notizen ausklappen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ampliar notas cercanas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Développer les notes à proximité"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expandir notas próximas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Развернуть заметки поблизости"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "توسيع الملاحظات القريبة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आस-पास के नोट विस्तार से दिखाएँ"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কাছাকাছি নোট বিস্তৃত করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近くのノートを展開する"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "展开附近笔记"
+          }
+        }
+      }
+    },
+    "Yakındaki notları küçült" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yakındaki notları küçült"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse nearby notes"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nahe Notizen einklappen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraer notas cercanas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réduire les notes à proximité"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recolher notas próximas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свернуть заметки поблизости"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصغير الملاحظات القريبة"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आस-पास के नोट संक्षिप्त करें"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কাছাকাছি নোট সংকুচিত করুন"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近くのノートを折りたたむ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起附近笔记"
+          }
+        }
+      }
+    },
     "Yakınındaki notları keşfet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -45684,83 +46380,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安置准备就绪"
-          }
-        }
-      }
-    },
-    "Yeterince beğenilen notlar, o konuma gelen ziyaretçilere bir kez bildirilir. Şikâyet edilen notlar gizlenir." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yeterince beğenilen notlar, o konuma gelen ziyaretçilere bir kez bildirilir. Şikâyet edilen notlar gizlenir."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notes with enough likes are announced once to visitors who reach that location. Reported notes are hidden."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notizen mit genügend Likes werden Besuchern am Standort einmal gemeldet. Gemeldete Notizen werden ausgeblendet."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Las notas con suficientes Me gusta se anuncian una vez a los visitantes que llegan a ese lugar. Las notas denunciadas se ocultan."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les notes ayant assez de mentions J’aime sont annoncées une fois aux visiteurs arrivant sur place. Les notes signalées sont masquées."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notas com curtidas suficientes são anunciadas uma vez aos visitantes que chegam ao local. Notas denunciadas são ocultadas."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "О заметках с достаточным числом лайков посетители на месте уведомляются один раз. Заметки с жалобами скрываются."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يُخطر الزوار مرة واحدة بالملاحظات التي تنال إعجابات كافية عند وصولهم إلى الموقع. تُخفى الملاحظات المُبلّغ عنها."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "काफ़ी लाइक वाले नोटों की सूचना वहाँ पहुँचने वाले आगंतुकों को एक बार दी जाती है। रिपोर्ट किए गए नोट छिपाए जाते हैं।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "যথেষ্ট লাইক পাওয়া নোটের বিজ্ঞপ্তি সেখানে আসা দর্শনার্থীদের একবার দেওয়া হয়। অভিযোগ করা নোট লুকানো হয়।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "十分ないいねが付いたノートは、現地に来た人に一度通知されます。通報されたノートは非表示になります。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "获得足够点赞的笔记会向到达该地点的访客通知一次。被举报的笔记会隐藏。"
           }
         }
       }
@@ -54154,6 +54773,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "内容正在放置中..."
+          }
+        }
+      }
+    },
+    "İçerik yüklenemedi. Tekrar deneniyor..." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İçerik yüklenemedi. Tekrar deneniyor..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t load the content. Retrying..."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt konnte nicht geladen werden. Neuer Versuch..."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar el contenido. Reintentando..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger le contenu. Nouvelle tentative..."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar o conteúdo. Tentando novamente..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось загрузить содержимое. Повторная попытка..."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر تحميل المحتوى. جارٍ إعادة المحاولة..."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सामग्री लोड नहीं हो सकी। फिर से कोशिश की जा रही है..."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কনটেন্ট লোড করা যায়নি। আবার চেষ্টা করা হচ্ছে..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテンツを読み込めませんでした。再試行しています..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载内容，正在重试..."
           }
         }
       }

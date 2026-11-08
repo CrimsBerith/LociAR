@@ -105,20 +105,20 @@ test('location notes publish at once, anonymously, at the measured position with
 
 test('location-note text uses the same trimmed UTF-16 limit as the native composers', async () => {
   const author = await newUser(), point = base();
-  for (const text of ['😀'.repeat(110), 'e\u0301'.repeat(110), 'a'.repeat(220)]) {
+  for (const text of ['😀'.repeat(70), 'e\u0301'.repeat(70), 'a'.repeat(140)]) {
     const n = await note(author, point, { text });
     assert.equal(n.created.publishStatus, 'active');
     assert.equal((await n.ref.get()).get('caption'), text);
   }
-  for (const text of ['😀'.repeat(111), 'e\u0301'.repeat(111), 'a'.repeat(221)]) {
+  for (const text of ['😀'.repeat(71), 'e\u0301'.repeat(71), 'a'.repeat(141)]) {
     const error = await expectFailure(note(author, point, { text }));
     assert.equal(error.code, 'functions/invalid-argument');
     assert.equal(error.details.reason, 'invalid_caption');
   }
   // Leading/trailing whitespace is trimmed before the limit, matching the composer's trimmed count.
-  const padded = await note(author, point, { text: `\n  ${'a'.repeat(220)} \t` });
+  const padded = await note(author, point, { text: `\n  ${'a'.repeat(140)} \t` });
   assert.equal(padded.created.publishStatus, 'active');
-  assert.equal((await padded.ref.get()).get('caption'), 'a'.repeat(220));
+  assert.equal((await padded.ref.get()).get('caption'), 'a'.repeat(140));
   assert.equal((await adminDb.collection('posts').where('creator_id', '==', author.luid).get()).size, 4);
 });
 

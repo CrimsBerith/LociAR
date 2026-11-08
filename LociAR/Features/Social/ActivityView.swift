@@ -33,27 +33,27 @@ struct ActivityView: View {
             } else {
                 List {
                     if let message {
-                        LociInlineNotice(title: String(localized: "Bir sorun oluştu"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                        LociInlineNotice(title: String(localized: "Bir sorun oluştu"), message: message, symbol: "exclamationmark.triangle.fill", color: LociTheme.danger)
                         Button("Tekrar dene") { Task { await load() } }
                     }
                     ForEach(items) { item in
-                        HStack(spacing: 13) {
+                        HStack(spacing: LociTheme.Spacing.m) {
                             ZStack {
                                 Circle().fill(LociTheme.accent.opacity(0.12)).frame(width: 42, height: 42)
                                 Image(systemName: symbol(for: item.kind)).foregroundStyle(LociTheme.accent)
                             }
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
                                 Text(body(for: item)).font(.headline)
-                                Text(item.createdAt, style: .relative).font(.caption).foregroundStyle(.secondary)
+                                Text(item.createdAt, style: .relative).font(.caption).foregroundStyle(LociTheme.secondaryText)
                             }
                             Spacer()
                             if item.readAt == nil {
                                 Circle().fill(LociTheme.accent).frame(width: 7, height: 7)
-                                    .accessibilityLabel("Okunmadı")
+                                    .accessibilityLabel(Text("Okunmadı"))
                             }
                         }
                         .accessibilityElement(children: .combine)
-                        .padding(.vertical, 5)
+                        .padding(.vertical, LociTheme.Spacing.xs)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .onTapGesture { if let postID = item.postID { container.router.selectPost(id: postID) } }
@@ -77,7 +77,11 @@ struct ActivityView: View {
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
                 Button("Daha fazla göster") { Task { await loadMore() } }
-                    .disabled(isLoadingMore || isLoading).padding().lociGlassSurface(cornerRadius: 0)
+                    .disabled(isLoadingMore || isLoading)
+                    .buttonStyle(LociSecondaryButtonStyle())
+                    .padding(.horizontal, LociTheme.Spacing.l)
+                    .padding(.vertical, LociTheme.Spacing.m)
+                    .background(LociTheme.background.opacity(0.98))
             }
         }
         .accessibilityIdentifier("screen-activity")

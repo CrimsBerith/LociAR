@@ -43,6 +43,10 @@ final class AppSession {
         self.backendConfigured = backendConfigured
     }
 
+    deinit {
+        authObservationTask?.cancel()
+    }
+
     /// Membership is required; anonymous authorship is a per-note publishing choice.
     nonisolated static func memberPhase(_ user: LociUser?) -> Phase {
         guard let user, !user.isAnonymousAccount else { return .signedOut }
@@ -151,10 +155,11 @@ final class AppSession {
         backendMessage = nil
     }
 
-    func updateProfile(handle: String, avatar: AvatarChoice) async throws {
+    func updateProfile(handle: String, avatar: AvatarChoice, bio: String? = nil) async throws {
         if isLocalPreview {
             if case var .signedIn(currentUser) = phase {
                 currentUser.handle = handle
+                if let bio { currentUser.bio = bio }
                 if case .preset(let name) = avatar { currentUser.avatarURL = AvatarReference.presetURL(name) }
                 phase = .signedIn(currentUser)
             }
@@ -162,7 +167,7 @@ final class AppSession {
         }
         guard case let .signedIn(startedUser) = phase else { throw AuthFlowError.notSignedIn }
         let generation = operationGeneration
-        let updated = try await authRepository.updateProfile(handle: handle, avatar: avatar)
+        let updated = try await authRepository.updateProfile(handle: handle, avatar: avatar, bio: bio)
         try Task.checkCancellation()
         guard generation == operationGeneration, case let .signedIn(current) = phase,
               current.id == startedUser.id, updated.id == startedUser.id else { throw AuthFlowError.notSignedIn }
@@ -230,6 +235,8 @@ final class AppSession {
 
     func signOut() async {
         operationGeneration += 1
+        authObservationTask?.cancel()
+        authObservationTask = nil
         ClientReadCaches.setViewer(nil)
         MapRequestCoordinator.shared.setViewer(nil)
         let shouldSignOutRemotely = !isLocalPreview

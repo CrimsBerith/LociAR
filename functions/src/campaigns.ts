@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
 import { getMessaging, type Message } from 'firebase-admin/messaging';
-import { db, FieldValue, Timestamp, isUUID, luidForUid, HttpsError, requireCaller, identityVerified, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, safeErrorCode } from './core';
+import { db, FieldValue, Timestamp, isUUID, luidForUid, HttpsError, requireCaller, identityVerified, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, safeErrorCode, logger } from './core';
 import { requireActiveAccount, accountDeletionRef, profileBlock } from './profileGuard';
 import { identityBlocked } from './anonymousAccess';
 import { distanceMeters } from './geo';
@@ -139,7 +139,9 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
         const latest = await tx.get(device.ref);
         if (latest.get('owner_luid') === recipient && pushAddressMatches(latest.data(), message)) tx.delete(device.ref);
       });
-      await receiptRef.update({ status: 'failed', error_code: code }).catch(() => {});
+      await receiptRef.update({ status: 'failed', error_code: code }).catch(err => {
+        logger.warn('campaign_receipt_update_failed', { jobId: id, recipient, code, error: safeErrorCode(err) });
+      });
     }
   });
   await db.runTransaction(async tx => {

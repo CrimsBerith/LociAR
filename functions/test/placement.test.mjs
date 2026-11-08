@@ -30,6 +30,17 @@ test('rejects 18+, bad caption, missing layers and weak GPS', () => {
   assert.equal(validateCreatePostBody({ ...base(), clientMutationId: 'nope' }), 'Invalid client mutation ID');
 });
 
+test('captions share the 140 UTF-16 code-unit limit used by the native composers', () => {
+  assert.equal(validateCreatePostBody({ ...base(), caption: 'a'.repeat(140) }), null);
+  assert.equal(validateCreatePostBody({ ...base(), caption: 'a'.repeat(141) }), 'Invalid caption');
+  assert.equal(validateCreatePostBody({ ...base(), caption: `\n ${'a'.repeat(140)} \t` }), null);
+  assert.equal(validateCreatePostBody({ ...base(), caption: `\n ${'a'.repeat(141)} \t` }), 'Invalid caption');
+  assert.equal(validateCreatePostBody({ ...base(), caption: '😀'.repeat(70) }), null);
+  assert.equal(validateCreatePostBody({ ...base(), caption: '😀'.repeat(71) }), 'Invalid caption');
+  assert.equal(validateCreatePostBody({ ...base(), caption: 'e\u0301'.repeat(70) }), null);
+  assert.equal(validateCreatePostBody({ ...base(), caption: 'e\u0301'.repeat(71) }), 'Invalid caption');
+});
+
 test('arkit world lock without evidence is rejected', () => {
   const body = base();
   body.pose.anchor = { coordinateSpace: 'arkit_world', x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, capturedAt: new Date().toISOString(), nativeAnchorId: 'a' };

@@ -232,8 +232,6 @@ struct PlaceNoteComposer: View {
                     map
                     status
                     if manualPin == nil {
-                        Button("Pini elle ayarla", systemImage: "hand.point.up.left") { enterManual(at: measurement.estimate) }
-                            .disabled(measurement.estimate == nil)
                         if container.arcore.isEnabled, CameraLocationRefineView.isSupported {
                             Button("Kamerayla hassaslaştır", systemImage: "camera.viewfinder") { showCameraRefine = true }
                                 .accessibilityIdentifier("place-note-camera-refine")
@@ -245,32 +243,36 @@ struct PlaceNoteComposer: View {
                 .lociGlassRowBackground()
                 .disabled(busy || submitted)
                 Section {
-                    TextField("Bu konum için notun", text: $text, axis: .vertical).lineLimit(3...6)
-                        .focused($isTextFocused)
-                        .accessibilityIdentifier("place-note-text")
-                        .onChange(of: text) { _, _ in
-                            if !hasPendingIntent || submittedTextInThisScreen {
-                                startNewIntent(restartMeasurement: false,
-                                               resetIdentity: hasPendingIntent || submitted || submittedTextInThisScreen)
+                    ZStack(alignment: .bottomTrailing) {
+                        TextField("Bu konum için bir not yaz, en fazla 140 karakter.", text: $text, axis: .vertical)
+                            .lineLimit(3...6)
+                            .focused($isTextFocused)
+                            .accessibilityIdentifier("place-note-text")
+                            .onChange(of: text) { _, _ in
+                                if !hasPendingIntent || submittedTextInThisScreen {
+                                    startNewIntent(restartMeasurement: false,
+                                                   resetIdentity: hasPendingIntent || submitted || submittedTextInThisScreen)
+                                }
                             }
-                        }
-                    Text("En fazla 220 karakter.").font(.caption).foregroundStyle(.secondary)
-                    PublishingIdentityPicker(anonymously: $publishAnonymously, showsExplanation: false)
+                            .padding(.horizontal, LociTheme.Spacing.m)
+                            .padding(.top, LociTheme.Spacing.m)
+                            .padding(.bottom, LociTheme.Layout.characterCountClearance)
+                        Text(verbatim: "\(textLength.formatted())/\(PostContentPolicy.maxCaptionUTF16Length)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(textLength <= PostContentPolicy.maxCaptionUTF16Length ? LociTheme.secondaryText : LociTheme.danger)
+                            .padding(.trailing, LociTheme.Spacing.m)
+                            .padding(.bottom, LociTheme.Spacing.s)
+                            .accessibilityIdentifier("place-note-character-count")
+                    }
+                    .frame(minHeight: 128)
+                    .background(LociTheme.field, in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous).stroke(LociTheme.glassBorder))
+                    PublishingIdentityPicker(anonymously: $publishAnonymously, showsExplanation: false, showsCard: false)
                         .disabled(hasPendingIntent)
                     Text(publishAnonymously
                          ? String(localized: "Adın diğer kullanıcılara görünmez. Notun ve konumu hemen paylaşılır.")
                          : String(localized: "Kullanıcı adın, notun ve konumu hemen paylaşılır."))
-                        .font(.footnote).foregroundStyle(.secondary)
-                    DisclosureGroup(String(localized: "Notlar nasıl çalışır?")) {
-                        Text("Yeterince beğenilen notlar, o konuma gelen ziyaretçilere bir kez bildirilir. Şikâyet edilen notlar gizlenir.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                    Button { Task { await publish() } } label: {
-                        if waiting { Label("Konum netleşiyor…", systemImage: "location.circle") }
-                        else { Label("Burada paylaş", systemImage: "mappin.and.ellipse") }
-                    }
-                    .disabled(busy || submitted || trimmed.isEmpty || textLength > 220 || measurement.denied)
-                    .accessibilityIdentifier("place-note-publish")
+                        .font(.footnote).foregroundStyle(LociTheme.secondaryText)
                 }
                 .lociGlassRowBackground()
                 .disabled(busy || submitted)
@@ -283,15 +285,36 @@ struct PlaceNoteComposer: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .scrollContentBackground(.hidden)
-            .lociGlassRowBackground()
+            .listRowSpacing(LociTheme.Spacing.m)
+            .listSectionSpacing(LociTheme.Spacing.xl)
             .background(LociScreenBackground())
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if let message {
-                    Text(message).font(.caption).foregroundStyle(.secondary)
+                VStack(spacing: LociTheme.Spacing.m) {
+                    if let message {
+                        HStack(spacing: LociTheme.Spacing.s) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(LociTheme.warning)
+                            Text(message)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(LociTheme.textPrimary)
+                        }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding().lociGlassSurface(cornerRadius: 16)
+                        .padding(LociTheme.Spacing.l)
+                        .lociGlassSurface(cornerRadius: LociTheme.Radius.medium)
                         .accessibilityIdentifier("place-note-status")
+                    }
+                    Button { Task { await publish() } } label: {
+                        if waiting { Label("Konum netleşiyor…", systemImage: "location.circle") }
+                        else { Label("Burada paylaş", systemImage: "mappin.and.ellipse") }
+                    }
+                    .buttonStyle(LociPrimaryButtonStyle())
+                    .disabled(busy || submitted || trimmed.isEmpty || textLength > PostContentPolicy.maxCaptionUTF16Length || measurement.denied)
+                    .accessibilityIdentifier("place-note-publish")
                 }
+                .padding(.horizontal, LociTheme.Spacing.l)
+                .padding(.top, LociTheme.Spacing.l)
+                .padding(.bottom, LociTheme.Spacing.m)
+                .background(LociTheme.background.opacity(0.98))
             }
             .navigationTitle("Konum notu bırak")
             .navigationBarTitleDisplayMode(.inline)
@@ -305,7 +328,7 @@ struct PlaceNoteComposer: View {
                 }
             }
         }
-        .interactiveDismissDisabled(busy)
+        .interactiveDismissDisabled(busy || !text.isEmpty)
         .fullScreenCover(isPresented: $showCameraRefine) {
             CameraLocationRefineView { fix in
                 cameraFix = fix
@@ -387,12 +410,12 @@ struct PlaceNoteComposer: View {
             if let fix = cameraFix, manualPin == nil {
                 MapCircle(center: fix.location.coordinate, radius: fix.accuracy)
                     .foregroundStyle(LociTheme.accent.opacity(0.15))
-                    .stroke(LociTheme.accent.opacity(0.6), lineWidth: 1)
+                    .stroke(LociTheme.accent.opacity(0.6), lineWidth: LociTheme.Stroke.hairline)
                 Marker("Not konumu", systemImage: "camera.viewfinder", coordinate: fix.location.coordinate).tint(LociTheme.accent)
             } else if let estimate = measurement.estimate {
                 MapCircle(center: estimate.coordinate, radius: estimate.accuracy)
                     .foregroundStyle(LociTheme.accent.opacity(0.15))
-                    .stroke(LociTheme.accent.opacity(0.6), lineWidth: 1)
+                    .stroke(LociTheme.accent.opacity(0.6), lineWidth: LociTheme.Stroke.hairline)
                 if manualPin == nil {
                     Marker("Not konumu", systemImage: "mappin", coordinate: estimate.coordinate).tint(LociTheme.accent)
                 }
@@ -404,28 +427,48 @@ struct PlaceNoteComposer: View {
         .overlay {
             if manualPin != nil {
                 Image(systemName: "mappin")
-                    .font(.title.bold()).foregroundStyle(.orange)
+                    .font(.title.bold()).foregroundStyle(LociTheme.warning)
+                    .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
                     .offset(y: -12)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
         }
+        .overlay(alignment: .topTrailing) {
+            if manualPin == nil {
+                Button {
+                    enterManual(at: measurement.estimate)
+                } label: {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(LociTheme.accent)
+                        .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
+                        .background(LociTheme.background.opacity(0.94), in: Circle())
+                        .overlay(Circle().stroke(LociTheme.glassBorder))
+                }
+                .padding(LociTheme.Spacing.m)
+                .disabled(measurement.estimate == nil)
+                .accessibilityLabel(Text("Pini elle ayarla"))
+                .accessibilityIdentifier("place-note-manual-pin")
+            }
+        }
         .frame(height: 260)
         .allowsHitTesting(!busy && !submitted)
         .listRowInsets(EdgeInsets())
-        .accessibilityLabel("Not konumu haritası")
+        .accessibilityLabel(Text("Not konumu haritası"))
     }
 
     @ViewBuilder private var status: some View {
         if measurement.denied {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Konum izni kapalı. Ayarlar’dan LociAR için konumu açın.").font(.caption)
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
+                Text("Konum izni kapalı. Ayarlar’dan LociAR için konumu açın.").font(.caption).foregroundStyle(LociTheme.secondaryText)
                 Button("Ayarlar") { if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) } }
+                    .buttonStyle(LociCompactButtonStyle())
             }
         } else if let distance = dragDistance {
             let meters = Int(distance.rounded())
             Text("Haritayı kaydırarak pini tam bulunduğun yere getir. Pin konumundan \(meters) m uzakta.")
-                .font(.caption).foregroundStyle(distance > LocationNotePolicy.maxPinDrag ? .red : .secondary)
+                .font(.caption).foregroundStyle(distance > LocationNotePolicy.maxPinDrag ? LociTheme.danger : LociTheme.secondaryText)
         } else if let fix = cameraFix {
             let meters = Int(fix.accuracy.rounded())
             Label(String(localized: "Kamera konumu · ±\(meters) m"), systemImage: "checkmark.circle.fill")
@@ -435,13 +478,11 @@ struct PlaceNoteComposer: View {
             Label(measurement.ready ? String(localized: "Konum hazır · ±\(meters) m")
                                     : String(localized: "Konum hassaslaşıyor · ±\(meters) m"),
                   systemImage: measurement.ready ? "checkmark.circle.fill" : "location.circle")
-                .font(.caption).foregroundStyle(measurement.ready ? LociTheme.accent : .secondary)
-        } else {
-            Text("Konum aranıyor. Açık bir alanda kısa süre bekleyin.").font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(measurement.ready ? LociTheme.accent : LociTheme.secondaryText)
         }
         if measurement.reducedAccuracy && !measurement.denied {
             Text("Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç.")
-                .font(.caption).foregroundStyle(.orange)
+                .font(.caption).foregroundStyle(LociTheme.warning)
         }
     }
 
@@ -458,7 +499,7 @@ struct PlaceNoteComposer: View {
     }
 
     private func publish() async {
-        guard !busy, !submitted, !trimmed.isEmpty, textLength <= 220, !measurement.denied else { return }
+        guard !busy, !submitted, !trimmed.isEmpty, textLength <= PostContentPolicy.maxCaptionUTF16Length, !measurement.denied else { return }
         guard case let .signedIn(user) = session.phase, currentOwner == user.id else { return }
         if mutationOwner != user.id { await restorePendingIntent() }
         guard mutationOwner == user.id, !submitted else { return }

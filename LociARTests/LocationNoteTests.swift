@@ -107,7 +107,7 @@ final class LocationNoteTests: XCTestCase {
         XCTAssertEqual(estimator.outcome, .noFix)
     }
 
-    func testTypicalOutdoorConvergenceBecomesReadyWithinSeconds() {
+    func testTypicalOutdoorConvergenceBecomesReadyWithinSeconds() throws {
         var estimator = LocationFixEstimator(startedAt: start)
         // Wi-Fi first, then GPS converging, as an iPhone reports outdoors.
         let stream: [(Double, Double, Double)] = [(1, 40, 65), (2, 12, 30), (3, 3, 14), (4, 1, 9), (5, 0.5, 7), (6, 0.2, 6)]
@@ -118,7 +118,7 @@ final class LocationNoteTests: XCTestCase {
             if readyAt == nil, estimator.isReady(now: now) { readyAt = t }
         }
         XCTAssertEqual(readyAt, 5, "ready once 7 m and three agreeing fixes arrive")
-        let estimate = try! XCTUnwrap(estimator.estimate)
+        let estimate = try XCTUnwrap(estimator.estimate)
         XCTAssertEqual(estimate.accuracy, 6)
         // The weighted mean ignores the early Wi-Fi fixes and lands within a metre of the truth.
         XCTAssertLessThan(estimate.location.distance(from: CLLocation(latitude: 41, longitude: 29)), 1.5)

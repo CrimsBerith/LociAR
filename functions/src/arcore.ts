@@ -59,7 +59,9 @@ export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
       if (await isAccountDeleting(tx, caller.luid)) return;
       const quota = await tx.get(quotaRef);
       if (quota.exists) tx.update(quotaRef, { count: Math.max(0, Number(quota.get('count') ?? 0) - 1) });
-    }).catch(() => undefined);
+    }).catch(err => {
+      logger.warn('arcore_token_quota_rollback_failed', { code: safeErrorCode(err) });
+    });
     throw new HttpsError('unavailable', 'ARCore authorization is temporarily unavailable');
   }
 });

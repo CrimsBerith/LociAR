@@ -60,9 +60,16 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
             <div className="dataRow user header"><span>{t('User')}</span><span>{t('Identity')}</span><span>{t('Provider')}</span><span>{t('Created')}</span><span>{t('Enforcement')}</span></div>
             {users.length === 0 ? <p className="emptyState">{t('No matching users.')}</p> : users.map(user => (
               <div className="dataRow user" key={user.id}>
-                <span><b>@{String(user.handle)}</b><small>{user.id}</small>
+                <span className="managedUserIdentity">
+                  {user.avatar_url ? <img className="managedUserAvatar" src={`/api/admin/v1/avatars/${encodeURIComponent(user.id)}/image`} alt="" loading="lazy" />
+                    : <span className="managedUserAvatar managedUserAvatarFallback" aria-hidden="true">{String(user.handle).slice(0, 1).toUpperCase()}</span>}
+                  <span><b>@{String(user.handle)}</b>
+                    {user.display_name ? <small>{scalarText(user.display_name)}</small> : null}
+                    {typeof user.bio === 'string' && user.bio ? <small className="managedUserBio">{user.bio}</small> : null}
+                    <small>{user.id}</small>
                   {canManageProfiles && user.admin_managed === true ? <details><summary>{t('Manage profile')}</summary><ManagedProfileEditor luid={user.id} displayName={scalarText(user.display_name)} bio={scalarText(user.bio)} /></details> : null}
                   {admin.permissions.has('users.location.read') || admin.permissions.has('users.telemetry.read') || admin.permissions.has('notifications.send') || contextStepUp ? <details><summary>{t('Private data')}</summary><UserContextPanel luid={user.id} stepUp={contextStepUp} canLocation={admin.permissions.has('users.location.read')} canTelemetry={admin.permissions.has('users.telemetry.read')} canNotify={admin.permissions.has('notifications.send')} /></details> : null}
+                  </span>
                 </span>
                 <span>{identityStatus(user, t)}</span>
                 <span>{scalarText(user.auth_provider ?? t('unknown'))}</span>

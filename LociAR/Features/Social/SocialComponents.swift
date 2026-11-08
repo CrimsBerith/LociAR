@@ -12,51 +12,51 @@ struct PostCard: View {
     /// Opt-in only for detail screens: list cards already sit inside their own navigation link.
     var authorProfile: LociUser? = nil
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: LociTheme.Spacing.m) {
             if post.sponsorship != nil {
-                Label("Sponsorlu", systemImage: "tag.fill").font(.caption.bold()).foregroundStyle(.orange)
+                Label("Sponsorlu", systemImage: "tag.fill").font(.caption.bold()).foregroundStyle(LociTheme.warning)
             }
             authorHeader
             if let gif = post.gif {
                 AnimatedGIFView(url: gif.previewURL)
                     .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                     .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
                     .overlay(alignment: .bottomTrailing) {
                         Text(verbatim: "GIPHY")
                             .font(.caption2.weight(.heavy))
-                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xs)
                             .background(LociTheme.background.opacity(0.72), in: Capsule()).overlay(Capsule().stroke(LociTheme.hairline))
-                            .padding(6)
+                            .padding(LociTheme.Spacing.xs)
                     }
                     .accessibilityElement()
                     .accessibilityLabel(Text("GIF"))
                 if let text = post.messageText {
                     TranslatedPostText(text: text, isReadable: !post.isLocked, allowsControls: allowsTranslationControls, lineLimit: textLineLimit)
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.94))
+                        .foregroundStyle(LociTheme.textPrimary)
                 }
             } else {
                 if post.isLocked {
-                    Text("Kilitli not").font(.body.weight(.semibold))
+                    Text("Kilitli not").font(.body.weight(.semibold)).foregroundStyle(LociTheme.textPrimary)
                 } else if post.caption.isEmpty {
-                    Text("AR notu").font(.body.weight(.semibold))
+                    Text("AR notu").font(.body.weight(.semibold)).foregroundStyle(LociTheme.textPrimary)
                 } else {
                     TranslatedPostText(text: post.caption, allowsControls: allowsTranslationControls, lineLimit: textLineLimit)
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.94))
+                        .foregroundStyle(LociTheme.textPrimary)
                 }
             }
 
-            HStack(spacing: 18) {
-                LociMetricLabel(value: likeCount ?? post.counts.likes, title: String(localized: "beğeni"), symbol: "heart.fill", color: .pink)
+            HStack(spacing: LociTheme.Spacing.xl2) {
+                LociMetricLabel(value: likeCount ?? post.counts.likes, title: String(localized: "beğeni"), symbol: "heart.fill", color: LociTheme.social)
                 LociMetricLabel(value: viewCount ?? post.counts.views, title: String(localized: "görüntülenme"), symbol: "eye.fill", color: LociTheme.tertiaryText)
-                LociMetricLabel(value: post.counts.comments, title: String(localized: "yorum"), symbol: "bubble.right.fill", color: .white.opacity(0.8))
+                LociMetricLabel(value: post.counts.comments, title: String(localized: "yorum"), symbol: "bubble.right.fill", color: LociTheme.secondaryText)
                 Spacer()
             }
         }
-        .padding(17)
-        .lociGlassSurface(cornerRadius: 21)
+        .padding(LociTheme.Spacing.l)
+        .lociGlassSurface(cornerRadius: LociTheme.Radius.large)
         .accessibilityElement(children: .contain)
     }
 
@@ -66,7 +66,7 @@ struct PostCard: View {
         if !post.isAnonymous, let authorProfile {
             NavigationLink { PublicProfileView(user: authorProfile) } label: { headerContent }
                 .buttonStyle(.plain)
-                .accessibilityHint("Profili görüntüle")
+                .accessibilityHint(Text("Profili görüntüle"))
                 .accessibilityIdentifier("post-open-profile")
         } else {
             headerContent
@@ -74,15 +74,15 @@ struct PostCard: View {
     }
 
     private var headerContent: some View {
-        HStack(spacing: 10) {
-            LociAvatar(handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle ?? "Loci", size: 36)
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: LociTheme.Spacing.m) {
+            LociAvatar(handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle ?? "Loci", avatarURL: post.isAnonymous ? nil : post.creatorAvatarURL, size: 36)
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.xxs) {
                 Text(post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle.map { "@\($0)" } ?? "Loci")
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                HStack(spacing: 6) {
-                    Text(post.createdAt, style: .relative).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                HStack(spacing: LociTheme.Spacing.s) {
+                    Text(post.createdAt, style: .relative).font(.caption).foregroundStyle(LociTheme.secondaryText).lineLimit(1)
                     if post.isOfficialContent { OfficialContentBadge() }
                 }
             }
@@ -97,7 +97,7 @@ struct PostCard: View {
                 LociStatusPill(
                     title: post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate ? String(localized: "Yaklaşık") : "Sabit",
                     symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder" : "exclamationmark",
-                    color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
+                    color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : LociTheme.warning
                 )
                 .fixedSize(horizontal: true, vertical: true)
                 .accessibilityElement(children: .combine)
@@ -113,7 +113,7 @@ struct OfficialContentBadge: View {
         Label { Text(verbatim: "LociAR") } icon: { Image(systemName: "checkmark.seal.fill") }
             .lineLimit(1).fixedSize(horizontal: true, vertical: false)
             .font(.caption2.weight(.semibold)).foregroundStyle(LociTheme.accent)
-            .padding(.horizontal, 7).padding(.vertical, 5)
+            .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xs)
             .background(LociTheme.accent.opacity(0.12), in: Capsule())
             .accessibilityIdentifier("post-official-badge")
     }
@@ -128,19 +128,18 @@ struct PostActionLabel: View {
     var effectValue: Bool = false
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: LociTheme.Spacing.s) {
             Image(systemName: symbol).font(.headline).foregroundStyle(color)
                 .symbolEffect(.bounce, value: reduceMotion ? false : effectValue)
             Text(title.localizedUI)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(LociTheme.textPrimary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, minHeight: 58)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).fill(LociTheme.glassTint))
-        .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(LociTheme.glassBorder))
+        .background(LociTheme.rowSurface, in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous).stroke(LociTheme.glassBorder))
     }
 }
 
@@ -153,14 +152,16 @@ struct ProfileLinkRow: View {
         Label {
             Text(title.localizedUI)
                 .font(.body)
-                .foregroundStyle(LociTheme.secondaryText)
+                .foregroundStyle(LociTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: symbol)
                 .foregroundStyle(color)
                 .frame(width: 26)
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, LociTheme.Spacing.xs)
+        .frame(minHeight: LociTheme.Control.minimumTapTarget)
+        .contentShape(Rectangle())
     }
 }
 
@@ -168,21 +169,30 @@ struct ProfileLinkRow: View {
 struct PublishingIdentityPicker: View {
     @Binding var anonymously: Bool
     var showsExplanation = true
+    var showsCard = true
 
     var body: some View {
-        LociCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Toggle(String(localized: "Anonim paylaş"), isOn: $anonymously)
-                    .tint(LociTheme.accent)
-                    .accessibilityIdentifier("publish-anonymously")
-                if showsExplanation {
+        Group {
+            if showsCard {
+                LociCard { content }
+            } else {
+                content
+            }
+        }
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
+            Toggle(String(localized: "Anonim paylaş"), isOn: $anonymously)
+                .tint(LociTheme.accent)
+                .accessibilityIdentifier("publish-anonymously")
+            if showsExplanation {
                 Text(anonymously
                      ? String(localized: "Adın diğer kullanıcılara görünmez.")
                      : String(localized: "Kullanıcı adın notta görünür."))
                     .font(.footnote)
                     .foregroundStyle(LociTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
-                }
             }
         }
     }
@@ -197,7 +207,7 @@ struct AccountRequiredView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: LociTheme.Spacing.l) {
                 Image(systemName: "person.crop.circle.badge.plus")
                     .font(.system(size: 52))
                     .foregroundStyle(LociTheme.accent)
@@ -214,7 +224,7 @@ struct AccountRequiredView: View {
                     .buttonStyle(LociPrimaryButtonStyle())
                     .accessibilityIdentifier("account-required-create")
             }
-            .padding(24)
+            .padding(LociTheme.Spacing.xl)
             .frame(maxWidth: .infinity)
         }
         .background(LociScreenBackground())

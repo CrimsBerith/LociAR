@@ -44,7 +44,7 @@ The initial 72 hours post-release require vigilant monitoring across mobile clie
   - *Response*: Scheduled for next bi-weekly patch release.
 
 ### 2.2 Emergency Operational Controls
-- **Kill-Switch / Pre-Moderation Flag**: Setting `system/flags.post_review_required = true` in Firestore immediately diverts all new posts to `pending_review`.
+- **Kill-Switch**: Setting `system/flags.kill_switch = true` in Firestore refuses new post creation and other protected admission calls; reads, reports, blocks and account deletion remain available.
 - **Scheduled Functions Pause**: The admin console (`/admin/maintenance`) allows pausing automatic maintenance tasks with a single toggle if unexpected database load occurs.
 - **Account Deletion Safeguard**: Account deletion retry routines cannot be paused, preserving regulatory and guideline compliance.
 

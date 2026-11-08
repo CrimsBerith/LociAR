@@ -1,6 +1,7 @@
 import { scalarText } from './values';
 import { anyBlocked, containsURL } from './moderation';
 import { GIF_ID } from './giphyId';
+import { MAX_CAPTION_UTF16_LENGTH } from './contentPolicy';
 
 /**
  * Ported 1:1 from supabase/functions/create_post/index.ts (placement scoring and world-lock
@@ -110,8 +111,8 @@ function isValidPose(pose: CreatePostBody['pose'] | undefined): boolean {
     && pose.heading >= 0
     && pose.heading <= 360;
   if (!validBase) return false;
-  if (!pose!.anchor) return true;
-  const a = pose!.anchor;
+  if (!pose.anchor) return true;
+  const a = pose.anchor;
   return typeof a.x === 'number' && typeof a.y === 'number' && typeof a.z === 'number'
     && typeof a.yaw === 'number' && typeof a.pitch === 'number' && typeof a.roll === 'number'
     && typeof a.capturedAt === 'string';
@@ -201,7 +202,7 @@ function contentPolicyError(body: CreatePostBody): string | null {
   let gifs = 0;
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
-    const type = String(layer.type ?? layer.kind);
+    const type = String(layer.type ?? layer.kind ?? '');
     if (!ALLOWED_LAYER_TYPES.has(type)) return 'Only text and GIF posts are allowed';
     if (layer.uri != null && layer.uri !== '') return 'Only text and GIF posts are allowed';
     if (type === 'gif') {
@@ -230,7 +231,9 @@ export function validateCreatePostBody(body: CreatePostBody | undefined, luid?: 
   if (body.pose.accuracy != null && body.pose.accuracy > 100) {
     return `GPS accuracy is too low (${Math.round(body.pose.accuracy)}m)`;
   }
-  if (typeof body.caption !== 'string' || !body.caption.trim() || body.caption.length > 220) return 'Invalid caption';
+  if (typeof body.caption !== 'string') return 'Invalid caption';
+  const caption = body.caption.trim();
+  if (!caption || caption.length > MAX_CAPTION_UTF16_LENGTH) return 'Invalid caption';
   if (body.ageRating === '18_plus') return '18+ content is disabled in this release';
   if (!['all', '13_plus', '16_plus'].includes(body.ageRating)) return 'Invalid age rating';
   if (!['public', 'friends', 'private'].includes(body.visibility)) return 'Invalid visibility';

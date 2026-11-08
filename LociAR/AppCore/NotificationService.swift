@@ -142,10 +142,14 @@ final class PushSDKRegistrationFlight {
         let current: (id: UUID, task: Task<Void, Error>)
         if let flight { current = flight }
         else {
-            current = (UUID(), Task { try await operation() })
+            let id = UUID()
+            let task = Task { @MainActor () -> Void in
+                defer { if self.flight?.id == id { self.flight = nil } }
+                try await operation()
+            }
+            current = (id, task)
             flight = current
         }
-        defer { if flight?.id == current.id { flight = nil } }
         try await current.task.value
     }
     func drain() async {

@@ -63,7 +63,7 @@
   - Creator support payments verified completely disabled in release builds (`PostSupportAvailability.releaseBuilds = false`).
 - **Release / Hotfix / Rollback Owner**:
   - Release Owner: A00 / Engineering Team (`support@alfagolab.com`).
-  - Server-Side Kill-Switch: `system/flags.post_review_required` in Firestore.
+  - Server-Side Kill-Switch: `system/flags.kill_switch` in Firestore.
 
 ---
 

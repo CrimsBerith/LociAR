@@ -17,16 +17,22 @@ struct ProfileView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.xl2) {
+                HStack(spacing: LociTheme.Spacing.l) {
                     LociAvatar(handle: user.isAnonymousAccount ? "guest" : user.handle,
                                avatarURL: user.isAnonymousAccount ? nil : user.avatarURL, size: 66)
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
                         if user.isAnonymousAccount {
                             Text("Misafir").font(.title3.bold())
                         } else {
                             Text(verbatim: "@\(user.handle)").font(.title3.bold())
-                            if let email = user.email { Text(email).font(.subheadline).foregroundStyle(.secondary) }
+                            if let email = user.email { Text(email).font(.subheadline).foregroundStyle(LociTheme.secondaryText) }
+                            if let bio = user.bio, !bio.isEmpty {
+                                Text(bio)
+                                    .font(.subheadline)
+                                    .foregroundStyle(LociTheme.secondaryText)
+                                    .lineLimit(4)
+                            }
                         }
                     }
                     Spacer()
@@ -37,19 +43,20 @@ struct ProfileView: View {
                         Image(systemName: "pencil.circle.fill")
                             .font(.title2)
                             .foregroundStyle(LociTheme.accent)
-                            .frame(minWidth: 44, minHeight: 44)
+                            .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Profili düzenle")
+                    .accessibilityLabel(Text("Profili düzenle"))
                     .accessibilityIdentifier("profile-edit-button")
                     }
                 }
-                .padding(18)
-                .lociGlassSurface(cornerRadius: 24)
+                .padding(LociTheme.Spacing.xl2)
+                .lociGlassSurface(cornerRadius: LociTheme.Radius.extraLarge)
             if user.isAnonymousAccount {
                 profileGroup {
                     Button("Giriş yap") { showAccountCreation = true }
+                        .buttonStyle(LociPrimaryButtonStyle())
                         .accessibilityIdentifier("profile-create-account")
                     Text("Devam etmek için giriş yap.")
                         .font(.subheadline)
@@ -73,34 +80,32 @@ struct ProfileView: View {
                 }
             }
             profileGroup(title: String(localized: "Tercihler")) {
-                NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: LociTheme.tertiaryText) }
+                NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: LociTheme.secondaryText) }
                     .accessibilityIdentifier("profile-settings")
-                NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: LociTheme.tertiaryText) }
-                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket", color: LociTheme.tertiaryText) }
+                NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: LociTheme.secondaryText) }
+                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket", color: LociTheme.secondaryText) }
                     .accessibilityIdentifier("profile-invite")
             }
             profileGroup(title: "Yasal") {
                 if let url = container.configuration.privacyPolicyURL {
                     Link("Gizlilik politikası", destination: url)
+                        .frame(minHeight: LociTheme.Control.minimumTapTarget)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("profile-privacy")
                 }
                 if let url = container.configuration.termsURL {
                     Link("Kullanım koşulları", destination: url)
+                        .frame(minHeight: LociTheme.Control.minimumTapTarget)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("profile-terms")
                 }
                 if let url = container.configuration.supportURL {
                     Link("Destek", destination: url)
+                        .frame(minHeight: LociTheme.Control.minimumTapTarget)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("profile-support")
                 }
             }
-#if DEBUG
-            profileGroup {
-                NavigationLink { ARCoreCoverageDebugView() } label: {
-                    ProfileLinkRow(title: "ARCore kapsam kontrolü (debug)", symbol: "globe.europe.africa", color: .blue)
-                }
-                .accessibilityIdentifier("profile-debug-arcore")
-            }
-#endif
             profileGroup {
                 Button {
                     guard !isSigningOut else { return }
@@ -118,8 +123,8 @@ struct ProfileView: View {
                     .accessibilityIdentifier("profile-delete-account")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 24)
+        .padding(.horizontal, LociTheme.Spacing.l)
+        .padding(.bottom, LociTheme.Spacing.xl)
         }
         .background(LociScreenBackground())
         .navigationTitle("Profil")
@@ -146,7 +151,7 @@ struct ProfileView: View {
 
     private func profileSectionText(_ value: String) -> some View {
         Text(LocalizedStringKey(value))
-            .foregroundStyle(.white)
+            .foregroundStyle(LociTheme.textPrimary)
             .textCase(nil)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -155,18 +160,18 @@ struct ProfileView: View {
         title: String? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
             if let title {
                 profileSectionText(title)
-                    .padding(.leading, 8)
+                    .padding(.leading, LociTheme.Spacing.s)
             }
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
                 content()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .lociGlassSurface(cornerRadius: 22)
+            .padding(.horizontal, LociTheme.Spacing.l)
+            .padding(.vertical, LociTheme.Spacing.m)
+            .lociGlassSurface(cornerRadius: LociTheme.Radius.large)
         }
     }
 
@@ -198,7 +203,7 @@ private struct AccountDeletionView: View {
             Form {
                 Section {
                     Text("Hesabı silmeden önce kimliğini doğrula.")
-                    if let email { Text(email).foregroundStyle(.secondary) }
+                    if let email { Text(email).foregroundStyle(LociTheme.secondaryText) }
                     if method == .password {
                         SecureField("Mevcut parola", text: $password)
                             .textContentType(.password)

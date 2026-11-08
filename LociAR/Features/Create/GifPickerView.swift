@@ -19,12 +19,12 @@ struct GifPickerView: View {
 
     private var normalizedQuery: String { GifSearchQuery.normalized(query) }
 
-    private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
+    private let columns = [GridItem(.flexible(), spacing: LociTheme.Spacing.s), GridItem(.flexible(), spacing: LociTheme.Spacing.s)]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 6) {
+                LazyVGrid(columns: columns, spacing: LociTheme.Spacing.s) {
                     ForEach(results) { result in
                         Button {
                             onPick(result.gif)
@@ -32,36 +32,36 @@ struct GifPickerView: View {
                         } label: {
                             AnimatedGIFView(url: result.gif.previewURL, contentMode: .fill)
                                 .aspectRatio(min(max(result.gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(result.title.isEmpty ? String(localized: "GIF") : result.title)
+                        .accessibilityLabel(Text(result.title.isEmpty ? String(localized: "GIF") : result.title))
                         .accessibilityIdentifier("gif-result")
                         .onAppear {
                             if result.id == results.last?.id { Task { await loadMore() } }
                         }
                     }
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, LociTheme.Spacing.m)
                 if isLoading {
-                    ProgressView().tint(LociTheme.accent).padding()
+                    ProgressView().tint(LociTheme.accent).padding(LociTheme.Spacing.l)
                 } else if let errorMessage {
-                    LociInlineNotice(title: String(localized: "GIF"), message: errorMessage, symbol: "exclamationmark.triangle.fill", color: .orange)
-                        .padding()
+                    LociInlineNotice(title: String(localized: "GIF"), message: errorMessage, symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
+                        .padding(LociTheme.Spacing.l)
                     Button("Tekrar dene") { retryRevision += 1 }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(LociCompactButtonStyle())
                 } else if results.isEmpty {
-                    VStack(spacing: 8) {
+                    VStack(spacing: LociTheme.Spacing.s) {
                         Text(normalizedQuery.isEmpty ? String(localized: "Şu anda GIF gösterilemiyor.") : String(localized: "Sonuç bulunamadı."))
                             .font(.subheadline.weight(.semibold))
                         if normalizedQuery.isEmpty {
                             Button("Tekrar dene") { retryRevision += 1 }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(LociCompactButtonStyle())
                         } else {
                             Text("Başka bir kelimeyle ara.").font(.footnote)
                         }
                     }
-                    .foregroundStyle(.secondary).padding(.top, 40)
+                    .foregroundStyle(LociTheme.secondaryText).padding(.top, LociTheme.Spacing.xxxl)
                 }
             }
             .background(LociTheme.background)
@@ -69,10 +69,10 @@ struct GifPickerView: View {
                 // GIPHY's API terms require visible attribution wherever its results are shown.
                 Text(verbatim: "Powered by GIPHY")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LociTheme.secondaryText)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .lociGlassSurface(cornerRadius: 0)
+                    .padding(.vertical, LociTheme.Spacing.s)
+                    .background(LociTheme.background.opacity(0.98))
                     .accessibilityIdentifier("gif-attribution")
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("GIF ara"))
@@ -95,7 +95,6 @@ struct GifPickerView: View {
                 await search(query: requestedQuery, generation: generation)
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func search(query: String, generation: Int) async {

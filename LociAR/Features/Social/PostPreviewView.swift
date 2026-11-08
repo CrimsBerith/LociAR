@@ -78,7 +78,7 @@ struct PostPreviewView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.xl2) {
                 PostCard(post: post, likeCount: likeCount, viewCount: viewCount, allowsTranslationControls: true,
                          textLineLimit: nil, authorProfile: post.isAnonymous ? nil : creatorUser)
                 if post.isLocked {
@@ -96,8 +96,7 @@ struct PostPreviewView: View {
                         MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: pose.latitude, longitude: pose.longitude)))
                             .openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
                     } label: { Label("Konumu gör", systemImage: "map") }
-                        .buttonStyle(.bordered)
-                        .tint(LociTheme.accent)
+                        .buttonStyle(LociCompactButtonStyle())
                         .accessibilityIdentifier("post-show-location")
                 }
                 if let sponsorship = post.sponsorship {
@@ -105,7 +104,7 @@ struct PostPreviewView: View {
                     ForEach(sponsorship.codes ?? [], id: \.self) { code in
                         Label(code, systemImage: "ticket.fill").font(.title3.monospaced().bold()).textSelection(.enabled)
                     }
-                    Text(sponsorship.expiresAt, style: .date).font(.caption).foregroundStyle(.secondary)
+                    Text(sponsorship.expiresAt, style: .date).font(.caption).foregroundStyle(LociTheme.secondaryText)
                     Button {
                         if let pose = post.anchorBundle.anchor.geoPose,
                            let url = URL(string: "https://maps.apple.com/?daddr=\(pose.latitude),\(pose.longitude)&dirflg=w") { openURL(url) }
@@ -120,7 +119,7 @@ struct PostPreviewView: View {
                             ? String(localized: "AR için notun konumuna git.")
                             : String(localized: "Bu not bir yüzeye sabitlenmedi."),
                         symbol: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "location.fill.viewfinder" : "exclamationmark.triangle.fill",
-                        color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange
+                        color: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : LociTheme.warning
                     )
                 }
                 if post.sponsorship == nil {
@@ -140,18 +139,18 @@ struct PostPreviewView: View {
                     .accessibilityIdentifier("comments-load-older")
                 }
                 if isLoading {
-                    ProgressView().tint(LociTheme.accent).frame(maxWidth: .infinity).padding()
+                    ProgressView().tint(LociTheme.accent).frame(maxWidth: .infinity).padding(LociTheme.Spacing.l)
                 } else if commentsFailed {
-                    Text("Yorumlar şu anda yüklenemiyor. Tekrar dene.").font(.subheadline).foregroundStyle(.secondary)
+                    Text("Yorumlar şu anda yüklenemiyor. Tekrar dene.").font(.subheadline).foregroundStyle(LociTheme.secondaryText)
                     Button("Tekrar dene") { Task { await load() } }
                 } else if comments.isEmpty {
-                    Text("İlk yorumu sen yaz.").font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 6)
+                    Text("İlk yorumu sen yaz.").font(.subheadline).foregroundStyle(LociTheme.secondaryText).padding(.vertical, LociTheme.Spacing.s)
                 } else {
                     ForEach(comments) { comment in
-                        HStack(alignment: .top, spacing: 10) {
+                        HStack(alignment: .top, spacing: LociTheme.Spacing.m) {
                             LociAvatar(handle: comment.username, size: 34)
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack { Text(verbatim: "@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(.secondary) }
+                            VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
+                                HStack { Text(verbatim: "@\(comment.username)").font(.caption.bold()); Text(comment.createdAt, style: .relative).font(.caption2).foregroundStyle(LociTheme.secondaryText) }
                                 TranslatedPostText(text: comment.text, isReadable: !post.isLocked, allowsControls: true).font(.subheadline)
                             }
                             Spacer(minLength: 0)
@@ -168,14 +167,14 @@ struct PostPreviewView: View {
                                 }
                             } label: {
                                 Image(systemName: "ellipsis")
-                                    .foregroundStyle(.secondary)
-                                    .frame(minWidth: 44, minHeight: 44)
+                                    .foregroundStyle(LociTheme.secondaryText)
+                                    .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
                                     .contentShape(Rectangle())
                             }
-                            .accessibilityLabel("Yorum seçenekleri")
+                            .accessibilityLabel(Text("Yorum seçenekleri"))
                             .accessibilityIdentifier("comment-actions")
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, LociTheme.Spacing.xs)
                         .accessibilityElement(children: .contain)
                     }
                 }
@@ -191,46 +190,47 @@ struct PostPreviewView: View {
                         title: String(localized: "Bu not anonim"),
                         message: String(localized: "Buraya yazacağın yorum @\(ownHandle) adınla görünür ve notun sana ait olduğunu belli eder."),
                         symbol: "eye.trianglebadge.exclamationmark",
-                        color: .orange
+                        color: LociTheme.warning
                     )
                     .accessibilityIdentifier("comment-reveals-author")
                 }
-                VStack(alignment: .trailing, spacing: 6) {
-                    HStack(spacing: 10) {
+                VStack(alignment: .trailing, spacing: LociTheme.Spacing.s) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         TextField("Yorum yaz…", text: $commentText, axis: .vertical)
                             .lineLimit(1...4)
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 10)
-                            .lociGlassSurface(cornerRadius: 14)
+                            .padding(.horizontal, LociTheme.Spacing.m)
+                            .padding(.vertical, LociTheme.Spacing.s)
+                            .lociGlassSurface(cornerRadius: LociTheme.Radius.small)
                         Button {
                             if commentRevealsAuthor { confirmOwnAnonymousComment = true } else { Task { await addComment() } }
                         } label: {
                             if isCommentSending {
                                 ProgressView().tint(LociTheme.accent)
-                                    .frame(width: 44, height: 44)
+                                    .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
                             } else {
                                 Image(systemName: "paperplane.fill")
                                     .font(.headline)
                                     .foregroundStyle(commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? LociTheme.secondaryText : LociTheme.accent)
-                                    .frame(width: 44, height: 44)
+                                    .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
                             }
                         }
                         .disabled(isCommentSending || commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .accessibilityLabel("Yorumu gönder")
+                        .accessibilityLabel(Text("Yorumu gönder"))
                         .accessibilityIdentifier("comment-submit")
                     }
                     if commentText.count > 400 {
                         Text(verbatim: "\(commentText.count.formatted())/500")
                             .font(.caption2)
-                            .foregroundStyle(commentText.count > 500 ? .red : .secondary)
+                            .foregroundStyle(commentText.count > 500 ? LociTheme.danger : LociTheme.secondaryText)
                     }
                 }
                 }
                 }
                 }
-                if let message { Text(message.localizedUI).font(.caption).foregroundStyle(.secondary) }
-            }.padding()
+                if let message { Text(message.localizedUI).font(.caption).foregroundStyle(LociTheme.secondaryText) }
+            }.padding(LociTheme.Spacing.l)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(LociScreenBackground())
         .navigationTitle("Not")
         .navigationBarTitleDisplayMode(.inline)
@@ -240,9 +240,9 @@ struct PostPreviewView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu { openARButton } label: {
                         Image(systemName: "ellipsis")
-                            .frame(minWidth: 44, minHeight: 44)
+                            .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
                     }
-                    .accessibilityLabel("Diğer seçenekler")
+                    .accessibilityLabel(Text("Diğer seçenekler"))
                     .accessibilityIdentifier("post-more-menu")
                 }
             }
@@ -265,8 +265,10 @@ struct PostPreviewView: View {
             if !post.isLocationNote {
                 openARButton
                     .buttonStyle(LociPrimaryButtonStyle())
-                    .padding(.horizontal, 16).padding(.vertical, 9)
-                    .lociGlassSurface(cornerRadius: 0)
+                    .padding(.horizontal, LociTheme.Spacing.l)
+                    .padding(.top, LociTheme.Spacing.l)
+                    .padding(.bottom, LociTheme.Spacing.m)
+                    .background(LociTheme.background.opacity(0.98))
             }
         }
         .fullScreenCover(isPresented: $showAR) { ARPostViewerView(post: post) }
@@ -304,19 +306,24 @@ struct PostPreviewView: View {
         .sheet(isPresented: $showCollectionPicker) {
             NavigationStack {
                 Group {
-                    if collectionsLoading { ProgressView() }
-                    else if let collectionsMessage { Text(collectionsMessage.localizedUI) }
-                    else if collections.isEmpty { Text("Henüz koleksiyon yok") }
+                    if collectionsLoading { ProgressView().tint(LociTheme.accent) }
+                    else if let collectionsMessage { Text(collectionsMessage.localizedUI).foregroundStyle(LociTheme.secondaryText) }
+                    else if collections.isEmpty { Text("Henüz koleksiyon yok").foregroundStyle(LociTheme.secondaryText) }
                     else {
                         List(collections) { collection in
                             Button(collection.title) {
                                 Task { await add(to: collection); showCollectionPicker = false }
                             }
+                            .foregroundStyle(LociTheme.textPrimary)
+                            .listRowBackground(Color.clear)
                         }
+                        .lociListStyle()
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(LociScreenBackground())
                 .navigationTitle("Koleksiyonlar")
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { showCollectionPicker = false } } }
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { showCollectionPicker = false }.foregroundStyle(LociTheme.secondaryText) } }
                 .task { await loadCollections() }
             }
         }
@@ -328,10 +335,10 @@ struct PostPreviewView: View {
     }
 
     private var postActions: some View {
-        LazyVGrid(columns: actionColumns, spacing: 10) {
+        LazyVGrid(columns: actionColumns, spacing: LociTheme.Spacing.m) {
             Button { Task { await toggleLike() } } label: {
                 PostActionLabel(title: String(localized: "Beğen"), symbol: liked ? "heart.fill" : "heart",
-                                color: liked ? .pink : .white, effectValue: liked)
+                                color: liked ? LociTheme.social : LociTheme.textPrimary, effectValue: liked)
             }
             .buttonStyle(.plain)
             .disabled(isLikeMutating)
@@ -341,7 +348,7 @@ struct PostPreviewView: View {
             // Saving remains one tap; collections are a separate choice under More.
             Button { Task { await toggleSaved() } } label: {
                 PostActionLabel(title: String(localized: "Kaydet"), symbol: saved ? "bookmark.fill" : "bookmark",
-                                color: saved ? LociTheme.accent : .white, effectValue: saved)
+                                color: saved ? LociTheme.accent : LociTheme.textPrimary, effectValue: saved)
             }
             .buttonStyle(.plain)
             .disabled(isSaveMutating)
@@ -350,7 +357,7 @@ struct PostPreviewView: View {
 
             if !ownsPost {
                 Button { reportTarget = .post } label: {
-                    PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: .white)
+                    PostActionLabel(title: String(localized: "Bildir"), symbol: "exclamationmark.bubble", color: LociTheme.textPrimary)
                 }
                 .buttonStyle(.plain)
                 .disabled(isReporting)
@@ -360,10 +367,10 @@ struct PostPreviewView: View {
             if showsSupportEntryPoint {
                 Button { showPostSupport = true } label: {
                     PostSupportIcon().foregroundStyle(LociTheme.accent)
-                        .frame(minWidth: 44, minHeight: 58).contentShape(Rectangle())
+                        .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.actionTileHeight).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Yazara destek ol")
+                .accessibilityLabel(Text("Yazara destek ol"))
                 .accessibilityIdentifier("post-support-button")
             }
         }
@@ -387,10 +394,10 @@ struct PostPreviewView: View {
                 .accessibilityIdentifier("post-block-user")
             }
         } label: {
-            PostActionLabel(title: String(localized: "Diğer"), symbol: "ellipsis", color: .white)
+            PostActionLabel(title: String(localized: "Diğer"), symbol: "ellipsis", color: LociTheme.textPrimary)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Diğer seçenekler")
+        .accessibilityLabel(Text("Diğer seçenekler"))
         .accessibilityIdentifier("post-more-menu")
     }
 
@@ -409,7 +416,7 @@ struct PostPreviewView: View {
 
     private var actionColumns: [GridItem] {
         let count = 2 + (ownsPost ? 0 : 1) + (hasMoreActions ? 1 : 0) + (showsSupportEntryPoint ? 1 : 0)
-        return Array(repeating: GridItem(.flexible(), spacing: 10),
+        return Array(repeating: GridItem(.flexible(), spacing: LociTheme.Spacing.m),
                      count: dynamicTypeSize.isAccessibilitySize ? min(2, count) : count)
     }
 

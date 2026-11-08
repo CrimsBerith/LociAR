@@ -113,8 +113,8 @@ xcodebuild -exportArchive \
 ## 5. Rollback & Hotfix Procedure
 
 1. **Client Kill-Switch / Flag Rollback**:
-   - If an unexpected UGC spam vector appears, toggle `system/flags.post_review_required = true` in Firestore via the Admin panel.
-   - This immediately holds all newly published posts in `pending_review` without requiring an App Store binary release.
+   - If an unexpected UGC abuse vector appears, set `system/flags.kill_switch = true` in Firestore via the Admin panel.
+   - This immediately refuses new post creation without requiring an App Store binary release; reporting and account-deletion flows remain available.
 2. **Cloud Functions Hotfix**:
    - Apply minimal fix to `functions/src/`.
    - Deploy specific function: `firebase deploy --only functions:<functionName> --project lociar-2f38c`.

@@ -57,28 +57,31 @@ struct ARPostViewerView: View {
                     Button { close() } label: {
                         Image(systemName: "xmark")
                             .font(.headline)
-                            .frame(width: 44, height: 44)
+                            .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
                             .lociGlassSurface(in: Circle())
                     }
-                    .accessibilityLabel("Kapat")
+                    .accessibilityLabel(Text("Kapat"))
                     Spacer()
                     ARCoreNoticeButton()
                 }
-                LociCard {
-                    VStack(alignment: .leading, spacing: 5) {
+                LociCard(appearance: isLocalSurfaceScan ? .arSearch : .content) {
+                    VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
                         LociStatusPill(
                             title: statusTitle,
                             symbol: statusSymbol,
-                            color: statusColor
+                            color: statusColor,
+                            isARSearching: isLocalSurfaceScan
                         )
-                        Text(message.localizedUI).font(.footnote)
+                        Text(message.localizedUI)
+                            .font(.footnote)
+                            .foregroundStyle(isLocalSurfaceScan ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText)
                     }
                 }
                 Spacer()
                 if proximityVerified, !accessBlocked, !post.isLocked, engine.renderedPostID == post.id,
                    engine.state == .resolved, post.isOfficialContent || offersTranslation {
                     LociCard {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
                             if post.isOfficialContent { OfficialContentBadge() }
                             TranslatedPostText(text: post.messageText ?? post.caption, allowsControls: true, showsText: false,
                                                onDisplayTextChange: { displayedTranslation = $0 })
@@ -86,12 +89,12 @@ struct ARPostViewerView: View {
                     }
                 }
                 if accessBlocked {
-                    VStack(spacing: 10) {
+                    VStack(spacing: LociTheme.Spacing.m) {
                         LociInlineNotice(
                             title: String(localized: "AR burada açılamıyor"),
                             message: message,
                             symbol: "location.slash.fill",
-                            color: .orange
+                            color: LociTheme.warning
                         )
                         Button("Posta geri dön", systemImage: "chevron.backward") { close() }
                             .buttonStyle(LociPrimaryButtonStyle())
@@ -108,11 +111,11 @@ struct ARPostViewerView: View {
                         title: guidance.title,
                         message: guidance.message,
                         symbol: guidance.symbol,
-                        color: guidance.readyToReveal ? LociTheme.accent : .orange
+                        color: guidance.readyToReveal ? LociTheme.accent : LociTheme.warning
                     )
                     .accessibilityIdentifier("ar-aim-guidance")
                 }
-            }.padding()
+            }.padding(LociTheme.Spacing.l)
         }
         .background(LociTheme.background)
         .accessibilityIdentifier("ar-post-viewer")
@@ -121,7 +124,13 @@ struct ARPostViewerView: View {
             guard !Task.isCancelled, proximityVerified, !accessBlocked, !post.isLocked,
                   engine.renderedPostID == post.id, engine.state == .resolved else { return }
             guard revalidateProximity() else { return }
-            try? await engine.render(post: post, displayedText: displayedTranslation)
+            do {
+                try await engine.render(post: post, displayedText: displayedTranslation)
+            } catch {
+                if !Task.isCancelled {
+                    message = String(localized: "İçerik yüklenemedi. Tekrar deneniyor...")
+                }
+            }
             if !Task.isCancelled { _ = revalidateProximity() }
         }
         .task {
@@ -184,36 +193,36 @@ struct ARPostViewerView: View {
     private var aimingReticle: some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.18), lineWidth: 2)
+                .stroke(LociTheme.mediaOverlayText.opacity(0.18), lineWidth: LociTheme.Stroke.focus)
                 .frame(width: 120, height: 120)
             Circle()
                 .trim(from: 0, to: 0.08)
-                .stroke(guidance.readyToReveal ? LociTheme.accent : .white, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .stroke(guidance.readyToReveal ? LociTheme.accent : LociTheme.mediaOverlayText, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .frame(width: 120, height: 120)
                 .rotationEffect(.degrees(guidance.signedHeadingDelta - 14))
             Circle()
-                .stroke(guidance.readyToReveal ? LociTheme.accent : .white, lineWidth: 3)
+                .stroke(guidance.readyToReveal ? LociTheme.accent : LociTheme.mediaOverlayText, lineWidth: LociTheme.Stroke.emphasis)
                 .frame(width: 54, height: 54)
             Circle()
-                .fill(guidance.readyToReveal ? LociTheme.accent : .white)
+                .fill(guidance.readyToReveal ? LociTheme.accent : LociTheme.mediaOverlayText)
                 .frame(width: 8, height: 8)
             Image(systemName: "location.north.fill")
                 .font(.title3.weight(.bold))
-                .foregroundStyle(guidance.readyToReveal ? LociTheme.accent : .white)
+                .foregroundStyle(guidance.readyToReveal ? LociTheme.accent : LociTheme.mediaOverlayText)
                 .offset(y: -44)
                 .rotationEffect(.degrees(guidance.signedHeadingDelta))
-                .shadow(color: .black.opacity(0.7), radius: 4)
+                .shadow(color: LociTheme.mediaOverlayScrim.opacity(0.7), radius: LociTheme.Depth.smallRadius)
             Text(guidance.distanceMeters < 10
                  ? String(format: "%.0f m", locale: Locale.current, max(0, guidance.distanceMeters.isFinite ? guidance.distanceMeters : 0))
                  : ProximityPolicy.roundedMeters(guidance.distanceMeters).map { "\($0.formatted()) m" } ?? String(localized: "Mesafe bilinmiyor"))
                 .font(.caption.weight(.semibold).monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(LociTheme.mediaOverlayText)
                 .offset(y: 46)
-                .shadow(color: .black.opacity(0.8), radius: 3)
+                .shadow(color: LociTheme.mediaOverlayScrim.opacity(0.8), radius: LociTheme.Depth.smallRadius)
         }
         .allowsHitTesting(false)
         .accessibilityIdentifier("ar-aim-reticle")
-        .accessibilityLabel(guidance.message.localizedUI)
+        .accessibilityLabel(Text(guidance.message.localizedUI))
     }
 
     private var statusTitle: String {
@@ -234,9 +243,9 @@ struct ARPostViewerView: View {
     }
 
     private var statusColor: Color {
-        if accessBlocked { return .orange }
+        if accessBlocked { return LociTheme.warning }
         if engine.state == .resolved || guidance.readyToReveal { return LociTheme.accent }
-        return .orange
+        return LociTheme.warning
     }
 
     private func close() {

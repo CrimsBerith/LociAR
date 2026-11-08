@@ -14,10 +14,10 @@ LociAR: Gerçek Mekânlarda AR
 Mekânsal Hikâyeler ve Paylaşım
 ```
 
-## Promotional Text (117/170)
+## Promotional Text (129/140)
 
 ```text
-Kısa mesajlar ve GIF'ler bırak, gerçek yüzeylere sabitle; çevrende bırakılanları, bırakıldıkları yerde AR ile keşfet.
+Gerçek yüzeylere mesaj ve GIF'ler sabitle! Çevrendeki mekân notlarını ve yerel ipuçlarını AR ile tam bırakıldıkları yerde keşfet.
 ```
 
 ## Description (1578/4000)

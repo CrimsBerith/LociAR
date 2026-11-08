@@ -7,7 +7,7 @@ import { db, Timestamp, FieldValue, requireCaller, isUUID, HttpsError, ENFORCE_A
 import { requireActiveAccount } from './profileGuard';
 import { campaignLive } from './campaigns';
 import { distanceMeters, encodeGeohash } from './geo';
-import { geohashesInBox, stableUuid, validCoordinates, type Fix } from './placeNoteRules';
+import { geohashesInBox, stableUuid, type Fix } from './placeNoteRules';
 import {
   fixInsideZone, fixOutsideZone, frequencyAllows, makeCode, requirementMet, scheduleAllows, zoneBounds, LEAVE_MARGIN_M, MAX_DWELL_SECONDS,
   type Progress, type Step,
@@ -23,10 +23,13 @@ const DAY = 86_400_000;
 const SEARCH_M = 10_000;
 
 function parseFix(value: unknown): Fix {
-  const f = value as Fix;
-  if (!f || !validCoordinates(f.lat, f.lng) || typeof f.accuracy !== 'number' || !Number.isFinite(f.accuracy) || f.accuracy < 0
-      || typeof f.measuredAt !== 'number' || !Number.isFinite(f.measuredAt)) throw new HttpsError('invalid-argument', 'A location fix is required');
-  return f;
+  if (typeof value !== 'object' || value === null) throw new HttpsError('invalid-argument', 'A location fix is required');
+  const { lat, lng, accuracy, measuredAt } = value as { lat?: unknown; lng?: unknown; accuracy?: unknown; measuredAt?: unknown };
+  if (typeof lat !== 'number' || !Number.isFinite(lat) || Math.abs(lat) > 90) throw new HttpsError('invalid-argument', 'Invalid latitude');
+  if (typeof lng !== 'number' || !Number.isFinite(lng) || Math.abs(lng) > 180) throw new HttpsError('invalid-argument', 'Invalid longitude');
+  if (typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy < 0) throw new HttpsError('invalid-argument', 'Invalid accuracy');
+  if (typeof measuredAt !== 'number' || !Number.isFinite(measuredAt)) throw new HttpsError('invalid-argument', 'Invalid measuredAt timestamp');
+  return { lat, lng, accuracy, measuredAt } as Fix;
 }
 
 const progressRef = (campaign: string, luid: string) => db.collection('campaign_progress').doc(`${campaign}_${luid}`);

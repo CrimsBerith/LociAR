@@ -14,10 +14,10 @@ LociAR: Spatial AR Notes
 Pin notes to real places
 ```
 
-## Promotional Text (118/170)
+## Promotional Text (124/140)
 
 ```text
-Leave short messages and GIFs on real surfaces and discover what others left nearby, in AR, right where it was placed.
+Pin messages and GIFs to real surfaces! Discover location notes and local tips around you in AR, right where they were left.
 ```
 
 ## Description (1479/4000)

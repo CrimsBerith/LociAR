@@ -116,10 +116,10 @@ Tek ve güncel metin: [APP_REVIEW_NOTES.md](APP_REVIEW_NOTES.md) §1. AR paylaş
 
 ### 6.1 Büyüme kapıları açılmadan önce (inceleme notlarına etkisi)
 
-Aşağıdaki anahtarlar varsayılan olarak **kapalıdır**; kapalıyken yukarıdaki inceleme metni doğrudur. Açmadan önce notları güncelle:
+Aşağıdaki büyüme kapısı varsayılan olarak **kapalıdır**; kapalıyken yukarıdaki inceleme metni doğrudur:
 
 * `LOCIAR_INVITE_REQUIRED=true` (davet kodu kapısı): inceleme hesabına `users_private/{luid}.invite_exempt = true` yaz, aksi halde reviewer post yayınlayamaz. Notlara ekle: "Browsing is open to everyone; publishing requires an invite code (Profile > Invite code). The demo account is exempt."
-* `system/flags.post_review_required = true` (acil durum ön onayı): açıkken yeni postlar moderatör onayı bekler. SAFETY paragrafının ilk cümlesini şöyle değiştir: "Every new post is held for moderator review before it goes public; an automatic text filter (no links, blocked terms) runs first." Anahtar kapanınca eski metne dön.
+* `post_review_required` eski bayrağı artık yok sayılır. Yeni postlar otomatik güvenlik kontrollerini geçtikten sonra doğrudan yayınlanır. Acil durdurma için `system/flags.kill_switch` kullanılır; yeni post oluşturma geçici olarak reddedilir.
 
 ---
 

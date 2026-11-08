@@ -61,13 +61,13 @@ function row(doc:FirebaseFirestore.DocumentSnapshot, viewerId:string, lock?:Spot
  if(lock){ return json({...lockedRow(doc,viewerId,p,anonymous),locked:true,dense_spot:{id:lock.spot,count:lock.count,lat:lock.lat,lng:lock.lng,unlock_radius_m:lock.unlockRadius,group_id:lock.groupId??`spot:${lock.spot}`}}); }
  const geometry=(value:unknown)=>anonymous?anonymousGeometry(embedded(value),doc.id):embedded(value);
  return json({id:doc.id,...anonymousIdentity(doc.id,p.creator_id,viewerId,anonymous),
- creator_handle:anonymous?null:p.creator_handle??null,created_at:p.created_at,
+ creator_handle:anonymous?null:p.creator_handle??null,creator_avatar_url:anonymous?null:p.creator_avatar_url??null,created_at:p.created_at,
  pose:geometry(p.pose_json),edit_data:publicEditData(embedded(p.edit_data_json)),content_source:null,
  anchor_bundle:geometry(p.anchor_bundle_json),caption:p.caption??'', status:p.status,visibility:p.visibility,
  age_rating:p.age_rating??'all',views_count:p.views_count??0,likes_count:p.likes_count??0,comments_count:p.comments_count??0,note_kind:p.note_kind??null,notify_radius_m:p.notify_radius_m??null,push_state:p.push_state??null,admin_managed:p.admin_managed===true});
 }
 function lockedRow(doc:FirebaseFirestore.DocumentSnapshot,viewerId:string,p:FirebaseFirestore.DocumentData,anonymous:boolean){
- return{id:doc.id,...anonymousIdentity(doc.id,p.creator_id,viewerId,anonymous),creator_handle:anonymous?null:p.creator_handle??null,created_at:p.created_at,
+ return{id:doc.id,...anonymousIdentity(doc.id,p.creator_id,viewerId,anonymous),creator_handle:anonymous?null:p.creator_handle??null,creator_avatar_url:anonymous?null:p.creator_avatar_url??null,created_at:p.created_at,
  pose:anonymous?anonymousGeometry(embedded(p.pose_json),doc.id):embedded(p.pose_json),edit_data:{version:1,layers:[]},content_source:null,anchor_bundle:null,caption:'',
  status:p.status,visibility:p.visibility,age_rating:p.age_rating??'all',views_count:p.views_count??0,likes_count:p.likes_count??0,comments_count:p.comments_count??0,
  note_kind:p.note_kind??null,notify_radius_m:p.notify_radius_m??null,push_state:p.push_state??null,admin_managed:p.admin_managed===true};

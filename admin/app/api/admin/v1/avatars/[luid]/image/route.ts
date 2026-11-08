@@ -11,13 +11,19 @@ const AVATAR_PATH = /^avatars\/[0-9a-f-]{36}\/(current|pending)\/[0-9a-f-]{36}\.
  * Hosting service account never needs permission to sign blobs as itself.
  */
 export async function GET(_request: Request, context: { params: Promise<{ luid: string }> }) {
-  const access = await requireAdminApi('users.suspend');
+  const access = await requireAdminApi('users.read');
   if (!access.ok) return unauthorized(access);
   try {
     const { luid: rawLuid } = await context.params;
     const luid = uuid(rawLuid, 'luid').toLowerCase();
-    const review = await adminDb().collection('avatar_reviews').doc(luid).get();
-    const path = String(review.data()?.path ?? '');
+    const db = adminDb();
+    const [review, profile] = await Promise.all([
+      db.collection('avatar_reviews').doc(luid).get(),
+      db.collection('profiles').doc(luid).get(),
+    ]);
+    const reviewPath = review.data()?.path;
+    const profilePath = String(profile.data()?.avatar_url ?? '').replace(/^storage:\/\//, '');
+    const path = AVATAR_PATH.test(profilePath) ? profilePath : String(reviewPath ?? '');
     if (!AVATAR_PATH.test(path) || !path.startsWith(`avatars/${luid}/`)) {
       return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
     }

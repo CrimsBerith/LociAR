@@ -273,9 +273,16 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
       });
     }
   });
-  if (before.handle === after.handle) return;
+  const handleChanged = before.handle !== after.handle;
+  const avatarChanged = before.avatar_url !== after.avatar_url;
+  if (!handleChanged && !avatarChanged) return;
   const currentProfile = await db.collection('profiles').doc(luid).get();
   if (!currentProfile.exists || currentProfile.get('deleted_at')) return;
-  await fanOut('posts', 'creator_id', luid, 'creator_handle', currentProfile.get('handle'));
-  await fanOut('comments', 'user_id', luid, 'username', currentProfile.get('handle'));
+  if (handleChanged) {
+    await fanOut('posts', 'creator_id', luid, 'creator_handle', currentProfile.get('handle'));
+    await fanOut('comments', 'user_id', luid, 'username', currentProfile.get('handle'));
+  }
+  if (avatarChanged) {
+    await fanOut('posts', 'creator_id', luid, 'creator_avatar_url', currentProfile.get('avatar_url') ?? null);
+  }
 });
