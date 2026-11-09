@@ -74,8 +74,8 @@ const existingReport={checked_at:new Date().toISOString(),total:editPlan.rows.le
 if(errors.length)throw Error('Existing-edit preflight failed; no notes were written.');
 const adminDir=fileURLToPath(new URL('../',import.meta.url));
 function seedRun(extra,report){
- const result=spawnSync(process.execPath,['--conditions=react-server','--import','./tests/register-typescript.mjs','--import','./scripts/launch-bootstrap.mjs','./scripts/seed-notes.mjs','--seed','private-launch-1680','--actor',actor,'--allow-approx','--require-complete','--report',childPath(folder,report),...extra],{cwd:adminDir,env:process.env,encoding:'utf8',maxBuffer:8*1024*1024});
- writeFileSync(childPath(folder,report+'.log'),(result.stdout??'')+(result.stderr??''),{mode:0o600});if(result.error||result.status!==0)throw Error('Seed preflight/apply failed; inspect '+report+'.log');return JSON.parse(readFileSync(childPath(folder,report),'utf8'));
+ const result=spawnSync(process.execPath,['--conditions=react-server','--import','./tests/register-typescript.mjs','--import','./scripts/launch-bootstrap.mjs','./scripts/seed-notes.mjs','--seed','private-launch-1680','--actor',actor,'--allow-approx','--require-complete','--report','upload-'+report,...extra],{cwd:adminDir,env:process.env,encoding:'utf8',maxBuffer:8*1024*1024});
+ writeFileSync(childPath(folder,report+'.log'),(result.stdout??'')+(result.stderr??''),{mode:0o600});if(result.error||result.status!==0)throw Error('Seed preflight/apply failed; inspect '+report+'.log');const output=readFileSync(launchPath('upload-'+report,'Seed report'),'utf8');writeFileSync(childPath(folder,report),output,{mode:0o600});return JSON.parse(output);
 }
 const preflight=seedRun([],'new-notes-live-preflight.json');if(!preflight.complete)throw Error('Incomplete new-note preflight.');
 const deployment=read('server-readiness.json');

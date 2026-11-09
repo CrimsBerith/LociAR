@@ -49,7 +49,7 @@ def report_name(value):
 
 def write_report(filename, output):
     """Create or replace the report inside the fixed private directory only."""
-    name = report_name(filename)
+    name = os.path.basename(report_name(filename))
     REPORT_DIRECTORY.mkdir(mode=0o700, parents=True, exist_ok=True)
     directory = os.open(REPORT_DIRECTORY, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
