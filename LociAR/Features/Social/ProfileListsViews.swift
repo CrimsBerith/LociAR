@@ -66,6 +66,17 @@ struct CollectionsView: View {
         .task { await load() }
     }
 
+    /// UI-test fixture sessions (Debug only) use the in-memory social repository even when the build
+    /// carries no Firebase configuration, as on CI runners.
+    private var canUseCollections: Bool {
+        if container.isBackendConfigured { return true }
+        #if DEBUG
+        return UITestFixtures.authenticatedSessionEnabled
+        #else
+        return false
+        #endif
+    }
+
     /// Retry is only offered when a backend exists to retry against.
     private var retryAction: (() -> Void)? {
         guard container.isBackendConfigured else { return nil }
@@ -76,7 +87,7 @@ struct CollectionsView: View {
         isLoading = collections.isEmpty
         message = nil
         defer { isLoading = false }
-        guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
+        guard case let .signedIn(user) = session.phase, canUseCollections else {
             message = String(localized: "Koleksiyonlar için sunucu bağlantısı gerekiyor.")
             return
         }
@@ -86,7 +97,7 @@ struct CollectionsView: View {
 
     private func create() async {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard case let .signedIn(user) = session.phase, container.isBackendConfigured, !cleanTitle.isEmpty else { return }
+        guard case let .signedIn(user) = session.phase, canUseCollections, !cleanTitle.isEmpty else { return }
         guard cleanTitle.count <= 80 else { message = String(localized: "Koleksiyon başlığı en fazla 80 karakter olabilir."); return }
         message = nil
         do {
