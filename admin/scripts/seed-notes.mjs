@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { activeDensityPost, seedDensityConflicts, SEED_GROUP_M } from './seed-density.mjs';
 import { renderedTextMatches } from './launch-review.mjs';
-import { ownerPath, childPath } from './safe-path.mjs';
+import { launchPath, childPath } from './safe-path.mjs';
 
 const { values: opts } = parseArgs({
   options: {
@@ -185,7 +185,7 @@ const report = {
   rows: rows.map(row => ({ id: row.item.id, post_id: derivedKey(row.key, 'post'),
     loaded: row.loaded, held: row.held, problems: row.problems })),
 };
-const saveReport = () => { if (opts.report) writeFileSync(ownerPath(opts.report, '--report'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 }); };
+const saveReport = () => { if (opts.report) writeFileSync(launchPath(opts.report, '--report'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 }); };
 saveReport();
 const holdReason = reviewHeld ? 'coordinate, editorial or identity review' : fieldHeld ? 'coordinate or field placement review' : 'an approximate anchor';
 console.log(`\n${rows.length} items: ${rows.filter(r => r.loaded).length} already loaded, ${blocked} with problems, ${held} held for ${holdReason}.`);

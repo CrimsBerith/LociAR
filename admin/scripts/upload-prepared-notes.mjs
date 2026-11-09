@@ -7,10 +7,10 @@ import{parseArgs}from'node:util';
 import{createHash}from'node:crypto';
 import{initializeOwnerRuntime,ownerActor}from'./launch-runtime.mjs';
 import{reviewedContentUnchanged,renderedTextMatches}from'./launch-review.mjs';
-import { ownerPath, childPath } from './safe-path.mjs';
+import { launchPath, childPath } from './safe-path.mjs';
 const{values:opts}=parseArgs({options:{package:{type:'string'},apply:{type:'boolean',default:false},pilot:{type:'boolean',default:false},'verify-package-only':{type:'boolean',default:false}}});
 if(!opts.package)throw Error('--package is required');
-const folder=ownerPath(opts.package,'--package');const read=name=>JSON.parse(readFileSync(childPath(folder,name),'utf8'));
+const folder=launchPath(opts.package,'--package');const read=name=>JSON.parse(readFileSync(childPath(folder,name),'utf8'));
 const seed=read('new-note-payload.json'),editPlan=read('existing-post-edits.json');
 const inputFile=resolve(fileURLToPath(new URL('../../scripts/seed/private-launch-1680.json',import.meta.url)));
 const immutableFiles=['new-note-payload.json','existing-post-edits.json','existing-post-baseline.json','existing-post-full-backup.json','1680-final-selection.json'];
@@ -100,4 +100,4 @@ if(opts.apply){
 }
 saveReadiness();
 // The full readiness record stays in the owner-only (0600) package file; stdout gets only a summary.
-console.log(JSON.stringify({status:result.status,new_records_saved:result.new_records_saved??0,report:'upload-readiness.json'}));process.exit(0);
+console.log('Upload readiness saved to upload-readiness.json in the package folder.');process.exit(0);

@@ -1,7 +1,7 @@
 import{writeFileSync,mkdirSync}from'node:fs';
 import{initializeOwnerRuntime,ownerActor}from'./launch-runtime.mjs';
-import { ownerPath, childPath } from './safe-path.mjs';
-const{db,auth}=initializeOwnerRuntime();const out=ownerPath(process.argv[2],'Output directory');mkdirSync(out,{recursive:true});
+import { launchPath, childPath } from './safe-path.mjs';
+const{db,auth}=initializeOwnerRuntime();const out=launchPath(process.argv[2],'Output directory');mkdirSync(out,{recursive:true});
 const actor=await ownerActor(db,auth);
 const [posts,zones]=await Promise.all([db.collection('posts').select('caption','edit_data_json','content_source_json','creator_id','creator_handle','is_anonymous','note_kind','lat','lng','notify_radius_m','status','visibility','deleted_at','ends_at','seed_batch','admin_managed','updated_at','push_state','age_rating','width','height','pose_json','anchor_bundle_json','altitude','heading').limit(5001).get(),db.collection('protected_zones').where('active','==',true).get()]);
 if(posts.size>5000)throw Error('Post inventory cap exceeded');

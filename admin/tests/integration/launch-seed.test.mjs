@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { initializeApp, getApps, deleteApp } from 'firebase-admin/app';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { LAUNCH_DIR } from '../../scripts/safe-path.mjs';
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? '', /^(localhost|127\.0\.0\.1):\d+$/);
 initializeApp({ projectId: 'demo-lociar' });
 const { adminDb, adminAuth } = await import('../../lib/firebase-admin.ts');
@@ -203,18 +203,18 @@ test('machine-readable strict preflight reports held rows and a passing dry run 
  await db.collection('admin_role_assignments').doc(actor).set({user_id:actor,role_key:'super_admin',revoked_at:null});
  await db.collection('profiles').doc(author).set({handle,admin_managed:true,suspended:false,deleted_at:null});
  await db.collection('handles').doc(handle).set({luid:author});
- const file=fileURLToPath(new URL('../../../scripts/seed/'+name+'.json',import.meta.url));const report=join(tmpdir(),'lociar-seed-report-'+randomUUID()+'.json');
+ const file=fileURLToPath(new URL('../../../scripts/seed/'+name+'.json',import.meta.url));const reportName='lociar-seed-report-'+randomUUID()+'.json';const report=join(LAUNCH_DIR,reportName);
  const seed={batch:name,author_handle:handle,items:[{id:'one',kind:'note',author_handle:handle,text:'A readable test note.',lat:-35,lng:145,city:'Fixture',coord:'reviewed',persona_id:'P01',persona_status:'editorial_draft',notify:false}]};
  try{
-  writeFileSync(file,JSON.stringify(seed));const held=await importer('--seed',name,'--actor',actor,'--require-complete','--report',report);assert.equal(held.code,1);
+  writeFileSync(file,JSON.stringify(seed));const held=await importer('--seed',name,'--actor',actor,'--require-complete','--report',reportName);assert.equal(held.code,1);
   const first=JSON.parse(readFileSync(report,'utf8'));assert.equal(first.complete,false);assert.equal(first.held,1);assert.equal(first.apply_requested,false);
-  seed.items[0].persona_status='reviewed';writeFileSync(file,JSON.stringify(seed));const passing=await importer('--seed',name,'--actor',actor,'--require-complete','--report',report);assert.equal(passing.code,0,passing.stderr);
+  seed.items[0].persona_status='reviewed';writeFileSync(file,JSON.stringify(seed));const passing=await importer('--seed',name,'--actor',actor,'--require-complete','--report',reportName);assert.equal(passing.code,0,passing.stderr);
   const last=JSON.parse(readFileSync(report,'utf8'));assert.equal(last.complete,true);assert.equal(last.blocked,0);assert.equal(last.total,1);assert.equal((await db.collection('posts').where('seed_batch','==',name).get()).size,0);
-  const apply=await importer('--seed',name,'--actor',actor,'--require-complete','--apply','--report',report);assert.equal(apply.code,0,apply.stderr);
+  const apply=await importer('--seed',name,'--actor',actor,'--require-complete','--apply','--report',reportName);assert.equal(apply.code,0,apply.stderr);
   const saved=JSON.parse(readFileSync(report,'utf8'));assert.equal(saved.apply_complete,true);assert.equal(saved.saved,1);assert.equal(saved.failed,0);assert.equal(saved.apply_results[0].status,'saved');
-  const again=await importer('--seed',name,'--actor',actor,'--require-complete','--apply','--report',report);assert.equal(again.code,0,again.stderr);
+  const again=await importer('--seed',name,'--actor',actor,'--require-complete','--apply','--report',reportName);assert.equal(again.code,0,again.stderr);
   const repeated=JSON.parse(readFileSync(report,'utf8'));assert.equal(repeated.apply_complete,true);assert.equal(repeated.saved,0);assert.equal(repeated.already_loaded,1);assert.deepEqual(repeated.apply_results,[]);
   await db.collection('posts').doc(saved.apply_results[0].post_id).update({edit_data_json:JSON.stringify({layers:[{type:'text',text:'Changed rendered text'}]})});
-  const changed=await importer('--seed',name,'--actor',actor,'--require-complete','--report',report);assert.equal(changed.code,1);assert.equal(JSON.parse(readFileSync(report,'utf8')).complete,false);
+  const changed=await importer('--seed',name,'--actor',actor,'--require-complete','--report',reportName);assert.equal(changed.code,1);assert.equal(JSON.parse(readFileSync(report,'utf8')).complete,false);
  }finally{try{unlinkSync(file)}catch{}try{unlinkSync(report)}catch{}}
 });

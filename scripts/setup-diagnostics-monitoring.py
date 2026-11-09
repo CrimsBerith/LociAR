@@ -6,7 +6,6 @@ import argparse
 import copy
 import json
 import os
-import tempfile
 from pathlib import Path
 import re
 import subprocess
@@ -38,13 +37,28 @@ def safe_api_path(path):
     return path
 
 
-def safe_report_path(path):
-    """Reports may only be written under the home or temporary folder."""
-    full = path.expanduser().resolve()
-    roots = [Path.home().resolve(), Path(tempfile.gettempdir()).resolve()]
-    if not any(full == root or root in full.parents for root in roots):
-        raise ValueError("--report must be inside your home or temporary folder")
-    return full
+REPORT_DIRECTORY = Path(__file__).resolve().parents[1] / "build" / "monitoring"
+
+
+def report_name(value):
+    """Reports are plain JSON file names; they are written only into REPORT_DIRECTORY."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.json", value or "") or ".." in value:
+        raise ValueError("--report takes a plain JSON file name (written to build/monitoring/)")
+    return value
+
+
+def write_report(filename, output):
+    """Create or replace the report inside the fixed private directory only."""
+    name = report_name(filename)
+    REPORT_DIRECTORY.mkdir(mode=0o700, parents=True, exist_ok=True)
+    directory = os.open(REPORT_DIRECTORY, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600, dir_fd=directory)
+        with os.fdopen(fd, "w") as stream:
+            stream.write(output)
+    finally:
+        os.close(directory)
+    return REPORT_DIRECTORY / name
 OWNER = {"lociar_diagnostics": "v1"}
 CRITICAL_EVENTS = (
     "apple_revoke_failed", "apple_revoke_unavailable", "account_deletion_deferred",
@@ -167,7 +181,7 @@ def main():
     parser.add_argument("--email", required=True)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--gcloud-configuration", default="default")
-    parser.add_argument("--report", type=Path)
+    parser.add_argument("--report", help="JSON file name written to build/monitoring/")
     args = parser.parse_args()
     if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", args.email):
         parser.error("A valid recipient email is required")
@@ -175,10 +189,7 @@ def main():
         "project": PROJECT, "applied": False, "policies": policy_specs("EMAIL_CHANNEL"),
         "customMetricsCreated": 0, "schedulesCreated": 0, "budgetChanges": 0}
     if args.report:
-        report = safe_report_path(args.report)
-        report.parent.mkdir(parents=True, exist_ok=True)
-        report.write_text(json.dumps(result, indent=2) + "\n")
-        report.chmod(0o600)
+        write_report(args.report, json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
 
 
