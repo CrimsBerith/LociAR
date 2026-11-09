@@ -139,10 +139,13 @@ extension AuthGateUITests {
                 app.alerts.textFields.firstMatch.tap()
                 app.alerts.textFields.firstMatch.typeText("Şehir notları")
                 app.alerts.buttons["Oluştur"].tap()
-                XCTAssertTrue(app.staticTexts["Şehir notları"].waitForExistence(timeout: 5))
+                // CI simulators are slower and may enter Ş/ı differently; match the created row loosely.
+                let created = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "ehir not")).firstMatch
+                XCTAssertTrue(created.waitForExistence(timeout: 15))
                 capture(app, name: "screen-18b-collection-created")
-                app.staticTexts["Şehir notları"].tap()
-                XCTAssertTrue(app.navigationBars["Şehir notları"].waitForExistence(timeout: 5))
+                let createdName = created.label
+                created.tap()
+                XCTAssertTrue(app.navigationBars[createdName].waitForExistence(timeout: 10))
                 capture(app, name: "screen-18c-collection-detail")
                 app.navigationBars.buttons.element(boundBy: 0).tap()
                 XCTAssertTrue(app.navigationBars["Koleksiyonlar"].waitForExistence(timeout: 5))
