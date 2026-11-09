@@ -3,6 +3,9 @@ import { lstatSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+// Absolute path (present on macOS and the Linux CI runners): do not resolve git through PATH.
+const GIT = '/usr/bin/git';
+
 // Keep findings value-free: CI logs must never reproduce the matched credential.
 const rules = [
   ['private-key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g],
@@ -28,7 +31,7 @@ function sensitiveFile(path) {
 }
 
 export function scanRepository(root) {
-  const paths = new Set(execFileSync('git', [
+  const paths = new Set(execFileSync(GIT, [
     'ls-files', '--cached', '--others', '--exclude-standard', '-z',
   ], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean));
   const findings = [];
@@ -59,7 +62,7 @@ export function scanRepository(root) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
-    const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+    const root = execFileSync(GIT, ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
     const findings = scanRepository(root);
     for (const finding of findings) {
       // JSON quoting also prevents newline/control characters in paths spoofing log entries.

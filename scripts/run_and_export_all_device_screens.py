@@ -4,11 +4,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 DESKTOP_DIR = "/Users/khankartal/Desktop/LociAR_Tum_Ekranlar"
-XCRESULT_PATH = "/tmp/MasterDeviceTour.xcresult"
-ATTACHMENTS_DIR = "/tmp/MasterTourAttachments"
+# Private per-run work directory (mode 0700) instead of fixed, shared /tmp paths.
+WORK_DIR = tempfile.mkdtemp(prefix="lociar-screen-tour-")
+XCRESULT_PATH = os.path.join(WORK_DIR, "MasterDeviceTour.xcresult")
+ATTACHMENTS_DIR = os.path.join(WORK_DIR, "MasterTourAttachments")
 DEVICE_ID = "00008120-001079DE0E07C01E"
 
 def log(msg):

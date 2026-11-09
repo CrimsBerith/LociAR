@@ -5,9 +5,10 @@ import {parseArgs} from 'node:util';
 import {createHash} from 'node:crypto';
 import {initializeOwnerRuntime,ownerActor} from './launch-runtime.mjs';
 import {renderedTextMatches} from './launch-review.mjs';
+import { ownerPath, childPath } from './safe-path.mjs';
 const {values:opts}=parseArgs({options:{package:{type:'string'},pilot:{type:'boolean',default:false}}});
 if(!opts.package)throw Error('--package required');
-const folder=resolve(opts.package),read=name=>JSON.parse(readFileSync(resolve(folder,name),'utf8'));
+const folder=ownerPath(opts.package,'--package'),read=name=>JSON.parse(readFileSync(childPath(folder,name),'utf8'));
 const selection=read('1680-final-selection.json'),seed=read('new-note-payload.json'),editPlan=read('existing-post-edits.json');
 const baseline=new Map(read('existing-post-baseline.json').rows.map(row=>[row.post_id,row]));
 const {db,auth}=initializeOwnerRuntime();await ownerActor(db,auth);
@@ -52,8 +53,8 @@ const actualBatch=await db.collection('posts').where('seed_batch','==',seed.batc
 const unexpected=actualBatch.docs.filter(d=>!newById.has(d.id)).map(d=>d.id);
 const flags=await db.collection('system').doc('geo_queries').get();
 const report={checked_at:new Date().toISOString(),mode:opts.pilot?'pilot':'full',expected:expected.length,matched:expected.length-new Set(issues.map(x=>x.id)).size,issues,index_issues:indexIssues,unexpected_batch_ids:unexpected,map_cells_version:flags.get('map_cells_version')??null,
- payload_sha256:createHash('sha256').update(readFileSync(resolve(folder,'new-note-payload.json'))).digest('hex'),
+ payload_sha256:createHash('sha256').update(readFileSync(childPath(folder,'new-note-payload.json'))).digest('hex'),
  complete:issues.length===0&&indexIssues.length===0&&unexpected.length===0&&flags.get('map_cells_version')===1&&(!opts.pilot?actualBatch.size===1260:true),post_writes:0};
-writeFileSync(resolve(folder,opts.pilot?'pilot-reconciliation.json':'full-reconciliation.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});
+writeFileSync(childPath(folder,opts.pilot?'pilot-reconciliation.json':'full-reconciliation.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});
 console.log(JSON.stringify({mode:report.mode,expected:report.expected,issues:issues.length,index_issues:indexIssues.length,unexpected:unexpected.length,complete:report.complete,post_writes:0}));
 process.exit(report.complete ? 0 : 1);

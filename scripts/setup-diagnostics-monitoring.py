@@ -5,6 +5,8 @@ No custom metrics, schedules, exports, IAM changes, API enablement or billing ch
 import argparse
 import copy
 import json
+import os
+import tempfile
 from pathlib import Path
 import re
 import subprocess
@@ -14,6 +16,35 @@ import urllib.parse
 import urllib.request
 
 PROJECT = "lociar-2f38c"
+CONFIGURATION_NAME = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
+GCLOUD_CANDIDATES = ("/opt/homebrew/bin/gcloud", "/usr/local/bin/gcloud",
+                     "/opt/homebrew/share/google-cloud-sdk/bin/gcloud", "/usr/bin/gcloud")
+PROJECT_NUMBER = "696514892783"  # Monitoring may return resource names with the project number.
+API_PATH = re.compile(r"^projects/(" + re.escape(PROJECT) + "|" + PROJECT_NUMBER + r")/[A-Za-z0-9_./-]+(\?[A-Za-z0-9_.=&%:,()\[\]'\"/ +-]*)?$")
+
+
+def gcloud_binary():
+    """Fixed install locations only; gcloud is never resolved through PATH."""
+    for candidate in GCLOUD_CANDIDATES:
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    raise RuntimeError("gcloud not found in a standard install location")
+
+
+def safe_api_path(path):
+    """Monitoring API paths must stay inside this project; '..' segments are refused."""
+    if not API_PATH.match(path) or ".." in path.split("?", 1)[0].split("/"):
+        raise ValueError("Refusing a Monitoring API path outside projects/" + PROJECT)
+    return path
+
+
+def safe_report_path(path):
+    """Reports may only be written under the home or temporary folder."""
+    full = path.expanduser().resolve()
+    roots = [Path.home().resolve(), Path(tempfile.gettempdir()).resolve()]
+    if not any(full == root or root in full.parents for root in roots):
+        raise ValueError("--report must be inside your home or temporary folder")
+    return full
 OWNER = {"lociar_diagnostics": "v1"}
 CRITICAL_EVENTS = (
     "apple_revoke_failed", "apple_revoke_unavailable", "account_deletion_deferred",
@@ -54,14 +85,16 @@ def policy_specs(channel):
 
 class MonitoringAPI:
     def __init__(self, configuration):
-        result = subprocess.run(["gcloud", "--configuration=" + configuration, "auth", "print-access-token"],
+        if not CONFIGURATION_NAME.match(configuration):
+            raise ValueError("Invalid gcloud configuration name")
+        result = subprocess.run([gcloud_binary(), "--configuration=" + configuration, "auth", "print-access-token"],
                                 check=True, text=True, capture_output=True)
         self.token = result.stdout.strip()
         if not self.token:
             raise RuntimeError("gcloud returned no access token")
 
     def request(self, method, path, payload=None):
-        request = urllib.request.Request("https://monitoring.googleapis.com/v3/" + path,
+        request = urllib.request.Request("https://monitoring.googleapis.com/v3/" + safe_api_path(path),
             data=None if payload is None else json.dumps(payload).encode(), method=method,
             headers={"Authorization": "Bearer " + self.token, "Content-Type": "application/json"})
         try:
@@ -142,9 +175,10 @@ def main():
         "project": PROJECT, "applied": False, "policies": policy_specs("EMAIL_CHANNEL"),
         "customMetricsCreated": 0, "schedulesCreated": 0, "budgetChanges": 0}
     if args.report:
-        args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(json.dumps(result, indent=2) + "\n")
-        args.report.chmod(0o600)
+        report = safe_report_path(args.report)
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(json.dumps(result, indent=2) + "\n")
+        report.chmod(0o600)
     print(json.dumps(result, indent=2))
 
 

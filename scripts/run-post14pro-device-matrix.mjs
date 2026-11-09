@@ -3,6 +3,9 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+// Absolute path: never resolve developer tools through a writable PATH entry.
+const XCRUN = '/usr/bin/xcrun';
+
 const root = resolve(import.meta.dirname, '..');
 process.chdir(root);
 
@@ -163,7 +166,7 @@ const TARGET_TESTS = [
 
 function runSimctl(...args) {
   try {
-    return execFileSync('xcrun', ['simctl', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    return execFileSync(XCRUN, ['simctl', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   } catch (err) {
     return (err.stdout || '') + (err.stderr || '');
   }
@@ -187,7 +190,7 @@ function ensureNoSimulatorsBooted() {
 function exportXcresultAttachments(xcresultPath, outputDir) {
   mkdirSync(outputDir, { recursive: true });
   try {
-    execFileSync('xcrun', [
+    execFileSync(XCRUN, [
       'xcresulttool', 'export', 'attachments',
       '--path', xcresultPath,
       '--output-path', outputDir,

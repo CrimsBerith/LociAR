@@ -4,11 +4,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 DESKTOP_DIR = "/Users/khankartal/Desktop/LociAR_Tum_Ekranlar"
-XCRESULT_PATH = "/tmp/AllScreenTours.xcresult"
-ATTACHMENTS_DIR = "/tmp/AllScreenTourAttachments"
+# Private per-run work directory (mode 0700) instead of fixed, shared /tmp paths.
+WORK_DIR = tempfile.mkdtemp(prefix="lociar-screen-tour-")
+XCRESULT_PATH = os.path.join(WORK_DIR, "AllScreenTours.xcresult")
+ATTACHMENTS_DIR = os.path.join(WORK_DIR, "AllScreenTourAttachments")
 SIM_ID = "FD4D823B-C6E7-4547-845D-429ACB89A564"
 
 TOURS = [

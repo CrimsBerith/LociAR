@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { initializeApp, getApps, deleteApp } from 'firebase-admin/app';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? '', /^(localhost|127\.0\.0\.1):\d+$/);
 initializeApp({ projectId: 'demo-lociar' });
 const { adminDb, adminAuth } = await import('../../lib/firebase-admin.ts');
@@ -201,7 +203,7 @@ test('machine-readable strict preflight reports held rows and a passing dry run 
  await db.collection('admin_role_assignments').doc(actor).set({user_id:actor,role_key:'super_admin',revoked_at:null});
  await db.collection('profiles').doc(author).set({handle,admin_managed:true,suspended:false,deleted_at:null});
  await db.collection('handles').doc(handle).set({luid:author});
- const file=fileURLToPath(new URL('../../../scripts/seed/'+name+'.json',import.meta.url));const report='/tmp/lociar-seed-report-'+randomUUID()+'.json';
+ const file=fileURLToPath(new URL('../../../scripts/seed/'+name+'.json',import.meta.url));const report=join(tmpdir(),'lociar-seed-report-'+randomUUID()+'.json');
  const seed={batch:name,author_handle:handle,items:[{id:'one',kind:'note',author_handle:handle,text:'A readable test note.',lat:-35,lng:145,city:'Fixture',coord:'reviewed',persona_id:'P01',persona_status:'editorial_draft',notify:false}]};
  try{
   writeFileSync(file,JSON.stringify(seed));const held=await importer('--seed',name,'--actor',actor,'--require-complete','--report',report);assert.equal(held.code,1);

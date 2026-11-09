@@ -1,8 +1,14 @@
 // Owner-run CLI uses existing ADC. No credentials or tokens are written to disk.
 import {execFileSync} from 'node:child_process';
+import {existsSync} from 'node:fs';
 import {initializeApp,getApps,applicationDefault} from 'firebase-admin/app';
 import {getFirestore} from 'firebase-admin/firestore';
 import {getAuth} from 'firebase-admin/auth';
+
+// Fixed install locations only; the owner's gcloud is never resolved through PATH.
+const GCLOUD_CANDIDATES=['/opt/homebrew/bin/gcloud','/usr/local/bin/gcloud','/opt/homebrew/share/google-cloud-sdk/bin/gcloud','/usr/local/share/google-cloud-sdk/bin/gcloud','/usr/bin/gcloud'];
+function gcloudBinary(){const found=GCLOUD_CANDIDATES.find(p=>existsSync(p));if(!found)throw new Error('gcloud not found in a standard install location.');return found;}
+
 export function initializeOwnerRuntime(){
  if(['FIRESTORE_EMULATOR_HOST','FIREBASE_AUTH_EMULATOR_HOST','FIREBASE_STORAGE_EMULATOR_HOST'].some(k=>process.env[k]))throw new Error('Production owner runtime refuses emulator selectors.');
  process.env.GOOGLE_CLOUD_PROJECT='lociar-2f38c';
@@ -12,7 +18,7 @@ export function initializeOwnerRuntime(){
 export async function ownerActor(db,auth){
  const roles=await db.collection('admin_role_assignments').where('role_key','==','super_admin').where('revoked_at','==',null).get();
  const ids=[...new Set(roles.docs.map(d=>d.get('user_id')))];const users=(await Promise.all(ids.map(id=>auth.getUser(id)))).filter(u=>!u.disabled);
- const account=execFileSync('gcloud',['--configuration=default','config','get-value','account'],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim().toLowerCase();
+ const account=execFileSync(gcloudBinary(),['--configuration=default','config','get-value','account'],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim().toLowerCase();
  const actor=users.find(u=>u.email?.toLowerCase()===account)||(users.length===1?users[0]:null);
  if(!actor)throw new Error('No unambiguous active owner admin found.');return actor.uid;
 }
