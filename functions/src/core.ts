@@ -15,13 +15,15 @@ if (getApps().length === 0) initializeApp();
 
 /** Functions region. Must match LOCIAR_FIREBASE_FUNCTIONS_REGION in the iOS build settings. */
 export const REGION = process.env.LOCIAR_FUNCTIONS_REGION || 'us-central1';
-// Quota budget: event triggers get maxInstances:1 (async, latency-insensitive); user-facing
-// callables get maxInstances:2 via CALLABLE_MAX_INSTANCES. Check the regional CPU quota against
-// the deployed function inventory, including headroom for rolling revision startup.
-setGlobalOptions({ region: REGION, maxInstances: 1, minInstances: 0 });
+// Quota budget: the project's Cloud Run CPU quota in us-central1 is 20 vCPU (increase to 100 was not
+// granted, Oct and 9 Nov 2026). At 1 vCPU per instance only ~20 distinct functions could be warm at
+// once; the next cold start returned 503 (reproduced 9 Nov 2026). 'gcf_gen1' sizes CPU by memory like
+// 1st gen (256MiB -> 0.167 vCPU, 512MiB -> 0.333) with concurrency 1, so ~120 instances fit the quota.
+// Event triggers keep maxInstances:1 unless set; callables use CALLABLE_MAX_INSTANCES.
+setGlobalOptions({ region: REGION, maxInstances: 1, minInstances: 0, cpu: 'gcf_gen1' });
 
-/** User-facing callables need a second instance to avoid cold-start queuing under light load. */
-export const CALLABLE_MAX_INSTANCES = 2;
+/** Concurrency is 1 under fractional CPU, so user-facing callables get a few parallel instances. */
+export const CALLABLE_MAX_INSTANCES = 4;
 
 /**
  * Callables reject requests without a valid App Check token in production. v2 callables are not

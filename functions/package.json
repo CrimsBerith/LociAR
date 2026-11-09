@@ -33,9 +33,6 @@
     "typescript": "^5.9.2"
   },
   "overrides": {
-    "firebase-tools": {
-      "minimatch": "^9.0.5"
-    },
     "cloudevents": {
       "uuid": "^11.1.1"
     },
@@ -58,7 +55,8 @@
       "@opentelemetry/core": "^2.8.0"
     },
     "firebase-tools": {
-      "chokidar": "^4.0.3"
+      "chokidar": "^4.0.3",
+      "minimatch": "^3.1.2"
     },
     "body-parser@^2.0.0": "2.4.0",
     "fast-uri": "3.1.9",
