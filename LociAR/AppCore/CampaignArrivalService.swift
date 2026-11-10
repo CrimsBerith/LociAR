@@ -713,7 +713,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
 
     /// Silent pushes for this ~39 x 20 km area tell the phone to refresh without the app being opened.
     private func setAreaTopic(_ topic: String?) {
-        guard FirebaseApp.app() != nil else { return }
+        guard FirebaseApp.isDefaultAppConfigured() else { return }
         let defaults = UserDefaults.standard
         let current = defaults.string(forKey: Self.topicKey)
         guard topic != current else { return }

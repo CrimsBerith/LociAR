@@ -116,7 +116,7 @@ struct AppConfiguration: Sendable {
     @MainActor
     @discardableResult
     func configureFirebaseIfNeeded() -> Bool {
-        if FirebaseApp.app() != nil { return true }
+        if FirebaseApp.isDefaultAppConfigured() { return true }
         guard let firebase else { return false }
 #if DEBUG
         // Fixed, console-registered debug token: a reinstall must not mint a fresh random token that

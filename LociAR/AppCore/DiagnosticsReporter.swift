@@ -82,7 +82,7 @@ enum DiagnosticsPolicy {
 @MainActor
 final class DiagnosticsReporter {
     static let shared = DiagnosticsReporter(
-        enabled: { FirebaseApp.app() != nil && CrashReportingPreference.isEnabled },
+        enabled: { FirebaseApp.isDefaultAppConfigured() && CrashReportingPreference.isEnabled },
         sink: { Crashlytics.crashlytics().record(error: $0.sanitizedError) }
     )
 

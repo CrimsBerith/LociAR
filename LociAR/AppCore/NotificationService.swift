@@ -451,7 +451,7 @@ final class LociAppDelegate: NSObject, UIApplicationDelegate {
 
     private func prepareBackgroundWake() async -> Bool {
         restoreBackgroundServices()
-        guard FirebaseApp.app() != nil, !UITestFixtures.authenticatedSessionEnabled else { return false }
+        guard FirebaseApp.isDefaultAppConfigured(), !UITestFixtures.authenticatedSessionEnabled else { return false }
         let deadline = Date().addingTimeInterval(2)
         while !backgroundIdentityResolved, FirebaseIdentity.currentLUID() == nil, Date() < deadline {
             do { try await Task.sleep(for: .milliseconds(100)) } catch { return false }
@@ -501,7 +501,7 @@ enum CrashReportingPreference {
         set { UserDefaults.standard.set(newValue, forKey: key); apply() }
     }
     static func apply() {
-        guard FirebaseApp.app() != nil else { return }
+        guard FirebaseApp.isDefaultAppConfigured() else { return }
         Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(isEnabled)
         if !isEnabled { Crashlytics.crashlytics().deleteUnsentReports() }
     }
