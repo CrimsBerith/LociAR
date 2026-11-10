@@ -119,10 +119,14 @@ struct AppConfiguration: Sendable {
         if FirebaseApp.app() != nil { return true }
         guard let firebase else { return false }
 #if DEBUG
-        // Sabit kayıtlı debug token: Uygulama silinip yeniden kurulsa bile
-        // her seferinde Firebase Console'a yeni token ekleme zorunluluğunu ortadan kaldırır.
-        if UserDefaults.standard.string(forKey: "FIRAAppCheckDebugToken") == nil {
-            UserDefaults.standard.set("95430D36-01E8-4A1D-AFE9-F61DA6447CDA", forKey: "FIRAAppCheckDebugToken")
+        // Fixed, console-registered debug token: a reinstall must not mint a fresh random token that
+        // nobody registered, or every production callable rejects the Debug build (ENFORCE_APP_CHECK).
+        // AppCheckCore persists the token under `GACAppCheckDebugToken`; `FIRAAppCheckDebugToken` is
+        // only honoured as an environment variable, never as a UserDefaults key.
+        if ProcessInfo.processInfo.environment["FIRAAppCheckDebugToken"] == nil,
+           ProcessInfo.processInfo.environment["AppCheckDebugToken"] == nil,
+           UserDefaults.standard.string(forKey: Self.appCheckDebugTokenDefaultsKey) != Self.pinnedAppCheckDebugToken {
+            UserDefaults.standard.set(Self.pinnedAppCheckDebugToken, forKey: Self.appCheckDebugTokenDefaultsKey)
         }
         AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
 #else
@@ -141,6 +145,11 @@ struct AppConfiguration: Sendable {
     }
 
 #if DEBUG
+    /// UserDefaults key AppCheckCore reads its persisted debug token from (GACAppCheckDebugProvider.m).
+    nonisolated static let appCheckDebugTokenDefaultsKey = "GACAppCheckDebugToken"
+    /// Registered under Firebase Console → App Check → iOS app → Manage debug tokens.
+    nonisolated static let pinnedAppCheckDebugToken = "95430D36-01E8-4A1D-AFE9-F61DA6447CDA"
+
     /// Points every backend SDK at the local Firebase Emulator Suite when
     /// LOCIAR_EMULATOR_HOST is set (see Config/Local.xcconfig.example). Ports must match
     /// firebase.json's "emulators" block. Debug-only: never compiled into release builds.

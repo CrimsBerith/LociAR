@@ -105,9 +105,11 @@ elle yapılışıdır.
 6. Authentication → Settings → **Upgrade to Identity Platform** (admin TOTP MFA için gerekli; 50K MAU'ya kadar ücretsiz katman).
 7. **App Check** → iOS uygulaması → App Attest'i kaydet. Firestore/Storage için önce "Unenforced" kalsın;
    TestFlight doğrulandıktan sonra enforce et; üretim yayını öncesi Firestore/Storage enforcement doğrulanmış olmalı. **Callable Functions** konsoldan değil koddan zorlanır:
-   `functions/src/core.ts` → `ENFORCE_APP_CHECK` (emulator dışında her zaman açık). Debug build'lerle canlı
-   backend'e bağlanacaksan Xcode konsolunda basılan App Check debug token'ını konsolda "Manage debug tokens"
-   altına ekle; yoksa callable'lar `unauthenticated` döner.
+   `functions/src/core.ts` → `ENFORCE_APP_CHECK` (emulator dışında her zaman açık). Debug build'ler sabit
+   debug token `95430D36-01E8-4A1D-AFE9-F61DA6447CDA` kullanır (`AppConfiguration.pinnedAppCheckDebugToken`,
+   `GACAppCheckDebugToken` UserDefaults anahtarına yazılır); bu token konsolda "Manage debug tokens" altında
+   kayıtlı olmalı. Kayıtlı değilse Xcode konsolunda `Failed to exchange debug token` görünür ve callable'lar
+   `unauthenticated` döner.
 8. **Cloud Vision API**: Google Cloud Console → APIs & Services → *Cloud Vision API* → Enable. Profil fotoğrafı
    denetimi (`screenAvatar`) bunu kullanır; kapalıysa tüm fotoğraflar reddedilir (fail-closed). Aylık ilk
    1000 görsel ücretsiz.

@@ -69,6 +69,8 @@ final class AppSession {
         let generation = operationGeneration
         let user = await authRepository.currentUser()
         guard !Task.isCancelled, generation == operationGeneration else { return }
+        // A foreground re-validation must not drop the user out of an active password recovery.
+        if case .passwordRecovery = phase { return }
         if let user { phase = Self.memberPhase(user) }
         else {
             if !backendConfigured { backendMessage = AppConfiguration.ConfigurationError.missingBackendConfiguration.localizedDescription }

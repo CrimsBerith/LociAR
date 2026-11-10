@@ -1,6 +1,7 @@
 import XCTest
 
 /// Inert local data only: checks the failures seen in the physical screenshot baseline.
+@MainActor
 final class ReadabilityRegressionUITests: XCTestCase {
     private func launch(_ extra: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
