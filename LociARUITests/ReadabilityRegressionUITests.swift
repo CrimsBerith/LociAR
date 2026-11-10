@@ -1,7 +1,6 @@
 import XCTest
 
 /// Inert local data only: checks the failures seen in the physical screenshot baseline.
-@MainActor
 final class ReadabilityRegressionUITests: XCTestCase {
     private func launch(_ extra: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
@@ -95,9 +94,39 @@ final class ReadabilityRegressionUITests: XCTestCase {
         let picker = app.segmentedControls["settings-appearance"]
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         for option in ["Sistem", "Aydınlık", "Karanlık"] {
-            XCTAssertTrue(picker.buttons[option].exists, "Missing appearance option: \(option)")
-            picker.buttons[option].tap()
-            XCTAssertEqual(picker.value as? String, option)
+            let button = picker.buttons[option]
+            XCTAssertTrue(button.exists, "Missing appearance option: \(option)")
+            button.tap()
+            XCTAssertTrue(button.isSelected || (button.value as? String) == "1", "Option \(option) should be selected after tap")
+            record(app, name: "settings-appearance-\(option)")
         }
+
+        // Test Dark Mode across primary screens
+        picker.buttons["Karanlık"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        record(app, name: "dark-mode-profile")
+        app.tabBars.buttons["Keşfet"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Keşfet"].waitForExistence(timeout: 5))
+        record(app, name: "dark-mode-discover")
+
+        // Test Light Mode across primary screens
+        app.tabBars.buttons["Profil"].tap()
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        settings.tap()
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.buttons["Aydınlık"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        record(app, name: "light-mode-profile")
+        app.tabBars.buttons["Keşfet"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Keşfet"].waitForExistence(timeout: 5))
+        record(app, name: "light-mode-discover")
+
+        // Return to System mode
+        app.tabBars.buttons["Profil"].tap()
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        settings.tap()
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.buttons["Sistem"].tap()
+        record(app, name: "settings-appearance-Sistem")
     }
 }
