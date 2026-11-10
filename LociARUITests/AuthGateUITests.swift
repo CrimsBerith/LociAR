@@ -826,7 +826,10 @@ final class AuthGateUITests: XCTestCase {
         XCTAssertFalse(pay.exists)
         capture(app, name: scenario)
         app.buttons["Kapat"].tap()
-        app.buttons["post-support-button"].tap()
+        // The sheet's dismissal animation can outlast a slow CI runner's first hit test.
+        let supportButton = app.buttons["post-support-button"]
+        XCTAssertTrue(waitForHittable(supportButton, timeout: 10))
+        supportButton.tap()
         XCTAssertTrue(app.buttons["support-check-status"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["support-pay"].exists)
     }
