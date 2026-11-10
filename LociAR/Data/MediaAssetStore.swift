@@ -17,7 +17,10 @@ enum MediaAssetStore {
     }
 #endif
 
-
+    private nonisolated static func applicationSupportDirectory(fileManager: FileManager = .default) -> URL {
+        fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fileManager.temporaryDirectory
+    }
 
     nonisolated static func removeLocalAssets(in post: LociPost) async {
         try? await removeLocalAssetsChecked(in: post)
@@ -44,7 +47,7 @@ enum MediaAssetStore {
     nonisolated static func purgeAllLocalAssets() async {
         await Task.detached(priority: .utility) {
             let fileManager = FileManager.default
-            let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            let support = applicationSupportDirectory(fileManager: fileManager)
             for directoryName in ["LociARStagedMedia", "LociARWorldMaps"] {
                 try? fileManager.removeItem(at: support.appendingPathComponent(directoryName, isDirectory: true))
             }
@@ -61,7 +64,7 @@ enum MediaAssetStore {
 
     private nonisolated static func preparedStagingDirectory() throws -> URL {
         let fileManager = FileManager.default
-        var root = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        var root = applicationSupportDirectory(fileManager: fileManager)
             .appendingPathComponent("LociARStagedMedia", isDirectory: true)
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
         try fileManager.setAttributes(
@@ -77,7 +80,7 @@ enum MediaAssetStore {
     private nonisolated static func isOwnedLocalAsset(_ url: URL) -> Bool {
         guard url.isFileURL else { return false }
         let fileManager = FileManager.default
-        let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let support = applicationSupportDirectory(fileManager: fileManager)
         return isDescendant(url, of: support.appendingPathComponent("LociARStagedMedia", isDirectory: true))
             || isDescendant(url, of: support.appendingPathComponent("LociARWorldMaps", isDirectory: true))
             || (isDescendant(url, of: fileManager.temporaryDirectory)

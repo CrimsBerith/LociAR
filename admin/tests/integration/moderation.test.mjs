@@ -30,7 +30,7 @@ test('author deletions cannot be relabeled or restored through post or flag mode
 test('moderator deletion still supports audited idempotent deletion, restore and approval', async () => {
   const db = adminDb();
   const ref = db.collection('posts').doc(randomUUID());
-  await ref.set({ creator_id: randomUUID(), status: 'active', deleted_at: null, age_rating: 'all', visibility: 'public' });
+  await ref.set({ creator_id: randomUUID(), status: 'active', deleted_at: null, age_rating: 'all', visibility: 'public', lat: 41.0082, lng: 28.9784 });
   const key = randomUUID();
   await moderatePost(ref.id, 'soft_delete', 'test-admin', 'Regression test reason', key);
   const removed = (await ref.get()).data();

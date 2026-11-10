@@ -9,110 +9,105 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     let user: LociUser
     @State private var confirmDeletion = false
+    @State private var showAccountCreation = false
     @State private var showDeletionReauthentication = false
     @State private var showEditProfile = false
     @State private var isDeletingAccount = false
     @State private var isSigningOut = false
-    @State private var notificationsAuthorized = false
-    @State private var notificationsDenied = false
-    @State private var isRequestingNotifications = false
 
     var body: some View {
-        List {
-            Section {
-                HStack(spacing: 16) {
-                    LociAvatar(handle: user.handle, avatarURL: user.avatarURL, size: 66)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("@\(user.handle)").font(.title3.bold())
-                        if let email = user.email { Text(email).font(.caption).foregroundStyle(.secondary) }
-                        LociStatusPill(title: String(localized: "Hesap aktif"), symbol: "checkmark.seal.fill", color: LociTheme.accent)
+        ScrollView {
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.xl2) {
+                HStack(spacing: LociTheme.Spacing.l) {
+                    LociAvatar(handle: user.isAnonymousAccount ? "guest" : user.handle,
+                               avatarURL: user.isAnonymousAccount ? nil : user.avatarURL, size: 66)
+                    VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
+                        if user.isAnonymousAccount {
+                            Text("Misafir").font(.title3.bold())
+                        } else {
+                            Text(verbatim: "@\(user.handle)").font(.title3.bold())
+                            if let email = user.email { Text(email).font(.subheadline).foregroundStyle(LociTheme.secondaryText) }
+                            if let bio = user.bio, !bio.isEmpty {
+                                Text(bio)
+                                    .font(.subheadline)
+                                    .foregroundStyle(LociTheme.secondaryText)
+                                    .lineLimit(4)
+                            }
+                        }
                     }
                     Spacer()
+                    if !user.isAnonymousAccount {
                     Button {
                         showEditProfile = true
                     } label: {
                         Image(systemName: "pencil.circle.fill")
                             .font(.title2)
                             .foregroundStyle(LociTheme.accent)
-                            .frame(minWidth: 44, minHeight: 44)
+                            .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Profili düzenle")
+                    .accessibilityLabel(Text("Profili düzenle"))
                     .accessibilityIdentifier("profile-edit-button")
-                }.padding(.vertical, 8)
+                    }
+                }
+                .padding(LociTheme.Spacing.xl2)
+                .lociGlassSurface(cornerRadius: LociTheme.Radius.extraLarge)
+            if user.isAnonymousAccount {
+                profileGroup {
+                    Button("Giriş yap") { showAccountCreation = true }
+                        .buttonStyle(LociPrimaryButtonStyle())
+                        .accessibilityIdentifier("profile-create-account")
+                    Text("Devam etmek için giriş yap.")
+                        .font(.subheadline)
+                        .foregroundStyle(LociTheme.secondaryText)
+                }
             }
-            Section {
-                NavigationLink { MyPostsView() } label: { ProfileLinkRow(title: String(localized: "Postlarım"), symbol: "rectangle.stack.fill", color: LociTheme.accent) }
+            profileGroup(title: "İçerik") {
+                NavigationLink { MyPostsView() } label: { ProfileLinkRow(title: String(localized: "Notlarım"), symbol: "rectangle.stack.fill", color: LociTheme.accent) }
                 NavigationLink { ActivityView() } label: {
-                    ProfileLinkRow(title: "Aktivite", symbol: "bell.fill", color: .orange)
+                    ProfileLinkRow(title: "Aktivite", symbol: "bell.fill", color: LociTheme.accent)
                 }
                 .accessibilityIdentifier("profile-activity")
-                NavigationLink { CollectionsView() } label: { ProfileLinkRow(title: String(localized: "Koleksiyonlar"), symbol: "square.stack.3d.up.fill", color: .purple) }
-                NavigationLink { SavedPostsView() } label: { ProfileLinkRow(title: String(localized: "Kaydedilenler"), symbol: "bookmark.fill", color: .blue) }
-            } header: {
-                profileSectionText("İçerik")
-            }
-            Section {
-                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket.fill", color: .green) }
-                    .accessibilityIdentifier("profile-invite")
-            } header: {
-                profileSectionText("Davet")
-            }
-            Section {
-                NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: .gray) }
-                    .accessibilityIdentifier("profile-settings")
-                NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: .orange) }
-                Button {
-                    guard !isRequestingNotifications else { return }
-                    if notificationsAuthorized || notificationsDenied {
-                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                    } else {
-                        isRequestingNotifications = true
-                        Task {
-                            notificationsAuthorized = await NotificationService.shared.requestAuthorization()
-                            notificationsDenied = NotificationService.shared.authorizationDenied
-                            isRequestingNotifications = false
-                        }
-                    }
-                } label: {
-                    if notificationsAuthorized || notificationsDenied {
-                        Label("Bildirim ayarları", systemImage: "bell.badge")
-                    } else {
-                        Label("Bildirimleri etkinleştir", systemImage: "bell.badge")
-                    }
+                NavigationLink { CollectionsView() } label: { ProfileLinkRow(title: String(localized: "Koleksiyonlar"), symbol: "square.stack.3d.up.fill", color: LociTheme.accent) }
+                    .accessibilityIdentifier("profile-collections")
+                NavigationLink { SavedPostsView() } label: { ProfileLinkRow(title: String(localized: "Kaydedilenler"), symbol: "bookmark.fill", color: LociTheme.accent) }
+                    .accessibilityIdentifier("profile-saved")
+                if PostSupportAvailability.showsEntryPoints && !user.isAnonymousAccount {
+                    NavigationLink { SupportEarningsView() } label: {
+                        ProfileLinkRow(title: String(localized: "Kazançlarım"), symbol: "heart.circle", color: LociTheme.accent)
+                    }.accessibilityIdentifier("profile-support-earnings")
                 }
-                .disabled(isRequestingNotifications || session.isLocalPreview || !container.isBackendConfigured)
-                .accessibilityIdentifier("profile-push-permission")
-            } header: {
-                profileSectionText("Gizlilik ve güvenlik")
             }
-            Section {
+            profileGroup(title: String(localized: "Tercihler")) {
+                NavigationLink { AppSettingsView() } label: { ProfileLinkRow(title: String(localized: "Ayarlar"), symbol: "gearshape", color: LociTheme.secondaryText) }
+                    .accessibilityIdentifier("profile-settings")
+                NavigationLink { BlockedUsersView() } label: { ProfileLinkRow(title: String(localized: "Engellenen hesaplar"), symbol: "person.crop.circle.badge.xmark", color: LociTheme.secondaryText) }
+                NavigationLink { InviteView() } label: { ProfileLinkRow(title: String(localized: "Davet kodu"), symbol: "ticket", color: LociTheme.secondaryText) }
+                    .accessibilityIdentifier("profile-invite")
+            }
+            profileGroup(title: "Yasal") {
                 if let url = container.configuration.privacyPolicyURL {
                     Link("Gizlilik politikası", destination: url)
+                        .frame(minHeight: LociTheme.Control.minimumTapTarget)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("profile-privacy")
                 }
                 if let url = container.configuration.termsURL {
                     Link("Kullanım koşulları", destination: url)
+                        .frame(minHeight: LociTheme.Control.minimumTapTarget)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("profile-terms")
                 }
                 if let url = container.configuration.supportURL {
                     Link("Destek", destination: url)
+                        .frame(minHeight: LociTheme.Control.minimumTapTarget)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("profile-support")
                 }
-            } header: {
-                profileSectionText("Yasal")
             }
-#if DEBUG
-            Section {
-                NavigationLink { ARCoreCoverageDebugView() } label: {
-                    ProfileLinkRow(title: "ARCore kapsam kontrolü (debug)", symbol: "globe.europe.africa", color: .blue)
-                }
-                .accessibilityIdentifier("profile-debug-arcore")
-            }
-#endif
-            Section {
-                Button(role: .destructive) {
+            profileGroup {
+                Button {
                     guard !isSigningOut else { return }
                     isSigningOut = true
                     Task { await session.signOut(); isSigningOut = false }
@@ -126,18 +121,21 @@ struct ProfileView: View {
                 }
                     .disabled(isDeletingAccount || isSigningOut || session.isLocalPreview || !container.isBackendConfigured)
                     .accessibilityIdentifier("profile-delete-account")
-            } footer: {
-                profileSectionText("Hesap silme işlemi geri alınamaz.")
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
+        .padding(.horizontal, LociTheme.Spacing.l)
+        .padding(.bottom, LociTheme.Spacing.xl)
+        }
         .background(LociScreenBackground())
         .navigationTitle("Profil")
         .alert("Hesabı kalıcı olarak sil?", isPresented: $confirmDeletion) {
-            Button("Devam et", role: .destructive) { showDeletionReauthentication = true }
+            Button(user.isAnonymousAccount ? String(localized: "Devam et") : String(localized: "Kimliğini doğrula")) { showDeletionReauthentication = true }
             Button("Vazgeç", role: .cancel) { /* Closes the dialog; nothing to undo. */ }
-        } message: { Text("Postlarınız ve sosyal verileriniz sunucudan silinir. Bu işlem geri alınamaz.") }
+        } message: { Text("Notların ve sosyal verilerin sunucudan silinir. Bu işlem geri alınamaz.") }
+        .onChange(of: user.isAnonymousAccount) { _, anonymous in
+            if !anonymous { showAccountCreation = false }
+        }
+        .sheet(isPresented: $showAccountCreation) { AuthView() }
         .sheet(isPresented: $showEditProfile) {
             ProfileEditView(user: user)
         }
@@ -148,16 +146,33 @@ struct ProfileView: View {
         .task {
             guard !session.isLocalPreview, container.isBackendConfigured else { return }
             await NotificationService.shared.checkAuthorizationStatus()
-            notificationsAuthorized = NotificationService.shared.isAuthorized
-            notificationsDenied = NotificationService.shared.authorizationDenied
         }
     }
 
     private func profileSectionText(_ value: String) -> some View {
         Text(LocalizedStringKey(value))
-            .foregroundStyle(.white)
+            .foregroundStyle(LociTheme.textPrimary)
             .textCase(nil)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func profileGroup<Content: View>(
+        title: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
+            if let title {
+                profileSectionText(title)
+                    .padding(.leading, LociTheme.Spacing.s)
+            }
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
+                content()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, LociTheme.Spacing.l)
+            .padding(.vertical, LociTheme.Spacing.m)
+            .lociGlassSurface(cornerRadius: LociTheme.Radius.large)
+        }
     }
 
     private func deleteAccount(password: String?) async throws {
@@ -188,7 +203,7 @@ private struct AccountDeletionView: View {
             Form {
                 Section {
                     Text("Hesabı silmeden önce kimliğini doğrula.")
-                    if let email { Text(email).foregroundStyle(.secondary) }
+                    if let email { Text(email).foregroundStyle(LociTheme.secondaryText) }
                     if method == .password {
                         SecureField("Mevcut parola", text: $password)
                             .textContentType(.password)
@@ -197,7 +212,7 @@ private struct AccountDeletionView: View {
                             .disabled(isWorking || deletionAccepted)
                             .accessibilityIdentifier("account-delete-password")
                     } else if method == nil, message == nil { ProgressView() }
-                    if let message { Text(message).foregroundStyle(deletionAccepted ? Color.secondary : Color.red) }
+                    if let message { Text(message).foregroundStyle(deletionAccepted ? LociTheme.secondaryText : LociTheme.danger) }
                 }
                 Section {
                     if method == .apple {
@@ -208,14 +223,21 @@ private struct AccountDeletionView: View {
                         Button("Doğrula ve sil", role: .destructive) { Task { await submit() } }
                             .disabled(isWorking || deletionAccepted || password.isEmpty)
                             .accessibilityIdentifier("account-delete-confirm")
+                    } else if method == .anonymous {
+                        Button("Hesabı kalıcı olarak sil", role: .destructive) { Task { await submit() } }
+                            .disabled(isWorking || deletionAccepted)
+                            .accessibilityIdentifier("account-delete-confirm")
                     } else if message != nil {
                         Button("Tekrar dene") { Task { await loadMethod() } }
                     }
                     if isWorking { ProgressView() }
                 } footer: {
-                    Text("Postlarınız ve sosyal verileriniz sunucudan silinir. Bu işlem geri alınamaz.")
+                    Text("Notların ve sosyal verilerin sunucudan silinir. Bu işlem geri alınamaz.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .lociGlassRowBackground()
+            .background(LociScreenBackground())
             .navigationTitle("Hesabı sil")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

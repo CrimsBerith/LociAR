@@ -2,6 +2,19 @@ import XCTest
 @testable import LociAR
 
 final class LegacyImporterTests: XCTestCase {
+    @MainActor
+    func testLegacyAppearanceModeSupportsJSONAndRawValues() {
+        XCTAssertEqual(
+            LegacyMigrationCoordinator.importedAppearancePreference(from: Data("\"light\"".utf8)),
+            LociAppearancePreference.light.rawValue
+        )
+        XCTAssertEqual(
+            LegacyMigrationCoordinator.importedAppearancePreference(from: Data("automatic".utf8)),
+            LociAppearancePreference.system.rawValue
+        )
+        XCTAssertNil(LegacyMigrationCoordinator.importedAppearancePreference(from: Data("unexpected".utf8)))
+    }
+
     func testManifestImportIsAllowListedAndIdempotent() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let directory = root.appendingPathComponent("RCTAsyncLocalStorage_V1")

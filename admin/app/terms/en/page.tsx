@@ -24,7 +24,7 @@ export default function TermsPageEn() {
 
       <h2>Your account</h2>
       <p>
-        Publishing requires Sign in with Apple or a verified email account. You are responsible for keeping your account
+        Using the app requires Sign in with Apple or a verified email account. New notes are anonymous by default; you can choose to show your username. You are responsible for keeping your account
         secure. You can delete your account in Profile → Delete account permanently; deletion cannot be undone.
       </p>
 
@@ -43,7 +43,7 @@ export default function TermsPageEn() {
       <p>LociAR has <strong>zero tolerance</strong> for objectionable content and for users who harass or abuse others.</p>
       <ul>
         <li>You can report posts, comments and users and block users from inside the app. Content from users you block is hidden from you.</li>
-        <li>Comments and text are filtered automatically; new posts are reviewed before they go live.</li>
+        <li>Posts, location notes and comments go live once they pass the automatic filter; content is hidden automatically after enough reports from different users.</li>
         <li>Reported content is reviewed within 24 hours; content that breaks these rules is removed and the account that posted
           it is suspended or permanently closed.</li>
       </ul>

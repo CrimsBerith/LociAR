@@ -171,6 +171,38 @@ enum BackendErrorPolicy {
     }
 }
 
+/// One bounded authentication recovery, fenced to the original account. Does not sign out,
+/// retry other failures, or turn a failed token refresh into a second network request.
+enum CallableAuthenticationRecovery {
+    nonisolated static func run<Value: Sendable>(
+        expectedUID: String,
+        currentUID: () -> String?,
+        refreshToken: () async throws -> Void,
+        request: () async throws -> Value
+    ) async throws -> Value {
+        var refreshed = false
+        while true {
+            try Task.checkCancellation()
+            guard currentUID() == expectedUID else { throw AuthFlowError.notSignedIn }
+            do {
+                let value = try await request()
+                try Task.checkCancellation()
+                guard currentUID() == expectedUID else { throw AuthFlowError.notSignedIn }
+                return value
+            } catch {
+                try Task.checkCancellation()
+                guard currentUID() == expectedUID else { throw AuthFlowError.notSignedIn }
+                let failure = error as NSError
+                guard !refreshed, failure.domain == FunctionsErrorDomain,
+                      FunctionsErrorCode(rawValue: failure.code) == .unauthenticated else { throw error }
+                refreshed = true
+                try await refreshToken()
+                // The loop checks cancellation and account ownership again before the retry.
+            }
+        }
+    }
+}
+
 struct CallableClient: Sendable {
     let region: String
 
@@ -189,7 +221,12 @@ struct CallableClient: Sendable {
         let payloadData = try Self.jsonEncoder().encode(payload)
         let object = try JSONSerialization.jsonObject(with: payloadData)
         let data = try await callRaw(name, object: object, timeout: timeout)
-        return try FirestoreJSON.decoder().decode(Response.self, from: data)
+        do {
+            return try FirestoreJSON.decoder().decode(Response.self, from: data)
+        } catch {
+            DiagnosticsReporter.report(error, component: .callable(name))
+            throw error
+        }
     }
 
     nonisolated func callRaw(
@@ -201,29 +238,39 @@ struct CallableClient: Sendable {
         let luid = FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: expectedUID))
         if let supplied = guardedObject["userId"] as? String, supplied != luid { throw AuthFlowError.notSignedIn }
         guardedObject["userId"] = luid
-        var refreshedToken = false
-        while true {
+        do {
+            let response = try await CallableAuthenticationRecovery.run(
+                expectedUID: expectedUID,
+                currentUID: { Auth.auth().currentUser?.uid },
+                refreshToken: {
+                    guard let user = Auth.auth().currentUser, user.uid == expectedUID else {
+                        throw AuthFlowError.notSignedIn
+                    }
+                    // A failed refresh must stop this request, not replay a stale token.
+                    _ = try await user.getIDTokenResult(forcingRefresh: true)
+                },
+                request: {
+                    let callable = Functions.functions(region: region).httpsCallable(name)
+                    callable.timeoutInterval = timeout
+                    let result = try await callable.call(guardedObject)
+                    guard JSONSerialization.isValidJSONObject(result.data) else { throw BackendCallError.invalidResponse }
+                    return try JSONSerialization.data(withJSONObject: result.data)
+                }
+            )
+            if ["createPost", "createPlaceNote", "deleteOwnPost", "blockPostAuthor", "submitReport"].contains(name) {
+                await MapRequestCoordinator.shared.invalidate()
+                await ContentUpdates.shared.changed()
+            }
             try Task.checkCancellation()
             guard Auth.auth().currentUser?.uid == expectedUID else { throw AuthFlowError.notSignedIn }
-            do {
-                let callable = Functions.functions(region: region).httpsCallable(name)
-                callable.timeoutInterval = timeout
-                let result = try await callable.call(guardedObject)
-                try Task.checkCancellation()
-                guard Auth.auth().currentUser?.uid == expectedUID else { throw AuthFlowError.notSignedIn }
-                guard JSONSerialization.isValidJSONObject(result.data) else { throw BackendCallError.invalidResponse }
-                return try JSONSerialization.data(withJSONObject: result.data)
-            } catch let error as NSError where error.domain == FunctionsErrorDomain {
-                // An expired ID token surfaces as `unauthenticated`; refresh once and retry.
-                if FunctionsErrorCode(rawValue: error.code) == .unauthenticated,
-                   !refreshedToken, let user = Auth.auth().currentUser, user.uid == expectedUID {
-                    refreshedToken = true
-                    _ = try? await user.getIDTokenResult(forcingRefresh: true)
-                    continue
-                }
-                if let transient = BackendErrorPolicy.transient(code: error.code, userInfo: error.userInfo) { throw transient }
-                throw BackendErrorPolicy.map(code: error.code, message: error.localizedDescription, userInfo: error.userInfo) ?? error
-            }
+            return response
+        } catch let error as NSError where error.domain == FunctionsErrorDomain {
+            DiagnosticsReporter.report(error, component: .callable(name))
+            if let transient = BackendErrorPolicy.transient(code: error.code, userInfo: error.userInfo) { throw transient }
+            throw BackendErrorPolicy.map(code: error.code, message: error.localizedDescription, userInfo: error.userInfo) ?? error
+        } catch {
+            DiagnosticsReporter.report(error, component: .callable(name))
+            throw error
         }
     }
 }
@@ -302,6 +349,10 @@ enum FirestorePostMapper {
             "id": id,
             "creator_id": data["creator_id"] ?? NSNull(),
             "creator_handle": data["creator_handle"] ?? NSNull(),
+            "is_anonymous": data["is_anonymous"] ?? false,
+            "sponsorship": data["sponsorship"] ?? NSNull(),
+            "note_kind": data["note_kind"] ?? NSNull(),
+            "dense_spot": data["dense_spot"] ?? NSNull(),
             "created_at": FirestoreJSON.isoString(createdAt),
             "pose": FirestoreJSON.parseEmbedded(data["pose_json"]),
             "edit_data": FirestoreJSON.parseEmbedded(data["edit_data_json"]),
@@ -314,6 +365,7 @@ enum FirestorePostMapper {
             "views_count": data["views_count"] ?? 0,
             "likes_count": data["likes_count"] ?? 0,
             "comments_count": data["comments_count"] ?? 0,
+            "admin_managed": data["admin_managed"] as? Bool ?? false,
         ]
         return try FirestoreJSON.decode(BackendPostRow.self, from: object)
     }

@@ -1,0 +1,1 @@
+export const MAX_CAPTION_UTF16_LENGTH = 140;

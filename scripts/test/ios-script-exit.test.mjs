@@ -27,7 +27,7 @@ test('CI stops on the native test failure even though tee successfully writes it
   const root = fixture('ci-ios.sh');
   try {
     command(root, 'xcodebuild', 'case " $* " in\n *" -version "*) exit 0;;\n *" -resolvePackageDependencies "*) exit 0;;\n *) echo "Synthetic native test failure"; exit 42;;\nesac\n');
-    command(root, 'xcrun', "printf '%s\\n' '{\"devices\":{\"iOS-26\":[{\"name\":\"iPhone fixture\",\"udid\":\"fixture\",\"isAvailable\":true}]}}'\n");
+    command(root, 'xcrun', "printf '%s\\n' '{\"devices\":{\"iOS-26\":[{\"name\":\"LociAR renamed simulator\",\"deviceTypeIdentifier\":\"com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro\",\"udid\":\"fixture\",\"isAvailable\":true}]}}'\n");
     const result = spawnSync('bash', [path.join(root, 'scripts/ci-ios.sh')], { env: { ...process.env, LOCIAR_IOS_CI_OUTPUT: path.join(root, 'output'), PATH: `${root}/bin:${process.env.PATH}` }, encoding: 'utf8' });
     assert.equal(result.status, 42); assert.match(result.stdout, /Synthetic native test failure/);
   } finally { rmSync(root, { recursive: true, force: true }); }

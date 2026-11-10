@@ -9,6 +9,13 @@ bir içerik hesabı oluşturabilir. İsteğe bağlı e-posta doğrulanmış kabu
 kimliği oluşturulur fakat giriş kapalıdır. Hesaba admin rolü verilmez. Gerçek bir kişinin
 uygulamada oturum açması için mevcut normal kullanıcı davet akışı kullanılmalıdır.
 
+30 Ekim yerel güncellemesi: yeni yönetilen içerik notunda **Author attribution** alanıyla
+adlı veya anonim yayın açıkça seçilebilir. Normal kullanıcı adına admin yayını adlı kalır;
+anonim seçenek yalnız `admin_managed` kimliğine açıktır. Sunucu aynı tercihi post ve Storage
+claim'e yazar; mevcut postun yazarı veya atfı düzenleme ile değişmez. Aynı istek anahtarında
+tercihi değiştirmek de reddedilir. Ekip provenance rozeti anonimlikten bağımsız korunmalıdır.
+Bu yol emülatörde test edildi; canlı admin/Functions dağıtımı bu güncellemeyle yapılmadı.
+
 **Posts → Create post** ekranında mevcut kullanıcı handle/UUID ile seçilir. Koordinat seçici veya
 latitude/longitude alanlarıyla yer, metin, renk, ölçek, dönüş, opaklık, fiziksel
 boyut, yön, yükseklik, görünürlük ve yaş derecesi düzenlenir. Admin postları yalnızca metindir
@@ -22,8 +29,8 @@ postun konumunu/boyutunu değiştirmek açık onay ister ve eski anchor silme ku
 
 Korumalı bölgede yayın için `zones.override` yetkisi ve ayrı istisna gerekçesi gerekir. Bölge
 kimlikleri, gerekçe ve işlemi yapan admin kaydedilir. **18+ engeli admin için de geçerlidir.**
-Mobil kullanıcılar korumalı bölge engelini atlayamaz. Varsayılan yayın durumu `pending_review`;
-yetkili admin doğrudan `active` seçebilir.
+Mobil kullanıcılar korumalı bölge engelini atlayamaz. Güvenlik kontrollerini geçen mobil postlar
+doğrudan `active` olur; kullanıcı raporları ve yönetici kaldırma akışı devam eder.
 
 Post detayında kullanıcı seçilerek yorum açılır; yorumlar düzenlenir veya silinir. Görünen yazar
 seçilen kullanıcıdır; admin ayrı audit aktörüdür. Yazar değiştirilmez. Silinmiş/askıdaki hesaplar,

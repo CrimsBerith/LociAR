@@ -3,6 +3,9 @@ import { lstatSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+// Absolute path (present on macOS and the Linux CI runners): do not resolve git through PATH.
+const GIT = '/usr/bin/git';
+
 // Keep findings value-free: CI logs must never reproduce the matched credential.
 const rules = [
   ['private-key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g],
@@ -12,6 +15,8 @@ const rules = [
   ['aws-access-key', /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g],
   ['literal-credential', /\b[\w]*(?:password|passwd|client_?secret|access_?token|refresh_?token|private_?key|api_?key)[\w]*["']?\s*[:=]\s*["']([^"'`\r\n]{8,})["']/gi],
   ['document-password', /(?<![\p{L}\p{N}_])(?:Password|Şifre|Parola)\s*(?:\([^)]+\))?\s*(?:\*\*)?\s*[:|]\s*(?:\*\*)?\s*`([^`\r\n]+)`/giu],
+  // Detect unquoted credentials in Markdown (not merely backtick-wrapped passwords).
+  ['document-password-unquoted', /^[ \t]*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*)?(?:Password|Şifre|Parola)(?:\s*\([^)]+\))?(?:\*\*)?\s*:\s*(?:\*\*)?\s*(?![\x60<$\[])([A-Za-z0-9][^\s|\x60]{7,})/gimu],
 ];
 
 function placeholder(value) {
@@ -26,7 +31,7 @@ function sensitiveFile(path) {
 }
 
 export function scanRepository(root) {
-  const paths = new Set(execFileSync('git', [
+  const paths = new Set(execFileSync(GIT, [
     'ls-files', '--cached', '--others', '--exclude-standard', '-z',
   ], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean));
   const findings = [];
@@ -42,6 +47,9 @@ export function scanRepository(root) {
     if (bytes.includes(0)) continue;
     const source = bytes.toString('utf8');
     for (const [rule, pattern] of rules) {
+      // Plain-text credential labels are only meaningful in human-written documents;
+      // Swift/JS parameter labels like password: password are not literal secrets.
+      if (rule === 'document-password-unquoted' && !/\.(?:md|mdx|markdown|txt)$/i.test(path)) continue;
       pattern.lastIndex = 0;
       for (const match of source.matchAll(pattern)) {
         if (match[1] && placeholder(match[1])) continue;
@@ -54,7 +62,7 @@ export function scanRepository(root) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
-    const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+    const root = execFileSync(GIT, ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
     const findings = scanRepository(root);
     for (const finding of findings) {
       // JSON quoting also prevents newline/control characters in paths spoofing log entries.

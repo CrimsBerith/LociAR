@@ -7,7 +7,12 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage(LociAppearancePreference.storageKey) private var appearancePreference = LociAppearancePreference.system.rawValue
     @State private var syncLoop: Task<Void, Never>?
+
+    private var preferredColorScheme: ColorScheme? {
+        LociAppearancePreference(rawValue: appearancePreference)?.colorScheme
+    }
 
     private var shouldShowOnboarding: Bool {
         #if DEBUG
@@ -40,16 +45,22 @@ struct RootView: View {
                 case .signedOut:
                     AuthView()
                 case .signedIn(let user):
-                    MainTabView(user: user)
-                        .id(user.id)
+                    if user.isAnonymousAccount { AuthView() }
+                    else { MainTabView(user: user).id(user.id) }
                 case .passwordRecovery:
                     PasswordRecoveryView()
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(preferredColorScheme)
+        .tint(LociTheme.accent)
         .task {
-            try? LegacyMigrationCoordinator.run(modelContext: modelContext)
+            do {
+                try LegacyMigrationCoordinator.run(modelContext: modelContext)
+                try SyncQueueProcessor.migrateLegacyOwners(in: modelContext)
+            } catch {
+                DiagnosticsReporter.report(error, component: .backend)
+            }
             await LocalAccountDeletion.resume(in: modelContext)
         }
         .onChange(of: session.phase) { previous, phase in
@@ -66,7 +77,6 @@ struct RootView: View {
         }
         .onChange(of: container.connectivity.isOnline) { _, online in
             if online {
-                Task { await runSyncIfPossible() }
                 if !session.isLocalPreview { Task { await NotificationService.shared.refreshForCurrentUser() } }
                 startSyncLoop()
             } else {

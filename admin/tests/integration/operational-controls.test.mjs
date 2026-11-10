@@ -77,7 +77,7 @@ test('concurrent role revocations cannot remove the last active super admin', as
 test('false-positive restoration removes the exclusion marker and cannot resurrect deleted authors', async () => {
   const author = randomUUID(), owner = randomUUID(), post = randomUUID(), comment = randomUUID(), flag = randomUUID();
   await db.collection('profiles').doc(author).set({ handle: 'restored-author', deleted_at: null });
-  await db.collection('posts').doc(post).set({ creator_id: owner, status: 'active', visibility: 'public' });
+  await db.collection('posts').doc(post).set({ creator_id: owner, status: 'active', visibility: 'public', lat: 41.0082, lng: 28.9784 });
   const flagged = { server_origin: 'comment_filter', reason: 'comment_filtered', post_id: post, status: 'open', metadata: { author_id: author, comment_id: comment, text: 'false positive' } };
   await db.collection('moderation_flags').doc(flag).set(flagged);
   await db.collection('moderation_originals').doc(flag).set({target:'comment',id:comment,post_id:post,user_id:author,text:'false positive'});

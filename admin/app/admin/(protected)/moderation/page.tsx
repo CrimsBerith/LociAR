@@ -1,16 +1,20 @@
+import QueryResult from '../QueryResult';
+import { scalarText } from '../../../../lib/values';
 import { requireAdmin } from '../../../../lib/admin';
 import { adminDb, iso } from '../../../../lib/firebase-admin';
 import FlagActions from './FlagActions';
+import { getI18n } from '../../../../lib/i18n-server';
 
 import PageNavigation from '../PageNavigation';
 import { pageCursors, readDocumentPage, type DocumentPage, type SearchParameters } from '../../../../lib/pagination';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ModerationPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+export default async function ModerationPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const params = await searchParams;
   let page: DocumentPage = { documents: [], next: null, previous: null };
   await requireAdmin({ permission: 'posts.read' });
+  const { t, locale } = await getI18n();
   const db = adminDb();
   let flags: Array<Record<string, unknown> & { id: string }> = [];
   let posts = new Map<string, Record<string, unknown>>();
@@ -35,12 +39,12 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   return (
     <section className="page">
       <div className="pageHeading">
-        <div><p className="eyebrow">Trust & safety</p><h1>Moderation queue</h1></div>
-        <p className="muted">Every decision requires MFA, scoped permission, a reason, idempotency, rate limiting and an audit record.</p>
+        <div><p className="eyebrow">{t('Trust & safety')}</p><h1>{t('Moderation queue')}</h1></div>
+        <p className="muted">{t('Every decision requires a verified administrator sign-in, scoped permission, a reason, idempotency, rate limiting and an audit record.')}</p>
       </div>
       <section className="panel">
-        <div className="dataRow moderation header"><span>Report</span><span>Post</span><span>Reporter</span><span>Decision</span></div>
-        {failed ? <p className="emptyState">Moderation data could not be loaded.</p> : flags.length === 0 ? <p className="emptyState">No open reports.</p> : flags.map(flag => {
+        <div className="dataRow moderation header"><span>{t('Report')}</span><span>{t('Post')}</span><span>{t('Reporter')}</span><span>{t('Decision')}</span></div>
+        <QueryResult failed={failed} isEmpty={flags.length === 0} failure={<p className="emptyState">{t('Moderation data could not be loaded.')}</p>} empty={<p className="emptyState">{t('No open reports.')}</p>}>{() => flags.map(flag => {
           const post = typeof flag.post_id === 'string' ? posts.get(flag.post_id) : undefined;
           const original = originals.get(flag.id);
           const metadata = flag.metadata as Record<string, unknown> | undefined;
@@ -48,15 +52,33 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           const content = original ?? comment;
           return (
             <div className="dataRow moderation" key={flag.id}>
-              <span><b>{String(flag.reason)}</b><small>{flag.id} · {new Date(iso(flag.created_at)).toLocaleString('en-US')}</small></span>
-              <span>{content ? String(content.text ?? '') : post ? String(post.caption || 'Untitled post') : 'Content unavailable'}<small>{content ? `Author: ${String(content.user_id ?? '')}${content.field ? ` · Field: ${String(content.field)}` : ''}` : ''}</small><small>{post ? `${String(post.status)}${post.deleted_at ? ' · trash' : ''}` : String(flag.post_id ?? 'No post')}</small></span>
-              <span>{String(flag.user_id ?? 'Server filter')}</span>
+              <span><b>{t(String(flag.reason))}</b><small>{flag.id} · {new Date(iso(flag.created_at)).toLocaleString(locale)}</small></span>
+              <span>{contentCaption(content, post, t)}<small>{contentAuthor(content, t)}</small><small>{postState(post, flag, t)}</small></span>
+              <span>{scalarText(flag.user_id ?? t('Server filter'))}</span>
               <span><FlagActions flagId={flag.id} hasPost={Boolean(post || content)} /></span>
             </div>
           );
-        })}
-        {!failed ? <PageNavigation path="/admin/moderation" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/moderation">Return to the first page.</a></p>}
+        })}</QueryResult>
+        {!failed ? <PageNavigation path="/admin/moderation" next={page.next} previous={page.previous} /> : <p className="emptyState"><a href="/admin/moderation">{t('Return to the first page.')}</a></p>}
       </section>
     </section>
   );
+}
+
+type TextRecord = Record<string, unknown>;
+type Translate = Awaited<ReturnType<typeof getI18n>>['t'];
+function contentCaption(content: TextRecord | undefined, post: TextRecord | undefined, t: Translate): string {
+  if (content) return scalarText(content.text ?? '');
+  return post ? scalarText(post.caption || t('Untitled post')) : t('Content unavailable');
+}
+function contentAuthor(content: TextRecord | undefined, t: Translate): string {
+  if (!content) return '';
+  const labels = [`${t('Author')}: ${scalarText(content.user_id ?? '')}`];
+  if (content.field) labels.push(`${t('Field')}: ${scalarText(content.field)}`);
+  return labels.join(' · ');
+}
+function postState(post: TextRecord | undefined, flag: TextRecord, t: Translate): string {
+  if (!post) return scalarText(flag.post_id ?? t('No post'));
+  const status = t(scalarText(post.status).replaceAll('_', ' '));
+  return post.deleted_at ? status + ' · ' + t('trash') : status;
 }

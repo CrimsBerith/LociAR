@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     const rateLimitError = await enforceRateLimit(access.context.user.id, 'users.create', 10, 60); if (rateLimitError) return rateLimitError;
     const body = await parseJson(request);
-    const user = await createManagedUser({handle:requiredString(body.handle,'handle',3,30),displayName:requiredString(body.displayName,'displayName',1,60),email:typeof body.email === 'string' ? body.email : ''},
+    const user = await createManagedUser({handle:requiredString(body.handle,'handle',3,30),displayName:requiredString(body.displayName,'displayName',1,60),email:typeof body.email === 'string' ? body.email : '',bio:typeof body.bio==='string'?body.bio:'',avatarPreset:typeof body.avatarPreset==='string'?body.avatarPreset:null},
       access.context.user.id,requiredString(body.reason,'reason',8,1000),idempotencyKey(request));
     return NextResponse.json({ user },{status:201});
   } catch(error){return apiError(error);}

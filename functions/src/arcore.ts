@@ -27,7 +27,7 @@ async function signJwt(email: string, payload: object): Promise<string> {
   return response.data.signedJwt;
 }
 
-export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
+export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 30 }, async (request) => {
   const caller = requireCaller(request);
   await assertServiceEnabled('arcore_token');
   const now = Date.now();
@@ -59,7 +59,9 @@ export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
       if (await isAccountDeleting(tx, caller.luid)) return;
       const quota = await tx.get(quotaRef);
       if (quota.exists) tx.update(quotaRef, { count: Math.max(0, Number(quota.get('count') ?? 0) - 1) });
-    }).catch(() => undefined);
+    }).catch(err => {
+      logger.warn('arcore_token_quota_rollback_failed', { code: safeErrorCode(err) });
+    });
     throw new HttpsError('unavailable', 'ARCore authorization is temporarily unavailable');
   }
 });

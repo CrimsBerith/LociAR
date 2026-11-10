@@ -1,5 +1,5 @@
 import ARKit
-import CoreLocation
+@preconcurrency import CoreLocation
 import Foundation
 import Observation
 import OSLog
@@ -24,6 +24,8 @@ final class ARCoreService {
     /// Earth is tracking and localized; accuracy values are meters / degrees.
     private(set) var isEarthTracking = false
     private(set) var horizontalAccuracy: Double?
+    /// Latest localized camera position (1-5 m outdoors with VPS); used to unlock dense spots.
+    private(set) var cameraFix: LocationSample?
     private(set) var yawAccuracy: Double?
     private(set) var lastError: String?
 
@@ -51,7 +53,7 @@ final class ARCoreService {
         locationAuthDelegate = delegate
         locationAuthObserver.delegate = delegate
         delegate.onAuthChange = { [weak self] in
-            Task { @MainActor [weak self] in self?.retryGeospatialIfNeeded() }
+            self?.retryGeospatialIfNeeded()
         }
     }
 
@@ -108,6 +110,7 @@ final class ARCoreService {
             isStartFailed = true
             availability = .unavailable(error.localizedDescription)
             logger.error("ARCore session failed: \(error.localizedDescription, privacy: .public)")
+            DiagnosticsReporter.shared.record(DiagnosticEvent(component: .ar, failure: .arSession))
         }
     }
 
@@ -163,8 +166,29 @@ final class ARCoreService {
         let tracking = earth.trackingState == .tracking
         if isEarthTracking != tracking { isEarthTracking = tracking }
         if let transform = earth.cameraGeospatialTransform {
-            horizontalAccuracy = transform.horizontalAccuracy
-            yawAccuracy = transform.orientationYawAccuracy
+            let newHAcc = transform.horizontalAccuracy
+            let newYAcc = transform.orientationYawAccuracy
+            // Gating: avoid invalidating observing SwiftUI views on sub-millimeter noise
+            if horizontalAccuracy == nil || abs(newHAcc - (horizontalAccuracy ?? 0)) >= 0.1 {
+                horizontalAccuracy = newHAcc
+            }
+            if yawAccuracy == nil || abs(newYAcc - (yawAccuracy ?? 0)) >= 0.5 {
+                yawAccuracy = newYAcc
+            }
+            if tracking {
+                let shouldUpdateFix: Bool
+                if let lastFix = cameraFix {
+                    let dLat = abs(transform.coordinate.latitude - lastFix.latitude)
+                    let dLon = abs(transform.coordinate.longitude - lastFix.longitude)
+                    shouldUpdateFix = dLat > 0.00001 || dLon > 0.00001 || abs(newHAcc - lastFix.accuracy) >= 0.2
+                } else {
+                    shouldUpdateFix = true
+                }
+                if shouldUpdateFix {
+                    cameraFix = LocationSample(latitude: transform.coordinate.latitude, longitude: transform.coordinate.longitude,
+                                               accuracy: transform.horizontalAccuracy, timestamp: now)
+                }
+            }
         }
     }
 
@@ -296,13 +320,25 @@ final class ARCoreService {
                 // onCancel may already have resumed `once` (task cancelled after the guard above).
                 guard !Task.isCancelled else { return }
                 do {
-                    pendingFutures[id] = try start(once)
+                    let future = try start(once)
+                    if once.isFinished {
+                        if future.state == .pending { _ = future.cancel() }
+                    } else {
+                        pendingFutures[id] = future
+                    }
                 } catch {
                     logger.error("ARCore future failed to start: \(error.localizedDescription, privacy: .public)")
                     once.resume(nil)
                 }
                 let timeoutTask = Task { try? await Task.sleep(for: timeout); once.resume(nil) }
-                once.setOnResume { timeoutTask.cancel() }
+                once.setOnResume { [weak self] in
+                    timeoutTask.cancel()
+                    Task { @MainActor [weak self] in
+                        if let future = self?.pendingFutures.removeValue(forKey: id), future.state == .pending {
+                            _ = future.cancel()
+                        }
+                    }
+                }
             }
         } onCancel: {
             once.resume(nil)
@@ -378,6 +414,12 @@ final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
     private var onResume: (() -> Void)?
     private let lock = NSLock()
 
+    var isFinished: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return finished
+    }
+
     init() {}
 
     convenience init(_ continuation: CheckedContinuation<Value?, Never>) {
@@ -426,8 +468,9 @@ final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
 }
 
 /// Minimal CLLocationManagerDelegate that forwards authorization-change events.
-private final class ARCoreLocationAuthDelegate: NSObject, CLLocationManagerDelegate, @unchecked Sendable {
-    var onAuthChange: (() -> Void)?
+@MainActor
+private final class ARCoreLocationAuthDelegate: NSObject, @preconcurrency CLLocationManagerDelegate {
+    var onAuthChange: (@MainActor () -> Void)?
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         onAuthChange?()

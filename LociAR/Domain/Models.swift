@@ -1,5 +1,9 @@
 import Foundation
 
+enum PostContentPolicy {
+    static let maxCaptionUTF16Length = 140
+}
+
 enum PinSessionState: String, Codable, Sendable, CaseIterable {
     case idle
     case permissionRequired
@@ -306,6 +310,8 @@ struct LociUser: Codable, Hashable, Sendable, Identifiable {
     var avatarURL: URL?
     var email: String?
     var role: String = "user"
+    var bio: String? = nil
+    var isAnonymousAccount: Bool { role == "anonymous" }
 }
 
 /// What a post carries besides its edit layers. Posts are text only: social media links were removed
@@ -382,7 +388,11 @@ struct GifReference: Hashable, Sendable {
     var stillURL: URL { media("giphy_s.gif") }
 
     private func media(_ file: String) -> URL {
-        URL(string: "https://media.giphy.com/media/\(id)/\(file)")!
+        let safeID = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        let safeFile = file.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? file
+        return URL(string: "https://media.giphy.com/media/\(safeID)/\(safeFile)")
+            ?? URL(string: "https://media.giphy.com")
+            ?? URL(fileURLWithPath: "/dev/null")
     }
 }
 
@@ -505,6 +515,35 @@ extension EditData: Codable {
     }
 }
 
+struct Sponsorship: Codable, Hashable, Sendable {
+    let brandName: String
+    let terms: String
+    let expiresAt: Date
+    /// Codes a zone campaign issued to this person (shown on the offer card).
+    var codes: [String]? = nil
+    enum CodingKeys: String, CodingKey {
+        case terms, codes
+        case brandName = "brand_name"
+        case expiresAt = "expires_at"
+    }
+}
+
+/// A crowded spot (notes within ~25 m, at most 40 m wide). Its notes stay closed until the viewer unlocks it on site.
+struct DenseSpotInfo: Codable, Hashable, Sendable {
+    var groupID: String? = nil
+    let id: String
+    let count: Int
+    let lat: Double
+    let lng: Double
+    let unlockRadius: Double
+
+    enum CodingKeys: String, CodingKey {
+        case id, count, lat, lng
+        case groupID = "group_id"
+        case unlockRadius = "unlock_radius_m"
+    }
+}
+
 struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var id: UUID
     var creatorID: UUID
@@ -518,6 +557,19 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
     var editData: EditData
     var contentSource: ContentSource?
     var counts: PostCounts
+    var anonymous: Bool? = nil
+    var sponsorship: Sponsorship? = nil
+    /// "location" for a note written at the author's position from the map; nil for AR posts.
+    var noteKind: String? = nil
+    /// Set while the note is locked in a dense spot; text and media are withheld by the server.
+    var denseSpot: DenseSpotInfo? = nil
+    /// Server-only content provenance; never inferred from the anonymous author's profile.
+    var adminManaged: Bool? = nil
+    var creatorAvatarURL: URL? = nil
+    var isOfficialContent: Bool { adminManaged == true }
+    var isAnonymous: Bool { anonymous == true }
+    var isLocationNote: Bool { noteKind == "location" }
+    var isLocked: Bool { denseSpot != nil }
 }
 
 extension LociPost {

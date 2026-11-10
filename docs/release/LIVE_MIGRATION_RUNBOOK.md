@@ -93,7 +93,7 @@ ile retry politikası onaylanabilir. Normal deploy betiği otomatik `--force` ek
 ## 8. Doğrulama
 
 - [ ] Backfill raporunu tekrar al: `changed` **0** olmalı (değilse `--apply` ile tekrar çalıştır).
-- [ ] Yeni iOS build'i canlıya karşı cihazda: giriş, gönderi oluşturma (`pending_review`), keşfet, avatar, hesap silme
+- [ ] Yeni iOS build'i canlıya karşı cihazda: giriş, gönderi oluşturma (otomatik kontroller sonrası `active`), keşfet, avatar, hesap silme
       (Apple hesabıyla token iptali dahil).
 - [ ] Özel / silinmiş / 18+ post world map okumaları ve eski token'lı URL'ler reddediliyor.
 - [ ] Cloud Scheduler işleri ve Storage finalize tetikleyicisi çalışıyor (Eventarc / Pub/Sub izinleri, Functions logları).

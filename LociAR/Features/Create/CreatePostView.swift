@@ -11,8 +11,12 @@ struct CreatePostView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(ARPinningEngine.self) private var engine
+    @State private var placementSessionGeneration: UUID?
     @State private var selectedAnchor: SurfaceAnchor?
     @State private var caption = ""
+    @State private var publishAnonymously = true
+    /// Frozen once this id is submitted; retries must never change public attribution.
+    @State private var intentAnonymously: Bool?
     /// The post's GIPHY GIF (at most one); posts are a message: text and/or a GIF.
     @State private var selectedGif: GifReference?
     @State private var showGifPicker = false
@@ -48,13 +52,13 @@ struct CreatePostView: View {
             }
             .overlay(alignment: .top) {
                 if let savingStatus {
-                    HStack(spacing: 10) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         ProgressView().tint(LociTheme.accent)
                         Text(savingStatus.localizedUI).font(.subheadline.weight(.semibold))
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(.top, 8)
+                    .padding(.horizontal, LociTheme.Spacing.l).padding(.vertical, LociTheme.Spacing.s)
+                    .lociGlassSurface(in: Capsule())
+                    .padding(.top, LociTheme.Spacing.s)
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("create-saving-status")
                 }
@@ -63,18 +67,8 @@ struct CreatePostView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Bitti") {
-                        isCaptionFocused = false
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    }
-                    .fontWeight(.semibold)
-                    .accessibilityIdentifier("keyboard-done-button")
-                }
             }
         }
-        .preferredColorScheme(.dark)
         .arcoreDisclosure()
         .alert("LociAR", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             if offerLocationSettings {
@@ -124,7 +118,7 @@ struct CreatePostView: View {
         .onDisappear {
             placementTask?.cancel()
             if selectedAnchor == nil {
-                engine.stopSession()
+                engine.stopSession(ifGenerationMatches: placementSessionGeneration)
             }
         }
     }
@@ -135,80 +129,71 @@ struct CreatePostView: View {
             if !engine.hasRecentCameraFrame {
                 ARCameraBackdrop(failed: engine.state == .failed, message: engine.statusMessage)
             }
-            Circle().stroke(engine.candidateQuality != nil ? LociTheme.accent : .white, lineWidth: 3).frame(width: 54, height: 54)
+            Circle().stroke(engine.candidateQuality != nil ? LociTheme.accent : LociTheme.mediaOverlayText, lineWidth: LociTheme.Stroke.emphasis).frame(width: 54, height: 54)
             VStack {
-                LociCard {
-                    VStack(alignment: .leading, spacing: 4) {
+                LociCard(appearance: isSearchingSurface ? .arSearch : .floating) {
+                    VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
                         HStack {
                             Image(systemName: placementSymbol)
-                            Text(placementTitle.localizedUI).font(.caption.bold())
+                            Text(placementTitle.localizedUI)
+                                .font(.caption.bold())
                             Spacer(minLength: 4)
-                            ARCoreNoticeButton()
+                            ARCoreNoticeButton(usesARSearchSurface: isSearchingSurface)
                         }
-                        .foregroundStyle(engine.candidateQuality == nil ? Color.white : LociTheme.accent)
-                        Text(engine.statusMessage.localizedUI).font(.footnote).foregroundStyle(.secondary)
-                        if engine.currentAnchor == nil {
+                        .foregroundStyle(isSearchingSurface ? LociTheme.arSearchInk : (engine.candidateQuality == nil ? LociTheme.textPrimary : LociTheme.accent))
+                        Text(placementGuidance.localizedUI)
+                            .font(.footnote)
+                            .foregroundStyle(isSearchingSurface ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText)
+#if DEBUG
+                        DisclosureGroup(String(localized: "Tanılama")) {
                             Text(engine.mappingDiagnosticSummary)
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(.secondary)
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(isSearchingSurface ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText)
                                 .accessibilityIdentifier("ar-mapping-diagnostic")
                         }
+                        .font(.caption)
+#endif
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Spacer()
-                VStack(spacing: 10) {
-                    if engine.state == .approximateOffered {
-                        Button("Yaklaşık yerleştir · 0,8 m") {
-                            guard !isCommitting else { return }
-                            engine.placeApproximate()
-                            if let anchor = engine.currentAnchor {
-                                startCommit(anchor)
-                            }
-                        }
-                        .buttonStyle(.borderedProminent).tint(.orange)
-                    }
+                VStack(spacing: LociTheme.Spacing.m) {
                     if engine.state == .failed {
                         if placementUnsupported {
                             Label("AR bu cihazda desteklenmiyor", systemImage: "iphone.slash")
-                                .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, minHeight: 48)
+                                .font(.subheadline.weight(.semibold)).foregroundStyle(LociTheme.secondaryText)
+                                .frame(maxWidth: .infinity, minHeight: LociTheme.Control.formButtonHeight)
                         } else if cameraPermissionDenied {
                             Button("Kamera ayarlarını aç", systemImage: "gear") {
                                 if let url = URL(string: UIApplication.openSettingsURLString) {
                                     openURL(url)
                                 }
                             }
-                            .frame(maxWidth: .infinity, minHeight: 48)
-                            .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+                            .frame(maxWidth: .infinity, minHeight: LociTheme.Control.formButtonHeight)
+                            .buttonStyle(LociPrimaryButtonStyle())
                         } else {
                             Button("Tekrar dene", systemImage: "arrow.clockwise") { Task { _ = await engine.prepareNewPinSession() } }
-                                .frame(maxWidth: .infinity, minHeight: 48)
-                                .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+                                .frame(maxWidth: .infinity, minHeight: LociTheme.Control.formButtonHeight)
+                                .buttonStyle(LociPrimaryButtonStyle())
                         }
                     } else if let anchor = engine.currentAnchor {
                         Text(anchor.pinQuality == .freeSpaceApproximate ? String(localized: "Yaklaşık yerleştirme") : String(localized: "Yüzey bulundu"))
-                            .font(.caption.bold()).foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
+                            .font(.caption.bold()).foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : LociTheme.warning)
                         if anchor.pinQuality.isPhysicalSurface && !physicalPlacementReady {
-                            VStack(spacing: 5) {
+                            VStack(spacing: LociTheme.Spacing.xs) {
                                 Label(mappingStatusTitle.localizedUI, systemImage: "viewfinder")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(LociTheme.secondaryText)
                                 Text(mappingStatusGuidance.localizedUI)
                                     .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(LociTheme.secondaryText)
                                     .multilineTextAlignment(.center)
-                                Text(engine.mappingDiagnosticSummary)
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .accessibilityIdentifier("ar-mapping-diagnostic")
                             }
-                            HStack(spacing: 12) {
+                            HStack(spacing: LociTheme.Spacing.m) {
                                 Button("Tekrar tara", systemImage: "arrow.clockwise") {
                                     mappingWaitExpired = false
                                     engine.restartTracking()
                                 }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(LociSecondaryButtonStyle())
                                 Button("Yaklaşık devam et") {
                                     guard !isCommitting else { return }
                                     engine.offerApproximatePlacement()
@@ -217,17 +202,17 @@ struct CreatePostView: View {
                                         startCommit(approx)
                                     }
                                 }
-                                .buttonStyle(.bordered).tint(.orange)
+                                .buttonStyle(LociSecondaryButtonStyle())
                             }
                         }
                         Button("Bu yerleşimi kullan") { startCommit(anchor) }
-                            .buttonStyle(.borderedProminent).tint(LociTheme.accent).foregroundStyle(.black)
+                            .buttonStyle(LociPrimaryButtonStyle())
                             .disabled(!canUsePlacement(anchor) || isCommitting)
                             .accessibilityIdentifier("create-use-placement")
                     } else {
                         Button("Yüzeye sabitle") { engine.requestPin() }
-                            .frame(maxWidth: .infinity, minHeight: 48)
-                            .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+                            .frame(maxWidth: .infinity, minHeight: LociTheme.Control.formButtonHeight)
+                            .buttonStyle(LociPrimaryButtonStyle())
                             .accessibilityIdentifier("create-pin-surface")
                         Button {
                             guard !isCommitting else { return }
@@ -237,23 +222,25 @@ struct CreatePostView: View {
                                 startCommit(anchor)
                             }
                         } label: {
-                            Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.85))
+                            Label("Yaklaşık yerleştir", systemImage: "cube.transparent")
                         }
-                        .buttonStyle(.plain)
-                        .padding(.top, 4)
+                        .buttonStyle(LociSecondaryButtonStyle())
+                        .padding(.top, LociTheme.Spacing.xs)
                         .accessibilityIdentifier("create-place-approximate")
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
+                .padding(.horizontal, LociTheme.Spacing.l)
+                .padding(.vertical, LociTheme.Spacing.m)
             }
-            .padding()
+            .padding(LociTheme.Spacing.l)
         }
-        .task { _ = await engine.prepareNewPinSession() }
-        .onDisappear { if selectedAnchor == nil { engine.stopSession() } }
+        .task {
+            _ = await engine.prepareNewPinSession { generation in
+                placementSessionGeneration = generation
+            }
+        }
+        .onDisappear { if selectedAnchor == nil { engine.stopSession(ifGenerationMatches: placementSessionGeneration) } }
     }
 
     private var placementTitle: String {
@@ -272,6 +259,16 @@ struct CreatePostView: View {
 
     private var physicalPlacementReady: Bool {
         trackingUsableForPlacement && engine.mappingQuality.canPersist
+    }
+
+    private var placementGuidance: String {
+        if engine.state == .failed { return engine.statusMessage }
+        if let anchor = engine.currentAnchor {
+            if anchor.pinQuality.isPhysicalSurface, !physicalPlacementReady { return mappingStatusGuidance }
+            return String(localized: "Yerleşim hazır.")
+        }
+        if engine.candidateQuality != nil { return String(localized: "Telefonu sabit tut ve Yüzeye sabitle’ye dokun.") }
+        return String(localized: "Halkayı duvar veya masaya yönelt.")
     }
 
     private var mappingStatusTitle: String {
@@ -327,51 +324,52 @@ struct CreatePostView: View {
     private func editor(anchor: SurfaceAnchor) -> some View {
         // Posts are a message: text and/or one GIPHY GIF (no photos, videos, drawings or links).
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: LociTheme.Spacing.l) {
                 LociCard {
-                    HStack(spacing: 12) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         Image(systemName: anchor.pinQuality.isPhysicalSurface ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
                             .font(.title2)
-                            .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
+                            .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : LociTheme.warning)
                         VStack(alignment: .leading) {
                             Text(anchor.pinQuality.isPhysicalSurface ? surfaceTitle(anchor.surfaceAlignment) : String(localized: "Yaklaşık yerleştirme"))
                                 .font(.headline)
                             Text(anchor.pinQuality.isPhysicalSurface ? String(localized: "İçerik bu fiziksel yüzeye sabitlenecek.") : String(localized: "İçerik kameranın 0,8 m önünde görünecek."))
-                                .font(.caption).foregroundStyle(.secondary)
+                                    .font(.caption).foregroundStyle(LociTheme.secondaryText)
                         }
                         Spacer()
                         Button("Değiştir") { selectedAnchor = nil }
-                            .buttonStyle(.bordered).controlSize(.small)
+                            .buttonStyle(LociCompactButtonStyle())
                     }
                 }
 
                 LociCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        LociSectionLabel(title: String(localized: "Caption"), symbol: "text.quote")
-                        TextField("Bu yüzeyde ne var?", text: $caption, axis: .vertical)
+                    VStack(alignment: .leading, spacing: LociTheme.Spacing.m) {
+                        LociSectionLabel(title: String(localized: "Mesajın"), symbol: "text.quote")
+                        TextField("Bir mesaj yaz…", text: $caption, axis: .vertical)
                             .lineLimit(2...6)
-                            .padding(12)
-                            .background(LociTheme.elevated, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .padding(LociTheme.Spacing.m)
+                            .background(LociTheme.field, in: RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous).stroke(LociTheme.glassBorder))
                             .focused($isCaptionFocused)
                             .accessibilityIdentifier("create-caption")
                         HStack {
-                            Text("Harita, Keşfet, arama ve VoiceOver’da kullanılır.")
-                                .font(.caption2).foregroundStyle(.secondary)
                             Spacer(minLength: 8)
-                            Text("\(captionLength)/220").font(.caption.monospacedDigit())
-                                .foregroundStyle(captionLength <= 220 ? Color.secondary : Color.red)
+                            Text(verbatim: "\(captionLength.formatted())/\(PostContentPolicy.maxCaptionUTF16Length)").font(.caption.monospacedDigit())
+                                .foregroundStyle(captionLength <= PostContentPolicy.maxCaptionUTF16Length ? LociTheme.secondaryText : LociTheme.danger)
                         }
-                        if captionLength > 220 {
-                            Label("Caption 220 karakteri geçemez.", systemImage: "exclamationmark.circle.fill")
+                        if captionLength > PostContentPolicy.maxCaptionUTF16Length {
+                            Label("En fazla 140 karakter yazabilirsin.", systemImage: "exclamationmark.circle.fill")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.red)
+                                .foregroundStyle(LociTheme.danger)
                         }
                     }
                 }
 
                 gifCard
+                PublishingIdentityPicker(anonymously: $publishAnonymously)
+                    .disabled(isPublishing || intentAnonymously != nil)
             }
-            .padding()
+            .padding(LociTheme.Spacing.l)
         }
         .sheet(isPresented: $showGifPicker) {
             GifPickerView { selectedGif = $0 }
@@ -383,29 +381,29 @@ struct CreatePostView: View {
 
     private var gifCard: some View {
         LociCard {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.m) {
                 LociSectionLabel(title: String(localized: "GIF"), symbol: "photo.stack")
                 if let gif = selectedGif {
                     AnimatedGIFView(url: gif.previewURL)
                         .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                         .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
                         .accessibilityIdentifier("create-gif-preview")
                     HStack {
                         Button("Değiştir") { showGifPicker = true }
-                            .buttonStyle(.bordered).controlSize(.small)
+                            .buttonStyle(LociCompactButtonStyle())
                         Button("Kaldır", role: .destructive) { selectedGif = nil }
-                            .buttonStyle(.bordered).controlSize(.small)
+                            .buttonStyle(LociCompactButtonStyle())
                             .accessibilityIdentifier("create-gif-remove")
                         Spacer()
-                        Text(verbatim: "Powered by GIPHY").font(.caption2.weight(.bold)).foregroundStyle(.secondary)
+                        Text(verbatim: "Powered by GIPHY").font(.caption2.weight(.bold)).foregroundStyle(LociTheme.secondaryText)
                     }
                 } else {
                     Button { showGifPicker = true } label: {
                         Label("GIF ekle", systemImage: "plus.circle.fill")
-                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .frame(maxWidth: .infinity, minHeight: LociTheme.Control.minimumTapTarget)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(LociSecondaryButtonStyle())
                     .accessibilityIdentifier("create-gif-add")
                 }
             }
@@ -413,13 +411,27 @@ struct CreatePostView: View {
     }
 
     private func publishBar(anchor: SurfaceAnchor) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: LociTheme.Spacing.m) {
+            // Keep dismissal in the keyboard-aware inset; the keyboard toolbar can receive
+            // an invalid frame while this editor’s bottom inset is being resized.
+            if isCaptionFocused {
+                HStack {
+                    Spacer()
+                    Button("Bitti") {
+                        isCaptionFocused = false
+                        dismissKeyboard()
+                    }
+                    .fontWeight(.semibold)
+                    .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
+                    .accessibilityIdentifier("keyboard-done-button")
+                }
+            }
             Button {
                 isCaptionFocused = false
                 dismissKeyboard()
                 startPublish(anchor: anchor)
             } label: {
-                if isPublishing { ProgressView().tint(.black) }
+                if isPublishing { ProgressView().tint(LociTheme.onAccent) }
                 else { Label("Yüzeyde yayınla", systemImage: "paperplane.fill") }
             }
             .buttonStyle(LociPrimaryButtonStyle())
@@ -427,21 +439,27 @@ struct CreatePostView: View {
             .accessibilityIdentifier("create-publish")
             if !hasMeaningfulContent {
                 Text("Yayınlamak için bir mesaj yaz veya GIF ekle.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.caption2).foregroundStyle(LociTheme.secondaryText)
             }
         }
-        .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 6)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, LociTheme.Spacing.l)
+        .padding(.top, LociTheme.Spacing.l)
+        .padding(.bottom, LociTheme.Spacing.m)
+        .background(LociTheme.background.opacity(0.98))
     }
 
     private var canPublish: Bool {
-        !isPublishing && hasMeaningfulContent && captionLength <= 220
+        !isPublishing && hasMeaningfulContent && captionLength <= PostContentPolicy.maxCaptionUTF16Length
     }
 
-    /// The server limits captions to 220 UTF-16 code units (JavaScript string length), so emoji
+    /// The server limits captions to UTF-16 code units, so emoji
     /// count double here exactly as they do in createPost.
     private var captionLength: Int {
         caption.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count
+    }
+
+    private var isSearchingSurface: Bool {
+        engine.candidateQuality == nil && engine.state != .failed
     }
 
     private func surfaceTitle(_ alignment: SurfaceAlignment) -> String {
@@ -453,7 +471,7 @@ struct CreatePostView: View {
         }
     }
 
-    private func publish(anchor: SurfaceAnchor) async {
+    private func publish(anchor: SurfaceAnchor, anonymously: Bool) async {
         guard case .signedIn(let user) = session.phase else {
             message = String(localized: "Yayınlamak için tekrar giriş yapın.")
             return
@@ -504,6 +522,7 @@ struct CreatePostView: View {
         }
 
         var layers: [EditLayer] = []
+        guard case let .signedIn(currentUser) = session.phase, currentUser.id == user.id else { return }
         let finalCaption = resolvedCaption
         let messageText = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if !messageText.isEmpty {
@@ -516,8 +535,9 @@ struct CreatePostView: View {
             id: postID, creatorID: user.id, creatorHandle: user.handle, createdAt: Date(), caption: finalCaption,
             status: .pendingReview, visibility: .public, ageRating: .all,
             anchorBundle: AnchorBundle(anchor: anchor), editData: EditData(layers: layers), contentSource: nil,
-            counts: PostCounts()
+            counts: PostCounts(), anonymous: anonymously
         )
+        intentAnonymously = anonymously
         do {
             let outcome = try await container.publisher.submit(
                 post,
@@ -576,7 +596,6 @@ struct CreatePostView: View {
         let generation = commitGeneration
         placementTask = Task {
             await commitPlacement(anchor)
-            // A cancelled older commit that finishes late must not unlock a newer one.
             if generation == commitGeneration { isCommitting = false }
         }
     }
@@ -584,7 +603,10 @@ struct CreatePostView: View {
     private func startPublish(anchor: SurfaceAnchor) {
         guard canPublish else { return }
         isPublishing = true
-        Task { await publish(anchor: anchor) }
+        let anonymous = intentAnonymously ?? publishAnonymously
+        Task {
+            await publish(anchor: anchor, anonymously: anonymous)
+        }
     }
 
     private func commitPlacement(_ anchor: SurfaceAnchor) async {
@@ -608,4 +630,3 @@ struct CreatePostView: View {
         }
     }
 }
-

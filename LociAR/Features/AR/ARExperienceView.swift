@@ -12,12 +12,14 @@ struct ARExperienceView: View {
 
     var mode: Mode = .discover
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppContainer.self) private var container
     @Environment(AppSession.self) private var session
     @Environment(AppRouter.self) private var router
     @Environment(ARPinningEngine.self) private var engine
     @Environment(\.modelContext) private var modelContext
+    @State private var cameraSessionGeneration: UUID?
     @State private var showCreate = false
     @State private var errorMessage: String?
     @State private var isPreparingContent = false
@@ -62,7 +64,7 @@ struct ARExperienceView: View {
                         Spacer()
                         controls
                     }
-                    .padding()
+                    .padding(LociTheme.Spacing.l)
                 } else {
                     discoveryPanel
                 }
@@ -110,6 +112,11 @@ struct ARExperienceView: View {
             pinRequestTask?.cancel()
             pinRequestTask = Task { await startCreationMode() }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                location.stop()
+            }
+        }
         .onDisappear {
             tabChangeTask?.cancel()
             pinRequestTask?.cancel()
@@ -117,8 +124,8 @@ struct ARExperienceView: View {
             location.stop()
             let siblingARTabActive = (mode == .discover && router.selectedTab == .create)
                 || (mode == .create && router.selectedTab == .ar)
-            if viewingPost == nil, !siblingARTabActive {
-                engine.stopSession()
+            if viewingPost == nil, !siblingARTabActive, !showCreate, !router.isCreatePresented {
+                engine.stopSession(ifGenerationMatches: cameraSessionGeneration)
             }
         }
         .sheet(isPresented: $showCreate) { CreatePostView(anchor: engine.currentAnchor) }
@@ -133,14 +140,18 @@ struct ARExperienceView: View {
             .frame(width: 1, height: 1)
             .accessibilityElement()
             .accessibilityIdentifier("screen-ar")
-            .accessibilityLabel("AR ekranı")
+            .accessibilityLabel(Text("AR ekranı"))
             .allowsHitTesting(false)
     }
 
     private var discoveryPanel: some View {
         ZStack {
-            Color.black.opacity(engine.hasRecentCameraFrame ? 0.08 : 0.12).ignoresSafeArea()
-            VStack(spacing: 18) {
+            LociTheme.mediaOverlayScrim.opacity(engine.hasRecentCameraFrame ? 0.08 : 0.12).ignoresSafeArea()
+            VStack(spacing: LociTheme.Spacing.xl2) {
+                HStack {
+                    Spacer()
+                    ARCoreNoticeButton()
+                }
                 Spacer()
                 ZStack {
                     Circle().fill(LociTheme.accent.opacity(0.12)).frame(width: 82, height: 82)
@@ -155,12 +166,12 @@ struct ARExperienceView: View {
                     color: discoveryCameraColor
                 )
                 .accessibilityIdentifier("ar-camera-status")
-                VStack(spacing: 6) {
-                    Text(isDiscovering ? String(localized: "Yayınlar aranıyor") : nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar"))
+                VStack(spacing: LociTheme.Spacing.s) {
+                    Text(discoveryHeading)
                         .font(.title3.bold())
                     Text(discoveryMessage.localizedUI)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LociTheme.secondaryText)
                         .multilineTextAlignment(.center)
                 }
                 if isDiscovering {
@@ -174,41 +185,51 @@ struct ARExperienceView: View {
                         }
                         .buttonStyle(LociPrimaryButtonStyle())
                     }
-                    ForEach(nearbyPosts.prefix(8)) { post in
-                        Button {
-                            openInAR(post)
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
-                                    .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                                        .font(.subheadline.weight(.semibold)).lineLimit(1)
-                                    Text(distanceText(for: post).localizedUI)
-                                        .font(.caption).foregroundStyle(.secondary)
+                    if !nearbyPosts.isEmpty {
+                        ScrollView(.vertical, showsIndicators: false) {
+                            VStack(spacing: LociTheme.Spacing.s) {
+                                ForEach(nearbyPosts.prefix(8)) { post in
+                                    Button {
+                                        openInAR(post)
+                                    } label: {
+                                        HStack(spacing: LociTheme.Spacing.m) {
+                                            Image(systemName: post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? "viewfinder.circle.fill" : "exclamationmark.triangle.fill")
+                                                .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : LociTheme.warning)
+                                            VStack(alignment: .leading, spacing: LociTheme.Spacing.xxs) {
+                                                if post.isLocked { Text("Kilitli not").font(.subheadline.weight(.semibold)) }
+                                                else if post.caption.isEmpty { Text("Mekânsal post").font(.subheadline.weight(.semibold)) }
+                                                else { TranslatedPostText(text: post.caption, lineLimit: 1).font(.subheadline.weight(.semibold)) }
+                                                if post.isOfficialContent { OfficialContentBadge() }
+                                                Text(distanceText(for: post).localizedUI)
+                                                    .font(.caption).foregroundStyle(LociTheme.secondaryText)
+                                            }
+                                            Spacer()
+                                            Image(systemName: "viewfinder")
+                                                .foregroundStyle(LociTheme.accent)
+                                        }
+                                        .padding(LociTheme.Spacing.m)
+                                        .background(LociTheme.rowSurface, in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous))
+                                        .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous).stroke(LociTheme.glassBorder))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("ar-nearby-post-\(post.id.uuidString.lowercased())")
                                 }
-                                Spacer()
-                                Image(systemName: "viewfinder")
-                                    .foregroundStyle(LociTheme.accent)
                             }
-                            .padding(14)
-                            .background(LociTheme.surface, in: RoundedRectangle(cornerRadius: 16))
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(LociTheme.hairline))
+                            .padding(.vertical, 2)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("ar-nearby-post-\(post.id.uuidString.lowercased())")
+                        .frame(maxHeight: 220)
                     }
-                    HStack(spacing: 10) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         Button("Yenile", systemImage: "arrow.clockwise") {
                             Task { await discoverAndOpenNearestPost(automaticallyOpen: false) }
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(LociCompactButtonStyle())
                         Button {
                             Task { await startCreationMode() }
                         } label: {
                             if isStartingCreationMode {
-                                HStack(spacing: 8) {
-                                    ProgressView().tint(.black)
+                                HStack(spacing: LociTheme.Spacing.s) {
+                                    ProgressView().tint(LociTheme.onAccent)
                                     Text("Kamera hazırlanıyor")
                                 }
                             } else {
@@ -222,27 +243,27 @@ struct ARExperienceView: View {
                 }
                 Spacer()
             }
-            .padding(24)
+            .padding(LociTheme.Spacing.xl)
         }
     }
 
     private var reticle: some View {
         ZStack {
-            Circle().fill(.black.opacity(0.12)).frame(width: 66, height: 66)
-            Circle().stroke(reticleColor.opacity(0.34), lineWidth: 1).frame(width: 66, height: 66)
-            Circle().stroke(reticleColor, style: StrokeStyle(lineWidth: 3, dash: [11, 7])).frame(width: 54, height: 54)
+            Circle().fill(LociTheme.mediaOverlayScrim.opacity(0.12)).frame(width: 66, height: 66)
+            Circle().stroke(reticleColor.opacity(0.34), lineWidth: LociTheme.Stroke.hairline).frame(width: 66, height: 66)
+            Circle().stroke(reticleColor, style: StrokeStyle(lineWidth: LociTheme.Stroke.emphasis, dash: [11, 7])).frame(width: 54, height: 54)
             Circle().fill(reticleColor).frame(width: 8, height: 8)
         }
-        .shadow(color: .black.opacity(0.7), radius: 4)
-        .accessibilityLabel(reticleLabel.localizedUI)
+        .shadow(color: LociTheme.mediaOverlayScrim.opacity(0.7), radius: LociTheme.Depth.smallRadius)
+        .accessibilityLabel(Text(reticleLabel.localizedUI))
     }
 
     private var reticleColor: Color {
         switch engine.candidateQuality {
         case .planeGeometry: LociTheme.accent
-        case .estimatedPlane: .yellow
-        case .freeSpaceApproximate: .orange
-        case nil: .white.opacity(0.7)
+        case .estimatedPlane: LociTheme.warning
+        case .freeSpaceApproximate: LociTheme.warning
+        case nil: LociTheme.mediaOverlayText.opacity(0.7)
         }
     }
 
@@ -256,8 +277,8 @@ struct ARExperienceView: View {
     }
 
     private var statusPanel: some View {
-        LociCard {
-            VStack(alignment: .leading, spacing: 8) {
+        LociCard(appearance: .floating) {
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
                 HStack {
                     LociStatusPill(title: arStatusTitle, symbol: arStatusSymbol, color: arStatusColor)
                     Spacer()
@@ -266,41 +287,43 @@ struct ARExperienceView: View {
                     }
                     ARCoreNoticeButton()
                 }
-                Text(userFacingStatusMessage.localizedUI).font(.footnote).foregroundStyle(.white.opacity(0.82))
+                Text(userFacingStatusMessage.localizedUI).font(.footnote)
+                    .foregroundStyle(LociTheme.secondaryText)
                 if let anchor = engine.currentAnchor {
                     Text(anchor.pinQuality.isPhysicalSurface ? String(localized: "Fiziksel yüzeye yerleştirildi") : String(localized: "Yaklaşık yerleştirme · 0,8 m"))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
+                        .foregroundStyle(anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : LociTheme.warning)
                         .accessibilityIdentifier("ar-pin-diagnostic")
-                } else {
+                }
+#if DEBUG
+                DisclosureGroup(String(localized: "Tanılama")) {
                     Text(engine.mappingDiagnosticSummary)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.68))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(LociTheme.secondaryText)
                         .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
+                .font(.caption)
+#endif
             }
         }
     }
 
     private var controls: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: LociTheme.Spacing.m) {
             if engine.state == .approximateOffered {
                 LociInlineNotice(
                     title: String(localized: "Yüzey henüz bulunamadı"),
                     message: String(localized: "Biraz daha tara veya açıkça yaklaşık yerleştirmeyi seç."),
                     symbol: "exclamationmark.triangle.fill",
-                    color: .orange
+                    color: LociTheme.warning
                 )
-                Button("Yaklaşık yerleştir · 0,8 m") { engine.placeApproximate() }
-                    .buttonStyle(LociSecondaryButtonStyle())
-                    .accessibilityIdentifier("ar-place-approximate")
             }
             if engine.state == .failed {
                 if isUnsupported {
                     Label("AR bu cihazda desteklenmiyor", systemImage: "iphone.slash")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(LociTheme.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: LociTheme.Control.formButtonHeight)
+                        .lociGlassSurface(cornerRadius: LociTheme.Radius.medium)
                 } else if cameraPermissionDenied {
                     Button("Kamera ayarlarını aç", systemImage: "gear") {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -322,25 +345,20 @@ struct ARExperienceView: View {
                             ? String(localized: "Daha iyi ışıkta dokulu yüzeyi farklı açılardan tara. Tekrar tara veya İptal et.")
                             : String(localized: "Postu aynı yüzeyde yeniden açabilmek için telefonu çevrede yavaşça gezdir."),
                         symbol: "viewfinder",
-                        color: .orange
+                        color: LociTheme.warning
                     )
-                    Text(engine.mappingDiagnosticSummary)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("ar-mapping-diagnostic")
                 }
                 if let prepareStatus {
                     Text(prepareStatus.localizedUI)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LociTheme.secondaryText)
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("ar-saving-status")
                 }
                 Button {
                     startPreparingContent()
                 } label: {
-                    if isPreparingContent { ProgressView().tint(.black) }
+                    if isPreparingContent { ProgressView().tint(LociTheme.onAccent) }
                     else if canPrepareContent { Label("İçerik ekle", systemImage: "plus.circle.fill") }
                     else { Label("Çevreyi tara", systemImage: "viewfinder") }
                 }
@@ -361,7 +379,7 @@ struct ARExperienceView: View {
                 .buttonStyle(LociPrimaryButtonStyle())
                 .accessibilityElement(children: .ignore)
                 .accessibilityAddTraits(.isButton)
-                .accessibilityLabel("Yüzeye sabitle")
+                .accessibilityLabel(Text("Yüzeye sabitle"))
                 .accessibilityIdentifier("ar-pin-surface")
 
                 Button {
@@ -369,16 +387,14 @@ struct ARExperienceView: View {
                     engine.placeApproximate()
                     startPreparingContent()
                 } label: {
-                    Label("Önüme yerleştir · 0,8 m", systemImage: "cube.transparent")
+                    Label("Yaklaşık yerleştir", systemImage: "cube.transparent")
                 }
                 .buttonStyle(LociSecondaryButtonStyle())
                 .accessibilityIdentifier("ar-place-approximate-direct")
             }
         }
-        .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(LociTheme.hairline))
-        .padding(.bottom, 4)
+        .padding(LociTheme.Spacing.m)
+        .padding(.bottom, LociTheme.Spacing.xs)
     }
 
     private var arStatusTitle: String {
@@ -401,10 +417,10 @@ struct ARExperienceView: View {
     }
 
     private var arStatusColor: Color {
-        if engine.state == .failed { return .red }
-        if engine.currentAnchor?.pinQuality.isPhysicalSurface == true, !canPrepareContent { return .orange }
-        if engine.candidateQuality == .estimatedPlane { return .yellow }
-        return engine.currentAnchor != nil || engine.candidateQuality != nil ? LociTheme.accent : .orange
+        if engine.state == .failed { return LociTheme.danger }
+        if engine.currentAnchor?.pinQuality.isPhysicalSurface == true, !canPrepareContent { return LociTheme.warning }
+        if engine.candidateQuality == .estimatedPlane { return LociTheme.warning }
+        return engine.currentAnchor != nil || engine.candidateQuality != nil ? LociTheme.accent : LociTheme.warning
     }
 
     private var userFacingStatusMessage: String {
@@ -429,6 +445,11 @@ struct ARExperienceView: View {
         return status == .denied || status == .restricted
     }
 
+    private var discoveryHeading: String {
+        if isDiscovering { return String(localized: "Yayınlar aranıyor") }
+        return nearbyPosts.isEmpty ? String(localized: "Yakında yayın yok") : String(localized: "Bu konumdaki yayınlar")
+    }
+
     private var discoveryCameraTitle: String {
         if cameraPermissionDenied { return String(localized: "Kamera izni gerekli") }
         if engine.state == .failed { return String(localized: "Kamera başlatılamadı") }
@@ -441,10 +462,11 @@ struct ARExperienceView: View {
     }
 
     private var discoveryCameraColor: Color {
-        cameraPermissionDenied || engine.state == .failed ? .orange : LociTheme.accent
+        cameraPermissionDenied || engine.state == .failed ? LociTheme.warning : LociTheme.accent
     }
 
     private func handleAppearance() async {
+        guard !Task.isCancelled, (mode == .create ? router.selectedTab == .create : router.selectedTab == .ar) else { return }
         if mode == .create {
             await startCreationMode()
             return
@@ -455,7 +477,9 @@ struct ARExperienceView: View {
     }
 
     private func startCameraForDiscovery() async {
-        _ = await engine.ensureLiveCameraSession()
+        _ = await engine.ensureLiveCameraSession { generation in
+            cameraSessionGeneration = generation
+        }
     }
 
     private func handleARSelection() async {
@@ -472,6 +496,7 @@ struct ARExperienceView: View {
         isCreationMode = false
         guard viewingPost == nil else { return }
         await startCameraForDiscovery()
+        guard !Task.isCancelled, router.selectedTab == .ar else { return }
         await discoverAndOpenNearestPost(automaticallyOpen: false)
     }
 
@@ -491,10 +516,12 @@ struct ARExperienceView: View {
         }
         location.start()
 
-        for _ in 0..<30 where location.location == nil && location.errorMessage == nil {
-            try? await Task.sleep(for: .milliseconds(200))
+        for _ in 0..<30 where location.freshLocation() == nil && location.errorMessage == nil {
+            guard !Task.isCancelled else { isDiscovering = false; return }
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { isDiscovering = false; return }
         }
-        guard let currentLocation = location.location else {
+        guard !Task.isCancelled else { isDiscovering = false; return }
+        guard let currentLocation = location.freshLocation() else {
             isDiscovering = false
             discoveryMessage = location.errorMessage ?? String(localized: "Konum alınamadı. Yeni pin oluşturabilir veya tekrar deneyebilirsin.")
             return
@@ -509,11 +536,9 @@ struct ARExperienceView: View {
                 longitude: currentLocation.coordinate.longitude,
                 radiusMeters: 120
             )
-            async let ownRequest = container.posts.myPosts(limit: 50)
             var networkError: Error?
             do { collected.append(contentsOf: try await nearbyRequest) } catch { networkError = error }
-            do { collected.append(contentsOf: try await ownRequest) } catch { if networkError == nil { networkError = error } }
-            if collected.isEmpty, let networkError {
+            if collected.isEmpty, networkError != nil {
                 isDiscovering = false
                 discoveryMessage = String(localized: "Bağlantı kurulamadı. Biraz sonra tekrar dene.")
                 return
@@ -545,7 +570,8 @@ struct ARExperienceView: View {
     }
 
     private func startCreationMode() async {
-        guard !isStartingCreationMode else { return }
+        guard !isStartingCreationMode, !Task.isCancelled,
+              mode == .create ? router.selectedTab == .create : router.selectedTab == .ar else { return }
         location.stop()
         isStartingCreationMode = true
         defer { isStartingCreationMode = false }
@@ -553,8 +579,8 @@ struct ARExperienceView: View {
         viewingPost = nil
         // Geo-tagging the new pin (ARCore Geospatial) needs precise location.
         location.requestPreciseAccuracyIfNeeded()
-        if await engine.prepareNewPinSession() == false {
-            return
+        _ = await engine.prepareNewPinSession { generation in
+            cameraSessionGeneration = generation
         }
     }
 

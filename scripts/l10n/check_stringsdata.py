@@ -27,7 +27,7 @@ def main():
     files = 0
     for dirpath, _, names in os.walk(sys.argv[1]):
         for name in names:
-            if not name.endswith('.stringsdata') or 'LociARTests' in dirpath or 'UITests' in dirpath:
+            if not name.endswith('.stringsdata') or 'LociARTests' in dirpath or 'UITests' in dirpath or 'Localization/Strings' in dirpath:
                 continue
             files += 1
             with open(os.path.join(dirpath, name), encoding='utf-8') as f:

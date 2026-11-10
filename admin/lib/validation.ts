@@ -2,6 +2,15 @@ export class ValidationError extends Error {
   status = 400;
 }
 
+/** Check the address shape in linear time, without an ambiguous domain regex. */
+export function isEmailAddress(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length > 254) return false;
+  const email = value.trim(), parts = email.split('@');
+  if (parts.length !== 2 || !parts[0] || /\s/.test(email)) return false;
+  const dot = parts[1].lastIndexOf('.');
+  return dot > 0 && dot < parts[1].length - 1;
+}
+
 export function requiredString(value: unknown, field: string, min = 1, max = 1000) {
   if (typeof value !== 'string') throw new ValidationError(`${field} must be a string`);
   const normalized = value.trim();

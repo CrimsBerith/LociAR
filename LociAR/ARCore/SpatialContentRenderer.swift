@@ -14,10 +14,11 @@ struct RenderedPost: @unchecked Sendable {
 actor SpatialContentRenderer {
 
     private var assetDataCache: [URL: Data] = [:]
+    private var inFlightAssetTasks: [URL: Task<Data?, Never>] = [:]
     private var renderedPostCache: [String: RenderedPost] = [:]
     private var renderedCacheOrder: [String] = []
-    private static let maximumRenderCacheCount = 30
-    private static let maximumAssetCacheCount = 40
+    private static let maximumRenderCacheCount = 10
+    private static let maximumAssetCacheCount = 15
 
     func render(_ editData: EditData) async -> CGImage? {
         let assets = await loadAssets(editData)
@@ -30,9 +31,9 @@ actor SpatialContentRenderer {
         await renderPost(post)?.image
     }
 
-    func renderPost(_ post: LociPost) async -> RenderedPost? {
+    func renderPost(_ post: LociPost, displayedText: String? = nil) async -> RenderedPost? {
         let key = postCacheKey(post)
-        if let cached = renderedPostCache[key] {
+        if displayedText == nil, let cached = renderedPostCache[key] {
             return cached
         }
         let assets = await loadAssets(post.editData)
@@ -46,9 +47,10 @@ actor SpatialContentRenderer {
             sourceImageData = nil
         }
         let rendered = await Task.detached(priority: .userInitiated) {
-            Self.drawPost(post, assets: assets, sourceImageData: sourceImageData)
+            Self.drawPost(post, assets: assets, sourceImageData: sourceImageData, displayedText: displayedText)
         }.value
-        if let rendered {
+        // Translated textures belong to the current viewer only, never the reusable render cache.
+        if let rendered, displayedText == nil {
             recordRenderedImage(rendered, forKey: key)
         }
         return rendered
@@ -58,6 +60,7 @@ actor SpatialContentRenderer {
         renderedPostCache.removeAll()
         renderedCacheOrder.removeAll()
         assetDataCache.removeAll()
+        inFlightAssetTasks.removeAll()
     }
 
     private func postCacheKey(_ post: LociPost) -> String {
@@ -136,15 +139,20 @@ actor SpatialContentRenderer {
 
     private func loadAsset(_ url: URL) async -> Data? {
         if let cached = assetDataCache[url] { return cached }
-        let data: Data?
-        if url.isFileURL {
-            data = try? Data(contentsOf: url)
-        } else if let (networkData, response) = try? await URLSession.shared.data(from: url),
-                  (response as? HTTPURLResponse).map({ (200...299).contains($0.statusCode) }) == true {
-            data = networkData
-        } else {
-            data = nil
+        if let existing = inFlightAssetTasks[url] { return await existing.value }
+        let task = Task<Data?, Never> {
+            if url.isFileURL {
+                return try? Data(contentsOf: url)
+            } else if let (networkData, response) = try? await URLSession.shared.data(from: url),
+                      (response as? HTTPURLResponse).map({ (200...299).contains($0.statusCode) }) == true {
+                return networkData
+            } else {
+                return nil
+            }
         }
+        inFlightAssetTasks[url] = task
+        let data = await task.value
+        inFlightAssetTasks.removeValue(forKey: url)
         if let data {
             if assetDataCache.count >= Self.maximumAssetCacheCount {
                 assetDataCache.remove(at: assetDataCache.startIndex)
@@ -157,11 +165,12 @@ actor SpatialContentRenderer {
     nonisolated private static func drawPost(
         _ post: LociPost,
         assets: [UUID: Data],
-        sourceImageData: Data?
+        sourceImageData: Data?,
+        displayedText: String? = nil
     ) -> RenderedPost? {
         if let gif = post.gif {
             return drawMessageBubble(
-                text: post.messageText, handle: post.creatorHandle, gif: gif,
+                text: displayedText ?? post.messageText, handle: post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle, gif: gif,
                 gifStill: sourceImageData.flatMap(decodedImage)
             )
         }
@@ -171,15 +180,17 @@ actor SpatialContentRenderer {
         }
         if let primaryImageData = orderedImageData.first ?? sourceImageData,
            let primaryImage = decodedImage(primaryImageData) {
-            return drawImagePost(primaryImage, caption: post.caption).map { RenderedPost(image: $0, gifRect: nil) }
+            return drawImagePost(primaryImage, caption: displayedText ?? post.caption).map { RenderedPost(image: $0, gifRect: nil) }
         }
         if post.editData.layers.contains(where: { $0.kind == .drawing }) {
             return trimmedToVisibleContent(draw(post.editData, assets: assets)).map { RenderedPost(image: $0, gifRect: nil) }
         }
 
         let cleanCaption = post.caption.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let text = post.messageText ?? (cleanCaption.isEmpty ? nil : cleanCaption) {
-            return drawMessageBubble(text: text, handle: post.creatorHandle, gif: nil, gifStill: nil)
+        if let text = displayedText ?? post.messageText ?? (cleanCaption.isEmpty ? nil : cleanCaption) {
+            let handle = post.sponsorship.map { $0.brandName + " · " + String(localized: "Sponsorlu") }
+                ?? (post.isAnonymous ? String(localized: "Anonim") : post.creatorHandle)
+            return drawMessageBubble(text: text, handle: handle, gif: nil, gifStill: nil)
         }
         return trimmedToVisibleContent(draw(post.editData, assets: assets)).map { RenderedPost(image: $0, gifRect: nil) }
     }
@@ -194,7 +205,14 @@ actor SpatialContentRenderer {
         let gap: CGFloat = 8
         let gifWidth: CGFloat = 560
         let maxTextWidth: CGFloat = gif != nil ? gifWidth : 640
-        let fontSize: CGFloat = (text?.count ?? 0) <= 42 ? 46 : (text?.count ?? 0) <= 105 ? 40 : 34
+        let fontSize: CGFloat
+        if (text?.count ?? 0) <= 42 {
+            fontSize = 46
+        } else if (text?.count ?? 0) <= 105 {
+            fontSize = 40
+        } else {
+            fontSize = 34
+        }
         let textColor = CGColor(gray: 1, alpha: 1)
         let handleColor = CGColor(red: 0.55, green: 0.95, blue: 0.82, alpha: 1)
         let textFrame = text.map { measure($0, fontSize: fontSize, weight: "HelveticaNeue-Medium", maxWidth: maxTextWidth) } ?? .zero
@@ -211,8 +229,25 @@ actor SpatialContentRenderer {
         let bounds = CGRect(x: 0, y: 0, width: width, height: height)
         let bubble = CGPath(roundedRect: bounds, cornerWidth: 30, cornerHeight: 30, transform: nil)
         context.addPath(bubble)
-        context.setFillColor(CGColor(red: 0.0, green: 0.30, blue: 0.25, alpha: 0.94))
+        // Keep the AR note legible while letting the real surface show through its tinted glass.
+        context.setFillColor(CGColor(red: 0.025, green: 0.13, blue: 0.15, alpha: 0.76))
         context.fillPath()
+        context.saveGState()
+        context.addPath(bubble)
+        context.clip()
+        let sheenColors = [
+            CGColor(red: 0.78, green: 1, blue: 0.96, alpha: 0.20),
+            CGColor(red: 0.38, green: 0.87, blue: 0.79, alpha: 0.035),
+            CGColor(red: 0.10, green: 0.32, blue: 0.35, alpha: 0.0)
+        ] as CFArray
+        if let sheen = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: sheenColors, locations: [0, 0.45, 1]) {
+            context.drawLinearGradient(sheen, start: CGPoint(x: 0, y: CGFloat(height)), end: CGPoint(x: 0, y: CGFloat(height) * 0.38), options: [])
+        }
+        context.restoreGState()
+        context.addPath(bubble)
+        context.setStrokeColor(CGColor(red: 0.82, green: 1, blue: 0.97, alpha: 0.58))
+        context.setLineWidth(4)
+        context.strokePath()
 
         // CoreGraphics draws bottom-up: walk down from the top edge.
         var top = CGFloat(height) - padding
@@ -390,6 +425,8 @@ actor SpatialContentRenderer {
         let height = image.height
         let bytesPerRow = image.bytesPerRow
         let bytesPerPixel = max(1, image.bitsPerPixel / 8)
+        let dataLength = CFDataGetLength(data)
+        guard dataLength >= height * bytesPerRow else { return image }
         let alphaOffset: Int
         switch image.alphaInfo {
         case .premultipliedLast, .last: alphaOffset = min(3, bytesPerPixel - 1)
@@ -401,8 +438,11 @@ actor SpatialContentRenderer {
         var maxX = 0
         var maxY = 0
         for y in 0..<height {
+            let rowOffset = y * bytesPerRow
             for x in 0..<width {
-                if pointer[y * bytesPerRow + x * bytesPerPixel + alphaOffset] > 16 {
+                let pixelOffset = rowOffset + x * bytesPerPixel + alphaOffset
+                guard pixelOffset < dataLength else { continue }
+                if pointer[pixelOffset] > 16 {
                     minX = min(minX, x)
                     maxX = max(maxX, x)
                     minY = min(minY, y)

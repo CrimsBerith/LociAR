@@ -26,12 +26,29 @@ enum LegacyMigrationCoordinator {
                 }
             } else if key.hasPrefix("lociar_pending_sync") || key.hasPrefix("lociar_dead_letter_sync") {
                 try importLegacyQueue(data, deadLetter: key.hasPrefix("lociar_dead_letter_sync"), modelContext: modelContext)
+            } else if key == "lociar_theme_mode_v1" {
+                if UserDefaults.standard.object(forKey: LociAppearancePreference.storageKey) == nil,
+                   let appearance = Self.importedAppearancePreference(from: data) {
+                    UserDefaults.standard.set(appearance, forKey: LociAppearancePreference.storageKey)
+                }
             } else if let value = String(data: data, encoding: .utf8) {
                 modelContext.insert(PreferenceRecord(key: "legacy.\(key)", value: value))
             }
         }
         try modelContext.save()
         importer.markCompleted()
+    }
+
+    static func importedAppearancePreference(from data: Data) -> String? {
+        let value = (try? JSONDecoder().decode(String.self, from: data))
+            ?? String(data: data, encoding: .utf8)
+        guard let value else { return nil }
+        switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "system", "auto", "automatic": return LociAppearancePreference.system.rawValue
+        case "light", "day": return LociAppearancePreference.light.rawValue
+        case "dark", "night": return LociAppearancePreference.dark.rawValue
+        default: return nil
+        }
     }
 
     private static func importLegacyQueue(_ data: Data, deadLetter: Bool, modelContext: ModelContext) throws {

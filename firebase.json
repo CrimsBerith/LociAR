@@ -11,7 +11,7 @@
       "source": "functions",
       "codebase": "default",
       "runtime": "nodejs22",
-      "ignore": ["node_modules", ".git", "*.local", "src", "test", "tsconfig.json"],
+      "ignore": ["node_modules", ".*", "*.local", ".env*", ".secret*", "*.log", "*.tsbuildinfo", "*.credentials.json", "*.pem", "*.key", "*.p8", "*.p12", "src", "test", "scripts", "tsconfig.json"],
       "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
     }
   ],
@@ -19,7 +19,8 @@
     {
       "backendId": "lociar-admin",
       "rootDir": "admin",
-      "ignore": ["node_modules", ".git", ".next", "artifacts", "e2e", "tests", "*.local", ".env*"]
+      "ignore": ["node_modules", ".git", ".next", "artifacts", "e2e", "tests", "*.local", ".env*"],
+      "alwaysDeployFromSource": true
     }
   ],
   "emulators": {

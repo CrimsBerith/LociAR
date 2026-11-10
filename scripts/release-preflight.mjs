@@ -13,6 +13,9 @@ export function releaseSteps(root = REPOSITORY_ROOT) {
     { ...node('Repository script regressions', ['--test', ...scriptTests]), testSummary: 'node' },
     node('Repository secret scan', ['scripts/qa-secret-scan.mjs']),
     node('Release localization', ['scripts/check-localization.mjs', '--release']),
+    ...['world_capitals', 'landmark_businesses', 'turkey_launch'].map(name => ({
+      label: 'Launch seed: ' + name, command: 'python3', args: ['scripts/seed/' + name + '.py', '--check'], cwd: root,
+    })),
     npm('Locked Functions installation', 'functions', ['ci', '--no-audit', '--no-fund']),
     npm('Locked admin installation', 'admin', ['ci', '--no-audit', '--no-fund']),
     npm('Chromium test runtime', 'admin', ['exec', '--no', '--', 'playwright', 'install', 'chromium']),
@@ -26,6 +29,7 @@ export function releaseSteps(root = REPOSITORY_ROOT) {
     node('Admin full dependency audit', ['scripts/check-dependency-audit.mjs', 'admin']),
     { ...npm('Firestore and Storage rules', 'functions', ['run', 'test:rules']), testSummary: 'node' },
     { ...npm('Functions emulator acceptance', 'functions', ['run', 'test:emulator']), testSummary: 'node' },
+    { ...npm('Location notes isolated emulator acceptance', 'functions', ['run', 'test:notes']), testSummary: 'node' },
     npm('Admin production test build', 'admin', ['run', 'build:ci']),
     { ...npm('Admin HTTP and authenticated browser acceptance', 'admin', ['run', 'test:emulator']), testSummary: 'node' },
     { ...npm('Public desktop and mobile browser acceptance', 'admin', ['run', 'test:e2e']), env: { ADMIN_E2E_PUBLIC_ONLY: '1' }, testSummary: 'playwright' },

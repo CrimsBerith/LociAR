@@ -11,10 +11,11 @@ protocol AuthRepository: Sendable {
     func currentUser() async -> LociUser?
     func sessionChanges() async -> AsyncStream<LociUser?>
     func signIn(email: String, password: String) async throws -> LociUser
+    func signInAnonymously() async throws -> LociUser
     func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult
     func requestPasswordReset(email: String, redirectTo: URL) async throws
     func updatePassword(_ password: String) async throws -> LociUser
-    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser
+    func updateProfile(handle: String, avatar: AvatarChoice, bio: String?) async throws -> LociUser
     func resendVerificationEmail(email: String) async throws
     func sendMagicLink(email: String, redirectTo: URL) async throws
     func verifyEmailOTP(email: String, code: String) async throws -> LociUser
@@ -23,6 +24,13 @@ protocol AuthRepository: Sendable {
     func signOut() async
     func accountDeletionMethod() async throws -> AccountDeletionMethod
     func deleteAccount(password: String?, expectedUserID: UUID) async throws
+}
+
+extension AuthRepository {
+    func signInAnonymously() async throws -> LociUser { throw AuthFlowError.unsupported }
+    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser {
+        try await updateProfile(handle: handle, avatar: avatar, bio: nil)
+    }
 }
 
 /// Explicit consent to the privacy policy and community rules (App Store guideline 1.2):
@@ -45,6 +53,7 @@ struct AuthSignUpResult: Sendable {
 enum AccountDeletionMethod: Equatable, Sendable {
     case apple
     case password
+    case anonymous
 
     static func resolve(providerIDs: [String], email: String?) throws -> Self {
         // Linked Apple accounts must also revoke the Apple grant.
@@ -116,6 +125,8 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     private let callables: CallableClient
     private let userCacheLock = NSLock()
     private var hydratedUsers: [String: LociUser] = [:]
+    private var hydratedAt: [String: TimeInterval] = [:]
+    private var hydratedTerms: [String: String] = [:]
 
     init(functionsRegion: String) {
         callables = CallableClient(region: functionsRegion)
@@ -126,6 +137,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         let handle: String
         let avatarURL: String?
         let avatarPreset: String?
+        let bio: String?
         let claimsUpdated: Bool
     }
 
@@ -137,18 +149,21 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     }
 
     nonisolated private static func isVerified(_ user: User) -> Bool {
+        if user.isAnonymous { return false }
         if user.isEmailVerified { return true }
         return user.providerData.contains { $0.providerID == "apple.com" }
     }
 
-    nonisolated private static func domainUser(_ user: User, handle: String? = nil, avatarURL: URL? = nil) -> LociUser {
+    nonisolated private static func domainUser(_ user: User, handle: String? = nil, avatarURL: URL? = nil, bio: String? = nil) -> LociUser {
         let fallbackHandle = user.email?.components(separatedBy: "@").first ?? "loci"
         // Auth's photoURL is deliberately ignored: only server-screened avatars are shown.
         return LociUser(
             id: FirebaseIdentity.luid(forFirebaseUID: user.uid),
-            handle: handle ?? user.displayName.flatMap { $0.isEmpty ? nil : $0 } ?? fallbackHandle,
+            handle: user.isAnonymous ? String(localized: "Anonim") : handle ?? user.displayName.flatMap { $0.isEmpty ? nil : $0 } ?? fallbackHandle,
             avatarURL: avatarURL,
-            email: user.email
+            email: user.email,
+            role: user.isAnonymous ? "anonymous" : "user",
+            bio: bio
         )
     }
 
@@ -165,15 +180,29 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
             _ = try await user.getIDTokenResult(forcingRefresh: true)
         }
         try Self.assertSession(user)
-        let avatar = await AvatarReference.resolve(avatarURL: response.avatarURL, preset: response.avatarPreset)
+        var avatarRaw = response.avatarURL
+        var presetRaw = response.avatarPreset
+        var bioRaw = response.bio
+        let luid = FirebaseIdentity.key(FirebaseIdentity.luid(forFirebaseUID: user.uid))
+        if let doc = try? await Firestore.firestore().collection("profiles").document(luid).getDocument(), doc.exists {
+            let data = doc.data() ?? [:]
+            if bioRaw == nil { bioRaw = data["bio"] as? String }
+            if avatarRaw == nil { avatarRaw = data["avatar_url"] as? String }
+            if presetRaw == nil { presetRaw = data["avatar_preset"] as? String }
+        }
+        let avatar = await AvatarReference.resolve(avatarURL: avatarRaw, preset: presetRaw)
         try Self.assertSession(user)
         if user.displayName != response.handle {
             let change = user.createProfileChangeRequest()
             change.displayName = response.handle
             try? await change.commitChanges()
         }
-        let hydrated = Self.domainUser(user, handle: response.handle, avatarURL: avatar)
-        userCacheLock.withLock { hydratedUsers[user.uid] = hydrated }
+        let hydrated = Self.domainUser(user, handle: response.handle, avatarURL: avatar, bio: bioRaw)
+        userCacheLock.withLock {
+            hydratedUsers[user.uid] = hydrated
+            hydratedAt[user.uid] = ProcessInfo.processInfo.systemUptime
+            hydratedTerms[user.uid] = TermsConsent.acceptedVersion ?? ""
+        }
         return hydrated
     }
 
@@ -203,16 +232,33 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
                 }
                 box.replaceTask(nil)
                 guard Self.isVerified(user) else { continuation.yield(nil); return }
-                box.replaceTask(Task {
-                    let hydrated = try? await self.establish(user)
-                    guard !Task.isCancelled, Auth.auth().currentUser?.uid == user.uid else { return }
-                    continuation.yield(hydrated ?? self.userCacheLock.withLock { self.hydratedUsers[user.uid] } ?? Self.domainUser(user))
-                })
+                box.replaceTask(self.userStateTask(user, continuation: continuation))
             }
             continuation.onTermination = { _ in
                 box.replaceTask(nil)
                 if let handle = box.handle { Auth.auth().removeStateDidChangeListener(handle) }
             }
+        }
+    }
+
+    private func userStateTask(_ user: User, continuation: AsyncStream<LociUser?>.Continuation) -> Task<Void, Never> {
+        Task {
+            // bootstrap() has just established this user before installing the listener.
+            // Its initial callback need not repeat the callable and its server writes.
+            let recent = userCacheLock.withLock { () -> LociUser? in
+                guard let cached = hydratedUsers[user.uid], let at = hydratedAt[user.uid],
+                      ProcessInfo.processInfo.systemUptime - at < 30 * 60,
+                      hydratedTerms[user.uid] == (TermsConsent.acceptedVersion ?? ""),
+                      cached.isAnonymousAccount == user.isAnonymous else { return nil }
+                return cached
+            }
+            if let recent, !Task.isCancelled, Auth.auth().currentUser?.uid == user.uid {
+                continuation.yield(recent)
+                return
+            }
+            let hydrated = try? await establish(user)
+            guard !Task.isCancelled, Auth.auth().currentUser?.uid == user.uid else { return }
+            continuation.yield(hydrated ?? userCacheLock.withLock { hydratedUsers[user.uid] } ?? Self.domainUser(user))
         }
     }
 
@@ -226,9 +272,18 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         return try await establish(user)
     }
 
+    func signInAnonymously() async throws -> LociUser {
+        throw AuthFlowError.unsupported
+    }
+
     func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult {
         _ = redirectTo // Firebase hosts the verification page; no deep link is needed.
-        let result = try await Auth.auth().createUser(withEmail: email, password: password)
+        let result: AuthDataResult
+        if let anonymous = Auth.auth().currentUser, anonymous.isAnonymous {
+            result = try await anonymous.link(with: EmailAuthProvider.credential(withEmail: email, password: password))
+        } else {
+            result = try await Auth.auth().createUser(withEmail: email, password: password)
+        }
         try await result.user.sendEmailVerification()
         return AuthSignUpResult(user: Self.domainUser(result.user), requiresEmailConfirmation: true)
     }
@@ -247,9 +302,9 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
     /// Handles change through the `updateHandle` callable (server-side uniqueness). Presets are
     /// written directly (rules allow only the preset list); photos go to `avatars/<luid>/pending/`
     /// and appear once the server has screened them.
-    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser {
+    func updateProfile(handle: String, avatar: AvatarChoice, bio: String? = nil) async throws -> LociUser {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
-        let clean = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let clean = handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(with: Locale(identifier: "en_US_POSIX"))
         guard clean.range(of: "^[a-z0-9_.]{3,30}$", options: .regularExpression) != nil else {
             throw AuthFlowError.invalidHandle
         }
@@ -270,17 +325,28 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         }
 
         try Self.assertSession(user)
+        var profileUpdates: [String: Any] = [
+            "updated_at": FieldValue.serverTimestamp()
+        ]
+        if let bio {
+            let cleanBio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard cleanBio.count <= 300 else { throw AuthFlowError.invalidHandle }
+            profileUpdates["bio"] = cleanBio.isEmpty ? NSNull() : cleanBio
+        }
         switch avatar {
         case .unchanged:
-            break
+            if profileUpdates.count > 1 {
+                try await Firestore.firestore().collection("profiles").document(luid).updateData(profileUpdates)
+            }
         case .preset(let name):
             guard AvatarReference.presets.contains(name) else { throw AuthFlowError.invalidPhoto }
-            try await Firestore.firestore().collection("profiles").document(luid).updateData([
-                "avatar_preset": name,
-                "avatar_url": NSNull(),
-                "updated_at": FieldValue.serverTimestamp(),
-            ])
+            profileUpdates["avatar_preset"] = name
+            profileUpdates["avatar_url"] = NSNull()
+            try await Firestore.firestore().collection("profiles").document(luid).updateData(profileUpdates)
         case .photo(let data):
+            if profileUpdates.count > 1 {
+                try await Firestore.firestore().collection("profiles").document(luid).updateData(profileUpdates)
+            }
             guard let jpeg = AvatarReference.preparedJPEG(from: data) else { throw AuthFlowError.invalidPhoto }
             // Every upload needs a slot from the server (hourly quota); Storage rules check it.
             struct EmptyPayload: Encodable, Sendable { let userId: String }
@@ -323,27 +389,30 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
 
     func signInWithApple(identityToken: String, nonce: String?, fullName: String?) async throws -> LociUser {
         let credential = OAuthProvider.appleCredential(withIDToken: identityToken, rawNonce: nonce, fullName: nil)
-        let result = try await Auth.auth().signIn(with: credential)
+        let result: AuthDataResult
+        if let anonymous = Auth.auth().currentUser, anonymous.isAnonymous {
+            result = try await anonymous.link(with: credential)
+        } else { result = try await Auth.auth().signIn(with: credential) }
         let name = fullName?.trimmingCharacters(in: .whitespacesAndNewlines)
         return try await establish(result.user, displayName: (name?.isEmpty ?? true) ? nil : name)
     }
 
     func signOut() async {
-        userCacheLock.withLock { hydratedUsers.removeAll() }
+        userCacheLock.withLock { hydratedUsers.removeAll(); hydratedAt.removeAll(); hydratedTerms.removeAll() }
         try? Auth.auth().signOut()
     }
 
     @MainActor
     func accountDeletionMethod() async throws -> AccountDeletionMethod {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
-        return try AccountDeletionMethod.resolve(providerIDs: user.providerData.map(\.providerID), email: user.email)
+        return user.isAnonymous ? .anonymous : try AccountDeletionMethod.resolve(providerIDs: user.providerData.map(\.providerID), email: user.email)
     }
 
     @MainActor
     func deleteAccount(password: String?, expectedUserID: UUID) async throws {
         guard let user = Auth.auth().currentUser else { throw AuthFlowError.notSignedIn }
         guard FirebaseIdentity.luid(forFirebaseUID: user.uid) == expectedUserID else { throw AuthFlowError.notSignedIn }
-        let method = try AccountDeletionMethod.resolve(providerIDs: user.providerData.map(\.providerID), email: user.email)
+        let method: AccountDeletionMethod = user.isAnonymous ? .anonymous : try AccountDeletionMethod.resolve(providerIDs: user.providerData.map(\.providerID), email: user.email)
         let client = FirebaseAccountDeletionClient(user: user, method: method, callables: callables)
         do { try await AccountDeletionFlow.run(client: client, password: password) }
         catch AuthFlowError.deletionPending {
@@ -397,6 +466,10 @@ private final class FirebaseAccountDeletionClient: AccountDeletionClient {
         let credential: AuthCredential
         let appleCode: String?
         switch method {
+        case .anonymous:
+            try assertCurrentSession()
+            guard user.isAnonymous else { throw AuthFlowError.notSignedIn }
+            return nil
         case .apple:
             let authorization = try await AppleReauthenticator.credential()
             try Task.checkCancellation()
@@ -459,7 +532,7 @@ enum AppleAuthorizationNonce {
     static func make() -> String {
         let characters = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
         var generator = SystemRandomNumberGenerator()
-        return String((0..<32).map { _ in characters.randomElement(using: &generator)! })
+        return String((0..<32).map { _ in characters.randomElement(using: &generator) ?? "a" })
     }
     static func hash(_ value: String) -> String {
         SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
@@ -484,16 +557,25 @@ final class AppleReauthenticator: NSObject, ASAuthorizationControllerDelegate, A
     }
 
     private func run() async throws -> AppleReauthenticationCredential {
-        try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
-            let request = ASAuthorizationAppleIDProvider().createRequest()
-            request.requestedScopes = []
-            request.nonce = AppleAuthorizationNonce.hash(nonce)
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            self.controller = controller
-            controller.delegate = self
-            controller.presentationContextProvider = self
-            controller.performRequests()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                self.continuation = continuation
+                let request = ASAuthorizationAppleIDProvider().createRequest()
+                request.requestedScopes = []
+                request.nonce = AppleAuthorizationNonce.hash(nonce)
+                let controller = ASAuthorizationController(authorizationRequests: [request])
+                self.controller = controller
+                controller.delegate = self
+                controller.presentationContextProvider = self
+                controller.performRequests()
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.continuation?.resume(throwing: CancellationError())
+                self?.continuation = nil
+                self?.controller = nil
+                AppleReauthenticator.active = nil
+            }
         }
     }
 
@@ -536,7 +618,7 @@ actor UnavailableAuthRepository: AuthRepository {
     func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult { throw missing }
     func requestPasswordReset(email: String, redirectTo: URL) async throws { throw missing }
     func updatePassword(_ password: String) async throws -> LociUser { throw missing }
-    func updateProfile(handle: String, avatar: AvatarChoice) async throws -> LociUser { throw missing }
+    func updateProfile(handle: String, avatar: AvatarChoice, bio: String? = nil) async throws -> LociUser { throw missing }
     func resendVerificationEmail(email: String) async throws { throw missing }
     func sendMagicLink(email: String, redirectTo: URL) async throws { throw missing }
     func verifyEmailOTP(email: String, code: String) async throws -> LociUser { throw missing }
@@ -544,5 +626,5 @@ actor UnavailableAuthRepository: AuthRepository {
     func signInWithApple(identityToken: String, nonce: String?, fullName: String?) async throws -> LociUser { throw missing }
     func signOut() async {}
     func accountDeletionMethod() async throws -> AccountDeletionMethod { throw missing }
-    func deleteAccount(password: String?, expectedUserID: UUID) async throws { throw missing }
+    func deleteAccount(password _: String?, expectedUserID _: UUID) async throws { throw missing }
 }

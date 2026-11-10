@@ -44,7 +44,7 @@ aktivite belgesine yazmaz. Akış: [ACTIVITY_AND_ACCOUNT_DELETION.md](ACTIVITY_A
 cihazı yeni hak harcamaz). Sınırı aşan aktiviteler yine Aktivite akışında görünür. Kota belgeleri
 2 gün sonra TTL ile silinir ve hesap silmede kaldırılır.
 
-**Post onayı.** Moderatör bir postu `pending_review` → `active` yaptığında `onPostWritten`
+**Eski bekleyen postlar.** Bir moderatör bir `pending_review` postu `active` yaptığında `onPostWritten`
 yazara bir kez "Postun onaylandı ve yayında" bildirimi gönderir (`deliverPostApprovedPush`,
 12 dil, günlük sınırdan muaf). Veri alanları `recipient_id` ve `post_id`'dir; `activity_id` yoktur,
 dokunma doğrudan postu açar. Emülatörde gönderilmez; gönderim hatası trigger'ı başarısız yapmaz.

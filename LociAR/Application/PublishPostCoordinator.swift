@@ -91,6 +91,17 @@ final class PublishPostCoordinator: PublishPostUseCase {
             try modelContext.save()
             logger.info("Publish paused post=\(postID.uuidString, privacy: .public)")
             return .queued(.servicePaused)
+        } catch is CancellationError {
+            // Task cancellation (navigation away, backgrounding, etc.) should preserve
+            // queue state without incrementing attemptCount or dead-lettering.
+            queue.nextAttemptAt = Date()
+            do {
+                try modelContext.save()
+            } catch {
+                logger.error("Failed to save cancellation state post=\(postID.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+            }
+            logger.info("Publish cancelled by caller post=\(postID.uuidString, privacy: .public)")
+            return .queued(.backendUnavailable)
         } catch {
             queue.attemptCount += 1
             queue.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.delay(afterAttempt: queue.attemptCount))
@@ -107,7 +118,15 @@ final class PublishPostCoordinator: PublishPostUseCase {
     private func removePersistedWork(postID: UUID, modelContext: ModelContext) {
         let draftDescriptor = FetchDescriptor<DraftRecord>(predicate: #Predicate { $0.id == postID })
         let queueDescriptor = FetchDescriptor<SyncQueueRecord>(predicate: #Predicate { $0.id == postID })
-        if let draft = try? modelContext.fetch(draftDescriptor).first { modelContext.delete(draft) }
-        if let queue = try? modelContext.fetch(queueDescriptor).first { modelContext.delete(queue) }
+        do {
+            if let draft = try modelContext.fetch(draftDescriptor).first { modelContext.delete(draft) }
+        } catch {
+            logger.error("Failed to fetch draft for deletion post=\(postID.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+        }
+        do {
+            if let queue = try modelContext.fetch(queueDescriptor).first { modelContext.delete(queue) }
+        } catch {
+            logger.error("Failed to fetch queue record for deletion post=\(postID.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+        }
     }
 }

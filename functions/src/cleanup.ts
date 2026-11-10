@@ -1,7 +1,8 @@
+import { forEachSequential } from './async';
 import { reconcileCounters, reconcileProfileCounters } from './reconciliation';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { db, deleteStoragePrefix, FieldValue, Timestamp } from './core';
-import { logger, safeErrorCode } from './core';
+import { randomUUID } from 'node:crypto';
+import { db, deleteStoragePrefix, FieldValue, isUUID, Timestamp, logger, safeErrorCode } from './core';
+
 import { purgeOrphanUploads } from './orphanUploadStorage';
 export { purgeOrphanUploads } from './orphanUploadStorage';
 export { ORPHAN_UPLOAD_GRACE_HOURS } from './orphanUploads';
@@ -58,27 +59,59 @@ export async function schedulePurgeOnStatusChange(
     const dueAt = Number.isFinite(existingDue) ? Math.min(due, existingDue) : due;
     tx.set(queueRef, {
       post_id: postId, prefix: `${data.creator_id}/${postId}/`, due_at: Timestamp.fromMillis(dueAt),
-    });
+    }, { merge: true }); // Delayed status events must not discard an in-flight purge lease.
   });
 }
 
-export async function purgeDueRemovedMedia(now = Date.now()): Promise<number> {
+const PURGE_LEASE_MS = 15 * 60_000; // Longer than the 540-second worker deadline.
+
+export async function purgeDueRemovedMedia(now = Date.now(), maxJobs = BATCH): Promise<number> {
+  if (!Number.isInteger(maxJobs) || maxJobs < 1 || maxJobs > BATCH) throw new Error('Invalid purge job budget');
   const due = await db.collection('media_purge_queue')
     .where('due_at', '<=', Timestamp.fromMillis(now))
-    .limit(BATCH)
+    .orderBy('due_at').limit(maxJobs)
     .get();
-  for (const doc of due.docs) {
-    const post = await db.collection('posts').doc(doc.id).get();
-    // Restored in the meantime (queue entry left behind): keep the media.
-    if (!post.exists || post.data()!.status === 'removed') {
-      await deleteStoragePrefix(String(doc.data().prefix));
-      if (post.exists) await deleteAnchorOfPost(post.data()!.cloud_anchor_id, post.id);
-      // A later restore still works, but the post can only be shown approximately (no AR map).
-      if (post.exists) await post.ref.update({ media_purged_at: FieldValue.serverTimestamp() });
+  let completed = 0;
+  await forEachSequential(due.docs, async (doc) => {
+    const owner = randomUUID(), postRef = db.collection('posts').doc(doc.id);
+    try {
+      const job = await db.runTransaction(async tx => {
+        const [current, post] = await tx.getAll(doc.ref, postRef);
+        const deadline = current.get('due_at'), lease = current.get('lease_until');
+        if (!current.exists || !(deadline instanceof Timestamp) || deadline.toMillis() > now
+          || lease instanceof Timestamp && lease.toMillis() > now) return null;
+        if (post.exists && post.get('status') !== 'removed') { tx.delete(current.ref); return null; }
+        const prefix = current.get('prefix'), creator = typeof prefix === 'string' ? prefix.split('/')[0] : null;
+        if (!isUUID(creator) || !isUUID(doc.id) || prefix !== `${creator}/${doc.id}/`
+          || post.exists && post.get('creator_id') !== creator) throw new Error('Invalid purge identity');
+        tx.update(current.ref, { claim_id: owner, lease_until: Timestamp.fromMillis(now + PURGE_LEASE_MS) });
+        if (post.exists) tx.update(postRef, { media_purge_state: 'purging' });
+        return { prefix: prefix as string, creator, anchor: post.get('cloud_anchor_id') };
+      });
+      if (!job) return;
+      // External I/O runs after the claim commits, never inside a retryable transaction.
+      await deleteStoragePrefix(job.prefix);
+      await deleteAnchorOfPost(job.anchor, doc.id);
+      await db.runTransaction(async tx => {
+        const [current, post] = await tx.getAll(doc.ref, postRef);
+        if (!current.exists || current.get('claim_id') !== owner) return;
+        if (post.exists && post.get('creator_id') === job.creator) tx.update(postRef, {
+          media_purge_state: 'purged', media_purged_at: FieldValue.serverTimestamp(),
+        });
+        tx.delete(current.ref);
+      });
+      completed++;
+    } catch (error) {
+      await db.runTransaction(async tx => {
+        const current = await tx.get(doc.ref);
+        if (!current.exists || current.get('claim_id') != null && current.get('claim_id') !== owner) return;
+        tx.update(doc.ref, { claim_id: FieldValue.delete(), lease_until: FieldValue.delete(),
+          due_at: Timestamp.fromMillis(now + PURGE_LEASE_MS), last_error: 'retryable_operation_failed' });
+      });
+      logger.error('removed_media_purge_deferred', { code: safeErrorCode(error) });
     }
-    await doc.ref.delete();
-  }
-  return due.size;
+  });
+  return completed;
 }
 
 /**
@@ -125,13 +158,13 @@ export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5, de
     const { anchors, nextPageToken } = listed;
     if (anchors.length > 0) {
       const referenced = await referencedAnchorIds(anchors.map((a) => a.id));
-      for (const id of selectOrphanAnchors(anchors, referenced, now, ORPHAN_ANCHOR_GRACE_DAYS * DAY_MS)) {
-        if (!await claimAnchorDeletion(id, null)) continue;
+      await forEachSequential(selectOrphanAnchors(anchors, referenced, now, ORPHAN_ANCHOR_GRACE_DAYS * DAY_MS), async (id) => {
+        if (!await claimAnchorDeletion(id, null)) return;
         if (await deleteAnchorOrQueue(id, deps)) {
           removed++;
           await db.collection('cloud_anchors').doc(id).set({ state: 'deleted', deleted_at: FieldValue.serverTimestamp() }, { merge: true });
         }
-      }
+      });
     }
     pageToken = nextPageToken;
     if (!pageToken) break;
@@ -141,11 +174,12 @@ export async function purgeOrphanCloudAnchors(now = Date.now(), maxPages = 5, de
   return removed;
 }
 
-export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
+/** Nightly media pass (dailyMaintenance in schedules.ts): every step is caught, so one failure never skips the rest. */
+export async function cleanupPostMedia() {
   let removed = 0, orphans = 0;
-  for (const task of [async () => { removed = await purgeDueRemovedMedia(); }, async () => { orphans = await purgeOrphanUploads(); }, async () => { await drainAvatarDeletions(); }]) {
+  await forEachSequential([async () => { removed = await purgeDueRemovedMedia(); }, async () => { orphans = await purgeOrphanUploads(); }, async () => { await drainAvatarDeletions(); }], async (task) => {
     try { await task(); } catch (error) { logger.error('media_cleanup_deferred', { code: safeErrorCode(error) }); }
-  }
+  });
   let pendingAvatars = 0;
   try {
     pendingAvatars = await purgeStalePendingAvatars();
@@ -165,16 +199,15 @@ export const cleanupPostMedia = onSchedule({ schedule: 'every day 03:17', timeZo
     logger.error('cloud_anchor_cleanup_failed', { code: safeErrorCode(error) });
   }
   logger.info('cleanup_post_media', { removed, orphans, pendingAvatars, orphanAnchors, retried });
-});
+  return { removed, orphans, pendingAvatars, orphanAnchors, retried };
+}
 
 /** Nightly cursor-based repair reaches posts and profiles over successive runs. */
 export { reconcileCounters, reconcileProfileCounters } from './reconciliation';
 
-export const reconcilePostCounters = onSchedule({ schedule: 'every day 04:11', timeZone: 'Europe/Istanbul', timeoutSeconds: 540 }, async () => {
+export async function reconcilePostCounters() {
   const repaired = await reconcileCounters();
   const profilesRepaired = await reconcileProfileCounters();
   logger.info('reconcile_counters', { repaired, profilesRepaired });
-});
-
-/** Short, bounded retry worker for immutable avatar deletion jobs. */
-export const retryAvatarDeletions = onSchedule({schedule: 'every 5 minutes', timeoutSeconds: 120, maxInstances: 1}, async () => { await drainAvatarDeletions(); });
+  return { repaired, profilesRepaired };
+}

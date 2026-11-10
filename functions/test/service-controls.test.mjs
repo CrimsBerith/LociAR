@@ -17,3 +17,13 @@ test('unreadable emergency flags refuse admission instead of caching an enabled 
   assert.equal(reads, 2);
   resetKillSwitchCache();
 });
+
+test('kill switch reads only its emergency flag and reuses the cached flags document', async t => {
+  let flags = {}, reads = 0;
+  t.mock.method(db, 'collection', () => ({ doc: () => ({ get: async () => { reads++; return { data: () => flags }; } }) }));
+  resetKillSwitchCache();
+  flags = { post_review_required: true, kill_switch: false };
+  assert.equal(await killSwitchOn(), false);
+  assert.equal(reads, 1, 'legacy review flags no longer gate post publishing');
+  resetKillSwitchCache();
+});

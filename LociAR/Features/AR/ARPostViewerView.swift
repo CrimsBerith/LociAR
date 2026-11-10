@@ -2,11 +2,21 @@ import CoreLocation
 import SwiftUI
 import UIKit
 
+/// One resolver attempt owns one lease object. A cancelled task retains its own token even
+/// after SwiftUI installs a replacement attempt, so its deferred cleanup cannot stop the new owner.
+@MainActor
+private final class ARViewerCameraLease {
+    var generation: UUID
+    init(generation: UUID) { self.generation = generation }
+}
+
 struct ARPostViewerView: View {
     @Environment(ARPinningEngine.self) private var engine
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isVisible = false
     let post: LociPost
     var onClose: (() -> Void)? = nil
     @State private var location = LocationController()
@@ -16,6 +26,7 @@ struct ARPostViewerView: View {
     @State private var isLocalSurfaceScan = false
     /// The resolver chain (Cloud Anchor → Geospatial → world map → aim-guided reveal); stored so
     /// "Yaklaşık göster", "Tekrar dene" and closing the viewer can cancel it.
+    @State private var cameraLease: ARViewerCameraLease?
     @State private var resolveTask: Task<Void, Never>?
     @State private var offerTask: Task<Void, Never>?
     /// Shown when exact resolving takes long: skip straight to the approximate, aim-guided view.
@@ -23,6 +34,7 @@ struct ARPostViewerView: View {
     /// Location and proximity passed for this attempt; the approximate shortcut must never skip that check.
     @State private var proximityVerified = false
     @State private var isApproximateView = false
+    @State private var displayedTranslation: String?
     /// How long exact resolving may run before the "Yaklaşık göster" shortcut appears.
     private static let approximateOfferDelay: Duration = .seconds(8)
     @State private var guidance = ViewAimGuidance(
@@ -45,31 +57,44 @@ struct ARPostViewerView: View {
                     Button { close() } label: {
                         Image(systemName: "xmark")
                             .font(.headline)
-                            .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial, in: Circle())
+                            .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
+                            .lociGlassSurface(in: Circle())
                     }
-                    .accessibilityLabel("Kapat")
+                    .accessibilityLabel(Text("Kapat"))
                     Spacer()
                     ARCoreNoticeButton()
                 }
-                LociCard {
-                    VStack(alignment: .leading, spacing: 5) {
+                LociCard(appearance: isLocalSurfaceScan ? .arSearch : .content) {
+                    VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
                         LociStatusPill(
                             title: statusTitle,
                             symbol: statusSymbol,
-                            color: statusColor
+                            color: statusColor,
+                            isARSearching: isLocalSurfaceScan
                         )
-                        Text(message.localizedUI).font(.footnote)
+                        Text(message.localizedUI)
+                            .font(.footnote)
+                            .foregroundStyle(isLocalSurfaceScan ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText)
                     }
                 }
                 Spacer()
+                if proximityVerified, !accessBlocked, !post.isLocked, engine.renderedPostID == post.id,
+                   engine.state == .resolved, post.isOfficialContent || offersTranslation {
+                    LociCard {
+                        VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
+                            if post.isOfficialContent { OfficialContentBadge() }
+                            TranslatedPostText(text: post.messageText ?? post.caption, allowsControls: true, showsText: false,
+                                               onDisplayTextChange: { displayedTranslation = $0 })
+                        }
+                    }
+                }
                 if accessBlocked {
-                    VStack(spacing: 10) {
+                    VStack(spacing: LociTheme.Spacing.m) {
                         LociInlineNotice(
                             title: String(localized: "AR burada açılamıyor"),
                             message: message,
                             symbol: "location.slash.fill",
-                            color: .orange
+                            color: LociTheme.warning
                         )
                         Button("Posta geri dön", systemImage: "chevron.backward") { close() }
                             .buttonStyle(LociPrimaryButtonStyle())
@@ -86,18 +111,43 @@ struct ARPostViewerView: View {
                         title: guidance.title,
                         message: guidance.message,
                         symbol: guidance.symbol,
-                        color: guidance.readyToReveal ? LociTheme.accent : .orange
+                        color: guidance.readyToReveal ? LociTheme.accent : LociTheme.warning
                     )
                     .accessibilityIdentifier("ar-aim-guidance")
                 }
-            }.padding()
+            }.padding(LociTheme.Spacing.l)
         }
         .background(LociTheme.background)
         .accessibilityIdentifier("ar-post-viewer")
         .arcoreDisclosure()
-        .onAppear { startResolving() }
+        .task(id: displayedTranslation) {
+            guard !Task.isCancelled, proximityVerified, !accessBlocked, !post.isLocked,
+                  engine.renderedPostID == post.id, engine.state == .resolved else { return }
+            guard revalidateProximity() else { return }
+            do {
+                try await engine.render(post: post, displayedText: displayedTranslation)
+            } catch {
+                if !Task.isCancelled {
+                    message = String(localized: "İçerik yüklenemedi. Tekrar deneniyor...")
+                }
+            }
+            if !Task.isCancelled { _ = revalidateProximity() }
+        }
+        .task {
+            // A stationary GPS stream may stop delivering callbacks; expiry still revokes access.
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
+                if proximityVerified { _ = revalidateProximity() }
+            }
+        }
+        .onAppear { isVisible = true; startResolving() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, isVisible { startResolving() }
+            else { revokeAccess(); location.stop() }
+        }
         .onChange(of: engine.state) { _, state in
             if state == .resolved {
+                guard session.isLocalPreview || revalidateProximity() else { return }
                 isAiming = false
                 isLocalSurfaceScan = false
                 message = post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate
@@ -109,7 +159,14 @@ struct ARPostViewerView: View {
             refreshGuidance()
         }
         .onChange(of: location.location?.timestamp) { _, _ in
+            if proximityVerified { _ = revalidateProximity() }
             refreshGuidance()
+        }
+        .onChange(of: location.authorizationStatus) { _, _ in
+            if proximityVerified { _ = revalidateProximity() }
+        }
+        .onChange(of: location.errorMessage) { _, _ in
+            if proximityVerified { _ = revalidateProximity() }
         }
         .onChange(of: engine.cameraPitchDegrees) { _, _ in
             refreshGuidance()
@@ -118,46 +175,54 @@ struct ARPostViewerView: View {
             refreshGuidance()
         }
         .onDisappear {
-            resolveTask?.cancel()
-            offerTask?.cancel()
+            isVisible = false
+            revokeAccess()
             location.stop()
-            engine.stopSession()
         }
+    }
+
+    private var offersTranslation: Bool {
+        guard #available(iOS 18.0, *), !post.editData.layers.contains(where: { $0.kind == .drawing }) else { return false }
+        if case .video? = post.contentSource { return false }
+        guard post.gif == nil || post.messageText != nil,
+              let request = NoteTranslationRequest(text: post.messageText ?? post.caption,
+                  targetLanguage: NoteTranslationRequest.appLanguage(), isReadable: !post.isLocked) else { return false }
+        return !request.isAlreadyInTargetLanguage
     }
 
     private var aimingReticle: some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.18), lineWidth: 2)
+                .stroke(LociTheme.mediaOverlayText.opacity(0.18), lineWidth: LociTheme.Stroke.focus)
                 .frame(width: 120, height: 120)
             Circle()
                 .trim(from: 0, to: 0.08)
-                .stroke(guidance.readyToReveal ? LociTheme.accent : .white, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .stroke(guidance.readyToReveal ? LociTheme.accent : LociTheme.mediaOverlayText, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .frame(width: 120, height: 120)
                 .rotationEffect(.degrees(guidance.signedHeadingDelta - 14))
             Circle()
-                .stroke(guidance.readyToReveal ? LociTheme.accent : .white, lineWidth: 3)
+                .stroke(guidance.readyToReveal ? LociTheme.accent : LociTheme.mediaOverlayText, lineWidth: LociTheme.Stroke.emphasis)
                 .frame(width: 54, height: 54)
             Circle()
-                .fill(guidance.readyToReveal ? LociTheme.accent : .white)
+                .fill(guidance.readyToReveal ? LociTheme.accent : LociTheme.mediaOverlayText)
                 .frame(width: 8, height: 8)
             Image(systemName: "location.north.fill")
                 .font(.title3.weight(.bold))
-                .foregroundStyle(guidance.readyToReveal ? LociTheme.accent : .white)
+                .foregroundStyle(guidance.readyToReveal ? LociTheme.accent : LociTheme.mediaOverlayText)
                 .offset(y: -44)
                 .rotationEffect(.degrees(guidance.signedHeadingDelta))
-                .shadow(color: .black.opacity(0.7), radius: 4)
+                .shadow(color: LociTheme.mediaOverlayScrim.opacity(0.7), radius: LociTheme.Depth.smallRadius)
             Text(guidance.distanceMeters < 10
                  ? String(format: "%.0f m", locale: Locale.current, max(0, guidance.distanceMeters.isFinite ? guidance.distanceMeters : 0))
                  : ProximityPolicy.roundedMeters(guidance.distanceMeters).map { "\($0.formatted()) m" } ?? String(localized: "Mesafe bilinmiyor"))
                 .font(.caption.weight(.semibold).monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(LociTheme.mediaOverlayText)
                 .offset(y: 46)
-                .shadow(color: .black.opacity(0.8), radius: 3)
+                .shadow(color: LociTheme.mediaOverlayScrim.opacity(0.8), radius: LociTheme.Depth.smallRadius)
         }
         .allowsHitTesting(false)
         .accessibilityIdentifier("ar-aim-reticle")
-        .accessibilityLabel(guidance.message.localizedUI)
+        .accessibilityLabel(Text(guidance.message.localizedUI))
     }
 
     private var statusTitle: String {
@@ -178,16 +243,15 @@ struct ARPostViewerView: View {
     }
 
     private var statusColor: Color {
-        if accessBlocked { return .orange }
+        if accessBlocked { return LociTheme.warning }
         if engine.state == .resolved || guidance.readyToReveal { return LociTheme.accent }
-        return .orange
+        return LociTheme.warning
     }
 
     private func close() {
-        resolveTask?.cancel()
-        offerTask?.cancel()
+        isVisible = false
+        revokeAccess()
         location.stop()
-        engine.stopSession()
         if let onClose {
             onClose()
         } else {
@@ -216,34 +280,50 @@ struct ARPostViewerView: View {
     }
 
     private func startResolving() {
-        resolveTask?.cancel()
+        guard isVisible, scenePhase == .active else { return }
+        let previous = resolveTask
+        previous?.cancel()
         offerTask?.cancel()
+        let lease = ARViewerCameraLease(generation: engine.claimCameraSession())
+        cameraLease = lease
         offerApproximate = false
         isApproximateView = false
         proximityVerified = false
-        resolveTask = Task { await verifyAndOpen() }
+        resolveTask = Task {
+            // Some native resolvers finish after cancellation. Drain the previous attempt before
+            // starting another, then clear any late placement from that attempt.
+            await previous?.value
+            guard !Task.isCancelled, isVisible, scenePhase == .active,
+                  engine.ownsCameraSession(lease.generation) else { return }
+            defer { if Task.isCancelled { engine.stopSession(ifGenerationMatches: lease.generation) } }
+            await verifyAndOpen()
+        }
         offerTask = Task {
             do { try await Task.sleep(for: Self.approximateOfferDelay) } catch { return }
             // Offer only after the location/proximity check passed (it may still be waiting for GPS).
             while !proximityVerified, !accessBlocked {
                 do { try await Task.sleep(for: .milliseconds(500)) } catch { return }
             }
-            if proximityVerified, engine.state != .resolved, !accessBlocked { offerApproximate = true }
+            if !Task.isCancelled, proximityVerified, revalidateProximity(), engine.state != .resolved, !accessBlocked {
+                offerApproximate = true
+            }
         }
     }
 
     /// Stops exact resolving and reveals the post by GPS direction and distance (aim-guided).
     private func showApproximately() {
-        guard proximityVerified else { return }
+        guard proximityVerified, revalidateProximity() else { return }
         let running = resolveTask
         running?.cancel()
         offerTask?.cancel()
         offerApproximate = false
         isApproximateView = true
+        let lease = ARViewerCameraLease(generation: engine.claimCameraSession())
+        cameraLease = lease
         resolveTask = Task {
             await running?.value
-            guard !Task.isCancelled else { return }
-            engine.stopSession()
+            guard !Task.isCancelled, engine.ownsCameraSession(lease.generation), revalidateProximity() else { return }
+            defer { if Task.isCancelled { engine.stopSession(ifGenerationMatches: lease.generation) } }
             await revealWithAimGuidance()
         }
     }
@@ -260,10 +340,11 @@ struct ARPostViewerView: View {
             return
         }
         for _ in 0..<40 {
-            if let current = location.location {
+            guard !Task.isCancelled, isVisible, scenePhase == .active else { return }
+            if let current = location.freshLocation(at: Date()) {
                 let heading = currentViewerHeading()
                 let decision = ProximityPolicy.evaluate(post: post, viewer: current, viewerHeading: heading, targeted: true)
-                guard decision.allowed else {
+                guard locationAuthorized, location.errorMessage == nil, decision.allowed else {
                     if let meters = ProximityPolicy.roundedMeters(decision.distanceMeters) {
                         message = "\(decision.reason.localizedUI) · \(meters) m"
                     } else {
@@ -274,17 +355,18 @@ struct ARPostViewerView: View {
                 }
                 message = decision.reason
                 proximityVerified = true
-                if await engine.resumePreservedWorldLock(anchorID: post.anchorBundle.anchor.id) {
+                let lease = cameraLease
+                if await engine.resumePreservedWorldLock(anchorID: post.anchorBundle.anchor.id, onSessionStarted: { lease?.generation = $0 }) {
                     _ = await renderResolvedContent()
                     return
                 }
                 // Each stage checks for cancellation: closing the viewer or "Yaklaşık göster" must
                 // not fall through to the next stage (which would restart the camera).
-                guard !Task.isCancelled else { return }
+                guard revalidateProximity() else { return }
                 if await resolveWithARCore() { return }
-                guard !Task.isCancelled else { return }
+                guard revalidateProximity() else { return }
                 if await relocalizeFromWorldMap() { return }
-                guard !Task.isCancelled else { return }
+                guard revalidateProximity() else { return }
                 await revealWithAimGuidance()
                 return
             }
@@ -293,6 +375,47 @@ struct ARPostViewerView: View {
         }
         message = String(localized: "Konum doğrulanamadı. AR erişimi açılmadı.")
         accessBlocked = true
+    }
+
+    private var locationAuthorized: Bool {
+        location.authorizationStatus == .authorizedAlways || location.authorizationStatus == .authorizedWhenInUse
+    }
+
+    private func revokeAccess(reason: String? = nil) {
+        proximityVerified = false
+        accessBlocked = true
+        isAiming = false
+        isLocalSurfaceScan = false
+        offerApproximate = false
+        displayedTranslation = nil
+        resolveTask?.cancel()
+        offerTask?.cancel()
+        stopOwnedCamera()
+        if let reason { message = reason }
+    }
+
+    private func stopOwnedCamera() {
+        guard let lease = cameraLease,
+              let generation = engine.resetCameraSession(ifGenerationMatches: lease.generation) else { return }
+        lease.generation = generation
+    }
+
+    @discardableResult
+    private func revalidateProximity() -> Bool {
+        guard !Task.isCancelled else { return false }
+        guard engine.ownsCameraSession(cameraLease?.generation) else { return false }
+        guard isVisible, scenePhase == .active else { revokeAccess(); return false }
+        if session.isLocalPreview { return true }
+        let now = Date()
+        guard locationAuthorized, location.errorMessage == nil,
+              let current = location.freshLocation(at: now) else {
+            revokeAccess(reason: location.errorMessage ?? String(localized: "Konum doğrulanamadı. AR erişimi açılmadı."))
+            return false
+        }
+        let decision = ProximityPolicy.evaluate(post: post, viewer: current, viewerHeading: currentViewerHeading(), targeted: true, at: now)
+        guard decision.allowed else { revokeAccess(reason: decision.reason); return false }
+        proximityVerified = true
+        return true
     }
 
     /// Google ARCore resolvers, most precise first: the hosted Cloud Anchor (exact surface, indoor
@@ -306,18 +429,19 @@ struct ARPostViewerView: View {
         // No ARCore (previews, session failed to start): go straight to the next resolver.
         guard arcore.isUsable, anchor.pinQuality.isPhysicalSurface, cloudAnchorId != nil || geospatial != nil else { return false }
         await engine.requestCameraAndStart()
-        guard engine.state != .failed, !Task.isCancelled else { return false }
-        guard await arcore.waitUntilReady() else { return false }
+        guard engine.state != .failed, revalidateProximity() else { return false }
+        guard await arcore.waitUntilReady(), revalidateProximity() else { return false }
         if let cloudAnchorId {
             message = String(localized: "Yüzey aranıyor. Kamerayı postun bırakıldığı yere doğrult ve yavaşça gezdir.")
-            if let transform = await arcore.resolveCloudAnchor(cloudAnchorId), !Task.isCancelled {
+            if let transform = await arcore.resolveCloudAnchor(cloudAnchorId), revalidateProximity() {
                 engine.placeResolvedForViewing(transform: transform, anchor: anchor, physical: true)
                 return await renderResolvedContent()
             }
         }
+        guard revalidateProximity() else { return true }
         if let geospatial {
             message = String(localized: "Konum doğrulanıyor. Kamerayı çevredeki binalara doğrult.")
-            if await arcore.waitForEarthLocalization(), !Task.isCancelled,
+            if await arcore.waitForEarthLocalization(), revalidateProximity(),
                let transform = arcore.transform(for: geospatial) {
                 engine.placeResolvedForViewing(transform: transform, anchor: anchor, physical: false)
                 return await renderResolvedContent()
@@ -327,10 +451,13 @@ struct ARPostViewerView: View {
     }
 
     private func renderResolvedContent() async -> Bool {
+        guard revalidateProximity() else { return true }
         do {
             try await engine.render(post: post)
+            guard revalidateProximity() else { return true }
             message = String(localized: "Yüzey bulundu. İçerik hazır.")
         } catch {
+            guard revalidateProximity() else { return true }
             message = String(localized: "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene.")
         }
         return true
@@ -346,29 +473,26 @@ struct ARPostViewerView: View {
               post.anchorBundle.anchor.pinQuality.isPhysicalSurface,
               let worldMaps = container.worldMaps else { return false }
         message = String(localized: "Kayıtlı yüzey haritası indiriliyor…")
-        guard let data = try? await worldMaps.download(persistence), !Task.isCancelled else { return false }
+        guard let data = try? await worldMaps.download(persistence), revalidateProximity() else { return false }
         await engine.requestCameraAndStart()
-        guard engine.state != .failed else { return false }
+        guard engine.state != .failed, revalidateProximity() else { return false }
         do {
             try await engine.restoreWorldMap(data: data, expectedAnchor: post.anchorBundle.anchor)
+            guard revalidateProximity() else { return true }
         } catch {
-            engine.stopSession()
+            guard revalidateProximity() else { return true }
+            stopOwnedCamera()
             return false
         }
         message = String(localized: "Kaydedilen çevre aranıyor. Kamerayı postun sabitlendiği yüzeye doğru yavaşça gezdir.")
         while !Task.isCancelled {
+            guard revalidateProximity() else { return true }
             switch engine.state {
             case .resolved:
-                do {
-                    try await engine.render(post: post)
-                    message = String(localized: "Yüzey bulundu. İçerik hazır.")
-                } catch {
-                    message = String(localized: "Yüzey bulundu ancak içerik çizilemedi. Tekrar dene.")
-                }
-                return true
+                return await renderResolvedContent()
             case .failed, .idle:
                 // Relocalization timed out; clear the initial world map before falling back.
-                engine.stopSession()
+                stopOwnedCamera()
                 message = String(localized: "Kaydedilen çevre bulunamadı. Yaklaşık konuma göre yönlendiriliyorsun.")
                 return false
             default:
@@ -379,9 +503,11 @@ struct ARPostViewerView: View {
     }
 
     private func revealLocalPreviewOnPhysicalSurface() async {
+        guard revalidateProximity() else { return }
         isAiming = false
         if post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate {
             await engine.requestCameraAndStart()
+            guard revalidateProximity() else { return }
             do {
                 try engine.placeApproximateForViewing(anchor: post.anchorBundle.anchor)
                 try await engine.render(post: post)
@@ -398,6 +524,7 @@ struct ARPostViewerView: View {
             for _ in 0..<40 where !engine.hasRecentCameraFrame {
                 try? await Task.sleep(for: .milliseconds(100))
             }
+            guard revalidateProximity() else { return }
             do {
                 try engine.placeVerticalWallForViewing(anchor: post.anchorBundle.anchor)
                 try await engine.render(post: post)
@@ -411,15 +538,18 @@ struct ARPostViewerView: View {
 #endif
         isLocalSurfaceScan = true
         message = String(localized: "Kartı açmak için kamerayı dokulu bir duvar, masa veya zemin üzerinde yavaşça gezdir.")
-        guard await engine.beginAimAssistedReveal() else {
+        let lease = cameraLease
+        guard await engine.beginAimAssistedReveal(onSessionStarted: { lease?.generation = $0 }) else {
             message = engine.statusMessage
             isLocalSurfaceScan = false
             return
         }
 
+        guard revalidateProximity() else { return }
         var sourceAnchor = post.anchorBundle.anchor
         sourceAnchor.surfaceAlignment = .unknown
         while !Task.isCancelled && engine.state != .failed && !accessBlocked {
+            guard revalidateProximity() else { return }
             if engine.revealIfSurfaceReady(from: sourceAnchor) {
                 do {
                     try await engine.render(post: post)
@@ -436,20 +566,22 @@ struct ARPostViewerView: View {
     }
 
     private func revealWithAimGuidance() async {
-        guard !Task.isCancelled else { return }
+        guard revalidateProximity() else { return }
         isAiming = true
         refreshGuidance()
         if post.anchorBundle.anchor.pinQuality == .freeSpaceApproximate {
             await engine.requestCameraAndStart()
+            guard revalidateProximity() else { return }
             guard engine.state != .failed else { message = engine.statusMessage; isAiming = false; return }
             await waitUntilReadyToReveal()
             for _ in 0..<30 where engine.trackingQuality != .normal {
                 do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
             }
-            guard !Task.isCancelled else { return }
+            guard revalidateProximity() else { return }
             do {
                 try engine.placeApproximateForViewing(anchor: post.anchorBundle.anchor)
-                try await engine.render(post: post)
+                _ = await renderResolvedContent()
+                guard revalidateProximity() else { return }
                 isAiming = false
                 message = String(localized: "Yaklaşık görünüm kameranın 0,8 m önünde açıldı.")
             } catch {
@@ -458,16 +590,19 @@ struct ARPostViewerView: View {
             return
         }
 
-        guard await engine.beginAimAssistedReveal() else {
+        let lease = cameraLease
+        guard await engine.beginAimAssistedReveal(onSessionStarted: { lease?.generation = $0 }) else {
             message = engine.statusMessage
             isAiming = false
             return
         }
+        guard revalidateProximity() else { return }
         await waitUntilRevealedOnSurface()
     }
 
     private func waitUntilReadyToReveal() async {
         while !Task.isCancelled && engine.state != .failed && !accessBlocked {
+            guard revalidateProximity() else { return }
             refreshGuidance()
             if guidance.readyToReveal { return }
             try? await Task.sleep(for: .milliseconds(80))
@@ -476,6 +611,7 @@ struct ARPostViewerView: View {
 
     private func waitUntilRevealedOnSurface() async {
         while !Task.isCancelled && engine.state != .failed && !accessBlocked {
+            guard revalidateProximity() else { return }
             if engine.state == .resolved {
                 isAiming = false
                 return

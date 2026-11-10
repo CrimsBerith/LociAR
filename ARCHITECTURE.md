@@ -81,18 +81,18 @@ sequenceDiagram
     UI->>AR: Render caption / text card
 ```
 
-World-map records persist only `storage://` paths. Download URLs are resolved from Firebase Storage at download time and are never written into the post contract. No camera frames or reference images are stored.
+World-map records persist only `storage://` paths. Public anonymous projections replace the owner's path with a post-scoped locator; non-owners read bounded chunks through `readAnonymousWorldMap`. Owner downloads remain governed by Storage rules. Bearer download tokens must not be retained on these objects. No camera frames or reference images are stored.
 
 ## Server authority
 
-Posts, profiles, counters, activity, push devices and account deletion are written only by Cloud Functions (`functions/src`). The iOS client never falls back to direct writes; see the security contract in `AGENTS.md`.
+Post publication, profile creation, handles, counters, activity, push devices and account deletion are server-authoritative. Clients may write permitted owner-scoped social edges, comments, reports and collections, and narrow profile fields under Rules. The iOS client never falls back to direct protected writes when a callable fails; see `AGENTS.md`.
 
 ## Engagement truth
 
 - Like, comment, save and follow counters are maintained only by Cloud Functions Firestore triggers; clients cannot write them (rules deny).
 - The `recordPostView` callable requires an authenticated user, enforces visibility/block rules, and deduplicates by post, user, and UTC day.
 - The client replaces its view count with the callable result instead of inventing a local success count.
-- Posts are text only. Social media links were removed on 9 Oct 2026; the server refuses any URL and clients ignore links stored on older posts.
+- Posts contain text and/or one GIPHY GIF. Social media links and new drawings were removed on 9 Oct 2026; the server refuses URLs and clients ignore legacy links. Existing drawings remain decodable.
 
 ## Lifecycle and recovery
 
@@ -107,11 +107,13 @@ Simulator builds and UI tests prove source/runtime navigation, not physical worl
 
 ## ARCore and anchor ownership
 
-ARCore (Cloud Anchors, Geospatial) runs on the existing ARKit session and authorizes through the keyless `getArcoreToken` callable. A hosted Cloud Anchor is registered with `registerCloudAnchor` (`cloud_anchors/{id}` = owner, post binding); `createPost` binds it to exactly one post of its owner in a transaction, and delete paths touch only anchors bound to the post being deleted. Failed anchor deletions are queued in `cloud_anchor_deletions` and retried by `cleanupPostMedia`. Resolution order and thresholds: `docs/AR_WORLD_LOCK.md`. Placement fields (`placement_state`, `native_provider`, `resolver_strategy`) are derived on the server, never taken from the client.
+ARCore (Cloud Anchors, Geospatial) runs on the existing ARKit session and authorizes through the keyless `getArcoreToken` callable. A hosted Cloud Anchor is registered with `registerCloudAnchor` (`cloud_anchors/{id}` = owner, post binding); `createPost` binds it to exactly one post of its owner in a transaction, and delete paths touch only anchors bound to the post being deleted. Failed anchor deletions are queued in `cloud_anchor_deletions` and retried by `cleanupPostMedia` (nightly maintenance job). Resolution order and thresholds: `docs/AR_WORLD_LOCK.md`. Placement fields (`placement_state`, `native_provider`, `resolver_strategy`) are derived on the server, never taken from the client.
 
 ## Push, kill switch, crash reports, localization
 
-- Push: `NotificationService` registers the FCM token with `registerPushToken` after sign-in and removes it with `unregisterPushToken` before sign-out. Cloud Functions send like/comment/follow pushes with `loc-key`s (`push.like`, `push.comment`, `push.follow`) that iOS localizes on the device.
+- Push: `NotificationService` registers installation-scoped FCM tokens through callables and unregisters them before sign-out. Cloud Functions localize social push text on the server (`pushPolicy.ts`). External FCM sends remain best effort; the durable activity feed survives a lost send attempt.
+- Location-note alerts use local notifications after live entry admission. An account-scoped random delivery ID survives request/response loss; replay rechecks current access and location. The phone acknowledges successful local queueing, which is distinct from user-visible delivery. See `docs/LOCATION_NOTES.md`.
+- Nearby public content uses verified geohash prefix ranges with exact distance filtering. `scripts/nearby-geohash-migration.mjs` audits/backfills legacy posts before enabling the indexed path. Polar or unverified datasets use the bounded latitude fallback. Server timings and candidate counts contain no user IDs, captions or GPS coordinates.
 - Kill switch: `system/flags.kill_switch` (admin System page) makes write callables return `unavailable` / `service_paused`; the app shows a paused message and keeps queued posts without spending retries.
 - Crashlytics: enabled by default, opt-out in Profile → Settings (`CrashReportingPreference`); dSYMs are uploaded by a Release build phase.
 - Localization: 12 languages in `Localizable.xcstrings` and `InfoPlist.xcstrings`, generated by `scripts/l10n/build_catalog.py`. Keys are the Turkish source strings; the development region is `en`.

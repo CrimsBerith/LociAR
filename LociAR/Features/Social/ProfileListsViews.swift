@@ -21,7 +21,7 @@ struct CollectionsView: View {
                 } else {
                     LociEmptyState(
                         title: String(localized: "Henüz koleksiyon yok"),
-                        message: String(localized: "Kaydettiğin postları özel koleksiyonlarda düzenleyebilirsin."),
+                        message: String(localized: "Kaydettiğin notları özel koleksiyonlarda düzenleyebilirsin."),
                         symbol: "square.stack.3d.up",
                         actionTitle: String(localized: "İlk koleksiyonu oluştur"),
                         action: { showCreate = true }
@@ -30,21 +30,21 @@ struct CollectionsView: View {
             } else {
                 List {
                     if let message {
-                        LociInlineNotice(title: String(localized: "Bir sorun oluştu"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                        LociInlineNotice(title: String(localized: "Bir sorun oluştu"), message: message, symbol: "exclamationmark.triangle.fill", color: LociTheme.danger)
                             .listRowBackground(Color.clear)
                     }
                     ForEach(collections) { collection in
                     NavigationLink {
                         CollectionDetailView(collection: collection)
                     } label: {
-                        HStack(spacing: 13) {
+                        HStack(spacing: LociTheme.Spacing.m) {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 10).fill(Color.purple.opacity(0.16)).frame(width: 42, height: 42)
-                                Image(systemName: "folder.fill").foregroundStyle(.purple)
+                                RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous).fill(LociTheme.identityAccent.opacity(0.16)).frame(width: 42, height: 42)
+                                Image(systemName: "folder.fill").foregroundStyle(LociTheme.identityAccent)
                             }
-                            VStack(alignment: .leading, spacing: 3) {
+                            VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
                                 Text(collection.title).font(.headline)
-                                Text("Özel koleksiyon").font(.caption).foregroundStyle(.secondary)
+                                Text("Özel koleksiyon").font(.caption).foregroundStyle(LociTheme.secondaryText)
                             }
                         }
                     }
@@ -61,9 +61,20 @@ struct CollectionsView: View {
         .alert("Yeni koleksiyon", isPresented: $showCreate) {
             TextField("Başlık", text: $title)
             Button("Oluştur") { Task { await create() } }.disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Button("Vazgeç", role: .cancel) {}
+            Button("Vazgeç", role: .cancel) { /* SwiftUI dismisses the alert; cancellation performs no write. */ }
         }
         .task { await load() }
+    }
+
+    /// UI-test fixture sessions (Debug only) use the in-memory social repository even when the build
+    /// carries no Firebase configuration, as on CI runners.
+    private var canUseCollections: Bool {
+        if container.isBackendConfigured { return true }
+        #if DEBUG
+        return UITestFixtures.authenticatedSessionEnabled
+        #else
+        return false
+        #endif
     }
 
     /// Retry is only offered when a backend exists to retry against.
@@ -76,7 +87,7 @@ struct CollectionsView: View {
         isLoading = collections.isEmpty
         message = nil
         defer { isLoading = false }
-        guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
+        guard case let .signedIn(user) = session.phase, canUseCollections else {
             message = String(localized: "Koleksiyonlar için sunucu bağlantısı gerekiyor.")
             return
         }
@@ -86,7 +97,7 @@ struct CollectionsView: View {
 
     private func create() async {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard case let .signedIn(user) = session.phase, container.isBackendConfigured, !cleanTitle.isEmpty else { return }
+        guard case let .signedIn(user) = session.phase, canUseCollections, !cleanTitle.isEmpty else { return }
         guard cleanTitle.count <= 80 else { message = String(localized: "Koleksiyon başlığı en fazla 80 karakter olabilir."); return }
         message = nil
         do {
@@ -105,41 +116,45 @@ struct CollectionDetailView: View {
     @State private var posts: [LociPost] = []
     @State private var isLoading = true
     @State private var message: String?
+    @State private var nextCursor: String?
+    @State private var isLoadingMore = false
+    @State private var loadID = UUID()
 
     var body: some View {
         Group {
             if isLoading {
                 LociLoadingView(title: String(localized: "Koleksiyon yükleniyor…"))
-            } else if posts.isEmpty {
+            } else if posts.isEmpty && nextCursor == nil {
                 if let message {
                     // A failed load must not read as an empty collection.
                     LociEmptyState.failure(message: message, retry: { Task { await load() } })
                 } else {
                     LociEmptyState(
                         title: String(localized: "Bu koleksiyon boş"),
-                        message: String(localized: "Beğendiğin veya kaydettiğin postları detayından bu koleksiyona ekleyebilirsin."),
+                        message: String(localized: "Notları ayrıntı ekranından bu koleksiyona ekleyebilirsin."),
                         symbol: "folder.badge.plus"
                     )
                 }
             } else {
                 List {
                     if let message {
-                        LociInlineNotice(title: String(localized: "Bazı postlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: .orange)
+                        LociInlineNotice(title: String(localized: "Bazı notlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
                             .listRowBackground(Color.clear)
                     }
                     ForEach(posts) { post in
                         NavigationLink {
                             PostPreviewView(post: post)
                         } label: {
-                            HStack(spacing: 12) {
-                                LociAvatar(handle: String(post.creatorID.uuidString.prefix(6)), size: 36)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(post.caption.isEmpty ? String(localized: "Mekânsal post") : post.caption)
-                                        .font(.subheadline.bold())
-                                        .lineLimit(2)
+                            HStack(spacing: LociTheme.Spacing.m) {
+                                LociAvatar(handle: String(post.creatorID.uuidString.prefix(6)), avatarURL: post.creatorAvatarURL, size: 36)
+                                VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
+                                    if post.isLocked { Text("Kilitli not").font(.subheadline.bold()) }
+                                    else if post.caption.isEmpty { Text("AR notu").font(.subheadline.bold()) }
+                                    else { TranslatedPostText(text: post.caption, lineLimit: 2).font(.subheadline.bold()) }
+                                    if post.isOfficialContent { OfficialContentBadge() }
                                     Text(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? String(localized: "Fiziksel yüzey") : String(localized: "Yaklaşık"))
                                         .font(.caption2)
-                                        .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : .orange)
+                                        .foregroundStyle(post.anchorBundle.anchor.pinQuality.isPhysicalSurface ? LociTheme.accent : LociTheme.warning)
                                 }
                             }
                         }
@@ -152,6 +167,12 @@ struct CollectionDetailView: View {
                             }
                         }
                     }
+                    if nextCursor != nil {
+                        Button("Daha fazla göster") { Task { await loadMore() } }
+                            .disabled(isLoadingMore)
+                            .overlay { if isLoadingMore { ProgressView() } }
+                            .listRowBackground(Color.clear)
+                    }
                 }
                 .lociListStyle()
                 .refreshable { await load() }
@@ -163,38 +184,50 @@ struct CollectionDetailView: View {
     }
 
     private func load() async {
+        let requestID = UUID(); loadID = requestID
         isLoading = posts.isEmpty
+        isLoadingMore = false; nextCursor = nil
         message = nil
-        defer { isLoading = false }
+        defer { if loadID == requestID { isLoading = false } }
+        guard case let .signedIn(user) = session.phase, user.id == collection.ownerID, container.isBackendConfigured else {
+            message = String(localized: "Notlar yüklenemedi."); return
+        }
         do {
-            let postIDs = try await container.social.postIDs(in: collection.id)
-            var loadedPosts: [LociPost] = []
-            var failedCount = 0
-            for id in postIDs {
-                do {
-                    // nil = removed, hidden or blocked: intentionally skipped. A throw is a real failure.
-                    if let post = try await container.posts.publicPost(id: id) { loadedPosts.append(post) }
-                } catch {
-                    failedCount += 1
-                }
-            }
-            posts = loadedPosts
-            if failedCount > 0 {
-                message = loadedPosts.isEmpty ? String(localized: "Postlar yüklenemedi.") : String(localized: "\(failedCount) post şu anda yüklenemedi. Yenilemek için aşağı çek.")
-            }
+            let page = try await container.social.collectionPostsPage(in: collection.id, userID: user.id, cursor: nil)
+            guard !Task.isCancelled, loadID == requestID, case let .signedIn(current) = session.phase, current.id == user.id else { return }
+            posts = page.posts; nextCursor = page.next
         } catch {
-            message = String(localized: "Postlar yüklenemedi.")
+            guard !Task.isCancelled, loadID == requestID else { return }
+            message = String(localized: "Notlar yüklenemedi.")
+        }
+    }
+
+    private func loadMore() async {
+        guard !isLoading, !isLoadingMore, let cursor = nextCursor,
+              case let .signedIn(user) = session.phase, user.id == collection.ownerID else { return }
+        let requestID = loadID
+        isLoadingMore = true; message = nil
+        defer { if loadID == requestID { isLoadingMore = false } }
+        do {
+            let page = try await container.social.collectionPostsPage(in: collection.id, userID: user.id, cursor: cursor)
+            guard !Task.isCancelled, loadID == requestID, case let .signedIn(current) = session.phase, current.id == user.id else { return }
+            let known = Set(posts.map(\.id)); posts += page.posts.filter { !known.contains($0.id) }
+            nextCursor = page.next
+        } catch {
+            guard !Task.isCancelled, loadID == requestID else { return }
+            message = String(localized: "Notlar yüklenemedi.")
         }
     }
 
     private func remove(post: LociPost) async {
         do {
             try await container.social.remove(postID: post.id, from: collection.id)
+            loadID = UUID(); isLoadingMore = false
             withAnimation {
                 posts.removeAll { $0.id == post.id }
             }
         } catch {
-            message = String(localized: "Post koleksiyondan çıkarılamadı.")
+            message = String(localized: "Not koleksiyondan çıkarılamadı.")
         }
     }
 }
@@ -205,15 +238,34 @@ struct SavedPostsView: View {
     @State private var posts: [LociPost] = []
     @State private var message: String?
     @State private var isLoading = true
+    @State private var nextCursor: String?
+    @State private var isLoadingMore = false
+    @State private var loadID = UUID()
     var body: some View {
         Group {
             if isLoading { LociLoadingView(title: String(localized: "Kaydedilenler yükleniyor…")) }
-            else if posts.isEmpty {
-                LociEmptyState(title: String(localized: "Kaydedilen post yok"), message: message ?? String(localized: "Kaydettiğin postlar burada görünür."), symbol: "bookmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+            else if posts.isEmpty && nextCursor == nil {
+                if let message {
+                    LociEmptyState.failure(message: message, retry: container.isBackendConfigured ? { Task { await load() } } : nil)
+                } else {
+                    LociEmptyState(title: String(localized: "Kaydedilen not yok"), message: String(localized: "Kaydettiğin notlar burada görünür."), symbol: "bookmark")
+                }
             } else {
-                List(posts) { post in
-                    NavigationLink(value: post) { PostCard(post: post) }
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                List {
+                    if let message {
+                        LociInlineNotice(title: String(localized: "Bazı notlar gösterilemiyor"), message: message, symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
+                            .listRowBackground(Color.clear)
+                    }
+                    ForEach(posts) { post in
+                        NavigationLink(value: post) { PostCard(post: post) }
+                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    }
+                    if nextCursor != nil {
+                        Button("Daha fazla göster") { Task { await loadMore() } }
+                            .disabled(isLoadingMore)
+                            .overlay { if isLoadingMore { ProgressView() } }
+                            .listRowBackground(Color.clear)
+                    }
                 }
                 .lociListStyle().refreshable { await load() }
             }
@@ -224,40 +276,39 @@ struct SavedPostsView: View {
         .task { await load() }
     }
     private func load() async {
+        let requestID = UUID(); loadID = requestID
         isLoading = posts.isEmpty
+        isLoadingMore = false; nextCursor = nil
         message = nil
-        defer { isLoading = false }
+        defer { if loadID == requestID { isLoading = false } }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
             message = String(localized: "Kaydedilenler için sunucu bağlantısı gerekiyor.")
             return
         }
         do {
-            let ids = try await container.social.savedPostIDs(for: user.id)
-            guard !ids.isEmpty else {
-                posts = []
-                return
-            }
-            // nil post = removed or hidden (skipped); a thrown error = could not load (reported).
-            let loaded = await withTaskGroup(of: (Int, LociPost?, Bool).self) { group in
-                for (index, id) in ids.enumerated() {
-                    group.addTask {
-                        do { return (index, try await container.posts.publicPost(id: id), false) }
-                        catch { return (index, nil, true) }
-                    }
-                }
-                var results: [(Int, LociPost)] = []
-                var failures = 0
-                for await (index, post, failed) in group {
-                    if let post { results.append((index, post)) }
-                    if failed { failures += 1 }
-                }
-                return (results.sorted { $0.0 < $1.0 }.map(\.1), failures)
-            }
-            posts = loaded.0
-            if loaded.1 > 0 {
-                message = String(localized: "Kaydedilen postların bir kısmı yüklenemedi. Yenilemek için aşağı çek.")
-            }
-        } catch { message = String(localized: "Kaydedilen postlar şu anda yüklenemiyor.") }
+            let page = try await container.social.savedPostsPage(for: user.id, cursor: nil)
+            guard !Task.isCancelled, loadID == requestID, case let .signedIn(current) = session.phase, current.id == user.id else { return }
+            posts = page.posts; nextCursor = page.next
+        } catch {
+            guard !Task.isCancelled, loadID == requestID else { return }
+            message = String(localized: "Kaydedilen notlar şu anda yüklenemiyor.")
+        }
+    }
+
+    private func loadMore() async {
+        guard !isLoading, !isLoadingMore, let cursor = nextCursor, case let .signedIn(user) = session.phase else { return }
+        let requestID = loadID
+        isLoadingMore = true; message = nil
+        defer { if loadID == requestID { isLoadingMore = false } }
+        do {
+            let page = try await container.social.savedPostsPage(for: user.id, cursor: cursor)
+            guard !Task.isCancelled, loadID == requestID, case let .signedIn(current) = session.phase, current.id == user.id else { return }
+            let known = Set(posts.map(\.id)); posts += page.posts.filter { !known.contains($0.id) }
+            nextCursor = page.next
+        } catch {
+            guard !Task.isCancelled, loadID == requestID else { return }
+            message = String(localized: "Kaydedilen notlar şu anda yüklenemiyor.")
+        }
     }
 }
 
@@ -271,14 +322,18 @@ struct BlockedUsersView: View {
         Group {
             if isLoading { LociLoadingView(title: String(localized: "Engellenen hesaplar yükleniyor…")) }
             else if ids.isEmpty {
-                LociEmptyState(title: String(localized: "Engellenen hesap yok"), message: message ?? String(localized: "Engellediğin hesaplar burada görünür."), symbol: "person.crop.circle.badge.xmark", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+                if let message {
+                    LociEmptyState.failure(message: message, retry: container.isBackendConfigured ? { Task { await load() } } : nil)
+                } else {
+                    LociEmptyState(title: String(localized: "Engellenen hesap yok"), message: String(localized: "Engellediğin hesaplar burada görünür."), symbol: "person.crop.circle.badge.xmark")
+                }
             } else {
                 List(ids, id: \.self) { id in
-                    HStack(spacing: 12) {
+                    HStack(spacing: LociTheme.Spacing.m) {
                         LociAvatar(handle: "E", size: 42)
                         Text("Engellenen hesap").font(.headline)
                         Spacer()
-                        Button("Engeli kaldır") { Task { await unblock(id) } }.buttonStyle(.bordered).controlSize(.small)
+                        Button("Engeli kaldır") { Task { await unblock(id) } }.buttonStyle(LociCompactButtonStyle())
                     }
                     .listRowBackground(Color.clear)
                 }
@@ -325,22 +380,40 @@ struct MyPostsView: View {
     @State private var postToDelete: LociPost?
     @State private var deleteError: String?
     @State private var isDeleting = false
+    @State private var displayOwnerID: UUID?
+
+    private var viewerID: UUID? {
+        if case let .signedIn(user) = session.phase { return user.id }
+        return nil
+    }
 
     var body: some View {
         Group {
-            if isLoading { LociLoadingView(title: String(localized: "Postların yükleniyor…")) }
+            if isLoading || displayOwnerID != viewerID { LociLoadingView(title: String(localized: "Notların yükleniyor…")) }
             else if posts.isEmpty {
-                LociEmptyState(title: String(localized: "Henüz post yok"), message: message ?? String(localized: "Yayınlanan ve incelemedeki postların burada görünür."), symbol: "rectangle.stack.badge.plus", actionTitle: message == nil || !container.isBackendConfigured ? nil : "Tekrar dene", action: message == nil ? nil : { Task { await load() } })
+                if let message {
+                    LociEmptyState.failure(message: message, retry: container.isBackendConfigured ? { Task { await load() } } : nil)
+                } else {
+                    LociEmptyState(title: String(localized: "Henüz not yok"), message: String(localized: "Yayınlanan ve incelemedeki notların burada görünür."), symbol: "rectangle.stack.badge.plus")
+                }
             } else {
-                List(posts) { post in
+                List {
+                    if let message {
+                        LociInlineNotice(title: String(localized: "Şu anda yüklenemiyor"), message: message,
+                                         symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
+                            .listRowBackground(Color.clear)
+                        Button("Tekrar dene") { Task { await load() } }
+                            .listRowBackground(Color.clear)
+                    }
+                    ForEach(posts) { post in
                     NavigationLink(value: post) {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
                             if failedIDs.contains(post.id) {
-                                LociStatusPill(title: String(localized: "İşlem gerekiyor"), symbol: "exclamationmark.triangle.fill", color: .red)
+                                LociStatusPill(title: String(localized: "İşlem gerekiyor"), symbol: "exclamationmark.triangle.fill", color: LociTheme.danger)
                             } else if pendingIDs.contains(post.id) {
-                                LociStatusPill(title: String(localized: "Yayın bekliyor"), symbol: "arrow.triangle.2.circlepath", color: .orange)
+                                LociStatusPill(title: String(localized: "Yayın bekliyor"), symbol: "arrow.triangle.2.circlepath", color: LociTheme.warning)
                             } else if post.status == .pendingReview {
-                                LociStatusPill(title: String(localized: "İncelemede"), symbol: "clock.fill", color: .orange)
+                                LociStatusPill(title: String(localized: "İncelemede"), symbol: "clock.fill", color: LociTheme.warning)
                             }
                             PostCard(post: post)
                         }
@@ -351,12 +424,13 @@ struct MyPostsView: View {
                             .disabled(isDeleting)
                             .accessibilityIdentifier("my-post-delete-\(post.id.uuidString)")
                     }
+                    }
                 }
                 .lociListStyle().refreshable { await load() }
             }
         }
         .background(LociScreenBackground())
-        .navigationTitle("Postlarım")
+        .navigationTitle("Notlarım")
         .navigationDestination(for: LociPost.self) { PostPreviewView(post: $0) }
         .toolbar {
             if !pendingIDs.isEmpty || !failedIDs.isEmpty {
@@ -367,11 +441,12 @@ struct MyPostsView: View {
                 }
             }
         }
-        .task { await load() }
+        .task(id: viewerID) { await load() }
         .safeAreaInset(edge: .bottom) {
             if nextCursor != nil {
-                Button("Daha fazla göster") { Task { await loadMore() } }
-                    .disabled(isLoadingMore || isLoading).padding().background(.ultraThinMaterial)
+                LociPaginationFooter(isLoading: isLoadingMore, isEnabled: !isLoading) {
+                    Task { await loadMore() }
+                }
             }
         }
         .confirmationDialog(
@@ -389,7 +464,7 @@ struct MyPostsView: View {
             }
             Button("Vazgeç", role: .cancel) { postToDelete = nil }
         } message: {
-            Text("Post Keşfet, profil ve AR listesinden kaldırılır.")
+            Text("Notun Keşfet, profil ve AR listesinden kaldırılır.")
         }
         .alert("Post silinemedi", isPresented: Binding(
             get: { deleteError != nil },
@@ -403,30 +478,38 @@ struct MyPostsView: View {
 
     private func load() async {
         pageGeneration += 1
+        let generation = pageGeneration
         nextCursor = nil
         isLoading = posts.isEmpty
         message = nil
-        defer { isLoading = false }
+        defer { if pageGeneration == generation { isLoading = false } }
         guard case let .signedIn(user) = session.phase else {
+            displayOwnerID = nil
             posts = []
             pendingIDs = []
             failedIDs = []
-            message = String(localized: "Postları görmek için tekrar giriş yap.")
+            message = String(localized: "Notları görmek için tekrar giriş yap.")
             return
         }
+        let previousPosts = displayOwnerID == user.id ? posts : []
+        displayOwnerID = user.id
         let localPosts = loadLocalDrafts(ownerID: user.id)
         let queueDescriptor = FetchDescriptor<SyncQueueRecord>()
         let queues = ((try? modelContext.fetch(queueDescriptor)) ?? []).filter { $0.ownerID == user.id }
         failedIDs = Set(queues.filter { $0.deadLetterReason != nil }.map(\.id))
         pendingIDs = Set(localPosts.map(\.id)).subtracting(failedIDs)
-        posts = localPosts
+        let localIDs = Set(localPosts.map(\.id))
+        // Retain already displayed remote posts while refreshing; never carry them across accounts.
+        posts = (localPosts + previousPosts.filter { !localIDs.contains($0.id) })
+            .sorted { $0.createdAt > $1.createdAt }
         if session.isLocalPreview {
             if posts.isEmpty { posts = [UITestFixtures.post] }
             return
         }
-        guard container.isBackendConfigured else { message = String(localized: "Postların için sunucu bağlantısı gerekiyor."); return }
+        guard container.isBackendConfigured else { message = String(localized: "Notların için sunucu bağlantısı gerekiyor."); return }
         do {
             let page = try await container.posts.myPostsPage(cursor: nil)
+            guard !Task.isCancelled, pageGeneration == generation, viewerID == user.id else { return }
             let remotePosts = page.posts
             nextCursor = page.next
             let remoteIDs = Set(remotePosts.map(\.id))
@@ -435,7 +518,8 @@ struct MyPostsView: View {
             posts = (remotePosts + localPosts.filter { !remoteIDs.contains($0.id) })
                 .sorted { $0.createdAt > $1.createdAt }
         } catch {
-            message = localPosts.isEmpty ? String(localized: "Postların şu anda yüklenemiyor.") : String(localized: "Bekleyen post cihazda güvende. Yayını tekrar deneyebilirsin.")
+            guard !Task.isCancelled, pageGeneration == generation, viewerID == user.id else { return }
+            message = localPosts.isEmpty ? String(localized: "Notların şu anda yüklenemiyor.") : String(localized: "Bekleyen not cihazda güvende. Yayını tekrar deneyebilirsin.")
         }
     }
 
@@ -493,7 +577,7 @@ struct MyPostsView: View {
             pendingIDs.remove(post.id)
             failedIDs.remove(post.id)
         } catch {
-            deleteError = String(localized: "Post şu anda silinemiyor. Bağlantını kontrol edip tekrar dene.")
+            deleteError = String(localized: "Not şu anda silinemiyor. Bağlantını kontrol edip tekrar dene.")
         }
     }
     private func loadMore() async {
@@ -515,12 +599,22 @@ struct MyPostsView: View {
 
 struct InviteView: View {
     @Environment(AppContainer.self) private var container
+    @Environment(AppSession.self) private var session
     @State private var codeInput = ""
     @State private var invites: [InviteCode] = []
     @State private var message: String?
     @State private var info: String?
     @State private var isBusy = false
     @State private var isLoading = true
+    @State private var needsInvite = false
+    @State private var loadMessage: String?
+    @State private var activeLoadID: UUID?
+    @State private var accountGeneration = UUID()
+
+    private var signedInID: UUID? {
+        if case let .signedIn(user) = session.phase { return user.id }
+        return nil
+    }
 
     private var normalizedInput: String {
         codeInput.uppercased().filter { $0.isLetter || $0.isNumber }
@@ -534,89 +628,142 @@ struct InviteView: View {
                     .autocorrectionDisabled()
                     .font(.system(.body, design: .monospaced))
                     .accessibilityIdentifier("invite-code-field")
+                    .lociGlassRowBackground()
                 Button {
                     Task { await redeem() }
                 } label: {
                     Label("Kodu kullan", systemImage: "ticket.fill")
                 }
-                .disabled(isBusy || normalizedInput.count < 8)
+                .buttonStyle(LociPrimaryButtonStyle())
+                .disabled(isBusy || activeLoadID != nil || normalizedInput.count < 8)
                 .accessibilityIdentifier("invite-redeem-button")
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                if needsInvite {
+                    Text("Paylaşmak için davet kodunu gir.")
+                        .font(.footnote)
+                        .foregroundStyle(LociTheme.secondaryText)
+                        .lociGlassRowBackground()
+                }
             } header: {
                 Text("Sana verilen kod")
-            } footer: {
-                Text("Gezmek serbest. Davet kodu yalnızca post paylaşmak için gerekebilir.")
             }
             Section {
                 if isLoading {
-                    ProgressView()
-                } else if invites.isEmpty {
-                    Text("Kodlarını görmek için önce sana verilen kodu gir.")
+                    ProgressView().accessibilityLabel(Text("Davet kodları yükleniyor…"))
+                        .lociGlassRowBackground()
+                } else if let loadMessage {
+                    LociInlineNotice(title: String(localized: "Davet kodları yüklenemedi"), message: loadMessage,
+                                     symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
+                        .lociGlassRowBackground()
+                    Button("Tekrar dene") { Task { await loadInvites() } }
+                        .disabled(isBusy)
+                        .accessibilityIdentifier("invite-retry-load")
+                        .lociGlassRowBackground()
+                }
+                if !isLoading && loadMessage == nil && invites.isEmpty {
+                    Text(needsInvite ? String(localized: "Kodlarını görmek için önce sana verilen kodu gir.") : String(localized: "Henüz davet kodun yok."))
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
+                        .foregroundStyle(LociTheme.secondaryText)
+                        .lociGlassRowBackground()
+                }
+                if !isLoading && !invites.isEmpty {
                     ForEach(invites) { invite in
                         HStack {
                             Text(invite.code)
                                 .font(.system(.body, design: .monospaced).weight(.semibold))
                                 .strikethrough(invite.redeemed)
-                                .foregroundStyle(invite.redeemed ? .secondary : .primary)
+                                .foregroundStyle(invite.redeemed ? LociTheme.secondaryText : LociTheme.textPrimary)
                             Spacer()
                             if invite.redeemed {
-                                Text("Kullanıldı").font(.caption).foregroundStyle(.secondary)
+                                Text("Kullanıldı").font(.caption).foregroundStyle(LociTheme.secondaryText)
                             } else {
                                 ShareLink(item: String(localized: "LociAR'a davetlisin. Davet kodun: \(invite.code)")) {
                                     Image(systemName: "square.and.arrow.up")
+                                        .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
+                                        .background(LociTheme.field, in: RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
+                                        .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous).stroke(LociTheme.glassBorder))
                                 }
-                                .accessibilityLabel("Kodu paylaş")
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(Text("Kodu paylaş"))
                             }
                         }
+                        .lociGlassRowBackground()
                     }
                 }
+                Text("Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.")
+                    .font(.footnote)
+                    .foregroundStyle(LociTheme.secondaryText)
+                    .lociGlassRowBackground()
             } header: {
                 Text("Senin kodların")
-            } footer: {
-                Text("Her hesap en fazla 3 kod verebilir. Her kod tek kullanımlıktır.")
             }
             if let info {
-                Section { Text(info).foregroundStyle(LociTheme.accent) }
+                Section { Text(info).foregroundStyle(LociTheme.accent).lociGlassRowBackground() }
             }
             if let message {
-                Section { Text(message).foregroundStyle(.red) }
+                Section { Text(message).foregroundStyle(LociTheme.danger).lociGlassRowBackground() }
             }
         }
         .lociListStyle()
         .navigationTitle("Davet kodu")
-        .task { await loadInvites() }
+        .task(id: signedInID) {
+            // Discard state from the previous account, including in-flight read results and drafts.
+            accountGeneration = UUID()
+            activeLoadID = nil
+            invites = []; codeInput = ""; message = nil; info = nil; loadMessage = nil
+            needsInvite = false; isBusy = false; isLoading = true
+            await loadInvites()
+        }
     }
 
     private func redeem() async {
-        guard !isBusy else { return }
+        guard !isBusy, let userID = signedInID else { return }
+        let generation = accountGeneration
         isBusy = true
         message = nil
         info = nil
-        defer { isBusy = false }
+        defer { if signedInID == userID, accountGeneration == generation { isBusy = false } }
         do {
             try await container.invites.redeem(code: normalizedInput)
+            guard !Task.isCancelled, signedInID == userID, accountGeneration == generation else { return }
             codeInput = ""
-            info = String(localized: "Kod kabul edildi. Artık post paylaşabilirsin.")
+            info = String(localized: "Davet kodu kabul edildi.")
             await loadInvites()
         } catch {
-            message = error.localizedDescription
+            guard !Task.isCancelled, signedInID == userID, accountGeneration == generation else { return }
+            // Preserve the typed code so a recoverable failure can be retried.
+            message = InviteFailurePresentation.message(for: error)
         }
     }
 
     private func loadInvites() async {
-        guard container.isBackendConfigured else {
+        guard activeLoadID == nil else { return }
+        guard container.isBackendConfigured else { isLoading = false; return }
+        guard let userID = signedInID else {
             isLoading = false
+            loadMessage = InviteFailurePresentation.message(for: AuthFlowError.notSignedIn)
             return
         }
-        defer { isLoading = false }
+        let ticket = UUID()
+        activeLoadID = ticket
+        isLoading = invites.isEmpty
+        loadMessage = nil
+        defer {
+            if activeLoadID == ticket { activeLoadID = nil; isLoading = false }
+        }
         do {
-            invites = try await container.invites.myInvites()
+            let loaded = try await container.invites.myInvites()
+            guard !Task.isCancelled, activeLoadID == ticket, signedInID == userID else { return }
+            invites = loaded
+            needsInvite = false
         } catch InviteFlowError.needsInviteFirst {
+            guard !Task.isCancelled, activeLoadID == ticket, signedInID == userID else { return }
             invites = []
+            needsInvite = true
         } catch {
-            message = error.localizedDescription
+            guard !Task.isCancelled, activeLoadID == ticket, signedInID == userID else { return }
+            loadMessage = InviteFailurePresentation.message(for: error)
         }
     }
 }

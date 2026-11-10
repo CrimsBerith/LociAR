@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import ciEnvironment from './scripts/ci-environment.json';
+import ciEnvironment from './scripts/ci-environment.json' with { type: 'json' };
 
 const remoteBaseURL = process.env.ADMIN_E2E_BASE_URL;
 const storageState = process.env.ADMIN_E2E_STORAGE_STATE;

@@ -1,7 +1,7 @@
 import test, { before, after } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getBytes, deleteObject, listAll } from 'firebase/storage';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 
 const ALICE = '11111111-1111-5111-8111-111111111111';
@@ -92,9 +92,12 @@ test('legacy folders: no uploads, owners may delete leftovers, others may not', 
     for (const path of paths) await uploadBytes(ref(ctx.storage(), path), jpeg, { contentType: 'image/jpeg' });
   });
   for (const path of paths) {
+    await assertFails(getBytes(ref(as(BOB), path)));
+    await assertFails(getBytes(ref(as(ALICE), path)));
     await assertFails(deleteObject(ref(as(BOB), path)));
     await assertSucceeds(deleteObject(ref(as(ALICE), path)));
   }
+  await assertFails(listAll(ref(as(BOB), `post-surface-textures/${ALICE}`)));
 });
 
 const AVATAR_SLOT = 'eeeeeeee-cccc-4ccc-8ddd-123123123123';

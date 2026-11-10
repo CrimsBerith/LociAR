@@ -12,6 +12,15 @@ const base = () => ({
   visibility: 'public',
 });
 
+test('publishing identity defaults to anonymous and accepts only explicit booleans', () => {
+  for (const anonymous of [undefined, true, false]) {
+    assert.equal(validateCreatePostBody({ ...base(), anonymous }), null);
+  }
+  for (const anonymous of [null, 'false', 0, 1, {}, []]) {
+    assert.equal(validateCreatePostBody({ ...base(), anonymous }), 'Invalid publishing identity');
+  }
+});
+
 test('rejects 18+, bad caption, missing layers and weak GPS', () => {
   assert.equal(validateCreatePostBody(base()), null);
   assert.match(validateCreatePostBody({ ...base(), ageRating: '18_plus' }), /18\+/);
@@ -19,6 +28,17 @@ test('rejects 18+, bad caption, missing layers and weak GPS', () => {
   assert.equal(validateCreatePostBody({ ...base(), editData: { layers: [] } }), 'At least one edit layer is required');
   assert.match(validateCreatePostBody({ ...base(), pose: { ...base().pose, accuracy: 150 } }), /GPS accuracy/);
   assert.equal(validateCreatePostBody({ ...base(), clientMutationId: 'nope' }), 'Invalid client mutation ID');
+});
+
+test('captions share the 140 UTF-16 code-unit limit used by the native composers', () => {
+  assert.equal(validateCreatePostBody({ ...base(), caption: 'a'.repeat(140) }), null);
+  assert.equal(validateCreatePostBody({ ...base(), caption: 'a'.repeat(141) }), 'Invalid caption');
+  assert.equal(validateCreatePostBody({ ...base(), caption: `\n ${'a'.repeat(140)} \t` }), null);
+  assert.equal(validateCreatePostBody({ ...base(), caption: `\n ${'a'.repeat(141)} \t` }), 'Invalid caption');
+  assert.equal(validateCreatePostBody({ ...base(), caption: '😀'.repeat(70) }), null);
+  assert.equal(validateCreatePostBody({ ...base(), caption: '😀'.repeat(71) }), 'Invalid caption');
+  assert.equal(validateCreatePostBody({ ...base(), caption: 'e\u0301'.repeat(70) }), null);
+  assert.equal(validateCreatePostBody({ ...base(), caption: 'e\u0301'.repeat(71) }), 'Invalid caption');
 });
 
 test('arkit world lock without evidence is rejected', () => {
@@ -71,6 +91,13 @@ test('only text and GIF posts are accepted: no device media and no links of any 
   assert.equal(validateCreatePostBody(textOnly), null);
   assert.equal(validateCreatePostBody({ ...base(), contentSource: null }), null);
   assert.equal(validateCreatePostBody({ ...base(), contentSource: { platform: 'text', url: '' } }), null);
+});
+test('URLs in captions and text layers are rejected without rejecting numbers or ordinary punctuation', () => {
+  for (const text of ['https://example.com/p', 'www.example.com', 'example.com', 'mailto:a@example.com', 'javascript:alert(1)']) {
+    assert.equal(validateCreatePostBody({ ...base(), caption: text }), 'Links are not allowed');
+    assert.equal(validateCreatePostBody({ ...base(), editData: { layers: [{ type: 'text', text }] } }), 'Links are not allowed');
+  }
+  for (const caption of ['Kalite: iyi. Fiyat 12.50', 'Version 1.2', 'İkinci kapıdan gir.']) assert.equal(validateCreatePostBody({ ...base(), caption }), null);
 });
 
 test('reference image must be a storage path or the pending placeholder', () => {

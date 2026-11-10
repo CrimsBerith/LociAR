@@ -109,17 +109,22 @@ const MODERATION_STATUS: Record<string, string> = {
   restore: 'pending_review',
 };
 
+function postApprovalBlocked(before: DocumentData): boolean {
+  return before.age_rating === '18_plus' || Boolean(before.protected_zone_name && !before.admin_zone_exception?.reason);
+}
+
 function applyModeration(tx: Transaction, postRef: FirebaseFirestore.DocumentReference, before: DocumentData, action: string, actorId: string, reason: string) {
+  if (before.media_purge_state === 'purging') {
+    throw new ConflictError('post_media_cleanup_in_progress: retry after media cleanup completes');
+  }
   // deleteOwnPost sets deleted_at without deleted_by and wipes the post's media; the author's
   // deletion is final. Even another soft delete must not relabel it as a moderator deletion,
   // which would make a later restore possible.
   if (before.deleted_at && !before.deleted_by) {
     throw new ConflictError('post_deleted_by_author: posts removed by their author cannot be restored');
   }
-  if (action === 'approve') {
-    if (before.age_rating === '18_plus' || (before.protected_zone_name && !before.admin_zone_exception?.reason)) {
-      throw new ConflictError('post_not_approvable: 18+ or protected-zone content cannot be approved');
-    }
+  if (action === 'approve' && postApprovalBlocked(before)) {
+    throw new ConflictError('post_not_approvable: 18+ or protected-zone content cannot be approved');
   }
   const soft = action === 'soft_delete';
   const update = {
@@ -129,6 +134,12 @@ function applyModeration(tx: Transaction, postRef: FirebaseFirestore.DocumentRef
     deletion_reason: soft ? reason : null,
     updated_at: FieldValue.serverTimestamp(),
   };
+  const queueRef = adminDb().collection('media_purge_queue').doc(postRef.id);
+  if (!soft) tx.delete(queueRef); // Cancel this removal lifecycle before a delayed trigger runs.
+  else if (before.status !== 'removed') tx.set(queueRef, {
+    post_id: postRef.id, prefix: `${before.creator_id}/${postRef.id}/`,
+    due_at: Timestamp.fromMillis(Date.now() + 30 * 86_400_000),
+  });
   if (typeof before.creator_id === 'string') tx.set(adminDb().collection('storage_reclamations').doc(postRef.id), { creator_id: before.creator_id, state: soft ? 'removed' : 'committed', world_map_path: before.world_map_path ?? null, public_readable: action === 'approve' && before.visibility === 'public' }, { merge: true });
   tx.update(postRef, update);
   return { ...before, ...update, deleted_at: soft ? new Date().toISOString() : null, updated_at: new Date().toISOString() };
@@ -223,7 +234,7 @@ export async function resolveModerationFlag(flagId: string, action: string, acto
       const field = String(data.field);
       if (action === 'approve') {
         if (profile.get(field) !== data.replacement) throw new ConflictError('profile_changed_since_filtering');
-        tx.update(profile.ref, { [field]: data.text, moderation_approved_text: { ...(profile.get('moderation_approved_text') ?? {}), [field]: data.text }, updated_at: FieldValue.serverTimestamp() });
+        tx.update(profile.ref, { [field]: data.text, moderation_approved_text: { ...profile.get('moderation_approved_text'), [field]: data.text }, updated_at: FieldValue.serverTimestamp() });
       }
       // The filter already removed the rejected field; newer edits must be preserved.
       const after = { ...flag, status: action === 'dismiss' ? 'dismissed' : 'reviewed' };
@@ -474,7 +485,7 @@ export async function createProtectedZone(zone: ZoneInput, actorId: string, reas
   const db = adminDb();
   const ref = db.collection('protected_zones').doc(derivedKey(idempotencyKey, 'zone'));
   const hash = mutationHash(actorId, 'zone_create', ref.id, { zone, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
     if (checkReceipt(audit, hash)) return { id: ref.id };
@@ -490,7 +501,7 @@ export async function setProtectedZoneActive(zoneId: string, active: boolean, ac
   const db = adminDb();
   const ref = db.collection('protected_zones').doc(zoneId);
   const hash = mutationHash(actorId, 'zone_active', zoneId, { active, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const [audit, snap] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
@@ -508,7 +519,7 @@ export async function setServicePaused(enabled: boolean, actorId: string, reason
   const db = adminDb();
   const ref = db.collection('system').doc('flags');
   const hash = mutationHash(actorId, 'service_paused', 'flags', { enabled, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const [audit, before] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
@@ -524,7 +535,7 @@ export async function revokeAdminRole(assignmentId: string, actorId: string, rea
   const db = adminDb();
   const ref = db.collection('admin_role_assignments').doc(assignmentId);
   const hash = mutationHash(actorId, 'role_revoke', assignmentId, { reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const [audit, snap] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
@@ -556,7 +567,7 @@ export async function recordPersonalDataRead(actorId: string, resource: string, 
 export async function recordMfaEnrollment(uid: string, observedFactors: string[]) {
   const db = adminDb();
   const ref = db.collection('admin_mfa_state').doc(uid);
-  const factors = [...new Set(observedFactors)].sort();
+  const factors = [...new Set(observedFactors)].sort((a, b) => a.localeCompare(b, 'en'));
   const key = randomUUID();
   await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, uid);
@@ -576,7 +587,7 @@ export async function recordMfaEnrollment(uid: string, observedFactors: string[]
 export async function requestMetricApproval(postId: string, payload: { viewsCount: number; likesCount: number; commentsCount: number }, actorId: string, reason: string, key: string) {
   const db = adminDb();
   const hash = mutationHash(actorId, 'approval_requested', postId, { payload, reason });
-  return db.runTransaction(async tx => {
+  return await db.runTransaction(async tx => {
     await requireActorAccountActive(tx, actorId);
     const ref = db.collection('admin_approval_requests').doc(key);
     const [existing, post] = await tx.getAll(ref, db.collection('posts').doc(postId));

@@ -6,25 +6,49 @@ import Observation
 @Observable
 final class LocationController: NSObject, @preconcurrency CLLocationManagerDelegate {
     private(set) var location: CLLocation?
+    /// Fresh fixes seed the note composer so its estimate is ready sooner.
+    private(set) var recentLocations: [CLLocation] = []
     private(set) var heading: CLHeading?
     private(set) var authorizationStatus: CLAuthorizationStatus
     private(set) var errorMessage: String?
-    @ObservationIgnored private let manager = CLLocationManager()
+    @ObservationIgnored private let manager: CLLocationManager
     @ObservationIgnored private var wantsLocationUpdates = false
     @ObservationIgnored private var wantsPreciseAccuracy = false
+    @ObservationIgnored private var receivedInitialAuthorizationStatus = false
     /// One temporary full-accuracy prompt per AR session (reset by stop()), not one per retry.
     @ObservationIgnored private var didRequestPreciseAccuracy = false
+
+    /// A retained UI value cannot seed a new map/AR search after the GPS stream stops.
+    func freshLocation(at now: Date = Date()) -> CLLocation? {
+        ArrivalFixSelection.latest(location.map { [$0] } ?? [], at: now,
+                                   maxAge: LocationNotePolicy.maxFixAge)
+    }
 
     /// Purpose key in Info.plist `NSLocationTemporaryUsageDescriptionDictionary`.
     nonisolated static let geospatialAccuracyPurposeKey = "GeospatialAccuracy"
 
-    override init() {
-        authorizationStatus = manager.authorizationStatus
+    override convenience init() {
+        self.init(locationManager: CLLocationManager())
+    }
+
+    init(locationManager: CLLocationManager) {
+        manager = locationManager
+        authorizationStatus = .notDetermined
+        errorMessage = nil
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
-        manager.distanceFilter = 1
+        // A stationary phone must still receive new timestamps after a map/AR restart.
+        // A 1 m filter can keep returning only a cached fix, which freshness checks reject.
+        manager.distanceFilter = kCLDistanceFilterNone
+        manager.pausesLocationUpdatesAutomatically = false
         manager.headingFilter = 1
+    }
+
+    deinit {
+        manager.stopUpdatingLocation()
+        manager.stopUpdatingHeading()
+        manager.delegate = nil
     }
 
     func start() {
@@ -34,7 +58,10 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
             errorMessage = String(localized: "Konum izni gerekli. Ayarlar'dan konum erişimini açın.")
             return
         }
-        authorizationStatus = manager.authorizationStatus
+        // A new acquisition never inherits the previous stream's error, even while it waits for the
+        // first authorization callback; a denied status re-sets the message in that callback.
+        errorMessage = nil
+        guard receivedInitialAuthorizationStatus else { return }
         if authorizationStatus == .notDetermined {
             manager.requestWhenInUseAuthorization()
             return
@@ -43,6 +70,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
             errorMessage = String(localized: "Konum izni gerekli. Ayarlar'dan konum erişimini açın.")
             return
         }
+        errorMessage = nil
         manager.startUpdatingLocation()
         if CLLocationManager.headingAvailable() { manager.startUpdatingHeading() }
     }
@@ -51,7 +79,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     /// ask once per AR session for temporary full accuracy (iOS shows the purpose string).
     func requestPreciseAccuracyIfNeeded() {
         guard !didRequestPreciseAccuracy else { return }
-        let status = manager.authorizationStatus
+        let status = authorizationStatus
         // Not decided yet: ask once the user answers the location prompt (authorization callback).
         wantsPreciseAccuracy = status == .notDetermined
         guard status == .authorizedWhenInUse || status == .authorizedAlways,
@@ -66,10 +94,14 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
         didRequestPreciseAccuracy = false
         manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
+        location = nil
+        recentLocations = []
+        heading = nil
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorizationStatus = manager.authorizationStatus
+        receivedInitialAuthorizationStatus = true
         guard wantsLocationUpdates else { return }
         if authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse {
             errorMessage = nil
@@ -82,17 +114,22 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let latest = locations.last, latest.horizontalAccuracy >= 0 else { return }
+        guard wantsLocationUpdates else { return }
+        let now = Date()
+        let valid = locations.filter { LocationSample($0).isUsable(at: now, maxAge: LocationNotePolicy.maxFixAge) }
+        guard let latest = valid.max(by: { $0.timestamp < $1.timestamp }) else { return }
         location = latest
+        recentLocations = (recentLocations + valid).filter { LocationSample($0).isUsable(at: now) }.suffix(20)
         errorMessage = nil
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        guard newHeading.headingAccuracy >= 0 else { return }
+        guard wantsLocationUpdates, newHeading.headingAccuracy >= 0 else { return }
         heading = newHeading
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        guard wantsLocationUpdates else { return }
         guard let locationError = error as? CLError else {
             errorMessage = String(localized: "Konum alınamadı. Tekrar deneyin.")
             return
@@ -101,7 +138,9 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
         case .denied:
             errorMessage = String(localized: "Konum izni kapalı. Ayarlar’dan LociAR için konumu açın.")
         case .locationUnknown:
-            errorMessage = String(localized: "Konum aranıyor. Açık bir alanda kısa süre bekleyin.")
+            // Core Location is still acquiring a fix. Map/AR already bound their own wait;
+            // an initial transient error must not abort that wait before the next callback.
+            errorMessage = nil
         case .network:
             errorMessage = String(localized: "Konum servisine ulaşılamıyor. Bağlantınızı kontrol edin.")
         default:

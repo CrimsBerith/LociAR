@@ -7,6 +7,7 @@ struct ProfileEditView: View {
     let user: LociUser
 
     @State private var handle: String
+    @State private var bio: String
     @State private var avatarChoice: AvatarChoice = .unchanged
     @State private var pickedPhoto: PhotosPickerItem?
     @State private var photoPreview: UIImage?
@@ -17,6 +18,7 @@ struct ProfileEditView: View {
     init(user: LociUser) {
         self.user = user
         _handle = State(initialValue: user.handle)
+        _bio = State(initialValue: user.bio ?? "")
     }
 
     private var cleanHandle: String {
@@ -37,7 +39,7 @@ struct ProfileEditView: View {
             ZStack {
                 LociScreenBackground()
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: LociTheme.Spacing.xl) {
                         avatarPreviewSection
                         fieldsSection
                         presetAvatarsSection
@@ -47,19 +49,20 @@ struct ProfileEditView: View {
                                 title: String(localized: "Profil Güncellenemedi"),
                                 message: errorMessage,
                                 symbol: "exclamationmark.triangle.fill",
-                                color: .orange
+                                color: LociTheme.warning
                             )
                         }
                     }
-                    .padding(20)
+                    .padding(LociTheme.Spacing.xl2)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
-            .navigationTitle("Profili Düzenle")
+            .navigationTitle("Profili düzenle")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Vazgeç") { dismiss() }
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LociTheme.secondaryText)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -70,7 +73,7 @@ struct ProfileEditView: View {
                         } else {
                             Text("Kaydet")
                                 .bold()
-                                .foregroundStyle(isValid ? LociTheme.accent : .secondary)
+                                .foregroundStyle(isValid ? LociTheme.accent : LociTheme.tertiaryText)
                         }
                     }
                     .disabled(!isValid || isSaving)
@@ -89,7 +92,7 @@ struct ProfileEditView: View {
     }
 
     private var avatarPreviewSection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: LociTheme.Spacing.m) {
             Group {
                 if let photoPreview {
                     Image(uiImage: photoPreview)
@@ -101,23 +104,23 @@ struct ProfileEditView: View {
                     LociAvatar(handle: cleanHandle.isEmpty ? "loci" : cleanHandle, avatarURL: previewURL, size: 88)
                 }
             }
-            .shadow(color: LociTheme.accent.opacity(0.2), radius: 12)
+            .shadow(color: LociTheme.accent.opacity(0.2), radius: LociTheme.Depth.mediumRadius)
 
-            Text("@\(cleanHandle.isEmpty ? String(localized: "kullanıcı") : cleanHandle)")
+            Text(verbatim: "@\(cleanHandle.isEmpty ? String(localized: "kullanıcı") : cleanHandle)")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(LociTheme.textPrimary)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, LociTheme.Spacing.s)
     }
 
     private var fieldsSection: some View {
         LociCard {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Kullanıcı Adı")
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
+                Text("Kullanıcı adı")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(LociTheme.secondaryText)
                 HStack {
-                    Text("@")
+                    Text(verbatim: "@")
                         .foregroundStyle(LociTheme.accent)
                         .font(.headline)
                     TextField("kullanıcı_adı", text: $handle)
@@ -125,24 +128,46 @@ struct ProfileEditView: View {
                         .autocorrectionDisabled()
                         .font(.body)
                 }
-                .padding(12)
-                .background(LociTheme.field, in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(LociTheme.hairline))
-                Text("3–30 karakter; küçük harf, rakam, alt çizgi ve nokta.")
-                    .font(.caption2)
-                    .foregroundStyle(LociTheme.tertiaryText)
+                .padding(LociTheme.Spacing.m)
+                .lociGlassSurface(cornerRadius: LociTheme.Radius.small)
+                                Text("3–30 karakter; küçük harf, rakam, alt çizgi ve nokta.")
+                    .font(.footnote)
+                    .foregroundStyle(LociTheme.secondaryText)
+
+                Divider()
+                    .padding(.vertical, LociTheme.Spacing.xs)
+
+                Text("Hakkında")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(LociTheme.secondaryText)
+                TextField("Kendinden kısaca bahset...", text: $bio, axis: .vertical)
+                    .lineLimit(3...5)
+                    .font(.body)
+                    .padding(LociTheme.Spacing.m)
+                    .lociGlassSurface(cornerRadius: LociTheme.Radius.small)
+                                        .onChange(of: bio) { _, newValue in
+                        if newValue.count > 300 {
+                            bio = String(newValue.prefix(300))
+                        }
+                    }
+                HStack {
+                    Spacer()
+                    Text("\(bio.count)/300")
+                        .font(.caption2)
+                        .foregroundStyle(LociTheme.tertiaryText)
+                }
             }
         }
     }
 
     private var presetAvatarsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Hazır Avatarlar")
+        VStack(alignment: .leading, spacing: LociTheme.Spacing.m) {
+            Text("Hazır avatarlar")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(LociTheme.secondaryText)
-                .padding(.horizontal, 4)
+                .padding(.horizontal, LociTheme.Spacing.xs)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 6), spacing: 12) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: LociTheme.Spacing.m), count: 6), spacing: LociTheme.Spacing.m) {
                 ForEach(AvatarReference.presets, id: \.self) { name in
                     let selected = avatarChoice == .preset(name)
                     Button {
@@ -151,20 +176,20 @@ struct ProfileEditView: View {
                         photoPreview = nil
                     } label: {
                         LociAvatar(handle: name, avatarURL: AvatarReference.presetURL(name), size: 46)
-                            .overlay(Circle().stroke(selected ? LociTheme.accent : .clear, lineWidth: 3))
+                            .overlay(Circle().stroke(selected ? LociTheme.accent : .clear, lineWidth: LociTheme.Stroke.emphasis))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "Hazır avatar \(name)"))
+                    .accessibilityLabel(Text("Hazır avatar \(name)"))
                     .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, LociTheme.Spacing.xs)
         }
     }
 
     private var photoSection: some View {
         LociCard {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
                 PhotosPicker(selection: $pickedPhoto, matching: .images) {
                     Label("Fotoğraf seç", systemImage: "photo.on.rectangle")
                         .font(.subheadline.weight(.semibold))
@@ -197,7 +222,8 @@ struct ProfileEditView: View {
         defer { isSaving = false }
 
         do {
-            try await session.updateProfile(handle: cleanHandle, avatar: avatarChoice)
+            let cleanBio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+            try await session.updateProfile(handle: cleanHandle, avatar: avatarChoice, bio: cleanBio.isEmpty ? nil : cleanBio)
             if case .photo = avatarChoice {
                 photoSubmitted = true
             } else {

@@ -13,13 +13,18 @@ struct GifPickerView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var searchGeneration = 0
+    @State private var retryRevision = 0
+    @State private var activeQuery: String?
+    @State private var paginationGate = ScreenRefreshGate()
 
-    private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
+    private var normalizedQuery: String { GifSearchQuery.normalized(query) }
+
+    private let columns = [GridItem(.flexible(), spacing: LociTheme.Spacing.s), GridItem(.flexible(), spacing: LociTheme.Spacing.s)]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 6) {
+                LazyVGrid(columns: columns, spacing: LociTheme.Spacing.s) {
                     ForEach(results) { result in
                         Button {
                             onPick(result.gif)
@@ -27,25 +32,36 @@ struct GifPickerView: View {
                         } label: {
                             AnimatedGIFView(url: result.gif.previewURL, contentMode: .fill)
                                 .aspectRatio(min(max(result.gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(result.title.isEmpty ? String(localized: "GIF") : result.title)
+                        .accessibilityLabel(Text(result.title.isEmpty ? String(localized: "GIF") : result.title))
                         .accessibilityIdentifier("gif-result")
                         .onAppear {
                             if result.id == results.last?.id { Task { await loadMore() } }
                         }
                     }
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, LociTheme.Spacing.m)
                 if isLoading {
-                    ProgressView().tint(LociTheme.accent).padding()
+                    ProgressView().tint(LociTheme.accent).padding(LociTheme.Spacing.l)
                 } else if let errorMessage {
-                    LociInlineNotice(title: String(localized: "GIF"), message: errorMessage, symbol: "exclamationmark.triangle.fill", color: .orange)
-                        .padding()
+                    LociInlineNotice(title: String(localized: "GIF"), message: errorMessage, symbol: "exclamationmark.triangle.fill", color: LociTheme.warning)
+                        .padding(LociTheme.Spacing.l)
+                    Button("Tekrar dene") { retryRevision += 1 }
+                        .buttonStyle(LociCompactButtonStyle())
                 } else if results.isEmpty {
-                    Text("GIF bulunamadı.")
-                        .font(.subheadline).foregroundStyle(.secondary).padding(.top, 40)
+                    VStack(spacing: LociTheme.Spacing.s) {
+                        Text(normalizedQuery.isEmpty ? String(localized: "Şu anda GIF gösterilemiyor.") : String(localized: "Sonuç bulunamadı."))
+                            .font(.subheadline.weight(.semibold))
+                        if normalizedQuery.isEmpty {
+                            Button("Tekrar dene") { retryRevision += 1 }
+                                .buttonStyle(LociCompactButtonStyle())
+                        } else {
+                            Text("Başka bir kelimeyle ara.").font(.footnote)
+                        }
+                    }
+                    .foregroundStyle(LociTheme.secondaryText).padding(.top, LociTheme.Spacing.xxxl)
                 }
             }
             .background(LociTheme.background)
@@ -53,42 +69,45 @@ struct GifPickerView: View {
                 // GIPHY's API terms require visible attribution wherever its results are shown.
                 Text(verbatim: "Powered by GIPHY")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LociTheme.secondaryText)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(.ultraThinMaterial)
+                    .padding(.vertical, LociTheme.Spacing.s)
+                    .background(LociTheme.background.opacity(0.98))
                     .accessibilityIdentifier("gif-attribution")
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("GIF ara"))
             .navigationTitle("GIF seç")
             .navigationBarTitleDisplayMode(.inline)
+            .tint(LociTheme.accent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() } }
             }
-            .task(id: query) {
+            .task(id: "\(retryRevision):\(normalizedQuery)") {
+                searchGeneration += 1
+                let generation = searchGeneration, requestedQuery = normalizedQuery
+                activeQuery = requestedQuery
+                results = []; nextOffset = nil; errorMessage = nil; isLoading = true
                 // Debounce typing; an empty query loads trending GIFs immediately.
-                if !query.isEmpty {
+                if !requestedQuery.isEmpty {
                     do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
                 }
-                await search()
+                guard !Task.isCancelled else { return }
+                await search(query: requestedQuery, generation: generation)
             }
         }
-        .preferredColorScheme(.dark)
     }
 
-    private func search() async {
-        searchGeneration += 1
-        let generation = searchGeneration
+    private func search(query: String, generation: Int) async {
         isLoading = true
         errorMessage = nil
         defer { if generation == searchGeneration { isLoading = false } }
         do {
-            let page = try await container.gifs.search(query: query.trimmingCharacters(in: .whitespacesAndNewlines), offset: 0)
-            guard generation == searchGeneration else { return }
+            let page = try await container.gifs.search(query: query, offset: 0)
+            guard !Task.isCancelled, generation == searchGeneration, query == normalizedQuery else { return }
             results = page.results
             nextOffset = page.nextOffset
         } catch {
-            guard generation == searchGeneration else { return }
+            guard !Task.isCancelled, generation == searchGeneration, query == normalizedQuery else { return }
             results = []
             nextOffset = nil
             errorMessage = (error as? GifSearchError)?.errorDescription ?? GifSearchError.unavailable.errorDescription
@@ -96,14 +115,28 @@ struct GifPickerView: View {
     }
 
     private func loadMore() async {
-        guard let offset = nextOffset, !isLoading else { return }
+        let requestedQuery = normalizedQuery
+        guard let offset = nextOffset, !isLoading, activeQuery == requestedQuery else { return }
+        let revision = ClientReadCaches.generation
+        guard let ticket = paginationGate.begin(scope: "\(requestedQuery)|\(offset)", revision: revision, force: true) else { return }
+        var succeeded = false
+        var failure: Error?
         let generation = searchGeneration
         isLoading = true
-        defer { if generation == searchGeneration { isLoading = false } }
-        guard let page = try? await container.gifs.search(query: query.trimmingCharacters(in: .whitespacesAndNewlines), offset: offset),
-              generation == searchGeneration else { return }
-        let known = Set(results.map(\.id))
-        results.append(contentsOf: page.results.filter { !known.contains($0.id) })
-        nextOffset = page.nextOffset
+        defer {
+            if generation == searchGeneration { isLoading = false }
+            paginationGate.finish(ticket, succeeded: succeeded, error: failure)
+        }
+        do {
+            let page = try await container.gifs.search(query: requestedQuery, offset: offset)
+            guard !Task.isCancelled, generation == searchGeneration, requestedQuery == normalizedQuery else { return }
+            let known = Set(results.map(\.id))
+            results.append(contentsOf: page.results.filter { !known.contains($0.id) })
+            nextOffset = page.nextOffset; succeeded = true
+        } catch {
+            guard !Task.isCancelled, generation == searchGeneration, requestedQuery == normalizedQuery else { return }
+            failure = error
+            errorMessage = (error as? GifSearchError)?.errorDescription ?? GifSearchError.unavailable.errorDescription
+        }
     }
 }

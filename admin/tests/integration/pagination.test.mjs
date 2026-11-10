@@ -77,7 +77,7 @@ test('changing a status, term or sort rejects the previous cursor instead of sil
   await assert.rejects(readDocumentPage(collection, { scope: 'posts:active:term', direction: 'asc', size: 1, cursors: { after: first.next } }), InvalidCursorError);
 });
 
-test('the native descending comment query exposes the 201st comment on reload and reaches all older pages', async () => {
+test('descending timestamp and document-ID boundaries reach the 201st row across older pages', async () => {
   const collection = await fixture(Array.from({ length: 201 }, (_, index) => [`comment-${String(index).padStart(4, '0')}`, {
     post_id: 'one-post', created_at: new Timestamp(1_800_000_000, index),
   }]));

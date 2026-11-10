@@ -15,20 +15,25 @@ export const markActivityRead = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, max
   const ids = [...new Set(data.activityIds as string[])];
   return db.runTransaction(async tx => {
     await assertAccountNotDeleting(tx, caller.luid);
-    const snapshots = await tx.getAll(...ids.map(id => db.collection('activity_events').doc(id)));
-    // Validate the entire batch before writing anything. Deleted/expired rows are a no-op.
-    if (snapshots.some(snap => snap.exists && snap.get('recipient_id') !== caller.luid)) {
-      throw new HttpsError('permission-denied', 'Activity belongs to another recipient');
-    }
+    const snapshots = await Promise.all(ids.map(id => activityForCaller(tx, id)));
     const now = Timestamp.now();
     const activities: Array<{ id: string; readAt: string }> = [];
-    for (const snap of snapshots) {
-      if (!snap.exists) continue;
+    for (const [index, snap] of snapshots.entries()) {
+      // A foreign row and a missing row look the same: omitted, no error.
+      if (!snap?.exists || snap.get('recipient_id') !== caller.luid) continue;
       const previous = snap.get('read_at');
       const readAt = previous instanceof Timestamp ? previous : now;
       if (!(previous instanceof Timestamp)) tx.update(snap.ref, { read_at: readAt });
-      activities.push({ id: snap.id, readAt: readAt.toDate().toISOString() });
+      activities.push({ id: ids[index], readAt: readAt.toDate().toISOString() });
     }
     return { activities };
   });
 });
+
+/** Direct id, or the act_ id stored on an older predictable document. */
+async function activityForCaller(tx: FirebaseFirestore.Transaction, id: string) {
+  const direct = await tx.get(db.collection('activity_events').doc(id));
+  if (direct.exists || !id.startsWith('act_')) return direct;
+  const found = await tx.get(db.collection('activity_events').where('public_ref', '==', id).limit(1));
+  return found.docs[0] ?? direct;
+}

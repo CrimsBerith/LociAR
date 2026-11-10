@@ -13,7 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 OUT = os.path.join(ROOT, 'docs', 'release', 'store-metadata')
 LANGS = ['tr', 'en', 'de', 'es', 'fr', 'pt', 'ru', 'ar', 'hi', 'bn', 'ja', 'zh-Hans']
-LIMITS = {'name': 30, 'subtitle': 30, 'promotionalText': 170, 'description': 4000, 'keywords': 100, 'whatsNew': 4000}
+LIMITS = {'name': 30, 'subtitle': 30, 'promotionalText': 140, 'description': 4000, 'keywords': 100, 'whatsNew': 4000}
 # Guideline 2.3.7: no other apps' or companies' names in keywords.
 BANNED_KEYWORDS = {'spotify', 'youtube', 'instagram', 'x', 'facebook', 'google', 'apple', 'arcore', 'tiktok'}
 TITLES = [('name', 'Name'), ('subtitle', 'Subtitle'), ('promotionalText', 'Promotional Text'),

@@ -1,42 +1,38 @@
 # LociAR Accessibility Acceptance
 
-## Genel
+## Visual access
 
-- iOS 44 pt minimum touch target.
-- Normal metin hedefi 4.5:1; büyük metin ve anlamlı UI sınırı 3:1.
-- Kritik bilgi yalnız renkle gösterilmez.
-- Dekoratif görseller erişilebilirlik ağacına eklenmez.
-- Kamera, konum ve hata mesajları sonraki somut adımı söyler.
+- The app follows the system appearance by default and offers System, Light, and Dark choices.
+- Normal text targets at least 4.5:1 contrast; large text and meaningful control boundaries target
+  at least 3:1. Contrast is checked for semantic light and dark palettes.
+- Important status is conveyed with text and/or a symbol, never color alone.
+- Dynamic Type works from the default size through the largest accessibility sizes. Critical text,
+  button labels, permission guidance, and recovery actions are not clipped or scaled down to fit.
+- Layout may grow vertically or wrap at large text sizes; controls keep a minimum 44 pt hit target.
 
 ## Screen reader
 
-- Harita, Keşfet, AR ve Oluştur ana görevleri VoiceOver ile tamamlanmalıdır.
-- İkon butonların Türkçe label'ı olmalıdır.
-- Selected chip/pin state'i duyurulmalıdır.
-- AR status değişikliği polite live region olarak duyurulur; hata assertive olabilir.
-- Gesture, görevin tek erişim yolu olamaz.
+- Harita, Keşfet, AR, Profil, and Oluştur primary tasks can be completed with VoiceOver.
+- Icon-only controls have localized labels and useful state/value announcements.
+- Selected chips, tabs, note types, and toggles expose selected state.
+- AR status changes are announced politely; urgent failures and permission blocks are announced
+  with appropriate priority.
+- A gesture is never the only way to complete a task.
 
-## Font scaling
+## Motion and transparency
 
-Test seviyeleri: varsayılan, büyük ve en büyük accessibility.
+- Reduce Motion removes or limits nonessential animation and large decorative transforms.
+- Reduce Transparency replaces glass with opaque semantic surfaces.
+- Haptics supplement but never replace visual or text feedback.
 
-- Kritik metin clip olmaz.
-- Buton label'ı kaybolmaz.
-- Yatay aksiyon grubu gerekirse wrap/dikey olur.
-- AR izin ve recovery CTA'ları ekran dışında kalmaz.
+## Physical context
 
-## Motion ve transparency
+- Check map and camera overlays in bright outdoor conditions and over varied camera imagery.
+- AR safety and recovery guidance remains readable and reachable while the device is in use.
+- Lower-screen actions remain reachable with one hand and clear of native tab and sheet controls.
 
-- Reduce Motion: onboarding scroll animasyonu kapanır; büyük dekoratif hareket azaltılır.
-- Reduce Transparency: glass surface solid yüzeye döner.
-- Haptik, görsel veya metinsel feedback'in yerini tutmaz.
+## Release evidence
 
-## Fiziksel bağlam
-
-- Açık hava/güneş ışığı altında kamera chrome kontrastı kontrol edilir.
-- Yürürken AR güvenlik uyarısı en yüksek önceliğe çıkar.
-- Tek elle kullanımda alt eylemler erişilebilir kalır.
-
-## Manuel kabul kanıtı
-
-Her release için cihaz/OS, font seviyesi, ekran okuyucu, sonuç ve ekran kaydı `QA_MATRIX.md` içinde kaydedilir.
+For each release, record device/OS, appearance, text size, VoiceOver and accessibility settings,
+result, and screen recording in `QA_MATRIX.md`. Exercise representative screens in both color
+schemes and at default, large, and accessibility text sizes.

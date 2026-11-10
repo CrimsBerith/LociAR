@@ -27,7 +27,16 @@ struct MainTabView: View {
                 .tag(AppRouter.Tab.map)
                 .accessibilityIdentifier("tab-map")
 
-            NavigationStack { ARExperienceView(mode: .create) }
+            NavigationStack {
+                // Guests browse only; publishing needs a verified account (AccountRequiredView).
+                if user.isAnonymousAccount {
+                    AccountRequiredView().navigationTitle("Paylaş")
+                } else if router.selectedTab == .create {
+                    ARExperienceView(mode: .create)
+                } else {
+                    Color.clear
+                }
+            }
                 .id("tab-create")
                 .accessibilityElement(children: .contain)
                 .tabItem { Label("Paylaş", systemImage: "plus.circle.fill") }
@@ -49,11 +58,20 @@ struct MainTabView: View {
                 .tag(AppRouter.Tab.profile)
                 .accessibilityIdentifier("tab-profile")
         }
+        .environment(\.contentRefreshAllowed, !createPresented.wrappedValue && deepLinkedPost == nil && !UITestFixtures.openPostDirectly)
         .tint(LociTheme.accent)
-        .toolbarBackground(.visible, for: .tabBar)
-        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .sheet(isPresented: createPresented) {
-            CreatePostView(anchor: UITestFixtures.editorPreviewEnabled ? UITestFixtures.anchor : nil)
+            Group {
+            if user.isAnonymousAccount {
+                NavigationStack {
+                    AccountRequiredView()
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Kapat") { router.isCreatePresented = false } } }
+                }
+            } else {
+                CreatePostView(anchor: UITestFixtures.editorPreviewEnabled ? UITestFixtures.anchor : nil)
+            }
+            }
+            .environment(\.contentRefreshAllowed, true)
         }
         .sheet(isPresented: Binding(
             get: { UITestFixtures.openPostDirectly },
@@ -62,11 +80,13 @@ struct MainTabView: View {
             NavigationStack {
                 PostPreviewView(post: UITestFixtures.post)
             }
+            .environment(\.contentRefreshAllowed, true)
         }
         .sheet(item: $deepLinkedPost) { post in
             NavigationStack {
                 PostPreviewView(post: post)
             }
+            .environment(\.contentRefreshAllowed, true)
         }
         .onChange(of: router.pendingPostID, initial: true) { _, postID in
             guard let postID else { return }
@@ -88,7 +108,9 @@ struct MainTabView: View {
             }
         }
         .alert("LociAR", isPresented: Binding(get: { deepLinkMessage != nil }, set: { if !$0 { deepLinkMessage = nil } })) {
-            Button("Tamam", role: .cancel) {}
+            Button("Tamam", role: .cancel) {
+                // Dismissing the alert requires no additional action.
+            }
         } message: { Text((deepLinkMessage ?? "").localizedUI) }
     }
 }

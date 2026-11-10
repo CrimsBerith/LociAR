@@ -47,7 +47,7 @@ Legend: **CODE** = verified in repo · **TODO-LIVE** = needs hosted/device evide
 | `ageRating` 18_plus | rejected both sides | CODE |
 | `visibility` | visibility | CODE |
 | placement / resolver / calibration / anchorBundle | columns + JSON | CODE |
-| status | **server** `pending_review` (or active if nativeEligible quality path) | CODE edge — do not client-set |
+| status | **server** `active` after automated checks | CODE edge — do not client-set |
 | Mockup cannot set active via remote | client requires live session | CODE |
 
 ## 4. Storage
@@ -120,7 +120,7 @@ Legend: **CODE** = verified in repo · **TODO-LIVE** = needs hosted/device evide
 | --- | --- |
 | Sign in Apple/email | TODO-LIVE |
 | Pin + publish | TODO-LIVE |
-| pending_review | CODE server; TODO-LIVE |
+| active after automated checks | CODE server; TODO-LIVE |
 | Admin approve | TODO-LIVE |
 | Discover stranger | TODO-LIVE |
 | AR unlock | TODO-LIVE field |

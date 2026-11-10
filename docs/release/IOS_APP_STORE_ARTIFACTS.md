@@ -14,7 +14,9 @@ types, linked/not linked, purposes, Google ARCore as third party) is in `APP_STO
 Tracking: none.
 
 ## Review notes
-LociAR is a UGC AR surface-discovery app. Sign-in (Sign in with Apple or verified email) is required to view and create; a pre-verified demo account with sample posts is provided. Every public post is pending_review until an owner approves it. The app exposes report, block, support, and account deletion paths. Protected zones are server-side hard-blocked and 18+ content is rejected. The AR feature uses ARKit plane/raycast placement plus Google ARCore Cloud Anchors and Geospatial for re-finding posts (Google's sensor-data notice is shown before ARCore runs); platform videos are not extracted or rehosted. Users accept the terms with an explicit checkbox; likes, comments and follows can send push notifications.
+The only current text is [APP_REVIEW_NOTES.md](APP_REVIEW_NOTES.md) §1. Posts publish at once after the automated
+checks in `createPost` (owner decision, 18 Oct 2026); moderation is after the fact. Do not paste older summaries that
+say posts wait for moderator approval.
 
 ## Required test evidence
 - Physical iPhone field test (FIELD_APP_CHECKLIST.md, FIELD_TEST_CHECKLIST.md): vertical wall raycast, Cloud Anchor host/resolve, loss/recovery, low light, permissions, offline queue, push, 12 languages.

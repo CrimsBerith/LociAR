@@ -3,6 +3,233 @@ import XCTest
 
 /// Physical-device suites (skipped on the simulator). Run with scripts/run-device-e2e*.command.
 extension AuthGateUITests {
+    /// Observes an actual remote message sent separately through the authorized admin UI.
+    func testPhysicalAdminPushDeliveryAndTap() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek APNs teslimi için fiziksel iPhone gerekir.")
+#else
+        guard let title = ProcessInfo.processInfo.environment["E2E_LIVE_PUSH_TITLE"], !title.isEmpty else {
+            throw XCTSkip("Canlı yönetici bildirimi gözlemi seçilmedi.")
+        }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+        XCUIDevice.shared.press(.home)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let notification = springboard.staticTexts[title].firstMatch
+        print("[PHONE] Waiting for the explicitly requested remote admin notification")
+        XCTAssertTrue(notification.waitForExistence(timeout: 90), "Gerçek yönetici bildirimi iOS'ta görülmedi.")
+        let evidence = XCTAttachment(screenshot: notification.screenshot())
+        evidence.name = "physical-remote-admin-notification"
+        evidence.lifetime = .keepAlways
+        add(evidence)
+        notification.tap()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        XCTAssertTrue(app.navigationBars["Aktivite"].waitForExistence(timeout: 20), "Bildirim Aktivite ekranını açmalı.")
+        capture(app, name: "physical-remote-admin-notification-opened")
+#endif
+    }
+
+    /// Explicitly selected live-device setup; never changes consent during ordinary test runs.
+    func testPhysicalEnableNotificationsForRequestedAdminTest() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek iPhone gerekir.")
+#else
+        guard ProcessInfo.processInfo.environment["E2E_ENABLE_PHYSICAL_NOTIFICATIONS"] == "1" else {
+            throw XCTSkip("Canlı bildirim kurulumu açıkça seçilmedi.")
+        }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addUIInterruptionMonitor(withDescription: "İstenen bildirim testi izni") { alert in
+            let text = alert.label.lowercased() + " " + alert.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " ").lowercased()
+            if text.contains("bildirim") || text.contains("notification") {
+                for title in ["İzin Ver", "Allow"] where alert.buttons[title].exists {
+                    alert.buttons[title].tap(); return true
+                }
+            }
+            // APNs testing needs no new background location permission.
+            for title in ["Yalnızca Kullanırken Koru", "Keep Only While Using", "İzin Verme", "Don't Allow"] where alert.buttons[title].exists {
+                alert.buttons[title].tap(); return true
+            }
+            return false
+        }
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20), "Telefonda gerçek hesap oturumu gerekli.")
+        app.tabBars.buttons["Profil"].tap()
+        let settings = app.buttons["profile-settings"]
+        scrollUntilHittable(settings, in: app)
+        settings.tap()
+        app.buttons["settings-open-notifications"].tap()
+        let notifications = app.switches["settings-notifications"]
+        XCTAssertTrue(notifications.waitForExistence(timeout: 10))
+        func waitForPreference(_ value: String) {
+            let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@ AND enabled == true", value), object: notifications)
+            XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 65), .completed, "Sunucu tercih işlemi tamamlanmalı.")
+        }
+        func acceptRequestedNotificationAlert() {
+            let alert = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
+            guard alert.waitForExistence(timeout: 8) else { return }
+            let text = alert.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " ").lowercased()
+            guard text.contains("lociar"), text.contains("bildirim") || text.contains("notification") else { return }
+            for title in ["İzin Ver", "Allow"] where alert.buttons[title].exists {
+                alert.buttons[title].tap(); return
+            }
+        }
+        // Re-enter the explicitly requested permission flow if a previous run stopped
+        // after the server write but before iOS could display its permission dialog.
+        if notifications.value as? String == "1" {
+            notifications.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            waitForPreference("0")
+        }
+        notifications.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.tap()
+        waitForPreference("1")
+        acceptRequestedNotificationAlert()
+        // Trigger the interruption monitor after the asynchronous server round trip.
+        app.tap()
+        capture(app, name: "physical-live-notifications-enabled")
+        let marketing = app.switches["settings-promotions"]
+        XCTAssertEqual(marketing.value as? String, "0", "Pazarlama rızası ayrı kalmalı.")
+        app.terminate()
+        app.launch()
+        acceptRequestedNotificationAlert()
+        app.tabBars.buttons["Profil"].tap()
+        scrollUntilHittable(settings, in: app)
+        settings.tap()
+        XCTAssertTrue(notifications.waitForExistence(timeout: 10))
+        XCTAssertEqual(notifications.value as? String, "1", "Bildirim tercihi gerçek hesapta kalıcı olmalı.")
+        capture(app, name: "physical-live-notifications-persisted")
+#endif
+    }
+
+    func testPhysicalCurrentAccountNotificationState() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Fiziksel iPhone gerekir.")
+#else
+        let app = XCUIApplication()
+        app.launch()
+        capture(app, name: "physical-current-account-start")
+        guard app.tabBars.firstMatch.waitForExistence(timeout: 15) else {
+            XCTFail("Telefondaki canlı hesap giriş yapmış değil.")
+            return
+        }
+        app.tabBars.buttons["Profil"].tap()
+        capture(app, name: "physical-current-account-profile")
+        let settings = app.buttons["profile-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 8))
+        settings.tap()
+        capture(app, name: "physical-current-notification-settings")
+        for id in ["settings-notifications", "settings-promotions"] {
+            let toggle = app.switches[id]
+            print("[PHONE] \(id): \(toggle.exists ? String(describing: toggle.value) : "not-visible")")
+        }
+        let state = XCTAttachment(string: app.debugDescription)
+        state.name = "physical-current-settings-state"
+        state.lifetime = .keepAlways
+        add(state)
+#endif
+    }
+
+    func testPhysicalNormalAccountPublishesLocationNoteWithoutCamera() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek GPS ve fiziksel iPhone gerekir.")
+#else
+        guard let caption = ProcessInfo.processInfo.environment["E2E_TEST_NOTE_TEXT"], !caption.isEmpty else {
+            throw XCTSkip("Konum notu yayın testi açıkça seçilmedi.")
+        }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addPrivacyAlertMonitor()
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15), "Gerçek hesap oturumu gerekli.")
+        app.tabBars.buttons["Harita"].tap()
+        app.buttons["map-location-note"].tap()
+        let field = app.descendants(matching: .any)["place-note-text"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8))
+        field.tap()
+        field.typeText(caption)
+        dismissKeyboard(app)
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        XCTAssertFalse(app.buttons["ar-pin-surface"].exists)
+        let measured = app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "Konum hazır · ±", "Konum hassaslaşıyor · ±"
+        )).firstMatch
+        XCTAssertTrue(measured.waitForExistence(timeout: 60), "Gerçek konum ölçümü alınamadı.")
+        capture(app, name: "physical-camera-free-note-before-publish")
+        app.buttons["place-note-publish"].tap()
+        let success = app.staticTexts["Notun yayınlandı. Haritada görünüyor."]
+        let manual = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "tekrar Burada yayınla")).firstMatch
+        let deadline = Date().addingTimeInterval(90)
+        while !success.exists && !manual.exists && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        }
+        if manual.exists {
+            capture(app, name: "physical-camera-free-note-manual-pin")
+            app.buttons["place-note-publish"].tap()
+        }
+        capture(app, name: "physical-camera-free-note-publish-result")
+        XCTAssertTrue(success.waitForExistence(timeout: 65), "Konum notu sunucuda yayınlanamadı.")
+        app.buttons["Kapat"].tap()
+        app.buttons["map-refresh"].tap()
+        let row = app.buttons["map-open-\(caption)"]
+        XCTAssertTrue(row.waitForExistence(timeout: 30), "Yayınlanan konum notu haritada kamera açmadan listelenmedi.")
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        capture(app, name: "physical-camera-free-note-on-map")
+        row.tap()
+        XCTAssertTrue(app.staticTexts[caption].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        capture(app, name: "physical-camera-free-note-opened")
+#endif
+    }
+
+    func testPhysicalLocationNoteReceivesGPSWithoutCamera() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek GPS ölçümü fiziksel iPhone gerektirir.")
+#else
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_AUTHENTICATED")
+        addPrivacyAlertMonitor()
+        app.launch()
+        XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+        app.buttons["map-location-note"].tap()
+        app.tap() // Let XCTest handle a pending Core Location permission alert.
+        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 10))
+        let measured = app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@ OR label BEGINSWITH %@",
+            "Konum hazır · ±", "Konum hassaslaşıyor · ±"
+        )).firstMatch
+        guard measured.waitForExistence(timeout: 60) else {
+            capture(app, name: "physical-gps-no-fix")
+            XCTFail("Kamera açmadan gerçek GPS ölçümü alınamadı; konum izni ve açık alan koşullarını kontrol edin.")
+            return
+        }
+        let first = XCTAttachment(string: measured.label)
+        first.name = "physical-gps-first-accuracy"
+        first.lifetime = .keepAlways
+        add(first)
+        capture(app, name: "physical-gps-without-camera")
+        XCTAssertFalse(app.buttons["ar-pin-surface"].exists)
+        XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
+        XCTAssertFalse(app.buttons["place-note-publish"].isEnabled, "Boş not yayınlanmamalı.")
+
+        XCUIDevice.shared.press(.home)
+        RunLoop.current.run(until: Date().addingTimeInterval(10))
+        app.activate()
+        XCTAssertTrue(app.navigationBars["Konum notu bırak"].waitForExistence(timeout: 10))
+        app.buttons["Kapat"].tap()
+        XCTAssertTrue(app.buttons["map-location-note"].waitForExistence(timeout: 10))
+        app.buttons["map-location-note"].tap()
+        XCTAssertTrue(measured.waitForExistence(timeout: 60), "Arka plandan sonra yeni ölçüm oturumu konum alamadı.")
+        let resumed = XCTAttachment(string: measured.label)
+        resumed.name = "physical-gps-resumed-accuracy"
+        resumed.lifetime = .keepAlways
+        add(resumed)
+        capture(app, name: "physical-gps-new-session-after-background")
+        app.buttons["Kapat"].tap()
+#endif
+    }
+
     func testPhysicalNormalAccountARTabReceivesCameraFrame() throws {
 #if targetEnvironment(simulator)
         throw XCTSkip("Gerçek hesap ve kamera durumu fiziksel iPhone gerektirir.")
@@ -102,9 +329,9 @@ extension AuthGateUITests {
         XCTAssertTrue(nearbyPost.waitForExistence(timeout: 15), "Aktif post yakındaki AR listesinde görünmedi.")
 
         app.tabBars.buttons["Profil"].tap()
-        XCTAssertTrue(app.staticTexts["Postlarım"].waitForExistence(timeout: 8))
-        app.staticTexts["Postlarım"].tap()
-        XCTAssertTrue(app.navigationBars["Postlarım"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Notlarım"].waitForExistence(timeout: 8))
+        app.staticTexts["Notlarım"].tap()
+        XCTAssertTrue(app.navigationBars["Notlarım"].waitForExistence(timeout: 8))
         let ownPost = app.staticTexts[caption]
         XCTAssertTrue(ownPost.waitForExistence(timeout: 15), "Canlı post profil listesinde görünmedi.")
         ownPost.swipeLeft()
@@ -128,11 +355,11 @@ extension AuthGateUITests {
         }
 
         app.tabBars.buttons["Profil"].tap()
-        guard app.staticTexts["Postlarım"].waitForExistence(timeout: 8) else {
+        guard app.staticTexts["Notlarım"].waitForExistence(timeout: 8) else {
             throw XCTSkip("Normal hesap profilinde Postlarım açılamadı.")
         }
-        app.staticTexts["Postlarım"].tap()
-        XCTAssertTrue(app.navigationBars["Postlarım"].waitForExistence(timeout: 8))
+        app.staticTexts["Notlarım"].tap()
+        XCTAssertTrue(app.navigationBars["Notlarım"].waitForExistence(timeout: 8))
         let retry = app.buttons["my-posts-retry-pending"]
         guard retry.waitForExistence(timeout: 8) else {
             throw XCTSkip("Yeniden gönderilecek dead-letter AR postu yok.")
@@ -154,9 +381,9 @@ extension AuthGateUITests {
         XCTAssertTrue(app.staticTexts[caption].waitForExistence(timeout: 20), "Kurtarılan post AR listesinde görünmedi.")
 
         app.tabBars.buttons["Profil"].tap()
-        XCTAssertTrue(app.staticTexts["Postlarım"].waitForExistence(timeout: 8))
-        app.staticTexts["Postlarım"].tap()
-        XCTAssertTrue(app.navigationBars["Postlarım"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Notlarım"].waitForExistence(timeout: 8))
+        app.staticTexts["Notlarım"].tap()
+        XCTAssertTrue(app.navigationBars["Notlarım"].waitForExistence(timeout: 8))
         let ownPost = app.staticTexts[caption]
         XCTAssertTrue(ownPost.waitForExistence(timeout: 20), "Kurtarılan post Postlarım'da görünmedi.")
         ownPost.swipeLeft()
@@ -508,10 +735,12 @@ extension AuthGateUITests {
         app.tabBars.buttons["Paylaş"].tap()
         app.tap()
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 12))
-        XCTAssertTrue(
-            waitForPhysicalSurfaceCandidate(app, timeout: 45),
-            "Paylaş sekmesinde düzlem bulunamadı; telefonu dokulu zemin veya duvara tutun."
-        )
+        guard waitForPhysicalSurfaceCandidate(app, timeout: 45) else {
+            capture(app, name: "physical-paylas-no-surface")
+            let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
+            XCTFail("Paylaş sekmesinde gerçek yüzey bulunamadı; nişangâhı tamamen dokulu zemin veya duvara yöneltin. Tanı: \(diagnostic)")
+            return
+        }
         app.buttons["ar-pin-surface"].tap()
         XCTAssertTrue(app.buttons["ar-add-content"].waitForExistence(timeout: 12), "Yüzey kilitlenmedi.")
         XCTAssertTrue(
@@ -525,7 +754,8 @@ extension AuthGateUITests {
 
     func testPhysicalDevicePostOpenCloseLifecycleAndInteractions() {
         let app = XCUIApplication()
-        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+        // Blocking is available only when viewing another member’s post.
+        app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OTHER_USER"]
         app.launch()
 
         // 1. Keşfet: Open post, like, save, view profile, back, open AR, close AR, back to Discover
@@ -536,7 +766,7 @@ extension AuthGateUITests {
         XCTAssertTrue(postRow.waitForExistence(timeout: 8), "Keşfet postu bulunamadı.")
         postRow.tap()
 
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5), "Post detay ekranı açılmadı.")
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5), "Post detay ekranı açılmadı.")
         capture(app, name: "device-post-detail-open")
 
         // Like button toggle
@@ -559,7 +789,7 @@ extension AuthGateUITests {
         profileLink.tap()
         XCTAssertTrue(app.navigationBars["Profil"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
 
         // Open 3-dots more menu
         let moreMenu = app.buttons["post-more-menu"]
@@ -567,7 +797,7 @@ extension AuthGateUITests {
             moreMenu.tap()
             XCTAssertTrue(app.buttons["post-block-user"].waitForExistence(timeout: 3))
             // Dismiss menu by tapping navigation bar
-            app.navigationBars["Post"].tap()
+            app.navigationBars["Not"].tap()
         }
 
         // Open AR viewer & close
@@ -579,7 +809,7 @@ extension AuthGateUITests {
         app.buttons["Kapat"].tap()
 
         // Verify back in Post detail
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 8))
 
         // Back to Discover
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -591,7 +821,7 @@ extension AuthGateUITests {
         let mapPost = app.descendants(matching: .any)["map-open-\(samplePostText)"]
         if mapPost.waitForExistence(timeout: 6) {
             mapPost.tap()
-            XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 5))
             app.navigationBars.buttons.element(boundBy: 0).tap()
             XCTAssertTrue(app.navigationBars["Harita"].waitForExistence(timeout: 5))
         }
@@ -718,7 +948,7 @@ extension AuthGateUITests {
             postApp.launchEnvironment["UITEST_FIXTURE_PLATFORM"] = item.key
             postApp.launch()
 
-            XCTAssertTrue(postApp.navigationBars["Post"].waitForExistence(timeout: 8))
+            XCTAssertTrue(postApp.navigationBars["Not"].waitForExistence(timeout: 8))
             RunLoop.current.run(until: Date().addingTimeInterval(0.5))
             capture(postApp, name: "wall-detail-\(item.key)")
 
@@ -731,6 +961,547 @@ extension AuthGateUITests {
                 postApp.buttons["Kapat"].tap()
             }
             postApp.terminate()
+        }
+    }
+
+    /// Master comprehensive UI automation: systematically visits every screen, button,
+    /// modal, alert, feedback, and settings page on the connected physical iPhone.
+    func testMasterCaptureAllScreensAndActionsOnDevice() throws {
+        continueAfterFailure = true
+
+        // -------------------------------------------------------------
+        // BÖLÜM 1: Onboarding (Karşılama Adımları)
+        // -------------------------------------------------------------
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["-hasCompletedOnboarding", "NO"]
+            app.launch()
+            if app.buttons["onboarding-next"].waitForExistence(timeout: 8) {
+                capture(app, name: "01_Onboarding_Adim1_Mekan_Notlari")
+                app.buttons["onboarding-next"].tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                capture(app, name: "02_Onboarding_Adim2_Yakinindaki_Notlar")
+                app.buttons["onboarding-next"].tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                capture(app, name: "03_Onboarding_Adim3_Gizlilik_Topluluk")
+                if app.buttons["onboarding-finish"].waitForExistence(timeout: 4) {
+                    app.buttons["onboarding-finish"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                    capture(app, name: "04_Onboarding_Tamamlandi_Gecis")
+                }
+            }
+            app.terminate()
+        }
+
+        // -------------------------------------------------------------
+        // BÖLÜM 2: Giriş ve Kayıt (Auth Gate & Formlar & Şifremi Unuttum)
+        // -------------------------------------------------------------
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_SIGNED_OUT"]
+            app.launch()
+            if app.textFields["auth-email-field"].waitForExistence(timeout: 10) {
+                capture(app, name: "05_Auth_Giris_Yap_Ana_Ekran")
+
+                // Kayıt Ol Sekmesine Geçiş
+                if app.buttons["auth-mode-signup"].waitForExistence(timeout: 4) {
+                    app.buttons["auth-mode-signup"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+                    capture(app, name: "06_Auth_Kayit_Ol_Formu")
+
+                    if let emailField = app.textFields["auth-email-field"].firstMatch as XCUIElement?, emailField.exists {
+                        emailField.tap()
+                        emailField.typeText("kagan@lociar.test")
+                    }
+                    if let passField = app.secureTextFields["auth-password-field"].firstMatch as XCUIElement?, passField.exists {
+                        passField.tap()
+                        passField.typeText("Sifre1234!")
+                    }
+                    if let confirmField = app.secureTextFields["auth-confirm-password-field"].firstMatch as XCUIElement?, confirmField.exists {
+                        confirmField.tap()
+                        confirmField.typeText("Sifre1234!")
+                    }
+                    dismissKeyboard(app)
+                    capture(app, name: "07_Auth_Kayit_Ol_Form_Dolduruldu")
+
+                    // Şartlar onay kutusu toggle
+                    if app.buttons["auth-terms-consent"].exists {
+                        app.buttons["auth-terms-consent"].tap()
+                        RunLoop.current.run(until: Date().addingTimeInterval(0.3))
+                        capture(app, name: "08_Auth_Kullanim_Kosullari_Onaylandi")
+                    }
+
+                    // Geri Giriş Yap Sekmesine Dönüş
+                    if app.buttons["auth-mode-signin"].waitForExistence(timeout: 4) {
+                        app.buttons["auth-mode-signin"].tap()
+                        RunLoop.current.run(until: Date().addingTimeInterval(0.4))
+                        capture(app, name: "09_Auth_Giris_Yap_Sekmesine_Donus")
+                    }
+                }
+
+                // Şifremi Unuttum Formu
+                if app.buttons["auth-forgot-password"].waitForExistence(timeout: 4) {
+                    app.buttons["auth-forgot-password"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                    capture(app, name: "10_Auth_Sifremi_Unuttum_Sheet")
+                    if app.textFields.firstMatch.waitForExistence(timeout: 3) {
+                        app.textFields.firstMatch.tap()
+                        app.textFields.firstMatch.typeText("kagan@lociar.test")
+                        capture(app, name: "11_Auth_Sifremi_Unuttum_Eposta_Yazildi")
+                    }
+                    if app.buttons["Kapat"].exists {
+                        app.buttons["Kapat"].tap()
+                        RunLoop.current.run(until: Date().addingTimeInterval(0.4))
+                        capture(app, name: "12_Auth_Sifremi_Unuttum_Kapatildi")
+                    }
+                }
+            }
+            app.terminate()
+        }
+
+        // -------------------------------------------------------------
+        // BÖLÜM 3: Harita (Map) - Filtreler, Odaklanma ve Konum Notu
+        // -------------------------------------------------------------
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+            app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+
+            // Harita Tabına Geçiş
+            app.tabBars.buttons["Harita"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+            capture(app, name: "13_Harita_Ana_Gorunum_Pinlerle")
+
+            // Filtre 1: AR Notları
+            let filterAR = app.buttons["🥽 AR Notları"]
+            if filterAR.waitForExistence(timeout: 4) {
+                filterAR.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                capture(app, name: "14_Harita_Filtre_AR_Notlari_Secildi")
+            }
+
+            // Filtre 2: Konum Notları
+            let filterLoc = app.buttons["📍 Konum Notları"]
+            if filterLoc.waitForExistence(timeout: 4) {
+                filterLoc.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                capture(app, name: "15_Harita_Filtre_Konum_Notlari_Secildi")
+            }
+
+            // Filtre 3: Tümü
+            let filterAll = app.buttons["Tümü"]
+            if filterAll.waitForExistence(timeout: 4) {
+                filterAll.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                capture(app, name: "16_Harita_Filtre_Tumu_Geri_Donuldu")
+            }
+
+            // Konumuma Odaklan
+            let recenterBtn = app.buttons["map-recenter"]
+            if recenterBtn.waitForExistence(timeout: 3) {
+                recenterBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                capture(app, name: "17_Harita_Konumuma_Odaklan_Tiklandi")
+            }
+
+            // Konum Notu Bırak Modal
+            let locNoteBtn = app.buttons["map-location-note"]
+            if locNoteBtn.waitForExistence(timeout: 4) {
+                locNoteBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "18_Harita_Konum_Notu_Birak_Modal")
+
+                let textField = identifiedControl(app, "place-note-text")
+                if textField.waitForExistence(timeout: 3) {
+                    textField.tap()
+                    textField.typeText("Galata Kulesi önünde tarihi bir anı.")
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.4))
+                    capture(app, name: "19_Harita_Konum_Notu_Metin_Yazildi")
+                    dismissKeyboard(app)
+                    capture(app, name: "20_Harita_Konum_Notu_Hazir_Durum")
+                }
+
+                if app.buttons["Kapat"].exists {
+                    app.buttons["Kapat"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+                    capture(app, name: "21_Harita_Konum_Notu_Modal_Kapatildi")
+                }
+            }
+
+            // Haritadan AR Yüzey Seçimi Modal (map-create)
+            let mapCreateBtn = app.buttons["map-create"]
+            if mapCreateBtn.waitForExistence(timeout: 4) {
+                mapCreateBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "22_Harita_AR_Yuzey_Secimi_Sheet")
+                if app.buttons["Kapat"].exists {
+                    app.buttons["Kapat"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+                    capture(app, name: "23_Harita_AR_Yuzey_Sheet_Kapatildi")
+                }
+            }
+            app.terminate()
+        }
+
+        // -------------------------------------------------------------
+        // BÖLÜM 4: AR Tab (Kamera, Radar ve HUD)
+        // -------------------------------------------------------------
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+            app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+            app.tabBars.buttons["AR"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+            capture(app, name: "24_AR_Canli_Kamera_ve_HUD_Ekrani")
+            RunLoop.current.run(until: Date().addingTimeInterval(2.0))
+            capture(app, name: "25_AR_Kamera_Radar_ve_Durum_Gostergesi")
+            app.terminate()
+        }
+
+        // -------------------------------------------------------------
+        // BÖLÜM 5: Paylaş Tab & Editör & GIF & Ayarlar
+        // -------------------------------------------------------------
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+            app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+            app.tabBars.buttons["Paylaş"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+            capture(app, name: "26_Paylas_AR_Yuzey_Tarama_Reticle")
+            app.terminate()
+        }
+
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY"]
+            app.launch()
+            XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 10))
+            capture(app, name: "27_Paylas_Icerik_Olusturma_Editoru")
+
+            let captionField = app.textFields["create-caption"].firstMatch
+            if captionField.exists {
+                captionField.tap()
+                captionField.typeText("Boğaz manzarası eşliğinde ilk AR notum.")
+                dismissKeyboard(app)
+                capture(app, name: "28_Paylas_Editor_Metin_Yazildi")
+            }
+
+            let gifBtn = app.buttons["create-gif-add"].exists ? app.buttons["create-gif-add"] : app.buttons["GIF ekle"]
+            scrollUntilHittable(gifBtn, in: app, maxSwipes: 4)
+            if gifBtn.exists {
+                gifBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+                capture(app, name: "29_Paylas_GIPHY_Secici_Modal")
+
+                if app.searchFields.firstMatch.waitForExistence(timeout: 3) {
+                    app.searchFields.firstMatch.tap()
+                    app.searchFields.firstMatch.typeText("Istanbul")
+                    RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+                    capture(app, name: "30_Paylas_GIPHY_Arama_Sonuclari")
+                }
+
+                if app.buttons["Kapat"].exists {
+                    app.buttons["Kapat"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+                    capture(app, name: "31_Paylas_GIPHY_Kapatildi_Editore_Donus")
+                }
+            }
+
+            if app.buttons["Kapat"].exists {
+                app.buttons["Kapat"].tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+                capture(app, name: "32_Paylas_Editor_Kapatildi")
+            }
+            app.terminate()
+        }
+
+        // -------------------------------------------------------------
+        // BÖLÜM 6: Keşfet (Discover) ve Gönderi Detayı & Etkileşimler
+        // -------------------------------------------------------------
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+            app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+            app.tabBars.buttons["Keşfet"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+            capture(app, name: "33_Kesfet_Akisi_Ana_Ekran")
+
+            app.swipeUp()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+            capture(app, name: "34_Kesfet_Akisi_Kaydirilmis_Liste")
+            app.terminate()
+        }
+
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT", "UITEST_OTHER_USER", "UITEST_OPEN_POST_DIRECTLY"]
+            app.launch()
+            XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 10))
+            capture(app, name: "35_Gonderi_Detay_Ekrani")
+
+            let likeBtn = app.buttons["post-like-button"]
+            if likeBtn.waitForExistence(timeout: 4) {
+                likeBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+                capture(app, name: "36_Gonderi_Begenildi_Geri_Bildirimi")
+            }
+
+            let bookmarkBtn = app.buttons["post-bookmark-button"]
+            if bookmarkBtn.waitForExistence(timeout: 4) {
+                bookmarkBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+                capture(app, name: "37_Gonderi_Kaydedildi_Geri_Bildirimi")
+            }
+
+            let moreMenu = app.buttons["post-more-menu"]
+            if moreMenu.waitForExistence(timeout: 4) {
+                scrollUntilHittable(moreMenu, in: app, maxSwipes: 4)
+                moreMenu.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                capture(app, name: "38_Gonderi_Daha_Fazla_Secenekler_Menusu")
+
+                if app.buttons["post-add-to-collection"].waitForExistence(timeout: 3) {
+                    app.buttons["post-add-to-collection"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                    capture(app, name: "39_Gonderi_Koleksiyona_Ekle_Sheet")
+                    if app.buttons["Kapat"].exists { app.buttons["Kapat"].tap() }
+                }
+            }
+
+            let reportBtn = app.buttons["post-report"]
+            if reportBtn.waitForExistence(timeout: 4) {
+                scrollUntilHittable(reportBtn, in: app, maxSwipes: 4)
+                reportBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "40_Gonderi_Sikayet_Et_Nedenleri_Diyalogu")
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.70)).tap()
+            }
+
+            let openAR = app.buttons["post-open-ar"]
+            if openAR.waitForExistence(timeout: 4) {
+                openAR.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(2.0))
+                capture(app, name: "41_Gonderi_AR_3D_Goruntuleyici_Ekrani")
+                if app.buttons["Kapat"].exists {
+                    app.buttons["Kapat"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+                    capture(app, name: "42_Gonderi_AR_Goruntuleyici_Kapatildi")
+                }
+            }
+
+            let authorProfile = app.buttons["post-open-profile"]
+            if authorProfile.waitForExistence(timeout: 4) {
+                scrollUntilHittable(authorProfile, in: app, maxSwipes: 4)
+                authorProfile.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "43_Kullanici_Genel_Profili")
+
+                let blockBtn = app.buttons["profile-block-user"]
+                if blockBtn.waitForExistence(timeout: 4) {
+                    scrollUntilHittable(blockBtn, in: app, maxSwipes: 4)
+                    blockBtn.tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                    capture(app, name: "44_Kullanici_Engelle_Onay_Diyalogu")
+                    if app.buttons["Vazgeç"].exists { app.buttons["Vazgeç"].tap() }
+                }
+            }
+            app.terminate()
+        }
+
+        // -------------------------------------------------------------
+        // BÖLÜM 7: Profil, Listeler ve Ayarlar
+        // -------------------------------------------------------------
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_SAMPLE_CONTENT"]
+            app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+            app.tabBars.buttons["Profil"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+            capture(app, name: "45_Profil_Ana_Ekrani")
+
+            // Profili Düzenle
+            let editProfileBtn = app.buttons["profile-edit-button"]
+            if editProfileBtn.waitForExistence(timeout: 4) {
+                editProfileBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "46_Profili_Duzenle_Ekrani")
+
+                let editPhoto = app.buttons["profile-edit-photo"]
+                if editPhoto.waitForExistence(timeout: 3) {
+                    scrollUntilHittable(editPhoto, in: app, maxSwipes: 4)
+                    capture(app, name: "47_Profili_Duzenle_Avatar_Secimi")
+                }
+                if app.buttons["Vazgeç"].exists { app.buttons["Vazgeç"].tap() }
+            }
+
+            // Aktivite Bildirimleri
+            let activityRow = app.staticTexts["Aktivite"]
+            if activityRow.waitForExistence(timeout: 4) {
+                scrollUntilHittable(activityRow, in: app, maxSwipes: 6)
+                activityRow.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "48_Profil_Aktivite_Bildirimleri_Ekrani")
+                app.navigationBars.buttons.firstMatch.tap()
+            }
+
+            // Koleksiyonlar
+            let colRow = app.staticTexts["Koleksiyonlar"]
+            if colRow.waitForExistence(timeout: 4) {
+                scrollUntilHittable(colRow, in: app, maxSwipes: 6)
+                colRow.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "49_Profil_Koleksiyonlar_Listesi")
+
+                if app.buttons["Yeni"].waitForExistence(timeout: 3) {
+                    app.buttons["Yeni"].tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                    capture(app, name: "50_Profil_Yeni_Koleksiyon_Alert_Diyalogu")
+                    if app.alerts.textFields.firstMatch.exists {
+                        app.alerts.textFields.firstMatch.typeText("İstanbul Gezi Rehberi")
+                        capture(app, name: "51_Profil_Yeni_Koleksiyon_Isim_Yazildi")
+                        app.alerts.buttons["Oluştur"].tap()
+                        RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                        capture(app, name: "52_Profil_Koleksiyon_Olusturuldu_Listede")
+                    } else if app.alerts.buttons["Vazgeç"].exists {
+                        app.alerts.buttons["Vazgeç"].tap()
+                    }
+                }
+                app.navigationBars.buttons.firstMatch.tap()
+            }
+
+            // Kaydedilenler
+            let savedRow = app.staticTexts["Kaydedilenler"]
+            if savedRow.waitForExistence(timeout: 4) {
+                scrollUntilHittable(savedRow, in: app, maxSwipes: 6)
+                savedRow.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "53_Profil_Kaydedilenler_Listesi")
+                app.navigationBars.buttons.firstMatch.tap()
+            }
+
+            // Engellenenler
+            let blockedRow = app.staticTexts["Engellenen hesaplar"]
+            if blockedRow.waitForExistence(timeout: 4) {
+                scrollUntilHittable(blockedRow, in: app, maxSwipes: 6)
+                blockedRow.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "54_Profil_Engellenenler_Listesi")
+                app.navigationBars.buttons.firstMatch.tap()
+            }
+
+            // Davet Kodu
+            let inviteRow = app.staticTexts["Davet kodu"]
+            if inviteRow.waitForExistence(timeout: 4) {
+                scrollUntilHittable(inviteRow, in: app, maxSwipes: 6)
+                inviteRow.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "55_Profil_Davet_Kodu_Ekrani")
+                app.navigationBars.buttons.firstMatch.tap()
+            }
+
+            // Ayarlar
+            let settingsBtn = app.buttons["profile-settings"]
+            if settingsBtn.waitForExistence(timeout: 4) {
+                scrollUntilHittable(settingsBtn, in: app, maxSwipes: 6)
+                settingsBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                capture(app, name: "56_Ayarlar_Ana_Menu")
+
+                // Bildirimler
+                let notifLink = app.buttons["settings-open-notifications"]
+                if notifLink.waitForExistence(timeout: 3) {
+                    notifLink.tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                    capture(app, name: "57_Ayarlar_Bildirimler_Sayfasi")
+                    app.navigationBars.buttons.firstMatch.tap()
+                }
+
+                // Gizlilik
+                let privLink = app.buttons["settings-open-privacy"]
+                if privLink.waitForExistence(timeout: 3) {
+                    privLink.tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                    capture(app, name: "58_Ayarlar_Gizlilik_ve_Veri_Sayfasi")
+                    app.navigationBars.buttons.firstMatch.tap()
+                }
+
+                // Çeviri
+                let transLink = app.buttons["settings-open-translation"]
+                if transLink.waitForExistence(timeout: 3) {
+                    transLink.tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                    capture(app, name: "59_Ayarlar_Ceviri_Sayfasi")
+                    app.navigationBars.buttons.firstMatch.tap()
+                }
+
+                // Tanılama
+                let diagLink = app.buttons["settings-open-diagnostics"]
+                if diagLink.waitForExistence(timeout: 3) {
+                    diagLink.tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+                    capture(app, name: "60_Ayarlar_Tanilama_Sayfasi")
+                    app.navigationBars.buttons.firstMatch.tap()
+                }
+
+                app.navigationBars.buttons.firstMatch.tap()
+            }
+
+            // Çıkış Yap Diyalogu
+            let signOutBtn = app.buttons["profile-sign-out"]
+            if signOutBtn.waitForExistence(timeout: 4) {
+                scrollUntilHittable(signOutBtn, in: app, maxSwipes: 6)
+                signOutBtn.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                capture(app, name: "61_Profil_Cikis_Yap_Onay_Diyalogu")
+                if app.buttons["Vazgeç"].exists { app.buttons["Vazgeç"].tap() }
+            }
+
+            // Hesabı Sil Diyalogu
+            let deleteBtn = app.buttons["profile-delete-account"]
+            if deleteBtn.waitForExistence(timeout: 4) {
+                scrollUntilHittable(deleteBtn, in: app, maxSwipes: 6)
+                capture(app, name: "62_Profil_Hesap_Silme_Butonu_Gorunumu")
+            }
+            app.terminate()
+        }
+
+        // -------------------------------------------------------------
+        // BÖLÜM 8: İzin ve Hata Kurtarma Durumları
+        // -------------------------------------------------------------
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_CAMERA_DENIED"]
+            app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+            app.tabBars.buttons["Paylaş"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+            capture(app, name: "63_Izin_Kurtarma_Kamera_Erisimi_Engellendi")
+            app.terminate()
+        }
+
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_LOCATION_DENIED"]
+            app.launch()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+            capture(app, name: "64_Izin_Kurtarma_Konum_Erisimi_Engellendi")
+            app.terminate()
+        }
+
+        do {
+            let app = XCUIApplication()
+            app.launchArguments = ["UITEST_AUTHENTICATED", "UITEST_DISCOVER_ERROR"]
+            app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+            app.tabBars.buttons["Keşfet"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+            capture(app, name: "65_Hata_Durumu_Kesfet_Yukleme_Uyarisi")
+            app.terminate()
         }
     }
 }

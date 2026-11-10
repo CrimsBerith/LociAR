@@ -74,15 +74,84 @@ enum WorldMapCodec {
 /// again (world maps are the largest egress item). Lives in Caches: iOS may purge it at any time,
 /// in which case the map is simply downloaded again.
 struct WorldMapDownloadCache: Sendable {
+    private final class Lifecycle: @unchecked Sendable {
+        let lock = NSLock()
+        var generations: [String: UUID] = [:]
+        var blocked: Set<String> = []
+    }
+    private nonisolated static let lifecycle = Lifecycle()
     nonisolated static let maximumBytes = 200 * 1_024 * 1_024
     let directory: URL
+    private let generation: UUID
+    private let owner: UUID?
+    private let lifecycleKey: String
+
+    nonisolated init(directory: URL, owner: UUID? = nil) {
+        self.directory = directory.standardizedFileURL
+        self.owner = owner
+        let key = Self.lifecycleKey(for: directory)
+        self.lifecycleKey = key
+        Self.lifecycle.lock.lock()
+        defer { Self.lifecycle.lock.unlock() }
+        let token = Self.lifecycle.generations[key] ?? UUID()
+        Self.lifecycle.generations[key] = token
+        generation = token
+    }
+
+    /// Stable lifecycle key that does not depend on whether the path currently exists.
+    /// `standardizedFileURL` only resolves the `/var`→`/private/var` symlink for paths that
+    /// exist on disk, so a handle captured before the directory was created would otherwise key
+    /// its tombstone differently from the instance that deletes it — letting a late download
+    /// completion recreate deleted geometry on device. Collapse the alias so both agree.
+    private nonisolated static func lifecycleKey(for url: URL) -> String {
+        let path = url.standardizedFileURL.path
+        for alias in ["/private/var/", "/private/tmp/", "/private/etc/"] where path.hasPrefix(alias) {
+            return String(path.dropFirst("/private".count))
+        }
+        return path
+    }
+
+    private nonisolated var validLocked: Bool {
+        !Task.isCancelled && !Self.lifecycle.blocked.contains(lifecycleKey)
+            && Self.lifecycle.generations[lifecycleKey] == generation
+            && (owner == nil || FirebaseIdentity.currentLUID() == owner)
+    }
+
+    nonisolated var isCurrent: Bool {
+        Self.lifecycle.lock.lock()
+        defer { Self.lifecycle.lock.unlock() }
+        return validLocked
+    }
+
+    nonisolated static func accountDirectory(_ owner: UUID) -> URL? {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("LociARWorldMaps", isDirectory: true)
+            .appendingPathComponent(owner.uuidString.lowercased(), isDirectory: true)
+    }
+
+    /// Invalidates captured download handles before the deletion UI can dismiss.
+    nonisolated static func block(owner: UUID) {
+        guard let directory = accountDirectory(owner) else { return }
+        let key = lifecycleKey(for: directory)
+        lifecycle.lock.lock()
+        defer { lifecycle.lock.unlock() }
+        lifecycle.blocked.insert(key)
+        lifecycle.generations[key] = UUID()
+    }
+
+    /// Cache commits and deletion share one lock: a late SDK completion cannot recreate files.
+    nonisolated func removeAll() throws {
+        Self.lifecycle.lock.lock()
+        defer { Self.lifecycle.lock.unlock() }
+        Self.lifecycle.blocked.insert(lifecycleKey)
+        Self.lifecycle.generations[lifecycleKey] = UUID()
+        if FileManager.default.fileExists(atPath: directory.path) { try FileManager.default.removeItem(at: directory) }
+    }
 
     nonisolated static var standard: WorldMapDownloadCache? {
-        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
-            .map { root in
-                let owner = FirebaseIdentity.currentLUID().map(FirebaseIdentity.key) ?? "signed-out"
-                return WorldMapDownloadCache(directory: root.appendingPathComponent("LociARWorldMaps", isDirectory: true).appendingPathComponent(owner, isDirectory: true))
-            }
+        guard let owner = FirebaseIdentity.currentLUID(), let directory = accountDirectory(owner) else { return nil }
+        let cache = WorldMapDownloadCache(directory: directory, owner: owner)
+        return cache.isCurrent ? cache : nil
     }
 
     /// Stable file name for a `storage://` locator (the path contains the post and anchor IDs).
@@ -91,6 +160,9 @@ struct WorldMapDownloadCache: Sendable {
     }
 
     nonisolated func read(_ locator: String) -> Data? {
+        Self.lifecycle.lock.lock()
+        defer { Self.lifecycle.lock.unlock() }
+        guard validLocked else { return nil }
         let url = directory.appendingPathComponent(Self.fileName(for: locator))
         guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
               size <= WorldMapCodec.maximumUploadBytes,
@@ -99,14 +171,25 @@ struct WorldMapDownloadCache: Sendable {
         return data
     }
 
-    nonisolated func write(_ data: Data, for locator: String) {
+    @discardableResult nonisolated func write(_ data: Data, for locator: String) -> Bool {
+        Self.lifecycle.lock.lock()
+        defer { Self.lifecycle.lock.unlock() }
+        guard validLocked else { return false }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try? data.write(to: directory.appendingPathComponent(Self.fileName(for: locator)), options: .atomic)
-        prune()
+        pruneLocked(limit: Self.maximumBytes)
+        return true
     }
 
     /// Keeps the cache under `maximumBytes`, deleting least recently used files first.
     nonisolated func prune(limit: Int = WorldMapDownloadCache.maximumBytes) {
+        Self.lifecycle.lock.lock()
+        defer { Self.lifecycle.lock.unlock() }
+        guard validLocked else { return }
+        pruneLocked(limit: limit)
+    }
+
+    private nonisolated func pruneLocked(limit: Int) {
         let keys: [URLResourceKey] = [.fileSizeKey, .contentModificationDateKey]
         guard let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: keys) else { return }
         let entries = files.compactMap { url -> (URL, Int, Date)? in
