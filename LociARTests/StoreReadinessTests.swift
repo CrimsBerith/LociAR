@@ -228,6 +228,16 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertEqual(colorType, 2, "App Store 1024 ikonu RGB olmalı, alfa kanalı olmamalı")
     }
 
+#if DEBUG
+    /// AppCheckCore reads its persisted debug token from `GACAppCheckDebugToken`; `FIRAAppCheckDebugToken`
+    /// is only an environment variable. Writing the pinned token to the wrong key left Debug builds with
+    /// a random, unregistered token that every production callable rejected.
+    func testPinnedAppCheckDebugTokenUsesTheKeyAppCheckCoreReads() {
+        XCTAssertEqual(AppConfiguration.appCheckDebugTokenDefaultsKey, "GACAppCheckDebugToken")
+        XCTAssertNotNil(UUID(uuidString: AppConfiguration.pinnedAppCheckDebugToken))
+    }
+#endif
+
     private var appBundle: Bundle { Bundle(for: AppSession.self) }
 
     private func sourceCheckoutRootIfPresent() -> URL? {

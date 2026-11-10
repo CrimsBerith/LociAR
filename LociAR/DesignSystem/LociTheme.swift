@@ -358,7 +358,8 @@ struct LociMetricLabel: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("\(value) \(title.localizedUI)"))
+        // verbatim: both parts are already localized; a literal here would extract a "%lld %@" catalog key.
+        .accessibilityLabel(Text(verbatim: "\(value.formatted()) \(title.localizedUI)"))
     }
 }
 

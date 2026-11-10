@@ -33,7 +33,7 @@ packages:
     from: 12.19.3
   ARCore:
     url: https://github.com/google-ar/arcore-ios-sdk.git
-    from: 1.56.0
+    from: 1.57.1
 targets:
   LociAR:
     type: application

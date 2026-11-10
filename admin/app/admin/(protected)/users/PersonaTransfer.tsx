@@ -1,30 +1,14 @@
 'use client';
 import { useRef, useState } from 'react';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
+import { parseCsvRows } from '../../../../lib/csv';
 import { useT } from '../../I18nProvider';
 
 type Persona = { handle: string; displayName: string; email?: string; bio?: string; avatarPreset?: string };
 type Preview = { rows: Persona[]; conflicts: Array<{row:number;handle:string;error:string}> };
 
 function parseCsv(text: string): Persona[] {
-  const rows: string[][] = []; let row: string[] = [], cell = '', quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (quoted) {
-      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
-      else if (ch === '"') quoted = false;
-      else cell += ch;
-    } else if (ch === '"' && cell === '') quoted = true;
-    else if (ch === ',') { row.push(cell); cell = ''; }
-    else if (ch === '\n' || ch === '\r') {
-      if (ch === '\r' && text[i + 1] === '\n') i++;
-      row.push(cell); cell = '';
-      if (row.some(value => value.trim())) rows.push(row);
-      row = [];
-    } else cell += ch;
-  }
-  if (quoted) throw new Error('CSV contains an unclosed quoted field');
-  row.push(cell); if (row.some(value => value.trim())) rows.push(row);
+  const rows = parseCsvRows(text);
   if (!rows.length) throw new Error('File is empty');
   const headers = rows.shift()!.map(value => value.trim());
   const handleIndex = headers.indexOf('handle'), nameIndex = headers.indexOf('displayName') >= 0 ? headers.indexOf('displayName') : headers.indexOf('display_name');
