@@ -428,7 +428,8 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
             "collection_id": key(collectionID),
             "post_id": key(postID),
             "owner_id": key(me),
-            "sort_order": Int(Date().timeIntervalSince1970) % 100_000,
+            // Seconds since 1970: monotonic. (A `% 100_000` here used to wrap every ~27.7 hours.)
+            "sort_order": Int(Date().timeIntervalSince1970),
             "created_at": FieldValue.serverTimestamp(),
         ])
     }

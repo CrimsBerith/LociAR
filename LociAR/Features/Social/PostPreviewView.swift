@@ -41,11 +41,15 @@ struct PostPreviewView: View {
     @State private var olderCommentsCursor: CommentPageCursor?
     @State private var isLoadingOlderComments = false
     @State private var commentsFailed = false
+    /// Someone else's location note: its comments open only after reading the note on site.
+    @State private var commentsNeedVisit = false
     @State private var commentsLoadID = UUID()
     @State private var commentMutationRevision = 0
     @State private var commentText = ""
     @State private var saved = false
     @State private var liked = false
+    /// True once liked/saved reflect the server; until then a tap reads them first instead of guessing.
+    @State private var membershipKnown = false
     @State private var likeCount: Int
     @State private var viewCount: Int
     @State private var didCountView = false
@@ -140,6 +144,10 @@ struct PostPreviewView: View {
                 }
                 if isLoading {
                     ProgressView().tint(LociTheme.accent).frame(maxWidth: .infinity).padding(LociTheme.Spacing.l)
+                } else if commentsNeedVisit {
+                    Text("Yorumlar notun bulunduğu yerde açılır.").font(.subheadline).foregroundStyle(LociTheme.secondaryText)
+                        .padding(.vertical, LociTheme.Spacing.s)
+                        .accessibilityIdentifier("comments-need-visit")
                 } else if commentsFailed {
                     Text("Yorumlar şu anda yüklenemiyor. Tekrar dene.").font(.subheadline).foregroundStyle(LociTheme.secondaryText)
                     Button("Tekrar dene") { Task { await load() } }
@@ -507,11 +515,16 @@ struct PostPreviewView: View {
                   mutationRevision == commentMutationRevision else { return }
             comments = LociComment.merging([], with: page.comments)
             olderCommentsCursor = page.olderCursor
+            commentsNeedVisit = false
         } catch {
             guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision,
                   mutationRevision == commentMutationRevision else { return }
             commentsFailed = true; failure = error
-            if let backend = error as? BackendCallError, case .rejected = backend { comments = []; olderCommentsCursor = nil }
+            if let backend = error as? BackendCallError, case .rejected = backend {
+                comments = []; olderCommentsCursor = nil
+                // The server allows comments on another author's location note only after an on-site read.
+                commentsNeedVisit = post.isLocationNote && !ownsPost && backend.isPermissionDenied
+            }
         }
         }
         if !automatic, case let .signedIn(user) = session.phase {
@@ -521,6 +534,7 @@ struct PostPreviewView: View {
             if let membershipResult {
                 if saveTaps == saveRevision { saved = membershipResult.saved }
                 if likeTaps == likeRevision { liked = membershipResult.liked }
+                if saveTaps == saveRevision, likeTaps == likeRevision { membershipKnown = true }
             }
         }
         loadedRevision = revision; hasLoadedOlder = false; succeeded = !commentsFailed
@@ -577,11 +591,23 @@ struct PostPreviewView: View {
             message = String(localized: "Yorumlar şu anda yüklenemiyor. Tekrar dene.")
         }
     }
+    /// A tap before the opening load returned membership would flip a guessed state (and move the
+    /// counter the wrong way on an already liked post), so read the real state first.
+    private func ensureMembership(userID: UUID) async {
+        guard !membershipKnown, !session.isLocalPreview, container.isBackendConfigured,
+              let membership = try? await container.social.membership(postID: post.id, userID: userID),
+              case let .signedIn(current) = session.phase, current.id == userID else { return }
+        liked = membership.liked
+        saved = membership.saved
+        membershipKnown = true
+    }
+
     private func toggleLike() async {
         guard !isLikeMutating else { return }
         guard case let .signedIn(user) = session.phase else { return }
         isLikeMutating = true
         defer { isLikeMutating = false }
+        await ensureMembership(userID: user.id)
         likeTaps += 1
         let next = !liked
         liked = next
@@ -617,6 +643,7 @@ struct PostPreviewView: View {
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured || session.isLocalPreview else { return }
         isSaveMutating = true
         defer { isSaveMutating = false }
+        await ensureMembership(userID: user.id)
         saveTaps += 1
         do { try await container.social.setSaved(!saved, postID: post.id, userID: user.id); saved.toggle() } catch { message = String(localized: "Kaydetme durumu güncellenemedi.") }
     }

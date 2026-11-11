@@ -18201,6 +18201,83 @@
       },
       "comment" : "A label displayed above the user's biography."
     },
+    "Hakkında metni çok uzun. Kısaltıp tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakkında metni çok uzun. Kısaltıp tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your bio is too long. Shorten it and try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihr Profiltext ist zu lang. Kürzen Sie ihn und versuchen Sie es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu biografía es demasiado larga. Acórtala y vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre bio est trop longue. Raccourcissez-la et réessayez."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua bio é muito longa. Encurte-a e tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текст «О себе» слишком длинный. Сократите его и повторите попытку."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "النبذة طويلة جدًا. اختصرها وحاول مرة أخرى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपका परिचय बहुत लंबा है। इसे छोटा करें और पुनः प्रयास करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার পরিচিতি খুব দীর্ঘ। এটি ছোট করে আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自己紹介が長すぎます。短くして再試行してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简介太长。请缩短后重试。"
+          }
+        }
+      }
+    },
     "Halkayı duvar veya masaya yönelt." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -47227,6 +47304,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "评论"
+          }
+        }
+      }
+    },
+    "Yorumlar notun bulunduğu yerde açılır." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yorumlar notun bulunduğu yerde açılır."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments open where the note is."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentare werden am Ort der Notiz geöffnet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los comentarios se abren donde está la nota."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les commentaires s'ouvrent à l'endroit de la note."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os comentários abrem no local da nota."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Комментарии открываются там, где находится заметка."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تُفتح التعليقات في مكان الملاحظة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "टिप्पणियाँ नोट की जगह पर खुलती हैं।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মন্তব্যগুলো নোটের জায়গায় খোলে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントはメモの場所で開きます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评论在笔记所在地点开放。"
           }
         }
       }

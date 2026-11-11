@@ -48,7 +48,9 @@ protocol PostRepository: Sendable {
     func myPostsPage(cursor: String?) async throws -> PostPage
     func publicPostsPage(creatorID: UUID, cursor: String?) async throws -> PostPage
     func discover() async throws -> [LociPost]
-    func publish(_ post: LociPost) async throws -> PostPublishReceipt
+    /// `mayAlreadyExist` is false only for the very first attempt of a new post; any retry first reads the
+    /// server receipt, because a lost createPost response can leave a completed post in the local queue.
+    func publish(_ post: LociPost, mayAlreadyExist: Bool) async throws -> PostPublishReceipt
     func myPosts(limit: Int) async throws -> [LociPost]
     func publicPosts(creatorID: UUID, limit: Int) async throws -> [LociPost]
     func publicProfile(creatorID: UUID) async throws -> PublicProfileProjection?
@@ -93,15 +95,18 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         try await projected(PublicRequest(mode: "creator", creatorId: FirebaseIdentity.key(creatorID), cursor: cursor))
     }
 
-    func publish(_ post: LociPost) async throws -> PostPublishReceipt {
+    func publish(_ post: LociPost, mayAlreadyExist: Bool) async throws -> PostPublishReceipt {
         try Task.checkCancellation()
         guard FirebaseIdentity.currentLUID() == post.creatorID else { throw AuthFlowError.notSignedIn }
-        // A lost createPost response can leave a completed post in the local queue. Read its
-        // authoritative receipt before reopening a map draft or accessing already removed files.
-        struct ExistingResponse: Decodable { let receipt: PostPublishReceipt? }
-        let existing: ExistingResponse = try await callables.call("readPublicContent", payload: PublicRequest(mode: "own_receipt", postId: FirebaseIdentity.key(post.id)))
-        guard FirebaseIdentity.currentLUID() == post.creatorID else { throw AuthFlowError.notSignedIn }
-        if let receipt = existing.receipt { return receipt }
+        // A lost createPost response can leave a completed post in the local queue. On a retry, read its
+        // authoritative receipt before reopening a map draft or accessing already removed files. The first
+        // attempt of a new post cannot have one, so it skips this call.
+        if mayAlreadyExist {
+            struct ExistingResponse: Decodable { let receipt: PostPublishReceipt? }
+            let existing: ExistingResponse = try await callables.call("readPublicContent", payload: PublicRequest(mode: "own_receipt", postId: FirebaseIdentity.key(post.id)))
+            guard FirebaseIdentity.currentLUID() == post.creatorID else { throw AuthFlowError.notSignedIn }
+            if let receipt = existing.receipt { return receipt }
+        }
         // Posts queued before photo/video removal (29 Sep 2026) would be refused by Storage and
         // createPost; fail them permanently instead of retrying uploads.
         if post.containsDeviceMedia {
@@ -475,7 +480,7 @@ actor PreviewPostRepository: PostRepository {
     private var posts: [LociPost] = []
     func nearby(latitude: Double, longitude: Double, radiusMeters: Double) async throws -> [LociPost] { posts }
     func discover() async throws -> [LociPost] { posts.filter(PublicSafetyPolicy.isListedInPublicDiscover) }
-    func publish(_ post: LociPost) async throws -> PostPublishReceipt {
+    func publish(_ post: LociPost, mayAlreadyExist _: Bool) async throws -> PostPublishReceipt {
         posts.insert(post, at: 0)
         return PostPublishReceipt(postID: post.id, status: post.status, placementState: nil, idempotentReplay: false)
     }

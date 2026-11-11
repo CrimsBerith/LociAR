@@ -120,6 +120,11 @@ enum BackendCallError: LocalizedError, Sendable {
         if case .rejected(_, _, let reason) = self { return reason }
         return nil
     }
+
+    var isPermissionDenied: Bool {
+        if case .rejected(let code, _, _) = self { return code == FunctionsErrorCode.permissionDenied.rawValue }
+        return false
+    }
 }
 
 /// Retryable server conditions with a user-facing message (the raw Functions error is English).

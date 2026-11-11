@@ -72,7 +72,8 @@ enum SyncQueueProcessor {
                 case "publish_post":
                     let post = try decoder.decode(LociPost.self, from: record.payload)
                     guard post.creatorID == authenticatedUserID else { throw QueueError.creatorMismatch }
-                    _ = try await repository.publish(post)
+                    // Background retries may follow a lost response: always check the server receipt first.
+                    _ = try await repository.publish(post, mayAlreadyExist: true)
                     // Once published to backend, unconditionally clean up local draft and queue record
                     // even if the task was cancelled, preventing duplicate publishing on next launch.
                     await MediaAssetStore.removeLocalAssets(in: post)

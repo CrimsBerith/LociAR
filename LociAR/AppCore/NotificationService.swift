@@ -64,6 +64,8 @@ final class PushTokenCoordinator {
     private var registeredAt: Date?
     private var revision = 0
     private var task: Task<Void, Never>?
+    /// The account whose server registration was last removed successfully. Cleared by a new registration.
+    private var unregisteredUserID: UUID?
     var onFailure: ((Error) -> Void)?
 
     init(client: any PushRegistrationClient, installationID: UUID, locale: @escaping () -> String = { Locale.preferredLanguages.first ?? "en" }) {
@@ -99,18 +101,25 @@ final class PushTokenCoordinator {
                 guard self.revision == revision else { return }
                 self.registered = target
                 self.registeredAt = Date()
+                self.unregisteredUserID = nil
             } catch { self.onFailure?(error) }
         }
     }
 
     func finishPendingRegistration() async { await task?.value }
 
+    /// True when this account's device registration was already removed and nothing registered since,
+    /// so a user without notifications does not call unregisterPushToken on every foreground transition.
+    func isUnregistered(_ userID: UUID) -> Bool { unregisteredUserID == userID }
+
     func disconnect(userID: UUID) async {
         updateUser(nil)
         updateToken(nil)
         await finishPendingRegistration()
-        do { try await client.unregister(installationID: installationID, userID: userID) }
-        catch { onFailure?(error) }
+        do {
+            try await client.unregister(installationID: installationID, userID: userID)
+            unregisteredUserID = userID
+        } catch { onFailure?(error) }
     }
 }
 
@@ -285,7 +294,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             await self.checkAuthorizationStatus()
             guard self.desiredUserID == userID else { return }
             if !self.isAuthorized || !self.deliveryEnabled {
-                await self.disconnect(userID: userID)
+                // Once removed, the registration stays removed until a new one succeeds; a failed removal retries.
+                if self.coordinator?.isUnregistered(userID) != true { await self.disconnect(userID: userID) }
                 return
             }
             self.coordinator?.updateUser(userID)

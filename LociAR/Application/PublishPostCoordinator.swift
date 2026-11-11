@@ -34,7 +34,8 @@ final class PublishPostCoordinator: PublishPostUseCase {
 
         let postID = post.id
         let draftDescriptor = FetchDescriptor<DraftRecord>(predicate: #Predicate { $0.id == postID })
-        if let draft = try modelContext.fetch(draftDescriptor).first {
+        let existingDraft = try modelContext.fetch(draftDescriptor).first
+        if let draft = existingDraft {
             draft.ownerID = post.creatorID
             draft.payload = payload
             draft.updatedAt = Date()
@@ -44,7 +45,10 @@ final class PublishPostCoordinator: PublishPostUseCase {
 
         let queueDescriptor = FetchDescriptor<SyncQueueRecord>(predicate: #Predicate { $0.id == postID })
         let queue: SyncQueueRecord
-        if let existing = try modelContext.fetch(queueDescriptor).first {
+        let existingQueue = try modelContext.fetch(queueDescriptor).first
+        // Only a post with no local draft and no queue record has certainly never reached the server.
+        let mayAlreadyExist = existingDraft != nil || existingQueue != nil
+        if let existing = existingQueue {
             existing.ownerID = post.creatorID
             existing.operation = "publish_post"
             existing.payload = payload
@@ -70,7 +74,7 @@ final class PublishPostCoordinator: PublishPostUseCase {
             return .queued(.offline)
         }
         do {
-            let receipt = try await postRepository.publish(post)
+            let receipt = try await postRepository.publish(post, mayAlreadyExist: mayAlreadyExist)
             await MediaAssetStore.removeLocalAssets(in: post)
             removePersistedWork(postID: postID, modelContext: modelContext)
             // `queue` may already be gone if a forced sync finished first; don't touch it below.

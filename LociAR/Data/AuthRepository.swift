@@ -80,6 +80,7 @@ enum AuthFlowError: LocalizedError, Sendable {
     case invalidDeletionCredential
     case reauthenticationCancelled
     case deletionPending
+    case bioTooLong
 
     var errorDescription: String? {
         switch self {
@@ -115,6 +116,8 @@ enum AuthFlowError: LocalizedError, Sendable {
             String(localized: "Kimlik doğrulama iptal edildi. Hesabın silinmedi.")
         case .deletionPending:
             String(localized: "Silme isteğiniz alındı. İşlem arka planda tamamlanacak.")
+        case .bioTooLong:
+            String(localized: "Hakkında metni çok uzun. Kısaltıp tekrar dene.")
         }
     }
 }
@@ -330,7 +333,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         ]
         if let bio {
             let cleanBio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard cleanBio.count <= 300 else { throw AuthFlowError.invalidHandle }
+            guard ProfileTextPolicy.length(cleanBio) <= ProfileTextPolicy.bioLimit else { throw AuthFlowError.bioTooLong }
             profileUpdates["bio"] = cleanBio.isEmpty ? NSNull() : cleanBio
         }
         switch avatar {

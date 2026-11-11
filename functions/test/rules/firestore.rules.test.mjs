@@ -239,6 +239,15 @@ test('profile: owner edits bio/preset only; handle and photo avatar are server-o
   await assertFails(getDoc(doc(db, 'handles', 'alice')));
 });
 
+test('profile: text limits count UTF-16 code units, as the app composer does', async () => {
+  const db = as(ALICE);
+  await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { bio: 'ı'.repeat(300), updated_at: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { bio: '😀'.repeat(150), updated_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db, 'profiles', ALICE), { bio: '😀'.repeat(151), updated_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db, 'profiles', ALICE), { bio: '👨‍👩‍👧'.repeat(38), updated_at: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(db, 'profiles', ALICE), { bio: '👨‍👩‍👧'.repeat(37), updated_at: serverTimestamp() }));
+});
+
 test('profile: an over-long legacy display_name does not block other edits', async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'profiles', BOB), { handle: 'bob', avatar_url: null, bio: null, display_name: 'x'.repeat(70), suspended: false });
