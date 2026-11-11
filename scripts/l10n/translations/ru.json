@@ -266,6 +266,7 @@
  "Kamera açılamadı": "Не удалось открыть камеру",
  "Kamera başlatılamadı": "Не удалось инициализировать камеру",
  "Kamera görüntüsü alınamadı": "Изображение с камеры не удалось получить",
+ "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et.": "Изображение с камеры слишком тёмное. Проверьте объектив и освещение.",
  "Kamera hazırlanıyor": "Подготовка камеры",
  "Kamera hazırlanıyor…": "Подготовка камеры…",
  "Kamera izni gerekli": "Нужен доступ к камере",

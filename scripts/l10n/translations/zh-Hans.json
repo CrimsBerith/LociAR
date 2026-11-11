@@ -266,6 +266,7 @@
  "Kamera açılamadı": "无法打开相机",
  "Kamera başlatılamadı": "相机初始化失败",
  "Kamera görüntüsü alınamadı": "无法获取相机图像",
+ "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et.": "相机画面太暗。请检查镜头和环境光线。",
  "Kamera hazırlanıyor": "准备相机",
  "Kamera hazırlanıyor…": "准备相机...",
  "Kamera izni gerekli": "需要摄像头权限",

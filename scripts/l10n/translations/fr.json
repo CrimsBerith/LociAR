@@ -266,6 +266,7 @@
  "Kamera açılamadı": "Impossible d'ouvrir la caméra",
  "Kamera başlatılamadı": "Échec de l'initialisation de la caméra",
  "Kamera görüntüsü alınamadı": "L'image de la caméra n'a pas pu être obtenue",
+ "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et.": "L’image de la caméra est très sombre. Vérifiez l’objectif et l’éclairage.",
  "Kamera hazırlanıyor": "Préparation de la caméra",
  "Kamera hazırlanıyor…": "Préparation de la caméra…",
  "Kamera izni gerekli": "Autorisation de la caméra requise",

@@ -20741,6 +20741,83 @@
         }
       }
     },
+    "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera image is very dark. Check the lens and the lighting."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Kamerabild ist sehr dunkel. Prüfe das Objektiv und die Beleuchtung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La imagen de la cámara es muy oscura. Revisa la lente y la iluminación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’image de la caméra est très sombre. Vérifiez l’objectif et l’éclairage."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A imagem da câmera está muito escura. Verifique a lente e a iluminação."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изображение с камеры слишком тёмное. Проверьте объектив и освещение."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صورة الكاميرا مظلمة جدًا. تحقّق من العدسة والإضاءة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरे की तस्वीर बहुत अंधेरी है। लेंस और रोशनी जाँचें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যামেরার ছবি খুব অন্ধকার। লেন্স ও আলো পরীক্ষা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラの映像が暗すぎます。レンズと周囲の明るさを確認してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机画面太暗。请检查镜头和环境光线。"
+          }
+        }
+      }
+    },
     "Kamera hazırlanıyor" : {
       "extractionState" : "manual",
       "localizations" : {

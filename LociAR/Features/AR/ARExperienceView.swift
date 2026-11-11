@@ -57,6 +57,9 @@ struct ARExperienceView: View {
                 if !engine.hasRecentCameraFrame {
                     ARCameraBackdrop(failed: engine.state == .failed, message: engine.statusMessage)
                 }
+                if engine.hasRecentCameraFrame, engine.isCameraFeedDark {
+                    ARDarkCameraNotice()
+                }
                 if isCreationMode {
                     reticle
                     VStack {

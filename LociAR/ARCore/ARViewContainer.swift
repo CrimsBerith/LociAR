@@ -40,6 +40,25 @@ struct ARViewContainer: UIViewRepresentable {
     }
 }
 
+/// Shown over a live but black camera feed, so a covered lens or a failed sensor is not mistaken
+/// for an app that stopped working.
+struct ARDarkCameraNotice: View {
+    var body: some View {
+        Label(String(localized: "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et."), systemImage: "moon.fill")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(LociTheme.mediaOverlayText)
+            .multilineTextAlignment(.leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .allowsHitTesting(false)
+            .transition(.opacity)
+            .accessibilityIdentifier("ar-dark-camera-notice")
+    }
+}
+
 struct ARCameraBackdrop: View {
     let failed: Bool
     let message: String

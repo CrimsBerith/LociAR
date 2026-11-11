@@ -266,6 +266,7 @@
  "Kamera açılamadı": "カメラを開けませんでした",
  "Kamera başlatılamadı": "カメラの初期化に失敗しました",
  "Kamera görüntüsü alınamadı": "カメラ画像を取得できませんでした",
+ "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et.": "カメラの映像が暗すぎます。レンズと周囲の明るさを確認してください。",
  "Kamera hazırlanıyor": "カメラの準備中",
  "Kamera hazırlanıyor…": "カメラを準備中…",
  "Kamera izni gerekli": "カメラの許可が必要です",

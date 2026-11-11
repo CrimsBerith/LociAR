@@ -266,6 +266,7 @@
  "Kamera açılamadı": "Kamera konnte nicht geöffnet werden",
  "Kamera başlatılamadı": "Kamera konnte nicht initialisiert werden",
  "Kamera görüntüsü alınamadı": "Kamerabild konnte nicht erhalten werden",
+ "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et.": "Das Kamerabild ist sehr dunkel. Prüfe das Objektiv und die Beleuchtung.",
  "Kamera hazırlanıyor": "Kamera vorbereiten",
  "Kamera hazırlanıyor…": "Kamera vorbereiten…",
  "Kamera izni gerekli": "Kameraberechtigung erforderlich",

@@ -129,6 +129,9 @@ struct CreatePostView: View {
             if !engine.hasRecentCameraFrame {
                 ARCameraBackdrop(failed: engine.state == .failed, message: engine.statusMessage)
             }
+            if engine.hasRecentCameraFrame, engine.isCameraFeedDark {
+                ARDarkCameraNotice()
+            }
             Circle().stroke(engine.candidateQuality != nil ? LociTheme.accent : LociTheme.mediaOverlayText, lineWidth: LociTheme.Stroke.emphasis).frame(width: 54, height: 54)
             VStack {
                 LociCard(appearance: isSearchingSurface ? .arSearch : .floating) {

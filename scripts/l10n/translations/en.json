@@ -266,6 +266,7 @@
  "Kamera açılamadı": "Could not open camera",
  "Kamera başlatılamadı": "Failed to initialize camera",
  "Kamera görüntüsü alınamadı": "Camera image could not be obtained",
+ "Kamera görüntüsü çok karanlık. Lensi ve ortam ışığını kontrol et.": "The camera image is very dark. Check the lens and the lighting.",
  "Kamera hazırlanıyor": "Preparing camera",
  "Kamera hazırlanıyor…": "Preparing camera…",
  "Kamera izni gerekli": "Camera permission required",
