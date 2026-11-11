@@ -1288,7 +1288,7 @@ final class PasswordResetLinkTests: XCTestCase {
     func testResetLinkCannotPushASignedInAccountIntoRecovery() async throws {
         let user = LociUser(id: UUID(), handle: "kans")
         let session = AppSession(authRepository: CallbackAuthRepository(user: user), backendConfigured: false)
-        try await session.signIn(email: "a@example.test", password: "correct-horse")
+        try await session.signIn(email: "a@example.test", password: UUID().uuidString) // the fake accepts any value
         XCTAssertEqual(session.phase, .signedIn(user))
         await session.handleOpenURL(try XCTUnwrap(URL(string: "lociar://password-reset")))
         XCTAssertEqual(session.phase, .signedIn(user), "an unsolicited reset link leaves the session as it was")
