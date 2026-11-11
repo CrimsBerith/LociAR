@@ -259,8 +259,10 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
       || (post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
     if (!viewable) throw new HttpsError('permission-denied', 'post_not_viewable');
     if (await contentBlocked(caller.luid, post, tx)) throw new HttpsError('permission-denied', 'post_not_viewable');
-    const receipt = await tx.get(receiptRef);
     const current = Number(post.views_count ?? 0);
+    // An author opening their own post is not an audience view: no receipt, no counter change.
+    if (post.creator_id === caller.luid) return { views: current };
+    const receipt = await tx.get(receiptRef);
     if (receipt.exists) return { views: current };
     tx.create(receiptRef, { post_id: id, user_id: caller.luid, viewed_on: day, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(Date.now() + 30 * 86_400_000) });
     tx.update(postRef, {

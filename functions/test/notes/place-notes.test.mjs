@@ -627,6 +627,10 @@ test('views reject suspended or deleted viewers and authors without changing cou
   assert.equal((await view()).views, 1);
   assert.equal((await view()).views, 1, 'an active viewer is still counted only once per day');
   assert.equal((await receipt.get()).exists, true);
+  const own = adminDb.collection('post_view_receipts').doc(`${postId}_${f.author.luid}_${new Date().toISOString().slice(0, 10)}`);
+  assert.equal((await f.author.call('recordPostView', { postId })).views, 1, 'the author opening their own note is not a view');
+  assert.equal((await own.get()).exists, false);
+  assert.equal((await f.n.ref.get()).get('views_count'), 1);
 });
 
 test('entering a dense spot sends one text-free alert, and the region list advertises unalerted spots', async () => {
