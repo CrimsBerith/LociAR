@@ -162,3 +162,13 @@ test('reviewed bulk edits reject concurrent changes atomically and replay their 
  await assert.rejects(saveAdminPost({...fresh,text:'A different request'},actor,reason,key,created.id),/idempotency_key_reused/);
  assert.equal((await ref.get()).get('caption'),'Reviewed revision');
 });
+test('an edit cannot switch a post between location note and AR post',async()=>{
+ const{actor,author}=await fixture();
+ const note=await saveAdminPost(input(author,{locationNote:true,notifyRadius:25}),actor,reason,randomUUID());
+ await assert.rejects(saveAdminPost(input(author),actor,reason,randomUUID(),note.id),/post_kind_cannot_be_changed/);
+ assert.equal((await db.collection('posts').doc(note.id).get()).get('note_kind'),'location');
+ const ar=await saveAdminPost(input(author),actor,reason,randomUUID());
+ await assert.rejects(saveAdminPost(input(author,{locationNote:true}),actor,reason,randomUUID(),ar.id),/post_kind_cannot_be_changed/);
+ await saveAdminPost(input(author,{locationNote:true,notifyRadius:40,caption:'Edited note'}),actor,reason,randomUUID(),note.id);
+ assert.equal((await db.collection('posts').doc(note.id).get()).get('notify_radius_m'),40,'editing within the same kind still works');
+});

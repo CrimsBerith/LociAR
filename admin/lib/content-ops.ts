@@ -97,6 +97,9 @@ async function validatePostEdit(tx: Transaction, before: FirebaseFirestore.Docum
     if (input.status !== 'active' || input.visibility !== 'public') throw new ValidationError('notifications need an active public note');
   }
   if (before.get('deleted_at')) throw new ConflictError('restore_post_before_editing');
+  // Switching kinds would leave note-only fields (spot membership, notification state) on an AR post or
+  // miss them on a note; create a new post instead.
+  if (before.exists && (before.get('note_kind') === 'location') !== input.locationNote) throw new ConflictError('post_kind_cannot_be_changed');
   const author = await activeAuthor(tx,input.authorId);
   if (before.exists && before.get('creator_id') !== input.authorId) throw new ConflictError('post_author_cannot_be_changed');
   if (before.exists && input.authorAttribution !== undefined && (before.get('is_anonymous') === true) !== (input.authorAttribution === 'anonymous')) throw new ConflictError('post_attribution_cannot_be_changed');

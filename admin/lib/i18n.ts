@@ -128,6 +128,7 @@ const CODES: Record<string, readonly [string, string]> = {
   "invalid_maintenance_task": ["Unknown maintenance task.", "Bilinmeyen bakım işi."],
   "maintenance_task_busy": ["This task already has a run in progress. Wait for it to finish.", "Bu iş zaten çalışıyor. Bitmesini bekle."],
   "maintenance_task_not_pausable": ["This task cannot be paused.", "Bu iş duraklatılamaz."],
+  "post_kind_cannot_be_changed": ["A post cannot be switched between location note and AR post.", "Bir not, konum notu ile AR notu arasında değiştirilemez."],
 };
 
 const TR: Record<string, string> = {
@@ -872,6 +873,8 @@ const TR: Record<string, string> = {
   "map": "harita",
   "measured by": "ölçüm kaynağı",
   "memorial": "anıt",
+  "monument": "abide",
+  "museum": "müze",
   "military": "askeri alan",
   "misinformation": "yanlış bilgi",
   "moderation decision": "moderasyon kararı",

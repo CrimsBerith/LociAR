@@ -47,7 +47,7 @@ const wasCreated = await db.runTransaction(async tx => {
   if (profile.exists && profile.get('handle') !== handle) {
     throw new Error('Existing review account uses a different handle; resolve ownership manually.');
   }
-  if (privateRecord.exists && privateRecord.get('firebase_uid') !== user.uid) {
+  if (privateRecord.exists && (privateRecord.get('uid') ?? privateRecord.get('firebase_uid')) !== user.uid) {
     throw new Error('Review private identity does not match Auth; no account state changed.');
   }
   if (!reservation.exists) tx.create(handleRef, { luid, created_at: FieldValue.serverTimestamp() });
@@ -65,8 +65,10 @@ const wasCreated = await db.runTransaction(async tx => {
     created_at: FieldValue.serverTimestamp(),
     updated_at: FieldValue.serverTimestamp(),
   });
+  // Same field names as ensureProfile (functions/src/profile.ts) and the admin panel.
   if (!privateRecord.exists) tx.create(privateRef, {
-    firebase_uid: user.uid,
+    uid: user.uid,
+    auth_provider: 'password',
     created_at: FieldValue.serverTimestamp(),
   });
   if (!access.exists || access.get('state') !== 'active') tx.set(accessRef, { state: 'active' }, { merge: true });

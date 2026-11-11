@@ -35,7 +35,7 @@ export default function ContentForm({postId,initial=emptyContent,canPublish=fals
  {postId?<label><input type="checkbox" checked={value.replacePlacement} onChange={e=>set('replacePlacement',e.target.checked)}/> {t('If moving a physical post, replace its old AR lock with an approximate placement.')}</label>:null}
  {canOverride?<label>{t('Protected-zone exception reason (only if needed)')}<textarea value={value.zoneExceptionReason} onChange={e=>set('zoneExceptionReason',e.target.value)} maxLength={1000}/></label>:null}
  </fieldset>
- <fieldset><legend>{t('Location note')}</legend><label><input type="checkbox" checked={value.locationNote} onChange={e=>set('locationNote',e.target.checked)}/> {t('Location note (shown on the map at this coordinate; can notify visitors)')}</label>
+ <fieldset><legend>{t('Location note')}</legend><label><input type="checkbox" checked={value.locationNote} disabled={Boolean(postId)} onChange={e=>set('locationNote',e.target.checked)}/> {t('Location note (shown on the map at this coordinate; can notify visitors)')}</label>
  {value.locationNote?<><label>{t('Notification radius (m)')}<input type="number" min={15} max={100} step={1} value={value.notifyRadius} onChange={e=>set('notifyRadius',Number(e.target.value))} required/></label>
  <p className="muted">{t('Phone GPS is usually 5–30 m off: 15–25 m outdoors, 30–60 m indoors, up to 100 m for large venues.')}</p>
  {canPublish?<label><input type="checkbox" checked={value.approveNotifications} onChange={e=>set('approveNotifications',e.target.checked)}/> {t('Approve for notifications now (requires Publish active and Public)')}</label>:null}</>:null}

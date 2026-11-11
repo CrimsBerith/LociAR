@@ -50,7 +50,7 @@ export function originAllowed(origin: string | null, host: string | null, adminO
   return Boolean(host) && url.host === host;
 }
 
-export const ZONE_CATEGORIES = ['school', 'hospital', 'worship', 'government', 'military', 'heritage', 'memorial', 'other'] as const;
+export const ZONE_CATEGORIES = ['school', 'hospital', 'worship', 'government', 'military', 'heritage', 'memorial', 'museum', 'monument', 'other'] as const;
 
 export type ZoneInput = { name: string; category: string; lat: number; lng: number; radius_meters: number };
 
