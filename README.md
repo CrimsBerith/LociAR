@@ -48,7 +48,7 @@ Simulator build/test, fiziksel AR kilidi kanıtı değildir. LiDAR ve LiDAR olma
 ![CI](https://github.com/CrimsBerith/LociAR/actions/workflows/ci.yml/badge.svg)
 
 LociAR is a native iOS AR app built with SwiftUI, ARKit/RealityKit, and ARCore.
-Users pin text messages and/or one GIPHY GIF to real places. Firebase powers the
+Users pin text messages and/or one KLIPY GIF to real places. Firebase powers the
 backend, and a Next.js admin panel runs on Firebase App Hosting.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development requirements and verification

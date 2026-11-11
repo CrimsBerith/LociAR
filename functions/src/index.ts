@@ -26,6 +26,7 @@ export { registerPushToken, unregisterPushToken, onActivityCreated } from './pus
 export { markActivityRead } from './activity';
 export { createInvites, redeemInvite } from './invites';
 export { searchGifs } from './giphy';
+export { getGifConfig } from './gifConfig';
 export { readPublicContent } from './publicContent';
 export { onWorldMapFinalized } from './mapStorageFinalize';
 export { beginApplePostSupport, confirmApplePostSupport, supportAppleNotifications } from './supportApple';

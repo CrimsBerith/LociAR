@@ -22,7 +22,7 @@ function writeOwned(path, body) {
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
   const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString().trim().replace(/\n/g, '\\n');
-  writeOwned('.secret.local', [`APPLE_PRIVATE_KEY=${pem}`, 'GIPHY_API_KEY=emulator-giphy-key'].join('\n'));
+  writeOwned('.secret.local', [`APPLE_PRIVATE_KEY=${pem}`, 'GIPHY_API_KEY=emulator-giphy-key', 'KLIPY_APP_KEY=emulatorKlipyKey0123456789abcdefABCDEF'].join('\n'));
   writeOwned('.env.demo-lociar', [
     'APPLE_TEAM_ID=TESTTEAM01',
     'APPLE_KEY_ID=TESTKEY001',

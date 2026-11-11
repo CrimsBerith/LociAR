@@ -26,7 +26,7 @@ export default function PrivacyPageEn() {
         <li><strong>Location:</strong> while the app is in use, to show nearby content and store where you place a post (precise
           location; iOS asks for temporary precise location when AR positioning needs it).</li>
         <li><strong>Camera:</strong> used only for AR placement; the camera feed is not recorded. Posts are text
-          and/or one GIF chosen from GIPHY; there are no photo, video or link posts. When you pin content, an AR map file for that surface (a feature map, not a
+          and/or one GIF chosen from KLIPY; there are no photo, video or link posts. When you pin content, an AR map file for that surface (a feature map, not a
           photo) may be stored.</li>
         <li><strong>Profile photo:</strong> a photo you upload is screened automatically before it is shown (see &quot;Google Cloud Vision&quot;).</li>
         <li><strong>User content:</strong> posts, captions, comments, likes, saves, collections, follows, blocks and reports.</li>
@@ -71,7 +71,7 @@ export default function PrivacyPageEn() {
         <li><strong>Google Cloud Vision:</strong> automatic screening of profile photos for nudity, violence and similar content. The photo
           is sent only for this check; rejected photos are deleted.</li>
         <li><strong>Google ARCore:</strong> AR positioning (below).</li>
-        <li><strong>GIPHY:</strong> GIF search and GIF display (below).</li>
+        <li><strong>KLIPY:</strong> GIF search and GIF display (below). GIFs shared earlier are shown from GIPHY.</li>
       </ul>
       <p>Public posts are visible to other users. New notes are anonymous by default; choosing to show your username makes your name and profile visible with the note. Anonymous posts hide the author&apos;s name and profile. We may disclose data in response to lawful requests.</p>
 
@@ -86,12 +86,17 @@ export default function PrivacyPageEn() {
         <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.
       </p>
 
-      <h2>GIPHY (GIFs)</h2>
+      <h2>KLIPY and GIPHY (GIFs)</h2>
       <p>
-        GIFs are provided by GIPHY, Inc. When you search for a GIF, the search words and your app language are sent to GIPHY
-        by our servers, without your account details. GIF images and videos are loaded by your device directly from
-        GIPHY&apos;s servers, which therefore receive your IP address and standard device information. A post stores only the
-        GIPHY ID of the GIF you chose. Learn more: <a href="https://giphy.com/privacy">GIPHY Privacy Policy</a>.
+        GIFs are provided by KLIPY. When you search for a GIF, the search words, your device&apos;s country code and a
+        pseudonymous identifier derived from your account (which does not identify you) are sent from your device directly
+        to KLIPY; your name, email address and account ID are not sent. GIF images and videos are also loaded by your
+        device directly from KLIPY&apos;s servers, which therefore receive your IP address and standard device information.
+        A post stores only the KLIPY ID of the GIF you chose. Learn more: <a href="https://klipy.com">klipy.com</a>.
+      </p>
+      <p>
+        GIFs shared before the switch to KLIPY are loaded from the servers of GIPHY, Inc., which then receives your IP
+        address and standard device information. Learn more: <a href="https://giphy.com/privacy">GIPHY Privacy Policy</a>.
       </p>
 
       <h2>Notifications and location reminders</h2>

@@ -1,6 +1,6 @@
 import { scalarText } from './values';
 import { anyBlocked, containsURL } from './moderation';
-import { GIF_ID } from './giphyId';
+import { isValidGifLayer } from './gifId';
 import { MAX_CAPTION_UTF16_LENGTH } from './contentPolicy';
 
 /**
@@ -140,7 +140,7 @@ function hasStrictARKitWorldLockEvidence(body: CreatePostBody): boolean {
 }
 
 /**
- * Posts are text and/or one GIPHY GIF. Social media links were removed on 9 Oct 2026 and
+ * Posts are text and/or one GIF (KLIPY; GIPHY for posts from older app builds). Social media links were removed on 9 Oct 2026 and
  * device photos/videos on 29 Sep 2026: any URL in `contentSource` or a layer is refused.
  */
 function layerTexts(body: CreatePostBody): string[] {
@@ -152,7 +152,7 @@ function layerTexts(body: CreatePostBody): string[] {
 }
 
 /**
- * New posts are a message: text and/or one GIPHY GIF (owner decision, 9 Oct 2026). Drawings, device
+ * New posts are a message: text and/or one GIF (owner decision, 9 Oct 2026). Drawings, device
  * media and links are refused; existing drawing posts keep rendering.
  */
 const ALLOWED_LAYER_TYPES = new Set(['text', 'gif']);
@@ -208,7 +208,7 @@ function contentPolicyError(body: CreatePostBody): string | null {
     if (type === 'gif') {
       gifs += 1;
       if (gifs > MAX_GIF_LAYERS) return 'Only one GIF is allowed';
-      if (typeof layer.gifId !== 'string' || !GIF_ID.test(layer.gifId)) return 'Invalid GIF';
+      if (!isValidGifLayer(layer)) return 'Invalid GIF';
     }
   }
   const source = body.contentSource;

@@ -972,15 +972,9 @@ final class ARPinningEngine: NSObject {
 
     private static let gifVideoEntityName = "gif-video"
 
-    /// Plays the GIPHY MP4 (muted, looping) over the GIF area of the message bubble. The plane is
+    /// Plays the GIF MP4 (muted, looping) over the GIF area of the message bubble. The plane is
     /// added only once the video is ready, so the poster frame stays visible while it loads or if it fails.
     private func attachGifVideo(_ gif: GifReference, area: CGRect, bubbleSize: PhysicalRectMeters, to model: ModelEntity, postID: UUID) {
-        let player = AVQueuePlayer()
-        player.isMuted = true
-        player.preventsDisplaySleepDuringVideoPlayback = false
-        let looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: gif.videoURL))
-        videoPlayers[postID] = player
-        gifLoopers[postID] = looper
         let width = bubbleSize.width * Float(area.width)
         let height = bubbleSize.height * Float(area.height)
         let position = SIMD3<Float>(
@@ -988,13 +982,29 @@ final class ARPinningEngine: NSObject {
             (0.5 - Float(area.midY)) * bubbleSize.height,
             0.001
         )
+        let generation = contentRenderGeneration
         Task { [weak self, weak model] in
+            // KLIPY media URLs are read from KLIPY; a failure leaves the poster frame and never
+            // touches the AR session.
+            guard let videoURL = await KlipyMediaResolver.shared.media(for: gif)?.videoURL else { return }
+            guard let self, let model, self.contentRenderGeneration == generation, self.videoPlayers[postID] == nil else { return }
+            let player = AVQueuePlayer()
+            player.isMuted = true
+            player.preventsDisplaySleepDuringVideoPlayback = false
+            let looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: videoURL))
+            self.videoPlayers[postID] = player
+            self.gifLoopers[postID] = looper
             for _ in 0..<100 {
                 if player.currentItem?.status == .readyToPlay { break }
-                if player.currentItem?.status == .failed { return }
+                if player.currentItem?.status == .failed { break }
                 try? await Task.sleep(for: .milliseconds(100))
             }
-            guard let self, let model, self.videoPlayers[postID] === player, player.currentItem?.status == .readyToPlay else { return }
+            guard self.videoPlayers[postID] === player else { return }
+            guard player.currentItem?.status == .readyToPlay else {
+                self.videoPlayers[postID] = nil
+                self.gifLoopers[postID] = nil
+                return
+            }
             let video = ModelEntity(
                 mesh: .generatePlane(width: width, height: height, cornerRadius: min(width, height) * 0.03),
                 materials: [VideoMaterial(avPlayer: player)]

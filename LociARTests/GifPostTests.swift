@@ -17,12 +17,37 @@ final class GifPostTests: XCTestCase {
         XCTAssertEqual(decoded.layers.first?.gif, gif)
     }
 
+    func testKlipyGifLayerRoundTripsAsSlugAndProvider() throws {
+        let klipyGif = try XCTUnwrap(GifReference(klipySlug: "happy-cat-f7u", width: 480, height: 270))
+        let layer = EditLayer(id: UUID(), kind: .gif, text: nil, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0, gif: klipyGif)
+        let data = try JSONEncoder().encode(EditData(layers: [layer]))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let stored = try XCTUnwrap((json["layers"] as? [[String: Any]])?.first)
+        XCTAssertEqual(stored["type"] as? String, "gif")
+        XCTAssertEqual(stored["provider"] as? String, "klipy")
+        XCTAssertEqual(stored["gifSlug"] as? String, "happy-cat-f7u")
+        XCTAssertNil(stored["uri"], "a GIF layer never carries a URL")
+        let decoded = try JSONDecoder().decode(EditData.self, from: data)
+        XCTAssertEqual(decoded.layers.first?.gif, klipyGif)
+        XCTAssertEqual(decoded.layers.first?.gif?.provider, .klipy)
+    }
+
+    func testKlipySlugsCannotCarryURLsOrPaths() {
+        for slug in ["", "a/b", "../x", "https://api.klipy.com/x", "a b", "ğ", String(repeating: "a", count: 129)] {
+            XCTAssertNil(GifReference(klipySlug: slug, width: 1, height: 1), slug)
+        }
+        let valid = GifReference(klipySlug: "valid-slug_123", width: 100, height: 100)
+        XCTAssertNotNil(valid)
+        XCTAssertEqual(valid?.provider, .klipy)
+    }
+
     func testGifIdsCannotCarryURLsOrPaths() {
         for id in ["", "a/b", "../x", "https://media.giphy.com/x", "a b", "ğ", String(repeating: "a", count: 65)] {
             XCTAssertNil(GifReference(id: id, width: 1, height: 1), id)
         }
-        XCTAssertEqual(gif.videoURL.host, "media.giphy.com")
-        XCTAssertEqual(gif.videoURL.path, "/media/l0MYt5jPR6QX5pnqM/giphy.mp4")
+        XCTAssertEqual(gif.giphyMedia?.videoURL.host, "media.giphy.com")
+        XCTAssertEqual(gif.giphyMedia?.videoURL.path, "/media/l0MYt5jPR6QX5pnqM/giphy.mp4")
+        XCTAssertEqual(gif.giphyMedia?.previewURL.path, "/media/l0MYt5jPR6QX5pnqM/200w.gif")
     }
 
     func testUnknownOrMalformedLayersAreSkippedInsteadOfFailingThePost() throws {

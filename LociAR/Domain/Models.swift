@@ -359,41 +359,75 @@ extension ContentSource: Codable {
     }
 }
 
-/// A GIPHY GIF carried by a post. Posts store only the id (createPost reads the size from GIPHY);
-/// media URLs are built from the id on GIPHY's media host, so a post can never carry a link.
+/// A GIF carried by a post: a KLIPY slug for current posts, a GIPHY id for posts made before the
+/// KLIPY switch. Posts store only the provider, the slug or id and a size, so a post can never
+/// carry a link. GIPHY media URLs are built from the id; KLIPY media URLs are not derivable and
+/// are read from KLIPY by slug when the GIF is shown (`KlipyMediaResolver`).
 struct GifReference: Hashable, Sendable {
+    enum Provider: String, Codable, Sendable {
+        case giphy
+        case klipy
+    }
+
+    let provider: Provider
+    /// GIPHY id or KLIPY slug.
     let id: String
     let width: Int
     let height: Int
 
     init?(id: String, width: Int, height: Int) {
-        guard GifReference.isValidID(id) else { return nil }
+        guard GifReference.isValidGiphyID(id) else { return nil }
+        self.provider = .giphy
         self.id = id
         self.width = min(max(width, 1), 4_096)
         self.height = min(max(height, 1), 4_096)
     }
 
-    /// Letters and digits only, as functions/src/giphyId.ts enforces.
-    static func isValidID(_ id: String) -> Bool {
+    init?(klipySlug: String, width: Int, height: Int) {
+        guard GifReference.isValidKlipySlug(klipySlug) else { return nil }
+        self.provider = .klipy
+        self.id = klipySlug
+        self.width = min(max(width, 1), 4_096)
+        self.height = min(max(height, 1), 4_096)
+    }
+
+    /// Letters and digits only, as functions/src/gifId.ts enforces for GIPHY.
+    static func isValidGiphyID(_ id: String) -> Bool {
         (1...64).contains(id.count) && id.unicodeScalars.allSatisfy { $0.isASCII && CharacterSet.alphanumerics.contains($0) }
+    }
+
+    /// Letters, digits, `-` and `_`, starting with a letter or digit: functions/src/gifId.ts KLIPY_SLUG.
+    static func isValidKlipySlug(_ slug: String) -> Bool {
+        guard (1...128).contains(slug.unicodeScalars.count),
+              let first = slug.unicodeScalars.first, first.isASCII, CharacterSet.alphanumerics.contains(first) else { return false }
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        return slug.unicodeScalars.allSatisfy { $0.isASCII && allowed.contains($0) }
     }
 
     var aspectRatio: Double { Double(width) / Double(height) }
 
-    /// Looping MP4 used in AR and in post cards.
-    var videoURL: URL { media("giphy.mp4") }
-    /// Small animated GIF (200 px wide) for the picker and cards.
-    var previewURL: URL { media("200w.gif") }
-    /// First frame, used as the poster under the AR video.
-    var stillURL: URL { media("giphy_s.gif") }
-
-    private func media(_ file: String) -> URL {
-        let safeID = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
-        let safeFile = file.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? file
-        return URL(string: "https://media.giphy.com/media/\(safeID)/\(safeFile)")
-            ?? URL(string: "https://media.giphy.com")
-            ?? URL(fileURLWithPath: "/dev/null")
+    /// Media URLs that follow from the id alone: GIPHY only. Nil for KLIPY, whose URLs come from
+    /// its API (`KlipyMediaResolver.media(for:)`).
+    var giphyMedia: GifMedia? {
+        guard provider == .giphy,
+              let video = giphyURL("giphy.mp4"), let preview = giphyURL("200w.gif"), let still = giphyURL("giphy_s.gif") else { return nil }
+        return GifMedia(videoURL: video, previewURL: preview, stillURL: still)
     }
+
+    private func giphyURL(_ file: String) -> URL? {
+        let safeID = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        return URL(string: "https://media.giphy.com/media/\(safeID)/\(file)")
+    }
+}
+
+/// Where a GIF's media is loaded from.
+struct GifMedia: Hashable, Sendable {
+    /// Looping MP4 used in AR.
+    let videoURL: URL
+    /// Small animated GIF for the picker and cards.
+    let previewURL: URL
+    /// First frame, used as the poster under the AR video.
+    let stillURL: URL
 }
 
 struct EditLayer: Hashable, Sendable, Identifiable {
@@ -414,7 +448,7 @@ struct EditLayer: Hashable, Sendable, Identifiable {
 extension EditLayer: Codable {
     private enum CodingKeys: String, CodingKey {
         case id, type, text, uri, points, color, opacity, scale, rotation
-        case x, y, zIndex, strokeWidth, fontSize, width, height, gifId
+        case x, y, zIndex, strokeWidth, fontSize, width, height, gifId, gifSlug, provider
     }
 
     init(from decoder: Decoder) throws {
@@ -433,14 +467,23 @@ extension EditLayer: Codable {
         scale = try values.decodeIfPresent(Double.self, forKey: .scale) ?? 1
         rotation = try values.decodeIfPresent(Double.self, forKey: .rotation) ?? 0
         if kind == .gif {
-            guard let gif = GifReference(
-                id: try values.decodeIfPresent(String.self, forKey: .gifId) ?? "",
-                width: try values.decodeIfPresent(Int.self, forKey: .width) ?? 1,
-                height: try values.decodeIfPresent(Int.self, forKey: .height) ?? 1
-            ) else {
-                throw DecodingError.dataCorruptedError(forKey: .gifId, in: values, debugDescription: "Invalid GIPHY id")
+            let provider = try values.decodeIfPresent(String.self, forKey: .provider)
+            let gifSlug = try values.decodeIfPresent(String.self, forKey: .gifSlug)
+            let width = try values.decodeIfPresent(Int.self, forKey: .width) ?? 1
+            let height = try values.decodeIfPresent(Int.self, forKey: .height) ?? 1
+
+            if provider == "klipy" || gifSlug != nil {
+                guard let slug = gifSlug, let gif = GifReference(klipySlug: slug, width: width, height: height) else {
+                    throw DecodingError.dataCorruptedError(forKey: .gifSlug, in: values, debugDescription: "Invalid KLIPY slug")
+                }
+                self.gif = gif
+            } else {
+                guard let gifId = try values.decodeIfPresent(String.self, forKey: .gifId),
+                      let gif = GifReference(id: gifId, width: width, height: height) else {
+                    throw DecodingError.dataCorruptedError(forKey: .gifId, in: values, debugDescription: "Invalid GIPHY id")
+                }
+                self.gif = gif
             }
-            self.gif = gif
         }
     }
 
@@ -468,9 +511,19 @@ extension EditLayer: Codable {
             try values.encode(1_080, forKey: .width)
             try values.encode(1_920, forKey: .height)
         case .gif:
-            try values.encodeIfPresent(gif?.id, forKey: .gifId)
-            try values.encodeIfPresent(gif?.width, forKey: .width)
-            try values.encodeIfPresent(gif?.height, forKey: .height)
+            if let gif = gif {
+                switch gif.provider {
+                case .klipy:
+                    try values.encode("klipy", forKey: .provider)
+                    try values.encode(gif.id, forKey: .gifSlug)
+                    try values.encode(gif.width, forKey: .width)
+                    try values.encode(gif.height, forKey: .height)
+                case .giphy:
+                    try values.encode(gif.id, forKey: .gifId)
+                    try values.encode(gif.width, forKey: .width)
+                    try values.encode(gif.height, forKey: .height)
+                }
+            }
         }
     }
 }

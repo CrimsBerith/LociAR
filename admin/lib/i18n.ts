@@ -375,6 +375,7 @@ const TR: Record<string, string> = {
   "Discount code and terms": "İndirim kodu ve koşullar",
   "Dismiss": "Reddet",
   "Display name": "Görünen ad",
+  "GIF could not be loaded": "GIF yüklenemedi",
   "Drawing preview": "Çizim önizlemesi",
   "EN": "EN",
   "Edit content and placement": "İçeriği ve yerleşimi düzenle",

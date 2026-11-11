@@ -5,13 +5,15 @@ import { defineSecret } from 'firebase-functions/params';
 import { CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, logger, requireCaller, safeErrorCode, Timestamp } from './core';
 import { reasonError } from './errors';
 import { anyBlocked } from './moderation';
-import { GIF_ID } from './giphyId';
+import { GIPHY_ID as GIF_ID, klipyGifLayer } from './gifId';
 export { GIF_ID };
 import { requireActiveAccount } from './profileGuard';
 import { TtlCache } from './memoryLimits';
 
 /**
- * GIF posts use GIPHY (Tenor's public API was shut down on 30 Jun 2026). The API key stays in
+ * GIPHY serves app builds released before the KLIPY switch (gifConfig.ts): their `searchGifs`
+ * calls and their posts, which carry a GIPHY id. New builds use KLIPY and do not call this file's
+ * callable. The GIPHY API key stays in
  * Secret Manager: the app searches through `searchGifs` and posts carry only a GIPHY id, never a
  * URL. createPost re-reads every id from GIPHY, so a client cannot attach an unrated or unknown GIF
  * or invent its size. The app builds media URLs from the id on GIPHY's media host only.
@@ -124,6 +126,16 @@ export async function resolveGifLayers(editData: { layers?: unknown[] }, fetcher
   await forEachSequential(layers.entries(), async ([index, raw]) => {
     const layer = (raw ?? {}) as Record<string, unknown>;
     if (scalarText(layer.type ?? layer.kind) !== 'gif') return;
+    const klipy = klipyGifLayer(layer);
+    if (klipy) {
+      // KLIPY must be called from the user's device, so there is no server lookup: keep the
+      // validated slug and bounded size, drop every other client field.
+      layers[index] = {
+        id: layer.id, type: 'gif', provider: 'klipy', gifSlug: klipy.gifSlug, width: klipy.width, height: klipy.height,
+        x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, zIndex: 0,
+      };
+      return;
+    }
     const gif = await verifiedLayerGif(scalarText(layer.gifId ?? ''), fetcher);
     layers[index] = {
       id: layer.id, type: 'gif', gifId: gif.id, width: gif.width, height: gif.height,

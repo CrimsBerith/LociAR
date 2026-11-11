@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// GIPHY search for the post editor. An empty search shows trending GIFs. Results come from the
-/// `searchGifs` callable; the picker only ever hands back a `GifReference` (an id and a size).
+/// GIF search for the post editor. An empty search shows trending GIFs. Results come from the
+/// KLIPY API; the picker only ever hands back a `GifReference` (a slug and a size).
 struct GifPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppContainer.self) private var container
@@ -30,7 +30,7 @@ struct GifPickerView: View {
                             onPick(result.gif)
                             dismiss()
                         } label: {
-                            AnimatedGIFView(url: result.gif.previewURL, contentMode: .fill)
+                            AnimatedGIFView(gif: result.gif, contentMode: .fill)
                                 .aspectRatio(min(max(result.gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                                 .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
                         }
@@ -66,8 +66,9 @@ struct GifPickerView: View {
             }
             .background(LociTheme.background)
             .safeAreaInset(edge: .bottom) {
-                // GIPHY's API terms require visible attribution wherever its results are shown.
-                Text(verbatim: "Powered by GIPHY")
+                // KLIPY's attribution rules: "Search KLIPY" as the search placeholder (required) and a
+                // visible "Powered by KLIPY" mark where its results are shown.
+                Text(verbatim: "Powered by KLIPY")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(LociTheme.secondaryText)
                     .frame(maxWidth: .infinity)
@@ -75,7 +76,7 @@ struct GifPickerView: View {
                     .background(LociTheme.background.opacity(0.98))
                     .accessibilityIdentifier("gif-attribution")
             }
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("GIF ara"))
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(verbatim: "Search KLIPY"))
             .navigationTitle("GIF seç")
             .navigationBarTitleDisplayMode(.inline)
             .tint(LociTheme.accent)

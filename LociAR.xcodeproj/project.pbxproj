@@ -30,6 +30,7 @@
 		43B96545756282CA639C2CC8 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E4C13C9339C31F48DD7E6E /* MapKit.framework */; };
 		45130BD3F5683A4B79F59828 /* NoteDensity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE20E5A8C1512F958D0BF84 /* NoteDensity.swift */; };
 		4516F427622ADCD714BC3434 /* GifRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */; };
+		DD518CEFFF8A157838EE2104 /* KlipyMediaResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 499E07D01ACA884E5F998D0C /* KlipyMediaResolver.swift */; };
 		490A1398F7E0D759B58042D1 /* LocationNoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA62B95714894BC9F4BABA0F /* LocationNoteTests.swift */; };
 		49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */; };
 		4A5984F66925FF08A93BF5F2 /* NoteTranslationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D42A2C2CB1C2D4662EFB395 /* NoteTranslationTests.swift */; };
@@ -103,6 +104,8 @@
 		D164AC6BEE15840A7837C98D /* SpatialContentRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06DAE7C8A1BAC1F29EC39C64 /* SpatialContentRenderer.swift */; };
 		D208F4B728D6F0F7FD84C54E /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2C002889FAF74276EADB893 /* ActivityView.swift */; };
 		D5D44603AAEDBFBE61BC3067 /* GifPostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24971089F9EF41DDADCD30AC /* GifPostTests.swift */; };
+		B9DBDF7C3E8CA1B6E349C49D /* KlipyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA50B1581D0A1219C225CEB /* KlipyTests.swift */; };
+		D8A907EAA12F6678C48038C8 /* ARCameraHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DD113C8295E1333F93FF9C2 /* ARCameraHealthTests.swift */; };
 		D79733A2FF29F7EC54C148D0 /* WorldMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */; };
 		DA7E6D5169E31200A4B2A026 /* ClientRequestCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07471D9DD5F568CCD5B6981C /* ClientRequestCacheTests.swift */; };
 		DCE856D1C9CBAF64556DF3E5 /* AvatarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D3113CEC157B882DCE675A /* AvatarStore.swift */; };
@@ -118,6 +121,7 @@
 		F06E6E1085B1AE5E8DC2A43A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */; };
 		F3C20A7CF79DC0951AC69910 /* ARViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498692924241AE844FFA8949 /* ARViewContainer.swift */; };
 		F47756884CAD320CDDFE52CA /* ARCoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */; };
+		28293C278AE1F129E664A68C /* ARCameraHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC8CBD381BE51C79DAD2161 /* ARCameraHealth.swift */; };
 		F567D19C9A5E95A449120669 /* SocialRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7055B38D2FFD5B204D38A244 /* SocialRepository.swift */; };
 		F6D41787D8A9E57381605599 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 38397FD005A13388B7C06BFC /* FirebaseCrashlytics */; };
 		FB20B1277338B7EAD0202246 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 38140B6E8683A0A6EB0365CE /* FirebaseFirestore */; };
@@ -175,6 +179,8 @@
 		239D31F204713F72593525F8 /* emulator-verification.mjs */ = {isa = PBXFileReference; path = "emulator-verification.mjs"; sourceTree = "<group>"; };
 		241EAAE5545B2C59BD4404D6 /* MapRequestCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapRequestCoordinatorTests.swift; sourceTree = "<group>"; };
 		24971089F9EF41DDADCD30AC /* GifPostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifPostTests.swift; sourceTree = "<group>"; };
+		1FA50B1581D0A1219C225CEB /* KlipyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlipyTests.swift; sourceTree = "<group>"; };
+		4DD113C8295E1333F93FF9C2 /* ARCameraHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraHealthTests.swift; sourceTree = "<group>"; };
 		26517046B2409888717CB325 /* PersistenceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceModels.swift; sourceTree = "<group>"; };
 		275E3BB8F4215EF4AF15295E /* WorldMapCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldMapCodec.swift; sourceTree = "<group>"; };
 		29542377FC89A2155057D35C /* StoreReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreReadinessTests.swift; sourceTree = "<group>"; };
@@ -210,6 +216,7 @@
 		4500E92DE52F6C2B5E352DB5 /* .commit-push.log */ = {isa = PBXFileReference; path = ".commit-push.log"; sourceTree = "<group>"; };
 		4612E920E5A6D745E95C2013 /* github-push.command */ = {isa = PBXFileReference; path = "github-push.command"; sourceTree = "<group>"; };
 		461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreService.swift; sourceTree = "<group>"; };
+		DAC8CBD381BE51C79DAD2161 /* ARCameraHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraHealth.swift; sourceTree = "<group>"; };
 		4771EBA3971F58BE96D754D8 /* EnglishSmokeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnglishSmokeUITests.swift; sourceTree = "<group>"; };
 		48C24F3E30CCF7B08EE3B48B /* run_and_export_all_device_screens.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = run_and_export_all_device_screens.py; sourceTree = "<group>"; };
 		4979FB253E999A46182D749E /* deploy-admin.command */ = {isa = PBXFileReference; path = "deploy-admin.command"; sourceTree = "<group>"; };
@@ -341,6 +348,7 @@
 		BD2BD8DFC2C79A6663294158 /* extract.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = extract.py; sourceTree = "<group>"; };
 		BDDB10EA46E7FB072069A2B0 /* .diag-java.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ".diag-java.txt"; sourceTree = "<group>"; };
 		BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GifRepository.swift; sourceTree = "<group>"; };
+		499E07D01ACA884E5F998D0C /* KlipyMediaResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlipyMediaResolver.swift; sourceTree = "<group>"; };
 		BE6214ED0BA1CAC02A14F073 /* nearby-geohash-migration.test.mjs */ = {isa = PBXFileReference; path = "nearby-geohash-migration.test.mjs"; sourceTree = "<group>"; };
 		BF358541B33EC7779CA4640C /* LaunchReadabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchReadabilityTests.swift; sourceTree = "<group>"; };
 		BF448889FD02E5EAFDEA3DD5 /* claude-k2-cpu-kota.command */ = {isa = PBXFileReference; path = "claude-k2-cpu-kota.command"; sourceTree = "<group>"; };
@@ -599,6 +607,8 @@
 				BFC3FA72CDF582E0086EB41A /* DiagnosticsReporterTests.swift */,
 				5F0D2148FF8AFB8149B80784 /* DomainContractTests.swift */,
 				24971089F9EF41DDADCD30AC /* GifPostTests.swift */,
+				1FA50B1581D0A1219C225CEB /* KlipyTests.swift */,
+				4DD113C8295E1333F93FF9C2 /* ARCameraHealthTests.swift */,
 				BF358541B33EC7779CA4640C /* LaunchReadabilityTests.swift */,
 				597EA3A1268C600FC20E0F5F /* LegacyImporterTests.swift */,
 				BA62B95714894BC9F4BABA0F /* LocationNoteTests.swift */,
@@ -901,6 +911,7 @@
 			isa = PBXGroup;
 			children = (
 				461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */,
+				DAC8CBD381BE51C79DAD2161 /* ARCameraHealth.swift */,
 				3E69BCF2ACD49A0AA6291F3A /* ARPinningEngine.swift */,
 				5B86FFC5FFC8A6B8124476DA /* ARPinningTypes.swift */,
 				498692924241AE844FFA8949 /* ARViewContainer.swift */,
@@ -919,6 +930,7 @@
 				1D69107182F75DD927363FD6 /* ClientRequestCache.swift */,
 				3067562C1889E41845A4B37D /* FirebaseBackend.swift */,
 				BE432FEA5E2B67666DECA2E2 /* GifRepository.swift */,
+				499E07D01ACA884E5F998D0C /* KlipyMediaResolver.swift */,
 				15467FD09987F01C8665AFE9 /* HiddenPostStore.swift */,
 				8A928FB438E13418AA596043 /* LegacyAsyncStorageImporter.swift */,
 				E34938428DDEB1D8983B5842 /* LegacyMigrationCoordinator.swift */,
@@ -1164,6 +1176,8 @@
 				5EE601E50B09F5F917645722 /* DiagnosticsReporterTests.swift in Sources */,
 				788505617997733A088C4578 /* DomainContractTests.swift in Sources */,
 				D5D44603AAEDBFBE61BC3067 /* GifPostTests.swift in Sources */,
+				B9DBDF7C3E8CA1B6E349C49D /* KlipyTests.swift in Sources */,
+				D8A907EAA12F6678C48038C8 /* ARCameraHealthTests.swift in Sources */,
 				FC9CEB0C83AD6CD1A0DA20E1 /* LaunchReadabilityTests.swift in Sources */,
 				49298BA7FA0FFBDB60A6A337 /* LegacyImporterTests.swift in Sources */,
 				490A1398F7E0D759B58042D1 /* LocationNoteTests.swift in Sources */,
@@ -1182,6 +1196,7 @@
 			files = (
 				C9BCF2F1BCC8DB65916C2B78 /* ARCoreDisclosure.swift in Sources */,
 				F47756884CAD320CDDFE52CA /* ARCoreService.swift in Sources */,
+				28293C278AE1F129E664A68C /* ARCameraHealth.swift in Sources */,
 				89009A411211647CBFFD0CC1 /* ARExperienceView.swift in Sources */,
 				B1272806BBF7A786B7C4CA54 /* ARPinningEngine.swift in Sources */,
 				F021D45F7D7C568D359FBD18 /* ARPinningTypes.swift in Sources */,
@@ -1211,6 +1226,7 @@
 				5EFCE5695FBFCFD6CE9470D6 /* GeoPoseCaptureService.swift in Sources */,
 				CC256423BC31FBAF0318E3AC /* GifPickerView.swift in Sources */,
 				4516F427622ADCD714BC3434 /* GifRepository.swift in Sources */,
+				DD518CEFFF8A157838EE2104 /* KlipyMediaResolver.swift in Sources */,
 				E5D82E2EDBE5691A52C16D02 /* HiddenPostStore.swift in Sources */,
 				881A6413A9230C295BDBD795 /* LegacyAsyncStorageImporter.swift in Sources */,
 				98D3170A16B7C9934D62F5A4 /* LegacyMigrationCoordinator.swift in Sources */,

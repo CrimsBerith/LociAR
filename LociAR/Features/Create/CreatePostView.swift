@@ -387,7 +387,7 @@ struct CreatePostView: View {
             VStack(alignment: .leading, spacing: LociTheme.Spacing.m) {
                 LociSectionLabel(title: String(localized: "GIF"), symbol: "photo.stack")
                 if let gif = selectedGif {
-                    AnimatedGIFView(url: gif.previewURL)
+                    AnimatedGIFView(gif: gif)
                         .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                         .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
@@ -399,7 +399,7 @@ struct CreatePostView: View {
                             .buttonStyle(LociCompactButtonStyle())
                             .accessibilityIdentifier("create-gif-remove")
                         Spacer()
-                        Text(verbatim: "Powered by GIPHY").font(.caption2.weight(.bold)).foregroundStyle(LociTheme.secondaryText)
+                        Text(verbatim: "Powered by KLIPY").font(.caption2.weight(.bold)).foregroundStyle(LociTheme.secondaryText)
                     }
                 } else {
                     Button { showGifPicker = true } label: {

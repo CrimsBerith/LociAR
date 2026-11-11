@@ -86,7 +86,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
   // Storage validation can perform network I/O. Do it before opening a transaction; no quota
   // has been consumed, so a timeout or an invalid anchor cannot leak admission slots.
   const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
-  // A GIF layer keeps only the GIPHY id; its size comes from GIPHY, never from the client.
+  // A GIF layer keeps only a KLIPY slug, or a GIPHY id whose size is read from GIPHY (older app builds).
   await resolveGifLayers(body.editData as { layers?: unknown[] });
   // Posts passing automated content, placement, protected-zone, age and rate/density checks go live at once.
   const publishStatus = 'active';

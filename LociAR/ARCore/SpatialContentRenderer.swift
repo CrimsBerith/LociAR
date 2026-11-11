@@ -42,7 +42,12 @@ actor SpatialContentRenderer {
             sourceImageData = await loadAsset(url)
         } else if let gif = post.gif {
             // Poster frame under the AR video (and the whole GIF area if the video cannot play).
-            sourceImageData = await loadAsset(gif.stillURL)
+            // Without it (KLIPY unreachable or the GIF was removed) the bubble keeps an empty GIF area.
+            if let stillURL = await KlipyMediaResolver.shared.media(for: gif)?.stillURL {
+                sourceImageData = await loadAsset(stillURL)
+            } else {
+                sourceImageData = nil
+            }
         } else {
             sourceImageData = nil
         }

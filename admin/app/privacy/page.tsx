@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         <li><strong>Konum:</strong> uygulama açıkken, yakındaki içerikleri göstermek ve paylaştığınız içeriğin konumunu kaydetmek için
           (hassas konum; AR konumlandırma gerektiğinde iOS geçici hassas konum izni ister).</li>
         <li><strong>Kamera:</strong> yalnızca AR yerleşimi için kullanılır; kamera görüntüsü kaydedilmez. Gönderiler metin
-          ve/veya GIPHY&apos;den seçilen bir GIF&apos;tir; fotoğraf, video veya bağlantı gönderisi yoktur. Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası
+          ve/veya KLIPY&apos;den seçilen bir GIF&apos;tir; fotoğraf, video veya bağlantı gönderisi yoktur. Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası
           (fotoğraf değil, nokta haritası) saklanabilir.</li>
         <li><strong>Profil fotoğrafı:</strong> kendi yüklediğiniz fotoğraf, yayınlanmadan önce otomatik güvenlik incelemesinden geçer
           (aşağıda &quot;Google Cloud Vision&quot;).</li>
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
         <li><strong>Google Cloud Vision:</strong> profil fotoğraflarının çıplaklık, şiddet ve benzeri içerik açısından otomatik incelenmesi.
           Fotoğraf yalnızca bu inceleme için gönderilir; reddedilen fotoğraflar silinir.</li>
         <li><strong>Google ARCore:</strong> AR konumlandırma (aşağıda).</li>
-        <li><strong>GIPHY:</strong> GIF arama ve GIF gösterimi (aşağıda).</li>
+        <li><strong>KLIPY:</strong> GIF arama ve GIF gösterimi (aşağıda). Daha önce paylaşılmış GIF&apos;ler GIPHY&apos;den gösterilir.</li>
       </ul>
       <p>
         Herkese açık gönderiler diğer kullanıcılara görünür. Yeni notlar varsayılan olarak anonimdir; kullanıcı adınızı göstermeyi seçerseniz adınız ve profiliniz notla birlikte görünür. Anonim gönderilerde yazarın adı ve profili gizlenir. Yetkili kurumların hukuka uygun talepleri
@@ -92,12 +92,17 @@ export default function PrivacyPage() {
         <a href="https://policies.google.com/privacy">Google Gizlilik Politikası</a>.
       </p>
 
-      <h2>GIPHY (GIF&apos;ler)</h2>
+      <h2>KLIPY ve GIPHY (GIF&apos;ler)</h2>
       <p>
-        GIF&apos;ler GIPHY, Inc. tarafından sağlanır. Bir GIF aradığınızda arama kelimeleri ve uygulama diliniz, hesap
-        bilgileriniz olmadan sunucularımız üzerinden GIPHY&apos;ye gönderilir. GIF görüntüleri ve videoları cihazınız tarafından
-        doğrudan GIPHY sunucularından yüklenir; bu nedenle GIPHY IP adresinizi ve standart cihaz bilgilerini alır. Bir post
-        yalnızca seçtiğiniz GIF&apos;in GIPHY kimliğini saklar. Ayrıntılar: <a href="https://giphy.com/privacy">GIPHY Gizlilik Politikası</a>.
+        GIF&apos;ler KLIPY tarafından sağlanır. Bir GIF aradığınızda arama kelimeleri, cihazınızın ülke kodu ve hesabınızdan
+        türetilmiş, sizi tanımlamayan takma bir kimlik cihazınızdan doğrudan KLIPY&apos;ye gönderilir; adınız, e-postanız veya
+        hesap kimliğiniz gönderilmez. GIF görüntüleri ve videoları da cihazınız tarafından doğrudan KLIPY sunucularından
+        yüklenir; bu nedenle KLIPY IP adresinizi ve standart cihaz bilgilerini alır. Bir post yalnızca seçtiğiniz GIF&apos;in
+        KLIPY kimliğini saklar. Ayrıntılar: <a href="https://klipy.com">klipy.com</a>.
+      </p>
+      <p>
+        KLIPY&apos;ye geçmeden önce paylaşılmış GIF&apos;ler GIPHY, Inc. sunucularından yüklenir; GIPHY bu sırada IP adresinizi ve
+        standart cihaz bilgilerini alır. Ayrıntılar: <a href="https://giphy.com/privacy">GIPHY Gizlilik Politikası</a>.
       </p>
 
       <h2>Bildirimler ve konum hatırlatmaları</h2>

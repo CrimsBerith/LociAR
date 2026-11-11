@@ -133,6 +133,30 @@ test('createPost: a GIPHY GIF is stored by id with the size GIPHY reports', asyn
   }
 });
 
+test('createPost: a KLIPY GIF is stored by slug only, with no server lookup', async () => {
+  const user = await newUser();
+  const gif = (layer) => postBody({ editData: { version: 1, layers: [
+    { id: 'aaaaaaaa-0000-4000-8000-000000000001', type: 'text', text: 'Selam' },
+    { id: 'aaaaaaaa-0000-4000-8000-000000000002', type: 'gif', provider: 'klipy', ...layer },
+  ] } });
+  const body = gif({ gifSlug: 'happy-cat-f7u--kOKp0sbu4', width: 480, height: 270, url: 'https://example.com/x.gif' });
+  await user.call('createPost', body);
+  const stored = JSON.parse((await adminDb.collection('posts').doc(body.clientMutationId).get()).get('edit_data_json'));
+  assert.deepEqual(stored.layers[1], {
+    id: 'aaaaaaaa-0000-4000-8000-000000000002', type: 'gif', provider: 'klipy', gifSlug: 'happy-cat-f7u--kOKp0sbu4',
+    width: 480, height: 270, x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, zIndex: 0,
+  });
+  for (const layer of [{ gifSlug: 'https://static.klipy.com/x.gif', width: 1, height: 1 }, { gifSlug: 'ok-gif', width: 9000, height: 1 }]) {
+    const refused = await expectFailure(user.call('createPost', gif(layer)));
+    assert.equal(refused.code, 'functions/invalid-argument', JSON.stringify(layer));
+  }
+});
+
+test('getGifConfig: a signed-in app gets the KLIPY client configuration', async () => {
+  const user = await newUser();
+  assert.deepEqual(await user.call('getGifConfig', {}), { provider: 'klipy', appKey: 'emulatorKlipyKey0123456789abcdefABCDEF', contentFilter: 'low', perPage: 24 });
+});
+
 test('searchGifs: trending results are served through the callable without exposing provider URLs', async () => {
   const user = await newUser();
   const result = await user.call('searchGifs', { query: '', offset: 0, locale: 'en' });
