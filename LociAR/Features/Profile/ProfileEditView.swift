@@ -151,7 +151,7 @@ struct ProfileEditView: View {
                     }
                 HStack {
                     Spacer()
-                    Text("\(ProfileTextPolicy.length(bio))/\(ProfileTextPolicy.bioLimit)")
+                    Text(verbatim: "\(ProfileTextPolicy.length(bio))/\(ProfileTextPolicy.bioLimit)")
                         .font(.caption2)
                         .foregroundStyle(LociTheme.tertiaryText)
                 }
