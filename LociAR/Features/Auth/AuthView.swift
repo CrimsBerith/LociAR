@@ -291,6 +291,7 @@ struct AuthView: View {
             request.requestedScopes = [.email, .fullName]
             request.nonce = Nonce.sha256(nonce)
         } onCompletion: { result in
+            if case .failure(let error) = result, (error as? ASAuthorizationError)?.code == .canceled { return }
             guard case .success(let authorization) = result,
                   let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let tokenData = credential.identityToken,

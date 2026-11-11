@@ -117,7 +117,7 @@ export default function PrivacyPage() {
         Büyük GPS alanı hassas konum kontrolünü başlatır: konum notlarında bildirim gidene, alandan çıkana veya en fazla
         10 dakika; teklif varışlarında en fazla iki dakika. Not uzaktayken daha düşük hassasiyet kullanılır.
         Konum notu girişi 15–100 m yarıçaplı alanda, ölçüm belirsizliği alana değdiğinde (en fazla 20 m tolerans,
-        35 m'den kötü ölçümler sayılmaz), yürüme hızında ve en az beş saniye arayla iki uyumlu ölçümle kabul edilir.
+        35 m'den kötü ölçümler sayılmaz), yürüme hızında ve en az on saniye arayla iki uyumlu ölçümle kabul edilir.
         Teklif varışları da aynı kuralla, 15–100 m yarıçapta kontrol edilir; mağazanın önünden yürüyerek veya araçla geçmek yeterlidir.
         Teklif seçiminde, gönüllü paylaştığınız son konum kampanyanın belirlediği süre kadar (en fazla 24 saat) eski olabilir; hiçbir yer ev olarak etiketlenmez.
         Arka planda Her zaman konum izni ve Kesin Konum gerekir; iOS konum göstergesini gösterir. İnternet ve güncel sunucu onayı gerekir.
@@ -134,7 +134,7 @@ export default function PrivacyPage() {
         saklanmaz. Kampanya ilerlemeniz ve size verilen kodlar kampanya bitiminden 30 gün sonra silinir. Yeni kampanya veya not
         bölgenizde yayına girdiğinde telefon, yaklaşık 39 × 20 km&apos;lik bölge kanalı üzerinden sessiz bir bildirimle listesini yeniler.</p>
       <p>Bulunduğunuz noktaya anonim konum notu bırakabilirsiniz; otomatik içerik filtresinden geçip hemen yayınlanır. Not, telefonunuzun ölçtüğü
-        konuma veya bu konumun en fazla 50 m yakınına elle koyduğunuz pine kaydedilir; ölçüm doğruluğu ve pinin kaydırıldığı
+        konuma veya bu konumun en fazla 12 m yakınına elle koyduğunuz pine kaydedilir; ölçüm doğruluğu ve pinin kaydırıldığı
         mesafe de saklanır. Ziyaret doğrulanmaz. Yetkili yöneticiler not ve yazar bağlantısını özel panelde görür.
         Notlar beğeniye göre sıralanır. Bir gününü doldurmuş hesaplardan yeterli beğeni alan not, oraya gelen kişilere bildirim
         olarak gider; her kişiye her not en fazla bir kez gönderilir. Farklı kişilerden yeterli şikayet alan not otomatik gizlenir. Notlar kendiliğinden eskimez; yönetici bitiş tarihi koyabilir veya

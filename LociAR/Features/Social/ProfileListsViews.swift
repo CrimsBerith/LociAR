@@ -562,7 +562,11 @@ struct MyPostsView: View {
         defer { isDeleting = false }
         do {
             if session.isLocalPreview || container.isBackendConfigured {
-                try await container.posts.removeOwnPost(id: post.id)
+                do { try await container.posts.removeOwnPost(id: post.id) }
+                catch let error as PostPublishError {
+                    // "Not found": a queued or refused draft never reached the server, so only the local copy exists.
+                    guard pendingIDs.contains(post.id) || failedIDs.contains(post.id) else { throw error }
+                }
             } else {
                 throw URLError(.notConnectedToInternet)
             }

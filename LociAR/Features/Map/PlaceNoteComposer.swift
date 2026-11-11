@@ -528,9 +528,10 @@ struct PlaceNoteComposer: View {
             await submit(pin: pin, source: .manual, measured: measured, user: user.id)
             return
         }
-        if let fix = cameraFix, fix.isUsable(at: Date()) {
+        // The author confirmed this spot in the camera; it stays valid while they finish typing.
+        if let fix = cameraFix, LocationNotePolicy.cameraFixUsable(fix, at: Date()) {
             let measured = LocationEstimate(latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy, timestamp: fix.timestamp)
-            await submit(pin: measured.coordinate, source: .geospatial, measured: measured, user: user.id)
+            await submit(pin: measured.coordinate, source: .geospatial, measured: measured, user: user.id, maxAge: LocationNotePolicy.maxCameraFixAge)
             return
         }
         cameraFix = nil
@@ -556,7 +557,8 @@ struct PlaceNoteComposer: View {
         return String(localized: "Konum çok belirsiz (±\(meters) m). Açık bir alana çıkıp tekrar dene.")
     }
 
-    private func submit(pin: CLLocationCoordinate2D, source: PlaceNoteClient.Source, measured: LocationEstimate, user: UUID) async {
+    private func submit(pin: CLLocationCoordinate2D, source: PlaceNoteClient.Source, measured: LocationEstimate, user: UUID,
+                        maxAge: TimeInterval = ProximityPolicy.maxFixAge) async {
         let id = mutation
         guard ownsIntent(id, user: user) else { return }
         let age = Date().timeIntervalSince(measured.timestamp)
@@ -564,11 +566,11 @@ struct PlaceNoteComposer: View {
             message = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin.")
             return
         }
-        guard measured.accuracy < ProximityPolicy.maxHorizontalAccuracy else {
+        guard LocationNotePolicy.acceptsCreate(accuracy: measured.accuracy, manualPin: source == .manual) else {
             message = Self.tooUncertain(min(measured.accuracy, 1_000_000))
             return
         }
-        guard age.isFinite, age >= 0, age < ProximityPolicy.maxFixAge, !measurement.denied else {
+        guard age.isFinite, age >= 0, age < maxAge, !measurement.denied else {
             message = String(localized: "Konum alınamadı. Açık bir alanda kısa süre bekleyip tekrar deneyin.")
             return
         }

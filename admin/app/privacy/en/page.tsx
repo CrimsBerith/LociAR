@@ -110,7 +110,7 @@ export default function PrivacyPageEn() {
         about 500 m. A larger GPS area wakes a precise location check: for location notes until a reminder is sent, you
         leave the area, or at most 10 minutes; for offer arrivals at most two minutes. Lower accuracy is used while notes
         are still far away. Location-note entry uses a 15–100 m radius: your reported uncertainty may touch the area (at most
-        20 m tolerance; fixes worse than 35 m are ignored), at walking speed, with two agreeing fixes at least five seconds apart.
+        20 m tolerance; fixes worse than 35 m are ignored), at walking speed, with two agreeing fixes at least ten seconds apart.
         Offer arrivals use the same rule with a 15–100 m radius; walking or driving past the shop counts. Offer selection may use
         your last voluntarily shared location up to the campaign&apos;s age limit (at most 24 hours); no place is labelled home. Background use requires Always location
         permission and Precise Location and displays the iOS location indicator. Internet and current server approval are
@@ -127,7 +127,7 @@ export default function PrivacyPageEn() {
         codes issued to you are deleted 30 days after the campaign ends. When a campaign or note goes live in your area, a silent
         notification on an area channel of about 39 × 20 km tells the phone to refresh its list.</p>
       <p>You can leave an anonymous location note where you are; it passes an automatic content filter and is published at once. The note is saved at the
-        position your phone measured, or at a pin you place by hand within 50 m of it; the measured accuracy and the pin
+        position your phone measured, or at a pin you place by hand within 12 m of it; the measured accuracy and the pin
         distance are stored too. Attendance is not verified. Authorized administrators see the note and author association
         privately. Notes are ordered by likes. A note liked by enough accounts older than a day is sent as a reminder to people
         who come there; each note reaches each person at most once. Notes reported by enough different people are hidden automatically. Notes do not expire on their own; administrators
