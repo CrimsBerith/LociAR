@@ -32139,6 +32139,83 @@
         }
       }
     },
+    "Notlarda bağlantı paylaşılamıyor. Bağlantıyı kaldırıp tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notlarda bağlantı paylaşılamıyor. Bağlantıyı kaldırıp tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Links can't be shared in notes. Remove the link and try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Links können in Notizen nicht geteilt werden. Entfernen Sie den Link und versuchen Sie es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pueden compartir enlaces en las notas. Quita el enlace y vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les liens ne peuvent pas être partagés dans les notes. Supprimez le lien et réessayez."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não é possível compartilhar links nas notas. Remova o link e tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В заметках нельзя делиться ссылками. Удалите ссылку и повторите попытку."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يمكن مشاركة الروابط في الملاحظات. أزل الرابط وحاول مرة أخرى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट्स में लिंक साझा नहीं किए जा सकते। लिंक हटाएँ और पुनः प्रयास करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোটে লিংক শেয়ার করা যায় না। লিংকটি সরিয়ে আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモにリンクは共有できません。リンクを削除して再試行してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "笔记中不能分享链接。请删除链接后重试。"
+          }
+        }
+      }
+    },
     "Notları ayrıntı ekranından bu koleksiyona ekleyebilirsin." : {
       "extractionState" : "manual",
       "localizations" : {

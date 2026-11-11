@@ -497,9 +497,10 @@ final class BackendAndPolicyTests: XCTestCase {
         let textOnly = String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text and GIF posts are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts are allowed"), textOnly)
-        XCTAssertEqual(FirestorePostRepository.serverMessage("Links are not allowed"), textOnly)
-        XCTAssertEqual(FirestorePostRepository.serverMessage("Only moderated text without links is allowed"), textOnly)
-        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "links_not_allowed"), textOnly)
+        let noLinks = String(localized: "Notlarda bağlantı paylaşılamıyor. Bağlantıyı kaldırıp tekrar dene.")
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Links are not allowed"), noLinks)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Only moderated text without links is allowed"), noLinks)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "links_not_allowed"), noLinks)
         XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "content_not_allowed"),
                        String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene."))
         XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "invalid_caption"),
