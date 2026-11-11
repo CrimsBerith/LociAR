@@ -315,25 +315,26 @@ struct SavedPostsView: View {
 struct BlockedUsersView: View {
     @Environment(AppSession.self) private var session
     @Environment(AppContainer.self) private var container
-    @State private var ids: [UUID] = []
+    @State private var profiles: [BlockedProfile] = []
     @State private var message: String?
     @State private var isLoading = true
     var body: some View {
         Group {
             if isLoading { LociLoadingView(title: String(localized: "Engellenen hesaplar yükleniyor…")) }
-            else if ids.isEmpty {
+            else if profiles.isEmpty {
                 if let message {
                     LociEmptyState.failure(message: message, retry: container.isBackendConfigured ? { Task { await load() } } : nil)
                 } else {
                     LociEmptyState(title: String(localized: "Engellenen hesap yok"), message: String(localized: "Engellediğin hesaplar burada görünür."), symbol: "person.crop.circle.badge.xmark")
                 }
             } else {
-                List(ids, id: \.self) { id in
+                List(profiles) { profile in
                     HStack(spacing: LociTheme.Spacing.m) {
-                        LociAvatar(handle: "E", size: 42)
-                        Text("Engellenen hesap").font(.headline)
+                        LociAvatar(handle: profile.handle ?? "?", avatarURL: profile.avatarPreset.flatMap(AvatarReference.presetURL), size: 42)
+                        Text(profile.handle.map { "@\($0)" } ?? String(localized: "Silinmiş hesap"))
+                            .font(.headline).lineLimit(1)
                         Spacer()
-                        Button("Engeli kaldır") { Task { await unblock(id) } }.buttonStyle(LociCompactButtonStyle())
+                        Button("Engeli kaldır") { Task { await unblock(profile.id) } }.buttonStyle(LociCompactButtonStyle())
                     }
                     .listRowBackground(Color.clear)
                 }
@@ -344,21 +345,21 @@ struct BlockedUsersView: View {
         .navigationTitle("Engellenenler").task { await load() }
     }
     private func load() async {
-        isLoading = ids.isEmpty
+        isLoading = profiles.isEmpty
         message = nil
         defer { isLoading = false }
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else {
             message = String(localized: "Engellenen hesaplar için sunucu bağlantısı gerekiyor.")
             return
         }
-        do { ids = try await container.social.blockedUserIDs(for: user.id) }
+        do { profiles = try await container.social.blockedProfiles(for: user.id) }
         catch { message = String(localized: "Engellenen hesaplar şu anda yüklenemiyor.") }
     }
     private func unblock(_ id: UUID) async {
         guard case let .signedIn(user) = session.phase, container.isBackendConfigured else { return }
         do {
             try await container.social.setBlocked(false, targetID: id, userID: user.id)
-            ids.removeAll { $0 == id }
+            profiles.removeAll { $0.id == id }
             message = nil
         } catch { message = String(localized: "Engel kaldırılamadı. Tekrar dene.") }
     }

@@ -360,3 +360,23 @@ test('avatars: pending uploads nobody screened are deleted after 48 hours', asyn
   await purgeStalePendingAvatars(Date.now() + 49 * 3_600_000);
   assert.equal((await getStorage().bucket().file(path).exists())[0], false);
 });
+
+test('Blocked accounts lists only the caller\'s own blocks with handle and preset, never photos or reverse blocks', async () => {
+  const [me, blockedUser, gone, blocksMe] = await Promise.all([newUser(), newUser(), newUser(), newUser()]);
+  await adminDb.collection('profiles').doc(blockedUser.luid).update({ avatar_preset: 'cat', avatar_url: 'storage://avatars/x/current/y.jpg', bio: 'secret' });
+  for (const target of [blockedUser, gone]) {
+    await adminDb.collection('user_blocks').doc(`${me.luid}_${target.luid}`).set({ blocker_id: me.luid, blocked_id: target.luid, created_at: FieldValue.serverTimestamp() });
+  }
+  await adminDb.collection('user_blocks').doc(`${blocksMe.luid}_${me.luid}`).set({ blocker_id: blocksMe.luid, blocked_id: me.luid, created_at: FieldValue.serverTimestamp() });
+  await adminDb.collection('profiles').doc(gone.luid).update({ deleted_at: FieldValue.serverTimestamp() });
+  const { profiles } = await me.call('readPublicContent', { mode: 'blocked' });
+  const byId = new Map(profiles.map(p => [p.id, p]));
+  assert.equal(profiles.length, 2);
+  const shown = byId.get(blockedUser.luid);
+  assert.equal(typeof shown.handle, 'string');
+  assert.equal(shown.avatar_preset, 'cat');
+  assert.deepEqual(Object.keys(shown).sort(), ['avatar_preset', 'handle', 'id']);
+  assert.deepEqual(byId.get(gone.luid), { id: gone.luid, handle: null, avatar_preset: null });
+  assert.equal(byId.has(blocksMe.luid), false, 'a block against the caller is never revealed');
+  assert.deepEqual((await blocksMe.call('readPublicContent', { mode: 'blocked' })).profiles.map(p => p.id), [me.luid]);
+});
