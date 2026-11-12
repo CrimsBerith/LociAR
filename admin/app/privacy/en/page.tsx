@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPageEn() {
   return (
-    <LegalLayout title="Privacy policy" updated="October 26, 2026" lang="en">
+    <LegalLayout title="Privacy policy" updated="November 13, 2026" lang="en">
       <p>
         LociAR is an iOS app for sharing short text notes anchored to real-world surfaces. This
         policy explains which personal data we process. <Link href="/privacy">Türkçe sürüm</Link>

@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="26 Ekim 2026">
+    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="13 Kasım 2026">
       <p>
         LociAR, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.10 kapsamında aydınlatma metni olarak da

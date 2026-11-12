@@ -60,7 +60,7 @@ yeni adresin sayfalarda görünmesi gönderimden önce doğrulanmalı.
 
 ## 4. Uygulama Gizlilik Bildirimi (App Privacy - Nutrition Labels)
 
-`LociAR/Resources/PrivacyInfo.xcprivacy` ile birebir aynı App Store Connect yanıtları (12 veri türü; manifest
+`LociAR/Resources/PrivacyInfo.xcprivacy` ile birebir aynı App Store Connect yanıtları (13 veri türü; manifest
 değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manifesti doğrular):
 
 ### Veri Toplama: "Evet, bu uygulamadan veri topluyoruz"
@@ -75,6 +75,7 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 | **Name** | Evet | Hayır | App Functionality — Apple ile girişte paylaşılan ad |
 | **Photos or Videos** | Evet | Hayır | App Functionality — yalnız isteğe bağlı profil fotoğrafı (post olarak fotoğraf/video yok) |
 | **Other User Content** | Evet | Hayır | App Functionality — metin mesajı, KLIPY GIF slug'ı, yorum, beğeni, AR kaydı |
+| **Search History** (Arama Geçmişi) | Evet | Hayır | App Functionality — GIF arama kelimeleri cihazdan doğrudan KLIPY'ye gider (hesaptan türetilmiş takma kimlikle; ad, e-posta, hesap kimliği gitmez). Takma kimlik hesaptan türetildiği için temkinli olarak "kimlikle ilişkili" işaretlenir |
 | **Product Interaction** | Evet | Hayır | App Functionality, Analytics — görüntülenme/beğeni sayaçları |
 | **Device ID** | Evet | Hayır | App Functionality — push bildirim belirteci (FCM/APNs) |
 | **Crash Data** | Hayır | Hayır | App Functionality — Firebase Crashlytics (kapatılabilir) |

@@ -81,6 +81,7 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeUserID"))
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypePhotosorVideos"))
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherUserContent"))
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeSearchHistory"), "GIF search words go from the device to KLIPY")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeName"), "Apple full name is sent to ensureProfile")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeProductInteraction"), "views/likes and analytics_events")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCoarseLocation"), "analytics_events keep approximate location")
