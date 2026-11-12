@@ -28,10 +28,10 @@ async function protectedPageRedirect(request: NextRequest) {
 const CONNECT = "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com";
 const COMMON = "font-src 'self'; object-src 'none'; frame-src https://*.firebaseapp.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 const IMG = "img-src 'self' data: blob:";
-// Moderators review GIF posts: admin pages may show KLIPY media, and GIPHY media of older posts
+// Moderators review GIF posts: admin pages may show KLIPY media.
 // (images only, no scripts or frames). KLIPY media URLs are looked up in the moderator's browser.
 // Map pickers for zones and notes load OpenStreetMap raster tiles (images only).
-const ADMIN_IMG = `${IMG} https://media.giphy.com https://static.klipy.com https://static1.klipy.com https://static2.klipy.com https://tile.openstreetmap.org`;
+const ADMIN_IMG = `${IMG} https://static.klipy.com https://static1.klipy.com https://static2.klipy.com https://tile.openstreetmap.org`;
 const ADMIN_CONNECT = `${CONNECT} https://api.klipy.com`;
 
 /** Admin and sign-in pages are rendered per request, so they get a per-request script nonce. */

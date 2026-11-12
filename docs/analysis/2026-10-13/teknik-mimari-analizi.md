@@ -109,7 +109,7 @@ SyncQueueProcessor yalnız publish_post işlemini yürütür. Her hesap yalnız 
 
 ## 7. Medya, avatar ve Storage güvenliği
 
-Yeni post modeli text ve en fazla bir GIPHY GIF'idir. GIPHY anahtarı Secret Manager'dadır; searchGifs ve createPost sunucuda kullanır. GIF id'si doğrulanır, rating en fazla pg-13 olur; boyut sunucunun GIPHY yanıtından alınır. İstemci yalnız izinli media.giphy.com URL'si kurar. Yeni fotoğraf, video, çizim ve URL reddedilir. Eski payload çözümlenirken crash olmaması gerekir; eski linkler gösterilmez.
+Yeni post modeli text ve en fazla bir GIF'tir. GIF id'si doğrulanır; rating ve boyut sunucu yanıtından alınır. Yeni fotoğraf, video, çizim ve URL reddedilir. Eski payload çözümlenirken crash olmaması gerekir; eski linkler gösterilmez.
 
 Avatar bu post medya kısıtlamasından ayrıdır. beginAvatarUpload saatlik yükleme slotu açar, istemci pending alanına sınırlandırılmış JPEG yükler. Pending avatar okunamaz. screenAvatar Cloud Vision SafeSearch ile tarar; yayınlanan current avatarı ve profil alanını yalnız sunucu değiştirir. Preset seçme ve avatarı temizleme kurallı profil istisnasıdır.
 
@@ -406,7 +406,6 @@ Kaynak index.ts’den otomatik çıkarılmıştır. Tür dağılımı: Callable:
 | markActivityRead | Callable | Alıcıya bağlı aktivitenin okunma durumunu sunucuda yazar. | activity.ts:6 |
 | createInvites | Callable | İzinli davet kodu oluşturma. | invites.ts:59 |
 | redeemInvite | Callable | Davet kodunu kullanma ve kullanıcının yayın kapısı durumu. | invites.ts:91 |
-| searchGifs | Callable | Server-only anahtarla GIPHY arama ve sonuç doğrulama. | giphy.ts:116 |
 | readPublicContent | Callable | Mod bazında hesap/blok/anonim/dense kilit projeksiyonu. | publicContent.ts:52 |
 | onWorldMapFinalized | PubSub/Storage | PubSub Storage finalize üzerinden world-map güvenlik/temizlik. | mapStorageFinalize.ts:33 |
 

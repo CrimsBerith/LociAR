@@ -103,14 +103,14 @@ Anonimlik, diğer kullanıcılara yazar adının gösterilmemesidir; backend’i
 
 - Standart ve büyük erişilebilirlik yazısı, küçük ekran simülatörü, Türkçe/uzun Almanca/RTL Arapça; 12 dil katalog anahtarı kontrolü. Dynamic Type ile etiket veya uyarı küçültülerek bastırılmaz.
 - Son kart/aksiyon kaydırılarak tamamen görünür; yorum ve yayımlama klavyenin üstünde; native sekme çubuğuyla iki footer çakışmaz.
-- Not kartı: metin/GIF, kilitli/açık, anonim/adlı, List/NavigationLink/detay. Yanlışlıkla anonim profile link verilmez; GIPHY işareti kalır.
+- Not kartı: metin/GIF, kilitli/açık, anonim/adlı, List/NavigationLink/detay. Yanlışlıkla anonim profile link verilmez; KLIPY işareti kalır.
 - Keşfet: yükleme→hata→yeniden deneme→başarı→sayfalama; gerçek boş ve arama boş ayrı. Ek otomatik çağrı döngüsü veya cache politikası değişikliği eklenmez.
 - Davet: pasif yükleme ile kullanıcının kod kullanma eylemi ayrı. Ham hata gizlenirken temel arıza saklanmaz; zorla çıkış ve doğrudan veritabanı fallback yok.
 - Konum: measured fix/freshness/accuracy, 12 m düzeltme, 6 m gruplama ve uzaktan redaksiyon değişmez. Görsel panel konum okuma izni sağlamaz.
 - Anonimlik varsayılanı, aynı mutation’daki yazar görünürlüğünün sabitliği, bağımsız engel davranışları ve kendi anonim notuna yorum onayı korunur.
 - Cihaz içi çeviri, kullanıcı başlatmalı model indirme, orijinale dönüş, kilitli metin yasağı ve normal build’de gizli ödeme girişleri korunur.
 - Çeviri üretimi sonrası `python3 scripts/l10n/build_catalog.py --check`, `node scripts/check-localization.mjs --release` ve compiler-extracted key kontrolü. Gerekli build/UI/erişilebilirlik kontrolleri değişikliğe göre seçilir. Salt renk/boşluk için uygulamayı kopyalayan unit test eklenmez.
-- AR metin/GIF editörü, GIPHY seçici, diğer kullanıcı profili/takip sayfaları, yazılım klavyesi ve dolu koleksiyon gibi eksik görüntüler uygulama aşamasında ayrıca alınmalı. Bunlar mevcut görsel incelemeyle tamamlanmış sayılmaz.
+- AR metin/GIF editörü, KLIPY seçici, diğer kullanıcı profili/takip sayfaları, yazılım klavyesi ve dolu koleksiyon gibi eksik görüntüler uygulama aşamasında ayrıca alınmalı. Bunlar mevcut görsel incelemeyle tamamlanmış sayılmaz.
 - Siyah kamera ve ham auth hatasının kök nedenleri teşhis edilmedi. Canlı Firebase, fiziksel başarılı AR yerleştirme veya App Store hazır olma sonucu çıkarılmadı.
 
 **Bu turda yapılan:** üç inceleme, kanıtların bağımsız karşılaştırılması, baz çizgisi kayıt düzeltmeleri ve bu karar planı. **Yapılmayan:** SwiftUI/katalog/backend değişikliği, build/test koşusu, commit/push/deploy.

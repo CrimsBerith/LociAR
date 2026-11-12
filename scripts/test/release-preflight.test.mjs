@@ -100,7 +100,7 @@ test('deployment visits every exported function exactly once in bounded sequenti
   assert.ok(batches.every(batch => batch.length === 1));
   const names = batches.flat();
   assert.equal(new Set(names).size, names.length);
-  for (const name of ['createPost', 'searchGifs', 'onWorldMapFinalized', 'onDeletedAccountObjectFinalized']) assert.ok(names.includes(name));
+  for (const name of ['createPost', 'getGifConfig', 'onWorldMapFinalized', 'onDeletedAccountObjectFinalized']) assert.ok(names.includes(name));
   for (const size of [0, 11, 1.5]) assert.throws(() => functionDeploymentBatches(undefined, size));
 });
 

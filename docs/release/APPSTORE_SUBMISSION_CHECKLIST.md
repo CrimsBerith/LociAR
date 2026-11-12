@@ -33,7 +33,7 @@
   1. AR Camera Surface Placement ("Gerçek dünyaya not bırak").
   2. Cam Katman Glass Heat Map ("Çevrendeki notları keşfet").
   3. Location Note Detail & Interaction ("Mekâna özel ipuçları").
-  4. GIPHY AR Chat Bubble ("GIF ve metinle anlat").
+  4. KLIPY AR Chat Bubble ("GIF ve metinle anlat").
   5. Profile & Community Safety ("Güvenli ve şeffaf topluluk").
 
 ---

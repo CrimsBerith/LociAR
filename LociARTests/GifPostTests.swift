@@ -3,19 +3,7 @@ import UIKit
 @testable import LociAR
 
 final class GifPostTests: XCTestCase {
-    private let gif = GifReference(id: "l0MYt5jPR6QX5pnqM", width: 480, height: 270)!
-
-    func testGifLayerRoundTripsAsIdAndSizeOnly() throws {
-        let layer = EditLayer(id: UUID(), kind: .gif, text: nil, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0, gif: gif)
-        let data = try JSONEncoder().encode(EditData(layers: [layer]))
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let stored = try XCTUnwrap((json["layers"] as? [[String: Any]])?.first)
-        XCTAssertEqual(stored["type"] as? String, "gif")
-        XCTAssertEqual(stored["gifId"] as? String, "l0MYt5jPR6QX5pnqM")
-        XCTAssertNil(stored["uri"], "a GIF layer never carries a URL")
-        let decoded = try JSONDecoder().decode(EditData.self, from: data)
-        XCTAssertEqual(decoded.layers.first?.gif, gif)
-    }
+    private let gif = GifReference(klipySlug: "happy-cat-f7u", width: 480, height: 270)!
 
     func testKlipyGifLayerRoundTripsAsSlugAndProvider() throws {
         let klipyGif = try XCTUnwrap(GifReference(klipySlug: "happy-cat-f7u", width: 480, height: 270))
@@ -39,15 +27,6 @@ final class GifPostTests: XCTestCase {
         let valid = GifReference(klipySlug: "valid-slug_123", width: 100, height: 100)
         XCTAssertNotNil(valid)
         XCTAssertEqual(valid?.provider, .klipy)
-    }
-
-    func testGifIdsCannotCarryURLsOrPaths() {
-        for id in ["", "a/b", "../x", "https://media.giphy.com/x", "a b", "ğ", String(repeating: "a", count: 65)] {
-            XCTAssertNil(GifReference(id: id, width: 1, height: 1), id)
-        }
-        XCTAssertEqual(gif.giphyMedia?.videoURL.host, "media.giphy.com")
-        XCTAssertEqual(gif.giphyMedia?.videoURL.path, "/media/l0MYt5jPR6QX5pnqM/giphy.mp4")
-        XCTAssertEqual(gif.giphyMedia?.previewURL.path, "/media/l0MYt5jPR6QX5pnqM/200w.gif")
     }
 
     func testUnknownOrMalformedLayersAreSkippedInsteadOfFailingThePost() throws {

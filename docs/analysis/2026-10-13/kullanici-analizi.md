@@ -6,7 +6,7 @@
 
 LociAR, gerçek bir yere dijital not bırakma ve o yerdeki notları keşfetme uygulamasıdır. İki ana deneyim vardır: haritaya konum notu bırakmak ve kamerada gerçek bir yüzeye AR paylaşımı sabitlemek. Bunlara beğeni, yorum, kaydetme, koleksiyon, profil, engelleme, raporlama ve izinli bildirimler eşlik eder.
 
-Konum notu için mağaza kataloğundan işletme seçmek gerekmez. Kullanıcı o anda bulunduğu yeri ölçer, kısa metnini yazar ve orada yayınlar. AR paylaşımında ise kameranın orta hedefiyle bir yüzey seçilir; metin ve/veya bir GIPHY GIF'i o yüzeye yerleştirilir. Bu iki deneyim aynı şey değildir: GPS notu fiziksel duvara kilitli AR nesnesi sayılmaz.
+Konum notu için mağaza kataloğundan işletme seçmek gerekmez. Kullanıcı o anda bulunduğu yeri ölçer, kısa metnini yazar ve orada yayınlar. AR paylaşımında ise kameranın orta hedefiyle bir yüzey seçilir; metin ve/veya bir GIF o yüzeye yerleştirilir. Bu iki deneyim aynı şey değildir: GPS notu fiziksel duvara kilitli AR nesnesi sayılmaz.
 
 ![Kullanıcı özellik haritası](../../../output/pdf/images/01-kullanici-deneyimi.png)
 
@@ -24,7 +24,7 @@ Girişten sonra varsayılan açılış Harita'dır. Alt menüde AR, Harita, Payl
 |---|---|---|
 | Harita | Yakındaki paylaşımları, konum notlarını ve yoğun noktaları görmek; not bırakmak | Konum doğruluğu ve internet sonuçları etkiler |
 | AR | Yakındaki paylaşımı kamerada aramak ve görmek | Fiziksel yüzeyin tanınması cihaz, ışık ve çevreye bağlıdır |
-| Paylaş | Yüzey seçip metin ve/veya tek GIPHY GIF'i yayınlamak | Normal AR yayınları varsayılan olarak moderasyona girer |
+| Paylaş | Yüzey seçip metin ve/veya tek GIF yayınlamak | Normal AR yayınları varsayılan olarak moderasyona girer |
 | Keşfet | Yerel konumdan bağımsız yayın listesini ve post önizlemesini açmak | Önizleme ile fiziksel AR kilidini çözmek farklı işlemlerdir |
 | Profil | Kendi postları, aktivite, koleksiyonlar, kaydedilenler, davet, ayarlar ve engeller | Anonim postlar başkasının profilinde yazarı açığa çıkaracak şekilde listelenmez |
 
@@ -62,7 +62,7 @@ Kullanıcı o konuma yaklaşır, Harita'da Burada aç veya Kamerayla aç eylemin
 
 Kullanıcı Paylaş veya AR üretim akışında kamerayı açar, uygun yüzeyi tarar ve orta hedefle Yüzeye sabitle eylemini kullanır. Normal sabitleme algılanmış düzlem geometrisini kullanır. Yaklaşık yerleştirme ayrıca seçilir ve yaklaşık olarak etiketlenir.
 
-Editörde metin ve/veya bir GIPHY GIF'i kullanılır. Yeni fotoğraf, kendi videosu, çizim, sosyal medya bağlantısı veya başka URL ekleme yoktur. Profil fotoğrafı yüklemek ayrı bir özelliktir; bu yasak profil avatarını kapsamıyor. GIF anahtarı telefonda bulunmaz; arama ve doğrulama sunucudan yapılır.
+Editörde metin ve/veya bir GIF kullanılır. Yeni fotoğraf, kendi videosu, çizim, sosyal medya bağlantısı veya başka URL ekleme yoktur. Profil fotoğrafı yüklemek ayrı bir özelliktir; bu yasak profil avatarını kapsamıyor.
 
 Yayın önce yerel taslak/kuyruğa kaydedilir. Sunucu kabulü sonrası yayın durumu görünür. Normal AR paylaşımının varsayılan durumu pending_review'dur; yetkili moderasyon sonrasında active olur. Konum notunun hemen yayınlanma kuralı AR gönderilerine otomatik olarak uygulanmaz.
 

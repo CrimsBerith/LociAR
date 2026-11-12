@@ -25,7 +25,7 @@ Fixe mensagens e GIFs em superfícies reais! Descubra notas e dicas locais em AR
 ```text
 Deixe notas em lugares reais.
 
-O LociAR permite fixar mensagens curtas e GIFs em superfícies reais (uma mesa, o chão, uma parede) para que outras pessoas os encontrem como um balão de mensagem exatamente onde você os deixou. GIFs fornecidos pelo GIPHY.
+O LociAR permite fixar mensagens curtas e GIFs em superfícies reais (uma mesa, o chão, uma parede) para que outras pessoas os encontrem como um balão de mensagem exatamente onde você os deixou. GIFs fornecidos pelo KLIPY.
 
 RECURSOS
 • Fixe em superfícies reais: a mira central se prende às superfícies detectadas pelo ARKit; o Google ARCore Cloud Anchors e o Geospatial mostram sua publicação de novo no mesmo ponto.

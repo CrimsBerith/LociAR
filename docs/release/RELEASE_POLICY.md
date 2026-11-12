@@ -35,7 +35,7 @@ LociAR adheres to strict Semantic Versioning (`MAJOR.MINOR.PATCH`) accompanied b
    - Creator support payments are **strictly disabled** in release builds (`PostSupportAvailability.releaseBuilds = false`).
    - Digital tips, crypto transfers, and third-party checkout flows are retired and concealed.
 2. **Media Uploads**:
-   - Photo and video file uploads are retired. Posts consist strictly of UTF-8 text and approved GIPHY identifiers (`giphy_id`).
+   - Photo and video file uploads are retired. Posts consist strictly of UTF-8 text and validated KLIPY GIF slugs (`gifSlug`).
    - External URL hyperlinks within posts are prohibited and scrubbed by Cloud Functions.
 3. **Guest Sessions**:
    - Anonymous browsing is allowed, but interactive writes (comments, posts) require verified Apple Sign-In or verified Email identity.

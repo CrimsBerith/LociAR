@@ -1,18 +1,15 @@
-/** Moderator-facing summary of a stored post: text layers, the GIF (KLIPY, or GIPHY on older posts), legacy drawing strokes and legacy links. */
+/** Moderator-facing summary of a stored post: text layers, the KLIPY GIF, legacy drawing strokes and legacy links. */
 
 export type DrawingStroke = { color: string; points: Array<{ x: number; y: number }> };
 export type PostContentSummary = {
   texts: string[];
-  /** GIPHY ids (letters and digits only, as createPost stored them before the KLIPY switch). */
-  gifs: string[];
-  /** KLIPY slugs (letters, digits, `-`, `_`), as createPost stores them now. */
+  /** KLIPY slugs (letters, digits, `-`, `_`). */
   klipyGifs: string[];
   strokes: DrawingStroke[];
   source: { platform: string; url: string | null; title: string | null; author: string | null } | null;
 };
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
-const GIF_ID = /^[A-Za-z0-9]{1,64}$/;
 const KLIPY_SLUG = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const KLIPY_KEY = /^[A-Za-z0-9]{16,128}$/;
 const KLIPY_MEDIA_HOST = /^static\d*\.klipy\.com$/;
@@ -39,7 +36,6 @@ function str(value: unknown, max: number): string | null {
 
 export function summarizePostContent(post: Record<string, unknown>): PostContentSummary {
   const texts: string[] = [];
-  const gifs: string[] = [];
   const klipyGifs: string[] = [];
   const strokes: DrawingStroke[] = [];
   const edit = parseJson(post.edit_data_json) as { layers?: unknown } | null;
@@ -48,10 +44,8 @@ export function summarizePostContent(post: Record<string, unknown>): PostContent
     const layer = (raw ?? {}) as Record<string, unknown>;
     const type = String(layer.type ?? layer.kind ?? '');
     if (type === 'gif') {
-      if (gifs.length + klipyGifs.length >= 1) continue;
-      if (layer.provider === 'klipy') {
-        if (typeof layer.gifSlug === 'string' && KLIPY_SLUG.test(layer.gifSlug)) klipyGifs.push(layer.gifSlug);
-      } else if (typeof layer.gifId === 'string' && GIF_ID.test(layer.gifId)) gifs.push(layer.gifId);
+      if (klipyGifs.length >= 1) continue;
+      if (layer.provider === 'klipy' && typeof layer.gifSlug === 'string' && KLIPY_SLUG.test(layer.gifSlug)) klipyGifs.push(layer.gifSlug);
     } else if (type === 'drawing' && Array.isArray(layer.points) && strokes.length < MAX_STROKES) {
       const points = layer.points.slice(0, MAX_POINTS).flatMap((p: unknown) => {
         const { x, y } = (p ?? {}) as { x?: unknown; y?: unknown };
@@ -72,7 +66,7 @@ export function summarizePostContent(post: Record<string, unknown>): PostContent
         author: str(preview.author, 120),
       }
     : null;
-  return { texts, gifs, klipyGifs, strokes, source };
+  return { texts, klipyGifs, strokes, source };
 }
 
 /** A usable KLIPY app key for the moderator preview, or null when none is configured. */
@@ -99,11 +93,6 @@ export function klipyPreviewFromItems(body: unknown): string | null {
     } catch { /* not a URL */ }
   }
   return null;
-}
-
-/** The small animated rendition of a GIPHY GIF, built from a validated id only. */
-export function giphyPreviewUrl(id: string): string | null {
-  return GIF_ID.test(id) ? `https://media.giphy.com/media/${id}/200w.gif` : null;
 }
 
 /** Maps all strokes into a `size`×`size` box, keeping aspect ratio. Returns SVG polyline `points` strings. */

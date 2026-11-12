@@ -9,13 +9,13 @@ from typing import Any
 PROJECT = 'lociar-2f38c'
 REGION = 'us-central1'
 BUCKET = f'{PROJECT}.firebasestorage.app'
-SCHEMA_VERSION = 2
-RESOURCE_KEYS = ('project', 'services', 'firestore', 'ttl', 'functions', 'scheduler', 'storage', 'apple_secret_versions', 'giphy_secret_versions', 'storage_notifications')
+SCHEMA_VERSION = 3
+RESOURCE_KEYS = ('project', 'services', 'firestore', 'ttl', 'functions', 'scheduler', 'storage', 'apple_secret_versions', 'klipy_secret_versions', 'storage_notifications')
 STORAGE_FINALIZERS = {'onWorldMapFinalized', 'onDeletedAccountObjectFinalized'}
 # Secret Manager secrets the Functions need; only version names and states are read, never values.
 REQUIRED_SECRETS = {
     'apple_secret_versions': ('APPLE_PRIVATE_KEY', 'apple_secret_unavailable', 'At least one Apple private-key secret version must be ENABLED; no value is read.'),
-    'giphy_secret_versions': ('GIPHY_API_KEY', 'giphy_secret_unavailable', 'At least one GIPHY API key secret version must be ENABLED (GIF search and GIF posts); no value is read.'),
+    'klipy_secret_versions': ('KLIPY_APP_KEY', 'klipy_secret_unavailable', 'At least one KLIPY app key secret version must be ENABLED; only metadata is read.'),
 }
 LEGACY_PREFIXES = {'post-layer-assets/', 'post-video-assets/', 'post-reference-images/', 'post-surface-textures/'}
 

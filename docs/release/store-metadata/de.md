@@ -25,7 +25,7 @@ Befestige Nachrichten und GIFs an echten Flächen! Entdecke Ortsnotizen und loka
 ```text
 Hinterlasse Notizen an echten Orten.
 
-Mit LociAR heftest du kurze Nachrichten und GIFs an echte Flächen (Tisch, Boden, Wand), damit andere sie als Nachrichtenblase genau dort finden, wo du sie hinterlassen hast. GIFs werden von GIPHY bereitgestellt.
+Mit LociAR heftest du kurze Nachrichten und GIFs an echte Flächen (Tisch, Boden, Wand), damit andere sie als Nachrichtenblase genau dort finden, wo du sie hinterlassen hast. GIFs werden von KLIPY bereitgestellt.
 
 FUNKTIONEN
 • An echte Flächen heften: Das Fadenkreuz in der Mitte rastet auf von ARKit erkannte Flächen ein; Google ARCore Cloud Anchors und Geospatial zeigen deinen Beitrag wieder an derselben Stelle.

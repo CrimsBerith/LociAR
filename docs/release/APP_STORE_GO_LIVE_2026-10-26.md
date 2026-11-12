@@ -82,7 +82,7 @@ inceleme notları ve rehber güncellendi. Yapılacaklar:
    openssl rand -hex 32 | ./functions/node_modules/.bin/firebase functions:secrets:set SUPPORT_CRYPTO_IPN_SECRET --project lociar-2f38c --data-file=-
    ```
 
-   Diğer secret'lar (`APPLE_PRIVATE_KEY`, `GIPHY_API_KEY`, `SUPPORT_STRIPE_SECRET_KEY`,
+   Diğer secret'lar (`APPLE_PRIVATE_KEY`, `KLIPY_APP_KEY`, `SUPPORT_STRIPE_SECRET_KEY`,
    `SUPPORT_STRIPE_WEBHOOK_SECRET`) 25 Ekim'de mevcuttu.
 2. `bash scripts/firebase-deploy.command` — önce yerel kapıları çalıştırır, sonra kuralları/indeksleri, her
    fonksiyonu tek tek yayınlar, en sonda emekli 7 fonksiyonu ve zamanlayıcılarını siler. Yarıda durursa hatayı oku,
@@ -121,7 +121,7 @@ Release yapılandırmasıyla (TestFlight derlemesi en iyisi) şu akışlar hatas
 - Misafir: harita, ısı haritası, grup listesi, beğen, şikâyet et, engelle.
 - Apple ile giriş ve e-posta ile kayıt + doğrulama; koşullar onay kutusu.
 - Konum notu bırak (Kullanırken izni); AR'da yüzeye not sabitle ve yeniden aç (Google ARCore uyarısı görünür).
-- GIF ara ve GIF'li not yayınla ("Powered by GIPHY" görünür).
+- KLIPY'de GIF ara ve GIF'li not yayınla ("Powered by KLIPY" görünür).
 - Bildirimler: beğeni/yorum push'u başka hesaptan gelsin; Ayarlar → Bildirimler → "Her Zaman" izni.
 - Hesap sil (Apple hesabıyla): Apple onayı istenir, hesap ve içerik gider.
 - Destek düğmesi ve Profil → Kazançlarım **görünmemeli** (Release).
@@ -143,7 +143,7 @@ asgari liste gönderim kapısı, tam matris yayın sonrası ilk hafta.
 Rehberdeki değerlerle: [APP_STORE_SUBMISSION_GUIDE.md](APP_STORE_SUBMISSION_GUIDE.md).
 
 - App Information: ad, alt başlık, kategori (Social Networking / Navigation), Content Rights → üçüncü taraf içerik
-  var (GIPHY), yaş anketi (UGC evet, özel mesajlaşma hayır, reklam: yayında aktif marka kampanyası varsa evet; çıkan sonucu
+  var (KLIPY), yaş anketi (UGC evet, özel mesajlaşma hayır, reklam: yayında aktif marka kampanyası varsa evet; çıkan sonucu
   kullan).
 - Business → **DSA tüccar durumu** (AB dahil global yayın için zorunlu).
 - Pricing and Availability: ücretsiz; bölgeler (AGENTS.md: global — yol haritası ilk sürüm için yalnız Türkiye
@@ -165,8 +165,6 @@ Rehberdeki değerlerle: [APP_STORE_SUBMISSION_GUIDE.md](APP_STORE_SUBMISSION_GUI
 
 ## 10. Yayın kapısı ama inceleme kapısı değil
 
-- **GIPHY production anahtarı:** beta anahtar saatte ~100 çağrı; inceleme için yeter, lansman için yetmez.
-  TestFlight/App Store bağlantısıyla başvur: [GIPHY_PRODUCTION_KEY.md](GIPHY_PRODUCTION_KEY.md).
 - Moderatör e-posta uyarıları (şikâyetlerin 24 saatte ele alınması için): optimizasyon planı madde 50.
 - AR ekranındaki teknik tarama satırı ("Takip · Harita · özellik · düzlem · mesh") Release'de de görünüyor; ret
   sebebi değil, ama 1.1'de sade bir ilerleme göstergesiyle değiştirilmesi önerilir (fiziksel cihaz testleri bu

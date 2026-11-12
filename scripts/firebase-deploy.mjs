@@ -13,7 +13,7 @@ const REGION = 'us-central1';
  * scheduled function also deletes its Cloud Scheduler job: the seven retired schedules now run as tasks
  * of the three free jobs in functions/src/schedules.ts (21 Oct 2026).
  */
-export const RETIRED_FUNCTIONS = Object.freeze(['retryAccountDeletions', 'retryAvatarDeletions', 'retryRemovedMedia',
+export const RETIRED_FUNCTIONS = Object.freeze(['searchGifs', 'retryAccountDeletions', 'retryAvatarDeletions', 'retryRemovedMedia',
   'expireScheduledNotes', 'cleanupPostMedia', 'reconcilePostCounters', 'reconcileNoteDensity']);
 
 /** Retired functions still deployed in the region, from `firebase functions:list --json` output. */

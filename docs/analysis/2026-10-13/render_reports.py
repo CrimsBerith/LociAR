@@ -96,7 +96,7 @@ def user_diagram():
     box(d,(650,265,1730,510),'Yerle ilişkili içerik keşfi','Harita: yakın notlar ve yoğun noktalar\nKeşfet: yayın önizlemesi\nAR: fiziksel konumda yüzeyi yeniden arama','blue')
     arrow(d,[(585,372),(630,372)],kind='blue')
     box(d,(70,555,570,885),'Konum notu','Bulunduğun yerde 220 karakter metin\nFiltre sonrası hemen görünür\nBildirim onayı ayrıca gerekir','teal',badge='A')
-    box(d,(650,555,1150,885),'AR paylaşımı','Kamerada yüzeye sabitle\nMetin ve/veya tek GIPHY GIF\nVarsayılan moderasyon bekler','coral',badge='B')
+    box(d,(650,555,1150,885),'AR paylaşımı','Kamerada yüzeye sabitle\nMetin ve/veya tek GIF\nVarsayılan moderasyon bekler','coral',badge='B')
     box(d,(1230,555,1730,885),'Sosyal ve profil','Beğeni / yorum / kaydet\nKişisel koleksiyonlar\nEngelle / bildir / hesabı sil','gold')
     arrow(d,[(900,520),(900,533),(320,533),(320,542)],kind='teal')
     arrow(d,[(900,520),(900,542)],kind='coral')
@@ -180,7 +180,7 @@ def data_diagram():
     box(d,(1210,265,1730,600),'Admin operasyonu','Moderasyon / içerik / kampanya\nÖzel veri için ayrı izin\nAudit / işlem receipt / approvals\nMFA + aktör/hesap çiti','coral',size=31)
     arrow(d,[(335,615),(335,655),(900,655),(900,615)],'Sosyal trigger: kaynak satırdan tekrar sayım',kind='teal',label_at=(405,635))
     box(d,(70,705,590,1025),'Cihazda kalan','DraftRecord / SyncQueueRecord\nHesaba bağlı tercihler ve cache\nAlışılmış yer öğrenimi\nBulutun sosyal gerçeği değildir','gray',size=31)
-    box(d,(640,705,1160,1025),'Storage / dış servis','World map: claim + owner çiti\nAvatar: slot + Vision moderasyonu\nARCore: sınırlı token + sahiplik\nGIPHY: anahtar yalnız sunucuda','gold',size=31)
+    box(d,(640,705,1160,1025),'Storage / dış servis','World map: claim + owner çiti\nAvatar: slot + Vision moderasyonu\nARCore: sınırlı token + sahiplik\nGIF: harici medya sağlayıcısı','gold',size=31)
     box(d,(1210,705,1730,1025),'Silme ve saklama','32 aktif TTL politikası\nNot alındısı: süresiz, TTL yok\nHesap silme: tekrar eden cascade\nTTL tek başına izin vermez','blue',size=31)
     save(im,'07-veri-ve-guven-sinirlari.png')
 
@@ -254,7 +254,6 @@ FUNCTION_PURPOSE={
 'markActivityRead':'Alıcıya bağlı aktivitenin okunma durumunu sunucuda yazar.',
 'createInvites':'İzinli davet kodu oluşturma.',
 'redeemInvite':'Davet kodunu kullanma ve kullanıcının yayın kapısı durumu.',
-'searchGifs':'Server-only anahtarla GIPHY arama ve sonuç doğrulama.',
 'readPublicContent':'Mod bazında hesap/blok/anonim/dense kilit projeksiyonu.',
 'onWorldMapFinalized':'PubSub Storage finalize üzerinden world-map güvenlik/temizlik.',
 }

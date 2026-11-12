@@ -14,7 +14,7 @@
 Welcome to **LociAR** — Stories tied to real places!
 
 Leave your mark in the real world with augmented reality and spatial notes:
-- **Augmented Reality Anchors**: Drop 3D text and animated GIPHY stickers anchored precisely to street surfaces and landmarks using advanced ARCore Geospatial and ARKit technology.
+- **Augmented Reality Anchors**: Drop 3D text and animated KLIPY stickers anchored precisely to street surfaces and landmarks using advanced ARCore Geospatial and ARKit technology.
 - **Interactive Glass Map**: Explore notes and stories left by creators around your neighborhood and across 46 major world cities.
 - **Privacy-First Sharing**: Share publicly with your username or leave anonymous notes with differential privacy protections.
 - **Arrival Notifications**: Receive nearby note alerts as you explore your city, without continuous background battery drain.

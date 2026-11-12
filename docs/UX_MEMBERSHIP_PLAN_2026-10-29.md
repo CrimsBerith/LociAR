@@ -14,7 +14,7 @@ Kullanıcı kararı: uygulamaya girmek için doğrulanmış Apple veya e-posta �
 | Harita | Konum notu ve AR notu doğrudan iki eylem olarak kalır | Ek seçim menüsü yok; harita atıfları görünür |
 | AR yerleştirme | Kısa yönlendirme; tek yaklaşık yerleştirme seçeneği; teknik sayaçlar yalnız Debug tanılamasında | Fiziksel ve yaklaşık yerleştirme birbirinden anlaşılır |
 | İçerik oluşturma | Caption yerine Mesajın; kısa yer tutucu; teknik yardımcı açıklama kaldırılır | 220 UTF-16 sınırı, metin ve tek GIF korunur |
-| GIF | Kısa hata/boş arama metinleri; tekrar deneme | Powered by GIPHY görünür |
+| GIF | Kısa hata/boş arama metinleri; tekrar deneme | Powered by KLIPY görünür |
 | Not ayrıntısı | Başlık Not; yinelenen profil kartı kaldırılır | Anonim notta profil bağlantısı yok |
 | Kaydetme | Tek dokunuşla kaydet; koleksiyon Diğer menüsünde | Sahip olunan notlar da koleksiyona eklenebilir |
 | Konum notu AR | İkincil AR eylemi Diğer menüsünde | Yerinde okuma ana akışı önde kalır |

@@ -14,7 +14,7 @@
 | **Contact Info** | Email address (Apple relay or direct email) | Firebase Auth / `users_private` | YES | NO | Account authentication, service notifications |
 | **Identifiers** | User ID (`luid`), Device Token (`fcm_token`) | Firebase Firestore | YES | NO | Session routing, APNs push delivery |
 | **Location** | Precise GPS coordinates (lat/lng, altitude) | Encrypted Firestore | NO (When anonymous) / YES (When attributed) | NO | Placing AR text/GIF notes and discovering nearby content |
-| **User Content** | Post text, GIPHY ID, comments | Firestore `posts` collection | Optional (Anonymous vs Attributed) | NO | Core social service functionality |
+| **User Content** | Post text, KLIPY GIF slug and dimensions, comments | Firestore `posts` collection | Optional (Anonymous vs Attributed) | NO | Core social service functionality |
 | **Diagnostics** | Crash stack traces, performance logs | Firebase Crashlytics & Performance | NO (Pseudonymous device ID) | NO | Reliability, crash diagnosis, regression prevention |
 | **Usage Data** | App launches, screen views | Local device / Minimal Firebase Analytics | NO | NO | Product improvement, thermal budget management |
 

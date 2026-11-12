@@ -92,7 +92,7 @@ Post publication, profile creation, handles, counters, activity, push devices an
 - Like, comment, save and follow counters are maintained only by Cloud Functions Firestore triggers; clients cannot write them (rules deny).
 - The `recordPostView` callable requires an authenticated user, enforces visibility/block rules, and deduplicates by post, user, and UTC day.
 - The client replaces its view count with the callable result instead of inventing a local success count.
-- Posts contain text and/or one KLIPY GIF; legacy GIPHY GIFs remain renderable. Social media links and new drawings were removed on 9 Oct 2026; the server refuses URLs and clients ignore legacy links. Existing drawings remain decodable.
+- Posts contain text and/or one KLIPY GIF. Legacy GIF layers without a KLIPY slug are skipped, not fetched or rendered. Social media links and new drawings were removed on 9 Oct 2026; the server refuses URLs and clients ignore legacy links. Existing drawings remain decodable.
 
 ## Lifecycle and recovery
 

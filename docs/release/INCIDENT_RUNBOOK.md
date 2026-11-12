@@ -12,7 +12,7 @@
 |---|---|---|---|
 | **P0 / Critical** | Service-wide outage, credential compromise, systemic crash on launch (>2% of sessions), data loss | **< 15 minutes** | Activate Emergency Kill-Switch; halt App Store phased rollout; invoke immediate hotfix branch |
 | **P1 / High** | Core flow failure (e.g., Apple Sign-In fails, AR anchors fail to resolve across all devices, account deletion fails) | **< 1 hour** | Halt phased rollout; deploy backend patch or Cloud Function rollback; push hotfix within 24h |
-| **P2 / Medium** | Non-blocking feature failure (e.g., GIPHY search slow, spatial tile cache miss, localized string defect) | **< 24 hours** | Triage defect; prepare fix for next scheduled patch release |
+| **P2 / Medium** | Non-blocking feature failure (e.g., KLIPY search slow, spatial tile cache miss, localized string defect) | **< 24 hours** | Triage defect; prepare fix for next scheduled patch release |
 | **P3 / Low** | Cosmetic alignment, rare edge-case UI rendering, minor logging noise | **Next Sprint** | Log to GitHub issues backlog |
 
 ---

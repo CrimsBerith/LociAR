@@ -33,7 +33,7 @@
 2. Point the iPhone camera at a horizontal or vertical textured surface (such as a desk or floor).
 3. Move the device slightly so ARKit detects the surface plane.
 4. The center reticle will animate into a focused state. Tap the screen to open the creation editor.
-5. Enter a test message (e.g., "Welcome App Review team!"), optionally pick a GIPHY GIF from the search sheet, and tap **Publish**.
+5. Enter a test message (e.g., "Welcome App Review team!"), optionally pick a KLIPY GIF from the search sheet, and tap **Publish**.
 6. The post will instantly anchor to that physical surface in 3D augmented reality space.
 
 ### 2.3 Community Safety & Reporting
@@ -60,7 +60,7 @@
 2. **External Links Are Blocked**:
    - To maintain safety and prevent spam, users cannot post external URLs (social media, websites, etc.).
 3. **No Direct User Photo/Video Uploads in Posts**:
-   - AR posts support text and GIPHY GIFs only. User-submitted photos/videos are not allowed for posts (avatars are the only image uploads).
+   - AR posts support text and KLIPY GIFs only. User-submitted photos/videos are not allowed for posts (avatars are the only image uploads).
 4. **Testing in Non-AR Environments**:
    - If testing on a desk without sufficient surface texture, ARKit may take a few seconds to detect planes. Simply tilt the device slightly across the floor or table surface.
 

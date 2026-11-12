@@ -49,7 +49,7 @@ observations. JSON fields beyond the metadata projection are discarded.
 | Storage notifications | Full-bucket `OBJECT_FINALIZE` identity notifications, payload `NONE`, to the topic derived from `storageFinalizeEvents.ts` |
 | Storage finalizers | Pub/Sub Functions in `us-central1`, correct topic, retry enabled; see [delivery setup](../STORAGE_FINALIZE_DELIVERY.md) |
 | Apple private key | At least one `APPLE_PRIVATE_KEY` Secret Manager version in the same project is `ENABLED`; only version metadata is read |
-| GIPHY key | At least one `GIPHY_API_KEY` version is `ENABLED`; only metadata is read |
+| KLIPY app key | At least one `KLIPY_APP_KEY` version is `ENABLED`; only metadata is read |
 | Collection | All ten metadata commands succeeded; missing/failed observations cannot pass |
 
 This is an infrastructure metadata gate. It does not attest source-code revision, deployed Rules

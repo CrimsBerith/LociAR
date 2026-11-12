@@ -1,5 +1,4 @@
-/** A GIPHY GIF id (posts made before the KLIPY switch): letters and digits only, so it can never carry a URL or a path. */
-export const GIPHY_ID = /^[A-Za-z0-9]{1,64}$/;
+import { reasonError } from './errors';
 
 /**
  * A KLIPY GIF slug as KLIPY returns it (`happy-cat-f7u`, or `happy-cat-f7u--kOKp0sbu4` from a
@@ -31,11 +30,24 @@ export function klipyGifLayer(layer: Record<string, unknown>): KlipyGifLayer | n
   return { gifSlug, width: w, height: h };
 }
 
-/** True when the layer names exactly one GIF: a KLIPY slug, or a GIPHY id from an older app build. */
+/** True only for one KLIPY GIF. A `gifId` is refused. */
 export function isValidGifLayer(layer: Record<string, unknown>): boolean {
-  const hasGiphy = layer.gifId != null;
-  const hasKlipy = layer.gifSlug != null || layer.provider != null;
-  if (hasGiphy === hasKlipy) return false;
-  if (hasKlipy) return klipyGifLayer(layer) !== null;
-  return typeof layer.gifId === 'string' && GIPHY_ID.test(layer.gifId);
+  if (layer.gifId != null) return false;
+  return klipyGifLayer(layer) !== null;
+}
+
+/** Keeps a validated KLIPY slug and size. Other GIF identifiers are refused. */
+export function resolveGifLayers(editData: { layers?: unknown[] }): void {
+  const layers = editData.layers ?? [];
+  for (const [index, raw] of layers.entries()) {
+    const layer = (raw ?? {}) as Record<string, unknown>;
+    const type = layer.type ?? layer.kind;
+    if (type !== 'gif') continue;
+    const klipy = klipyGifLayer(layer);
+    if (!klipy) throw reasonError('invalid-argument', 'GIF not available', 'gif_invalid');
+    layers[index] = {
+      id: layer.id, type: 'gif', provider: 'klipy', gifSlug: klipy.gifSlug, width: klipy.width, height: klipy.height,
+      x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, zIndex: 0,
+    };
+  }
 }

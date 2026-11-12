@@ -25,6 +25,12 @@ struct AuthView: View {
     @AppStorage(TermsConsent.storageKey) private var acceptedTermsVersion = ""
     @FocusState private var focusedField: Field?
 
+    /// UI sweeps type both password fields. `.newPassword` raises the iOS strong-password
+    /// sheet, which keeps keyboard focus off the confirmation field.
+    private var uiTestTypesPasswords: Bool {
+        ProcessInfo.processInfo.arguments.contains("UITEST_SIGNED_OUT")
+    }
+
     var body: some View {
         ZStack {
             LociTheme.spatialGradient.ignoresSafeArea()
@@ -156,7 +162,7 @@ struct AuthView: View {
                             SecureField("Şifre", text: $password)
                         }
                     }
-                    .textContentType(mode == .signUp ? .newPassword : .password)
+                    .textContentType(uiTestTypesPasswords ? nil : (mode == .signUp ? .newPassword : .password))
                     .focused($focusedField, equals: .password)
                     .submitLabel(mode == .signUp ? .next : .go)
                     .onSubmit {
@@ -180,7 +186,7 @@ struct AuthView: View {
 
                 if mode == .signUp {
                     SecureField("Şifreyi tekrar yaz", text: $passwordConfirmation)
-                        .textContentType(.newPassword)
+                        .textContentType(uiTestTypesPasswords ? nil : .newPassword)
                         .focused($focusedField, equals: .confirmation)
                         .submitLabel(.go)
                         .onSubmit { if canSubmit { Task { await submit() } } }

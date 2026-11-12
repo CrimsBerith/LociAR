@@ -74,7 +74,7 @@ export default function PrivacyPage() {
         <li><strong>Google Cloud Vision:</strong> profil fotoğraflarının çıplaklık, şiddet ve benzeri içerik açısından otomatik incelenmesi.
           Fotoğraf yalnızca bu inceleme için gönderilir; reddedilen fotoğraflar silinir.</li>
         <li><strong>Google ARCore:</strong> AR konumlandırma (aşağıda).</li>
-        <li><strong>KLIPY:</strong> GIF arama ve GIF gösterimi (aşağıda). Daha önce paylaşılmış GIF&apos;ler GIPHY&apos;den gösterilir.</li>
+        <li><strong>KLIPY:</strong> GIF arama ve GIF gösterimi (aşağıda).</li>
       </ul>
       <p>
         Herkese açık gönderiler diğer kullanıcılara görünür. Yeni notlar varsayılan olarak anonimdir; kullanıcı adınızı göstermeyi seçerseniz adınız ve profiliniz notla birlikte görünür. Anonim gönderilerde yazarın adı ve profili gizlenir. Yetkili kurumların hukuka uygun talepleri
@@ -92,17 +92,13 @@ export default function PrivacyPage() {
         <a href="https://policies.google.com/privacy">Google Gizlilik Politikası</a>.
       </p>
 
-      <h2>KLIPY ve GIPHY (GIF&apos;ler)</h2>
+      <h2>KLIPY (GIF&apos;ler)</h2>
       <p>
         GIF&apos;ler KLIPY tarafından sağlanır. Bir GIF aradığınızda arama kelimeleri, cihazınızın ülke kodu ve hesabınızdan
         türetilmiş, sizi tanımlamayan takma bir kimlik cihazınızdan doğrudan KLIPY&apos;ye gönderilir; adınız, e-postanız veya
         hesap kimliğiniz gönderilmez. GIF görüntüleri ve videoları da cihazınız tarafından doğrudan KLIPY sunucularından
         yüklenir; bu nedenle KLIPY IP adresinizi ve standart cihaz bilgilerini alır. Bir post yalnızca seçtiğiniz GIF&apos;in
         KLIPY kimliğini saklar. Ayrıntılar: <a href="https://klipy.com">klipy.com</a>.
-      </p>
-      <p>
-        KLIPY&apos;ye geçmeden önce paylaşılmış GIF&apos;ler GIPHY, Inc. sunucularından yüklenir; GIPHY bu sırada IP adresinizi ve
-        standart cihaz bilgilerini alır. Ayrıntılar: <a href="https://giphy.com/privacy">GIPHY Gizlilik Politikası</a>.
       </p>
 
       <h2>Bildirimler ve konum hatırlatmaları</h2>

@@ -233,12 +233,12 @@ extension AuthGateUITests {
         gif.tap()
         XCTAssertTrue(app.navigationBars["GIF seç"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["gif-attribution"].exists || app.descendants(matching: .any)["gif-attribution"].exists)
-        capture(app, name: "screen-33-giphy-picker")
+        capture(app, name: "screen-33-klipy-picker")
         let gifResult = app.buttons["gif-result"].firstMatch
-        XCTAssertTrue(gifResult.waitForExistence(timeout: 8), "GIPHY picker fixture must return a selectable GIF")
+        XCTAssertTrue(gifResult.waitForExistence(timeout: 8), "KLIPY picker fixture must return a selectable GIF")
         gifResult.tap()
         XCTAssertTrue(app.descendants(matching: .any)["create-gif-preview"].waitForExistence(timeout: 5))
-        capture(app, name: "screen-33b-giphy-selected")
+        capture(app, name: "screen-33b-klipy-selected")
     }
 
     func testScreenTour08LocationNoteAndSurface() {

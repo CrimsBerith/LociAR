@@ -30,7 +30,7 @@ Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App 
   dahil ölçütlerle hesap sahibi kendi durumunu değerlendirir; tüccar ise doğrulanmış adres, telefon ve e-posta
   AB mağaza sayfasında görünür. [Apple'ın öz değerlendirme ölçütleri](https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements/).
 * **Üçüncü taraf içerik (Content Rights):** "Evet, üçüncü taraf içerik içerir ve gerekli haklara sahibim" —
-  GIF'ler GIPHY API koşullarıyla gösterilir, "Powered by GIPHY" atfı arama ekranında var.
+  GIF arama ve medya KLIPY üzerinden yapılır, arama ekranında "Powered by KLIPY" atfı vardır.
 * **Build numarası:** `project.yml` → `CURRENT_PROJECT_VERSION`. İlk yükleme `1`; App Store Connect'e her yeni
   yükleme (TestFlight dahil) için bir artırılır, sonra `xcodegen generate`.
 * **Diller:** 12 dil (tr, en, de, es, fr, pt, ru, ar, hi, bn, ja, zh-Hans). App Store Connect'te her dil için
@@ -74,7 +74,7 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 | **Email Address** | Evet | Hayır | App Functionality — giriş ve hesap doğrulama |
 | **Name** | Evet | Hayır | App Functionality — Apple ile girişte paylaşılan ad |
 | **Photos or Videos** | Evet | Hayır | App Functionality — yalnız isteğe bağlı profil fotoğrafı (post olarak fotoğraf/video yok) |
-| **Other User Content** | Evet | Hayır | App Functionality — metin mesajı, GIPHY GIF kimliği, yorum, beğeni, AR kaydı |
+| **Other User Content** | Evet | Hayır | App Functionality — metin mesajı, KLIPY GIF slug'ı, yorum, beğeni, AR kaydı |
 | **Product Interaction** | Evet | Hayır | App Functionality, Analytics — görüntülenme/beğeni sayaçları |
 | **Device ID** | Evet | Hayır | App Functionality — push bildirim belirteci (FCM/APNs) |
 | **Crash Data** | Hayır | Hayır | App Functionality — Firebase Crashlytics (kapatılabilir) |
@@ -87,7 +87,7 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 ## 5. Yaş Derecelendirmesi (Age Rating)
 
 Uygulama Kullanıcı Tarafından Üretilen İçerik (UGC) barındırdığı için Apple anketinde şu yanıtlar verilmelidir:
-* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin mesajı ve/veya GIPHY'den bir GIF paylaşabilir; fotoğraf, video, çizim veya bağlantı yok. GIF'ler GIPHY `pg-13` sınırıyla aranır ve sunucuda yeniden doğrulanır. Postlar otomatik metin filtresi, bağlantı yasağı, korumalı bölge ve 18+ kontrollerinden geçince hemen yayınlanır; denetim sonradan yapılır: şikâyet, birden çok şikâyette otomatik gizleme, 24 saat içinde moderatör incelemesi — sahip kararı 18 Ekim 2026)
+* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin mesajı ve/veya KLIPY'den bir GIF paylaşabilir; fotoğraf, video, çizim veya bağlantı yok. GIF araması `low` içerik filtresiyle cihazda yapılır. Postlar otomatik metin filtresi, bağlantı yasağı, korumalı bölge ve 18+ kontrollerinden geçince hemen yayınlanır; denetim sonradan yapılır: şikâyet, birden çok şikâyette otomatik gizleme, 24 saat içinde moderatör incelemesi — sahip kararı 18 Ekim 2026)
 * **Mesajlaşma / sohbet:** Hayır (özel mesaj yok; yorumlar herkese açık ve şikâyet edilebilir)
 * **Reklam:** Üçüncü taraf reklam SDK'sı yok. Marka teklifleri (varsayılan kapalı, ayrı onaylı) reklam sayılır:
   yayında aktif kampanya varsa "Evet", yoksa "Hayır" de ve ilk kampanyadan önce cevabı güncelle.

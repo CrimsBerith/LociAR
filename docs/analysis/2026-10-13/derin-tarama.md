@@ -106,7 +106,7 @@ Politika medya/link kaynak nesnesini ve katmanın `uri` alanını kontrol ediyor
 
 **Tekrar üretme:** açıklaması ve text katmanı `https://example.com/product` olan yeni anonim `createPost` çağrısı kabul edildi, `pending_review` kaydedildi. Varsayılan moderasyon kapısı korunuyor; ancak yasak içerik ilk kabul kapısını geçiyor.
 
-**Düzeltme:** metin URL denetimini konum notu, AR post ve admin yeni post/edit işlemlerinin ortak giriş politikasına taşı. GIF kimliğinden sunucunun kurduğu GIPHY medya adreslerini kullanıcı metniyle karıştırma. Legacy kaynakların güvenli çözülmesini ve linklerin gösterilmemesini koru.
+**Düzeltme:** metin URL denetimini konum notu, AR post ve admin yeni post/edit işlemlerinin ortak giriş politikasına taşı. GIF kimliğinden sunucunun kurduğu medya adreslerini kullanıcı metniyle karıştırma. Legacy kaynakların güvenli çözülmesini ve linklerin gösterilmemesini koru.
 
 ## F9 — kutup çevresinde boş geohash listesi boş sonuç sayılıyor
 

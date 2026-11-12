@@ -39,7 +39,7 @@ The testing strategy follows the risk-based testing pyramid specified in Section
 | `ClientRequestCacheTests.swift` | 20 | 0 | **PASS** | Request caching, deduplication, cache eviction, offline bounds. |
 | `DiagnosticsReporterTests.swift` | 7 | 0 | **PASS** | In-app diagnostics logging, telemetry redaction, error reporting. |
 | `DomainContractTests.swift` | 15 | 0 | **PASS** | Domain model parsing, serialization contracts, data boundaries. |
-| `GifPostTests.swift` | 5 | 0 | **PASS** | GIPHY attribution, ID playback, layer limits. |
+| `GifPostTests.swift` | 5 | 0 | **PASS** | KLIPY attribution, slug playback, layer limits. |
 | `LaunchReadabilityTests.swift` | 4 | 0 | **PASS** | App launch sequence, initialization checks, state restoration. |
 | `LegacyImporterTests.swift` | 2 | 0 | **PASS** | Legacy schema import and backward compatibility. |
 | `LocationNoteTests.swift` | 37 | 0 | **PASS** | 12m placement displacement fence, 15–100m reading radii, on-site decryption checks. |
@@ -69,7 +69,7 @@ The testing strategy follows the risk-based testing pyramid specified in Section
 - **Total Tests**: 192 passed, 0 failed.
 - **Key Modules Tested**:
   - `auth.test.mjs`: `ensureProfile`, `luid` derivation, account deletion with Apple token revocation.
-  - `posts.test.mjs`: `createPost` link filtering, adult phrase detection, GIPHY ID validation, rate limits.
+  - `posts.test.mjs`: `createPost` link filtering, adult phrase detection, KLIPY slug validation, rate limits.
   - `notes.test.mjs`: `placeNote` 12m GPS clamp, radius enforcement, remote text redaction.
   - `mapCells.test.mjs`: Spatial cell aggregation, 6m cluster grouping.
   - `maintenance.test.mjs`: 3 scheduled jobs limitation, retry queues, orphan anchor cleanup.

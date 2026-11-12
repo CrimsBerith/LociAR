@@ -299,13 +299,7 @@ struct ARExperienceView: View {
                         .accessibilityIdentifier("ar-pin-diagnostic")
                 }
 #if DEBUG
-                DisclosureGroup(String(localized: "Tanılama")) {
-                    Text(engine.mappingDiagnosticSummary)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(LociTheme.secondaryText)
-                        .accessibilityIdentifier("ar-mapping-diagnostic")
-                }
-                .font(.caption)
+                MappingDiagnosticDisclosure(summary: engine.mappingDiagnosticSummary)
 #endif
             }
         }
@@ -668,4 +662,39 @@ struct ARExperienceView: View {
         return (engine.trackingQuality == .normal || engine.trackingQuality == .limited) && engine.mappingQuality.canPersist
     }
 
+}
+
+/// Debug mapping readout. A plain button keeps a stable identifier. `DisclosureGroup`
+/// does not expose `ar-mapping-diagnostic` until it is open, and its button label is not stable.
+struct MappingDiagnosticDisclosure: View {
+    var summary: String
+    var ink: Color = LociTheme.secondaryText
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {
+            Button {
+                expanded.toggle()
+            } label: {
+                HStack(spacing: LociTheme.Spacing.xs) {
+                    Text("Tanılama")
+                    Spacer(minLength: 4)
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .imageScale(.small)
+                        .accessibilityHidden(true)
+                }
+                .frame(maxWidth: .infinity, minHeight: LociTheme.Control.minimumTapTarget, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("ar-mapping-diagnostic-toggle")
+            if expanded {
+                Text(summary)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(ink)
+                    .accessibilityIdentifier("ar-mapping-diagnostic")
+            }
+        }
+        .font(.caption)
+    }
 }

@@ -25,7 +25,7 @@ Gerçek yüzeylere mesaj ve GIF'ler sabitle! Çevrendeki mekân notlarını ve y
 ```text
 Gerçek dünyayı dijital hikâyelerle zenginleştirin.
 
-LociAR, kısa mesajlarınızı ve GIF'lerinizi gerçek yüzeylere (masa, zemin, duvar) sabitlemenizi sağlar; başkaları onları tam bıraktığınız yerde, bir mesaj balonu olarak bulur. GIF'ler GIPHY tarafından sağlanır.
+LociAR, kısa mesajlarınızı ve GIF'lerinizi gerçek yüzeylere (masa, zemin, duvar) sabitlemenizi sağlar; başkaları onları tam bıraktığınız yerde, bir mesaj balonu olarak bulur. GIF'ler KLIPY tarafından sağlanır.
 
 ÖZELLİKLER
 • Gerçek yüzeye sabitle: Merkez nişangâh ARKit ile algılanan yüzeye kilitlenir; Google ARCore Cloud Anchors ve Geospatial gönderinizi aynı noktada yeniden gösterir.

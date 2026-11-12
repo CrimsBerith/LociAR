@@ -25,7 +25,7 @@ Des notes sur des lieux réels
 ```text
 Laissez des notes dans des lieux réels.
 
-LociAR vous permet d'épingler de courts messages et des GIF sur de vraies surfaces (une table, le sol, un mur) pour que d'autres les trouvent sous forme de bulle de message exactement là où vous les avez laissés. GIF fournis par GIPHY.
+LociAR vous permet d'épingler de courts messages et des GIF sur de vraies surfaces (une table, le sol, un mur) pour que d'autres les trouvent sous forme de bulle de message exactement là où vous les avez laissés. GIF fournis par KLIPY.
 
 FONCTIONNALITÉS
 • Épinglez sur de vraies surfaces : le réticule central se cale sur les surfaces détectées par ARKit ; Google ARCore Cloud Anchors et Geospatial réaffichent votre publication au même endroit.

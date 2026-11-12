@@ -23,7 +23,7 @@ final class KlipyTests: XCTestCase {
             "https://staticx.klipy.com/a.gif",
             "https://user@static.klipy.com/a.gif",
             "https://static.klipy.com:8443/a.gif",
-            "https://media.giphy.com/media/x/giphy.gif",
+            "https://evil.example/x.gif",
             "file:///private/var/a.gif",
         ] {
             XCTAssertFalse(KlipyAPI.isMediaURL(try url(refused)), refused)
@@ -162,7 +162,7 @@ final class KlipyTests: XCTestCase {
         XCTAssertEqual(calls.filter { $0 == "offline" }.count, 3)
     }
 
-    func testSearchResultsAreRegisteredAndGiphyNeedsNoLookup() async throws {
+    func testSearchResultsAreRegisteredWithoutAnotherLookup() async throws {
         let resolver = KlipyMediaResolver(lookup: { _ in
             XCTFail("no lookup expected")
             return .failed
@@ -172,11 +172,6 @@ final class KlipyTests: XCTestCase {
         let klipy = try XCTUnwrap(GifReference(klipySlug: "picked-gif", width: 1, height: 1))
         let resolved = await resolver.media(for: klipy)
         XCTAssertEqual(resolved, picked)
-
-        let giphy = try XCTUnwrap(GifReference(id: "l0MYt5jPR6QX5pnqM", width: 480, height: 270))
-        let legacy = await resolver.media(for: giphy)
-        XCTAssertEqual(legacy?.previewURL.host, "media.giphy.com")
-        XCTAssertNil(klipy.giphyMedia)
     }
 
     func testResolverForgetsAnswersAfterTheirLifetime() async throws {

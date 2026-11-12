@@ -479,7 +479,7 @@ extension AuthGateUITests {
         app.tabBars.buttons["Paylaş"].tap()
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 8))
         XCTAssertFalse(app.staticTexts["Kameradan canlı görüntü alınamadı. Tekrar deneyin."].exists)
-        let diagnosticsButton = app.buttons["Tanılama"]
+        let diagnosticsButton = app.buttons["ar-mapping-diagnostic-toggle"]
         XCTAssertTrue(diagnosticsButton.waitForExistence(timeout: 5), "Camera diagnostics were not available.")
         diagnosticsButton.tap()
         let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
@@ -1264,18 +1264,18 @@ extension AuthGateUITests {
             if gifBtn.exists {
                 gifBtn.tap()
                 RunLoop.current.run(until: Date().addingTimeInterval(1.0))
-                capture(app, name: "29_Paylas_GIPHY_Secici_Modal")
+                capture(app, name: "29_Paylas_KLIPY_Secici_Modal")
 
                 if app.searchFields.firstMatch.waitForExistence(timeout: 3),
                    focusAndType(app.searchFields.firstMatch, "Istanbul", in: app) {
                     RunLoop.current.run(until: Date().addingTimeInterval(1.0))
-                    capture(app, name: "30_Paylas_GIPHY_Arama_Sonuclari")
+                    capture(app, name: "30_Paylas_KLIPY_Arama_Sonuclari")
                 }
 
                 if app.buttons["Kapat"].exists {
                     app.buttons["Kapat"].tap()
                     RunLoop.current.run(until: Date().addingTimeInterval(0.5))
-                    capture(app, name: "31_Paylas_GIPHY_Kapatildi_Editore_Donus")
+                    capture(app, name: "31_Paylas_KLIPY_Kapatildi_Editore_Donus")
                 }
             }
 

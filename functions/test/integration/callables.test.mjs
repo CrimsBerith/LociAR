@@ -1,27 +1,6 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
 import { adminAuth, adminDb, closeClients, expectFailure, newUser, postBody } from './_harness.mjs';
-import { GIPHY_STUB_PORT } from './prepare-env.mjs';
-
-// Stub for https://api.giphy.com/v1/gifs/{id}; GIPHY_API_BASE_URL points here in the emulator.
-const giphyGifs = {
-  okGif1: { id: 'okGif1', title: 'Wave', rating: 'g', images: { original: { width: '480', height: '270' } } },
-  adultGif: { id: 'adultGif', title: 'x', rating: 'r', images: { original: { width: '480', height: '270' } } },
-};
-const giphyStub = createServer((req, res) => {
-  const url = new URL(req.url, 'http://stub');
-  const isSearch = url.pathname === '/v1/gifs/trending' || url.pathname === '/v1/gifs/search';
-  const gif = giphyGifs[url.pathname.replace('/v1/gifs/', '')];
-  if (url.searchParams.get('api_key') !== 'emulator-giphy-key' || (!gif && !isSearch)) {
-    res.writeHead(404, { 'content-type': 'application/json' }).end('{}');
-    return;
-  }
-  const data = isSearch ? [giphyGifs.okGif1] : gif;
-  res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ data }));
-});
-before(() => new Promise((resolve) => giphyStub.listen(GIPHY_STUB_PORT, '127.0.0.1', resolve)));
-after(() => new Promise((resolve) => giphyStub.close(resolve)));
 
 before(async () => {
   // Each createPost admission reads the current active zones without a process cache.
@@ -117,20 +96,13 @@ test('createPost: only text is accepted, no photos and no links', async () => {
   assert.equal(ok.publishStatus, 'active');
 });
 
-test('createPost: a GIPHY GIF is stored by id with the size GIPHY reports', async () => {
+test('createPost: a gifId is refused', async () => {
   const user = await newUser();
-  const gif = (gifId) => postBody({ editData: { version: 1, layers: [
+  const refused = await expectFailure(user.call('createPost', postBody({ editData: { version: 1, layers: [
     { id: 'aaaaaaaa-0000-4000-8000-000000000001', type: 'text', text: 'Selam' },
-    { id: 'aaaaaaaa-0000-4000-8000-000000000002', type: 'gif', gifId, width: 1, height: 1 },
-  ] } });
-  const body = gif('okGif1');
-  await user.call('createPost', body);
-  const stored = JSON.parse((await adminDb.collection('posts').doc(body.clientMutationId).get()).get('edit_data_json'));
-  assert.deepEqual(stored.layers[1], { id: 'aaaaaaaa-0000-4000-8000-000000000002', type: 'gif', gifId: 'okGif1', width: 480, height: 270, x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, zIndex: 0 });
-  for (const gifId of ['unknownGif', 'adultGif']) {
-    const refused = await expectFailure(user.call('createPost', gif(gifId)));
-    assert.equal(refused.details?.reason, 'gif_invalid', gifId);
-  }
+    { id: 'aaaaaaaa-0000-4000-8000-000000000002', type: 'gif', gifId: 'okGif1', width: 10, height: 10 },
+  ] } })));
+  assert.equal(refused.details?.reason, 'gif_invalid');
 });
 
 test('createPost: a KLIPY GIF is stored by slug only, with no server lookup', async () => {
@@ -155,15 +127,6 @@ test('createPost: a KLIPY GIF is stored by slug only, with no server lookup', as
 test('getGifConfig: a signed-in app gets the KLIPY client configuration', async () => {
   const user = await newUser();
   assert.deepEqual(await user.call('getGifConfig', {}), { provider: 'klipy', appKey: 'emulatorKlipyKey0123456789abcdefABCDEF', contentFilter: 'low', perPage: 24 });
-});
-
-test('searchGifs: trending results are served through the callable without exposing provider URLs', async () => {
-  const user = await newUser();
-  const result = await user.call('searchGifs', { query: '', offset: 0, locale: 'en' });
-  assert.deepEqual(result, {
-    gifs: [{ id: 'okGif1', title: 'Wave', width: 480, height: 270 }],
-    nextOffset: null,
-  });
 });
 
 test('createPost: protected zones are hard-blocked with a reason', async () => {

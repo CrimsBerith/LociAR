@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { gifConfig } from '../lib/gifConfig.js';
-import { isValidGifLayer, klipyGifLayer } from '../lib/gifId.js';
-import { resolveGifLayers } from '../lib/giphy.js';
+import { isValidGifLayer, klipyGifLayer, resolveGifLayers } from '../lib/gifId.js';
 
 test('gifConfig validates KLIPY key format and returns config object', () => {
   const validKey = 'emulatorKlipyKey0123456789abcdefABCDEF';
@@ -34,7 +33,7 @@ test('klipyGifLayer validates slug and dimensions', () => {
 
 test('isValidGifLayer accepts exactly one provider format', () => {
   assert.equal(isValidGifLayer({ provider: 'klipy', gifSlug: 'cat-dance', width: 200, height: 200 }), true);
-  assert.equal(isValidGifLayer({ gifId: 'l0MYt5jPR6QX5pnqM' }), true);
+  assert.equal(isValidGifLayer({ gifId: 'l0MYt5jPR6QX5pnqM' }), false);
 
   // Both
   assert.equal(isValidGifLayer({ provider: 'klipy', gifSlug: 'cat-dance', width: 200, height: 200, gifId: 'l0MYt5jPR6QX5pnqM' }), false);

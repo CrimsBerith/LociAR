@@ -333,12 +333,6 @@
       "line": 91
     },
     {
-      "name": "searchGifs",
-      "module": "functions/src/giphy.ts",
-      "kind": "onCall",
-      "line": 116
-    },
-    {
       "name": "readPublicContent",
       "module": "functions/src/publicContent.ts",
       "kind": "onCall",

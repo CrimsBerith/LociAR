@@ -13,7 +13,7 @@
 LociAR is a location-anchored augmented reality (AR) social and community application. Users can discover, create, and interact with geolocated content tied to real-world coordinates and physical surfaces.
 
 The app combines:
-- **Surface-Anchored AR Experiences**: Text and GIPHY GIF bubble posts anchored in 3D physical space using ARKit and Google ARCore (Cloud Anchors & Geospatial VPS).
+- **Surface-Anchored AR Experiences**: Text and KLIPY GIF bubble posts anchored in 3D physical space using ARKit and Google ARCore (Cloud Anchors & Geospatial VPS).
 - **Location Notes**: On-site community notes with bounded reading radii (15–100 m), ranked by community appreciation, designed to share hyper-local context (e.g., historical facts, venue tips, venue amenities).
 - **Cam Katman Glass Map**: A custom map interface displaying spatial density heat maps via a server-maintained spatial cell index (`map_cells`), preventing massive Firestore client scans.
 
@@ -27,14 +27,14 @@ The app combines:
 - **Public Authorship Choice**: Users may post anonymously (default) or attribute content to their verified handle. Regardless of the choice, the server enforces verified identity and guarantees independent blocking semantics without exposing the author's real identity.
 
 ### 2.2 AR Content Creation & Viewing
-- **Media Format**: Text and/or one GIPHY GIF displayed as a chat-style bubble in 3D space.
+- **Media Format**: Text and/or one KLIPY GIF displayed as a chat-style bubble in 3D space.
 - **AR Placement**: Center reticle raycast against ARKit detected plane geometry. Manual fine-tuning is bounded.
 - **Relocalization Stack**:
   1. Google ARCore Cloud Anchors (365-day TTL, keyless server token exchange via `getArcoreToken`).
   2. Google ARCore Geospatial (VPS).
   3. Legacy ARKit world map.
   4. Aim-guided proximity reveal.
-- **GIPHY Integration**: Searches executed server-side via `searchGifs` callable with `GIPHY_API_KEY` stored in Google Secret Manager (never exposed in app). Rating capped at PG-13. "Powered by GIPHY" attribution rendered wherever search results appear.
+- **KLIPY Integration**: Search and media requests run on the iOS device. `getGifConfig` supplies `KLIPY_APP_KEY` to signed-in, App Check-verified clients. "Powered by KLIPY" attribution appears wherever search results appear.
 
 ### 2.3 Location Notes
 - **Authoring Fix**: Location notes must be created at the user's measured GPS fix. Manually corrected pins cannot move more than 12 m from the GPS measurement.

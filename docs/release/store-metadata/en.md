@@ -25,7 +25,7 @@ Pin messages and GIFs to real surfaces! Discover location notes and local tips a
 ```text
 Leave notes on real places.
 
-LociAR lets you pin short messages and GIFs to real surfaces (a table, the floor, a wall) so others find them as a message bubble right where you left them. GIFs are powered by GIPHY.
+LociAR lets you pin short messages and GIFs to real surfaces (a table, the floor, a wall) so others find them as a message bubble right where you left them. GIFs are powered by KLIPY.
 
 FEATURES
 • Pin to real surfaces: the center reticle locks onto surfaces detected by ARKit; Google ARCore Cloud Anchors and Geospatial bring your post back in the same spot.

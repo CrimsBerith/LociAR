@@ -77,7 +77,7 @@ ask "Gerçek cap/uyarı/kota durumunu ve hizmet sürekliliğini kontrol ettim, d
 
 # ---------------------------------------------------------------- 4
 step "4/8  Eksik secret'lar (Firebase deploy her secret'ı ister)"
-for name in APPLE_PRIVATE_KEY GIPHY_API_KEY SUPPORT_STRIPE_SECRET_KEY SUPPORT_STRIPE_WEBHOOK_SECRET; do
+for name in APPLE_PRIVATE_KEY KLIPY_APP_KEY SUPPORT_STRIPE_SECRET_KEY SUPPORT_STRIPE_WEBHOOK_SECRET; do
   if "$FIREBASE" functions:secrets:get "$name" --project "$PROJECT" >/dev/null 2>&1; then echo "✓ $name var"
   else fail "$name Secret Manager'da yok; bu gerçek bir anahtar, rastgele değerle doldurulamaz (docs/CREDENTIALS.md)."; fi
 done

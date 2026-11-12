@@ -186,6 +186,18 @@ final class ArchitectureAndPublishTests: XCTestCase {
         XCTAssertTrue(arSource.contains("accessibilityIdentifier(\"ar-cancel-mapping\")"))
         XCTAssertTrue(arSource.contains(".onChange(of: canPrepareContent)"))
         XCTAssertTrue(arSource.contains("accessibilityIdentifier(\"ar-mapping-diagnostic\")"))
+        XCTAssertTrue(arSource.contains("accessibilityIdentifier(\"ar-mapping-diagnostic-toggle\")"))
+    }
+
+    func testPlaceNoteKeepsPendingMutationAndDismissesKeyboardInTheInset() throws {
+        let root = try sourceCheckoutRoot()
+        let source = try String(
+            contentsOf: root.appendingPathComponent("LociAR/Features/Map/PlaceNoteComposer.swift"),
+            encoding: .utf8
+        )
+        XCTAssertFalse(source.contains("ToolbarItemGroup(placement: .keyboard)"))
+        XCTAssertTrue(source.contains("guard !hasPendingIntent, !submitted else { return }"))
+        XCTAssertTrue(source.contains("accessibilityIdentifier(\"keyboard-done-button\")"))
     }
 
     func testARWorldMappingUsesDeviceOptimizedCameraAndBoundedCaptureRetry() throws {

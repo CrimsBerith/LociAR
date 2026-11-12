@@ -29,12 +29,12 @@ Apple requires that commonly used third-party SDKs include privacy manifests and
 
 ---
 
-## 2. GIPHY Compliance
+## 2. KLIPY Integration
 
-- **API Key**: The app **does not embed** a GIPHY API key. GIPHY search requests are executed server-side via the `searchGifs` Cloud Function.
-- **Rating**: Content rating is capped at `pg-13` in `functions/src/giphy.ts`.
-- **Media CDN**: Media assets are loaded strictly from `media.giphy.com` via HTTPS.
-- **Attribution**: The mandatory "Powered by GIPHY" attribution is prominently rendered on all search and selection interfaces, satisfying GIPHY Terms of Service.
+- **Requests**: Search and media requests originate on the iOS device; no server-side search proxy or media cache is used.
+- **App key**: `getGifConfig` supplies `KLIPY_APP_KEY` to signed-in, App Check-verified clients.
+- **Content filter**: Search requests use the `low` filter.
+- **Attribution**: "Powered by KLIPY" appears on GIF search and selection interfaces.
 
 ---
 

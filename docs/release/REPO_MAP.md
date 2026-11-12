@@ -99,7 +99,7 @@ loci/LociAR/
        │
        ├─► [ Cloud Firestore (nam5) ] (Default-Deny Security Rules)
        ├─► [ Firebase Storage ]       (Strict Prefix Rules: avatars, media)
-       ├─► [ Google Secret Manager ]   (GIPHY_API_KEY, Apple Keys)
+       ├─► [ Google Secret Manager ]   (KLIPY_APP_KEY, Apple Keys)
        ├─► [ Firebase Auth ]          (Custom Claims: luid)
        └─► [ Google ARCore API ]      (Keyless Anchor Management)
 ```

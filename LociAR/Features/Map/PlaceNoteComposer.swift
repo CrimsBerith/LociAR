@@ -209,6 +209,8 @@ struct PlaceNoteComposer: View {
     // Re-entered text after reopening belongs to the recovered intent. Once submitted in this
     // screen, editing explicitly starts a new intent. No draft text survives process termination.
     @State private var submittedTextInThisScreen = false
+    /// Caption sent with the pending mutation. An edit must not publish a second note.
+    @State private var pendingCaption = ""
     @State private var submittedPin: CLLocationCoordinate2D?
     private let pendingIntents = PlaceNotePendingIntentStore()
     @State private var busy = false
@@ -249,10 +251,10 @@ struct PlaceNoteComposer: View {
                             .focused($isTextFocused)
                             .accessibilityIdentifier("place-note-text")
                             .onChange(of: text) { _, _ in
-                                if !hasPendingIntent || submittedTextInThisScreen {
-                                    startNewIntent(restartMeasurement: false,
-                                                   resetIdentity: hasPendingIntent || submitted || submittedTextInThisScreen)
-                                }
+                                // clientMutationId is the post id. A new id after an uncertain
+                                // success publishes a second note. The same id is reconciled first.
+                                guard !hasPendingIntent, !submitted else { return }
+                                startNewIntent(restartMeasurement: false, resetIdentity: false)
                             }
                             .padding(.horizontal, LociTheme.Spacing.m)
                             .padding(.top, LociTheme.Spacing.m)
@@ -303,6 +305,16 @@ struct PlaceNoteComposer: View {
                         .lociGlassSurface(cornerRadius: LociTheme.Radius.medium)
                         .accessibilityIdentifier("place-note-status")
                     }
+                    // The keyboard toolbar gets a non-finite frame while this bottom inset resizes.
+                    if isTextFocused {
+                        HStack {
+                            Spacer()
+                            Button("Bitti") { isTextFocused = false }
+                                .fontWeight(.semibold)
+                                .frame(minWidth: LociTheme.Control.minimumTapTarget, minHeight: LociTheme.Control.minimumTapTarget)
+                                .accessibilityIdentifier("keyboard-done-button")
+                        }
+                    }
                     Button { Task { await publish() } } label: {
                         if waiting { Label("Konum netleşiyor…", systemImage: "location.circle") }
                         else { Label("Burada paylaş", systemImage: "mappin.and.ellipse") }
@@ -321,11 +333,6 @@ struct PlaceNoteComposer: View {
             .tint(LociTheme.accent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Kapat") { dismiss() }.disabled(busy) }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Bitti") { isTextFocused = false }
-                        .accessibilityIdentifier("keyboard-done-button")
-                }
             }
         }
         .interactiveDismissDisabled(busy || !text.isEmpty)
@@ -355,6 +362,7 @@ struct PlaceNoteComposer: View {
         mutation = UUID()
         hasPendingIntent = false
         submittedTextInThisScreen = false
+        pendingCaption = ""
         submitted = false
         submittedPin = nil
         message = nil
@@ -371,7 +379,7 @@ struct PlaceNoteComposer: View {
         }
         if mutationOwner != owner {
             busy = false
-            text = ""; submitted = false; submittedTextInThisScreen = false; submittedPin = nil
+            text = ""; submitted = false; submittedTextInThisScreen = false; pendingCaption = ""; submittedPin = nil
             mutationOwner = owner
             mutation = pendingIntents.pending(for: owner) ?? UUID()
             publishAnonymously = pendingIntents.publishAnonymously(for: owner)
@@ -510,8 +518,18 @@ struct PlaceNoteComposer: View {
             if mutationOwner == user.id, mutation == publishIntent { busy = false; waiting = false }
         }
         if hasPendingIntent {
-            do { if try await reconcile(mutation, user: user.id) { return } }
-            catch { message = error.localizedDescription; return }
+            let edited = trimmed != pendingCaption
+            do {
+                if try await reconcile(mutation, user: user.id) {
+                    if edited {
+                        message = String(localized: "Önceki not zaten yayınlandı. Yeni metin için Yeni not’a bas.")
+                    }
+                    return
+                }
+            } catch {
+                message = error.localizedDescription
+                return
+            }
         }
         guard currentOwner == user.id, !Task.isCancelled else { return }
         measurement.refreshEstimate()
@@ -578,6 +596,7 @@ struct PlaceNoteComposer: View {
         pendingIntents.save(id, for: user, anonymously: anonymous)
         publishAnonymously = anonymous
         hasPendingIntent = true
+        pendingCaption = trimmed
         submittedTextInThisScreen = true
         submittedPin = pin
         do {

@@ -317,14 +317,16 @@ extension AuthGateUITests {
     /// the form and steals focus from the next field, so the sweep chooses its own password.
     func dismissStrongPasswordSuggestionIfPresent(_ app: XCUIApplication) {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let ownPassword = NSPredicate(
+            format: "label BEGINSWITH %@ OR label BEGINSWITH %@ OR label BEGINSWITH[c] %@ OR label == %@ OR label == %@",
+            "Kendi ", "Choose My Own", "Başka Seçenek", "Not Now", "Şimdi Değil"
+        )
         for host in [app, springboard] {
-            for title in ["Kendi Şifremi Seç", "Choose My Own Password", "Kendi Şifremi Seçeceğim"] {
-                let button = host.buttons[title]
-                if button.exists, button.isHittable {
-                    button.tap()
-                    RunLoop.current.run(until: Date().addingTimeInterval(0.3))
-                    return
-                }
+            let button = host.buttons.matching(ownPassword).firstMatch
+            if button.exists, button.isHittable {
+                button.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.3))
+                return
             }
         }
     }
@@ -365,7 +367,8 @@ extension AuthGateUITests {
     func revealMappingDiagnostics(_ app: XCUIApplication, timeout: TimeInterval = 5) -> Bool {
         let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
         if diagnostic.exists { return true }
-        let toggle = app.buttons["Tanılama"]
+        let identified = app.buttons["ar-mapping-diagnostic-toggle"]
+        let toggle = identified.exists ? identified : app.buttons["Tanılama"]
         guard toggle.waitForExistence(timeout: timeout) else { return false }
         if toggle.isHittable {
             toggle.tap()

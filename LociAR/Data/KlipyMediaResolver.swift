@@ -229,7 +229,7 @@ actor KlipyConfigStore {
     }
 }
 
-/// Finds the media of a GIF. GIPHY media follows from the id; KLIPY media is read from KLIPY by
+/// Finds the media of a GIF. KLIPY media is read from KLIPY by
 /// slug and remembered for a while, so a feed does not ask again for every card.
 actor KlipyMediaResolver {
     enum Lookup: Sendable, Equatable {
@@ -270,10 +270,7 @@ actor KlipyMediaResolver {
     }
 
     func media(for gif: GifReference) async -> GifMedia? {
-        switch gif.provider {
-        case .giphy: return gif.giphyMedia
-        case .klipy: return await media(forKlipySlug: gif.id)
-        }
+        return await media(forKlipySlug: gif.id)
     }
 
     func media(forKlipySlug slug: String) async -> GifMedia? {
