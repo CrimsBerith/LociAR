@@ -736,5 +736,6 @@
  "⚠️ Kota aşıldı": "⚠️ Quota dépassé",
  "⚠️ VPS zaman aşımı": "⚠️ Délai d'expiration du VPS",
  "⚠️ İç hata": "⚠️ Erreur interne",
- "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "La caméra se prépare. Le placement approximatif sera disponible dans quelques secondes."
+ "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "La caméra se prépare. Le placement approximatif sera disponible dans quelques secondes.",
+ "Önceki not zaten yayınlandı. Yeni metin için Yeni not’a bas.": "La note précédente est déjà publiée. Pour un nouveau texte, touchez Nouvelle note."
 }

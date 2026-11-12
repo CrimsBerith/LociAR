@@ -35,13 +35,7 @@ struct PostCard: View {
                     .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
-                    .overlay(alignment: .bottomTrailing) {
-                        Text(verbatim: gif.provider == .giphy ? "GIPHY" : "KLIPY")
-                            .font(.caption2.weight(.heavy))
-                            .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xs)
-                            .background(LociTheme.background.opacity(0.72), in: Capsule()).overlay(Capsule().stroke(LociTheme.hairline))
-                            .padding(LociTheme.Spacing.xs)
-                    }
+                    .overlay(alignment: .bottomLeading) { KlipyWatermark() }
                     .accessibilityElement()
                     .accessibilityLabel(Text("GIF"))
                 if let text = post.messageText {

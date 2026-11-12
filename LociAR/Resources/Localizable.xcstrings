@@ -53467,6 +53467,83 @@
         }
       }
     },
+    "Önceki not zaten yayınlandı. Yeni metin için Yeni not’a bas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Önceki not zaten yayınlandı. Yeni metin için Yeni not’a bas."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous note is already published. Tap New note for new text."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die vorherige Notiz wurde bereits veröffentlicht. Tippe für neuen Text auf „Neue Notiz“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La nota anterior ya se publicó. Para un texto nuevo, toca Nueva nota."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La note précédente est déjà publiée. Pour un nouveau texte, touchez Nouvelle note."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A nota anterior já foi publicada. Para um novo texto, toque em Nova nota."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предыдущая заметка уже опубликована. Для нового текста нажмите «Новая заметка»."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم نشر الملاحظة السابقة بالفعل. لنص جديد، اضغط على «ملاحظة جديدة»."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पिछला नोट पहले ही प्रकाशित हो चुका है। नए टेक्स्ट के लिए नया नोट दबाएँ।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আগের নোটটি ইতিমধ্যে প্রকাশিত হয়েছে। নতুন লেখার জন্য «নতুন নোট» চাপুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前のノートはすでに公開されています。新しいテキストには「新しいノート」をタップしてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上一条笔记已发布。要发布新文字，请点按“新笔记”。"
+          }
+        }
+      }
+    },
     "Önceki yorumları yükle" : {
       "extractionState" : "manual",
       "localizations" : {

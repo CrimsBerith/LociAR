@@ -736,5 +736,6 @@
  "⚠️ Kota aşıldı": "⚠️ Quota exceeded",
  "⚠️ VPS zaman aşımı": "⚠️ VPS timeout",
  "⚠️ İç hata": "⚠️ Internal error",
- "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "The camera is starting. Approximate placement will be available in a few seconds."
+ "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "The camera is starting. Approximate placement will be available in a few seconds.",
+ "Önceki not zaten yayınlandı. Yeni metin için Yeni not’a bas.": "The previous note is already published. Tap New note for new text."
 }

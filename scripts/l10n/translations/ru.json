@@ -736,5 +736,6 @@
  "⚠️ Kota aşıldı": "⚠️ Квота превышена",
  "⚠️ VPS zaman aşımı": "⚠️ Тайм-аут VPS",
  "⚠️ İç hata": "⚠️ Внутренняя ошибка",
- "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "Камера запускается. Приблизительное размещение станет доступно через несколько секунд."
+ "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "Камера запускается. Приблизительное размещение станет доступно через несколько секунд.",
+ "Önceki not zaten yayınlandı. Yeni metin için Yeni not’a bas.": "Предыдущая заметка уже опубликована. Для нового текста нажмите «Новая заметка»."
 }

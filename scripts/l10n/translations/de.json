@@ -736,5 +736,6 @@
  "⚠️ Kota aşıldı": "⚠️Kontingent überschritten",
  "⚠️ VPS zaman aşımı": "⚠️ VPS-Timeout",
  "⚠️ İç hata": "⚠️ Interner Fehler",
- "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "Die Kamera wird vorbereitet. Die ungefähre Platzierung ist in wenigen Sekunden verfügbar."
+ "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "Die Kamera wird vorbereitet. Die ungefähre Platzierung ist in wenigen Sekunden verfügbar.",
+ "Önceki not zaten yayınlandı. Yeni metin için Yeni not’a bas.": "Die vorherige Notiz wurde bereits veröffentlicht. Tippe für neuen Text auf „Neue Notiz“."
 }

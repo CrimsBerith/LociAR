@@ -66,11 +66,9 @@ struct GifPickerView: View {
             }
             .background(LociTheme.background)
             .safeAreaInset(edge: .bottom) {
-                // KLIPY's attribution rules: "Search KLIPY" as the search placeholder (required) and a
-                // visible "Powered by KLIPY" mark where its results are shown.
-                Text(verbatim: "Powered by KLIPY")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(LociTheme.secondaryText)
+                // KLIPY attribution guideline: "Search KLIPY" as the search placeholder (required) and the
+                // "Powered by KLIPY" logo visible while the picker is open (brand/klipy).
+                KlipyPoweredByMark()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, LociTheme.Spacing.s)
                     .background(LociTheme.background.opacity(0.98))
@@ -139,5 +137,37 @@ struct GifPickerView: View {
             failure = error
             errorMessage = (error as? GifSearchError)?.errorDescription ?? GifSearchError.unavailable.errorDescription
         }
+    }
+}
+
+/// KLIPY's official "Powered by KLIPY" logo (brand/klipy/picker). The asset catalog holds a
+/// dark-text variant for light mode and a white-text variant for dark mode.
+struct KlipyPoweredByMark: View {
+    var height: CGFloat = 20
+
+    var body: some View {
+        Image(.klipyPoweredBy)
+            .resizable()
+            .scaledToFit()
+            .frame(height: height)
+            .accessibilityElement()
+            .accessibilityLabel(Text(verbatim: "Powered by KLIPY"))
+    }
+}
+
+/// KLIPY's semi-transparent white watermark for a posted GIF (brand/klipy/watermark). The
+/// guideline places it in the bottom-left corner of the card.
+struct KlipyWatermark: View {
+    var height: CGFloat = 12
+
+    var body: some View {
+        Image(.klipyWatermark)
+            .resizable()
+            .scaledToFit()
+            .frame(height: height)
+            .shadow(color: .black.opacity(0.35), radius: 1)
+            .padding(LociTheme.Spacing.s)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }

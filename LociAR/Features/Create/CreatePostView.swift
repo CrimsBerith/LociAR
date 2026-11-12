@@ -148,13 +148,10 @@ struct CreatePostView: View {
                             .font(.footnote)
                             .foregroundStyle(isSearchingSurface ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText)
 #if DEBUG
-                        DisclosureGroup(String(localized: "Tanılama")) {
-                            Text(engine.mappingDiagnosticSummary)
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(isSearchingSurface ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText)
-                                .accessibilityIdentifier("ar-mapping-diagnostic")
-                        }
-                        .font(.caption)
+                        MappingDiagnosticDisclosure(
+                            summary: engine.mappingDiagnosticSummary,
+                            ink: isSearchingSurface ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText
+                        )
 #endif
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -395,6 +392,7 @@ struct CreatePostView: View {
                         .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                         .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
+                        .overlay(alignment: .bottomLeading) { KlipyWatermark() }
                         .accessibilityIdentifier("create-gif-preview")
                     HStack {
                         Button("Değiştir") { showGifPicker = true }
@@ -403,7 +401,7 @@ struct CreatePostView: View {
                             .buttonStyle(LociCompactButtonStyle())
                             .accessibilityIdentifier("create-gif-remove")
                         Spacer()
-                        Text(verbatim: "Powered by KLIPY").font(.caption2.weight(.bold)).foregroundStyle(LociTheme.secondaryText)
+                        KlipyPoweredByMark(height: 16)
                     }
                 } else {
                     Button { showGifPicker = true } label: {

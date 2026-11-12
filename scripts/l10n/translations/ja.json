@@ -736,5 +736,6 @@
  "⚠️ Kota aşıldı": "⚠️ 割り当てを超過しました",
  "⚠️ VPS zaman aşımı": "⚠️ VPS タイムアウト",
  "⚠️ İç hata": "⚠️ 内部エラー",
- "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "カメラを準備しています。おおよその配置は数秒後に利用できます。"
+ "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "カメラを準備しています。おおよその配置は数秒後に利用できます。",
+ "Önceki not zaten yayınlandı. Yeni metin için Yeni not’a bas.": "前のノートはすでに公開されています。新しいテキストには「新しいノート」をタップしてください。"
 }
