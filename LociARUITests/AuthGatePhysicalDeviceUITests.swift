@@ -444,7 +444,7 @@ extension AuthGateUITests {
         app.launch()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         app.tabBars.buttons["AR"].tap()
-        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 16))
         let darkNotice = app.descendants(matching: .any)["ar-dark-camera-notice"]
         let darkNoticeVisible = darkNotice.waitForExistence(timeout: 6)
         print("[CAMERA] AR dark-feed notice: \(darkNoticeVisible ? "visible" : "not visible")")
@@ -471,7 +471,7 @@ extension AuthGateUITests {
         if !aimVisible { capture(app, name: "physical-ar-viewer-no-guidance") }
         XCTAssertTrue(aimVisible, "Listeden açılan post nişan veya yüzey yönlendirmesini göstermedi.")
         app.buttons["Kapat"].tap()
-        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 16))
         XCTAssertFalse(app.buttons["Start Over"].exists)
         XCTAssertFalse(app.buttons["Tracking"].exists)
         capture(app, name: "physical-ar-camera-after-viewer-dismiss")
@@ -501,7 +501,7 @@ extension AuthGateUITests {
         app.tabBars.buttons["Harita"].tap()
         XCTAssertTrue(app.buttons["map-create"].waitForExistence(timeout: 5))
         app.tabBars.buttons["AR"].tap()
-        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 16))
         XCTAssertTrue(nearbyFixture.waitForExistence(timeout: 8))
         capture(app, name: "physical-ar-list-after-tab-return")
 #endif
@@ -520,7 +520,7 @@ extension AuthGateUITests {
         for cycle in 1...10 {
             app.tabBars.buttons["AR"].tap()
             XCTAssertTrue(
-                app.staticTexts["Kamera açık"].waitForExistence(timeout: 12),
+                app.staticTexts["Kamera açık"].waitForExistence(timeout: 16),
                 "AR kamera \(cycle). döngüde açılmadı."
             )
             XCTAssertFalse(app.staticTexts["Kameradan canlı görüntü alınamadı. Tekrar deneyin."].exists)
@@ -545,14 +545,14 @@ extension AuthGateUITests {
         app.launch()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         app.tabBars.buttons["AR"].tap()
-        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 16))
 
         for cycle in 1...3 {
             XCUIDevice.shared.press(.home)
             RunLoop.current.run(until: Date().addingTimeInterval(1))
             app.activate()
             XCTAssertTrue(
-                app.staticTexts["Kamera açık"].waitForExistence(timeout: 12),
+                app.staticTexts["Kamera açık"].waitForExistence(timeout: 16),
                 "AR kamera background/foreground \(cycle). döngüde dönemedi."
             )
         }
@@ -561,7 +561,7 @@ extension AuthGateUITests {
         app.launch()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         app.tabBars.buttons["AR"].tap()
-        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 16))
         capture(app, name: "physical-ar-background-foreground-relaunch")
 #endif
     }

@@ -16,6 +16,12 @@ enum ARCameraHealth {
     nonisolated static let stallThreshold: TimeInterval = 2
     /// Times the session is run again before the feed is reported as failed.
     nonisolated static let maximumRecoveryAttempts = 2
+    /// How long a screen waits for the first frame of a new session before it gives up: the
+    /// watchdog's whole budget (first start, every rerun) plus one second. A shorter wait reported
+    /// a cold start as "camera unavailable" while the watchdog was still entitled to rerun it.
+    nonisolated static var firstFrameWaitBudget: TimeInterval {
+        initialFrameDeadline + Double(maximumRecoveryAttempts) * firstFrameDeadline + 1
+    }
     nonisolated static let watchdogInterval: Duration = .milliseconds(500)
 
     enum Action: Equatable, Sendable {

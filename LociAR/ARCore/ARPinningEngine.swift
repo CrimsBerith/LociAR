@@ -319,8 +319,11 @@ final class ARPinningEngine: NSObject {
 #endif
     }
 
+    /// Waits for a live frame. The watchdog decides when the feed has failed (it stops this wait by
+    /// moving to `.failed`); the budget here only ends the wait if the watchdog is not running.
     private func waitForLiveCameraFrame(generation: UUID) async -> Bool {
-        for _ in 0..<60 {
+        let polls = Int((ARCameraHealth.firstFrameWaitBudget * 10).rounded(.up))
+        for _ in 0..<polls {
             guard !Task.isCancelled, sessionGeneration == generation else { return false }
             // The watchdog already gave up (or the device is too hot): stop waiting.
             if state == .failed || isPausedForThermalPressure { return false }

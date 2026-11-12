@@ -29,6 +29,23 @@ final class ARCameraHealthTests: XCTestCase {
         XCTAssertEqual(action(after: ARCameraHealth.initialFrameDeadline, lastFrame: nil), .rerun)
     }
 
+    /// A screen waiting for the first frame must outlast every watchdog rerun, or a cold start
+    /// that needs one rerun is reported as "camera unavailable" (12 Nov ten-cycle failure).
+    func testScreensWaitLongerThanTheWholeWatchdogBudget() {
+        let watchdogBudget = ARCameraHealth.initialFrameDeadline
+            + Double(ARCameraHealth.maximumRecoveryAttempts) * ARCameraHealth.firstFrameDeadline
+        XCTAssertGreaterThan(ARCameraHealth.firstFrameWaitBudget, watchdogBudget)
+        var attempts = 0, elapsedSinceExpected: TimeInterval = 0, total: TimeInterval = 0
+        while total < ARCameraHealth.firstFrameWaitBudget {
+            total += 0.5; elapsedSinceExpected += 0.5
+            let action = ARCameraHealth.action(now: Date(timeIntervalSince1970: 1_000 + elapsedSinceExpected),
+                                               expectedSince: Date(timeIntervalSince1970: 1_000), lastFrameAt: nil, attempts: attempts)
+            if action == .rerun { attempts += 1; elapsedSinceExpected = 0 }
+            if action == .fail { break }
+        }
+        XCTAssertEqual(attempts, ARCameraHealth.maximumRecoveryAttempts, "every rerun happens before the screen stops waiting")
+    }
+
     func testRerunSessionUsesTheShorterFirstFrameDeadline() {
         XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline - 0.1, lastFrame: nil, attempts: 1), .waiting)
         XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline, lastFrame: nil, attempts: 1), .rerun)
