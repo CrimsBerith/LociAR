@@ -57,7 +57,10 @@ struct OnboardingView: View {
                             .tag(index)
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .always))
+                .tabViewStyle(.page(indexDisplayMode: .never))
+
+                pageDots
+                    .padding(.bottom, LociTheme.Spacing.l)
 
                 bottomControlBar
                     .padding(.horizontal, LociTheme.Spacing.xl)
@@ -100,10 +103,26 @@ struct OnboardingView: View {
                     .lineSpacing(4)
                     .padding(.horizontal, LociTheme.Spacing.l)
             }
+            // Top-aligned in a shared minimum height so the icon sits at the same place on every page.
+            .frame(minHeight: 190, alignment: .top)
 
             Spacer()
         }
         .padding(.horizontal, LociTheme.Spacing.xl2)
+    }
+
+    /// Own page dots: the system ones are pale grey on the light background and nearly invisible.
+    private var pageDots: some View {
+        HStack(spacing: LociTheme.Spacing.s) {
+            ForEach(0..<steps.count, id: \.self) { index in
+                Capsule()
+                    .fill(index == currentStep ? LociTheme.accent : LociTheme.tertiaryText.opacity(0.4))
+                    .frame(width: index == currentStep ? 22 : 8, height: 8)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: currentStep)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: "\(currentStep + 1) / \(steps.count)"))
     }
 
     private var bottomControlBar: some View {

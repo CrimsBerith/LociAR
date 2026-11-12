@@ -1,6 +1,6 @@
 export { ensureProfile, updateHandle } from './profile';
 export { readDataPreferences, setDataPreferences, recordUserContext } from './userContext';
-export { onAdminNotificationQueued, submitBrandCampaign } from './campaigns';
+export { onAdminNotificationQueued, onAdminNotificationBatchChanged, submitBrandCampaign } from './campaigns';
 export { readCampaignRegions, recordCampaignArrival } from './campaignArrivals';
 export { createPlaceNote, readPlaceNoteRegions, recordPlaceNoteVisit } from './placeNotes';
 export { onPostDensityWritten, readNoteDensity } from './noteDensity';

@@ -5,7 +5,12 @@ import Foundation
 /// Pure decisions that keep the AR camera feed from staying black or frozen without an explanation.
 /// `ARPinningEngine` owns the session; everything here is testable without a camera.
 enum ARCameraHealth {
-    /// How long a (re)started session may take to deliver its first frame before it is run again.
+    /// How long the first session start may take to deliver its first frame before it is run again.
+    /// A cold start on a physical device (first launch after install, ARCore attaching, pipeline
+    /// caches) regularly needs more than three seconds; rerunning the session during that warm-up
+    /// restarts the camera pipeline and only delays the first frame further.
+    nonisolated static let initialFrameDeadline: TimeInterval = 6
+    /// How long a rerun session may take to deliver its first frame before it is run again.
     nonisolated static let firstFrameDeadline: TimeInterval = 3
     /// A running feed that delivers no frame for this long is treated as stalled.
     nonisolated static let stallThreshold: TimeInterval = 2
@@ -32,7 +37,12 @@ enum ARCameraHealth {
         if let lastFrameAt, now.timeIntervalSince(lastFrameAt) < stallThreshold { return .healthy }
         let deliveredSinceExpected = lastFrameAt.map { $0 >= expectedSince } ?? false
         let base = deliveredSinceExpected ? (lastFrameAt ?? expectedSince) : expectedSince
-        let limit = deliveredSinceExpected ? stallThreshold : firstFrameDeadline
+        let limit: TimeInterval
+        if deliveredSinceExpected {
+            limit = stallThreshold
+        } else {
+            limit = attempts == 0 ? initialFrameDeadline : firstFrameDeadline
+        }
         if now.timeIntervalSince(base) < limit { return .waiting }
         return attempts < maximumRecoveryAttempts ? .rerun : .fail
     }

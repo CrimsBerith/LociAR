@@ -4,12 +4,162 @@
 - Prefix all shell and build commands with `rtk` (e.g. `rtk xcodebuild`, `rtk git`, `rtk grep`).
 - Binary path: `/Users/khankartal/.local/bin/rtk`.
 
-# Communication Mode: Caveman Lite
-- Respond terse and professional with complete sentences (Caveman Lite).
-- Eliminate conversational fluff, pleasantries, filler phrases, and polite preambles.
-- Preserve 100% technical accuracy, file links, code snippets, and exact error strings.
-- Fire tools directly without announcing intent.
+# Communication Mode: Caveman Ultra (Max Token Savings)
+- Respond terse like smart caveman in ultra mode. All technical substance stay. Only fluff die.
+- Strip conjunctions when unambiguous. One word when enough. State each fact once.
+- Drop filler words, pleasantries, polite preambles, and conversational hedging.
+- Code blocks, file paths, commands, and error logs remain 100% exact.
+- Execute tools directly without preamble or narration.
 
 # LociAR Architecture
 - LociAR mobile is the native iOS tree. Open `LociAR.xcodeproj`. Do not add Expo, Metro, or React Native.
 - Backend is Firebase with server-authoritative Cloud Functions — read the security contract in AGENTS.md before touching data code.
+
+<!-- rtk-instructions v2 -->
+# RTK (Rust Token Killer) - Token-Optimized Commands
+
+## Golden Rule
+
+**Prefix external programs with `rtk`**. If RTK has a dedicated filter, it uses it. If not, it passes the program through unchanged. This is safe for programs you would run from `PATH`.
+
+Do not prefix shell builtins or keywords — `test`, `[`, `read`, `cd`, `echo`,
+`export`, `eval`, `source`, `printf`. Commands such as `test`, `read`, and
+`env` also have RTK subcommands with different meanings; invoke the native
+command directly when you need it.
+
+**Important**: Even in command chains with `&&`, use `rtk`:
+```bash
+# ❌ Wrong
+git add . && git commit -m "msg" && git push
+
+# ✅ Correct
+rtk git add . && rtk git commit -m "msg" && rtk git push
+```
+
+## RTK Commands by Workflow
+
+### Build & Compile (80-90% savings)
+```bash
+rtk cargo build         # Cargo build output
+rtk cargo check         # Cargo check output
+rtk cargo clippy        # Clippy warnings grouped by file (80%)
+rtk tsc                 # TypeScript errors grouped by file/code (83%)
+rtk lint                # ESLint/Biome violations grouped (84%)
+rtk prettier --check    # Files needing format only (70%)
+rtk next build          # Next.js build with route metrics (87%)
+```
+
+### Test (60-99% savings)
+```bash
+rtk cargo test          # Cargo test failures only (90%)
+rtk go test             # Go test failures only (90%)
+rtk jest                # Jest failures only (99.5%)
+rtk vitest              # Vitest failures only (99.5%)
+rtk playwright test     # Playwright failures only (94%)
+rtk pytest              # Python test failures only (90%)
+rtk rake test           # Ruby test failures only (90%)
+rtk rspec               # RSpec test failures only (60%)
+rtk test <cmd> [args...] # Generic test wrapper - failures only
+```
+
+### Git (59-80% savings)
+```bash
+rtk git status          # Compact status
+rtk git log             # Compact log (works with all git flags)
+rtk git diff            # Compact diff (80%)
+rtk git show            # Compact show (80%)
+rtk git add             # Ultra-compact confirmations (59%)
+rtk git commit          # Ultra-compact confirmations (59%)
+rtk git push            # Ultra-compact confirmations
+rtk git pull            # Ultra-compact confirmations
+rtk git branch          # Compact branch list
+rtk git fetch           # Compact fetch
+rtk git stash           # Compact stash
+rtk git worktree        # Compact worktree
+```
+
+Note: Git passthrough works for ALL subcommands, even those not explicitly listed.
+
+### GitHub (26-87% savings)
+```bash
+rtk gh pr view <num>    # Compact PR view (87%)
+rtk gh pr checks        # Compact PR checks (79%)
+rtk gh run list         # Compact workflow runs (82%)
+rtk gh issue list       # Compact issue list (80%)
+rtk gh api              # Compact API responses (26%)
+```
+
+### JavaScript/TypeScript Tooling (70-90% savings)
+```bash
+rtk pnpm list           # Compact dependency tree (70%)
+rtk pnpm outdated       # Compact outdated packages (80%)
+rtk pnpm install        # Compact install output (90%)
+rtk npm run <script>    # Compact npm script output
+rtk npx <cmd>           # Compact npx command output
+rtk prisma              # Prisma without ASCII art (88%)
+rtk uv run <cmd>        # Compact uv project command output
+```
+
+### Files & Search (60-75% savings)
+```bash
+rtk ls <path>           # Tree format, compact (65%)
+rtk read <file>         # Code reading with filtering (60%)
+rtk grep <pattern>      # Search grouped by file (75%). Format flags (-c, -l, -L, -o, -Z) run raw.
+rtk find <pattern>      # Find grouped by directory (70%)
+```
+
+### Analysis & Debug (70-90% savings)
+```bash
+rtk err <cmd> [args...] # Filter errors only; argv runs directly, no shell
+rtk log <file>          # Deduplicated logs with counts
+rtk json <file>         # JSON structure without values
+rtk deps                # Dependency overview
+rtk env                 # Environment variables compact
+rtk summary <cmd> [args...]  # Smart summary of command output
+rtk diff                # Ultra-compact diffs
+```
+
+`rtk err`, `rtk test` and `rtk summary` execute the program directly, so shell
+syntax (`&&`, `|`, `*`, `$VAR`) is not interpreted. Pass a script explicitly:
+`rtk err --shell sh 'npm run build && npm test'`.
+
+### Infrastructure (85% savings)
+```bash
+rtk docker ps           # Compact container list
+rtk docker images       # Compact image list
+rtk docker logs <c>     # Deduplicated logs
+rtk kubectl get         # Compact resource list
+rtk kubectl logs        # Deduplicated pod logs
+```
+
+### Network (65-70% savings)
+```bash
+rtk curl <url>          # Compact HTTP responses (70%)
+rtk wget <url>          # Compact download output (65%)
+```
+
+### Meta Commands
+```bash
+rtk gain                # View token savings statistics
+rtk gain --history      # View command history with savings
+rtk discover            # Analyze Claude Code sessions for missed RTK usage
+rtk bypass <cmd>        # Run command without filtering (for debugging)
+rtk init                # Add RTK instructions to CLAUDE.md
+rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
+```
+
+## Token Savings Overview
+
+| Category | Commands | Typical Savings |
+|----------|----------|-----------------|
+| Tests | vitest, playwright, cargo test | 90-99% |
+| Build | next, tsc, lint, prettier | 70-87% |
+| Git | status, log, diff, add, commit | 59-80% |
+| GitHub | gh pr, gh run, gh issue | 26-87% |
+| Package Managers | pnpm, npm, npx | 70-90% |
+| Files | ls, read, grep, find | 60-75% |
+| Infrastructure | docker, kubectl | 85% |
+| Network | curl, wget | 65-70% |
+
+Overall average: **60-90% less bash output** on common development operations.
+<!-- /rtk-instructions -->

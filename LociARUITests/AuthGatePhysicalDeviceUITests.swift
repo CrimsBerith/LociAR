@@ -131,6 +131,46 @@ extension AuthGateUITests {
 #endif
     }
 
+    func testPhysicalKlipySearchAndSelection() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Canlı KLIPY testi fiziksel iPhone gerektirir.")
+#else
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments += ["UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY"]
+        app.launch()
+        guard app.tabBars.firstMatch.waitForExistence(timeout: 15) else {
+            throw XCTSkip("Canlı KLIPY testi için iPhone'da giriş yapılmış hesap gerekli.")
+        }
+        XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 10))
+        scrollUntilHittable(app.buttons["create-gif-add"], in: app)
+        app.buttons["create-gif-add"].tap()
+        XCTAssertTrue(app.navigationBars["GIF seç"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["gif-attribution"].waitForExistence(timeout: 5))
+
+        let results = app.buttons.matching(identifier: "gif-result")
+        if !results.firstMatch.waitForExistence(timeout: 30), app.buttons["Tekrar dene"].exists {
+            app.buttons["Tekrar dene"].tap()
+        }
+        let trendingLoaded = results.firstMatch.waitForExistence(timeout: 30)
+        let notice = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "yüklenemiyor")).firstMatch
+        let noticeText = notice.exists ? notice.label : "Uyarı metni yok."
+        XCTAssertTrue(trendingLoaded, "KLIPY trend GIF'leri yüklenmedi: \(noticeText)")
+        capture(app, name: "physical-klipy-trending")
+
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText("cat")
+        XCTAssertTrue(results.firstMatch.waitForExistence(timeout: 30), "KLIPY araması sonuç döndürmedi.")
+        capture(app, name: "physical-klipy-search-results")
+
+        results.firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["create-gif-preview"].waitForExistence(timeout: 15))
+        capture(app, name: "physical-klipy-selected-preview")
+#endif
+    }
+
     func testPhysicalNormalAccountPublishesLocationNoteWithoutCamera() throws {
 #if targetEnvironment(simulator)
         throw XCTSkip("Gerçek GPS ve fiziksel iPhone gerekir.")
@@ -267,8 +307,7 @@ extension AuthGateUITests {
         app.tap()
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 20))
         guard waitForPersistablePhysicalSurface(app, timeout: 120) else {
-            let diagEl = app.staticTexts["ar-mapping-diagnostic"]
-            let diagnostic = diagEl.exists ? diagEl.label : "(tanı yok)"
+            let diagnostic = mappingDiagnosticText(app)
             XCTFail(
                 "Canlı yayın testi için kaydedilebilir gerçek yüzey hazırlanamadı; "
                     + "telefonu dokulu yüzey çevresinde gezdirin. Tanı: \(diagnostic)"
@@ -284,7 +323,7 @@ extension AuthGateUITests {
             RunLoop.current.run(until: Date().addingTimeInterval(0.25))
         }
         guard addContent.isEnabled else {
-            let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
+            let diagnostic = mappingDiagnosticText(app)
             XCTFail("World-map kaydetme kalitesine ulaşılamadı; telefonu çevrede yavaşça gezdirin. Tanı: \(diagnostic)")
             return
         }
@@ -406,6 +445,10 @@ extension AuthGateUITests {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         app.tabBars.buttons["AR"].tap()
         XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 12))
+        let darkNotice = app.descendants(matching: .any)["ar-dark-camera-notice"]
+        let darkNoticeVisible = darkNotice.waitForExistence(timeout: 6)
+        print("[CAMERA] AR dark-feed notice: \(darkNoticeVisible ? "visible" : "not visible")")
+        capture(app, name: "physical-ar-camera-dark-feed-check")
         XCTAssertFalse(app.buttons["Start Over"].exists)
         XCTAssertFalse(app.buttons["Tracking"].exists)
         capture(app, name: "physical-ar-live-camera")
@@ -414,13 +457,19 @@ extension AuthGateUITests {
         XCTAssertTrue(nearbyFixture.waitForExistence(timeout: 8))
         nearbyFixture.tap()
         XCTAssertTrue(app.buttons["Kapat"].waitForExistence(timeout: 8))
+        // The authenticated fixture is a local preview: the viewer scans for a real surface
+        // ("Yüzey aranıyor" / "Kartı açmak için kamerayı…") or reveals the post approximately,
+        // and only live posts show the GPS aim guidance. `CONTAINS[c]` keeps the match
+        // case-insensitive ("kamerayı" vs "Kamerayı").
         let aimVisible = app.descendants(matching: .any)["ar-aim-guidance"].waitForExistence(timeout: 8)
             || app.staticTexts.matching(NSPredicate(
-                format: "label CONTAINS %@ OR label CONTAINS %@ OR label CONTAINS %@ OR label CONTAINS %@ OR label CONTAINS %@",
-                "Nokta atışı", "Sağa dön", "Sola dön", "Yön kilitleniyor", "Kamerayı"
-            )).firstMatch.waitForExistence(timeout: 2)
-            || app.staticTexts["Yüzey bulundu. İçerik hazır."].exists
-        XCTAssertTrue(aimVisible, "Listeden açılan post nişan yönlendirmesini göstermedi.")
+                format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@ OR label CONTAINS[c] %@ OR label CONTAINS[c] %@ "
+                    + "OR label CONTAINS[c] %@ OR label CONTAINS[c] %@ OR label CONTAINS[c] %@ OR label CONTAINS[c] %@ OR label CONTAINS[c] %@",
+                "Nokta atışı", "Sağa dön", "Sola dön", "Yön kilitleniyor", "Kamerayı",
+                "Yüzey aranıyor", "Yüzey bulundu", "Yaklaşık görünüm", "Yön aranıyor"
+            )).firstMatch.waitForExistence(timeout: 4)
+        if !aimVisible { capture(app, name: "physical-ar-viewer-no-guidance") }
+        XCTAssertTrue(aimVisible, "Listeden açılan post nişan veya yüzey yönlendirmesini göstermedi.")
         app.buttons["Kapat"].tap()
         XCTAssertTrue(app.staticTexts["Kamera açık"].waitForExistence(timeout: 12))
         XCTAssertFalse(app.buttons["Start Over"].exists)
@@ -430,6 +479,23 @@ extension AuthGateUITests {
         app.tabBars.buttons["Paylaş"].tap()
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 8))
         XCTAssertFalse(app.staticTexts["Kameradan canlı görüntü alınamadı. Tekrar deneyin."].exists)
+        let diagnosticsButton = app.buttons["Tanılama"]
+        XCTAssertTrue(diagnosticsButton.waitForExistence(timeout: 5), "Camera diagnostics were not available.")
+        diagnosticsButton.tap()
+        let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
+        XCTAssertTrue(diagnostic.waitForExistence(timeout: 5), "Camera diagnostic summary did not open.")
+        let diagnosticText = diagnostic.label.replacingOccurrences(of: "\n", with: " | ")
+        let lumaToken = diagnosticText.components(separatedBy: "luma=").last ?? ""
+        guard let luma = Int(lumaToken.prefix(while: { $0.isNumber })) else {
+            XCTFail("Camera luma was unavailable: \(diagnosticText)")
+            return
+        }
+        print("[CAMERA] AR diagnostics: \(diagnosticText)")
+        print("[CAMERA] averageLuma=\(luma)/255; dark-feed threshold <=20 for 5 seconds")
+        let cameraLog = XCTAttachment(string: "AR dark-feed notice visible: \(darkNoticeVisible)\n\(diagnosticText)")
+        cameraLog.name = "physical-camera-black-screen-log"
+        cameraLog.lifetime = .keepAlways
+        add(cameraLog)
         capture(app, name: "physical-ar-new-pin")
 
         app.tabBars.buttons["Harita"].tap()
@@ -587,7 +653,7 @@ extension AuthGateUITests {
         }
         guard placementReady, usePlacement.exists, usePlacement.isEnabled else {
             capture(app, name: "physical-pin-mapping-not-ready")
-            let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
+            let diagnostic = mappingDiagnosticText(app)
             XCTFail("Yüzey kilitli ama yerleşim onayı açılmadı. Tanı: \(diagnostic)")
             return
         }
@@ -737,7 +803,7 @@ extension AuthGateUITests {
         XCTAssertTrue(app.buttons["ar-pin-surface"].waitForExistence(timeout: 12))
         guard waitForPhysicalSurfaceCandidate(app, timeout: 45) else {
             capture(app, name: "physical-paylas-no-surface")
-            let diagnostic = app.staticTexts["ar-mapping-diagnostic"].label
+            let diagnostic = mappingDiagnosticText(app)
             XCTFail("Paylaş sekmesinde gerçek yüzey bulunamadı; nişangâhı tamamen dokulu zemin veya duvara yöneltin. Tanı: \(diagnostic)")
             return
         }
@@ -864,16 +930,22 @@ extension AuthGateUITests {
 
         let approxButton = app.buttons["create-place-approximate"]
         XCTAssertTrue(approxButton.waitForExistence(timeout: 6), "Önüme yerleştir butonu bulunamadı.")
+        // The button stays disabled until the AR session scans with a live camera frame; a tap
+        // before that is refused by the engine and the sheet stays on "Yüzey seç".
+        XCTAssertTrue(waitForHittable(approxButton, timeout: 20), "Yaklaşık yerleştirme kamera hazır olmadan etkinleşmedi. Tanı: \(mappingDiagnosticText(app))")
         approxButton.tap()
 
         // Transitions to "İçerik oluştur"
-        XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 8), "İçerik oluştur ekranına geçilemedi.")
+        guard app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 8) else {
+            capture(app, name: "device-pin-approximate-not-transitioned")
+            XCTFail("İçerik oluştur ekranına geçilemedi. Tanı: \(mappingDiagnosticText(app))")
+            return
+        }
         capture(app, name: "device-pinned-editor-ready")
 
         let captionField = app.textFields["create-caption"]
         XCTAssertTrue(captionField.waitForExistence(timeout: 5))
-        captionField.tap()
-        captionField.typeText("iPhone Fiziksel Pin Testi")
+        XCTAssertTrue(focusAndType(captionField, "iPhone Fiziksel Pin Testi", in: app), "Başlık alanı klavye odağı alamadı.")
         dismissKeyboard(app)
 
         let publishButton = app.buttons["create-publish"]
@@ -1009,17 +1081,19 @@ extension AuthGateUITests {
                     RunLoop.current.run(until: Date().addingTimeInterval(0.5))
                     capture(app, name: "06_Auth_Kayit_Ol_Formu")
 
-                    if let emailField = app.textFields["auth-email-field"].firstMatch as XCUIElement?, emailField.exists {
-                        emailField.tap()
-                        emailField.typeText("kagan@lociar.test")
-                    }
-                    if let passField = app.secureTextFields["auth-password-field"].firstMatch as XCUIElement?, passField.exists {
-                        passField.tap()
-                        passField.typeText("Sifre1234!")
-                    }
-                    if let confirmField = app.secureTextFields["auth-confirm-password-field"].firstMatch as XCUIElement?, confirmField.exists {
-                        confirmField.tap()
-                        confirmField.typeText("Sifre1234!")
+                    // `typeText` without keyboard focus aborts the whole sweep, so every field is
+                    // focused first and a field that cannot be focused is recorded, not typed into.
+                    for (identifier, query, text) in [
+                        ("auth-email-field", app.textFields, "kagan@lociar.test"),
+                        ("auth-password-field", app.secureTextFields, "Sifre1234!"),
+                        ("auth-confirm-password-field", app.secureTextFields, "Sifre1234!")
+                    ] {
+                        let field = query[identifier].firstMatch
+                        guard field.exists else { continue }
+                        if !focusAndType(field, text, in: app) {
+                            capture(app, name: "07_Auth_Kayit_Ol_Odak_Alinamadi_\(identifier)")
+                            XCTFail("Kayıt formunda \(identifier) alanı klavye odağı alamadı.")
+                        }
                     }
                     dismissKeyboard(app)
                     capture(app, name: "07_Auth_Kayit_Ol_Form_Dolduruldu")
@@ -1044,9 +1118,8 @@ extension AuthGateUITests {
                     app.buttons["auth-forgot-password"].tap()
                     RunLoop.current.run(until: Date().addingTimeInterval(0.6))
                     capture(app, name: "10_Auth_Sifremi_Unuttum_Sheet")
-                    if app.textFields.firstMatch.waitForExistence(timeout: 3) {
-                        app.textFields.firstMatch.tap()
-                        app.textFields.firstMatch.typeText("kagan@lociar.test")
+                    if app.textFields.firstMatch.waitForExistence(timeout: 3),
+                       focusAndType(app.textFields.firstMatch, "kagan@lociar.test", in: app) {
                         capture(app, name: "11_Auth_Sifremi_Unuttum_Eposta_Yazildi")
                     }
                     if app.buttons["Kapat"].exists {
@@ -1113,9 +1186,8 @@ extension AuthGateUITests {
                 capture(app, name: "18_Harita_Konum_Notu_Birak_Modal")
 
                 let textField = identifiedControl(app, "place-note-text")
-                if textField.waitForExistence(timeout: 3) {
-                    textField.tap()
-                    textField.typeText("Galata Kulesi önünde tarihi bir anı.")
+                if textField.waitForExistence(timeout: 3),
+                   focusAndType(textField, "Galata Kulesi önünde tarihi bir anı.", in: app) {
                     RunLoop.current.run(until: Date().addingTimeInterval(0.4))
                     capture(app, name: "19_Harita_Konum_Notu_Metin_Yazildi")
                     dismissKeyboard(app)
@@ -1182,9 +1254,7 @@ extension AuthGateUITests {
             capture(app, name: "27_Paylas_Icerik_Olusturma_Editoru")
 
             let captionField = app.textFields["create-caption"].firstMatch
-            if captionField.exists {
-                captionField.tap()
-                captionField.typeText("Boğaz manzarası eşliğinde ilk AR notum.")
+            if captionField.exists, focusAndType(captionField, "Boğaz manzarası eşliğinde ilk AR notum.", in: app) {
                 dismissKeyboard(app)
                 capture(app, name: "28_Paylas_Editor_Metin_Yazildi")
             }
@@ -1196,9 +1266,8 @@ extension AuthGateUITests {
                 RunLoop.current.run(until: Date().addingTimeInterval(1.0))
                 capture(app, name: "29_Paylas_GIPHY_Secici_Modal")
 
-                if app.searchFields.firstMatch.waitForExistence(timeout: 3) {
-                    app.searchFields.firstMatch.tap()
-                    app.searchFields.firstMatch.typeText("Istanbul")
+                if app.searchFields.firstMatch.waitForExistence(timeout: 3),
+                   focusAndType(app.searchFields.firstMatch, "Istanbul", in: app) {
                     RunLoop.current.run(until: Date().addingTimeInterval(1.0))
                     capture(app, name: "30_Paylas_GIPHY_Arama_Sonuclari")
                 }
@@ -1361,8 +1430,8 @@ extension AuthGateUITests {
                     app.buttons["Yeni"].tap()
                     RunLoop.current.run(until: Date().addingTimeInterval(0.6))
                     capture(app, name: "50_Profil_Yeni_Koleksiyon_Alert_Diyalogu")
-                    if app.alerts.textFields.firstMatch.exists {
-                        app.alerts.textFields.firstMatch.typeText("İstanbul Gezi Rehberi")
+                    if app.alerts.textFields.firstMatch.exists,
+                       focusAndType(app.alerts.textFields.firstMatch, "İstanbul Gezi Rehberi", in: app) {
                         capture(app, name: "51_Profil_Yeni_Koleksiyon_Isim_Yazildi")
                         app.alerts.buttons["Oluştur"].tap()
                         RunLoop.current.run(until: Date().addingTimeInterval(0.8))

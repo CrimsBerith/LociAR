@@ -735,5 +735,6 @@
  "⚠️ Ağ hatası": "⚠️ネットワークエラー",
  "⚠️ Kota aşıldı": "⚠️ 割り当てを超過しました",
  "⚠️ VPS zaman aşımı": "⚠️ VPS タイムアウト",
- "⚠️ İç hata": "⚠️ 内部エラー"
+ "⚠️ İç hata": "⚠️ 内部エラー",
+ "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "カメラを準備しています。おおよその配置は数秒後に利用できます。"
 }

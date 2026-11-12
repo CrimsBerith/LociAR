@@ -83,7 +83,7 @@ export function klipyAppKey(value: unknown): string | null {
 /** KLIPY's lookup URL for one slug. KLIPY media URLs cannot be built from a slug. */
 export function klipyItemsUrl(appKey: string, slug: string): string | null {
   if (!KLIPY_KEY.test(appKey) || !KLIPY_SLUG.test(slug)) return null;
-  return `https://api.klipy.com/api/v1/${appKey}/gifs/items?slugs=${encodeURIComponent(slug)}`;
+  return `https://api.klipy.com/api/v1/${appKey}/gifs/items?slugs=${encodeURIComponent(slug)}&content_filter=low`;
 }
 
 /** The small animated rendition in a KLIPY items response, only if it is on a KLIPY media host. */

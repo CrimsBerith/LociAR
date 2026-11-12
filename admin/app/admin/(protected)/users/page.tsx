@@ -8,6 +8,8 @@ import CreateUserForm from './CreateUserForm';
 import PersonaTransfer from './PersonaTransfer';
 import ManagedProfileEditor from './ManagedProfileEditor';
 import PersonaBulkRefresh from './PersonaBulkRefresh';
+import BulkNotificationForm from '../BulkNotificationForm';
+import UserSelectionControls from '../UserSelection';
 import AdminDecision from '../AdminDecision';
 import UserContextPanel from '../UserContextPanel';
 import PageNavigation from '../PageNavigation';
@@ -33,7 +35,7 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
   let failed = false;
   let invalid = false;
   try {
-    ({ page, users } = await loadUsers(db, term, params, admin.user.id));
+    ({ page, users } = await loadUsers(db, term, params, admin.user.id, admin.permissions.has('notifications.send')));
   } catch (error) {
     failed = true;
     invalid = error instanceof InvalidCursorError;
@@ -50,12 +52,14 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
       {admin.permissions.has('users.create') ? <CreateUserForm /> : null}
       {canManageProfiles ? <PersonaBulkRefresh /> : null}
       <PersonaTransfer canImport={admin.permissions.has('users.create')} canExport={canExportAllUsers} exportStepUpRequired={needsStepUp(admin, 'users.full_export')} />
+      {admin.permissions.has('notifications.send') ? <BulkNotificationForm /> : null}
       <section className="panel" aria-label={t('User profiles')}>
         <div className="panelHeader">
           <form method="get" className="inlineSearch">
             <input name="q" defaultValue={q} placeholder={t('Search by handle prefix')} aria-label={t('Search users by handle')} />
             <button type="submit">{t('Search')}</button>
           </form>
+          {admin.permissions.has('notifications.send') ? <UserSelectionControls /> : null}
         </div>
         {failed ? <p className="emptyState">{invalid ? <>{t('Invalid page link.')} <a href={`/admin/users?${new URLSearchParams({ q })}`}>{t('Return to the first page.')}</a></> : t('User data could not be loaded.')}</p> : (
           <div className="dataTable">
@@ -63,9 +67,13 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
             {users.length === 0 ? <p className="emptyState">{t('No matching users.')}</p> : users.map(user => (
               <div className="dataRow user" key={user.id}>
                 <span className="managedUserIdentity">
+                  {admin.permissions.has('notifications.send')
+                    ? <input type="checkbox" name="recipientIds" value={user.id} data-notify={user.notifications_enabled ? 'on' : 'off'} aria-label={t('Select user @{handle}', { handle: String(user.handle) })} />
+                    : null}
                   {user.avatar_url ? <img className="managedUserAvatar" src={`/api/admin/v1/avatars/${encodeURIComponent(user.id)}/image`} alt="" loading="lazy" />
                     : <span className="managedUserAvatar managedUserAvatarFallback" aria-hidden="true">{String(user.handle).slice(0, 1).toUpperCase()}</span>}
                   <span><b>@{String(user.handle)}</b>
+                    {admin.permissions.has('notifications.send') ? <small>{user.notifications_enabled ? t('Notifications on') : t('Notifications off')}</small> : null}
                     {user.display_name ? <small>{scalarText(user.display_name)}</small> : null}
                     {typeof user.bio === 'string' && user.bio ? <small className="managedUserBio">{user.bio}</small> : null}
                     <small>{user.id}</small>
@@ -110,13 +118,18 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
   );
 }
 
-async function loadUsers(db: ReturnType<typeof adminDb>, term: string, params: SearchParameters, actor: string) {
+async function loadUsers(db: ReturnType<typeof adminDb>, term: string, params: SearchParameters, actor: string, withNotifications: boolean) {
   const query = term ? db.collection('profiles').where('handle', '>=', term).where('handle', '<=', term + '\uf8ff') : db.collection('profiles');
   const page = await readDocumentPage(query, { field: term ? 'handle' : 'created_at', direction: term ? 'asc' : 'desc', scope: JSON.stringify(['users', term]), cursors: pageCursors(params), size: 50 });
   let users = page.documents.map(d => ({ ...d.data(), id: d.id }));
   const privateDocs = users.length ? await db.getAll(...users.map(u => db.collection('users_private').doc(u.id))) : [];
   const byId = new Map(privateDocs.map(d => [d.id, d.data() ?? {}]));
   users = users.map(u => ({ ...u, ...byId.get(u.id), id: u.id }));
+  if (withNotifications && users.length) {
+    const prefs = await db.getAll(...users.map(u => db.collection('user_data_preferences').doc(u.id)));
+    const enabled = new Map(prefs.map(d => [d.id, d.get('notifications') === true]));
+    users = users.map(u => ({ ...u, notifications_enabled: enabled.get(u.id) === true }));
+  }
   await recordPersonalDataRead(actor, 'users', users.length);
   return { page, users };
 }

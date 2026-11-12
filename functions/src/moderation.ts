@@ -1,3 +1,5 @@
+import { parse } from 'tldts';
+
 /**
  * Multilingual lexical filter for user text (Guideline 1.2 "method for filtering objectionable material").
  * Matching is on normalised whole words so ordinary text is not caught by substrings.
@@ -72,15 +74,6 @@ export function anyBlocked(texts: Array<string | null | undefined>): boolean {
 }
 
 /**
- * Top-level domains that are not everyday words: a bare `name.tld` ending in one of these is a link.
- * Kept closed on purpose; an unlisted TLD is still caught with a scheme, `www.`, a path or an IP address.
- */
-const LINK_TLDS = new Set([
-  'com', 'net', 'org', 'io', 'co', 'app', 'dev', 'ai', 'info', 'biz', 'xyz', 'ly', 'gg', 'tv', 'tr', 'ru', 'uk', 'fr',
-  'nl', 'br', 'cn', 'jp', 'eu', 'ua', 'pl', 'ir', 'kz', 'gr', 'bg', 'ro', 'ch', 'ca', 'au', 'mx', 'ar', 'id', 'kr',
-  'рф',
-]);
-/**
  * Two-letter TLDs that are also common words (Turkish de/ve/ne/ki/mu/da/az, English in/it/to/is/me…). After a
  * missing space ("tamam.de geldim") they are ordinary text; they count as a link only with a path or more labels.
  */
@@ -88,11 +81,11 @@ const AMBIGUOUS_TLDS = new Set([
   'de', 've', 'ne', 'ki', 'mu', 'da', 'az', 'in', 'it', 'to', 'us', 'es', 'no', 'at', 'be', 'is', 'so', 'do', 'my',
   'by', 'am', 'as', 'la', 'el', 'le', 'se', 'me',
 ]);
-const DOTTED_NAME = /(?<![\p{L}\p{N}.-])((?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+)(\p{L}{2,24})(?![\p{L}\p{N}])(:\d{2,5}|\/\S*|[?#]\w\S*)?/gu;
+const DOTTED_NAME = /(?<![\p{L}\p{N}.-])((?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+)([\p{L}\p{N}-]{2,63})(?![\p{L}\p{N}])(:\d{2,5}|\/\S*|[?#]\w\S*)?/gu;
 const IPV4 = /(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])/u;
 
 /**
- * User-authored text never carries URLs; GIPHY URLs are constructed separately by the server.
+ * User-authored text never carries URLs; media URLs are constructed separately by the server.
  * A sentence with a missing space after a full stop ("tamam.sonra görüşürüz") is not a link.
  */
 export function containsURL(text: string): boolean {
@@ -102,8 +95,9 @@ export function containsURL(text: string): boolean {
   if (clean.includes('://') || /www\.|(?:mailto|javascript|data|tel):/iu.test(clean) || IPV4.test(clean)) return true;
   for (const match of clean.matchAll(DOTTED_NAME)) {
     const tld = match[2].toLowerCase(), labels = match[1].split('.').length - 1, path = match[3] !== undefined;
-    if (LINK_TLDS.has(tld) || path) return true;
-    if (AMBIGUOUS_TLDS.has(tld) && labels >= 2) return true;
+    if (AMBIGUOUS_TLDS.has(tld) && labels < 2 && !path) continue;
+    if (parse(`${match[1]}${match[2]}`).isIcann) return true;
+    if (path) return true;
   }
   return false;
 }

@@ -407,7 +407,7 @@ struct MyPostsView: View {
                             .listRowBackground(Color.clear)
                     }
                     ForEach(posts) { post in
-                    NavigationLink(value: post) {
+                    PostCardLink(post: post) {
                         VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
                             if failedIDs.contains(post.id) {
                                 LociStatusPill(title: String(localized: "İşlem gerekiyor"), symbol: "exclamationmark.triangle.fill", color: LociTheme.danger)
@@ -643,7 +643,7 @@ struct InviteView: View {
                 .disabled(isBusy || activeLoadID != nil || normalizedInput.count < 8)
                 .accessibilityIdentifier("invite-redeem-button")
                 .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                 if needsInvite {
                     Text("Paylaşmak için davet kodunu gir.")
                         .font(.footnote)
@@ -710,7 +710,12 @@ struct InviteView: View {
                 Section { Text(message).foregroundStyle(LociTheme.danger).lociGlassRowBackground() }
             }
         }
-        .lociListStyle()
+        // Inset-grouped so field and cards keep the same side margin as the redeem button.
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .listRowSpacing(LociTheme.Spacing.m)
+        .lociGlassRowBackground()
+        .background(LociScreenBackground())
         .navigationTitle("Davet kodu")
         .task(id: signedInID) {
             // Discard state from the previous account, including in-flight read results and drafts.

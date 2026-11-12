@@ -1,6 +1,6 @@
 import { forEachSequential } from './async';
 import { createHash } from 'node:crypto';
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
 import { getMessaging, type Message } from 'firebase-admin/messaging';
 import { db, FieldValue, Timestamp, isUUID, luidForUid, HttpsError, requireCaller, identityVerified, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, safeErrorCode, logger } from './core';
@@ -154,6 +154,141 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
   });
   return attempts;
 }
+
+const ADMIN_NOTIFICATION_BATCH_PAGE_SIZE = 50;
+const ADMIN_NOTIFICATION_BATCH_MAX_SELECTED = 200; // keep equal to MAX_SELECTED_NOTIFICATION_RECIPIENTS in admin/lib/campaigns.ts
+
+function adminNotificationBatchJobId(batchId: string, recipient: string) {
+  return createHash('sha256').update(`${batchId}:${recipient}`).digest('hex');
+}
+
+export async function processAdminNotificationBatchPage(batchId: string, now = Date.now()) {
+  const batchRef = db.collection('admin_notification_batches').doc(batchId);
+  await db.runTransaction(async tx => {
+    const batchSnap = await tx.get(batchRef), batch = batchSnap.data();
+    if (!batch || !['queued', 'processing'].includes(batch.status)) return;
+    if (!(batch.expires_at instanceof Timestamp) || batch.expires_at.toMillis() <= now) {
+      tx.update(batchRef, { status: 'expired', updated_at: FieldValue.serverTimestamp() });
+      return;
+    }
+    if (typeof batch.actor_uid !== 'string' || !batch.actor_uid) {
+      tx.update(batchRef, { status: 'blocked', error_code: 'invalid_actor', updated_at: FieldValue.serverTimestamp() });
+      return;
+    }
+    const [flags, actorDeletion] = await tx.getAll(db.collection('system').doc('flags'), accountDeletionRef(luidForUid(batch.actor_uid)));
+    const roles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', batch.actor_uid).where('revoked_at', '==', null));
+    if (flags.get('kill_switch') === true) {
+      tx.update(batchRef, { status: 'blocked', error_code: 'service_paused', updated_at: FieldValue.serverTimestamp() });
+      return;
+    }
+    if (actorDeletion.exists || !roles.docs.some(d => d.get('role_key') === 'super_admin')) {
+      tx.update(batchRef, { status: 'blocked', error_code: 'permission_revoked', updated_at: FieldValue.serverTimestamp() });
+      return;
+    }
+
+    const target = batch.target;
+    let profileSnapshots: FirebaseFirestore.DocumentSnapshot[] = [];
+    let nextCursor: string | number;
+    let hasMore = false;
+    if (target === 'all') {
+      let query: FirebaseFirestore.Query = db.collection('profiles').orderBy('__name__').limit(ADMIN_NOTIFICATION_BATCH_PAGE_SIZE);
+      if (typeof batch.cursor === 'string') query = query.startAfter(batch.cursor);
+      const page = await tx.get(query);
+      profileSnapshots = page.docs;
+      nextCursor = profileSnapshots.at(-1)?.id ?? '';
+      hasMore = profileSnapshots.length === ADMIN_NOTIFICATION_BATCH_PAGE_SIZE;
+    } else if (target === 'selected' && Array.isArray(batch.recipient_ids)
+      && batch.recipient_ids.length === 0) {
+      tx.update(batchRef, { status: 'complete', recipient_ids: FieldValue.delete(), completed_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
+      return;
+    } else if (target === 'selected' && Array.isArray(batch.recipient_ids)
+      && batch.recipient_ids.length <= ADMIN_NOTIFICATION_BATCH_MAX_SELECTED
+      && batch.recipient_ids.every(isUUID)) {
+      const offset = Number.isSafeInteger(batch.cursor) && batch.cursor >= 0 ? batch.cursor : 0;
+      const recipientIds = batch.recipient_ids.slice(offset, offset + ADMIN_NOTIFICATION_BATCH_PAGE_SIZE);
+      profileSnapshots = await tx.getAll(...recipientIds.map((id: string) => db.collection('profiles').doc(id)));
+      const selectedNextCursor = offset + recipientIds.length;
+      nextCursor = selectedNextCursor;
+      hasMore = selectedNextCursor < batch.recipient_ids.length;
+    } else {
+      tx.update(batchRef, { status: 'blocked', error_code: 'invalid_target', updated_at: FieldValue.serverTimestamp() });
+      return;
+    }
+
+    if (!profileSnapshots.length) {
+      tx.update(batchRef, { status: 'complete', completed_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
+      return;
+    }
+    const recipients = profileSnapshots.map(p => p.id);
+    const preferenceRefs = recipients.map(id => db.collection('user_data_preferences').doc(id));
+    const deletionRefs = recipients.map(accountDeletionRef);
+    const jobRefs = recipients.map(id => db.collection('admin_notification_jobs').doc(adminNotificationBatchJobId(batchId, id)));
+    const quotaRefs = recipients.map(id => db.collection('promotion_push_quota').doc(pushQuotaId(id, now)));
+    const activityRefs = recipients.map(id => db.collection('activity_events').doc(`admin_${adminNotificationBatchJobId(batchId, id)}`));
+    const related = await tx.getAll(...preferenceRefs, ...deletionRefs, ...jobRefs, ...quotaRefs, ...activityRefs);
+    const preferenceOffset = 0, deletionOffset = recipients.length, jobOffset = recipients.length * 2,
+      quotaOffset = recipients.length * 3, activityOffset = recipients.length * 4;
+    let queued = 0, skipped = 0;
+    for (let index = 0; index < recipients.length; index++) {
+      const profile = profileSnapshots[index], pref = related[preferenceOffset + index], deletion = related[deletionOffset + index];
+      const job = related[jobOffset + index], quota = related[quotaOffset + index], activity = related[activityOffset + index], recipient = recipients[index];
+      const consentRevision = pref.get('revision');
+      if (!profile.exists || profileBlock(profile.data()) || profile.get('admin_managed') === true || deletion.exists
+        || pref.get('notifications') !== true || typeof consentRevision !== 'string' || !consentRevision) {
+        skipped++;
+        continue;
+      }
+      if (job.exists) {
+        skipped++;
+        continue;
+      }
+      const decision = pushQuotaDecision(quota.data(), job.id, 3);
+      if (!decision.allow || !decision.next) {
+        skipped++;
+        continue;
+      }
+      tx.create(jobRefs[index], {
+        recipient_id: recipient,
+        owner_luid: recipient,
+        actor_uid: batch.actor_uid,
+        title: batch.title,
+        message: batch.message,
+        consent_revision: consentRevision,
+        status: 'queued',
+        batch_id: batchId,
+        created_at: FieldValue.serverTimestamp(),
+        expires_at: Timestamp.fromMillis(now + 86_400_000),
+      });
+      tx.set(quotaRefs[index], { owner_luid: recipient, ...decision.next, expires_at: Timestamp.fromMillis(now + 2 * 86_400_000) });
+      if (!activity.exists) tx.create(activityRefs[index], {
+        kind: 'admin_notice', anonymous: true, actor_id: null, recipient_id: recipient, post_id: null,
+        body: batch.message, read_at: null, created_at: FieldValue.serverTimestamp(),
+        expires_at: Timestamp.fromMillis(now + 30 * 86_400_000),
+      });
+      queued++;
+    }
+    tx.update(batchRef, {
+      status: hasMore ? 'processing' : 'complete',
+      cursor: nextCursor,
+      processed: Number(batch.processed ?? 0) + recipients.length,
+      queued: Number(batch.queued ?? 0) + queued,
+      skipped: Number(batch.skipped ?? 0) + skipped,
+      updated_at: FieldValue.serverTimestamp(),
+      ...(!hasMore ? {
+        completed_at: FieldValue.serverTimestamp(),
+        ...(target === 'selected' ? { recipient_ids: FieldValue.delete() } : {}),
+      } : {}),
+    });
+  });
+}
+
+export const onAdminNotificationBatchChanged = onDocumentWritten({ document: 'admin_notification_batches/{batchId}', maxInstances: 3, retry: true }, async event => {
+  const before = event.data?.before.data(), after = event.data?.after.data();
+  if (!after || !['queued', 'processing'].includes(after.status)) return;
+  if (before && before.cursor === after.cursor && before.status === after.status) return;
+  await processAdminNotificationBatchPage(event.params.batchId);
+});
+
 export const onAdminNotificationQueued = onDocumentCreated('admin_notification_jobs/{jobId}', async event => {
   // Emulator tests inject a sender; never contact live FCM with Mac credentials.
   if (process.env.FUNCTIONS_EMULATOR === 'true') return;

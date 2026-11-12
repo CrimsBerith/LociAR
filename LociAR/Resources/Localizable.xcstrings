@@ -20818,6 +20818,83 @@
         }
       }
     },
+    "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera is starting. Approximate placement will be available in a few seconds."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kamera wird vorbereitet. Die ungefähre Platzierung ist in wenigen Sekunden verfügbar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cámara se está preparando. La colocación aproximada estará disponible en unos segundos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La caméra se prépare. Le placement approximatif sera disponible dans quelques secondes."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A câmera está sendo preparada. O posicionamento aproximado estará disponível em alguns segundos."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Камера запускается. Приблизительное размещение станет доступно через несколько секунд."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ تجهيز الكاميرا. سيتوفر الوضع التقريبي خلال ثوانٍ قليلة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरा तैयार हो रहा है। अनुमानित प्लेसमेंट कुछ सेकंड में उपलब्ध होगा।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যামেরা প্রস্তুত হচ্ছে। আনুমানিক স্থাপন কয়েক সেকেন্ডের মধ্যে ব্যবহারযোগ্য হবে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラを準備しています。おおよその配置は数秒後に利用できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机正在准备中。大约放置将在几秒钟后可用。"
+          }
+        }
+      }
+    },
     "Kamera hazırlanıyor…" : {
       "extractionState" : "manual",
       "localizations" : {

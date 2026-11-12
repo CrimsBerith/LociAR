@@ -542,10 +542,30 @@ final class ARPinningEngine: NSObject {
 
     /// Also valid after a physical pin whose world map could not be saved (`.placed`/`.mapping`):
     /// the physical anchor is then replaced by a new approximate one without persistence.
-    func offerApproximatePlacement() {
-        let allowed: [PinSessionState] = [.scanning, .candidateReady, .approximateOffered, .placed, .mapping]
-        guard allowed.contains(state) else { return }
+    /// States from which an approximate (free-space) placement may be offered.
+    private static let approximatePlacementStates: [PinSessionState] = [.scanning, .candidateReady, .approximateOffered, .placed, .mapping]
+
+    /// Whether "Yaklaşık yerleştir" can act right now: the session has started scanning and the
+    /// camera delivers frames. Screens disable the button until then, so a tap during
+    /// `initializing`/`coaching` (common in the first seconds on a physical device) cannot be
+    /// swallowed without feedback.
+    var canOfferApproximatePlacement: Bool {
+        Self.approximatePlacementStates.contains(state) && hasRecentCameraFrame
+    }
+
+    /// Returns false when the session is not ready; the status message then says why.
+    @discardableResult
+    func offerApproximatePlacement() -> Bool {
+        guard Self.approximatePlacementStates.contains(state) else {
+            let notReady = String(localized: "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.")
+            switch state {
+            case .initializing, .coaching, .placing: transition(to: state, message: notReady)
+            default: recordDiagnostic("Approximate placement refused in state \(state.rawValue)")
+            }
+            return false
+        }
         transition(to: .approximateOffered, message: String(localized: "Yaklaşık yerleştirme seçildi. İçerik kameranın 0,8 m önünde konumlanacak."))
+        return true
     }
 
     func placeApproximate() {

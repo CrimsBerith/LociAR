@@ -3,6 +3,19 @@ import SwiftUI
 import SwiftData
 import UIKit
 
+/// Pushes a post from a list row without the system disclosure chevron, which otherwise
+/// squeezes the card and leaves a stray ">" outside it.
+struct PostCardLink<Label: View>: View {
+    let post: LociPost
+    @ViewBuilder var label: Label
+
+    var body: some View {
+        label
+            .accessibilityAddTraits(.isButton)
+            .overlay { NavigationLink(value: post) { EmptyView() }.opacity(0) }
+    }
+}
+
 struct PostCard: View {
     let post: LociPost
     var likeCount: Int? = nil

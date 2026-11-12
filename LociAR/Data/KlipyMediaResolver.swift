@@ -168,8 +168,12 @@ enum KlipyAPI {
 
     static func lookup(slug: String) async -> KlipyMediaResolver.Lookup {
         guard GifReference.isValidKlipySlug(slug) else { return .notFound }
+        guard let config = await KlipyConfigStore.shared.config() else { return .failed }
         do {
-            let found = try await Self.page(path: "items", query: [URLQueryItem(name: "slugs", value: slug)])
+            let found = try await Self.page(path: "items", query: [
+                URLQueryItem(name: "slugs", value: slug),
+                URLQueryItem(name: "content_filter", value: config.contentFilter),
+            ])
             guard let media = found.items.first?.media else { return .notFound }
             return .found(media)
         } catch {

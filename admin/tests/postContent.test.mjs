@@ -58,7 +58,7 @@ test("KLIPY GIF layers surface a validated slug; media is looked up in the brows
   const key = "emulatorKlipyKey0123456789abcdefABCDEF";
   assert.equal(klipyAppKey(` ${key} `), key);
   for (const bad of [undefined, "", "short", "has/slash0123456789"]) assert.equal(klipyAppKey(bad), null);
-  assert.equal(klipyItemsUrl(key, "happy-cat"), `https://api.klipy.com/api/v1/${key}/gifs/items?slugs=happy-cat`);
+  assert.equal(klipyItemsUrl(key, "happy-cat"), `https://api.klipy.com/api/v1/${key}/gifs/items?slugs=happy-cat&content_filter=low`);
   assert.equal(klipyItemsUrl(key, "a/b"), null);
   assert.equal(klipyItemsUrl("bad key", "happy-cat"), null);
   const items = (url) => ({ result: true, data: { data: [{ slug: "happy-cat", file: { sm: { gif: { url } } } }] } });

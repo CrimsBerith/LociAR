@@ -21,15 +21,25 @@ final class ARCameraHealthTests: XCTestCase {
     }
 
     func testNewSessionGetsTimeForItsFirstFrame() {
+        // A cold start (no rerun yet) keeps the longer deadline: a rerun during warm-up only delays the first frame.
+        XCTAssertGreaterThan(ARCameraHealth.initialFrameDeadline, ARCameraHealth.firstFrameDeadline)
         XCTAssertEqual(action(after: 0.5, lastFrame: nil), .waiting)
-        XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline - 0.1, lastFrame: nil), .waiting)
-        XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline, lastFrame: nil), .rerun)
+        XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline, lastFrame: nil), .waiting)
+        XCTAssertEqual(action(after: ARCameraHealth.initialFrameDeadline - 0.1, lastFrame: nil), .waiting)
+        XCTAssertEqual(action(after: ARCameraHealth.initialFrameDeadline, lastFrame: nil), .rerun)
+    }
+
+    func testRerunSessionUsesTheShorterFirstFrameDeadline() {
+        XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline - 0.1, lastFrame: nil, attempts: 1), .waiting)
+        XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline, lastFrame: nil, attempts: 1), .rerun)
     }
 
     func testFrameFromBeforeTheRestartDoesNotCountAsDelivered() {
         // The last frame belongs to the previous run: the restarted session still gets the first-frame deadline.
         XCTAssertEqual(action(after: 2.5, lastFrame: -30), .waiting)
-        XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline, lastFrame: -30), .rerun)
+        XCTAssertEqual(action(after: ARCameraHealth.initialFrameDeadline, lastFrame: -30), .rerun)
+        XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline - 0.1, lastFrame: -30, attempts: 1), .waiting)
+        XCTAssertEqual(action(after: ARCameraHealth.firstFrameDeadline, lastFrame: -30, attempts: 1), .rerun)
     }
 
     func testRunningFeedThatStopsIsRerunAfterTheStallThreshold() {

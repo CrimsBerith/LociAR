@@ -17,7 +17,7 @@ struct CreatePostView: View {
     @State private var publishAnonymously = true
     /// Frozen once this id is submitted; retries must never change public attribution.
     @State private var intentAnonymously: Bool?
-    /// The post's GIPHY GIF (at most one); posts are a message: text and/or a GIF.
+    /// The post's selected GIF (at most one); posts are a message: text and/or a GIF.
     @State private var selectedGif: GifReference?
     @State private var showGifPicker = false
     @State private var isPublishing = false
@@ -206,6 +206,7 @@ struct CreatePostView: View {
                                     }
                                 }
                                 .buttonStyle(LociSecondaryButtonStyle())
+                                .disabled(!engine.canOfferApproximatePlacement)
                             }
                         }
                         Button("Bu yerleşimi kullan") { startCommit(anchor) }
@@ -229,6 +230,9 @@ struct CreatePostView: View {
                         }
                         .buttonStyle(LociSecondaryButtonStyle())
                         .padding(.top, LociTheme.Spacing.xs)
+                        // Disabled until the session scans with a live camera frame; an earlier tap
+                        // would be refused by the engine and the screen would stay on "Yüzey seç".
+                        .disabled(!engine.canOfferApproximatePlacement || isCommitting)
                         .accessibilityIdentifier("create-place-approximate")
                     }
                 }
@@ -325,7 +329,7 @@ struct CreatePostView: View {
     }
 
     private func editor(anchor: SurfaceAnchor) -> some View {
-        // Posts are a message: text and/or one GIPHY GIF (no photos, videos, drawings or links).
+        // Posts are a message: text and/or one KLIPY GIF (no photos, videos, drawings or links).
         ScrollView {
             VStack(spacing: LociTheme.Spacing.l) {
                 LociCard {

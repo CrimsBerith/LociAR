@@ -735,5 +735,6 @@
  "⚠️ Ağ hatası": "⚠️ Netzwerkfehler",
  "⚠️ Kota aşıldı": "⚠️Kontingent überschritten",
  "⚠️ VPS zaman aşımı": "⚠️ VPS-Timeout",
- "⚠️ İç hata": "⚠️ Interner Fehler"
+ "⚠️ İç hata": "⚠️ Interner Fehler",
+ "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "Die Kamera wird vorbereitet. Die ungefähre Platzierung ist in wenigen Sekunden verfügbar."
 }

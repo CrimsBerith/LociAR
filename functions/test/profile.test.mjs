@@ -8,9 +8,11 @@ test('termsConsentUpdate accepts a newer dated version and ignores anything else
   assert.equal(termsConsentUpdate('2026-10-04', '2026-10-04'), null);
   assert.equal(termsConsentUpdate('2026-10-04', '2026-11-01'), null, 'an older build never downgrades consent');
   assert.deepEqual(termsConsentUpdate('2026-10-04', 'garbage'), { terms_version: '2026-10-04' });
-  for (const bad of [undefined, null, 20261004, '', 'latest', '2026-10-04T00:00:00Z', '2026-10-4']) {
+  for (const bad of [undefined, null, 20261004, '', 'latest', '2026-10-04T00:00:00Z', '2026-10-4', '2026-99-99']) {
     assert.equal(termsConsentUpdate(bad, undefined), null, `rejects ${String(bad)}`);
   }
+  const tooFarAhead = new Date(Date.now() + 370 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  assert.equal(termsConsentUpdate(tooFarAhead, undefined), null, 'rejects forged far-future consent');
 });
 
 test('anonymous sessions accept the minimum terms version and any newer dated version', () => {
@@ -20,4 +22,6 @@ test('anonymous sessions accept the minimum terms version and any newer dated ve
   for (const bad of [undefined, null, 20261004, '', '2026-1-1', '2026-10-04T00:00:00Z', 'latest', '9999']) {
     assert.equal(anonymousTermsAccepted(bad), false, `rejects ${String(bad)}`);
   }
+  const tooFarAhead = new Date(Date.now() + 370 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  assert.equal(anonymousTermsAccepted(tooFarAhead), false, 'rejects forged far-future terms');
 });

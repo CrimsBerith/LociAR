@@ -3,10 +3,17 @@ import assert from 'node:assert/strict';
 import { containsBlockedTerm } from '../lib/moderation.js';
 import { containsURL } from '../lib/moderation.js';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { Script } from 'node:vm';
 import ts from 'typescript';
 const adminCode = ts.transpileModule(readFileSync(new URL('../../admin/lib/content-moderation.ts', import.meta.url), 'utf8'),
-  { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
-const admin = await import('data:text/javascript;base64,' + Buffer.from(adminCode + '\n//# sourceURL=admin-moderation-under-test.js').toString('base64'));
+  { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const adminModule = { exports: {} };
+new Script(adminCode, { filename: 'admin-moderation-under-test.js' }).runInNewContext({
+  exports: adminModule.exports,
+  require: createRequire(new URL('../../admin/package.json', import.meta.url)),
+});
+const admin = adminModule.exports;
 
 test('flags blocked words, leet and spaced spellings; ignores normal text', () => {
   assert.equal(containsBlockedTerm('Harika bir yer, tekrar geleceğim!'), false);
@@ -39,6 +46,7 @@ test('Unicode evasions, directed insults and links cannot bypass the filter; ord
 
 test('bare domains, obfuscated dots, paths and IP addresses are links; a missing space after a full stop is not', () => {
   const links = ['ornek.com', 'Ornek.COM', 'ornek.com.tr', 'bit.ly/abc', 'site.de/x', 'a.b.de', 'shop.example.de', 'x.museum/path',
+    'ornek.museum', 'ornek.cloud', 'ornek.xn--p1ai',
     'ornek.com:8080', 'ornek.com?ref=1', 'ornek[.]com', 'ornek (dot) com', 'ornek (nokta) com', '192.168.1.1', 'a@b.co',
     'kişisel.com', 'yandex.рф', 'www.ornek'];
   const sentences = ['tamam.sonra görüşürüz', 'Tamam.Sonra', 'geldim.bekliyorum', 'Harika.Tekrar gelirim', "Saat 3.30'da",

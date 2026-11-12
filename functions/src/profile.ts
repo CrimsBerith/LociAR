@@ -16,6 +16,17 @@ export const handleRef = (handle: string) => db.collection('handles').doc(handle
 
 /** Terms/privacy version the app shows on its consent checkbox, e.g. "2026-10-04". */
 export const TERMS_VERSION_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_TERMS_VERSION_FUTURE_DAYS = 366;
+
+function isValidTermsVersion(value: unknown): value is string {
+  if (typeof value !== 'string' || !TERMS_VERSION_PATTERN.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  const today = new Date();
+  if (!Number.isFinite(date.getTime())) return false;
+  today.setUTCHours(0, 0, 0, 0);
+  return date.toISOString().slice(0, 10) === value
+    && date.getTime() <= today.getTime() + MAX_TERMS_VERSION_FUTURE_DAYS * 24 * 60 * 60 * 1000;
+}
 
 /**
  * The consent record to merge into users_private, or null when nothing (valid and newer) was sent.
@@ -29,11 +40,11 @@ export const TERMS_VERSION_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export const MIN_ANONYMOUS_TERMS_VERSION = '2026-10-04';
 
 export function anonymousTermsAccepted(value: unknown): boolean {
-  return typeof value === 'string' && TERMS_VERSION_PATTERN.test(value) && value >= MIN_ANONYMOUS_TERMS_VERSION;
+  return isValidTermsVersion(value) && value >= MIN_ANONYMOUS_TERMS_VERSION;
 }
 
 export function termsConsentUpdate(value: unknown, alreadyAccepted: unknown): { terms_version: string } | null {
-  if (typeof value !== 'string' || !TERMS_VERSION_PATTERN.test(value)) return null;
+  if (!isValidTermsVersion(value)) return null;
   if (typeof alreadyAccepted === 'string' && TERMS_VERSION_PATTERN.test(alreadyAccepted) && value <= alreadyAccepted) return null;
   return { terms_version: value };
 }

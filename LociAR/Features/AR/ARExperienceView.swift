@@ -393,6 +393,7 @@ struct ARExperienceView: View {
                     Label("Yaklaşık yerleştir", systemImage: "cube.transparent")
                 }
                 .buttonStyle(LociSecondaryButtonStyle())
+                .disabled(!engine.canOfferApproximatePlacement)
                 .accessibilityIdentifier("ar-place-approximate-direct")
             }
         }

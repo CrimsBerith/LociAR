@@ -735,5 +735,6 @@
  "⚠️ Ağ hatası": "⚠️ Network error",
  "⚠️ Kota aşıldı": "⚠️ Quota exceeded",
  "⚠️ VPS zaman aşımı": "⚠️ VPS timeout",
- "⚠️ İç hata": "⚠️ Internal error"
+ "⚠️ İç hata": "⚠️ Internal error",
+ "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.": "The camera is starting. Approximate placement will be available in a few seconds."
 }

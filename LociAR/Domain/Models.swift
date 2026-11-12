@@ -626,7 +626,7 @@ struct LociPost: Codable, Hashable, Sendable, Identifiable {
 }
 
 extension LociPost {
-    /// The post's GIPHY GIF, if any (a post has at most one).
+    /// The post's GIF, if any (a post has at most one).
     var gif: GifReference? { editData.layers.first(where: { $0.kind == .gif })?.gif }
 
     /// The message text written by the author: the first non-empty text layer. GIF-only posts have

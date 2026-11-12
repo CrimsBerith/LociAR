@@ -98,8 +98,26 @@ test('email-code HTTP session is secure, opens the panel without QR and authoriz
   assert.equal(dispatch.status, 200, JSON.stringify(await dispatch.clone().json()));
   const job = await db.collection('admin_notification_jobs').doc((await dispatch.json()).result.id).get();
   assert.equal(job.get('actor_uid'), admin.user.uid); assert.equal(job.get('status'), 'queued');
+  const batchKey = randomUUID();
+  const batchResponse = await post('/api/admin/v1/campaigns', {
+    action: 'notify-batch', target: 'selected', recipientIds: [recipient], title: 'Test',
+    message: 'Synthetic batch notice', reason,
+  }, admin.cookie, { 'idempotency-key': batchKey });
+  assert.equal(batchResponse.status, 200, JSON.stringify(await batchResponse.clone().json()));
+  const batchId = (await batchResponse.json()).result.id;
+  const batch = await db.collection('admin_notification_batches').doc(batchId).get();
+  assert.equal(batch.get('actor_uid'), admin.user.uid);
+  assert.equal(batch.get('target'), 'selected');
+  assert.deepEqual(batch.get('recipient_ids'), [recipient]);
+  const unconfirmed = await post('/api/admin/v1/campaigns', {
+    action: 'notify-batch', target: 'all', title: 'Test', message: 'Synthetic notice', reason,
+  }, admin.cookie, { 'idempotency-key': randomUUID() });
+  assert.equal(unconfirmed.status, 400);
   const observer = await emailSession('engineering_observer');
   assert.equal((await post('/api/admin/v1/campaigns', { action: 'notify', recipientId: recipient, title: 'Test', message: 'Denied', reason }, observer.cookie)).status, 403);
+  assert.equal((await post('/api/admin/v1/campaigns', {
+    action: 'notify-batch', target: 'selected', recipientIds: [recipient], title: 'Test', message: 'Denied', reason,
+  }, observer.cookie, { 'idempotency-key': randomUUID() })).status, 403);
 });
 
 test('role invitations require AAL2 while email-code sessions retain ordinary invitations', async () => {

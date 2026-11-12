@@ -6,7 +6,7 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? '', /^(127\.0\.0\.1|localhost):\d+$/);
 initializeApp({ projectId: 'demo-lociar' });
 const { adminDb } = await import('../../lib/firebase-admin.ts');
-const { saveBrand, createCampaign, campaignStatus, campaignAudience, queueNotification, campaignInput } = await import('../../lib/campaigns.ts');
+const { saveBrand, createCampaign, campaignStatus, campaignAudience, queueNotification, queueNotificationBatch, campaignInput } = await import('../../lib/campaigns.ts');
 const { deliverAdminNotification } = await import('../../../functions/lib/campaigns.js');
 const db = adminDb(), reason = 'Campaign infrastructure verification';
 after(async () => Promise.all(getApps().map(deleteApp)));
@@ -222,4 +222,37 @@ test('campaign immediate push uses moderated custom title and message while reta
     sent++; assert.equal(m.notification.title, body.title); assert.equal(m.notification.body, body.message); assert.equal(m.data.post_id, f.campaign); return 'stub';
   });
   assert.equal(sent, 1); assert.equal((await db.collection('activity_events').doc(`admin_${job.id}`).get()).get('body'), body.message);
+});
+
+test('notification batches require explicit all-users confirmation and preserve idempotency and audit', async () => {
+  const f = await fixture(), secondRecipient = randomUUID(), key = randomUUID();
+  const body = { target: 'selected', recipientIds: [f.recipient, secondRecipient], title: 'LociAR', message: 'A service update is ready.' };
+  const [first, repeated] = await Promise.all([
+    queueNotificationBatch(body, f.actor, reason, key),
+    queueNotificationBatch(body, f.actor, reason, key),
+  ]);
+  assert.deepEqual(first, repeated);
+  assert.equal(first.recipientCount, 2);
+  const batch = await db.collection('admin_notification_batches').doc(first.id).get();
+  assert.deepEqual(batch.get('recipient_ids'), [f.recipient, secondRecipient].sort());
+  assert.equal(batch.get('target'), 'selected');
+  assert.equal((await db.collection('admin_audit_log').where('resource_id', '==', first.id).get()).size, 1);
+  await assert.rejects(queueNotificationBatch({ ...body, recipientIds: [randomUUID()] }, f.actor, reason, key), /idempotency_key_reused/);
+  await assert.rejects(queueNotificationBatch({ ...body, target: 'all', recipientIds: undefined, confirmAll: false }, f.actor, reason, randomUUID()), /notification_confirmation_required/);
+  await assert.rejects(queueNotificationBatch({ ...body, recipientIds: [f.recipient, f.recipient] }, f.actor, reason, randomUUID()), /invalid_notification_recipients/);
+  // Typed @handles resolve to profile ids; an unknown handle queues nothing.
+  const handleOwner = randomUUID(), handle = 'typed_' + handleOwner.slice(0, 8);
+  await db.collection('profiles').doc(handleOwner).set({ handle, status: 'active' });
+  const typed = await queueNotificationBatch({ ...body, recipientIds: [f.recipient], handles: ['@' + handle.toUpperCase()] }, f.actor, reason, randomUUID());
+  assert.equal(typed.recipientCount, 2);
+  assert.deepEqual((await db.collection('admin_notification_batches').doc(typed.id).get()).get('recipient_ids'), [f.recipient, handleOwner].sort());
+  const onlyHandles = await queueNotificationBatch({ ...body, recipientIds: undefined, handles: [handle] }, f.actor, reason, randomUUID());
+  assert.equal(onlyHandles.recipientCount, 1);
+  await assert.rejects(queueNotificationBatch({ ...body, recipientIds: [f.recipient], handles: ['nobody_here_' + randomUUID().slice(0, 6)] }, f.actor, reason, randomUUID()), /unknown_notification_handles/);
+  await assert.rejects(queueNotificationBatch({ ...body, recipientIds: [f.recipient], handles: ['!!'] }, f.actor, reason, randomUUID()), /invalid_notification_handles/);
+  await assert.rejects(queueNotificationBatch({ ...body, recipientIds: Array.from({ length: 201 }, () => randomUUID()) }, f.actor, reason, randomUUID()), /invalid_notification_recipients/);
+  await assert.rejects(queueNotificationBatch({ ...body, recipientIds: [] }, f.actor, reason, randomUUID()), /invalid_notification_recipients/);
+  const all = await queueNotificationBatch({ ...body, target: 'all', recipientIds: undefined, confirmAll: true }, f.actor, reason, randomUUID());
+  assert.equal(all.target, 'all');
+  assert.equal(all.recipientCount, null);
 });
