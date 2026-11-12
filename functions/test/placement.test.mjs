@@ -205,4 +205,7 @@ test('layer shape limits', () => {
   assert.equal(validateCreatePostBody(withLayers([stroke(5, { color: 'red' })])), 'Invalid layer color');
   assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'a'.repeat(1001) }])), 'Layer text is too long');
   assert.equal(validateCreatePostBody(withLayers(Array.from({ length: 21 }, (_, i) => ({ id: `t${i}`, type: 'text', text: 'x' })))), 'Too many edit layers');
+  assert.equal(validateCreatePostBody(withLayers([{ id: { nested: true }, type: 'text', text: 'x' }])), 'Invalid edit layer');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'x'.repeat(65), type: 'text', text: 'x' }])), 'Invalid edit layer');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'x'.repeat(64), type: 'text', text: 'x' }])), null);
 });

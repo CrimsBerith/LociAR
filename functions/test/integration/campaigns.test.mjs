@@ -276,3 +276,47 @@ test('a selected batch larger than one page is processed page by page and then d
   assert.equal(batch.get('recipient_ids'), undefined);
   assert.equal((await adminDb.collection('admin_notification_jobs').where('batch_id', '==', batchId).get()).size, 120);
 });
+
+test('a notification batch stops when the service is paused or the sender loses super_admin, and a replayed page sends nothing twice', async () => {
+  const actor = 'batch-admin-' + randomUUID(), recipient = randomUUID();
+  const role = await adminDb.collection('admin_role_assignments').add({ user_id: actor, role_key: 'super_admin', revoked_at: null });
+  await adminDb.collection('profiles').doc(recipient).set({ handle: 'guard-' + recipient.slice(0, 8) });
+  await adminDb.collection('user_data_preferences').doc(recipient).set({ notifications: true, promotions: false, revision: randomUUID() });
+  const newBatch = async () => {
+    const ref = adminDb.collection('admin_notification_batches').doc(randomUUID());
+    await ref.set({
+      target: 'selected', recipient_ids: [recipient], actor_uid: actor, title: 'LociAR', message: 'Guard test.',
+      status: 'queued', cursor: null, processed: 0, queued: 0, skipped: 0,
+      created_at: Timestamp.now(), expires_at: Timestamp.fromMillis(Date.now() + 86_400_000),
+    });
+    return ref;
+  };
+  const jobsFor = async (ref) => (await adminDb.collection('admin_notification_jobs').where('batch_id', '==', ref.id).get()).size;
+
+  await adminDb.collection('system').doc('flags').set({ kill_switch: true }, { merge: true });
+  try {
+    const paused = await newBatch();
+    await processAdminNotificationBatchPage(paused.id);
+    assert.equal((await paused.get()).get('status'), 'blocked');
+    assert.equal((await paused.get()).get('error_code'), 'service_paused');
+    assert.equal(await jobsFor(paused), 0);
+  } finally {
+    await adminDb.collection('system').doc('flags').set({ kill_switch: false }, { merge: true });
+  }
+
+  const sent = await newBatch();
+  await processAdminNotificationBatchPage(sent.id);
+  assert.equal(await jobsFor(sent), 1);
+  // A retried trigger that sees the same page again (status forced back) must not queue a second job.
+  await sent.update({ status: 'processing', cursor: 0, recipient_ids: [recipient] });
+  await processAdminNotificationBatchPage(sent.id);
+  assert.equal(await jobsFor(sent), 1, 'deterministic job ids keep a replayed page idempotent');
+  assert.equal((await sent.get()).get('skipped'), 1);
+
+  await role.update({ revoked_at: Timestamp.now() });
+  const revoked = await newBatch();
+  await processAdminNotificationBatchPage(revoked.id);
+  assert.equal((await revoked.get()).get('status'), 'blocked');
+  assert.equal((await revoked.get()).get('error_code'), 'permission_revoked');
+  assert.equal(await jobsFor(revoked), 0);
+});

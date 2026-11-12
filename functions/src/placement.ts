@@ -181,6 +181,8 @@ function layerShapeError(layers: unknown[]): string | null {
   let totalPoints = 0;
   for (const raw of layers) {
     const layer = (raw ?? {}) as Record<string, unknown>;
+    // The id is stored with the post and read back by clients: a short string (the app sends a UUID).
+    if (layer.id != null && (typeof layer.id !== 'string' || layer.id.length > 64)) return 'Invalid edit layer';
     if (invalidLayerColor(layer.color)) return 'Invalid layer color';
     if (typeof layer.text === 'string' && layer.text.length > MAX_LAYER_TEXT) return 'Layer text is too long';
     if (String(layer.type ?? layer.kind) !== 'drawing' || layer.points == null) continue;
