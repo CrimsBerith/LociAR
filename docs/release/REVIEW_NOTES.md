@@ -10,7 +10,7 @@
 
 ## 1. Review Account Credentials
 
-- **Review Email**: `apple-review@alfagolab.com`
+- **Review Email**: `apple-review@locidrop.com`
 - **One-Time Code / Sign-In Method**: Direct Sign-In configured for App Review.
   - Review credentials can be verified using the dedicated reviewer token generated at release provisioning time (`scripts/provision-review-account.mjs`).
   - For OTP authentication, reviewer codes sent to this address can be viewed or bypassed via the verified review account profile.
@@ -69,5 +69,5 @@
 ## 4. Contact Information
 
 - **Developer Team**: AlfaGo Lab / Khan Kartal
-- **Support Email**: `support@alfagolab.com`
-- **Technical Contact**: `apple-review@alfagolab.com`
+- **Support Email**: `support@locidrop.com`
+- **Technical Contact**: `apple-review@locidrop.com`

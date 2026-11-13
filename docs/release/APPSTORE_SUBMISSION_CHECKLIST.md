@@ -68,7 +68,7 @@ The declarations in App Store Connect must strictly mirror `PrivacyInfo.xcprivac
 ## 5. App Review Notes & Demo Account
 
 - **Demo Credentials**:
-  - Account: `apple-review@alfagolab.com`
+  - Account: `apple-review@locidrop.com`
   - Credentials: Generated via `scripts/provision-review-account.mjs` and securely pasted into App Store Connect Review Notes.
   - Demo Seed Content: Pre-populated around Apple Park (Cupertino) and Istanbul landmarks via `scripts/seed-review-content.mjs`.
 - **Special Hardware Notes**: Explained that ARKit camera surface detection requires physical camera motion; Map features can be tested using simulated GPS coordinates.

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getAdminContext, SESSION_COOKIE, verifiedAdminSession } from './lib/admin';
+import { PUBLIC_SITE_HOME, publicSiteDecision } from './lib/public-site';
 
 // Resolve page authorization before loading boundaries can begin streaming. Server components
 // and API handlers still independently enforce their session, MFA and permission checks.
@@ -40,6 +41,12 @@ function isDynamicAdminPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  // locidrop.com shows only the legal and support pages; the admin lives on the App Hosting address.
+  const site = publicSiteDecision(request.headers.get('host'), request.nextUrl.pathname);
+  if (site === 'home') return NextResponse.redirect(new URL(PUBLIC_SITE_HOME, request.url));
+  if (site === 'not_found') {
+    return new NextResponse('Not found', { status: 404, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+  }
   const earlyRedirect = await protectedPageRedirect(request);
   const isDev = process.env.NODE_ENV === 'development';
   let csp: string;

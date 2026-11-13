@@ -20,7 +20,7 @@ env:
     availability:
       - RUNTIME
   - variable: ADMIN_ORIGIN
-    value: https://locidrop.com
+    value: https://lociar-admin--lociar-2f38c.us-central1.hosted.app
     availability:
       - RUNTIME
   - variable: FIREBASE_STORAGE_BUCKET

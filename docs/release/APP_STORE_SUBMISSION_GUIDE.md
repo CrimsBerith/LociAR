@@ -53,7 +53,7 @@ yeni adresin sayfalarda görünmesi gönderimden önce doğrulanmalı.
   `https://locidrop.com/support`
 * **İngilizce sürümler** (İngilizce App Store sayfası için): `/privacy/en`, `/terms/en`, `/support/en`
 * **Destek İletişim E-Postası (Contact Email):**  
-  `support@alfagolab.com` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmalıdır; Alfago Lab
+  `support@locidrop.com` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmalıdır; Alfago Lab
   alan adı, Hostinger e-postası — sahip kararı 26 Ekim 2026. `lociar.app` kayıtlı olmadığı için kullanılmaz.)*
 
 ---
@@ -106,7 +106,7 @@ App Store Connect'te **App Review Information** bölümüne girilecek metin:
 
 ### Giriş Bilgileri (Sign-In Information)
 * **Giriş Gerekli mi (Sign-in required):** Evet (Kutu işaretlenmeli)
-* **Kullanıcı Adı (Username):** `apple-review@alfagolab.com`
+* **Kullanıcı Adı (Username):** `apple-review@locidrop.com`
 * **Şifre (Password):** Parola yöneticisindeki güncel değeri yalnızca App Store Connect'in Sign-In Information alanına girin; depoya veya inceleme notlarına yazmayın.
 
 Daha önce depoda bulunan parola canlı hesapta değiştirilmeli ve App Store Connect güncellenmelidir. Güvenli oluşturma/yenileme adımları: [CREDENTIALS.md](../CREDENTIALS.md).

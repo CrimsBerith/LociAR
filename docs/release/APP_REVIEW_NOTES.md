@@ -6,7 +6,7 @@ Owner: release manager. Update this file whenever permissions, background modes 
 
 This is the **only** notes text for the submission (it replaces the older text in `APP_STORE_SUBMISSION_GUIDE.md` §6; both together exceed Apple's 4,000-character limit). About 3,600 characters with the video link.
 
-Before pasting: replace `<VIDEO_LINK>` with the screen recording from section 6 (an unlisted link, or attach the file under App Review Information → Attachment and write "see attachment"). The demo account (`apple-review@alfagolab.com`) and its password go only into the **Sign-In Information** fields, never into these notes. Run `node functions/scripts/seed-review-content.mjs apple-review@alfagolab.com` once against production so the sample posts and location notes exist.
+Before pasting: replace `<VIDEO_LINK>` with the screen recording from section 6 (an unlisted link, or attach the file under App Review Information → Attachment and write "see attachment"). The demo account (`apple-review@locidrop.com`) and its password go only into the **Sign-In Information** fields, never into these notes. Run `node functions/scripts/seed-review-content.mjs apple-review@locidrop.com` once against production so the sample posts and location notes exist.
 
 ```
 LociAR lets people leave short notes, in AR on real surfaces or at the exact spot where they stand, so the next visitor gets useful local tips ("Wi-Fi password is at the counter"). Notes are text and/or one KLIPY GIF (PG-13 at most): no photos, videos or links. LociAR has no chat or private messaging.
@@ -37,7 +37,7 @@ Brand offers have their own off-by-default "Campaigns and offers" switch and con
 SAFETY (1.2)
 Every post passes an automatic text filter (no links, blocked terms) before it goes live. Content is hidden automatically when several verified users report it, and moderators review every report. Report and block on every post, comment and profile, handled within 24 hours. Protected zones and 18+ content are blocked on the server. Account deletion: Profile > Permanently delete account.
 
-Support: support@alfagolab.com, https://locidrop.com/support
+Support: support@locidrop.com, https://locidrop.com/support
 ```
 
 ## 2. Why "Always" is justified (for any follow-up from App Review)

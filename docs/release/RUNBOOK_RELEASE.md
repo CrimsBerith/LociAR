@@ -72,10 +72,10 @@ firebase deploy --only apphosting --project lociar-2f38c
 ```bash
 cd functions
 # Generate reviewer credentials into a secure local file (not inside repo)
-node scripts/provision-review-account.mjs apple-review@alfagolab.com
+node scripts/provision-review-account.mjs apple-review@locidrop.com
 
 # Seed sample review content around Apple Park and Istanbul
-node scripts/seed-review-content.mjs apple-review@alfagolab.com
+node scripts/seed-review-content.mjs apple-review@locidrop.com
 ```
 
 ---

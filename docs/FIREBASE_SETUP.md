@@ -27,7 +27,7 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | İndeksler, TTL, Cloud Functions (`us-central1`) | ⚠️ 24 fonksiyon — yeni sürüm (push, kill switch, `terms_version`) deploy bekliyor |
 | Admin + yasal sayfalar (App Hosting, backend `lociar-admin`) | ⚠️ yeni sürüm (EN sayfalar, kill switch paneli, nonce CSP) deploy bekliyor |
 | Identity Platform + ilk süper admin | ✅ yapıldı (proje sahibinin hesabı, TOTP MFA açık) |
-| İnceleme hesabı + seed içerik | ⚠️ 26 Ekim: yeniden yapılmalı. Eski `apple-review@lociar.app` kayıtsız alan adında (parola sıfırlama başkasına gidebilir); yeni hesap `apple-review@alfagolab.com` |
+| İnceleme hesabı + seed içerik | ⚠️ 26 Ekim: yeniden yapılmalı. Eski `apple-review@lociar.app` kayıtsız alan adında (parola sıfırlama başkasına gidebilir); yeni hesap `apple-review@locidrop.com` |
 
 ## Mimari özeti
 
@@ -157,9 +157,9 @@ node scripts/import-protected-zones.mjs zones.json           # okul/hastane/ibad
 ```
 
 App Review hesabı:
-1. Uygulamada `apple-review@alfagolab.com` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
+1. Uygulamada `apple-review@locidrop.com` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
    uygulamada bir kez giriş yap (profil oluşur).
-2. `node scripts/seed-review-content.mjs apple-review@alfagolab.com` → İstanbul ve Cupertino'da 7 onaylı örnek post.
+2. `node scripts/seed-review-content.mjs apple-review@locidrop.com` → İstanbul ve Cupertino'da 7 onaylı örnek post.
 3. Parolayı [CREDENTIALS.md](CREDENTIALS.md) adımlarına göre yenile ve App Store Connect'in Sign-In Information alanına gir; inceleme notlarına veya depoya yazma.
 
 ## 4. iOS uygulaması
