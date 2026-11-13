@@ -53,7 +53,7 @@ enum LociTheme {
             arSearchInk = LociTheme.rgb(26, 33, 39)
             accent = dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39)
             ambientBlue = LociTheme.rgb(75, 101, 138)
-            warning = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(146, 84, 0)
+            warning = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(140, 80, 0)
             danger = dark ? LociTheme.rgb(242, 132, 132) : LociTheme.rgb(168, 42, 48)
             textPrimary = dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39)
             secondaryText = dark ? LociTheme.rgb(180, 188, 192) : LociTheme.rgb(62, 73, 81)
@@ -64,14 +64,14 @@ enum LociTheme {
             field = dark ? LociTheme.rgb(221, 223, 211).withAlphaComponent(0.07) : LociTheme.rgb(246, 247, 241)
             glassBorder = highContrast
                 ? (dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39))
-                : (dark ? LociTheme.rgb(92, 106, 116) : LociTheme.rgb(96, 108, 116))
+                : (dark ? LociTheme.rgb(104, 119, 130) : LociTheme.rgb(96, 108, 116))
             onAccent = dark ? LociTheme.rgb(26, 33, 39) : LociTheme.rgb(221, 223, 211)
             onDanger = dark ? LociTheme.rgb(53, 16, 20) : .white
             social = dark ? LociTheme.rgb(240, 150, 172) : LociTheme.rgb(158, 44, 84)
             discoveryAccent = dark ? LociTheme.rgb(150, 182, 224) : LociTheme.rgb(44, 78, 136)
             identityAccent = dark ? LociTheme.rgb(196, 182, 236) : LociTheme.rgb(98, 70, 150)
             mapAR = dark ? LociTheme.rgb(150, 186, 236) : LociTheme.rgb(40, 82, 160)
-            mapLocation = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(146, 84, 0)
+            mapLocation = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(140, 80, 0)
             mediaOverlayText = .white
             mediaOverlayScrim = .black
             scrim = .black
