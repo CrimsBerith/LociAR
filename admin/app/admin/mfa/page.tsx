@@ -43,7 +43,7 @@ export default function AdminMfa() {
         }
         const session = await multiFactor(current).getSession();
         const generated = await TotpMultiFactorGenerator.generateSecret(session);
-        const uri = generated.generateQrCodeUrl(current.email ?? 'admin', 'LociAR Admin');
+        const uri = generated.generateQrCodeUrl(current.email ?? 'admin', 'LociDrop Admin');
         if (!active) return;
         setSecret(generated);
         setQr(await QRCode.toDataURL(uri, { margin: 1, width: 220 }));
@@ -61,7 +61,7 @@ export default function AdminMfa() {
     setBusy(true);
     try {
       const assertion = TotpMultiFactorGenerator.assertionForEnrollment(secret, code.replace(/\s/g, ''));
-      await multiFactor(user).enroll(assertion, 'LociAR Admin');
+      await multiFactor(user).enroll(assertion, 'LociDrop Admin');
       await endSession();
       window.location.replace('/admin/login?reason=mfa_enrolled');
     } catch (error) {

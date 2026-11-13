@@ -1,4 +1,4 @@
-# LociAR altı uzmanlı denetim — 24 Ekim 2026
+# LociDrop altı uzmanlı denetim — 24 Ekim 2026
 
 **Karar: İncelenen çalışma ağacı yayın için hazır kabul edilemez.** Yerel kabul paketleri geçerken özel karşı örnekler anonimlik, yetki ve grup erişimi kusurlarını yeniden üretti. Canlı ödeme servisleri ve dağıtım eşliği de eksik. Bu çalışma denetimdir; uygulama kaynakları düzeltilmedi, canlı dağıtım veya mağaza gönderimi yapılmadı.
 

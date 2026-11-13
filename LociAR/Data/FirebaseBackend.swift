@@ -136,7 +136,7 @@ enum BackendTransientError: LocalizedError, Sendable {
 
     var errorDescription: String? {
         switch self {
-        case .servicePaused: String(localized: "LociAR geçici olarak durduruldu. Lütfen biraz sonra tekrar dene.")
+        case .servicePaused: String(localized: "LociDrop geçici olarak durduruldu. Lütfen biraz sonra tekrar dene.")
         case .busy: String(localized: "Sunucu şu anda yoğun. Birkaç saniye sonra tekrar dene.")
         }
     }

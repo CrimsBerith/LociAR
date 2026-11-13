@@ -137,7 +137,7 @@ export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved,
   return <details className="panel"><summary>{t('Zone campaign steps ({count})', { count: steps.length })}</summary><div className="decisionForm">
     <p className="muted">{t('Everyone who turned on Notifications and is near the campaign can trigger these steps; you do not pick recipients. Phones learn their usual place (where they spend nights) on the device only; the campaign area below decides who gets a “leaves usual place” step. GPS is usually 5–30 m off, so zones smaller than 15–20 m are unreliable.')}</p>
     <label>{t('Time zone for schedules')}<input value={tz} onChange={e => setTz(e.target.value)} maxLength={64}/></label>
-    {canNotify ? <label>{t('Test phone: LociAR user ID that receives “Send test” (your own account; it must have Campaigns and offers on)')}
+    {canNotify ? <label>{t('Test phone: LociDrop user ID that receives “Send test” (your own account; it must have Campaigns and offers on)')}
       <input value={recipient} onChange={e => rememberRecipient(e.target.value)} placeholder="00000000-0000-0000-0000-000000000000" maxLength={36}/></label> : null}
     {steps.map((s, i) => <fieldset key={s.id}><legend>{t('Step')} {i + 1} · {s.id}</legend>
       <label>{t('When')}<select value={s.trigger} onChange={e => update(i, { trigger: e.target.value as Step['trigger'] })}>

@@ -1,6 +1,6 @@
-# LociAR Native iOS Architecture
+# LociDrop Native iOS Architecture
 
-LociAR is an iOS 17+ SwiftUI application. It has no Expo, React Native, JavaScript runtime, or native bridge.
+LociDrop is an iOS 17+ SwiftUI application. It has no Expo, React Native, JavaScript runtime, or native bridge.
 
 ## Dependency direction
 

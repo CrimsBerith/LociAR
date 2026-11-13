@@ -1,6 +1,6 @@
 # Launch seed content
 
-19 October 2026. Plan: [LociAR Açılış İçeriği Planı](https://claude.ai/code/artifact/671af933-9b79-409a-8cff-8498bb14cb92).
+19 October 2026. Plan: [LociDrop Açılış İçeriği Planı](https://claude.ai/code/artifact/671af933-9b79-409a-8cff-8498bb14cb92).
 
 The map must not open empty. Seed notes and approximate AR posts are written by the team, published under one managed
 content account and tagged with a `seed_batch`, so they can be measured and retired once real notes take over.

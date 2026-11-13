@@ -3,15 +3,15 @@ import LegalLayout from '../legal-layout';
 import { LEGAL_ENTITY as E } from '../legal-entity';
 
 export const metadata = {
-  title: 'LociAR Gizlilik Politikası ve KVKK Aydınlatma Metni',
-  description: 'LociAR konum, kamera, hesap, bildirim, çökme raporu ve kullanıcı içeriği verilerini nasıl işler.',
+  title: 'LociDrop Gizlilik Politikası ve KVKK Aydınlatma Metni',
+  description: 'LociDrop konum, kamera, hesap, bildirim, çökme raporu ve kullanıcı içeriği verilerini nasıl işler.',
 };
 
 export default function PrivacyPage() {
   return (
     <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="13 Kasım 2026">
       <p>
-        LociAR, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
+        LociDrop, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.10 kapsamında aydınlatma metni olarak da
         hazırlanmıştır. <Link href="/privacy/en">English version</Link>
       </p>
@@ -181,7 +181,7 @@ export default function PrivacyPage() {
       </ul>
 
       <h2>Çocuklar</h2>
-      <p>LociAR çocuklara yönelik değildir; 13 yaşından küçüklerin hesap açmaması gerekir.</p>
+      <p>LociDrop çocuklara yönelik değildir; 13 yaşından küçüklerin hesap açmaması gerekir.</p>
 
       <h2>Değişiklikler</h2>
       <p>Bu metin güncellendiğinde yukarıdaki tarih değişir; önemli değişiklikler uygulama içinde duyurulur.</p>

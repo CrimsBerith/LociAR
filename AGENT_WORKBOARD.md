@@ -1,4 +1,4 @@
-# LociAR çalışma panosu
+# LociDrop çalışma panosu
 
 Güncelleme: 10 Ekim 2026. Güncel kapsam native iOS + Firebase + Next.js App Hosting'dir.
 Önceki çalışma panosu Git geçmişinde korunur; geçmiş test sonuçları bu adayın yayın onayı değildir.

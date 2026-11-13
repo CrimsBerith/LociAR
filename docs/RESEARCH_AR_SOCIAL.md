@@ -1,6 +1,6 @@
 > **ARŞİV (28 Eylül 2026):** Bu belge Supabase dönemine aittir. Backend artık Firebase — güncel kaynaklar: `AGENTS.md`, `docs/FIREBASE_SETUP.md`, `ARCHITECTURE.md`.
 
-# LociAR External Research: AR + Social Media Code Analysis for Quality Improvements
+# LociDrop External Research: AR + Social Media Code Analysis for Quality Improvements
 
 **Date:** 2026-07-09  
 **Purpose:** Living document maintained by Research Analyst agent. Agents must re-scan before major AR/gesture/social/discovery work and append dated updates.
@@ -13,8 +13,8 @@
 4. Output format per idea:
    - **Idea**
    - **Source** (links + specific files/examples)
-   - **Quality Benefit** (how it increases robustness/UX/realism/perf/maintainability for LociAR)
-   - **Integration Notes** (LociAR files + sketch)
+   - **Quality Benefit** (how it increases robustness/UX/realism/perf/maintainability for LociDrop)
+   - **Integration Notes** (LociDrop files + sketch)
    - **Code Pattern** (snippet)
    - **Effort / Risk**
 
@@ -61,7 +61,7 @@
 
 **5. Simultaneous Pan + Pinch + Rotation (IG Stories sticker UX)**
 - Source: birdwingo/react-native-instagram-stories, William Candillon "Can it be done" series, many clones using gesture-handler + reanimated.
-- Quality Benefit: Butter-smooth 60fps multi-touch manipulation of text/images/posts. Current LociAR Create already has a good implementation (Gesture.Simultaneous + shared values + stable commit).
+- Quality Benefit: Butter-smooth 60fps multi-touch manipulation of text/images/posts. Current LociDrop Create already has a good implementation (Gesture.Simultaneous + shared values + stable commit).
 - Improvements to apply:
   - More stable gesture memoization.
   - Double-tap to edit text.
@@ -118,7 +118,7 @@ Ongoing: Realtime social + clean architecture from clones.
 
 ## Design ve Kullanım (UX) Odaklı Ek İyileştirmeler (Kullanıcı Sorgusu için)
 
-Aşağıdakiler özellikle **design** (görsel estetik, animasyon, premium his) ve **kullanım** (kolaylık, akıcılık, feedback, keşif) açısından LociAR'ı iyileştirecek fikirlerdir. Dış taramalardan (IG Stories, TikTok, ViroReact, ARKit örnekleri) ve codebase analizinden derlenmiştir.
+Aşağıdakiler özellikle **design** (görsel estetik, animasyon, premium his) ve **kullanım** (kolaylık, akıcılık, feedback, keşif) açısından LociDrop'ı iyileştirecek fikirlerdir. Dış taramalardan (IG Stories, TikTok, ViroReact, ARKit örnekleri) ve codebase analizinden derlenmiştir.
 
 ### Design İyileştirmeleri
 1. **Premium mikro-interaksiyonlar ve spring animasyonlar**  
@@ -186,14 +186,14 @@ Bu maddeler doğrudan "kullanıcı deneyimini keyifli, premium ve sorunsuz" hale
 - Expo SDK 54 remains React Native 0.81 / React 19.1; the existing React Navigation 7 setup can pass JSON-serializable `postId`, creator identity, and optional post data as route params. Hidden full-screen tab routes are retained for this app shell.
 - React Navigation 7 does not implicitly target nested child screens. The new profile and preview destinations are explicit sibling routes, avoiding ambiguous nested navigation.
 - Apple ARKit documentation keeps AR presentation coupled to the live camera/session and physical anchors. Product implication: remote profile viewing must be a separate 2D preview; “View in AR” remains an explicit location/camera action.
-- TikTok's official Embed Player uses `/player/v1/{post_id}` and a `postMessage` control protocol. Platform/runtime restrictions can still reject an embed, so LociAR preserves a visible “open original” fallback.
+- TikTok's official Embed Player uses `/player/v1/{post_id}` and a `postMessage` control protocol. Platform/runtime restrictions can still reject an embed, so LociDrop preserves a visible “open original” fallback.
 - Uploaded first-party video now uses a controllable inline HTML5 `<video>` element. YouTube remains an iframe/API embed, Spotify uses its official embed URL, and Instagram/Facebook/X/other links degrade to thumbnail/title plus external open instead of a broken blank surface.
 
 Implementation consequence: public profile queries are location-independent but return only `active + public + non-18+` posts and honor blocks. Preview rendering supports surface texture, drawing/text/image layers, image media, uploaded video, YouTube, Spotify, and restricted-platform fallback links.
 
 ## Design ve Kullanım (UX) Odaklı Ek İyileştirmeler (Kullanıcı Sorgusu için)
 
-Aşağıdakiler özellikle **design** (görsel estetik, animasyon, premium his) ve **kullanım** (kolaylık, akıcılık, feedback, keşif) açısından LociAR'ı iyileştirecek fikirlerdir. Dış taramalardan (IG Stories, TikTok, ViroReact, ARKit örnekleri) ve codebase analizinden derlenmiştir.
+Aşağıdakiler özellikle **design** (görsel estetik, animasyon, premium his) ve **kullanım** (kolaylık, akıcılık, feedback, keşif) açısından LociDrop'ı iyileştirecek fikirlerdir. Dış taramalardan (IG Stories, TikTok, ViroReact, ARKit örnekleri) ve codebase analizinden derlenmiştir.
 
 ### Design İyileştirmeleri
 1. **Premium mikro-interaksiyonlar ve spring animasyonlar**  
@@ -258,7 +258,7 @@ Bu maddeler doğrudan "kullanıcı deneyimini keyifli, premium ve sorunsuz" hale
 
 ## Detailed Codebase-Specific Opportunities (from internal explore subagent, 2026-07-08)
 
-This section integrates direct code analysis of LociAR with external patterns from ViroReact, ARKit, IG Stories clones, TikTok feeds.
+This section integrates direct code analysis of LociDrop with external patterns from ViroReact, ARKit, IG Stories clones, TikTok feeds.
 
 **Current Limitations vs Ideal (Summary Table)**
 
@@ -328,7 +328,7 @@ Append new subagent runs here with date.
 ## 2026-07-17 - Production AR and iOS Auth Follow-up
 
 - ARKit placement should use an `ARRaycastQuery` against existing plane geometry, then attach an `ARAnchor` to the hit transform. Persisting only latitude/longitude is not a spatial anchor. A post remains eligible for public AR only after an operator has saved an `arkit_world` anchor and calibration metadata.
-- `ARAnchor` is session-local by default. Cross-session and cross-device persistence need a second relocalization signal such as an `ARWorldMap`, reference image, visual-positioning service, or an on-site recalibration flow. LociAR will label this state honestly and keep uncalibrated campaign content out of public AR.
+- `ARAnchor` is session-local by default. Cross-session and cross-device persistence need a second relocalization signal such as an `ARWorldMap`, reference image, visual-positioning service, or an on-site recalibration flow. LociDrop will label this state honestly and keep uncalibrated campaign content out of public AR.
 - Own uploaded MP4/HLS content can be rendered as an `AVPlayer` material on an AR plane. YouTube, TikTok, Instagram and similar platform links must stay as official embeds/deep links; do not extract a stream or claim texture-level world lock for them.
 - Expo AuthSession supports the custom callback contract `lociar://auth/callback`; use Supabase redirect allow-list entries for that scheme. Apple/Google/email sessions must be restored from secure storage and the server, not represented by a local profile flag.
 - App Review UGC flow needs in-app report, block, contact, moderation action, account deletion, and an operational response path. Owner operations use server-side role checks and audited Edge Functions; the service role is never bundled.
@@ -339,34 +339,34 @@ Append new subagent runs here with date.
 - Expo SDK 54 Camera docs confirm `CameraView` and `takePictureAsync({ skipProcessing: false })` remain the correct iOS-safe path for reference frames; keep camera capture orientation processing enabled.
 - Expo SDK 54 Location docs confirm foreground `watchPositionAsync` and `watchHeadingAsync` subscriptions are the right lightweight AR fallback signal while native ARKit is behind a dev-build feature flag.
 - Expo SDK 54 Video docs confirm `expo-video` supports hidden native controls via `nativeControls={false}`, but current implementation can avoid adding it because YouTube/TikTok embeds use WebView and owned AR video uses native `AVPlayer` texture.
-- YouTube IFrame docs support `controls=0`, `playsinline=1`, and `enablejsapi=1`; LociAR should render the player chromeless on the wall and drive play/pause/seek from a React Native bottom media bar.
+- YouTube IFrame docs support `controls=0`, `playsinline=1`, and `enablejsapi=1`; LociDrop should render the player chromeless on the wall and drive play/pause/seek from a React Native bottom media bar.
 - TikTok Embed Player docs support query parameters such as `controls=0`, `progress_bar=0`, `play_button=0`, `timestamp=0`, and postMessage play/pause/seek/mute commands; treat this as best-effort because platform WebView behavior can still vary.
 - Apple ARKit raycast docs confirm `ARRaycastQuery` + `ARSession.raycast(_:)` is still the correct native hit-test path for real surface placement; keep `LociarWorldLockModule` as the boundary for owned video texture and playback commands.
 
 ## 2026-07-19 - Native Surface Capture iOS + Android Implementation Scan
 
 - Expo SDK 54 docs confirm SDK 54 targets Android compile/target SDK 36 and iOS 15.1+, so the local native module keeps SDK 54 compatibility and uses Expo Modules autolinking instead of bare native project edits.
-- Expo Modules docs confirm local modules need `expo-module.config.json`; Android registration needs a fully qualified Kotlin module class, while Apple needs a podspec for autolinking to expose the Swift module. LociAR now has both Android and Apple registration for `lociar-world-lock`.
+- Expo Modules docs confirm local modules need `expo-module.config.json`; Android registration needs a fully qualified Kotlin module class, while Apple needs a podspec for autolinking to expose the Swift module. LociDrop now has both Android and Apple registration for `lociar-world-lock`.
 - Apple RealityKit/ARKit docs confirm `ARView`/anchor-based rendering is the long-term iOS direction; the current Swift SceneKit bridge remains a compatible native boundary and now returns the same provider/quality payload shape as Android.
-- ARCore docs confirm hit-tests return pose information from planes/depth/feature points and anchors should be created from hit results to keep objects stable over time. LociAR Android now starts an optional ARCore session, checks device support at runtime, and exposes vertical/horizontal hit-test anchor creation through the same JS `nativeWorldLock.raycast` API.
-- ARCore enablement docs recommend AR Optional for apps that should still open on unsupported devices. LociAR's Android manifest now uses `android.hardware.camera.ar` required=false and `com.google.ar.core` value `optional`, with unsupported devices reported through `unsupported` tracking state.
+- ARCore docs confirm hit-tests return pose information from planes/depth/feature points and anchors should be created from hit results to keep objects stable over time. LociDrop Android now starts an optional ARCore session, checks device support at runtime, and exposes vertical/horizontal hit-test anchor creation through the same JS `nativeWorldLock.raycast` API.
+- ARCore enablement docs recommend AR Optional for apps that should still open on unsupported devices. LociDrop's Android manifest now uses `android.hardware.camera.ar` required=false and `com.google.ar.core` value `optional`, with unsupported devices reported through `unsupported` tracking state.
 - ARCore Cloud Anchors/Geospatial remain later persistence upgrades. This pass implements local hit-test anchors and shared `AnchorBundle` persistence fields without claiming cross-device VPS-grade relocalization yet.
 
 ## 2026-07-20 - Deep Audit Implementation Scan
 
 - Expo SDK 54 docs were rechecked before native/module/mobile changes. Current target remains SDK 54, React Native 0.81, React 19.1, and dev/internal native builds for custom modules.
-- Expo Modules native view guidance confirms LociAR should mount `LociarWorldLockView` before calling module functions. This pass adds a React bridge component so native raycast is not called against an unavailable view.
+- Expo Modules native view guidance confirms LociDrop should mount `LociarWorldLockView` before calling module functions. This pass adds a React bridge component so native raycast is not called against an unavailable view.
 - ARKit/RealityKit docs still support the long-term iOS target: `ARView` + raycast + `AnchorEntity` + `VideoMaterial`. The existing SceneKit bridge remains a compatibility layer, but should be migrated to RealityKit before App Store AR quality is called final.
 - ARCore docs still confirm AR Optional is the right Android policy: app opens on unsupported devices, while ARCore availability gates world-lock capture. This pass keeps Android unsupported fallback explicit.
-- ViroReact was rechecked as an alternative; it remains useful for reference patterns, but not adopted now because LociAR is pinned to Expo SDK 54 and already has a custom local module boundary. Unity/Lightship remain post-MVP advanced AR options.
+- ViroReact was rechecked as an alternative; it remains useful for reference patterns, but not adopted now because LociDrop is pinned to Expo SDK 54 and already has a custom local module boundary. Unity/Lightship remain post-MVP advanced AR options.
 - Platform video embeds remain best-effort. Own uploaded video is the only first-class target for true native wall playback; YouTube/TikTok/Instagram should use chromeless/bottom-controlled projections or poster/deep-link fallback when platform controls cannot be suppressed.
 - Implementation outcome: native view mounting is now represented in mobile UI, production native world-lock flag is off by default, and placement quality/provider/resolver metadata is separated for moderation and future secure resolver access.
 
 ## 2026-07-20 - Android ARCore Render Loop + AR Render Policy
 
-- Re-scanned ARCore camera-rendering patterns: the production direction is `GLSurfaceView` with an external OES camera texture, `Session.setCameraTextureName(...)`, and `Session.update()` from the render thread. LociAR Android now follows that minimum render-loop structure instead of calling `Session.update()` only during raycast.
+- Re-scanned ARCore camera-rendering patterns: the production direction is `GLSurfaceView` with an external OES camera texture, `Session.setCameraTextureName(...)`, and `Session.update()` from the render thread. LociDrop Android now follows that minimum render-loop structure instead of calling `Session.update()` only during raycast.
 - Android native texture playback remains separate. Owned video native texture is still iOS-only until Android receives ExoPlayer/SurfaceTexture or a textured-plane renderer.
-- Added an app-level AR render policy so LociAR can distinguish true native wall video, native tracking with overlay preview, and Expo sensor fallback. This prevents the UI from overstating world-lock quality before native text/image/drawing renderers are complete.
+- Added an app-level AR render policy so LociDrop can distinguish true native wall video, native tracking with overlay preview, and Expo sensor fallback. This prevents the UI from overstating world-lock quality before native text/image/drawing renderers are complete.
 
 ## 2026-07-20 - Native Static Surface Content Pass
 
@@ -386,10 +386,10 @@ Sources reviewed:
 
 Findings:
 - Strong AR apps do not treat GPS/heading as world lock. They use 6DOF native tracking, raycast/hit-test, anchors, and then optional relocalization signals.
-- Snapchat-like effects distinguish rotation/surface/world tracking and fall back honestly when native AR is unavailable. LociAR should keep this exact honesty model: Expo sensor alignment is fallback, not world lock.
+- Snapchat-like effects distinguish rotation/surface/world tracking and fall back honestly when native AR is unavailable. LociDrop should keep this exact honesty model: Expo sensor alignment is fallback, not world lock.
 - ARKit world maps and reference images can help relocalize, but they are environment-dependent. Cross-session persistence should be represented as a resolver strategy, not a guaranteed permanent anchor.
 - ARCore local anchors are stable only in their session. Cloud Anchors and Geospatial/VPS can create shared/persistent frames of reference, but they add quota, privacy, coverage, and operational complexity.
-- VPS products such as Lightship/8th Wall rely on pre-scanned/mapped locations and map-relative 6DOF pose. This matches LociAR's future campaign/operator workflow better than immediate public self-serve persistence.
+- VPS products such as Lightship/8th Wall rely on pre-scanned/mapped locations and map-relative 6DOF pose. This matches LociDrop's future campaign/operator workflow better than immediate public self-serve persistence.
 - Unity AR Foundation guidance matches our custom native direction: anchors are expensive, should be reused for nearby objects, and content should be parented to anchors rather than using anchors as decorative content prefabs.
 
 Implementation outcome:
@@ -406,7 +406,7 @@ Next technical target:
 
 - Follow-up to the competitive AR scan: Snap/Instagram-style editors should not be rendered as separate React overlays in the final AR view. The saved post needs a single rasterized surface texture that can be parented to a native anchor plane.
 - Added `react-native-view-shot` through Expo SDK 54-compatible install to capture the exact editor composition into a PNG texture.
-- LociAR now stores `surfaceTextureUri`, `surfaceTextureAssetPath`, and `surfaceTexturePublicUrl` on `EditData`. This lets the native AR renderer prefer the full composition texture before falling back to one-off text/image attachment.
+- LociDrop now stores `surfaceTextureUri`, `surfaceTextureAssetPath`, and `surfaceTexturePublicUrl` on `EditData`. This lets the native AR renderer prefer the full composition texture before falling back to one-off text/image attachment.
 - This is the correct bridge between the social editor model and ARKit/ARCore renderer model: the user creates many layers, but AR sees one wall material on one anchor.
 - Remaining native quality work: Android needs textured-plane rendering, and iOS/Android should later generate the texture at a fixed high resolution independent of screen size for consistent physical sharpness.
 
@@ -420,11 +420,11 @@ Next technical target:
 
 ## 2026-07-22 - Premium Mobile UX Refresh Scan
 
-- Expo SDK 54 Camera documentation was rechecked. Only one camera preview should be active; LociAR keeps `CameraView` active only while the AR route is focused and presents a user-triggered permission explanation before the system prompt.
-- Apple AR HIG was rechecked. The physical scene should occupy as much of the display as possible, with indirect/translucent controls that do not obscure the environment. LociAR now collapses tracking, battery, and walking warnings into one prioritized AR status surface.
+- Expo SDK 54 Camera documentation was rechecked. Only one camera preview should be active; LociDrop keeps `CameraView` active only while the AR route is focused and presents a user-triggered permission explanation before the system prompt.
+- Apple AR HIG was rechecked. The physical scene should occupy as much of the display as possible, with indirect/translucent controls that do not obscure the environment. LociDrop now collapses tracking, battery, and walking warnings into one prioritized AR status surface.
 - ViroReact's current plane-selection lifecycle continues to identify planes by stable `anchorId`. This reinforces the existing native anchor/raycast contract; the design pass does not replace it with GPS-only placement.
-- Instagram Stories-style editing patterns still favor direct manipulation plus visible alternatives. LociAR keeps drag/pinch/rotate while exposing layer selection, delete, undo, front, and z-order actions for motor accessibility.
-- TikTok/Reels-style discovery scans continue to rely on viewability-aware paging/autoplay. LociAR does not add autoplay in this pass; it adopts the useful content hierarchy—one immersive feature item followed by compact rows—without turning discovery into an unexplained infinite feed.
+- Instagram Stories-style editing patterns still favor direct manipulation plus visible alternatives. LociDrop keeps drag/pinch/rotate while exposing layer selection, delete, undo, front, and z-order actions for motor accessibility.
+- TikTok/Reels-style discovery scans continue to rely on viewability-aware paging/autoplay. LociDrop does not add autoplay in this pass; it adopts the useful content hierarchy—one immersive feature item followed by compact rows—without turning discovery into an unexplained infinite feed.
 
 Sources:
 - https://docs.expo.dev/versions/v54.0.0/sdk/camera/
@@ -443,7 +443,7 @@ Findings:
 - A local ARKit/ARCore anchor identifier is valid only inside the native session that owns it. Saving the identifier without a relocalization asset must never be presented as persistent world lock.
 - iOS can persist a mapped environment with `ARSession.getCurrentWorldMap`, archive it, then restore it through `ARWorldTrackingConfiguration.initialWorldMap`. Restored anchors must be rebuilt into RealityKit entities before content attachment.
 - Cross-device ARCore persistence requires Cloud Anchor hosting/resolution or a VPS/Geospatial resolver. Cloud Anchor mode must be enabled explicitly, mapping quality should be checked before hosting, and authorization/quota/network failures must remain recoverable.
-- Geospatial/VPS is appropriate for city-scale discovery but is not equivalent to a wall-level local anchor by itself. LociAR should resolve in this order: native world map/cloud anchor, reference image, then geo pose as a discovery hint only.
+- Geospatial/VPS is appropriate for city-scale discovery but is not equivalent to a wall-level local anchor by itself. LociDrop should resolve in this order: native world map/cloud anchor, reference image, then geo pose as a discovery hint only.
 - Expo Go cannot execute this custom Swift/Kotlin bridge. A rebuilt development client is required after every native contract change.
 
 Implementation target:
@@ -476,7 +476,7 @@ Sources re-scanned:
 
 Findings applied:
 - Persistent controls belong in reachable screen-space, with translucent treatment over the live scene; virtual content stays visually separate from its controls.
-- The product can use the reference’s camera-first composition without copying platform brands or content: LociAR’s own post surface, creator metadata, and embedded-media capability remain the live data source.
+- The product can use the reference’s camera-first composition without copying platform brands or content: LociDrop’s own post surface, creator metadata, and embedded-media capability remain the live data source.
 - Shared visual parity relies on one stage layer across AR, discovery, activity, and profile: a darkened real-world image, continuous-radius glass surfaces, pushpin-style post identity, and a cyan primary action.
 
 ## 2026-07-26 - RealityKit Texture Loading Build-Hardening Scan
@@ -489,7 +489,7 @@ Sources re-scanned:
 
 Findings applied:
 - `TextureResource.load(contentsOf:)` is synchronous, main-actor isolated, and unavailable from async contexts in the current SDK. iOS 18+ should use the async initializer.
-- LociAR still supports iOS 15.1, so iOS 15–17 texture loading uses RealityKit's non-blocking `loadAsync` publisher bridged through Combine async values.
+- LociDrop still supports iOS 15.1, so iOS 15–17 texture loading uses RealityKit's non-blocking `loadAsync` publisher bridged through Combine async values.
 - ViroReact still requires a native development build and remains a reference rather than a second AR runtime.
 - Social/editor and feed findings do not change this build-hardening patch; embedded playback remains lifecycle-aware and only one active feed player should own playback resources.
 
@@ -538,8 +538,8 @@ Findings applied:
 - Touch targets remain at least 44 points on iOS, icon-only actions need accessible names, and selected state cannot rely on color alone.
 - React Navigation automatically protects its own built-in chrome, but custom screen overlays must use `react-native-safe-area-context`. Absolutely positioned tab bars do not add content padding automatically.
 - Gesture Handler recommends native gesture composition. Pinch focal coordinates are valid after activation; pan/pinch/rotation should remain simultaneous and bounds must be clamped after each commit.
-- TikTok/Stories implementations repeatedly fail when media and timers remain active off-screen. LociAR should keep one focused camera/player owner, pause inactive routes, and virtualize long feeds instead of nesting large unbounded lists.
-- ViroReact remains a reference, not a second runtime. LociAR keeps its signed iOS Vision/RealityKit module boundary and avoids duplicating camera ownership.
+- TikTok/Stories implementations repeatedly fail when media and timers remain active off-screen. LociDrop should keep one focused camera/player owner, pause inactive routes, and virtualize long feeds instead of nesting large unbounded lists.
+- ViroReact remains a reference, not a second runtime. LociDrop keeps its signed iOS Vision/RealityKit module boundary and avoids duplicating camera ownership.
 
 ## 2026-08-09 - Permission-Safe Launch and Discovery Re-scan
 
@@ -626,7 +626,7 @@ Findings applied:
 
 Sources re-scanned:
 
-- Apple ARKit location anchors / `ARGeoTrackingConfiguration` (GPS + compass). LociAR stays on `ARWorldTrackingConfiguration` because geo-tracking is region-limited.
+- Apple ARKit location anchors / `ARGeoTrackingConfiguration` (GPS + compass). LociDrop stays on `ARWorldTrackingConfiguration` because geo-tracking is region-limited.
 - ARKit `worldAlignment = .gravityAndHeading` (compass-locked axes). Not used for pin sessions; compass is a UI aim guide on top of gravity world tracking.
 - Existing-plane raycast (`existingPlaneGeometry`) as the reveal trigger once heading is aligned.
 

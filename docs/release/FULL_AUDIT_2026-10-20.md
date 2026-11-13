@@ -1,4 +1,4 @@
-# LociAR full follow-up audit — 20 October 2026
+# LociDrop full follow-up audit — 20 October 2026
 
 Follow-up implementation and newer verification: [CONTINUATION_FIXES_2026-10-20.md](CONTINUATION_FIXES_2026-10-20.md).
 

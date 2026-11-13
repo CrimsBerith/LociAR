@@ -1,4 +1,4 @@
-# LociAR — Full App Liquid Glass Pass
+# LociDrop — Full App Liquid Glass Pass
 
 Date: 3 Nov 2026
 

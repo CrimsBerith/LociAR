@@ -1,4 +1,4 @@
-# LociAR — üçüncü derin tarama ve kabul kanıtı
+# LociDrop — üçüncü derin tarama ve kabul kanıtı
 
 14 Ekim 2026. Backend kaynağı `c8e7717` (önceki ana düzeltme `5c4fc574b`, rıza tamamlaması `4adb3af`); GPS `b1c0381`, onboarding/operatör aracı `949cd8f`. Başlangıç `28b31d18cfcfd370478baec90305a000b25f7508`. Bu çalışma [ikinci taramadaki](FOLLOWUP_RISK_AUDIT_2026-10-14.md) şikâyet, dil filtresi, Messaging SDK ve büyük Storage prefix'i bulgularını tamamlar. Yeni inceleme ayrıca tüm bildirim yollarındaki genel rıza koşulunu ve hesap silmede şikâyet hedefinin kimliğini kapsar.
 

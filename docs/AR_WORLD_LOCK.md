@@ -1,6 +1,6 @@
-# LociAR Persistent World Lock
+# LociDrop Persistent World Lock
 
-LociAR is a **native iOS app** (SwiftUI + ARKit, project generated with `xcodegen`). There is no Expo/React Native layer and no Android build.
+LociDrop is a **native iOS app** (SwiftUI + ARKit, project generated with `xcodegen`). There is no Expo/React Native layer and no Android build.
 
 ## Re-finding a pin: resolution order
 

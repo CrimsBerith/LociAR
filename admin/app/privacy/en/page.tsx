@@ -3,15 +3,15 @@ import LegalLayout from '../../legal-layout';
 import { LEGAL_ENTITY as E } from '../../legal-entity';
 
 export const metadata = {
-  title: 'LociAR Privacy Policy',
-  description: 'How LociAR processes location, camera, account, notification, crash and user-generated content data.',
+  title: 'LociDrop Privacy Policy',
+  description: 'How LociDrop processes location, camera, account, notification, crash and user-generated content data.',
 };
 
 export default function PrivacyPageEn() {
   return (
     <LegalLayout title="Privacy policy" updated="November 13, 2026" lang="en">
       <p>
-        LociAR is an iOS app for sharing short text notes anchored to real-world surfaces. This
+        LociDrop is an iOS app for sharing short text notes anchored to real-world surfaces. This
         policy explains which personal data we process. <Link href="/privacy">Türkçe sürüm</Link>
       </p>
 
@@ -172,7 +172,7 @@ export default function PrivacyPageEn() {
       </ul>
 
       <h2>Children</h2>
-      <p>LociAR is not directed to children; users under 13 must not create an account.</p>
+      <p>LociDrop is not directed to children; users under 13 must not create an account.</p>
 
       <h2>Changes</h2>
       <p>When this policy changes, the date above is updated; material changes are announced in the app.</p>

@@ -1,6 +1,6 @@
 > **ARŞİV (28 Eylül 2026):** Bu belge Supabase dönemine aittir. Backend artık Firebase — güncel kaynaklar: `AGENTS.md`, `docs/FIREBASE_SETUP.md`, `ARCHITECTURE.md`. Sosyal medya bağlantıları (Spotify, YouTube, TikTok, Instagram, Facebook, X), fotoğraf/video ve çizim postları 9 Ekim 2026'da kaldırıldı. Burada geçen platform adları yalnızca tarihî kayıttır.
 
-# LociAR - Milyonlarca Kullanıcıya Ölçeklendirme Analizi (MVP Sonrası İhtiyaçlar)
+# LociDrop - Milyonlarca Kullanıcıya Ölçeklendirme Analizi (MVP Sonrası İhtiyaçlar)
 
 **Tarih:** 2026-07-05  
 **Amaç:** Mevcut MVP'den (sadece client-side Expo prototipi) 1M+ → 10M+ aktif kullanıcıya ölçeklenebilir bir ürüne geçiş için kapsamlı ihtiyaç analizi.

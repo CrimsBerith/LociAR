@@ -1,4 +1,4 @@
-# LociAR iOS Design System
+# LociDrop iOS Design System
 
 ## Source of truth
 
@@ -8,7 +8,7 @@ System/Light/Dark choice to the app-wide color scheme. Screens should use semant
 than define one-off colors or duplicate layout values.
 
 The palette resolves from UIKit traits, including increased-contrast traits. The dark palette keeps
-LociAR's midnight and mint identity; the light palette uses high-contrast ink and quiet cool-gray
+LociDrop's midnight and mint identity; the light palette uses high-contrast ink and quiet cool-gray
 surfaces. The app follows iOS appearance by default. Camera, image, and AR content overlays use
 explicit media-overlay tokens because their contrast must remain stable over changing imagery.
 Heat-map density and geographic pin colors are data-visualization roles, not surface colors.

@@ -1,4 +1,4 @@
-# LociAR — Maliyet Öncelikli Optimizasyon Denetimi
+# LociDrop — Maliyet Öncelikli Optimizasyon Denetimi
 
 **Tarih:** 23 Ekim 2026 · **Durum:** Aşama 0 envanter/izleme kuruldu; Aşama 1 sürüyor. Aşama 2–4 tamamlanmadı.
 

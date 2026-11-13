@@ -1,4 +1,4 @@
-# LociAR Screen Specifications
+# LociDrop Screen Specifications
 
 ## Harita
 

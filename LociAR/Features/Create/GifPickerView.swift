@@ -85,7 +85,9 @@ struct GifPickerView: View {
                 searchGeneration += 1
                 let generation = searchGeneration, requestedQuery = normalizedQuery
                 activeQuery = requestedQuery
-                results = []; nextOffset = nil; errorMessage = nil; isLoading = true
+                // Keep the previous grid while typing so it does not flash empty on every keystroke;
+                // paging is paused until the new query answers.
+                nextOffset = nil; errorMessage = nil; isLoading = true
                 // Debounce typing; an empty query loads trending GIFs immediately.
                 if !requestedQuery.isEmpty {
                     do { try await Task.sleep(for: .milliseconds(350)) } catch { return }

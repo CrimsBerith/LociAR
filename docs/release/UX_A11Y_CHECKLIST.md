@@ -1,4 +1,4 @@
-# LociAR 1.0 — UX, Accessibility & HIG Compliance Checklist
+# LociDrop 1.0 — UX, Accessibility & HIG Compliance Checklist
 
 > Phase: P7  
 > Owners: A10 (UI/E2E QA), A11 (Design System & Localization)  

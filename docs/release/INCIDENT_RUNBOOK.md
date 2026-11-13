@@ -1,4 +1,4 @@
-# LociAR 1.0 — Post-Launch Incident Response Runbook
+# LociDrop 1.0 — Post-Launch Incident Response Runbook
 
 > Phase: P12 (Post-Launch Operations & Maintenance)  
 > Owners: A00 (Technical Leader), A06 (Backend Reliability), A12 (CI/CD Specialist)  
@@ -26,7 +26,7 @@
 4. Result: New post creation and other kill-switch-protected admission calls are refused. Existing reads, reports, blocks and account deletion remain available.
 
 ### Playbook B: Halting App Store Phased Rollout
-1. Open **App Store Connect** -> LociAR -> iOS App -> 1.0.0.
+1. Open **App Store Connect** -> LociDrop -> iOS App -> 1.0.0.
 2. Under **Phased Release for Automatic Updates**, click **Pause Phased Release**.
 3. Status switches to "Paused" for up to 30 days while investigation is underway.
 

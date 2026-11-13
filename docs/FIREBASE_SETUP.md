@@ -1,4 +1,4 @@
-# LociAR — Firebase kurulum ve canlıya alma rehberi
+# LociDrop — Firebase kurulum ve canlıya alma rehberi
 
 Her şey Firebase'de: Auth, Firestore, Storage, Cloud Functions, Cloud Messaging (push), Crashlytics ve admin paneli
 (Firebase App Hosting).
@@ -189,7 +189,7 @@ gcloud services enable firebaseapphosting.googleapis.com --project lociar-2f38c
 ./functions/node_modules/.bin/firebase apphosting:backends:create --project lociar-2f38c \
   --backend lociar-admin --primary-region us-central1 --root-dir admin
 ```
-- Sihirbaz bir **web app** bağlamayı sorar → "LociAR Admin" web app'ini seç/oluştur. Public istemci kimlikleri
+- Sihirbaz bir **web app** bağlamayı sorar → "LociDrop Admin" web app'ini seç/oluştur. Public istemci kimlikleri
   derleme sırasında `FIREBASE_WEBAPP_CONFIG` olarak gelir (`admin/next.config.ts`), elle girilmez.
 - Backend servis hesabına (`firebase-app-hosting-compute@lociar-2f38c.iam.gserviceaccount.com`)
   `Firebase Admin SDK Administrator Service Agent` rolü gerekir (Auth/Firestore/Storage). Avatar incelemesi
@@ -220,7 +220,7 @@ Admin girişi (16 Ekim 2026 ürün kararı): e-posta → 6 haneli tek kullanıml
 ## 6a. Kill switch (acil durdurma)
 
 Admin → System → "Kill switch": `system/flags.kill_switch` açılınca post oluşturma, Cloud Anchor kaydı, ARCore token
-ve avatar yükleme callable'ları `unavailable` + `service_paused` döner. Uygulama "LociAR geçici olarak durduruldu"
+ve avatar yükleme callable'ları `unavailable` + `service_paused` döner. Uygulama "LociDrop geçici olarak durduruldu"
 mesajını gösterir, sıradaki postlar deneme hakkı harcamadan bekler. İşlem audit log'a yazılır; kapatınca 15 sn
 içinde normale döner.
 

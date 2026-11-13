@@ -1,6 +1,6 @@
-# LociAR App Store Gönderim ve İnceleme Rehberi
+# LociDrop App Store Gönderim ve İnceleme Rehberi
 
-Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App Review) gönderilmesi sırasında girilmesi gereken tüm meta verileri, yasal bildirimleri, inceleme notlarını ve teknik parametreleri içerir.
+Bu belge, LociDrop'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App Review) gönderilmesi sırasında girilmesi gereken tüm meta verileri, yasal bildirimleri, inceleme notlarını ve teknik parametreleri içerir.
 
 ---
 

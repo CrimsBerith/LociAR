@@ -1,4 +1,4 @@
-# LociAR 1.0 — Product Scope, User Journeys & Release Policy
+# LociDrop 1.0 — Product Scope, User Journeys & Release Policy
 
 > Phase: P0  
 > Owners: A00 (Release Orchestrator), A01 (Product & Requirements Auditor), A14 (App Store Specialist)  
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary & Vision
 
-LociAR is a location-anchored augmented reality (AR) social and community application. Users can discover, create, and interact with geolocated content tied to real-world coordinates and physical surfaces.
+LociDrop is a location-anchored augmented reality (AR) social and community application. Users can discover, create, and interact with geolocated content tied to real-world coordinates and physical surfaces.
 
 The app combines:
 - **Surface-Anchored AR Experiences**: Text and KLIPY GIF bubble posts anchored in 3D physical space using ARKit and Google ARCore (Cloud Anchors & Geospatial VPS).

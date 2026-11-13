@@ -42,7 +42,7 @@ Support: support@alfagolab.com, https://lociar-admin--lociar-2f38c.us-central1.h
 
 ## 2. Why "Always" is justified (for any follow-up from App Review)
 
-| Apple expectation | How LociAR meets it |
+| Apple expectation | How LociDrop meets it |
 |---|---|
 | Location must be directly relevant to the app (5.1.5) | Notes are tied to places; the arrival reminder is the core of a location-note app. |
 | Explain the purpose in the prompt (5.1.1) | Purpose strings name the feature and give an example (see section 4). |
@@ -65,9 +65,9 @@ Region monitoring, visit monitoring and significant-change updates do not requir
 
 ## 4. Permission prompts (source: `Info.plist`, translations: `scripts/l10n/infoplist.json`, 12 languages)
 
-- **When In Use** – "LociAR uses your location to show notes and AR content where you are, to place your note exactly where you stand, and to open content in the right spot through the camera. For example, you see a “Wi-Fi password is at the till” note while you are in that café. For AR placement, location is processed with Google ARCore."
-- **Always** – "With “Always”, LociAR tells you about a liked note when you arrive at its place, even when the app is closed; for example, entering the café brings the “Wi-Fi password is at the till” note as a notification. If you also turned on campaigns, you may get an offer when you enter a campaign area. Only note and campaign areas are monitored, precise location is used briefly near an area, and your location history is not stored. You can turn notifications off in Settings at any time."
-- **Temporary precise location** – "LociAR needs your precise location this time to place your note exactly where you stand and show AR content in the right spot."
+- **When In Use** – "LociDrop uses your location to show notes and AR content where you are, to place your note exactly where you stand, and to open content in the right spot through the camera. For example, you see a “Wi-Fi password is at the till” note while you are in that café. For AR placement, location is processed with Google ARCore."
+- **Always** – "With “Always”, LociDrop tells you about a liked note when you arrive at its place, even when the app is closed; for example, entering the café brings the “Wi-Fi password is at the till” note as a notification. If you also turned on campaigns, you may get an offer when you enter a campaign area. Only note and campaign areas are monitored, precise location is used briefly near an area, and your location history is not stored. You can turn notifications off in Settings at any time."
+- **Temporary precise location** – "LociDrop needs your precise location this time to place your note exactly where you stand and show AR content in the right spot."
 
 ## 5. App Store Connect → App Privacy (must match `PrivacyInfo.xcprivacy`)
 
@@ -88,7 +88,7 @@ Region monitoring, visit monitoring and significant-change updates do not requir
 
 1. Fresh install → sign in with the demo account → open the Map: When In Use prompt appears in context.
 2. Leave a location note in a café; show "Location ready ±6 m" (or "Refine with camera" outdoors) and the published note.
-3. Profile → Settings → turn on Notifications → system prompt → choose "Change to Always Allow" when iOS offers it (or show iOS Settings → LociAR → Location → Always).
+3. Profile → Settings → turn on Notifications → system prompt → choose "Change to Always Allow" when iOS offers it (or show iOS Settings → LociDrop → Location → Always).
 4. Show the separate "Campaigns and offers" switch and its text; leave it on for the demo.
 5. Close the app (swipe to home, do not force-quit). Walk out and back into the café with a second account's liked note: show the lock-screen notification and the blue background-location indicator.
 6. Turn Notifications off in Settings and show that reminders stop.

@@ -1,10 +1,12 @@
 import AuthenticationServices
 import CryptoKit
+import OSLog
 import SwiftUI
 import UIKit
 
 struct AuthView: View {
     private enum Mode { case signIn, signUp }
+    private static let logger = Logger(subsystem: "com.khankartal.lociar", category: "auth")
     private enum Field { case email, password, confirmation }
 
     @Environment(AppSession.self) private var session
@@ -65,21 +67,7 @@ struct AuthView: View {
     }
 
     private var brandHeader: some View {
-        VStack(spacing: LociTheme.Spacing.m) {
-            ZStack {
-                Circle().fill(LociTheme.accent.opacity(0.12)).frame(width: 92, height: 92)
-                Circle().stroke(LociTheme.accent.opacity(0.22), lineWidth: 1).frame(width: 74, height: 74)
-                Image(systemName: "location.viewfinder")
-                    .font(.system(size: 41, weight: .semibold))
-                    .foregroundStyle(LociTheme.accent)
-            }
-            .accessibilityHidden(true)
-            VStack(spacing: LociTheme.Spacing.s) {
-                Text("LociAR").font(.largeTitle.bold())
-                Text("Gerçek mekânlara bağlı hikâyeler.")
-                    .foregroundStyle(LociTheme.secondaryText)
-            }
-        }
+        LociWordmark(tagline: String(localized: "Gerçek mekânlara bağlı hikâyeler."))
     }
 
     @ViewBuilder
@@ -430,7 +418,9 @@ struct AuthView: View {
         do {
             try await session.acceptAppleCredential(identityToken: token, nonce: nonce, fullName: fullName)
         } catch {
-            message = String(localized: "Apple ile giriş şu anda tamamlanamadı. Tekrar dene.")
+            let failure = AppleSignInFailure.classify(error)
+            Self.logger.error("apple_sign_in_failed:\(failure.code, privacy: .public)")
+            message = failure.message
         }
     }
 }
@@ -573,7 +563,7 @@ private struct ForgotPasswordView: View {
                 Text(sent ? String(localized: "E-postanı kontrol et") : String(localized: "Şifreni yenile"))
                     .font(.title2.bold())
                 Text(sent
-                     ? String(localized: "Şifre yenileme bağlantısını gönderdik. Bağlantı LociAR’da yeni şifre ekranını açacak.")
+                     ? String(localized: "Şifre yenileme bağlantısını gönderdik. Bağlantı LociDrop’ta yeni şifre ekranını açacak.")
                      : String(localized: "Hesabında kullandığın e-posta adresini yaz."))
                     .foregroundStyle(LociTheme.secondaryText)
 

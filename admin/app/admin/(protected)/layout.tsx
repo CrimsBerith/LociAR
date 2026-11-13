@@ -42,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="adminFrame">
       <aside className="sidebar">
-        <div className="sidebarBrand"><span className="brandMark small">L</span><span>LociAR</span><small>{t('Admin')}</small></div>
+        <div className="sidebarBrand"><span className="brandMark small">L</span><span>LociDrop</span><small>{t('Admin')}</small></div>
         <AdminNav groups={groups} label={t('Admin navigation')} />
         <div className="sidebarFooter">
           <span>{admin.user.email ?? admin.user.id}</span>

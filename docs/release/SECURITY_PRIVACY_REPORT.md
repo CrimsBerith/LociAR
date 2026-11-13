@@ -1,4 +1,4 @@
-# LociAR 1.0 — Security, Privacy & Apple Compliance Report
+# LociDrop 1.0 — Security, Privacy & Apple Compliance Report
 
 > Phase: P5  
 > Owners: A07 (Security & Privacy), A13 (SDK Compliance), A14 (App Store Specialist)  

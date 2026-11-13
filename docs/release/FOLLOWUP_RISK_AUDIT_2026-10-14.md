@@ -1,4 +1,4 @@
-# LociAR — ikinci derin risk ve optimizasyon taraması
+# LociDrop — ikinci derin risk ve optimizasyon taraması
 
 14 Ekim 2026. Başlangıç: `403de848f`; düzeltme kaynağı: `48092d46e4506b8aaaa8fe78b0700a3494ab438b`.
 

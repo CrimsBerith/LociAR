@@ -1,4 +1,4 @@
-# LociAR — derin tarama, 13 Ekim 2026
+# LociDrop — derin tarama, 13 Ekim 2026
 
 İncelenen kaynak: `bfb111239b62db1f65abc1993429b5171742f6ff`.
 

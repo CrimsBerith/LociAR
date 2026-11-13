@@ -1,4 +1,4 @@
-# LociAR Multi-Agent Test Evidence & Verification Log
+# LociDrop Multi-Agent Test Evidence & Verification Log
 
 **Date:** 2026-11-02  
 **Environment:** macOS (Darwin 24), Node.js v20.x, Xcode 16 / Swift 6, Firebase Emulators  

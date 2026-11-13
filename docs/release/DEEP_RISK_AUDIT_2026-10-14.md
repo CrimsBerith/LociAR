@@ -1,4 +1,4 @@
-# LociAR — risk, hata ve optimizasyon taraması
+# LociDrop — risk, hata ve optimizasyon taraması
 
 14 Ekim 2026. İncelenen başlangıç: `b5e964b0fa0c9fba6b5ee807b9fd79a8c79fac94`. Düzeltme: `976e9b3b7df998abdde4fa91848ed27f845de930`.
 

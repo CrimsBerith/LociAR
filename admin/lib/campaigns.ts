@@ -193,7 +193,7 @@ export async function queueNotification(body: Record<string, unknown>, actor: st
   const campaignId = body.campaignId ? uuid(body.campaignId, 'campaignId').toLowerCase() : null;
   const mode = body.notificationMode ?? 'immediate';
   if (typeof mode !== 'string' || !['immediate', 'map', 'arrival', 'departure'].includes(mode) || (!campaignId && mode !== 'immediate')) throw new ValidationError('Invalid notification mode');
-  const title = campaignId && !body.title ? 'LociAR' : text(body.title, 'title', 80), message = campaignId && !body.message ? '' : text(body.message, 'message', 240);
+  const title = campaignId && !body.title ? 'LociDrop' : text(body.title, 'title', 80), message = campaignId && !body.message ? '' : text(body.message, 'message', 240);
   const departureRadius = mode === 'departure' ? numeric(body.departureRadius ?? 150, 'departure radius', 100, 500) : null;
   const db = adminDb(), hash = mutationHash(actor, 'notification_queue', recipient, { campaignId, title, message, mode, departureRadius, reason });
   return await db.runTransaction(async tx => {

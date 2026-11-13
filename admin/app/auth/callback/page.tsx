@@ -89,7 +89,7 @@ export default function AuthCallbackPage() {
     <main id="main" tabIndex={-1} className="authPage">
       <section className="authCard">
         <div className="brandMark">L</div>
-        <p className="eyebrow">LociAR operations</p>
+        <p className="eyebrow">LociDrop operations</p>
         <h1>{heading}</h1>
         {!failure && resolver ? (
           <form onSubmit={submitCode} className="stack">

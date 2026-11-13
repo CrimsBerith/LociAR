@@ -1,11 +1,11 @@
 > **ARŞİV / YERİNİ ALDI (30 Eylül 2026):** Bu taslak yerini `admin/app/privacy` ve `admin/app/terms` sayfalarına bıraktı. İçinde eski/yanlış bilgiler olabilir (Google tanımlayıcıları, fotoğraf içeriği, görüntüleme herkese açık, arkit_world_locked). Kaynak olarak kullanma.
 
-# LociAR Gizlilik Politikasi (Taslak)
+# LociDrop Gizlilik Politikasi (Taslak)
 
 Yururluk tarihi, veri sorumlusu, posta adresi, destek e-postasi ve yetki alani production oncesinde gercek bilgilerle doldurulmalidir.
 
 ## Isledigimiz veriler
-LociAR Apple, Google veya e-posta kimligi; herkese acik profil adi; AR postu icin secilen kamera ve fotoograf icerigi; uygulama acikken yaklasik ve hassas konum; cihaz ve tani verileri; uygulama ici etkilesim; moderasyon raporlari; guvenilir operator tarafindan yapilan AR kalibrasyon verisini isler.
+LociDrop Apple, Google veya e-posta kimligi; herkese acik profil adi; AR postu icin secilen kamera ve fotoograf icerigi; uygulama acikken yaklasik ve hassas konum; cihaz ve tani verileri; uygulama ici etkilesim; moderasyon raporlari; guvenilir operator tarafindan yapilan AR kalibrasyon verisini isler.
 
 ## Neden
 Kimlik dogrulama, yakin yuzeyleri gosterme, kullanici icerigi olusturma ve moderasyon, hassas konumlari koruma, kotuye kullanimi onleme, kararliligi iyilestirme ve guvenlik taleplerini yanitlamak icin kullaniriz.

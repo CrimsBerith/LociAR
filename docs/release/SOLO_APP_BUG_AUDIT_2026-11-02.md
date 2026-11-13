@@ -1,4 +1,4 @@
-# LociAR — tek ajanla uygulama hata taraması
+# LociDrop — tek ajanla uygulama hata taraması
 
 Oturum başlangıcı: 2 Kasım 2026. Son kontrol: 3 Kasım 2026 (Europe/Istanbul). Kanıt klasörleri oturum başlangıcının tarihini korur.
 
@@ -25,7 +25,7 @@ Kullanıcı ortamın aydınlık olduğunu doğruladı. Fiziksel tanılamada ARVi
 Bağımsız karşılaştırmalar:
 
 1. Apple Kamera önizlemesi de siyah; kullanıcı bunu telefonun kendi ekranında doğruladı.
-2. LociAR süreci tamamen sonlandırıldı, Apple Kamera yeniden açıldı; siyah önizleme devam etti.
+2. LociDrop süreci tamamen sonlandırıldı, Apple Kamera yeniden açıldı; siyah önizleme devam etti.
 3. Kullanıcı telefonu yeniden başlattıktan sonra da Apple Kamera'nın siyah kaldığını bildirdi.
 
 Bu kanıtlar sorunun cihaz/iOS kamera katmanında da bulunduğunu gösterir; kesin donanım arızası tanısı değildir. Gerçek cihazdaki iki önceki native test kamera karesi taşınmasını ve GPS yeniden başlatılmasını geçti; bu, kullanılabilir kamera görüntüsü veya yüzey algılama kabulü sayılmaz. AR yüzey, Cloud Anchor ve canlı yeniden konumlama kabulü açık kalır.

@@ -1,4 +1,4 @@
-# LociAR 1.0 — Test Matrix & Verification Coverage
+# LociDrop 1.0 — Test Matrix & Verification Coverage
 
 > Phase: P6  
 > Owners: A09 (Unit / Integration Test Specialist), A10 (UI / E2E QA Specialist)  

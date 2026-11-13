@@ -6,8 +6,8 @@ const SITE_ORIGIN = process.env.ADMIN_ORIGIN || 'https://lociar-admin--lociar-2f
 
 export const metadata = {
   metadataBase: new URL(SITE_ORIGIN),
-  title: 'LociAR Admin',
-  description: 'Moderation and analytics dashboard for LociAR',
+  title: 'LociDrop Admin',
+  description: 'Moderation and analytics dashboard for LociDrop',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

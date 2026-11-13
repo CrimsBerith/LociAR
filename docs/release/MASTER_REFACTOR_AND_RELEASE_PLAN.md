@@ -1,4 +1,4 @@
-# LociAR Multi-Agent Kapsamlı Büyük Refaktör ve Yayın Strateji Planı
+# LociDrop Multi-Agent Kapsamlı Büyük Refaktör ve Yayın Strateji Planı
 
 **Tarih:** 2026-11-02  
 **Sürüm:** 1.0.0 (RC Plan)  
@@ -9,7 +9,7 @@
 
 ## Yönetici Özeti ve Temel İlke
 
-Bu plan, LociAR projesini hem **App Store Yayın Olgunluğuna (Store-Ready)** ulaştırmak hem de kod tabanını uzun vadeli ölçeklenebilir, bakımı kolay ve kurşun geçirmez bir mimariye kavuşturmak için hazırlanmıştır.
+Bu plan, LociDrop projesini hem **App Store Yayın Olgunluğuna (Store-Ready)** ulaştırmak hem de kod tabanını uzun vadeli ölçeklenebilir, bakımı kolay ve kurşun geçirmez bir mimariye kavuşturmak için hazırlanmıştır.
 
 > [!IMPORTANT]
 > **Refaktör Temel Kuralı: "Test Güvenceli Dönüşüm" (Zero-Regression Guarantee)**  

@@ -1,4 +1,4 @@
-# LociAR — gereksinim → kanıt izlenebilirliği
+# LociDrop — gereksinim → kanıt izlenebilirliği
 
 İlk sürüm: 12 Kasım 2026. Plan: `claude/unified-release-test-plan-2026-11-12.md` (T2). Test planı: `loci/reports/LociAR Otonom Test Planı.md`.
 Kod tabanı: `claude/klipy-migration` @ `e5eab19`. Her PR değişen satırı günceller.

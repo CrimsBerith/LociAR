@@ -1,4 +1,4 @@
-# LociAR 1.0 — 16-Specialist Multi-Agent Master Audit Report
+# LociDrop 1.0 — 16-Specialist Multi-Agent Master Audit Report
 
 > Model: 16 Specialized Engineering Roles (A00–A15)  
 > Orchestrator: A00 (Technical Leader & Release Orchestrator)  

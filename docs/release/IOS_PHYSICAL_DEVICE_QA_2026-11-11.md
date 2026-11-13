@@ -1,4 +1,4 @@
-# LociAR physical-device QA — 11–12 November 2026
+# LociDrop physical-device QA — 11–12 November 2026
 
 ## Status
 
@@ -32,7 +32,7 @@
 
 ## Visible iPhone launch — 11 November, 22:50–22:52 TRT
 
-- The physical `testPhysicalARTabShowsLiveCameraInsteadOfBlackScreen` run passed **1/1**. Its screenshot shows the iPhone running LociAR on the AR tab, with the live camera view and `Kamera açık` status.
+- The physical `testPhysicalARTabShowsLiveCameraInsteadOfBlackScreen` run passed **1/1**. Its screenshot shows the iPhone running LociDrop on the AR tab, with the live camera view and `Kamera açık` status.
 - Camera log: dark-feed notice `false`; luma `122/255`; camera view `430x932`, visible; tracking normal with 4 features, 1 plane, 4 mesh.
 - After the test, `devicectl device process launch --device <DEVICE_UDID> --activate com.khankartal.lociar` reported `Launched application with com.khankartal.lociar bundle identifier.` App was brought to the iPhone foreground. No post, push, deletion, or preference change was performed.
 - Evidence: `LociAR-physical-camera-visible-retest-2026-11-11-2250.xcresult`, `physical-ar-live-camera` screenshot, and the exported camera log.

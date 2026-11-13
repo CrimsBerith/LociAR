@@ -342,12 +342,12 @@ extension AuthGateUITests {
         capture(app, name: "physical-live-text-editor")
 
         app.buttons["create-publish"].tap()
-        let resultAlert = app.alerts["LociAR"]
+        let resultAlert = app.alerts["LociDrop"]
         XCTAssertTrue(resultAlert.waitForExistence(timeout: 45), "Canlı yayın sonucu gelmedi.")
         guard resultAlert.staticTexts["Post yayınlandı. Keşfet ve profilinde görünür."].exists else {
             let alertText = resultAlert.staticTexts.allElementsBoundByIndex
                 .map(\.label)
-                .filter { !$0.isEmpty && $0 != "LociAR" }
+                .filter { !$0.isEmpty && $0 != "LociDrop" }
                 .joined(separator: " · ")
             capture(app, name: "physical-live-publish-rejected")
             XCTFail("Post aktif yayınlanmadı: \(alertText)")
@@ -672,7 +672,7 @@ extension AuthGateUITests {
         XCTAssertTrue(waitForHittable(publishButton, timeout: 5), "Publish butonu erişilemez")
         publishButton.tap()
 
-        let resultAlert = app.alerts["LociAR"]
+        let resultAlert = app.alerts["LociDrop"]
         XCTAssertTrue(resultAlert.waitForExistence(timeout: 35))
         XCTAssertTrue(resultAlert.staticTexts["Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir."].exists)
         resultAlert.buttons["Tamam"].tap()
@@ -953,7 +953,7 @@ extension AuthGateUITests {
         XCTAssertTrue(waitForHittable(publishButton, timeout: 5), "Publish butonu erişilemez")
         publishButton.tap()
 
-        let alert = app.alerts["LociAR"]
+        let alert = app.alerts["LociDrop"]
         XCTAssertTrue(alert.waitForExistence(timeout: 25), "Yayın alert'ı açılmadı.")
         alert.buttons["Tamam"].tap()
 
@@ -1008,7 +1008,7 @@ extension AuthGateUITests {
             XCTAssertTrue(publishButton.waitForExistence(timeout: 5))
             publishButton.tap()
 
-            let alert = editorApp.alerts["LociAR"]
+            let alert = editorApp.alerts["LociDrop"]
             XCTAssertTrue(alert.waitForExistence(timeout: 10))
             alert.buttons["Tamam"].tap()
 

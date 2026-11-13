@@ -39,7 +39,7 @@ final class StoreReadinessTests: XCTestCase {
         // Google ARCore, which processes the camera / location data (ARCore disclosure).
         for key in ["NSCameraUsageDescription", "NSLocationWhenInUseUsageDescription"] {
             let text = try XCTUnwrap(bundle.object(forInfoDictionaryKey: key) as? String, key)
-            XCTAssertTrue(text.contains("LociAR") && text.contains("Google ARCore"), "\(key): \(text)")
+            XCTAssertTrue(text.contains("LociDrop") && text.contains("Google ARCore"), "\(key): \(text)")
         }
         let temporary = try XCTUnwrap(
             bundle.object(forInfoDictionaryKey: "NSLocationTemporaryUsageDescriptionDictionary") as? [String: String]
@@ -55,7 +55,7 @@ final class StoreReadinessTests: XCTestCase {
             ["UIInterfaceOrientationPortrait"]
         )
         XCTAssertNil(bundle.object(forInfoDictionaryKey: "UISupportedInterfaceOrientations~ipad"))
-        XCTAssertEqual(bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "LociAR")
+        XCTAssertEqual(bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "LociDrop")
         XCTAssertEqual(
             bundle.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String,
             "public.app-category.social-networking"

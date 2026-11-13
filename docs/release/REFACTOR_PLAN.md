@@ -1,4 +1,4 @@
-# LociAR 1.0 — Architecture Refactor & Code Hardening Plan
+# LociDrop 1.0 — Architecture Refactor & Code Hardening Plan
 
 > Phase: P2 / P3 / P4  
 > Owners: A02 (Architecture), A03 (Code Quality), A04 (Concurrency), A09 (Testing)  

@@ -1,4 +1,4 @@
-# LociAR 1.0 — User Journey Acceptance Matrix & Edge Cases
+# LociDrop 1.0 — User Journey Acceptance Matrix & Edge Cases
 
 > Phase: P0 / P6  
 > Owner: A01 (Product & Requirements Auditor), Reviewed by: A09, A10, A15  

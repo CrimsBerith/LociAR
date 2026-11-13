@@ -1,4 +1,4 @@
-# LociAR ekran turu — 28 Ekim 2026
+# LociDrop ekran turu — 28 Ekim 2026
 
 Güncel Debug uygulaması iPhone 17 Pro / iOS 26.5 simülatörü için derlendi. 54 ekran/durum görüntüsü,
 10 başlıklı görsel ve tam boyutlu HTML galeri hazırlandı. Her PNG, başarılı bir XCTest senaryosunun

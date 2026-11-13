@@ -1,8 +1,8 @@
-# LociAR 1.0 — Operational Release & Deployment Runbook
+# LociDrop 1.0 — Operational Release & Deployment Runbook
 
 > Phase: P9 / P11  
 > Owners: A12 (CI/CD Specialist), A00 (Technical Leader)  
-> Application: LociAR iOS & Firebase Backend (`lociar-2f38c`)  
+> Application: LociDrop iOS & Firebase Backend (`lociar-2f38c`)  
 > Target Date: 2 Kasım 2026  
 
 ---

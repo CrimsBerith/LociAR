@@ -1,4 +1,4 @@
-# LociAR 1.0 — App Store Connect Submission Checklist
+# LociDrop 1.0 — App Store Connect Submission Checklist
 
 > Phase: P11  
 > Owners: A14 (App Store / Submission Specialist), A00 (Technical Leader)  

@@ -1,4 +1,4 @@
-# LociAR — A'dan Z'ye Optimizasyon Planı
+# LociDrop — A'dan Z'ye Optimizasyon Planı
 
 **Sürüm:** 8 — uygulama sonrası derin denetim · **Tarih:** 23 Ekim 2026 · **Durum:** Yerel uygulama korundu; yeni grup geometrisi/okuma bulgusu açık, canlı geçiş yapılmadı
 **Kapsam:** Firestore, Cloud Functions, Storage, push, iOS uygulaması (AR, konum, medya, açılış, listeler), admin paneli, dağıtım ve maliyet kontrolü

@@ -1,4 +1,4 @@
-# LociAR 1.0 — Performance Baseline vs. Target Measurements
+# LociDrop 1.0 — Performance Baseline vs. Target Measurements
 
 > Phase: P8  
 > Owner: A08 (Performance, Memory & Battery Specialist)  
@@ -9,7 +9,7 @@
 
 ## 1. Performance Targets & Budgets
 
-Performance budgets for LociAR are defined based on real-time AR and mapping constraints:
+Performance budgets for LociDrop are defined based on real-time AR and mapping constraints:
 
 | Metric | Target Budget | Baseline Measurement | Release Configuration Result | Status |
 |---|---|---|---|---|

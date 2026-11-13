@@ -27,8 +27,8 @@ export async function sendAdminCode(to: string, code: string, requestId: string)
     response = await fetch('https://api.resend.com/emails', {
       method: 'POST', signal: AbortSignal.timeout(12_000),
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'Idempotency-Key': requestId },
-      body: JSON.stringify({ from, to: [to], subject: `${code} — LociAR yönetici giriş kodu`,
-        text: `LociAR yönetici giriş kodun: ${code}\n\nBu kod 10 dakika geçerlidir ve yalnızca bir kez kullanılabilir. Giriş istemediysen bu e-postayı yok say.` }),
+      body: JSON.stringify({ from, to: [to], subject: `${code} — LociDrop yönetici giriş kodu`,
+        text: `LociDrop yönetici giriş kodun: ${code}\n\nBu kod 10 dakika geçerlidir ve yalnızca bir kez kullanılabilir. Giriş istemediysen bu e-postayı yok say.` }),
     });
   } catch { throw new EmailDeliveryError(); }
   // Never log/return a provider response: it can contain the recipient, code or credentials.

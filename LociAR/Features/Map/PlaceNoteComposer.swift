@@ -469,7 +469,7 @@ struct PlaceNoteComposer: View {
     @ViewBuilder private var status: some View {
         if measurement.denied {
             VStack(alignment: .leading, spacing: LociTheme.Spacing.s) {
-                Text("Konum izni kapalı. Ayarlar’dan LociAR için konumu açın.").font(.caption).foregroundStyle(LociTheme.secondaryText)
+                Text("Konum izni kapalı. Ayarlar’dan LociDrop için konumu açın.").font(.caption).foregroundStyle(LociTheme.secondaryText)
                 Button("Ayarlar") { if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) } }
                     .buttonStyle(LociCompactButtonStyle())
             }

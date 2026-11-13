@@ -1,4 +1,4 @@
-# LociAR 1.0 — Security Audit & Penetration Review
+# LociDrop 1.0 — Security Audit & Penetration Review
 
 > Phase: P5 (Security, Privacy & Compliance)  
 > Owners: A07 (Security & Privacy Specialist), A15 (Independent Red Team)  

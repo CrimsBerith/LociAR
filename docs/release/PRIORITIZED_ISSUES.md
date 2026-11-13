@@ -1,4 +1,4 @@
-# LociAR 1.0 — Prioritized Issue Log & Risk Register
+# LociDrop 1.0 — Prioritized Issue Log & Risk Register
 
 > Phase: P1 / P2 / P10  
 > Owner: A00 (Technical Leader & Orchestrator)  

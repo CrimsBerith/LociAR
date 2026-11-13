@@ -3432,79 +3432,156 @@
         }
       }
     },
-    "Apple ile giriş şu anda tamamlanamadı. Tekrar dene." : {
+    "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apple ile giriş şu anda tamamlanamadı. Tekrar dene."
+            "value" : "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Signing in with Apple could not be completed at this time. Try again."
+            "value" : "Sign in with Apple is turned off right now. You can sign in with email."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Anmeldung mit Apple konnte derzeit nicht abgeschlossen werden. Versuchen Sie es erneut."
+            "value" : "Die Anmeldung mit Apple ist gerade deaktiviert. Du kannst dich per E-Mail anmelden."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo completar el inicio de sesión con Apple. Inténtalo de nuevo."
+            "value" : "Iniciar sesión con Apple está desactivado ahora. Puedes iniciar sesión con tu correo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La connexion avec Apple ne peut pas être finalisée pour le moment. Réessayez."
+            "value" : "La connexion avec Apple est désactivée pour le moment. Tu peux te connecter par e-mail."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O login na Apple não pôde ser concluído neste momento. Tente novamente."
+            "value" : "Iniciar sessão com a Apple está desativado agora. Você pode entrar com e-mail."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В настоящее время не удалось выполнить вход в систему Apple. Попробуйте еще раз."
+            "value" : "Вход через Apple сейчас отключён. Можно войти по электронной почте."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لا يمكن إكمال تسجيل الدخول باستخدام Apple في الوقت الحالي. حاول ثانية."
+            "value" : "تسجيل الدخول باستخدام Apple متوقف حاليًا. يمكنك تسجيل الدخول بالبريد الإلكتروني."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apple के साथ साइन इन करना इस समय पूरा नहीं किया जा सका. पुनः प्रयास करें।"
+            "value" : "Apple से साइन इन अभी बंद है। आप ईमेल से साइन इन कर सकते हैं।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "অ্যাপলের সাথে সাইন ইন করা এই সময়ে সম্পূর্ণ করা যায়নি। আবার চেষ্টা করুন"
+            "value" : "Apple দিয়ে সাইন ইন এখন বন্ধ। আপনি ইমেইল দিয়ে সাইন ইন করতে পারেন।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "現時点では Apple でのサインインを完了できませんでした。もう一度やり直してください。"
+            "value" : "Appleでサインインは現在オフです。メールでサインインできます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "目前无法完成 Apple 登录。再试一次。"
+            "value" : "“通过 Apple 登录”目前已关闭。你可以使用电子邮件登录。"
+          }
+        }
+      }
+    },
+    "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Apple couldn't be completed right now. Try again. (%@)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldung mit Apple konnte gerade nicht abgeschlossen werden. Versuche es erneut. (%@)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo completar el inicio de sesión con Apple. Inténtalo de nuevo. (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion avec Apple n'a pas pu aboutir. Réessaie. (%@)"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível concluir o login com a Apple agora. Tente novamente. (%@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось завершить вход через Apple. Попробуйте снова. (%@)"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر إكمال تسجيل الدخول باستخدام Apple الآن. حاول مرة أخرى. (%@)"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple से साइन इन अभी पूरा नहीं हो सका। फिर कोशिश करें। (%@)"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple দিয়ে সাইন ইন এখন সম্পন্ন হয়নি। আবার চেষ্টা করুন। (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appleでサインインを完了できませんでした。もう一度お試しください。(%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前无法完成“通过 Apple 登录”。请重试。(%@)"
           }
         }
       }
@@ -4737,6 +4814,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法连接。稍后再试。"
+          }
+        }
+      }
+    },
+    "Bağlantı yok. İnternetini kontrol edip tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bağlantı yok. İnternetini kontrol edip tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Verbindung. Prüfe dein Internet und versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin conexión. Revisa tu internet e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de connexion. Vérifie ta connexion Internet et réessaie."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem conexão. Verifique sua internet e tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет соединения. Проверьте интернет и попробуйте снова."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يوجد اتصال. تحقّق من الإنترنت وحاول مرة أخرى."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कनेक्शन नहीं है। इंटरनेट जाँचें और फिर कोशिश करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সংযোগ নেই। ইন্টারনেট দেখে আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続がありません。インターネットを確認してもう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无网络连接。请检查网络后重试。"
           }
         }
       }
@@ -7201,6 +7355,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "该帐户尚未分享任何笔记。"
+          }
+        }
+      }
+    },
+    "Bu hesap kullanılamıyor. Destek ile iletişime geç." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu hesap kullanılamıyor. Destek ile iletişime geç."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This account can't be used. Contact support."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Konto kann nicht verwendet werden. Wende dich an den Support."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta cuenta no se puede usar. Contacta con soporte."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce compte ne peut pas être utilisé. Contacte l'assistance."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta conta não pode ser usada. Fale com o suporte."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эту учётную запись нельзя использовать. Обратитесь в поддержку."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يمكن استخدام هذا الحساب. تواصل مع الدعم."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस खाते का उपयोग नहीं किया जा सकता। सहायता से संपर्क करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই অ্যাকাউন্ট ব্যবহার করা যাবে না। সহায়তায় যোগাযোগ করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアカウントは使用できません。サポートにお問い合わせください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此账户无法使用。请联系支持。"
           }
         }
       }
@@ -27133,79 +27364,79 @@
         }
       }
     },
-    "Konum izni kapalı. Ayarlar’dan LociAR için konumu açın." : {
+    "Konum izni kapalı. Ayarlar’dan LociDrop için konumu açın." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Konum izni kapalı. Ayarlar’dan LociAR için konumu açın."
+            "value" : "Konum izni kapalı. Ayarlar’dan LociDrop için konumu açın."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Location permission is turned off. Turn on location for LociAR from Settings."
+            "value" : "Location permission is turned off. Turn on location for LociDrop from Settings."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Standortberechtigung ist deaktiviert. Aktivieren Sie den Standort für LociAR in den Einstellungen."
+            "value" : "Die Standortberechtigung ist deaktiviert. Aktivieren Sie den Standort für LociDrop in den Einstellungen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El permiso de ubicación está desactivado. Active la ubicación para LociAR desde Configuración."
+            "value" : "El permiso de ubicación está desactivado. Active la ubicación para LociDrop desde Configuración."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L'autorisation de localisation est désactivée. Activez la localisation pour LociAR à partir des paramètres."
+            "value" : "L'autorisation de localisation est désactivée. Activez la localisation pour LociDrop à partir des paramètres."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A permissão de localização está desativada. Ative a localização do LociAR em Configurações."
+            "value" : "A permissão de localização está desativada. Ative a localização do LociDrop em Configurações."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Разрешение на определение местоположения отключено. Включите местоположение для LociAR в настройках."
+            "value" : "Разрешение на определение местоположения отключено. Включите местоположение для LociDrop в настройках."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم إيقاف إذن تحديد الموقع. قم بتشغيل موقع LociAR من الإعدادات."
+            "value" : "تم إيقاف إذن تحديد الموقع. قم بتشغيل موقع LociDrop من الإعدادات."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "स्थान अनुमति बंद है. सेटिंग्स से LociAR के लिए स्थान चालू करें।"
+            "value" : "स्थान अनुमति बंद है. सेटिंग्स से LociDrop के लिए स्थान चालू करें।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "অবস্থানের অনুমতি বন্ধ করা হয়েছে। সেটিংস থেকে LociAR-এর জন্য অবস্থান চালু করুন।"
+            "value" : "অবস্থানের অনুমতি বন্ধ করা হয়েছে। সেটিংস থেকে LociDrop-এর জন্য অবস্থান চালু করুন।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "位置情報の許可がオフになっています。 [設定] から LociAR の位置情報をオンにします。"
+            "value" : "位置情報の許可がオフになっています。 [設定] から LociDrop の位置情報をオンにします。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "位置权限已关闭。从“设置”中打开 LociAR 的位置。"
+            "value" : "位置权限已关闭。从“设置”中打开 LociDrop 的位置。"
           }
         }
       }
@@ -29443,83 +29674,6 @@
         }
       }
     },
-    "LociAR" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR"
-          }
-        }
-      }
-    },
     "LociAR diagnostic category %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29597,237 +29751,6 @@
         }
       }
     },
-    "LociAR geçici olarak durduruldu. Lütfen biraz sonra tekrar dene." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR geçici olarak durduruldu. Lütfen biraz sonra tekrar dene."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR is temporarily paused. Please try again in a little while."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR ist vorübergehend pausiert. Bitte versuche es gleich noch einmal."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR está pausado temporalmente. Inténtalo de nuevo en un rato."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR est temporairement suspendu. Réessayez dans un moment."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O LociAR está pausado temporariamente. Tente novamente daqui a pouco."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR временно приостановлен. Попробуйте чуть позже."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تم إيقاف LociAR مؤقتًا. يُرجى المحاولة مرة أخرى بعد قليل."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR अस्थायी रूप से रुका हुआ है। कृपया थोड़ी देर बाद फिर कोशिश करें।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR সাময়িকভাবে বন্ধ আছে। একটু পরে আবার চেষ্টা করুন।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociARは一時停止中です。しばらくしてからもう一度お試しください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR 已暂时暂停。请稍后重试。"
-          }
-        }
-      }
-    },
-    "LociAR geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR is temporarily paused. Your post is queued on this device and will be published when the service is back."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR ist vorübergehend pausiert. Dein Post wartet auf dem Gerät und wird veröffentlicht, sobald der Dienst wieder läuft."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR está pausado temporalmente. Tu publicación quedó en cola en el dispositivo y se publicará cuando el servicio vuelva."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR est temporairement suspendu. Votre publication est en file d’attente sur l’appareil et sera publiée au retour du service."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O LociAR está pausado temporariamente. Sua publicação ficou na fila no dispositivo e será publicada quando o serviço voltar."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR временно приостановлен. Ваш пост поставлен в очередь на устройстве и будет опубликован, когда сервис заработает."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تم إيقاف LociAR مؤقتًا. وُضع منشورك في قائمة الانتظار على الجهاز وسيُنشر عند عودة الخدمة."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR अस्थायी रूप से रुका हुआ है। आपकी पोस्ट डिवाइस पर कतार में है और सेवा वापस आने पर प्रकाशित होगी।"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR সাময়িকভাবে বন্ধ আছে। আপনার পোস্ট ডিভাইসে সারিতে রাখা হয়েছে এবং পরিষেবা ফিরলে প্রকাশিত হবে।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociARは一時停止中です。投稿はデバイスで待機しており、サービス再開時に公開されます。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR 已暂时暂停。你的帖子已在设备上排队，服务恢复后将发布。"
-          }
-        }
-      }
-    },
-    "LociAR'a davetlisin. Davet kodun: %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR'a davetlisin. Davet kodun: %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You're invited to LociAR. Your invite code: %@"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sie sind zu LociAR eingeladen. Ihr Einladungscode: %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estás invitado a LociAR. Tu código de invitación: %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vous êtes invité sur LociAR. Votre code d'invitation : %@"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você foi convidado para o LociAR. Seu código de convite: %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вас пригласили в LociAR. Ваш код приглашения: %@"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "أنت مدعو إلى LociAR. رمز دعوتك: %@"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "आपको LociAR पर आमंत्रित किया गया है। आपका आमंत्रण कोड: %@"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "আপনাকে LociAR-এ আমন্ত্রণ জানানো হয়েছে। আপনার আমন্ত্রণ কোড: %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LociAR に招待されています。招待コード: %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你受邀加入 LociAR。你的邀请码：%@"
-          }
-        }
-      }
-    },
     "LociAR.%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29901,6 +29824,314 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "LociAR.%@"
+          }
+        }
+      }
+    },
+    "LociDrop" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop"
+          }
+        }
+      }
+    },
+    "LociDrop geçici olarak durduruldu. Lütfen biraz sonra tekrar dene." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop geçici olarak durduruldu. Lütfen biraz sonra tekrar dene."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop is temporarily paused. Please try again in a little while."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop ist vorübergehend pausiert. Bitte versuche es gleich noch einmal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop está pausado temporalmente. Inténtalo de nuevo en un rato."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop est temporairement suspendu. Réessayez dans un moment."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O LociDrop está pausado temporariamente. Tente novamente daqui a pouco."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop временно приостановлен. Попробуйте чуть позже."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف LociDrop مؤقتًا. يُرجى المحاولة مرة أخرى بعد قليل."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop अस्थायी रूप से रुका हुआ है। कृपया थोड़ी देर बाद फिर कोशिश करें।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop সাময়িকভাবে বন্ধ আছে। একটু পরে আবার চেষ্টা করুন।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDropは一時停止中です。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop 已暂时暂停。请稍后重试。"
+          }
+        }
+      }
+    },
+    "LociDrop geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop is temporarily paused. Your post is queued on this device and will be published when the service is back."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop ist vorübergehend pausiert. Dein Post wartet auf dem Gerät und wird veröffentlicht, sobald der Dienst wieder läuft."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop está pausado temporalmente. Tu publicación quedó en cola en el dispositivo y se publicará cuando el servicio vuelva."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop est temporairement suspendu. Votre publication est en file d’attente sur l’appareil et sera publiée au retour du service."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O LociDrop está pausado temporariamente. Sua publicação ficou na fila no dispositivo e será publicada quando o serviço voltar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop временно приостановлен. Ваш пост поставлен в очередь на устройстве и будет опубликован, когда сервис заработает."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف LociDrop مؤقتًا. وُضع منشورك في قائمة الانتظار على الجهاز وسيُنشر عند عودة الخدمة."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop अस्थायी रूप से रुका हुआ है। आपकी पोस्ट डिवाइस पर कतार में है और सेवा वापस आने पर प्रकाशित होगी।"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop সাময়িকভাবে বন্ধ আছে। আপনার পোস্ট ডিভাইসে সারিতে রাখা হয়েছে এবং পরিষেবা ফিরলে প্রকাশিত হবে।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDropは一時停止中です。投稿はデバイスで待機しており、サービス再開時に公開されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop 已暂时暂停。你的帖子已在设备上排队，服务恢复后将发布。"
+          }
+        }
+      }
+    },
+    "LociDrop'a davetlisin. Davet kodun: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop'a davetlisin. Davet kodun: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're invited to LociDrop. Your invite code: %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie sind zu LociDrop eingeladen. Ihr Einladungscode: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estás invitado a LociDrop. Tu código de invitación: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes invité sur LociDrop. Votre code d'invitation : %@"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você foi convidado para o LociDrop. Seu código de convite: %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вас пригласили в LociDrop. Ваш код приглашения: %@"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنت مدعو إلى LociDrop. رمز دعوتك: %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपको LociDrop पर आमंत्रित किया गया है। आपका आमंत्रण कोड: %@"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনাকে LociDrop-এ আমন্ত্রণ জানানো হয়েছে। আপনার আমন্ত্রণ কোড: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LociDrop に招待されています。招待コード: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你受邀加入 LociDrop。你的邀请码：%@"
           }
         }
       }
@@ -55777,79 +56008,79 @@
         }
       }
     },
-    "Şifre yenileme bağlantısını gönderdik. Bağlantı LociAR’da yeni şifre ekranını açacak." : {
+    "Şifre yenileme bağlantısını gönderdik. Bağlantı LociDrop’ta yeni şifre ekranını açacak." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Şifre yenileme bağlantısını gönderdik. Bağlantı LociAR’da yeni şifre ekranını açacak."
+            "value" : "Şifre yenileme bağlantısını gönderdik. Bağlantı LociDrop’ta yeni şifre ekranını açacak."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "We have sent you the password reset link. The link will open the new password screen in LociAR."
+            "value" : "We have sent you the password reset link. The link will open the new password screen in LociDrop."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wir haben Ihnen den Link zum Zurücksetzen des Passworts gesendet. Der Link öffnet den neuen Passwortbildschirm in LociAR."
+            "value" : "Wir haben Ihnen den Link zum Zurücksetzen des Passworts gesendet. Der Link öffnet den neuen Passwortbildschirm in LociDrop."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le hemos enviado el enlace para restablecer la contraseña. El enlace abrirá la pantalla de nueva contraseña en LociAR."
+            "value" : "Le hemos enviado el enlace para restablecer la contraseña. El enlace abrirá la pantalla de nueva contraseña en LociDrop."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nous vous avons envoyé le lien de réinitialisation du mot de passe. Le lien ouvrira l’écran du nouveau mot de passe dans LociAR."
+            "value" : "Nous vous avons envoyé le lien de réinitialisation du mot de passe. Le lien ouvrira l’écran du nouveau mot de passe dans LociDrop."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enviamos a você o link de redefinição de senha. O link abrirá a tela de nova senha no LociAR."
+            "value" : "Enviamos a você o link de redefinição de senha. O link abrirá a tela de nova senha no LociDrop."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Мы отправили вам ссылку для сброса пароля. Ссылка откроет экран нового пароля в LociAR."
+            "value" : "Мы отправили вам ссылку для сброса пароля. Ссылка откроет экран нового пароля в LociDrop."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لقد أرسلنا لك رابط إعادة تعيين كلمة المرور. سيفتح الرابط شاشة كلمة المرور الجديدة في LociAR."
+            "value" : "لقد أرسلنا لك رابط إعادة تعيين كلمة المرور. سيفتح الرابط شاشة كلمة المرور الجديدة في LociDrop."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "हमने आपको पासवर्ड रीसेट लिंक भेज दिया है। लिंक LociAR में नई पासवर्ड स्क्रीन खोलेगा।"
+            "value" : "हमने आपको पासवर्ड रीसेट लिंक भेज दिया है। लिंक LociDrop में नई पासवर्ड स्क्रीन खोलेगा।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আমরা আপনাকে পাসওয়ার্ড রিসেট লিঙ্ক পাঠিয়েছি। লিঙ্কটি LociAR-এ নতুন পাসওয়ার্ড স্ক্রীন খুলবে।"
+            "value" : "আমরা আপনাকে পাসওয়ার্ড রিসেট লিঙ্ক পাঠিয়েছি। লিঙ্কটি LociDrop-এ নতুন পাসওয়ার্ড স্ক্রীন খুলবে।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "パスワードリセットリンクを送信しました。リンクをクリックすると、LociAR の新しいパスワード画面が開きます。"
+            "value" : "パスワードリセットリンクを送信しました。リンクをクリックすると、LociDrop の新しいパスワード画面が開きます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我们已向您发送了密码重置链接。该链接将在 LociAR 中打开新密码屏幕。"
+            "value" : "我们已向您发送了密码重置链接。该链接将在 LociDrop 中打开新密码屏幕。"
           }
         }
       }

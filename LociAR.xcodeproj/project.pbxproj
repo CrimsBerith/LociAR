@@ -1304,7 +1304,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LociAR/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = LociAR;
+				INFOPLIST_KEY_CFBundleDisplayName = LociDrop;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1515,7 +1515,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LociAR/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = LociAR;
+				INFOPLIST_KEY_CFBundleDisplayName = LociDrop;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

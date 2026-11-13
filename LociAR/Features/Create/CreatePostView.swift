@@ -70,7 +70,7 @@ struct CreatePostView: View {
             }
         }
         .arcoreDisclosure()
-        .alert("LociAR", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+        .alert("LociDrop", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             if offerLocationSettings {
                 Button("Konum ayarlarını aç") {
                     offerLocationSettings = false
@@ -566,7 +566,7 @@ struct CreatePostView: View {
                     ? String(localized: "Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir.")
                     : String(localized: "İnternet bağlantısı yok. Post cihazda sıraya alındı ve bağlantı geri geldiğinde yeniden denenecek.")
             case .queued(.servicePaused):
-                message = String(localized: "LociAR geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak.")
+                message = String(localized: "LociDrop geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak.")
             case .queued(.backendUnavailable):
                 message = String(localized: "Yayın ilk denemede tamamlanamadı. Post Profil > Postlarım’da görünür; uygulama 15 saniyede bir yeniden dener veya ‘Şimdi yayınla’ ile hemen gönderebilirsin.")
             case .rejected(let reason):

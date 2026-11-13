@@ -117,7 +117,7 @@ export async function deliverActivityPush(activityId: string, send: PushSender, 
       });
       return {
         ...address,
-        notification: { title: 'LociAR', body },
+        notification: { title: 'LociDrop', body },
         data: { activity_id: activityId, recipient_id: initial.recipient_id, post_id: isUUID(activity.post_id) ? activity.post_id : '' },
         apns: { headers: { 'apns-collapse-id': pushTokenId(activityId), 'apns-expiration': String(Math.floor(now / 1000) + 3600) }, payload: { aps: { sound: 'default' } } },
       } satisfies Message;
@@ -177,7 +177,7 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
       });
       return {
         ...address,
-        notification: { title: 'LociAR', body: postApprovedBody(target.get('locale')) },
+        notification: { title: 'LociDrop', body: postApprovedBody(target.get('locale')) },
         // No activity_id: the client opens the post directly.
         data: { recipient_id: recipientId, post_id: postId },
         apns: { headers: { 'apns-collapse-id': pushTokenId(deliveryKey), 'apns-expiration': String(Math.floor(now / 1000) + 86_400) }, payload: { aps: { sound: 'default' } } },

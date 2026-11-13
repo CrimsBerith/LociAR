@@ -1,4 +1,4 @@
-# LociAR Repository Map & Architecture Blueprint
+# LociDrop Repository Map & Architecture Blueprint
 
 > Phase: P1  
 > Owner: A00 (Technical Leader), A02 (Architecture Specialist)  
@@ -12,7 +12,7 @@
 
 ## 1. High-Level Workspace Architecture
 
-The LociAR repository is a mono-repo hosting the native iOS mobile application, the Firebase backend serverless Cloud Functions, the operational administrative console (Next.js), and operational automation scripts.
+The LociDrop repository is a mono-repo hosting the native iOS mobile application, the Firebase backend serverless Cloud Functions, the operational administrative console (Next.js), and operational automation scripts.
 
 ```text
 loci/LociAR/

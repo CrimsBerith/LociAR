@@ -1,4 +1,4 @@
-# CODEX EXECUTION HANDOVER — FIX-12 (LociAR)
+# CODEX EXECUTION HANDOVER — FIX-12 (LociDrop)
 
 **Tarih:** 24 Ekim 2026  
 **Dal:** `codex/fix-anonymous-location-audit` (HEAD: `60afbca`)  

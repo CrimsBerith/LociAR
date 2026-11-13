@@ -7,11 +7,11 @@
 
 ## Repeated cancelled analyses: private LOC quota
 
-On 18 October 2026, PR #58's background task `AaFLeZRiDHT7I1azedg3` showed the actual failure: the organization's 50,000 private-line limit would be exceeded. The other private project, `seven-ios-apps`, used 28,849 lines; the incoming LociAR analysis contained 24,097 lines, totaling 52,946. The previous successful LociAR analysis contained 21,009 lines.
+On 18 October 2026, PR #58's background task `AaFLeZRiDHT7I1azedg3` showed the actual failure: the organization's 50,000 private-line limit would be exceeded. The other private project, `seven-ios-apps`, used 28,849 lines; the incoming LociDrop analysis contained 24,097 lines, totaling 52,946. The previous successful LociDrop analysis contained 21,009 lines.
 
 The failed task's scanner context already included the configured test/build exclusions. Adding more production exclusions or refactoring reported code smells would not address this quota failure. GitHub displayed the failed background task as `CANCELLED`, which was not a GitHub Actions concurrency cancellation.
 
-With the owner's explicit approval, LociAR's Sonar visibility was changed to public, matching the existing public GitHub repository. Public lines do not consume the organization's private-line allowance. No subscription purchase, deletion of the other project, quality-gate relaxation, or production-source exclusion was needed.
+With the owner's explicit approval, LociDrop's Sonar visibility was changed to public, matching the existing public GitHub repository. Public lines do not consume the organization's private-line allowance. No subscription purchase, deletion of the other project, quality-gate relaxation, or production-source exclusion was needed.
 
 The first completed rerun then exposed a separate quality-gate failure: 18 reliability issues (15 implicit form-submit button types and three implicit string comparators) and four executable-search-path vulnerabilities in simulator/demo tooling. Fixes declare each button's intended action, use explicit English string comparators, and launch pinned Node/JDK/system executables without the inherited PATH or the `rtk` wrapper. Maintainability findings are separate from these reliability/security failures; the existing Sonar way gate stays unchanged.
 

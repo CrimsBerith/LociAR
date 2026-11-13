@@ -29,7 +29,7 @@ Kaynak: bağımsız derin tarama (Claude) ve aynı günkü `DEEP_SCAN_2026-10-17
 
 | Kapı | Neden | Kapanma kanıtı |
 |---|---|---|
-| App Check debug token'ları | Canlı projede "Codex Mac simulator 2026-10-16" ve "Simulator LociAR Notes Max" kayıtlı; token'ı bilen App Check'i atlar | Yayından hemen önce Firebase Console → App Check → Manage debug tokens listesinin boş olması |
+| App Check debug token'ları | Canlı projede "Codex Mac simulator 2026-10-16" ve "Simulator LociDrop Notes Max" kayıtlı; token'ı bilen App Check'i atlar | Yayından hemen önce Firebase Console → App Check → Manage debug tokens listesinin boş olması |
 | Destek adresi ve alan adı | 26 Ekim: `support@alfagolab.com` (Hostinger MX) KVKK iletişimi, destek sayfası ve review notlarında; `lociar.app` kayıtlı değil, kullanılmaz | Alan adı sahipliği, MX kaydı ve bu adrese gönderilen test e-postasının ulaşması; Resend'de doğrulanmış gönderici alan adı |
 | Authenticator (TOTP) | Konum/IP okuma, rol ve denetim dışa aktarımı artık TOTP ister | Sahibin eski bağlantı + Authenticator yoluyla giriş yapıp bir kullanıcı bağlamını okuyabilmesi |
 | ABD/Texas yaş doğrulama (SB 2420) | 4 Haziran 2026'dan beri yürürlükte; uygulama "Global" | Hukuki karar: ABD'yi ilk sürümde dışarıda bırakmak ya da Declared Age Range API uyarlaması |

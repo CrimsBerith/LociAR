@@ -3,8 +3,8 @@ import LegalLayout from '../legal-layout';
 import { LEGAL_ENTITY as E } from '../legal-entity';
 
 export const metadata = {
-  title: 'LociAR Kullanım Koşulları',
-  description: 'LociAR topluluk kuralları, kullanıcı içeriği, sıfır tolerans politikası ve hesap kuralları.',
+  title: 'LociDrop Kullanım Koşulları',
+  description: 'LociDrop topluluk kuralları, kullanıcı içeriği, sıfır tolerans politikası ve hesap kuralları.',
 };
 
 const APPLE_EULA = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
@@ -13,14 +13,14 @@ export default function TermsPage() {
   return (
     <LegalLayout title="Kullanım koşulları ve topluluk kuralları" updated={E.updatedTr}>
       <p>
-        Bu koşullar LociAR iOS uygulamasının kullanımını düzenler. Hizmeti sunan: {E.controllerName}, {E.controllerAddress}
+        Bu koşullar LociDrop iOS uygulamasının kullanımını düzenler. Hizmeti sunan: {E.controllerName}, {E.controllerAddress}
         {' '}(<a href={`mailto:${E.contactEmail}`}>{E.contactEmail}</a>). Hesap açarak veya uygulamayı kullanarak bu koşulları
         ve <a href={APPLE_EULA}>Apple Standart Son Kullanıcı Lisans Sözleşmesi&apos;ni (EULA)</a> kabul edersiniz.
         {' '}<Link href="/terms/en">English version</Link>
       </p>
 
       <h2>Yaş sınırı</h2>
-      <p>LociAR&apos;ı kullanmak için en az 13 yaşında olmalısınız. 18 yaşından küçükseniz veli veya vasinizin onayı gerekir.</p>
+      <p>LociDrop&apos;u kullanmak için en az 13 yaşında olmalısınız. 18 yaşından küçükseniz veli veya vasinizin onayı gerekir.</p>
 
       <h2>Hesap</h2>
       <p>
@@ -40,7 +40,7 @@ export default function TermsPage() {
 
       <h2>Sıfır tolerans: sakıncalı içerik ve kötüye kullanım</h2>
       <p>
-        LociAR, sakıncalı içeriklere ve taciz eden ya da kötüye kullanan kullanıcılara karşı <strong>sıfır tolerans</strong> uygular.
+        LociDrop, sakıncalı içeriklere ve taciz eden ya da kötüye kullanan kullanıcılara karşı <strong>sıfır tolerans</strong> uygular.
       </p>
       <ul>
         <li>Postları, yorumları ve kullanıcıları uygulama içinden bildirebilir, kullanıcıları engelleyebilirsiniz. Engellediğiniz

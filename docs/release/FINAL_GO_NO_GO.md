@@ -1,4 +1,4 @@
-# FINAL GO / NO-GO — LociAR v1.0.0 (Build 1)
+# FINAL GO / NO-GO — LociDrop v1.0.0 (Build 1)
 
 > Date: 2 Kasım 2026  
 > Reviewer / Orchestrator: A00 (Release Orchestrator & Technical Leader)  

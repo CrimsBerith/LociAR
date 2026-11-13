@@ -683,7 +683,7 @@ struct InviteView: View {
                             if invite.redeemed {
                                 Text("Kullanıldı").font(.caption).foregroundStyle(LociTheme.secondaryText)
                             } else {
-                                ShareLink(item: String(localized: "LociAR'a davetlisin. Davet kodun: \(invite.code)")) {
+                                ShareLink(item: String(localized: "LociDrop'a davetlisin. Davet kodun: \(invite.code)")) {
                                     Image(systemName: "square.and.arrow.up")
                                         .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
                                         .background(LociTheme.field, in: RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))

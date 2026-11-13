@@ -1,8 +1,8 @@
-# LociAR 1.0 — Post-Launch Health & Observability Plan
+# LociDrop 1.0 — Post-Launch Health & Observability Plan
 
 > Phase: P12  
 > Owners: A00 (Technical Leader), A06 (Backend Reliability), A08 (Performance), A14 (App Store)  
-> Application: LociAR iOS 1.0.0  
+> Application: LociDrop iOS 1.0.0  
 > Date: 2 Kasım 2026  
 
 ---

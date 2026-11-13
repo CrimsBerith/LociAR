@@ -48,7 +48,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.khankartal.lociar
         PRODUCT_NAME: LociAR
         INFOPLIST_FILE: LociAR/Resources/Info.plist
-        INFOPLIST_KEY_CFBundleDisplayName: LociAR
+        INFOPLIST_KEY_CFBundleDisplayName: LociDrop
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.social-networking
         CODE_SIGN_ENTITLEMENTS: LociAR/Resources/LociAR.entitlements
         CODE_SIGN_STYLE: Automatic

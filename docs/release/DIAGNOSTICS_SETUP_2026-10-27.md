@@ -28,7 +28,7 @@
 1. Firebase paneli Google hesabı için 2 Adımlı Doğrulama istiyor. Kullanıcıya kendisinin tamamlaması için
    soru iletildi. Hesap güvenliği ayarları ajan tarafından değiştirilmedi.
 2. iOS fatal alarm politikası hazır; veri kaynağı ayrıca Firebase → Project settings → Integrations →
-   Cloud Logging'de LociAR iOS için bağlanmalı. **Include sessions kapalı** tutulmalı. Bu bağlantı bu çalışmada
+   Cloud Logging'de LociDrop iOS için bağlanmalı. **Include sessions kapalı** tutulmalı. Bu bağlantı bu çalışmada
    doğrulanamadı; dolayısıyla iOS crash → destek e-postası hattı tamamlandı sayılamaz.
 3. Gerçek kontrollü iOS crash → yeniden açılış → Crashlytics panelinde sembollü stack kabulü yapılmadı.
    Fiziksel iPhone son sorguda erişilemiyordu. Simülatör XCTest'lerindeki Firebase keychain uyarıları nedeniyle

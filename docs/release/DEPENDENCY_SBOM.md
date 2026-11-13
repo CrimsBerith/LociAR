@@ -1,4 +1,4 @@
-# LociAR 1.0 — Software Bill of Materials (SBOM) & Dependency Audit
+# LociDrop 1.0 — Software Bill of Materials (SBOM) & Dependency Audit
 
 > Phase: P1 (Baseline & Debt Mapping)  
 > Owners: A12 (CI/CD Specialist), A13 (Compliance Specialist)  

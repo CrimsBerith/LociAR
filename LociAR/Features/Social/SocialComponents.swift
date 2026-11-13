@@ -117,7 +117,7 @@ struct PostCard: View {
 
 struct OfficialContentBadge: View {
     var body: some View {
-        Label { Text(verbatim: "LociAR") } icon: { Image(systemName: "checkmark.seal.fill") }
+        Label { Text(verbatim: "LociDrop") } icon: { Image(systemName: "checkmark.seal.fill") }
             .lineLimit(1).fixedSize(horizontal: true, vertical: false)
             .font(.caption2.weight(.semibold)).foregroundStyle(LociTheme.accent)
             .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xs)

@@ -311,12 +311,12 @@ test('mobile Chromium regular-user invitation completes email ownership, app pas
     await expect(page.getByRole('heading', { name: 'Accept your invitation' })).toBeVisible();
     await page.getByLabel('Invited email').fill(email);
     await page.getByRole('button', { name: 'Verify email and continue' }).click();
-    await expect(page.getByRole('heading', { name: 'Set a password for LociAR' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Set a password for LociDrop' })).toBeVisible();
     await page.getByLabel('Password', { exact: true }).fill(appPassword);
     await page.getByLabel('Confirm password').fill(appPassword);
     await page.getByRole('button', { name: 'Complete invitation' }).click();
     await expect(page.getByRole('heading', { name: 'Your account is ready' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open LociAR', exact: true })).toHaveAttribute('href', 'lociar://open');
+    await expect(page.getByRole('link', { name: 'Open LociDrop', exact: true })).toHaveAttribute('href', 'lociar://open');
     assert.equal((await context.cookies()).some(cookie => cookie.name === '__session'), false);
     assert.equal((await db.collection('admin_role_assignments').where('user_id', '==', invitation.get('invited_user_id')).get()).empty, true);
     assert.equal((await db.collection('admin_user_invites').doc(invitation.id).get()).get('status'), 'accepted');

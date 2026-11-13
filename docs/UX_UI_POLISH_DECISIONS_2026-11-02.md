@@ -1,4 +1,4 @@
-# LociAR — kullanıcı dili ve UI polish kararları
+# LociDrop — kullanıcı dili ve UI polish kararları
 
 **Tarih:** 2 Kasım 2026. **Durum:** tasarım ve uygulama planı; uygulama kodu değiştirilmedi.
 

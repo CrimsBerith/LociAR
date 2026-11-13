@@ -1,4 +1,4 @@
-# LociAR — App Store'a çıkış kontrol listesi (26 Ekim 2026)
+# LociDrop — App Store'a çıkış kontrol listesi (26 Ekim 2026)
 
 Tek sayfalık "gönder / gönderme" listesi. Sırayla git; bir adım bitmeden sonrakine geçme.
 27 Ekim adayının güncel testleri ve açık kapıları: [APP_STORE_PREPARATION_2026-10-27.md](APP_STORE_PREPARATION_2026-10-27.md).
@@ -64,7 +64,7 @@ inceleme notları ve rehber güncellendi. Yapılacaklar:
 ## 3. Google Cloud: erişim ve harcama sınırı (~10 dk)
 
 - 25 Ekim canlı ölçümü gcloud ile okunabildiğine göre konsol erişimi (2 adımlı doğrulama) çalışıyor.
-- **"LociAR spend cap" (Cloud Run için ₺10/ay sert limit):** 18 ve 20 Ekim'de doldu ve bütün fonksiyonları durdurdu.
+- **"LociDrop spend cap" (Cloud Run için ₺10/ay sert limit):** 18 ve 20 Ekim'de doldu ve bütün fonksiyonları durdurdu.
   App Review sırasında dolarsa inceleyen kişi hata görür ve uygulama reddedilir. Karar senin: inceleme ve ilk ay
   için sert limiti yükselt (ör. ₺250) ve %50/%90/%100 uyarılarını bırak; ya da ₺10'da kalıp risk al.
   Emekli 7 zamanlayıcı silinmeden (4. adım) sınır yine dolabilir.

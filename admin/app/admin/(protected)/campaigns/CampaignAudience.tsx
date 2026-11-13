@@ -9,7 +9,7 @@ export default function CampaignAudience({ campaignId }: Readonly<{ campaignId: 
   const [reason, setReason] = useState(''), [candidates, setCandidates] = useState<Candidate[]>([]), [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
   const [notificationMode, setNotificationMode] = useState('immediate');
-  const [title, setTitle] = useState('LociAR'), [text, setText] = useState(''), [departureRadius, setDepartureRadius] = useState(150);
+  const [title, setTitle] = useState('LociDrop'), [text, setText] = useState(''), [departureRadius, setDepartureRadius] = useState(150);
   const mutation = useRef(createMutationClient());
   async function inspect(after?: string) {
     setBusy(true); setMessage(''); setCandidates([]);

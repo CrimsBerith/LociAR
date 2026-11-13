@@ -1,7 +1,7 @@
-# LociAR 1.0 — App Store Review Notes & Reviewer Instructions
+# LociDrop 1.0 — App Store Review Notes & Reviewer Instructions
 
 > Target: Apple App Review Team  
-> App Name: LociAR  
+> App Name: LociDrop  
 > Bundle Identifier: `com.khankartal.lociar`  
 > Version: 1.0.0 (Build 1)  
 > Date: 2 Kasım 2026  

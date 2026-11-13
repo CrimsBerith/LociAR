@@ -42,7 +42,7 @@ Physical AR:
 Firebase emulator E2E:
 
 - `testEmulator00AuthEndpointReachable` failed with `NSURLErrorDomain -1009` and `Local network prohibited` when the iPhone tried to reach the Mac's Auth emulator at `192.168.1.157:9099`. The script correctly stopped; no dependent emulator E2E cases ran.
-- To retry, enable **Settings → Privacy & Security → Local Network → LociAR** on the iPhone. The physical plane-lock cases also need the camera aimed and moved over a well-lit, textured surface during the scan window.
+- To retry, enable **Settings → Privacy & Security → Local Network → LociDrop** on the iPhone. The physical plane-lock cases also need the camera aimed and moved over a well-lit, textured surface during the scan window.
 
 ## Evidence
 

@@ -12,7 +12,7 @@ fast-forwarding to `fd7de0a`, including the extra business batch and the owner's
   original post remains unchanged; translated textures bypass the reusable renderer cache. Render generations
   and anchor identity reject late work after a new request or session shutdown. Original toggle restores the
   original texture. Legacy drawing/video rendering stays original; iOS 17 retains the original text.
-- Official LociAR badges use a server-stamped post flag, derived by admin publishing from the selected
+- Official LociDrop badges use a server-stamped post flag, derived by admin publishing from the selected
   managed content identity. A handle or mobile request cannot award a badge. Public locked rows retain the
   flag but no body/identity disclosure. The selected public author remains visible. Existing managed posts
   lacking the post flag need an audited resave before showing it; no live data backfill was performed.

@@ -1,4 +1,4 @@
-# LociAR — Nocturnal brand
+# LociDrop — Nocturnal brand
 
 The mark combines a location pin with an open surface bracket. The bracket conveys a
 note attached to a real place, and the circular aperture preserves a clear silhouette
@@ -46,7 +46,7 @@ Illustrations were generated with the image tool from the same palette and calm,
 rounded geometry. They contain no text, service logos or simulated app interface.
 PNG exports only normalize canvas dimensions, density and color modes; original
 generation files remain in the working environment. Swift and admin metadata wiring
-is reserved for Claude. LociAR has no social media integrations (removed 9 Oct 2026);
+is reserved for Claude. LociDrop has no social media integrations (removed 9 Oct 2026);
 the admin site ships only the generic Open Graph image.
 
 All three onboarding assets use 400/800/1200 pixel transparent canvases. The eight

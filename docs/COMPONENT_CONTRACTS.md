@@ -1,4 +1,4 @@
-# LociAR Component Contracts
+# LociDrop Component Contracts
 
 ## Button
 

@@ -1,4 +1,4 @@
-# LociAR — Liquid Glass uygulaması
+# LociDrop — Liquid Glass uygulaması
 
 2 Kasım 2026. Hedef, kullanıcının netleştirdiği üzere mevcut native iPhone uygulamasıdır. macOS hedefi eklenmedi.
 

@@ -108,7 +108,7 @@ extension AuthGateUITests {
             return false
         }
         publish.tap()
-        let alert = app.alerts["LociAR"]
+        let alert = app.alerts["LociDrop"]
         if !alert.waitForExistence(timeout: 4) {
             publish.tap()
         }
@@ -222,7 +222,7 @@ extension AuthGateUITests {
             guard usePlacement.exists, usePlacement.isEnabled else { continue }
             usePlacement.tap()
             if editor.waitForExistence(timeout: 12) { return true }
-            let alert = app.alerts["LociAR"]
+            let alert = app.alerts["LociDrop"]
             if alert.waitForExistence(timeout: 2) {
                 alert.buttons["Tamam"].tap()
                 if usePlacement.exists, usePlacement.isEnabled {
@@ -250,8 +250,8 @@ extension AuthGateUITests {
     }
 
     func recoverToMap(_ app: XCUIApplication) {
-        if app.alerts["LociAR"].exists {
-            app.alerts["LociAR"].buttons["Tamam"].tap()
+        if app.alerts["LociDrop"].exists {
+            app.alerts["LociDrop"].buttons["Tamam"].tap()
         }
         if app.buttons["Vazgeç"].exists {
             app.buttons["Vazgeç"].tap()

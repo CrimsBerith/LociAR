@@ -3,15 +3,15 @@ import LegalLayout from '../../legal-layout';
 import { LEGAL_ENTITY as E } from '../../legal-entity';
 
 export const metadata = {
-  title: 'LociAR Support',
-  description: 'Help with deleting your LociAR account, reporting posts and comments, blocking, notifications and privacy.',
+  title: 'LociDrop Support',
+  description: 'Help with deleting your LociDrop account, reporting posts and comments, blocking, notifications and privacy.',
 };
 
 export default function SupportPageEn() {
   return (
     <LegalLayout title="Support" updated={E.updatedEn} lang="en">
       <p>
-        Most actions are available directly inside LociAR. If you need help, email us.
+        Most actions are available directly inside LociDrop. If you need help, email us.
         {' '}<Link href="/support">Türkçe</Link>
       </p>
 
@@ -34,7 +34,7 @@ export default function SupportPageEn() {
 
       <h2>Notifications and permissions</h2>
       <p>
-        Turn notifications, camera and location on or off in iOS Settings → LociAR. Turn off crash reports in Profile → Settings.
+        Turn notifications, camera and location on or off in iOS Settings → LociDrop. Turn off crash reports in Profile → Settings.
       </p>
 
       <h2>Contact</h2>

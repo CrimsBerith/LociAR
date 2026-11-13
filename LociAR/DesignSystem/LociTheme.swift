@@ -38,37 +38,40 @@ enum LociTheme {
         let scrim: UIColor
 
         init(style: UIUserInterfaceStyle, highContrast: Bool = false) {
+            // "Slate ledger" palette: near-black blue-slate surfaces (#1A2127 base, #192028 and
+            // #1C252A variants) with warm cream ink (#dddfd3). Dark mode is slate with cream
+            // accent; light mode is cream paper with slate accent. Text pairs keep 4.5:1 contrast.
             let dark = style == .dark
-            background = dark ? LociTheme.rgb(6, 9, 18) : LociTheme.rgb(246, 248, 251)
-            surface = dark ? LociTheme.rgb(17, 22, 31) : .white
-            elevated = dark ? LociTheme.rgb(24, 32, 45) : LociTheme.rgb(234, 240, 245)
-            rowSurface = dark ? LociTheme.rgb(21, 31, 43) : LociTheme.rgb(240, 244, 247)
-            authSurface = dark ? LociTheme.rgb(54, 85, 96) : LociTheme.rgb(226, 242, 241)
-            authField = dark ? LociTheme.rgb(67, 103, 114) : LociTheme.rgb(249, 252, 252)
-            profileSurface = dark ? LociTheme.rgb(13, 27, 38) : LociTheme.rgb(240, 245, 247)
-            arSearchSurface = LociTheme.rgb(184, 220, 245)
-            arSearchInk = LociTheme.rgb(13, 35, 57)
-            accent = dark ? LociTheme.rgb(56, 224, 184) : LociTheme.rgb(0, 125, 101)
-            ambientBlue = dark ? LociTheme.rgb(51, 122, 255) : LociTheme.rgb(57, 98, 194)
-            warning = dark ? LociTheme.rgb(255, 193, 107) : LociTheme.rgb(151, 91, 0)
-            danger = dark ? LociTheme.rgb(255, 124, 131) : LociTheme.rgb(180, 35, 45)
-            textPrimary = dark ? LociTheme.rgb(243, 246, 248) : LociTheme.rgb(24, 31, 38)
-            secondaryText = dark ? LociTheme.rgb(184, 195, 204) : LociTheme.rgb(77, 91, 102)
-            tertiaryText = dark ? LociTheme.rgb(147, 162, 176) : LociTheme.rgb(85, 99, 110)
+            background = dark ? LociTheme.rgb(26, 33, 39) : LociTheme.rgb(221, 223, 211)
+            surface = dark ? LociTheme.rgb(28, 37, 42) : LociTheme.rgb(238, 239, 231)
+            elevated = dark ? LociTheme.rgb(40, 51, 58) : LociTheme.rgb(209, 212, 199)
+            rowSurface = dark ? LociTheme.rgb(25, 32, 40) : LociTheme.rgb(230, 232, 222)
+            authSurface = dark ? LociTheme.rgb(28, 37, 42) : LociTheme.rgb(238, 239, 231)
+            authField = dark ? LociTheme.rgb(40, 51, 58) : LociTheme.rgb(246, 247, 241)
+            profileSurface = dark ? LociTheme.rgb(25, 32, 40) : LociTheme.rgb(228, 230, 219)
+            arSearchSurface = LociTheme.rgb(221, 223, 211)
+            arSearchInk = LociTheme.rgb(26, 33, 39)
+            accent = dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39)
+            ambientBlue = LociTheme.rgb(75, 101, 138)
+            warning = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(146, 84, 0)
+            danger = dark ? LociTheme.rgb(242, 132, 132) : LociTheme.rgb(168, 42, 48)
+            textPrimary = dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39)
+            secondaryText = dark ? LociTheme.rgb(180, 188, 192) : LociTheme.rgb(62, 73, 81)
+            tertiaryText = dark ? LociTheme.rgb(152, 162, 169) : LociTheme.rgb(76, 87, 95)
             hairline = dark
-                ? UIColor.white.withAlphaComponent(0.12)
-                : UIColor.black.withAlphaComponent(0.12)
-            field = dark ? UIColor.white.withAlphaComponent(0.07) : LociTheme.rgb(246, 249, 251)
+                ? LociTheme.rgb(221, 223, 211).withAlphaComponent(0.14)
+                : LociTheme.rgb(26, 33, 39).withAlphaComponent(0.16)
+            field = dark ? LociTheme.rgb(221, 223, 211).withAlphaComponent(0.07) : LociTheme.rgb(246, 247, 241)
             glassBorder = highContrast
-                ? (dark ? LociTheme.rgb(179, 193, 204) : LociTheme.rgb(60, 74, 85))
-                : (dark ? LociTheme.rgb(104, 119, 132) : LociTheme.rgb(115, 129, 139))
-            onAccent = dark ? LociTheme.rgb(5, 37, 29) : .white
+                ? (dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39))
+                : (dark ? LociTheme.rgb(92, 106, 116) : LociTheme.rgb(96, 108, 116))
+            onAccent = dark ? LociTheme.rgb(26, 33, 39) : LociTheme.rgb(221, 223, 211)
             onDanger = dark ? LociTheme.rgb(53, 16, 20) : .white
-            social = dark ? LociTheme.rgb(255, 126, 171) : LociTheme.rgb(171, 37, 92)
-            discoveryAccent = dark ? LociTheme.rgb(112, 169, 255) : LociTheme.rgb(35, 85, 176)
-            identityAccent = dark ? LociTheme.rgb(196, 165, 255) : LociTheme.rgb(104, 64, 163)
-            mapAR = dark ? LociTheme.rgb(90, 150, 255) : LociTheme.rgb(36, 82, 176)
-            mapLocation = dark ? LociTheme.rgb(255, 161, 70) : LociTheme.rgb(163, 78, 0)
+            social = dark ? LociTheme.rgb(240, 150, 172) : LociTheme.rgb(158, 44, 84)
+            discoveryAccent = dark ? LociTheme.rgb(150, 182, 224) : LociTheme.rgb(44, 78, 136)
+            identityAccent = dark ? LociTheme.rgb(196, 182, 236) : LociTheme.rgb(98, 70, 150)
+            mapAR = dark ? LociTheme.rgb(150, 186, 236) : LociTheme.rgb(40, 82, 160)
+            mapLocation = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(146, 84, 0)
             mediaOverlayText = .white
             mediaOverlayScrim = .black
             scrim = .black
@@ -128,8 +131,12 @@ enum LociTheme {
     static let mediaOverlayScrim = color(\.mediaOverlayScrim)
 
     enum Typography {
-        static let display = Font.system(.largeTitle, design: .rounded).weight(.bold)
+        static let display = Font.system(.largeTitle, design: .serif).weight(.semibold)
         static let title = Font.system(.title2, design: .default).weight(.bold)
+        /// Small tracked label above a section or card, like a dossier heading.
+        static let eyebrow = Font.system(.caption, design: .default).weight(.semibold)
+        /// The wordmark: a serif with slight tracking, used on the sign-in and loading screens.
+        static let wordmark = Font.system(size: 34, weight: .semibold, design: .serif)
         static let headline = Font.system(.headline, design: .default)
         static let body = Font.system(.body, design: .default)
         static let bodyEmphasis = Font.system(.body, design: .default).weight(.semibold)
@@ -140,10 +147,10 @@ enum LociTheme {
     }
 
     enum Radius {
-        static let small: CGFloat = 12
-        static let medium: CGFloat = 16
-        static let large: CGFloat = 20
-        static let extraLarge: CGFloat = 24
+        static let small: CGFloat = 10
+        static let medium: CGFloat = 14
+        static let large: CGFloat = 18
+        static let extraLarge: CGFloat = 22
         static let pill: CGFloat = 999
     }
 
@@ -192,6 +199,17 @@ enum LociTheme {
 
     static let spatialGradient = LinearGradient(
         colors: [surface, background],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    /// Brushed-metal sheen for primary actions: the accent lit from the top-left.
+    static let accentSheen = LinearGradient(
+        stops: [
+            .init(color: accent.opacity(0.92), location: 0),
+            .init(color: accent, location: 0.45),
+            .init(color: accent.opacity(0.82), location: 1),
+        ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -267,16 +285,23 @@ struct LociScreenBackground: View {
     var body: some View {
         ZStack {
             LociTheme.spatialGradient
+            // A single warm light source high on the trailing edge and a cold counter-glow low
+            // on the leading edge: depth without decoration.
             Circle()
-                .fill(LociTheme.accent.opacity(0.055))
-                .frame(width: 330, height: 330)
-                .blur(radius: 28)
-                .offset(x: 170, y: -310)
+                .fill(LociTheme.accent.opacity(0.07))
+                .frame(width: 420, height: 420)
+                .blur(radius: 60)
+                .offset(x: 190, y: -360)
             Circle()
-                .fill(LociTheme.ambientBlue.opacity(0.045))
-                .frame(width: 280, height: 280)
-                .blur(radius: 34)
-                .offset(x: -180, y: 300)
+                .fill(LociTheme.ambientBlue.opacity(0.06))
+                .frame(width: 360, height: 360)
+                .blur(radius: 70)
+                .offset(x: -200, y: 340)
+            // Hairline rule under the status bar area, like the edge of a document.
+            VStack {
+                Rectangle().fill(LociTheme.accent.opacity(0.18)).frame(height: 0.5).padding(.top, 2)
+                Spacer()
+            }
         }
         .ignoresSafeArea()
         .accessibilityHidden(true)
@@ -403,15 +428,19 @@ struct LociPrimaryButtonStyle: ButtonStyle {
         label
             .background {
                 if isEnabled {
-                    shape.fill(LociTheme.accent.opacity(configuration.isPressed ? 0.76 : 1))
+                    shape.fill(LociTheme.accentSheen)
+                        .opacity(configuration.isPressed ? 0.82 : 1)
                 } else {
                     shape.fill(LociTheme.rowSurface)
                         .overlay(shape.fill(LociTheme.accent.opacity(0.14)))
                 }
             }
             .overlay(
+                // Thin highlight along the top edge reads as a machined bevel.
                 shape.stroke(
-                    isEnabled ? LociTheme.glassBorder : LociTheme.glassBorder.opacity(0.8),
+                    isEnabled
+                        ? LinearGradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom)
+                        : LinearGradient(colors: [LociTheme.glassBorder.opacity(0.8)], startPoint: .top, endPoint: .bottom),
                     lineWidth: 1
                 )
             )
@@ -458,9 +487,44 @@ struct LociSectionLabel: View {
     let symbol: String
 
     var body: some View {
+        // Dossier-style heading: small, tracked capitals in the signal colour.
         Label(title.localizedUI, systemImage: symbol)
-            .font(LociTheme.Typography.label)
-            .foregroundStyle(LociTheme.textPrimary)
+            .font(LociTheme.Typography.eyebrow)
+            .textCase(.uppercase)
+            .kerning(1.1)
+            .foregroundStyle(LociTheme.accent)
+    }
+}
+
+/// The LociDrop wordmark with its tagline, shared by the sign-in and loading screens.
+struct LociWordmark: View {
+    var tagline: String? = nil
+    var symbolSize: CGFloat = 38
+
+    var body: some View {
+        VStack(spacing: LociTheme.Spacing.m) {
+            Image("LociMark")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: symbolSize * 2.3, height: symbolSize * 2.3)
+                .foregroundStyle(LociTheme.accent)
+                .accessibilityHidden(true)
+            VStack(spacing: LociTheme.Spacing.s) {
+                Text(verbatim: "LociDrop")
+                    .font(LociTheme.Typography.wordmark)
+                    .kerning(1.5)
+                    .foregroundStyle(LociTheme.textPrimary)
+                if let tagline {
+                    Text(tagline.localizedUI)
+                        .font(LociTheme.Typography.eyebrow)
+                        .textCase(.uppercase)
+                        .kerning(1.6)
+                        .foregroundStyle(LociTheme.secondaryText)
+                        .multilineTextAlignment(.center)
+                }
+            }
+        }
     }
 }
 

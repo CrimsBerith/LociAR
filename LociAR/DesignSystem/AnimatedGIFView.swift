@@ -60,15 +60,16 @@ struct AnimatedGIFView: View {
 
     var body: some View {
         ZStack {
-            Rectangle().fill(Color.white.opacity(0.06))
+            // Placeholder follows the theme so it stays visible in light mode too.
+            Rectangle().fill(LociTheme.elevated)
             if let data {
                 AnimatedGIFRepresentable(data: data, contentMode: contentMode)
             } else if failed {
                 Image(systemName: "photo")
                     .font(.title3)
-                    .foregroundStyle(LociTheme.mediaOverlayText.opacity(0.5))
+                    .foregroundStyle(LociTheme.tertiaryText)
             } else {
-                ProgressView().tint(LociTheme.mediaOverlayText.opacity(0.8))
+                ProgressView().tint(LociTheme.secondaryText)
             }
         }
         .clipped()

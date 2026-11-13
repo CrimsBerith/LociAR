@@ -1,4 +1,4 @@
-# LociAR - Kod, admin ve mimari derin analiz
+# LociDrop - Kod, admin ve mimari derin analiz
 
 13 Ekim 2026 | Kaynak commit: 6052dcd | Native iOS + Firebase + Next.js
 

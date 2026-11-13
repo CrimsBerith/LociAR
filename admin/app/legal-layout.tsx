@@ -21,7 +21,7 @@ export default function LegalLayout({
   return (
     <main id="main" tabIndex={-1} className="legalPage" lang={lang}>
       <header className="legalHeader">
-        <p className="eyebrow">LociAR</p>
+        <p className="eyebrow">LociDrop</p>
         <h1>{title}</h1>
         <p className="muted">{t.updated}: {updated}</p>
         <nav className="legalNav">

@@ -11,8 +11,8 @@
 - Code blocks, file paths, commands, and error logs remain 100% exact.
 - Execute tools directly without preamble or narration.
 
-# LociAR Architecture
-- LociAR mobile is the native iOS tree. Open `LociAR.xcodeproj`. Do not add Expo, Metro, or React Native.
+# LociDrop Architecture
+- LociDrop mobile is the native iOS tree. Open `LociAR.xcodeproj`. Do not add Expo, Metro, or React Native.
 - Backend is Firebase with server-authoritative Cloud Functions — read the security contract in AGENTS.md before touching data code.
 
 <!-- rtk-instructions v2 -->
@@ -143,7 +143,6 @@ rtk wget <url>          # Compact download output (65%)
 rtk gain                # View token savings statistics
 rtk gain --history      # View command history with savings
 rtk discover            # Analyze Claude Code sessions for missed RTK usage
-rtk bypass <cmd>        # Run command without filtering (for debugging)
 rtk init                # Add RTK instructions to CLAUDE.md
 rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
 ```

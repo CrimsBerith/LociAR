@@ -16,7 +16,7 @@ enum KlipyError: Error, Equatable, Sendable {
 
 /// KLIPY's API (docs.klipy.com). KLIPY requires searches and media to be requested by the user's
 /// device, and its media URLs to be used exactly as returned, so nothing here goes through
-/// LociAR's servers and no media URL is ever built by hand.
+/// LociDrop's servers and no media URL is ever built by hand.
 enum KlipyAPI {
     /// Requests and media stay out of the on-disk URL cache: KLIPY media must not be retained.
     static let session: URLSession = {

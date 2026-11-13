@@ -1,10 +1,10 @@
-# LociAR - Kullanıcı tarafından ayrıntılı analiz
+# LociDrop - Kullanıcı tarafından ayrıntılı analiz
 
 13 Ekim 2026 | Güncel native iOS uygulaması | Kaynak: 6052dcd
 
 ## 1. Uygulama kullanıcıya ne sunuyor?
 
-LociAR, gerçek bir yere dijital not bırakma ve o yerdeki notları keşfetme uygulamasıdır. İki ana deneyim vardır: haritaya konum notu bırakmak ve kamerada gerçek bir yüzeye AR paylaşımı sabitlemek. Bunlara beğeni, yorum, kaydetme, koleksiyon, profil, engelleme, raporlama ve izinli bildirimler eşlik eder.
+LociDrop, gerçek bir yere dijital not bırakma ve o yerdeki notları keşfetme uygulamasıdır. İki ana deneyim vardır: haritaya konum notu bırakmak ve kamerada gerçek bir yüzeye AR paylaşımı sabitlemek. Bunlara beğeni, yorum, kaydetme, koleksiyon, profil, engelleme, raporlama ve izinli bildirimler eşlik eder.
 
 Konum notu için mağaza kataloğundan işletme seçmek gerekmez. Kullanıcı o anda bulunduğu yeri ölçer, kısa metnini yazar ve orada yayınlar. AR paylaşımında ise kameranın orta hedefiyle bir yüzey seçilir; metin ve/veya bir GIF o yüzeye yerleştirilir. Bu iki deneyim aynı şey değildir: GPS notu fiziksel duvara kilitli AR nesnesi sayılmaz.
 

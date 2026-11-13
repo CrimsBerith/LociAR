@@ -1,4 +1,4 @@
-# LociAR — Marka ve Uygulama İsmi Araştırma Planı (Naming Strategy & Validation)
+# LociDrop — Marka ve Uygulama İsmi Araştırma Planı (Naming Strategy & Validation)
 
 Bu belge; uygulamanın mevcut ismi (`LociAR`), hedeflenen küresel ve lüks/mekânsal sosyal ağ vizyonu ve `available_luxury_com_results.txt` analizleri doğrultusunda hazırlanmış kapsamlı bir araştırma ve doğrulama planıdır.
 
@@ -115,7 +115,7 @@ Her aday isim 100 puan üzerinden aşağıdaki ağırlıklarla puanlanır:
 | Aday | Artıları (Pros) | Eksileri (Cons) | .com Durumu | Hedef Kitle Algısı |
 |---|---|---|---|---|
 | **Loci** (Saf) | Anlam derinliği muhteşem (hafıza sarayı). Kısa, estetik. | Telaffuz ikilemi (Loki vs Losi). | Premium / Dolu (`loci.app` alternatif) | Entelektüel, mekânsal sosyal ağ |
-| **LociAR** (Mevcut) | App Store'da AR arayanı direkt yakalar, teknik netlik. | "AR" takısı markayı ucuzlatabilir / demolaştırabilir. | Alınmış / Projede | Teknoloji odaklı AR uygulaması |
+| **LociDrop** (Mevcut) | App Store'da AR arayanı direkt yakalar, teknik netlik. | "AR" takısı markayı ucuzlatabilir / demolaştırabilir. | Alınmış / Projede | Teknoloji odaklı AR uygulaması |
 | **Auloco** | `.com` boşta (`auloco.com`). Lüks Latince kök (Au + Locus). | Yeni bir kelime, öğrenilmesi gerekir. | **Boşta (.com)** | Lüks, seçkin lokasyon kulübü |
 | **Belcache** | `.com` boşta (`belcache.com`). "Güzel gizli yer" anlamı. | "Cache" kelimesi teknik hafıza çağrıştırabilir. | **Boşta (.com)** | Keşif, geocaching, prestij |
 | **Aura** / **Aur** | Işık, çevre, mekân enerjisi. Doğal olarak AR uyumlu. | Çok jenerik, `.com` imkansız, marka tescili zor. | Dolu | Popüler sosyal ağ |

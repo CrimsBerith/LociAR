@@ -1,4 +1,4 @@
-# LociAR 1.0 — Data Inventory & Retention Policy
+# LociDrop 1.0 — Data Inventory & Retention Policy
 
 > Phase: P5 (Security, Privacy & Apple Compliance)  
 > Owners: A07 (Privacy Specialist), A01 (Product Auditor)  

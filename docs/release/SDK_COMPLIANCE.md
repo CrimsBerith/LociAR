@@ -1,4 +1,4 @@
-# LociAR 1.0 — Third-Party SDK & Apple Requirements Audit
+# LociDrop 1.0 — Third-Party SDK & Apple Requirements Audit
 
 > Phase: P5 / P11  
 > Owner: A13 (SDK / Monetization / Compliance Specialist)  
@@ -8,7 +8,7 @@
 
 ## 1. Third-Party SDK Inventory & Verification
 
-Apple requires that commonly used third-party SDKs include privacy manifests and code signatures. The following table records all external packages linked into the LociAR application binary:
+Apple requires that commonly used third-party SDKs include privacy manifests and code signatures. The following table records all external packages linked into the LociDrop application binary:
 
 | Package / Framework | Version | Repository URL | Apple Listed SDK? | Privacy Manifest Included? | Signature Verified? | Purpose / Function |
 |---|---|---|---|---|---|---|

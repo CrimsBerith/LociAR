@@ -2,7 +2,7 @@
 
 Güncel native iOS / Firebase yayın planı: [RELEASE_READINESS.md](release/RELEASE_READINESS.md). Bu arşiv yayın onayı değildir.
 
-# LociAR 1.0 App Store — Scope Freeze
+# LociDrop 1.0 App Store — Scope Freeze
 
 **Status:** Frozen for pre-deploy campaign (2026-08-06)  
 **Supersedes:** 2026-07-11 sensor-AR wording  
