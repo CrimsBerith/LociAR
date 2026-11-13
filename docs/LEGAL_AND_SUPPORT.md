@@ -8,7 +8,7 @@ live in `admin/app/legal-entity.ts`.
 
 | Item | Turkish | English |
 |------|---------|---------|
-| Privacy Policy (KVKK + GDPR) | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy` | `…/privacy/en` |
+| Privacy Policy (KVKK + GDPR) | `https://locidrop.com/privacy` | `…/privacy/en` |
 | Terms of Use + community rules (incl. Apple EULA, zero tolerance) | `…/terms` | `…/terms/en` |
 | Support | `…/support` | `…/support/en` |
 

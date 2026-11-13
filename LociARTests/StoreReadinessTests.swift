@@ -176,9 +176,9 @@ final class StoreReadinessTests: XCTestCase {
 
     func testShippedConfigurationExposesConfiguredLegalHTTPSURLs() throws {
         let configuration = AppConfiguration.load(bundle: appBundle)
-        XCTAssertEqual(configuration.privacyPolicyURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy")
-        XCTAssertEqual(configuration.termsURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms")
-        XCTAssertEqual(configuration.supportURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support")
+        XCTAssertEqual(configuration.privacyPolicyURL?.absoluteString, "https://locidrop.com/privacy")
+        XCTAssertEqual(configuration.termsURL?.absoluteString, "https://locidrop.com/terms")
+        XCTAssertEqual(configuration.supportURL?.absoluteString, "https://locidrop.com/support")
         XCTAssertTrue(configuration.appleAuthEnabled)
         for url in [configuration.privacyPolicyURL, configuration.termsURL, configuration.supportURL] {
             let value = try XCTUnwrap(url?.absoluteString)

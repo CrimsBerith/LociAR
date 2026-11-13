@@ -46,11 +46,11 @@ Apple'ın doğruladığı iddia edilmez. Canlı sayfalar hâlâ eski destek adre
 yeni adresin sayfalarda görünmesi gönderimden önce doğrulanmalı.
 
 * **Gizlilik Politikası (Privacy Policy URL):**  
-  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy`
+  `https://locidrop.com/privacy`
 * **Kullanım Koşulları ve EULA (Terms of Use URL):**  
-  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms`
+  `https://locidrop.com/terms`
 * **Destek Sayfası (Support URL):**  
-  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support`
+  `https://locidrop.com/support`
 * **İngilizce sürümler** (İngilizce App Store sayfası için): `/privacy/en`, `/terms/en`, `/support/en`
 * **Destek İletişim E-Postası (Contact Email):**  
   `support@alfagolab.com` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmalıdır; Alfago Lab

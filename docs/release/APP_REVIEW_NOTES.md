@@ -37,7 +37,7 @@ Brand offers have their own off-by-default "Campaigns and offers" switch and con
 SAFETY (1.2)
 Every post passes an automatic text filter (no links, blocked terms) before it goes live. Content is hidden automatically when several verified users report it, and moderators review every report. Report and block on every post, comment and profile, handled within 24 hours. Protected zones and 18+ content are blocked on the server. Account deletion: Profile > Permanently delete account.
 
-Support: support@alfagolab.com, https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support
+Support: support@alfagolab.com, https://locidrop.com/support
 ```
 
 ## 2. Why "Always" is justified (for any follow-up from App Review)

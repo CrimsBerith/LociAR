@@ -16,11 +16,11 @@ env:
     availability:
       - RUNTIME
   - variable: ADMIN_EMAIL_FROM
-    value: LociAR <onboarding@resend.dev>
+    value: LociDrop <onboarding@resend.dev>
     availability:
       - RUNTIME
   - variable: ADMIN_ORIGIN
-    value: https://lociar-admin--lociar-2f38c.us-central1.hosted.app
+    value: https://locidrop.com
     availability:
       - RUNTIME
   - variable: FIREBASE_STORAGE_BUCKET

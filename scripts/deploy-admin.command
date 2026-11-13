@@ -14,5 +14,5 @@ echo "== Admin panel kontrolleri (tip kontrolü + testler) =="
 echo "== Admin panel yayınlanıyor (App Hosting: lociar-admin) =="
 "$FIREBASE" deploy --only apphosting --project lociar-2f38c
 echo
-echo "Bitti: https://lociar-admin--lociar-2f38c.us-central1.hosted.app/admin/login"
+echo "Bitti: https://locidrop.com/admin/login"
 read -r -p "Kapatmak için Enter'a bas…" _

@@ -19,10 +19,10 @@
 | **Primary Language** | English (`en-US`) | Development language. |
 | **Localizations** | 12 languages (en, tr, zh-Hans, hi, es, fr, ar, bn, pt, ru, de, ja) | 100% translated in String Catalogs. |
 | **Copyright** | `© 2026 LociAR` | Verified. |
-| **Support URL** | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support` | Live HTTPS endpoint, active contact options. |
-| **Marketing URL** | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app` | Live HTTPS endpoint. |
-| **Privacy Policy URL**| `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy` | Live HTTPS endpoint, complete data practices. |
-| **Terms of Service URL**| `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms` | Live HTTPS endpoint, community rules. |
+| **Support URL** | `https://locidrop.com/support` | Live HTTPS endpoint, active contact options. |
+| **Marketing URL** | `https://locidrop.com` | Live HTTPS endpoint. |
+| **Privacy Policy URL**| `https://locidrop.com/privacy` | Live HTTPS endpoint, complete data practices. |
+| **Terms of Service URL**| `https://locidrop.com/terms` | Live HTTPS endpoint, community rules. |
 
 ---
 

@@ -102,7 +102,7 @@ step "6/8  Admin ve yasal sayfalar (yeni destek adresi support@alfagolab.com)"
 if ask "Admin panelini yayınlayayım mı?"; then
   (cd admin && npx --no-install tsc --noEmit && npm test --silent) || fail "Admin kontrolleri geçmedi."
   "$FIREBASE" deploy --only apphosting --project "$PROJECT" --non-interactive || fail "Admin yayını başarısız."
-  echo "✅ Kontrol: https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support (support@alfagolab.com görünmeli)"
+  echo "✅ Kontrol: https://locidrop.com/support (support@alfagolab.com görünmeli)"
 fi
 
 # ---------------------------------------------------------------- 7

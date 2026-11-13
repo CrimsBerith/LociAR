@@ -195,7 +195,7 @@ gcloud services enable firebaseapphosting.googleapis.com --project lociar-2f38c
   `Firebase Admin SDK Administrator Service Agent` rolü gerekir (Auth/Firestore/Storage). Avatar incelemesi
   görüntüyü sunucu üzerinden aktarır (imzalı URL yok), bu yüzden kendi üzerinde Token Creator verilmez.
   `scripts/google-cloud-setup.command` bunu verir.
-- Authentication → Settings → Authorized domains: `lociar-admin--lociar-2f38c.us-central1.hosted.app`.
+- Authentication → Settings → Authorized domains: `locidrop.com` (özel alan adı, 13 Kas 2026) ve `lociar-admin--lociar-2f38c.us-central1.hosted.app`.
 
 Dağıtım: `./functions/node_modules/.bin/firebase deploy --only apphosting --project lociar-2f38c` (ya da GitHub bağlantısıyla
 otomatik). Adres: `https://lociar-admin--lociar-2f38c.us-central1.hosted.app` — iOS `Config/Base.xcconfig`
