@@ -4,6 +4,24 @@ LociDrop mobile is the **native iOS app** (SwiftUI + ARKit + RealityKit). No Exp
 
 Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen generate`.
 
+## Git workflow (owner decision 13 Nov 2026) — one branch, clean tree
+
+- Solo project. Work on `main` directly. No feature branches and no pull requests for routine work;
+  a branch is only for a risky experiment and lives a few hours at most.
+- Every session ends with its work committed. Never leave uncommitted changes for the next session;
+  if work must pause, `git stash push -u -m "wip: <what>"` and say so.
+- One agent session edits this repository at a time. Do not start a second session on the same tree.
+- Small, frequent commits; each commit passes: functions `npm test`, admin `tsc` + `npm test`,
+  `python3 scripts/l10n/build_catalog.py --check`, `bash scripts/qa-secret-scan.sh`. Swift changes
+  additionally need `scripts/verify.command` on the Mac (unit tests + device build + push).
+- Commit only files you changed (`git add <paths>`, never `git add -A`). Local agent files
+  (`.caveman*`, `.rtk/`, `.cursorrules`, `.claude/settings.local.json`, Copilot instructions) are
+  git-ignored on purpose.
+- One-off helper scripts are not committed. `scripts/verify.command` (Mac verify + push) and
+  `scripts/deploy-admin.command`, `scripts/firebase-deploy.command` (owner-approved deploys) are the
+  only operational `.command` entry points; add to them instead of creating `claude-x-*.command`.
+- Archive instead of deleting history: `archive/*` tags keep retired branches.
+
 ## Backend: Firebase (since 27 Sep 2026) — Supabase is retired
 
 - Project `lociar-2f38c`, Firestore `nam5`, Cloud Functions **`us-central1`** (must match Firestore; do not change).

@@ -109,3 +109,13 @@ docs/ui-review-screenshots-*/
 
 # Generated code-graph output (graphify); kept on disk, not versioned
 graphify-out/
+
+# Local AI-agent files (never committed)
+.caveman-active
+.caveman/
+.rtk/
+.cursorrules
+.github/copilot-instructions.md
+.claude/settings.local.json
+build/verify/
+build/claude-run/
