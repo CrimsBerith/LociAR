@@ -43,7 +43,7 @@ struct ARCoreNoticeButton: View {
                         .foregroundStyle(LociTheme.textPrimary)
                         .padding(.horizontal, LociTheme.Spacing.s)
                         .padding(.vertical, LociTheme.Spacing.xs)
-                        .lociGlassSurface(in: Capsule())
+                        .lociGlassSurface(in: Capsule(), interactive: true)
                 }
             }
             .buttonStyle(.plain)

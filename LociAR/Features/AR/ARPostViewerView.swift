@@ -56,16 +56,18 @@ struct ARPostViewerView: View {
                 aimingReticle
             }
             VStack {
-                HStack {
-                    Button { close() } label: {
-                        Image(systemName: "xmark")
-                            .font(.headline)
-                            .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
-                            .lociGlassSurface(in: Circle())
+                LociGlassGroup {
+                    HStack {
+                        Button { close() } label: {
+                            Image(systemName: "xmark")
+                                .font(.headline)
+                                .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
+                                .lociGlassSurface(in: Circle(), interactive: true)
+                        }
+                        .accessibilityLabel(Text("Kapat"))
+                        Spacer()
+                        ARCoreNoticeButton()
                     }
-                    .accessibilityLabel(Text("Kapat"))
-                    Spacer()
-                    ARCoreNoticeButton()
                 }
                 LociCard(appearance: isLocalSurfaceScan ? .arSearch : .content) {
                     VStack(alignment: .leading, spacing: LociTheme.Spacing.xs) {

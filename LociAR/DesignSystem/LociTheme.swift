@@ -228,6 +228,8 @@ enum LociSurfaceAppearance {
 private struct LociGlassSurface: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let shape: AnyShape
+    /// Only tappable surfaces react to touch; reading surfaces stay still.
+    var interactive = false
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -237,7 +239,7 @@ private struct LociGlassSurface: ViewModifier {
                 .overlay(shape.stroke(LociTheme.glassBorder))
         } else if #available(iOS 26.0, *) {
             content
-                .glassEffect(.regular.tint(LociTheme.glassTint), in: shape)
+                .glassEffect(.regular.tint(LociTheme.glassTint).interactive(interactive), in: shape)
                 .overlay(shape.stroke(LociTheme.glassBorder))
                 .shadow(color: Color.black.opacity(LociTheme.Depth.shadowOpacity), radius: LociTheme.Depth.floatingRadius, y: LociTheme.Depth.floatingOffset)
         } else {
@@ -278,8 +280,51 @@ extension View {
     }
 
     /// Applies the same glass treatment to controls whose geometry is not a rounded rectangle.
-    func lociGlassSurface<S: Shape>(in shape: S) -> some View {
-        modifier(LociGlassSurface(shape: AnyShape(shape)))
+    /// Pass `interactive: true` only when the surface is the label of a button.
+    func lociGlassSurface<S: Shape>(in shape: S, interactive: Bool = false) -> some View {
+        modifier(LociGlassSurface(shape: AnyShape(shape), interactive: interactive))
+    }
+
+    /// Glass for a short notice over the camera feed. The text on it is always light, so the
+    /// glass is darkened and the fallbacks stay dark in both colour schemes.
+    func lociMediaGlassSurface(cornerRadius: CGFloat = LociTheme.Radius.medium) -> some View {
+        modifier(LociMediaGlassSurface(shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)))
+    }
+}
+
+private struct LociMediaGlassSurface: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let shape: RoundedRectangle
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content.background(Color.black.opacity(0.82), in: shape)
+        } else if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular.tint(Color.black.opacity(0.35)), in: shape)
+                .environment(\.colorScheme, .dark)
+        } else {
+            content
+                .background(.ultraThinMaterial, in: shape)
+                .environment(\.colorScheme, .dark)
+        }
+    }
+}
+
+/// Groups glass controls that share a bar so iOS 26 samples the backdrop once and blends them
+/// consistently. Earlier systems draw the content unchanged.
+struct LociGlassGroup<Content: View>: View {
+    var spacing: CGFloat = LociTheme.Spacing.m
+    @ViewBuilder var content: Content
+
+    @ViewBuilder
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing) { content }
+        } else {
+            content
+        }
     }
 }
 

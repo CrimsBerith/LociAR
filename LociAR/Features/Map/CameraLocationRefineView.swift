@@ -48,19 +48,21 @@ struct CameraLocationRefineView: View {
                 ARDarkCameraNotice()
             }
             VStack(spacing: LociTheme.Spacing.m) {
-                HStack {
-                    ARCoreNoticeButton()
-                    Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.headline)
-                            .foregroundStyle(LociTheme.textPrimary)
-                            .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
-                            .lociGlassSurface(in: Circle())
+                LociGlassGroup {
+                    HStack {
+                        ARCoreNoticeButton()
+                        Spacer()
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark")
+                                .font(.headline)
+                                .foregroundStyle(LociTheme.textPrimary)
+                                .frame(width: LociTheme.Control.minimumTapTarget, height: LociTheme.Control.minimumTapTarget)
+                                .lociGlassSurface(in: Circle(), interactive: true)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text("Kapat"))
+                        .accessibilityIdentifier("camera-refine-close")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Kapat"))
-                    .accessibilityIdentifier("camera-refine-close")
                 }
                 Spacer()
                 panel
