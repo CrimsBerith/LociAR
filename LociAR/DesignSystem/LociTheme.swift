@@ -17,7 +17,11 @@ enum LociTheme {
         let arSearchSurface: UIColor
         let arSearchInk: UIColor
         let accent: UIColor
+        /// Amber signal for small markers (section icons, eyebrow dots), as on locidrop.com.
+        let highlight: UIColor
         let ambientBlue: UIColor
+        /// Strength of the blue background glow.
+        let ambientGlow: CGFloat
         let warning: UIColor
         let danger: UIColor
         let textPrimary: UIColor
@@ -38,32 +42,36 @@ enum LociTheme {
         let scrim: UIColor
 
         init(style: UIUserInterfaceStyle, highContrast: Bool = false) {
-            // Palette matches the app icon: graphite #1C2226 and warm cream #F2EFE8.
-            // Dark mode is graphite with cream accent; light mode is cream paper with graphite
-            // accent. Text pairs keep 4.5:1 contrast.
+            // Dark mode follows locidrop.com: blue-graphite #1A2127 ground, #1C252A cards, #DDDFD3
+            // body text, cream #F2EFE8 for headings, buttons and the logo, #B4BCC0 secondary text,
+            // amber #F0BE6E for small markers and a #4B658A blue glow. Light mode is cream paper with
+            // the icon graphite #1C2226 as accent. Text pairs keep 4.5:1 contrast.
             let dark = style == .dark
             let ink = LociTheme.rgb(28, 34, 38)
             let cream = LociTheme.rgb(242, 239, 232)
-            background = dark ? ink : cream
-            surface = dark ? LociTheme.rgb(35, 42, 46) : LociTheme.rgb(249, 247, 242)
-            elevated = dark ? LociTheme.rgb(47, 55, 60) : LociTheme.rgb(229, 225, 215)
-            rowSurface = dark ? LociTheme.rgb(32, 39, 43) : LociTheme.rgb(246, 243, 237)
-            authSurface = dark ? LociTheme.rgb(35, 42, 46) : LociTheme.rgb(249, 247, 242)
-            authField = dark ? LociTheme.rgb(47, 55, 60) : LociTheme.rgb(253, 252, 249)
-            profileSurface = dark ? LociTheme.rgb(32, 39, 43) : LociTheme.rgb(237, 233, 224)
+            let siteText = LociTheme.rgb(221, 223, 211)
+            background = dark ? LociTheme.rgb(26, 33, 39) : cream
+            surface = dark ? LociTheme.rgb(28, 37, 42) : LociTheme.rgb(249, 247, 242)
+            elevated = dark ? LociTheme.rgb(40, 51, 58) : LociTheme.rgb(229, 225, 215)
+            rowSurface = dark ? LociTheme.rgb(28, 37, 42) : LociTheme.rgb(246, 243, 237)
+            authSurface = dark ? LociTheme.rgb(28, 37, 42) : LociTheme.rgb(249, 247, 242)
+            authField = dark ? LociTheme.rgb(40, 51, 58) : LociTheme.rgb(253, 252, 249)
+            profileSurface = dark ? LociTheme.rgb(28, 37, 42) : LociTheme.rgb(237, 233, 224)
             arSearchSurface = cream
             arSearchInk = ink
             accent = dark ? cream : ink
+            highlight = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(146, 84, 0)
             ambientBlue = LociTheme.rgb(75, 101, 138)
+            ambientGlow = dark ? 0.30 : 0.07
             warning = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(146, 84, 0)
             danger = dark ? LociTheme.rgb(242, 132, 132) : LociTheme.rgb(168, 42, 48)
-            textPrimary = dark ? cream : ink
-            secondaryText = dark ? LociTheme.rgb(186, 188, 184) : LociTheme.rgb(66, 72, 76)
-            tertiaryText = dark ? LociTheme.rgb(156, 160, 158) : LociTheme.rgb(84, 89, 92)
+            textPrimary = dark ? siteText : ink
+            secondaryText = dark ? LociTheme.rgb(180, 188, 192) : LociTheme.rgb(66, 72, 76)
+            tertiaryText = dark ? LociTheme.rgb(152, 162, 169) : LociTheme.rgb(84, 89, 92)
             hairline = dark
-                ? cream.withAlphaComponent(0.14)
+                ? siteText.withAlphaComponent(0.13)
                 : ink.withAlphaComponent(0.16)
-            field = dark ? cream.withAlphaComponent(0.07) : LociTheme.rgb(253, 252, 249)
+            field = dark ? siteText.withAlphaComponent(0.07) : LociTheme.rgb(253, 252, 249)
             glassBorder = highContrast
                 ? (dark ? cream : ink)
                 : (dark ? LociTheme.rgb(112, 120, 124) : LociTheme.rgb(118, 116, 108))
@@ -101,6 +109,7 @@ enum LociTheme {
     static let arSearchSurface = color(\.arSearchSurface)
     static let arSearchInk = color(\.arSearchInk)
     static let accent = color(\.accent)
+    static let highlight = color(\.highlight)
     static let ambientBlue = color(\.ambientBlue)
     static let warning = color(\.warning)
     static let danger = color(\.danger)
@@ -333,21 +342,31 @@ struct LociGlassGroup<Content: View>: View {
 }
 
 struct LociScreenBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+    private var glow: CGFloat { LociTheme.palette(for: colorScheme == .dark ? .dark : .light).ambientGlow }
+
     var body: some View {
         ZStack {
             LociTheme.spatialGradient
-            // A single warm light source high on the trailing edge and a cold counter-glow low
-            // on the leading edge: depth without decoration.
-            Circle()
-                .fill(LociTheme.accent.opacity(0.07))
-                .frame(width: 420, height: 420)
-                .blur(radius: 60)
-                .offset(x: 190, y: -360)
-            Circle()
-                .fill(LociTheme.ambientBlue.opacity(0.06))
-                .frame(width: 360, height: 360)
-                .blur(radius: 70)
-                .offset(x: -200, y: 340)
+            // The blue glow of locidrop.com: strong high on the trailing edge, faint on the leading
+            // side. The circles are larger than a phone screen, so they live in an overlay: as plain
+            // ZStack children they widened the background and shifted screens that stack content on it.
+            Color.clear
+                .overlay {
+                    ZStack {
+                        Circle()
+                            .fill(LociTheme.ambientBlue.opacity(glow))
+                            .frame(width: 460, height: 460)
+                            .blur(radius: 70)
+                            .offset(x: 190, y: -360)
+                        Circle()
+                            .fill(LociTheme.ambientBlue.opacity(glow * 0.4))
+                            .frame(width: 380, height: 380)
+                            .blur(radius: 80)
+                            .offset(x: -210, y: 120)
+                    }
+                }
+                .clipped()
             // Hairline rule under the status bar area, like the edge of a document.
             VStack {
                 Rectangle().fill(LociTheme.accent.opacity(0.18)).frame(height: 0.5).padding(.top, 2)
@@ -539,11 +558,17 @@ struct LociSectionLabel: View {
 
     var body: some View {
         // Dossier-style heading: small, tracked capitals in the signal colour.
-        Label(title.localizedUI, systemImage: symbol)
+        // The icon carries the amber marker, the text stays cream (locidrop.com eyebrow).
+        Label {
+            Text(title.localizedUI)
+                .foregroundStyle(LociTheme.accent)
+        } icon: {
+            Image(systemName: symbol)
+                .foregroundStyle(LociTheme.highlight)
+        }
             .font(LociTheme.Typography.eyebrow)
             .textCase(.uppercase)
             .kerning(1.1)
-            .foregroundStyle(LociTheme.accent)
     }
 }
 
