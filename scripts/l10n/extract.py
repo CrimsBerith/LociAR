@@ -124,7 +124,7 @@ EXCLUDE = {
     'Physical AR world lock evidence is incomplete',
     ') : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._', 'LociAR.Push', 'LociAR.RegionMonitoring', 'Report reason',
     '^[A-Za-z0-9_-]{1,200}$', 'lociar.acceptedAccountDeletions',
-    'GACAppCheckDebugToken', '95430D36-01E8-4A1D-AFE9-F61DA6447CDA',
+    'GACAppCheckDebugToken',
 }
 
 # Shown to users but not written as a literal in the app (activity texts written by Cloud

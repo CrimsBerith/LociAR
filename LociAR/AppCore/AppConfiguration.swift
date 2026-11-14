@@ -125,8 +125,9 @@ struct AppConfiguration: Sendable {
         // only honoured as an environment variable, never as a UserDefaults key.
         if ProcessInfo.processInfo.environment["FIRAAppCheckDebugToken"] == nil,
            ProcessInfo.processInfo.environment["AppCheckDebugToken"] == nil,
-           UserDefaults.standard.string(forKey: Self.appCheckDebugTokenDefaultsKey) != Self.pinnedAppCheckDebugToken {
-            UserDefaults.standard.set(Self.pinnedAppCheckDebugToken, forKey: Self.appCheckDebugTokenDefaultsKey)
+           let pinned = Self.pinnedAppCheckDebugToken(),
+           UserDefaults.standard.string(forKey: Self.appCheckDebugTokenDefaultsKey) != pinned {
+            UserDefaults.standard.set(pinned, forKey: Self.appCheckDebugTokenDefaultsKey)
         }
         AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
 #else
@@ -147,8 +148,19 @@ struct AppConfiguration: Sendable {
 #if DEBUG
     /// UserDefaults key AppCheckCore reads its persisted debug token from (GACAppCheckDebugProvider.m).
     nonisolated static let appCheckDebugTokenDefaultsKey = "GACAppCheckDebugToken"
-    /// Registered under Firebase Console → App Check → iOS app → Manage debug tokens.
-    nonisolated static let pinnedAppCheckDebugToken = "95430D36-01E8-4A1D-AFE9-F61DA6447CDA"
+    /// The machine's debug token, registered under Firebase Console → App Check → iOS app → Manage
+    /// debug tokens. It lives in the git-ignored Config/Local.xcconfig (LOCIAR_APPCHECK_DEBUG_TOKEN)
+    /// and reaches Info.plist in Debug builds only; it is never written in source. Nil when unset:
+    /// AppCheckCore then mints its own token and prints it in the Xcode console for registration.
+    nonisolated static func pinnedAppCheckDebugToken(bundle: Bundle = .main) -> String? {
+        appCheckDebugToken(from: bundle.object(forInfoDictionaryKey: "LOCIAR_APPCHECK_DEBUG_TOKEN") as? String)
+    }
+
+    /// Accepts only a UUID, so an empty or unexpanded build setting never becomes a token.
+    nonisolated static func appCheckDebugToken(from raw: String?) -> String? {
+        guard let token = raw?.trimmingCharacters(in: .whitespacesAndNewlines), UUID(uuidString: token) != nil else { return nil }
+        return token
+    }
 
     /// Points every backend SDK at the local Firebase Emulator Suite when
     /// LOCIAR_EMULATOR_HOST is set (see Config/Local.xcconfig.example). Ports must match

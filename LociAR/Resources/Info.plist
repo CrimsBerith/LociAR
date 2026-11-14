@@ -85,6 +85,8 @@
   <string>$(LOCIAR_FIREBASE_FUNCTIONS_REGION)</string>
   <key>LOCIAR_EMULATOR_HOST</key>
   <string>$(LOCIAR_EMULATOR_HOST)</string>
+  <key>LOCIAR_APPCHECK_DEBUG_TOKEN</key>
+  <string>$(LOCIAR_APPCHECK_DEBUG_TOKEN_DEBUG_ONLY)</string>
   <key>LOCIAR_APPLE_AUTH_ENABLED</key>
   <true/>
   <key>LOCIAR_PRIVACY_URL</key>

@@ -235,7 +235,16 @@ final class StoreReadinessTests: XCTestCase {
     /// a random, unregistered token that every production callable rejected.
     func testPinnedAppCheckDebugTokenUsesTheKeyAppCheckCoreReads() {
         XCTAssertEqual(AppConfiguration.appCheckDebugTokenDefaultsKey, "GACAppCheckDebugToken")
-        XCTAssertNotNil(UUID(uuidString: AppConfiguration.pinnedAppCheckDebugToken))
+    }
+
+    /// The repository is public, so the debug token comes from the git-ignored local configuration.
+    /// Anything that is not a UUID (unset, or an unexpanded build setting) must not be used as a token.
+    func testAppCheckDebugTokenIsReadFromLocalConfigurationAndMustBeAUUID() {
+        XCTAssertNil(AppConfiguration.appCheckDebugToken(from: nil))
+        XCTAssertNil(AppConfiguration.appCheckDebugToken(from: ""))
+        XCTAssertNil(AppConfiguration.appCheckDebugToken(from: "$(LOCIAR_APPCHECK_DEBUG_TOKEN_DEBUG_ONLY)"))
+        let token = UUID().uuidString
+        XCTAssertEqual(AppConfiguration.appCheckDebugToken(from: " \(token)\n"), token)
     }
 #endif
 
