@@ -238,6 +238,8 @@ export async function queueNotification(body: Record<string, unknown>, actor: st
 
 export const MAX_SELECTED_NOTIFICATION_RECIPIENTS = 200;
 const HANDLE_PATTERN = /^[a-z0-9._]{3,30}$/;
+/** Code-unit order, the same order Array.prototype.sort used before; the audit hash depends on it. */
+const byCodeUnit = (a: string, b: string) => (a < b ? -1 : Number(a > b));
 
 /** Resolve typed @handles to profile ids; an unknown handle stops the whole batch instead of being skipped silently. */
 async function recipientsForHandles(value: unknown): Promise<string[]> {
@@ -262,7 +264,7 @@ export async function queueNotificationBatch(body: Record<string, unknown>, acto
     if (!Array.isArray(listed) || listed.length > MAX_SELECTED_NOTIFICATION_RECIPIENTS || listed.some(id => typeof id !== 'string')) throw new ValidationError('invalid_notification_recipients');
     const ids = listed.map(id => uuid(id, 'recipientId').toLowerCase());
     if (new Set(ids).size !== ids.length) throw new ValidationError('invalid_notification_recipients');
-    recipientIds = [...new Set([...ids, ...await recipientsForHandles(body.handles)])].sort();
+    recipientIds = [...new Set([...ids, ...await recipientsForHandles(body.handles)])].sort(byCodeUnit);
     if (recipientIds.length < 1 || recipientIds.length > MAX_SELECTED_NOTIFICATION_RECIPIENTS) throw new ValidationError('invalid_notification_recipients');
   } else if (target === 'all') {
     if (body.confirmAll !== true || body.recipientIds !== undefined || body.handles !== undefined) throw new ValidationError('notification_confirmation_required');

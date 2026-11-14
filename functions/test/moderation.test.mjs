@@ -11,9 +11,15 @@ const adminCode = ts.transpileModule(readFileSync(new URL('../../admin/lib/conte
 const adminModule = { exports: {} };
 new Script(adminCode, { filename: 'admin-moderation-under-test.js' }).runInNewContext({
   exports: adminModule.exports,
-  require: createRequire(new URL('../../admin/package.json', import.meta.url)),
+  // The Functions CI job installs only functions/, so the admin copy loads tldts from here; the pin test keeps the versions equal.
+  require: createRequire(import.meta.url),
 });
 const admin = adminModule.exports;
+const pinnedTldts = dir => JSON.parse(readFileSync(new URL(`../${dir}package.json`, import.meta.url), 'utf8')).dependencies.tldts;
+
+test('admin and functions pin the same tldts release', () => {
+  assert.equal(pinnedTldts('../admin/'), pinnedTldts(''));
+});
 
 test('flags blocked words, leet and spaced spellings; ignores normal text', () => {
   assert.equal(containsBlockedTerm('Harika bir yer, tekrar geleceğim!'), false);
@@ -58,5 +64,17 @@ test('bare domains, obfuscated dots, paths and IP addresses are links; a missing
   for (const filter of [containsURL, admin.containsURL]) {
     for (const text of links) assert.equal(filter(text), true, text);
     for (const text of sentences) assert.equal(filter(text), false, text);
+  }
+});
+
+test('obfuscated dots join across spaces and long whitespace runs stay fast', () => {
+  const spaces = ' '.repeat(20000);
+  for (const filter of [containsURL, admin.containsURL]) {
+    for (const text of ['ornek ( . ) com', 'ornek[dot]com', 'ornek  [ DOT ]  com', 'a (nokta) b (nokta) de']) assert.equal(filter(text), true, text);
+    assert.equal(filter('Harika (nokta) değil'), false);
+    const started = performance.now();
+    assert.equal(filter(`tamam${spaces}(${spaces}`), false);
+    assert.equal(filter(`tamam${spaces}x`), false);
+    assert.ok(performance.now() - started < 500, 'whitespace runs must not backtrack');
   }
 });

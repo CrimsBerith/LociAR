@@ -29,7 +29,7 @@ export function gifConfig(appKey: string | undefined): GifConfig {
 }
 
 /** Client configuration for GIF search. Never logged. */
-export const getGifConfig = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [KLIPY_APP_KEY] }, async (request) => {
+export const getGifConfig = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [KLIPY_APP_KEY] }, (request) => {
   requireCaller(request);
   return gifConfig(KLIPY_APP_KEY.value());
 });

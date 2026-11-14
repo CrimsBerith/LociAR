@@ -11,7 +11,7 @@ const { adminDb, adminAuth } = await import('../lib/firebase-admin.ts');
 const { createManagedUser } = await import('../lib/content-ops.ts');
 const { derivedKey } = await import('../lib/ops.ts');
 
-const HANDLE = 'loci.guide', DISPLAY_NAME = 'LociAR Guide';
+const HANDLE = 'loci.guide', DISPLAY_NAME = 'LociDrop Guide';
 const db = adminDb();
 
 async function superAdmins() {

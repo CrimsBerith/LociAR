@@ -14,7 +14,7 @@ export function readSelection(): string[] {
   } catch { return []; }
 }
 export function writeSelection(ids: Iterable<string>) {
-  try { sessionStorage.setItem(KEY, JSON.stringify([...new Set(ids)].sort())); } catch { /* storage unavailable: selection lasts until reload */ }
+  try { sessionStorage.setItem(KEY, JSON.stringify([...new Set(ids)].sort((a, b) => (a < b ? -1 : Number(a > b))))); } catch { /* storage unavailable: selection lasts until reload */ }
   window.dispatchEvent(new Event(EVENT));
 }
 export function useSelectedUsers(): string[] {

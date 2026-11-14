@@ -94,14 +94,26 @@ const LINK_TLDS = new Set([
 const DOTTED_NAME = /(?<![\p{L}\p{N}.-])((?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+)([\p{L}\p{N}-]{2,63})(?![\p{L}\p{N}])(:\d{2,5}|\/\S*|[?#]\w\S*)?/gu;
 const IPV4 = /(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])/u;
 
+const OBFUSCATED_DOT = /[[(]\s*(?:\.|dot|nokta)\s*[\])]/iu;
+
+/**
+ * "name[.]com", "name(dot)com", "name (nokta) com" are the same link. Splitting and trimming
+ * the neighbours keeps this linear; a regex with open \s* runs on both sides backtracks.
+ */
+function joinObfuscatedDots(text: string): string {
+  const parts = text.split(OBFUSCATED_DOT);
+  return parts.map((part, i) => {
+    const start = i > 0 ? part.trimStart() : part;
+    return i < parts.length - 1 ? start.trimEnd() : start;
+  }).join('.');
+}
+
 /**
  * User-authored text never carries URLs; media URLs are constructed separately by the server.
  * A sentence with a missing space after a full stop ("tamam.sonra görüşürüz") is not a link.
  */
 export function containsURL(text: string): boolean {
-  const clean = text.normalize('NFKC').replace(/\p{Cf}/gu, '')
-    // "name[.]com", "name(dot)com", "name (nokta) com" are the same link.
-    .replace(/\s*[[(]\s*(?:\.|dot|nokta)\s*[\])]\s*/giu, '.');
+  const clean = joinObfuscatedDots(text.normalize('NFKC').replace(/\p{Cf}/gu, ''));
   if (clean.includes('://') || /www\.|(?:mailto|javascript|data|tel):/iu.test(clean) || IPV4.test(clean)) return true;
   for (const match of clean.matchAll(DOTTED_NAME)) {
     const tld = match[2].toLowerCase(), labels = match[1].split('.').length - 1, path = match[3] !== undefined;

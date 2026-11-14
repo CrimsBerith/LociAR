@@ -130,7 +130,7 @@ test('seed preparation picks the named super admin and creates @loci.guide once'
   const luid = (await db.collection('handles').doc('loci.guide').get()).get('luid');
   const profile = await db.collection('profiles').doc(luid).get();
   assert.equal(profile.get('admin_managed'), true);
-  assert.equal(profile.get('display_name'), 'LociAR Guide');
+  assert.equal(profile.get('display_name'), 'LociDrop Guide');
   const user = await adminAuth().getUser((await db.collection('users_private').doc(luid).get()).get('uid'));
   assert.ok(user.disabled && !user.emailVerified, 'the content identity cannot sign in');
 

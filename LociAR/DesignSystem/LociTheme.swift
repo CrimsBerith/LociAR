@@ -135,8 +135,8 @@ enum LociTheme {
         static let title = Font.system(.title2, design: .default).weight(.bold)
         /// Small tracked label above a section or card, like a dossier heading.
         static let eyebrow = Font.system(.caption, design: .default).weight(.semibold)
-        /// The wordmark: a serif with slight tracking, used on the sign-in and loading screens.
-        static let wordmark = Font.system(size: 34, weight: .semibold, design: .serif)
+        /// The wordmark: a serif with slight tracking, used on the sign-in and loading screens. Scales with Dynamic Type (34 pt at the default size).
+        static let wordmark = Font.system(.largeTitle, design: .serif).weight(.semibold)
         static let headline = Font.system(.headline, design: .default)
         static let body = Font.system(.body, design: .default)
         static let bodyEmphasis = Font.system(.body, design: .default).weight(.semibold)
@@ -503,7 +503,7 @@ struct LociWordmark: View {
 
     var body: some View {
         VStack(spacing: LociTheme.Spacing.m) {
-            Image("LociMark")
+            Image(.lociMark)
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()

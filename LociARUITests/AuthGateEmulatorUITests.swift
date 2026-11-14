@@ -768,7 +768,7 @@ extension AuthGateUITests {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
         app.tabBars.buttons["Harita"].tap()
         app.buttons["map-location-note"].tap()
-        XCTAssertTrue(app.staticTexts["Konum izni kapalı. Ayarlar’dan LociAR için konumu açın."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Konum izni kapalı. Ayarlar’dan LociDrop için konumu açın."].waitForExistence(timeout: 10))
         XCTAssertFalse(app.staticTexts["Yaklaşık konum izni açık. Notu doğru yere bırakmak için Ayarlar’dan Kesin Konum’u aç."].exists)
         let field = e2eField(app, "place-note-text")
         scrollUntilHittable(field, in: app, maxSwipes: 6)
@@ -786,7 +786,7 @@ extension AuthGateUITests {
         let measured = app.staticTexts.matching(NSPredicate(format:
             "label BEGINSWITH %@ OR label BEGINSWITH %@", "Konum hazır · ±", "Konum hassaslaşıyor · ±")).firstMatch
         XCTAssertTrue(measured.waitForExistence(timeout: 30))
-        XCTAssertFalse(app.staticTexts["Konum izni kapalı. Ayarlar’dan LociAR için konumu açın."].exists)
+        XCTAssertFalse(app.staticTexts["Konum izni kapalı. Ayarlar’dan LociDrop için konumu açın."].exists)
         capture(app, name: "simulator-location-permission-recovered")
         app.buttons["Kapat"].tap()
     }

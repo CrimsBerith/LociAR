@@ -15,6 +15,8 @@ import ciEnvironment from '../../scripts/ci-environment.json' with { type: 'json
 assert.match(process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '', /^(127\.0\.0\.1|localhost):\d+$/);
 assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? '', /^(127\.0\.0\.1|localhost):\d+$/);
 assert.ok(existsSync('.next/BUILD_ID'), 'Run npm run build:ci before admin integration tests');
+// The users page also carries the live selection counter ("0 users selected"); form results are the other status.
+const formStatus = page => page.getByRole('status').filter({ hasNotText: /users selected/ });
 initializeApp({ projectId: 'demo-lociar' });
 const auth = getAuth(); const db = getFirestore();
 let server, browser, origin, output = '';
@@ -290,10 +292,10 @@ test('mobile Chromium regular-user invitation completes email ownership, app pas
       if (!interrupted) { interrupted = true; await route.fetch(); await route.abort('failed'); } else await route.continue();
     });
     await page.getByRole('button', { name: 'Send invitation', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('connection was interrupted');
+    await expect(formStatus(page)).toContainText('connection was interrupted');
     await expect(page.getByRole('button', { name: 'Send invitation', exact: true })).toBeEnabled();
     await page.getByRole('button', { name: 'Send invitation', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('Invitation sent and recorded in audit.');
+    await expect(formStatus(page)).toContainText('Invitation sent and recorded in audit.');
     assert.equal(keys[0], keys[1]);
     const found = await db.collection('admin_user_invites').where('email', '==', email).get();
     assert.equal(found.size, 1); invitation = found.docs[0];
@@ -364,7 +366,7 @@ test('Chromium creates a managed author, publishes a styled post at chosen coord
   await userForm.getByLabel('Display name',{exact:true}).fill('Panel browser author');
   await userForm.getByLabel('User creation reason').fill(reason);
   await userForm.getByRole('button',{name:'Create user',exact:true}).click();
-  await expect(page.getByRole('status')).toContainText('Created @'+handle);
+  await expect(formStatus(page)).toContainText('Created @'+handle);
   const author=(await db.collection('profiles').where('handle','==',handle).get()).docs[0];assert.ok(author);
   const privateProfile=await db.collection('users_private').doc(author.id).get();assert.equal((await auth.getUser(privateProfile.get('uid'))).disabled,true);
   await page.goto(origin+'/admin/posts/new');
