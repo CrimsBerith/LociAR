@@ -38,40 +38,42 @@ enum LociTheme {
         let scrim: UIColor
 
         init(style: UIUserInterfaceStyle, highContrast: Bool = false) {
-            // "Slate ledger" palette: near-black blue-slate surfaces (#1A2127 base, #192028 and
-            // #1C252A variants) with warm cream ink (#dddfd3). Dark mode is slate with cream
-            // accent; light mode is cream paper with slate accent. Text pairs keep 4.5:1 contrast.
+            // Palette matches the app icon: graphite #1C2226 and warm cream #F2EFE8.
+            // Dark mode is graphite with cream accent; light mode is cream paper with graphite
+            // accent. Text pairs keep 4.5:1 contrast.
             let dark = style == .dark
-            background = dark ? LociTheme.rgb(26, 33, 39) : LociTheme.rgb(221, 223, 211)
-            surface = dark ? LociTheme.rgb(28, 37, 42) : LociTheme.rgb(238, 239, 231)
-            elevated = dark ? LociTheme.rgb(40, 51, 58) : LociTheme.rgb(209, 212, 199)
-            rowSurface = dark ? LociTheme.rgb(25, 32, 40) : LociTheme.rgb(230, 232, 222)
-            authSurface = dark ? LociTheme.rgb(28, 37, 42) : LociTheme.rgb(238, 239, 231)
-            authField = dark ? LociTheme.rgb(40, 51, 58) : LociTheme.rgb(246, 247, 241)
-            profileSurface = dark ? LociTheme.rgb(25, 32, 40) : LociTheme.rgb(228, 230, 219)
-            arSearchSurface = LociTheme.rgb(221, 223, 211)
-            arSearchInk = LociTheme.rgb(26, 33, 39)
-            accent = dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39)
+            let ink = LociTheme.rgb(28, 34, 38)
+            let cream = LociTheme.rgb(242, 239, 232)
+            background = dark ? ink : cream
+            surface = dark ? LociTheme.rgb(35, 42, 46) : LociTheme.rgb(249, 247, 242)
+            elevated = dark ? LociTheme.rgb(47, 55, 60) : LociTheme.rgb(229, 225, 215)
+            rowSurface = dark ? LociTheme.rgb(32, 39, 43) : LociTheme.rgb(246, 243, 237)
+            authSurface = dark ? LociTheme.rgb(35, 42, 46) : LociTheme.rgb(249, 247, 242)
+            authField = dark ? LociTheme.rgb(47, 55, 60) : LociTheme.rgb(253, 252, 249)
+            profileSurface = dark ? LociTheme.rgb(32, 39, 43) : LociTheme.rgb(237, 233, 224)
+            arSearchSurface = cream
+            arSearchInk = ink
+            accent = dark ? cream : ink
             ambientBlue = LociTheme.rgb(75, 101, 138)
-            warning = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(140, 80, 0)
+            warning = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(146, 84, 0)
             danger = dark ? LociTheme.rgb(242, 132, 132) : LociTheme.rgb(168, 42, 48)
-            textPrimary = dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39)
-            secondaryText = dark ? LociTheme.rgb(180, 188, 192) : LociTheme.rgb(62, 73, 81)
-            tertiaryText = dark ? LociTheme.rgb(152, 162, 169) : LociTheme.rgb(76, 87, 95)
+            textPrimary = dark ? cream : ink
+            secondaryText = dark ? LociTheme.rgb(186, 188, 184) : LociTheme.rgb(66, 72, 76)
+            tertiaryText = dark ? LociTheme.rgb(156, 160, 158) : LociTheme.rgb(84, 89, 92)
             hairline = dark
-                ? LociTheme.rgb(221, 223, 211).withAlphaComponent(0.14)
-                : LociTheme.rgb(26, 33, 39).withAlphaComponent(0.16)
-            field = dark ? LociTheme.rgb(221, 223, 211).withAlphaComponent(0.07) : LociTheme.rgb(246, 247, 241)
+                ? cream.withAlphaComponent(0.14)
+                : ink.withAlphaComponent(0.16)
+            field = dark ? cream.withAlphaComponent(0.07) : LociTheme.rgb(253, 252, 249)
             glassBorder = highContrast
-                ? (dark ? LociTheme.rgb(221, 223, 211) : LociTheme.rgb(26, 33, 39))
-                : (dark ? LociTheme.rgb(104, 119, 130) : LociTheme.rgb(96, 108, 116))
-            onAccent = dark ? LociTheme.rgb(26, 33, 39) : LociTheme.rgb(221, 223, 211)
+                ? (dark ? cream : ink)
+                : (dark ? LociTheme.rgb(112, 120, 124) : LociTheme.rgb(118, 116, 108))
+            onAccent = dark ? ink : cream
             onDanger = dark ? LociTheme.rgb(53, 16, 20) : .white
             social = dark ? LociTheme.rgb(240, 150, 172) : LociTheme.rgb(158, 44, 84)
             discoveryAccent = dark ? LociTheme.rgb(150, 182, 224) : LociTheme.rgb(44, 78, 136)
             identityAccent = dark ? LociTheme.rgb(196, 182, 236) : LociTheme.rgb(98, 70, 150)
             mapAR = dark ? LociTheme.rgb(150, 186, 236) : LociTheme.rgb(40, 82, 160)
-            mapLocation = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(140, 80, 0)
+            mapLocation = dark ? LociTheme.rgb(240, 190, 110) : LociTheme.rgb(146, 84, 0)
             mediaOverlayText = .white
             mediaOverlayScrim = .black
             scrim = .black
