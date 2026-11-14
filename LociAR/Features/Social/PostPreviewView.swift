@@ -208,7 +208,7 @@ struct PostPreviewView: View {
                             .lineLimit(1...4)
                             .padding(.horizontal, LociTheme.Spacing.m)
                             .padding(.vertical, LociTheme.Spacing.s)
-                            .lociGlassSurface(cornerRadius: LociTheme.Radius.small)
+                            .lociFieldSurface(cornerRadius: LociTheme.Radius.small)
                         Button {
                             if commentRevealsAuthor { confirmOwnAnonymousComment = true } else { Task { await addComment() } }
                         } label: {

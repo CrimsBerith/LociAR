@@ -129,7 +129,7 @@ struct ProfileEditView: View {
                         .font(.body)
                 }
                 .padding(LociTheme.Spacing.m)
-                .lociGlassSurface(cornerRadius: LociTheme.Radius.small)
+                .lociFieldSurface(cornerRadius: LociTheme.Radius.small)
                                 Text("3–30 karakter; küçük harf, rakam, alt çizgi ve nokta.")
                     .font(.footnote)
                     .foregroundStyle(LociTheme.secondaryText)
@@ -144,7 +144,7 @@ struct ProfileEditView: View {
                     .lineLimit(3...5)
                     .font(.body)
                     .padding(LociTheme.Spacing.m)
-                    .lociGlassSurface(cornerRadius: LociTheme.Radius.small)
+                    .lociFieldSurface(cornerRadius: LociTheme.Radius.small)
                     .onChange(of: bio) { _, newValue in
                         let clamped = ProfileTextPolicy.clamped(newValue, limit: ProfileTextPolicy.bioLimit)
                         if clamped != newValue { bio = clamped }

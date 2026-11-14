@@ -120,11 +120,19 @@ struct PostSupportView: View {
                             }
                         }.pickerStyle(.segmented).disabled(busy || pendingIntent != nil)
                         if method == "apple" {
-                            ForEach(products, id: \.id) { product in
-                                amountButton(id: product.id, title: product.displayPrice)
+                            LociGlassGroup {
+                                VStack(spacing: LociTheme.Spacing.xl2) {
+                                    ForEach(products, id: \.id) { product in
+                                        amountButton(id: product.id, title: product.displayPrice)
+                                    }
+                                }
                             }
                         } else {
-                            ForEach(offers) { offer in amountButton(id: offer.id, title: offer.price) }
+                            LociGlassGroup {
+                                VStack(spacing: LociTheme.Spacing.xl2) {
+                                    ForEach(offers) { offer in amountButton(id: offer.id, title: offer.price) }
+                                }
+                            }
                             if method == "stripe" {
                                 Text("Kartlar, Apple Pay ve diğer uygun yöntemler ödeme sayfasında gösterilir.")
                                     .font(.caption).foregroundStyle(LociTheme.secondaryText)
@@ -157,7 +165,7 @@ struct PostSupportView: View {
         Button { selection = id } label: {
             HStack { Text(verbatim: title).font(.headline); Spacer(); Image(systemName: selection == id ? "checkmark.circle.fill" : "circle") }
                 .padding(LociTheme.Spacing.xl2).foregroundStyle(selection == id ? LociTheme.accent : LociTheme.textPrimary)
-                .lociGlassSurface(cornerRadius: LociTheme.Radius.medium)
+                .lociGlassSurface(in: RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous), interactive: true)
                 .overlay(RoundedRectangle(cornerRadius: LociTheme.Radius.medium, style: .continuous).stroke(selection == id ? LociTheme.accent : LociTheme.hairline))
         }.buttonStyle(.plain).disabled(busy || pendingIntent != nil)
     }

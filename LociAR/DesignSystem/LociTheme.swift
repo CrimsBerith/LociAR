@@ -258,13 +258,10 @@ private struct LociGlassRowSurface: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        // List rows are content, not controls: no Liquid Glass here. A glass layer under a 94 %
+        // opaque row fill was invisible and cost one glass pass per row.
         if reduceTransparency {
             shape.fill(LociTheme.surfaceStrong).overlay(shape.stroke(LociTheme.glassBorder))
-        } else if #available(iOS 26.0, *) {
-            shape.fill(.clear)
-                .background(shape.fill(LociTheme.rowSurface.opacity(0.94)))
-                .glassEffect(.regular.tint(LociTheme.glassTint), in: shape)
-                .overlay(shape.stroke(LociTheme.glassBorder))
         } else {
             shape.fill(LociTheme.rowSurface.opacity(0.96))
                 .overlay(shape.fill(LociTheme.glassTint))
@@ -283,6 +280,13 @@ extension View {
     /// Pass `interactive: true` only when the surface is the label of a button.
     func lociGlassSurface<S: Shape>(in shape: S, interactive: Bool = false) -> some View {
         modifier(LociGlassSurface(shape: AnyShape(shape), interactive: interactive))
+    }
+
+    /// Text input surface. Fields are content inside cards, so they stay flat: glass on glass is
+    /// the nested-glass anti-pattern and lowers text contrast.
+    func lociFieldSurface(cornerRadius: CGFloat = LociTheme.Radius.small) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return background(LociTheme.field, in: shape).overlay(shape.stroke(LociTheme.glassBorder))
     }
 
     /// Glass for a short notice over the camera feed. The text on it is always light, so the
