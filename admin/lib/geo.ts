@@ -79,5 +79,6 @@ export function geohashCoverPrefixes(latitude: number, longitude: number, radius
       prefixes.add(encodeGeohash(lat, wrapped, chosen));
     }
   }
-  return [...prefixes].sort();
+  // Geohash prefixes are ASCII; code-unit order keeps the query plan identical on every runtime.
+  return [...prefixes].sort((a, b) => (a < b ? -1 : Number(a > b)));
 }

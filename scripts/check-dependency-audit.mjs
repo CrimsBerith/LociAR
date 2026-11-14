@@ -16,7 +16,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const target = process.argv[2];
   if (!['functions', 'admin'].includes(target)) throw new Error('Usage: node scripts/check-dependency-audit.mjs functions|admin');
   const cwd = path.join(root, target);
-  const result = spawnSync('npm', ['audit', '--json'], { cwd, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+  // Developer and CI tool: npm is resolved from the caller's own PATH, with fixed arguments.
+  const result = spawnSync('npm', ['audit', '--json'], { cwd, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }); // NOSONAR
   if (result.error || ![0, 1].includes(result.status)) throw new Error('npm audit could not complete');
   const audit = JSON.parse(result.stdout);
   const failures = auditFailures(audit);

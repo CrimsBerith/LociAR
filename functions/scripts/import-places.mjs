@@ -23,7 +23,8 @@ const meters = (a, b) => {
 };
 
 const zones = (await db.collection('protected_zones').where('active', '==', true).get()).docs.map((d) => d.data());
-const places = JSON.parse(readFileSync(file, 'utf8'));
+// The operator names the input file on the command line; reading that path is the script's purpose.
+const places = JSON.parse(readFileSync(file, 'utf8')); // NOSONAR
 const writer = db.bulkWriter();
 let imported = 0;
 let refused = 0;

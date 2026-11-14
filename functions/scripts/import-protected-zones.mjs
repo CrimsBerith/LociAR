@@ -11,7 +11,8 @@ if (!file) {
   console.error('Usage: node scripts/import-protected-zones.mjs <zones.json>');
   process.exit(1);
 }
-const zones = JSON.parse(readFileSync(file, 'utf8'));
+// The operator names the input file on the command line; reading that path is the script's purpose.
+const zones = JSON.parse(readFileSync(file, 'utf8')); // NOSONAR
 const writer = db.bulkWriter();
 let count = 0;
 for (const zone of zones) {

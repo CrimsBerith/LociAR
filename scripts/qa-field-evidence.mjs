@@ -69,12 +69,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (process.argv[2] === '--template') {
     const file = process.argv[3];
     if (!file || !path.isAbsolute(file)) throw new Error('Use an absolute output path for the evidence template');
-    writeFileSync(file, JSON.stringify(fieldEvidenceTemplate(), null, 2) + '\n', { flag: 'wx', mode: 0o600 });
+    // The operator chooses the absolute output path; 'wx' refuses to overwrite an existing file.
+    writeFileSync(file, JSON.stringify(fieldEvidenceTemplate(), null, 2) + '\n', { flag: 'wx', mode: 0o600 }); // NOSONAR
     console.log('Created a blank field evidence template; all runs are not_run.');
   } else {
     const file = process.argv[2];
     if (!file) throw new Error('Usage: node scripts/qa-field-evidence.mjs /path/to/evidence.json');
-    const failures = validateFieldEvidence(JSON.parse(readFileSync(file, 'utf8')), path.dirname(path.resolve(file)));
+    // The operator names the evidence file; artifacts it lists are confined to its directory above.
+    const failures = validateFieldEvidence(JSON.parse(readFileSync(file, 'utf8')), path.dirname(path.resolve(file))); // NOSONAR
     for (const failure of failures) console.error(failure);
     console.log(failures.length ? `Field evidence is incomplete: ${failures.length} checks failed.` : 'Recorded field evidence passes structural checks. A reviewer must inspect the logs and videos.');
     if (failures.length) process.exitCode = 1;

@@ -9,7 +9,7 @@ This is the **only** notes text for the submission (it replaces the older text i
 Before pasting: replace `<VIDEO_LINK>` with the screen recording from section 6 (an unlisted link, or attach the file under App Review Information → Attachment and write "see attachment"). The demo account (`apple-review@locidrop.com`) and its password go only into the **Sign-In Information** fields, never into these notes. Run `node functions/scripts/seed-review-content.mjs apple-review@locidrop.com` once against production so the sample posts and location notes exist.
 
 ```
-LociAR lets people leave short notes, in AR on real surfaces or at the exact spot where they stand, so the next visitor gets useful local tips ("Wi-Fi password is at the counter"). Notes are text and/or one KLIPY GIF (PG-13 at most): no photos, videos or links. LociAR has no chat or private messaging.
+LociDrop lets people leave short notes, in AR on real surfaces or at the exact spot where they stand, so the next visitor gets useful local tips ("Wi-Fi password is at the counter"). Notes are text and/or one KLIPY GIF (PG-13 at most): no photos, videos or links. LociAR has no chat or private messaging.
 
 ACCOUNTABILITY
 Entering the app requires Sign in with Apple or a verified-email account. New notes are anonymous by default; the member can explicitly show their username before publishing. Moderators retain account ownership for safety and deletion. Anonymous notes do not expose their author's profile to other users.

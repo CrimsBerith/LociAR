@@ -15,7 +15,8 @@ enum FirebaseIdentity {
         var bytes = [UInt8]()
         withUnsafeBytes(of: namespace.uuid) { bytes.append(contentsOf: $0) }
         bytes.append(contentsOf: Array(uid.utf8))
-        var hash = Array(Insecure.SHA1.hash(data: Data(bytes)).prefix(16))
+        // UUIDv5 is defined over SHA-1 (RFC 9562); it derives a stable public id here, not a secret or a signature.
+        var hash = Array(Insecure.SHA1.hash(data: Data(bytes)).prefix(16)) // NOSONAR
         hash[6] = (hash[6] & 0x0F) | 0x50
         hash[8] = (hash[8] & 0x3F) | 0x80
         let tuple: uuid_t = (hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7],

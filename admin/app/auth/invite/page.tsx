@@ -64,13 +64,13 @@ export default function UserInvitationPage() {
     {finished ? <><p>Open LociDrop on your iPhone and sign in with your email and the password you just set. Choose your handle and complete onboarding in the app.</p><a className="buttonLink" href="lociar://open">Open LociDrop</a></> : null}
     {ready && !user && !finished ? <form className="stack" onSubmit={confirmEmail}>
       <label htmlFor="invite-email">Invited email</label><input id="invite-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} />
-      <button disabled={busy}>{busy ? 'Verifying…' : 'Verify email and continue'}</button>
+      <button type="submit" disabled={busy}>{busy ? 'Verifying…' : 'Verify email and continue'}</button>
     </form> : null}
     {user ? <form className="stack" onSubmit={finish}>
       <p>Use this password to sign in to the iOS app. If this address already has a password, this replaces it.</p>
       <label htmlFor="invite-password">Password</label><input id="invite-password" type="password" autoComplete="new-password" minLength={12} required value={password} onChange={event => setPassword(event.target.value)} />
       <label htmlFor="invite-confirmation">Confirm password</label><input id="invite-confirmation" type="password" autoComplete="new-password" minLength={12} required value={confirmation} onChange={event => setConfirmation(event.target.value)} />
-      <button disabled={busy}>{busy ? 'Completing…' : 'Complete invitation'}</button>
+      <button type="submit" disabled={busy}>{busy ? 'Completing…' : 'Complete invitation'}</button>
     </form> : null}
     {message ? <p className="formMessage" role="alert">{message}</p> : null}
     <Link href="/support">Help and support</Link>

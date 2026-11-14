@@ -92,6 +92,7 @@ struct LegacyAsyncStorageImporter {
     }
 
     static func storageFileName(for key: String) -> String {
-        Insecure.MD5.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
+        // React Native AsyncStorage names its overflow files with MD5 of the key; this only locates the old file.
+        Insecure.MD5.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined() // NOSONAR
     }
 }

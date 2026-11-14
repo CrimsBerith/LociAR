@@ -6,7 +6,8 @@ import { adminDb } from './firebase-admin';
 /** UUIDv5 mapping shared with Functions core.ts and iOS FirebaseIdentity.swift. */
 export function luidForUid(uid: string): string {
   const namespace = Buffer.from('6f1c6d0e3b8a5c7e9f214c0a7d2e9b13', 'hex');
-  const bytes = createHash('sha1').update(namespace).update(uid, 'utf8').digest().subarray(0, 16);
+  // UUIDv5 is defined over SHA-1 (RFC 9562); it derives a stable public id here, not a secret or a signature.
+  const bytes = createHash('sha1').update(namespace).update(uid, 'utf8').digest().subarray(0, 16); // NOSONAR
   bytes[6] = (bytes[6] & 0x0f) | 0x50; bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = bytes.toString('hex');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
