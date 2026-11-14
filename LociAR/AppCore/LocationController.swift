@@ -136,7 +136,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
         }
         switch locationError.code {
         case .denied:
-            errorMessage = String(localized: "Konum izni kapalı. Ayarlar’dan LociAR için konumu açın.")
+            errorMessage = String(localized: "Konum izni kapalı. Ayarlar’dan LociDrop için konumu açın.")
         case .locationUnknown:
             // Core Location is still acquiring a fix. Map/AR already bound their own wait;
             // an initial transient error must not abort that wait before the next callback.

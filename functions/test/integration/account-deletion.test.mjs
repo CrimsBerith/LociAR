@@ -23,6 +23,12 @@ test('account deletion propagates a rejected Firestore batch and retries without
   await post.set({ creator_id: user.luid, status: 'pending_review', visibility: 'public' });
   const like = adminDb.collection('likes').doc(`${postId}_${user.luid}`);
   await like.set({ user_id: user.luid, post_id: postId });
+  const otherRecipient = randomUUID(), notificationJob = adminDb.collection('admin_notification_jobs').doc(randomUUID());
+  const notificationBatch = adminDb.collection('admin_notification_batches').doc(randomUUID());
+  const createdBatch = adminDb.collection('admin_notification_batches').doc(randomUUID());
+  await notificationJob.set({ recipient_id: user.luid, owner_luid: user.luid, status: 'queued' });
+  await notificationBatch.set({ recipient_ids: [user.luid, otherRecipient], status: 'queued' });
+  await createdBatch.set({ actor_uid: user.uid, recipient_ids: [otherRecipient], status: 'queued' });
   await accepted(user);
   let storageCalls = 0;
   await assert.rejects(runAccountDeletion(user.luid, {
@@ -41,6 +47,9 @@ test('account deletion propagates a rejected Firestore batch and retries without
   assert.equal(await runAccountDeletion(user.luid), 'done');
   assert.equal((await post.get()).exists, false);
   assert.equal((await like.get()).exists, false);
+  assert.equal((await notificationJob.get()).exists, false);
+  assert.deepEqual((await notificationBatch.get()).get('recipient_ids'), [otherRecipient]);
+  assert.equal((await createdBatch.get()).exists, false);
   assert.equal((await jobRef(user).get()).get('posts_removed'), 1);
   await absentAuth(user);
 });

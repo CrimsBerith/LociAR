@@ -2,7 +2,7 @@
 import SwiftUI
 import UIKit
 
-/// Downloads GIPHY media once per URL; GIFs are shared between the picker, the editor and cards.
+/// Downloads GIF media once per URL and keeps it in memory only; GIFs are shared between the picker, the editor and cards.
 actor GifDataCache {
     static let shared = GifDataCache()
     private let cache = NSCache<NSURL, NSData>()
@@ -16,7 +16,7 @@ actor GifDataCache {
             return await existing.value
         }
         let task = Task<Data?, Never> {
-            guard let (data, response) = try? await URLSession.shared.data(from: url),
+            guard let (data, response) = try? await KlipyAPI.session.data(from: url),
                   (response as? HTTPURLResponse).map({ (200...299).contains($0.statusCode) }) == true else { return nil }
             return data
         }
@@ -33,23 +33,61 @@ actor GifDataCache {
 /// Plays a GIF by streaming its frames with ImageIO (`CGAnimateImageDataWithBlock`), so only the
 /// current frame is decoded. Shows a neutral placeholder while loading or when the GIF fails.
 struct AnimatedGIFView: View {
-    let url: URL
-    var contentMode: ContentMode = .fit
-    var accessibilityLabel: String? = nil
+    private enum Source: Hashable {
+        case url(URL)
+        /// A post's GIF: its media is looked up first (KLIPY URLs are not derivable from the slug).
+        case gif(GifReference)
+    }
+
+    private let source: Source
+    var contentMode: ContentMode
+    var accessibilityLabel: String?
 
     @State private var data: Data?
+    @State private var failed = false
+
+    init(url: URL, contentMode: ContentMode = .fit, accessibilityLabel: String? = nil) {
+        self.source = .url(url)
+        self.contentMode = contentMode
+        self.accessibilityLabel = accessibilityLabel
+    }
+
+    init(gif: GifReference, contentMode: ContentMode = .fit, accessibilityLabel: String? = nil) {
+        self.source = .gif(gif)
+        self.contentMode = contentMode
+        self.accessibilityLabel = accessibilityLabel
+    }
 
     var body: some View {
         ZStack {
-            Rectangle().fill(Color.white.opacity(0.06))
+            // Placeholder follows the theme so it stays visible in light mode too.
+            Rectangle().fill(LociTheme.elevated)
             if let data {
                 AnimatedGIFRepresentable(data: data, contentMode: contentMode)
+            } else if failed {
+                Image(systemName: "photo")
+                    .font(.title3)
+                    .foregroundStyle(LociTheme.tertiaryText)
             } else {
-                ProgressView().tint(LociTheme.mediaOverlayText.opacity(0.8))
+                ProgressView().tint(LociTheme.secondaryText)
             }
         }
         .clipped()
-        .task(id: url) { data = await GifDataCache.shared.data(for: url) }
+        .task(id: source) {
+            data = nil
+            failed = false
+            let url: URL?
+            switch source {
+            case .url(let direct): url = direct
+            case .gif(let gif): url = await KlipyMediaResolver.shared.media(for: gif)?.previewURL
+            }
+            guard !Task.isCancelled else { return }
+            var loaded: Data?
+            if let url { loaded = await GifDataCache.shared.data(for: url) }
+            guard !Task.isCancelled else { return }
+            data = loaded
+            failed = loaded == nil
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityLabel ?? String(localized: "GIF animasyonu")))
     }

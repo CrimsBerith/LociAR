@@ -1,4 +1,4 @@
-# LociAR Premium QA Matrix
+# LociDrop Premium QA Matrix
 
 Güncel yayın durumu: [RELEASE_READINESS.md](release/RELEASE_READINESS.md).
 Yerel emülatör işleri aynı portları kullanır; rules, Functions entegrasyonu ve admin entegrasyonu sırayla çalıştırılır.

@@ -1,17 +1,17 @@
 > **ARŞİV (28 Eylül 2026):** Bu belge Supabase dönemine aittir. Backend artık Firebase — güncel kaynaklar: `AGENTS.md`, `docs/FIREBASE_SETUP.md`, `ARCHITECTURE.md`.
 
-# LociAR Multi-Agent Protocol
+# LociDrop Multi-Agent Protocol
 
 Version: 1.2
 Owner: Kagan
-Project: LociAR - Free Secure Billboard AR MVP
+Project: LociDrop - Free Secure Billboard AR MVP
 Updated: 2026-08-06 (pre-deploy campaign)
 
 This protocol is the working agreement for every AI or human agent touching this repository. Its job is to keep parallel work fast without breaking Expo compatibility, Supabase security, or the product direction.
 
 ## 1. Prime Directive
 
-Build and prove LociAR as a **native iOS** app (`ios/LociAR.xcodeproj`, SwiftUI + ARKit). Expo, Metro, and React Native are removed. Android is out. Harden Supabase/admin in parallel without blocking AR field tests.
+Build and prove LociDrop as a **native iOS** app (`ios/LociAR.xcodeproj`, SwiftUI + ARKit). Expo, Metro, and React Native are removed. Android is out. Harden Supabase/admin in parallel without blocking AR field tests.
 
 Pre-deploy readiness uses gates **D0 → D1 → D2** (`docs/APP_STORE_1_0_SCOPE.md`). Campaign tasks are tracked in `AGENT_WORKBOARD.md` → Pre-Deploy Campaign.
 
@@ -254,7 +254,7 @@ Owns external codebase scanning for continuous quality uplift.
 
 Responsibilities:
 - Proactively scans AR (ViroReact, ARKit/ARCore samples, react-native-arkit) and social clones (Instagram Stories gestures/stickers, TikTok vertical feeds, camera+effects) using web_search, open_page, open_page_with_find on GitHub + docs.
-- Extracts patterns (plane detection, hitTest, surface anchors, video textures, simultaneous gestures, vertical paging, realtime, Skia, architecture) that improve LociAR.
+- Extracts patterns (plane detection, hitTest, surface anchors, video textures, simultaneous gestures, vertical paging, realtime, Skia, architecture) that improve LociDrop.
 - Maintains living `docs/RESEARCH_AR_SOCIAL.md` with prioritized actionable list (Idea | Source | Benefit | Integration | Snippet | Effort).
 - "Research First" mandate: run scans before claiming major AR/gesture/editor/discovery work. Log queries + append dated findings.
 - Proposes 1-2 highest-ROI integrations per cycle to Lead + relevant agents (Expo Mobile, AR Geometry).
@@ -400,7 +400,7 @@ Status as of this protocol:
 - **Native iOS builds only** (Expo Go retired; Android removed). ARKit world lock is the default path.
 - SMS auth is disabled for now.
 - Remote post sync is tied to SMS auth and should stay disabled during local-only testing.
-- Local Supabase can run on `563xx` ports for LociAR.
+- Local Supabase can run on `563xx` ports for LociDrop.
 - Mobile local create works without SMS using local test access.
 - Supabase production deploy is not complete.
 - Admin RBAC, MFA, audit/approval, dashboard, user invitation, and post operations foundation is implemented locally; production migration and security smoke tests are still open.
@@ -410,7 +410,7 @@ Status as of this protocol:
 
 Next best multi-agent sequence:
 
-1. QA and Release: install LociAR native iOS build and run field checklist (world lock + UX).
+1. QA and Release: install LociDrop native iOS build and run field checklist (world lock + UX).
 2. Expo Mobile + UX: fix device-only camera/editor/map issues on native builds.
 3. Supabase Security: deploy local/remote backend path, then add media Storage policies.
 4. Admin Dashboard + Supabase Security: harden admin login and service-role boundaries.
@@ -570,7 +570,7 @@ Required:
 - iPhone native install checklist passes (world lock + UX).
 - Core create flow works without SMS using local test access.
 - Editor interactions are smooth enough for field testing.
-- Map and AR Camera work in the LociAR binary.
+- Map and AR Camera work in the LociDrop binary.
 - Typecheck and tests pass.
 - Known limitations are written in README or workboard.
 

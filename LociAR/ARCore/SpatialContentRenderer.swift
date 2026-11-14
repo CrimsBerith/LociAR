@@ -5,7 +5,7 @@ import Foundation
 @preconcurrency import UIKit
 
 /// A post texture plus, for GIF posts, where the GIF sits in it (normalized, top-left origin) so
-/// the AR view can lay the looping GIPHY video over that area.
+/// the AR view can lay the looping GIF video over that area.
 struct RenderedPost: @unchecked Sendable {
     let image: CGImage
     let gifRect: CGRect?
@@ -42,7 +42,12 @@ actor SpatialContentRenderer {
             sourceImageData = await loadAsset(url)
         } else if let gif = post.gif {
             // Poster frame under the AR video (and the whole GIF area if the video cannot play).
-            sourceImageData = await loadAsset(gif.stillURL)
+            // Without it (KLIPY unreachable or the GIF was removed) the bubble keeps an empty GIF area.
+            if let stillURL = await KlipyMediaResolver.shared.media(for: gif)?.stillURL {
+                sourceImageData = await loadAsset(stillURL)
+            } else {
+                sourceImageData = nil
+            }
         } else {
             sourceImageData = nil
         }
@@ -196,7 +201,7 @@ actor SpatialContentRenderer {
     }
 
     /// A chat-style message bubble: the author's handle, then the GIF (if any), then the text.
-    /// Returns the GIF area so the AR view can play the GIPHY video over it.
+    /// Returns the GIF area so the AR view can play its video over it.
     nonisolated static func drawMessageBubble(text: String?, handle: String?, gif: GifReference?, gifStill: CGImage?) -> RenderedPost? {
         let text = text?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         let handle = handle?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty.map { "@\($0)" }

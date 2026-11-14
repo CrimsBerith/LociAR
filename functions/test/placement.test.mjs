@@ -179,16 +179,17 @@ test('admin_geo_estimate coordinate space is rejected from clients', () => {
   assert.equal(validateCreatePostBody(body), 'Invalid coordinate space');
 });
 
-test('one GIPHY GIF is accepted by id only; drawings are refused', () => {
+test('one KLIPY GIF is accepted by slug only; a gifId and drawings are refused', () => {
   const withLayers = (layers) => ({ ...base(), editData: { version: 1, layers } });
-  const gif = (gifId, extra = {}) => ({ id: 'g', type: 'gif', gifId, ...extra });
-  assert.equal(validateCreatePostBody(withLayers([gif('3o7aCSPqXE5C6T8tBC')])), null);
-  assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'Selam' }, gif('l0MYt5jPR6QX5pnqM')])), null);
+  const gif = (gifSlug, extra = {}) => ({ id: 'g', type: 'gif', provider: 'klipy', gifSlug, width: 200, height: 200, ...extra });
+  assert.equal(validateCreatePostBody(withLayers([gif('happy-cat')])), null);
+  assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'Selam' }, gif('l0-cat')])), null);
   assert.equal(validateCreatePostBody(withLayers([gif('a'), gif('b')])), 'Only one GIF is allowed');
-  for (const id of ['', 'https://media.giphy.com/media/x/giphy.gif', '../x', 'a b', 'a'.repeat(65), 42, null]) {
-    assert.equal(validateCreatePostBody(withLayers([gif(id)])), 'Invalid GIF', String(id));
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'g', type: 'gif', gifId: '3o7aCSPqXE5C6T8tBC', width: 10, height: 10 }])), 'Invalid GIF');
+  for (const slug of ['', 'https://api.klipy.com/x', '../x', 'a b', 'a'.repeat(129), 42, null]) {
+    assert.equal(validateCreatePostBody(withLayers([gif(slug)])), 'Invalid GIF', String(slug));
   }
-  assert.equal(validateCreatePostBody(withLayers([gif('abc', { uri: 'https://media.giphy.com/media/abc/giphy.mp4' })])), 'Only text and GIF posts are allowed');
+  assert.equal(validateCreatePostBody(withLayers([gif('abc', { uri: 'https://static.klipy.com/x.gif' })])), 'Only text and GIF posts are allowed');
   assert.equal(validateCreatePostBody(withLayers([{ id: 'd', type: 'drawing', color: '#FFFFFF', points: [{ x: 0, y: 0 }] }])), 'Only text and GIF posts are allowed');
 });
 
@@ -204,4 +205,7 @@ test('layer shape limits', () => {
   assert.equal(validateCreatePostBody(withLayers([stroke(5, { color: 'red' })])), 'Invalid layer color');
   assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'a'.repeat(1001) }])), 'Layer text is too long');
   assert.equal(validateCreatePostBody(withLayers(Array.from({ length: 21 }, (_, i) => ({ id: `t${i}`, type: 'text', text: 'x' })))), 'Too many edit layers');
+  assert.equal(validateCreatePostBody(withLayers([{ id: { nested: true }, type: 'text', text: 'x' }])), 'Invalid edit layer');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'x'.repeat(65), type: 'text', text: 'x' }])), 'Invalid edit layer');
+  assert.equal(validateCreatePostBody(withLayers([{ id: 'x'.repeat(64), type: 'text', text: 'x' }])), null);
 });

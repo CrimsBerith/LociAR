@@ -4,8 +4,10 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
 import { useT } from '../../I18nProvider';
+import { ZONE_CATEGORIES } from '../../../../lib/policy';
 
-const CATEGORIES = ['school', 'hospital', 'worship', 'government', 'military', 'heritage', 'memorial', 'other'];
+// One list with the server validation (parseZoneInput), so imported categories are selectable and labelled.
+const CATEGORIES = ZONE_CATEGORIES;
 
 /** Adds a hard-block zone through the audited /api/admin/v1/zones endpoint. */
 export default function ZoneForm() {

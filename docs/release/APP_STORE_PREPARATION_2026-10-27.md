@@ -70,7 +70,7 @@ bu durum uygulamadan çağrılabildiklerini kanıtlamıyor. Tek 503 yanıtının
 
 ## App Store Connect taslağı
 
-- [LociAR kaydı](https://appstoreconnect.apple.com/apps/6827311848/distribution/ios/version/inflight)
+- [LociDrop kaydı](https://appstoreconnect.apple.com/apps/6827311848/distribution/ios/version/inflight)
   bu oturumda oluşturuldu; Apple ID `6827311848`, SKU `lociar-ios-v1`, iOS, Türkçe ana dil,
   sürüm `1.0.0`, **Prepare for Submission**.
 - 12 dil için ad, alt başlık, tanıtım metni, açıklama, anahtar kelimeler ve destek URL'si kaydedildi.

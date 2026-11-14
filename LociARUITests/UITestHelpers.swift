@@ -108,7 +108,7 @@ extension AuthGateUITests {
             return false
         }
         publish.tap()
-        let alert = app.alerts["LociAR"]
+        let alert = app.alerts["LociDrop"]
         if !alert.waitForExistence(timeout: 4) {
             publish.tap()
         }
@@ -222,7 +222,7 @@ extension AuthGateUITests {
             guard usePlacement.exists, usePlacement.isEnabled else { continue }
             usePlacement.tap()
             if editor.waitForExistence(timeout: 12) { return true }
-            let alert = app.alerts["LociAR"]
+            let alert = app.alerts["LociDrop"]
             if alert.waitForExistence(timeout: 2) {
                 alert.buttons["Tamam"].tap()
                 if usePlacement.exists, usePlacement.isEnabled {
@@ -250,8 +250,8 @@ extension AuthGateUITests {
     }
 
     func recoverToMap(_ app: XCUIApplication) {
-        if app.alerts["LociAR"].exists {
-            app.alerts["LociAR"].buttons["Tamam"].tap()
+        if app.alerts["LociDrop"].exists {
+            app.alerts["LociDrop"].buttons["Tamam"].tap()
         }
         if app.buttons["Vazgeç"].exists {
             app.buttons["Vazgeç"].tap()
@@ -270,22 +270,119 @@ extension AuthGateUITests {
         }
     }
 
+    /// Closes the software keyboard and verifies that it is gone. The first strategy is the form's
+    /// own "Bitti" toolbar button; later attempts fall back to the interactive scroll dismissal and
+    /// to taps outside the input, because a single tap on the navigation bar is not reliable on a
+    /// physical iPhone or a small simulator.
     func dismissKeyboard(_ app: XCUIApplication) {
         guard app.keyboards.element.exists else { return }
-        let done = app.buttons["keyboard-done-button"].exists ? app.buttons["keyboard-done-button"] : app.buttons["Bitti"]
-        if done.exists && done.isHittable {
-            done.tap()
-        } else if app.navigationBars["Konum notu bırak"].exists {
-            app.navigationBars["Konum notu bırak"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        } else if app.navigationBars["İçerik oluştur"].exists {
-            app.navigationBars["İçerik oluştur"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        } else if app.buttons["create-publish"].exists {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
-        } else {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.18)).tap()
+        for attempt in 0..<3 {
+            let done = app.buttons["keyboard-done-button"].exists ? app.buttons["keyboard-done-button"] : app.buttons["Bitti"]
+            if done.exists && done.isHittable {
+                done.tap()
+            } else if attempt == 1 {
+                // Forms use `.scrollDismissesKeyboard(.interactively)`: a short drag towards the keyboard closes it.
+                let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.30))
+                let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.78))
+                start.press(forDuration: 0.05, thenDragTo: end)
+            } else if app.navigationBars["Konum notu bırak"].exists {
+                app.navigationBars["Konum notu bırak"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            } else if app.navigationBars["İçerik oluştur"].exists {
+                app.navigationBars["İçerik oluştur"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            } else if app.buttons["create-publish"].exists {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+            } else {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.18)).tap()
+            }
+            if app.keyboards.firstMatch.waitForNonExistence(timeout: 2) { break }
         }
-        _ = app.keyboards.firstMatch.waitForNonExistence(timeout: 2)
         RunLoop.current.run(until: Date().addingTimeInterval(0.35))
+    }
+
+    /// `XCUIElement` exposes keyboard focus only through key-value coding.
+    func hasKeyboardFocus(_ element: XCUIElement) -> Bool {
+        element.exists && ((element.value(forKey: "hasKeyboardFocus") as? Bool) ?? false)
+    }
+
+    func waitForKeyboardFocus(_ element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if hasKeyboardFocus(element) { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        return hasKeyboardFocus(element)
+    }
+
+    /// iOS offers a strong password for `.newPassword` fields on a signed-in device. The sheet covers
+    /// the form and steals focus from the next field, so the sweep chooses its own password.
+    func dismissStrongPasswordSuggestionIfPresent(_ app: XCUIApplication) {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let ownPassword = NSPredicate(
+            format: "label BEGINSWITH %@ OR label BEGINSWITH %@ OR label BEGINSWITH[c] %@ OR label == %@ OR label == %@",
+            "Kendi ", "Choose My Own", "Başka Seçenek", "Not Now", "Şimdi Değil"
+        )
+        for host in [app, springboard] {
+            let button = host.buttons.matching(ownPassword).firstMatch
+            if button.exists, button.isHittable {
+                button.tap()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.3))
+                return
+            }
+        }
+    }
+
+    /// Gives `field` keyboard focus before typing. On a physical iPhone a plain `tap()` can land while
+    /// the keyboard, an autofill bar or the strong-password sheet covers the field; `typeText` then
+    /// aborts the whole test with "Neither element nor any descendant has keyboard focus".
+    /// Returns `false` instead of typing when focus could not be obtained.
+    @discardableResult
+    func focusAndType(_ field: XCUIElement, _ text: String, in app: XCUIApplication, attempts: Int = 3) -> Bool {
+        guard field.waitForExistence(timeout: 3) else { return false }
+        for attempt in 0..<attempts {
+            dismissStrongPasswordSuggestionIfPresent(app)
+            if !hasKeyboardFocus(field) {
+                scrollUntilHittable(field, in: app, maxSwipes: 4)
+                if field.isHittable {
+                    field.tap()
+                } else {
+                    field.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+                }
+                dismissStrongPasswordSuggestionIfPresent(app)
+            }
+            if waitForKeyboardFocus(field, timeout: 2) {
+                field.typeText(text)
+                return true
+            }
+            if attempt == 0, app.keyboards.element.exists {
+                // The previous field is still focused: its Return key (`submitLabel(.next)`) moves focus forward.
+                app.typeText(XCUIKeyboardKey.return.rawValue)
+            }
+        }
+        return false
+    }
+
+    /// The Debug-only AR diagnostics disclosure starts collapsed on every AR screen, so
+    /// `ar-mapping-diagnostic` does not exist until it is opened.
+    @discardableResult
+    func revealMappingDiagnostics(_ app: XCUIApplication, timeout: TimeInterval = 5) -> Bool {
+        let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
+        if diagnostic.exists { return true }
+        let identified = app.buttons["ar-mapping-diagnostic-toggle"]
+        let toggle = identified.exists ? identified : app.buttons["Tanılama"]
+        guard toggle.waitForExistence(timeout: timeout) else { return false }
+        if toggle.isHittable {
+            toggle.tap()
+        } else {
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
+        return diagnostic.waitForExistence(timeout: timeout)
+    }
+
+    /// Current mapping diagnostic text for failure messages; never raises on a missing element.
+    func mappingDiagnosticText(_ app: XCUIApplication) -> String {
+        revealMappingDiagnostics(app, timeout: 2)
+        let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
+        return diagnostic.exists ? diagnostic.label : "(tanı yok)"
     }
 
     func mapRowDump(_ app: XCUIApplication) -> String {
@@ -302,8 +399,10 @@ extension AuthGateUITests {
             "Kesin yüzey hazır", "Gerçek yüzey hazır"
         )).firstMatch
         let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
+        revealMappingDiagnostics(app)
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
+            if !diagnostic.exists { revealMappingDiagnostics(app, timeout: 1) }
             let mapping = diagnostic.exists ? diagnostic.label : ""
             let trackingOK = mapping.contains("Takip normal")
                 || mapping.contains("Harita hazır")
@@ -320,8 +419,10 @@ extension AuthGateUITests {
             "Kesin yüzey hazır", "Gerçek yüzey hazır"
         )).firstMatch
         let diagnostic = app.staticTexts["ar-mapping-diagnostic"]
+        revealMappingDiagnostics(app)
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
+            if !diagnostic.exists { revealMappingDiagnostics(app, timeout: 1) }
             let mapping = diagnostic.exists ? diagnostic.label : ""
             let mappingReady = mapping.contains("Harita genişliyor") || mapping.contains("Harita hazır")
             if exactSurface.exists, mappingReady { return true }

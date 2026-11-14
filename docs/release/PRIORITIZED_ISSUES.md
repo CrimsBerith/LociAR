@@ -1,4 +1,4 @@
-# LociAR 1.0 — Prioritized Issue Log & Risk Register
+# LociDrop 1.0 — Prioritized Issue Log & Risk Register
 
 > Phase: P1 / P2 / P10  
 > Owner: A00 (Technical Leader & Orchestrator)  
@@ -75,23 +75,6 @@
 - **Rollback / mitigation**: None needed; fix verified clean.
 
 ---
-
-### ## [ISS-P3-01] GIPHY Attribution Text Sizing on Smaller Screen Dimensions
-- **Agent / owner**: A11 (Design System)
-- **Priority**: P3
-- **Confidence**: Likely
-- **Status**: VERIFIED
-- **Git SHA / branch / Xcode / target OS**: `2b0469c8` / iPhone SE 3rd Gen
-- **Files / symbols**: `LociAR/DesignSystem/GiphySearchSheet.swift`
-- **Reproduction**: Open GIPHY search on compact iPhone SE (4.7").
-- **Evidence**: Visual inspection of "Powered by GIPHY" text label.
-- **Root cause**: Fixed padding around search grid on smaller screens.
-- **Proposed smallest safe fix**: Use dynamic padding `.padding(.horizontal, 8)` on compact size classes.
-- **Behavior/migration risks**: None.
-- **Tests BEFORE / AFTER**: Visual review.
-- **Reviewer**: A11
-- **Verification command/result**: Visual layout verified.
-- **Rollback / mitigation**: Label remains visible and legible.
 
 ---
 

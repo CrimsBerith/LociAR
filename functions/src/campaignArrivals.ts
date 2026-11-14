@@ -97,6 +97,6 @@ export const recordCampaignArrival = onCall(options, async request => {
     if (origin) tx.delete(origin.ref);
     tx.create(activity.ref, { kind: 'promotion', anonymous: true, actor_id: null, recipient_id: caller.luid, post_id: id,
       body: target.get('notification_message') || 'Sana özel bir kampanya var.', read_at: null, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * 86_400_000) });
-    return { notify: true, title: target.get('notification_title') || 'LociAR', body: target.get('notification_message') || campaignPushBody(b.locale), postId: id, activityId, recipientId: caller.luid };
+    return { notify: true, title: target.get('notification_title') || 'LociDrop', body: target.get('notification_message') || campaignPushBody(b.locale), postId: id, activityId, recipientId: caller.luid };
   });
 });

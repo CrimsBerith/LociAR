@@ -497,9 +497,10 @@ final class BackendAndPolicyTests: XCTestCase {
         let textOnly = String(localized: "Postlar yalnızca metin ve GIF içerebilir; fotoğraf, video, çizim ve bağlantı desteklenmiyor.")
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text and GIF posts are allowed"), textOnly)
         XCTAssertEqual(FirestorePostRepository.serverMessage("Only text posts are allowed"), textOnly)
-        XCTAssertEqual(FirestorePostRepository.serverMessage("Links are not allowed"), textOnly)
-        XCTAssertEqual(FirestorePostRepository.serverMessage("Only moderated text without links is allowed"), textOnly)
-        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "links_not_allowed"), textOnly)
+        let noLinks = String(localized: "Notlarda bağlantı paylaşılamıyor. Bağlantıyı kaldırıp tekrar dene.")
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Links are not allowed"), noLinks)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("Only moderated text without links is allowed"), noLinks)
+        XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "links_not_allowed"), noLinks)
         XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "content_not_allowed"),
                        String(localized: "Metin uygunsuz ifadeler içeriyor. Düzenleyip tekrar dene."))
         XCTAssertEqual(FirestorePostRepository.serverMessage("wording may change", reason: "invalid_caption"),
@@ -838,6 +839,25 @@ final class BackendAndPolicyTests: XCTestCase {
     }
 
     @MainActor
+    func testPushRegistrationIsRemovedOnceUntilANewRegistrationSucceeds() async {
+        let client = RecordingPushClient()
+        let coordinator = PushTokenCoordinator(client: client, installationID: UUID(), locale: { "en" })
+        let user = UUID()
+        XCTAssertFalse(coordinator.isUnregistered(user))
+        client.failNextUnregister = true
+        await coordinator.disconnect(userID: user)
+        XCTAssertFalse(coordinator.isUnregistered(user), "a failed removal is retried on the next transition")
+        await coordinator.disconnect(userID: user)
+        XCTAssertTrue(coordinator.isUnregistered(user))
+        XCTAssertFalse(coordinator.isUnregistered(UUID()))
+        coordinator.updateUser(user)
+        coordinator.updateToken("token")
+        await coordinator.finishPendingRegistration()
+        XCTAssertFalse(coordinator.isUnregistered(user), "a new registration must be removed again")
+        XCTAssertEqual(client.calls, [.unregister(user), .unregister(user), .register(user, "token", "en")])
+    }
+
+    @MainActor
     func testQueuedPushRegistrationCannotBindAnObsoleteSession() async {
         let client = RecordingPushClient()
         let coordinator = PushTokenCoordinator(client: client, installationID: UUID(), locale: { "en" })
@@ -1079,9 +1099,15 @@ private final class RecordingPushClient: PushRegistrationClient {
         }
     }
 
+    var failNextUnregister = false
+
     func unregister(installationID: UUID, userID: UUID) async throws {
         unregisteredWhileRegistering = registrationInFlight
         calls.append(.unregister(userID))
+        if failNextUnregister {
+            failNextUnregister = false
+            throw SyntheticFailure.unavailable
+        }
     }
     func waitForRegistrationStart() async {
         guard !registrationStarted else { return }
@@ -1212,5 +1238,61 @@ final class AdminContentDecodingTests: XCTestCase {
         XCTAssertTrue(post.isOfficialContent)
         XCTAssertEqual(post.creatorAvatarURL?.absoluteString, "https://example.com/admin_avatar.png")
         XCTAssertEqual(post.creatorHandle, "admin_team")
+    }
+}
+
+final class ProfileTextPolicyTests: XCTestCase {
+    func testBioCountsUTF16LikeFirestoreRules() {
+        // firestore.rules `bio.size() <= 300` counts UTF-16 code units (verified against the emulator).
+        XCTAssertEqual(ProfileTextPolicy.length(String(repeating: "ı", count: 300)), 300)
+        XCTAssertEqual(ProfileTextPolicy.length(String(repeating: "😀", count: 150)), 300)
+        XCTAssertEqual(ProfileTextPolicy.length("👨‍👩‍👧"), 8)
+    }
+
+    func testClampingNeverSplitsACharacterAndStaysWithinTheRuleLimit() {
+        let limit = ProfileTextPolicy.bioLimit
+        let emoji = ProfileTextPolicy.clamped(String(repeating: "😀", count: 151), limit: limit)
+        XCTAssertEqual(emoji, String(repeating: "😀", count: 150))
+        let families = ProfileTextPolicy.clamped(String(repeating: "👨‍👩‍👧", count: 40), limit: limit)
+        XCTAssertEqual(families.count, 37, "37 × 8 = 296; a 38th family would exceed 300")
+        XCTAssertLessThanOrEqual(ProfileTextPolicy.length(families), limit)
+        let mixed = String(repeating: "a", count: 299) + "😀"
+        XCTAssertEqual(ProfileTextPolicy.clamped(mixed, limit: limit), String(repeating: "a", count: 299))
+        XCTAssertEqual(ProfileTextPolicy.clamped("merhaba", limit: limit), "merhaba")
+    }
+}
+
+private actor CallbackAuthRepository: AuthRepository {
+    let user: LociUser
+    init(user: LociUser) { self.user = user }
+    private var unsupported: Error { AuthFlowError.unsupported }
+    func currentUser() async -> LociUser? { user }
+    func sessionChanges() async -> AsyncStream<LociUser?> { AsyncStream { $0.finish() } }
+    func signIn(email: String, password: String) async throws -> LociUser { user }
+    func signUp(email: String, password: String, redirectTo: URL) async throws -> AuthSignUpResult { throw unsupported }
+    func requestPasswordReset(email: String, redirectTo: URL) async throws { throw unsupported }
+    func updatePassword(_ password: String) async throws -> LociUser { throw unsupported }
+    func updateProfile(handle: String, avatar: AvatarChoice, bio: String?) async throws -> LociUser { throw unsupported }
+    func resendVerificationEmail(email: String) async throws { throw unsupported }
+    func sendMagicLink(email: String, redirectTo: URL) async throws { throw unsupported }
+    func verifyEmailOTP(email: String, code: String) async throws -> LociUser { throw unsupported }
+    func completeAuthCallback(_ url: URL) async throws -> LociUser? { user }
+    func signInWithApple(identityToken: String, nonce: String?, fullName: String?) async throws -> LociUser { throw unsupported }
+    func signOut() async {}
+    func accountDeletionMethod() async throws -> AccountDeletionMethod { throw unsupported }
+    func deleteAccount(password _: String?, expectedUserID _: UUID) async throws { throw unsupported }
+}
+
+final class PasswordResetLinkTests: XCTestCase {
+    @MainActor
+    func testResetLinkCannotPushASignedInAccountIntoRecovery() async throws {
+        let user = LociUser(id: UUID(), handle: "kans")
+        let session = AppSession(authRepository: CallbackAuthRepository(user: user), backendConfigured: false)
+        try await session.signIn(email: "a@example.test", password: UUID().uuidString) // the fake accepts any value
+        XCTAssertEqual(session.phase, .signedIn(user))
+        await session.handleOpenURL(try XCTUnwrap(URL(string: "lociar://password-reset")))
+        XCTAssertEqual(session.phase, .signedIn(user), "an unsolicited reset link leaves the session as it was")
+        await session.handleOpenURL(try XCTUnwrap(URL(string: "lociar://auth-callback")))
+        XCTAssertEqual(session.phase, .signedIn(user))
     }
 }

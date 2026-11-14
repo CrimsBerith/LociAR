@@ -1,6 +1,6 @@
 # Crash ve hata izleme
 
-LociAR, iOS çökmeleri için Firebase Crashlytics, sunucu hataları için mevcut Cloud Logging kayıtları ve
+LociDrop, iOS çökmeleri için Firebase Crashlytics, sunucu hataları için mevcut Cloud Logging kayıtları ve
 Cloud Monitoring e-posta uyarılarını kullanır. Harici ücretli SDK, yeni zamanlayıcı veya özel metrik gerekmez.
 iOS crash e-postası için Crashlytics'in Cloud Logging bağlantısı ayrıca açılır; alarm politikasının varlığı
 bu bağlantının açık olduğunu kanıtlamaz.
@@ -49,7 +49,7 @@ Yalnız `lociar_diagnostics=v1` politikalarını değiştirir; diğer alıcı/po
   kota/validasyon retleri bu ek koşulla kapsanmaz.
 - `ios_fatal`: `firebasecrashlytics.googleapis.com/events` logunda yalnız `com.khankartal.lociar`, `IOS`,
   `jsonPayload.issue.errorType=FATAL`. Veri kaynağı Firebase → Project settings → Integrations → Cloud Logging
-  → Link ile açılır. Yalnız LociAR iOS seçilir, **Include sessions kapatılır**; her açılış yerine crash/diagnostic
+  → Link ile açılır. Yalnız LociDrop iOS seçilir, **Include sessions kapatılır**; her açılış yerine crash/diagnostic
   verisi aktarılır. Bağlantı açılıp gerçek kayıt görülmeden iOS e-posta hattı tamamlandı sayılmaz.
   [Resmi kurulum](https://firebase.google.com/docs/crashlytics/cloud-logging-export).
 

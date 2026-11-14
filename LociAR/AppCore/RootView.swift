@@ -34,11 +34,8 @@ struct RootView: View {
                 case .loading:
                     ZStack {
                         LociScreenBackground()
-                        VStack(spacing: 16) {
-                            Image(systemName: "location.viewfinder")
-                                .font(.system(size: 44, weight: .semibold))
-                                .foregroundStyle(LociTheme.accent)
-                            Text("LociAR").font(.title.bold())
+                        VStack(spacing: LociTheme.Spacing.xl) {
+                            LociWordmark()
                             ProgressView().tint(LociTheme.accent)
                         }
                     }

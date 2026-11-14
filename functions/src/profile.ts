@@ -16,14 +16,35 @@ export const handleRef = (handle: string) => db.collection('handles').doc(handle
 
 /** Terms/privacy version the app shows on its consent checkbox, e.g. "2026-10-04". */
 export const TERMS_VERSION_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_TERMS_VERSION_FUTURE_DAYS = 366;
+
+function isValidTermsVersion(value: unknown): value is string {
+  if (typeof value !== 'string' || !TERMS_VERSION_PATTERN.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  const today = new Date();
+  if (!Number.isFinite(date.getTime())) return false;
+  today.setUTCHours(0, 0, 0, 0);
+  return date.toISOString().slice(0, 10) === value
+    && date.getTime() <= today.getTime() + MAX_TERMS_VERSION_FUTURE_DAYS * 24 * 60 * 60 * 1000;
+}
 
 /**
  * The consent record to merge into users_private, or null when nothing (valid and newer) was sent.
  * Versions are ISO dates, so string order is date order: an older app build on another device can
  * never replace a newer accepted version (or reset terms_accepted_at).
  */
+/**
+ * Oldest terms version an anonymous (guest) session may start with. App builds that show newer terms keep
+ * working without a server deploy; raise this only when the terms change materially.
+ */
+export const MIN_ANONYMOUS_TERMS_VERSION = '2026-10-04';
+
+export function anonymousTermsAccepted(value: unknown): boolean {
+  return isValidTermsVersion(value) && value >= MIN_ANONYMOUS_TERMS_VERSION;
+}
+
 export function termsConsentUpdate(value: unknown, alreadyAccepted: unknown): { terms_version: string } | null {
-  if (typeof value !== 'string' || !TERMS_VERSION_PATTERN.test(value)) return null;
+  if (!isValidTermsVersion(value)) return null;
   if (typeof alreadyAccepted === 'string' && TERMS_VERSION_PATTERN.test(alreadyAccepted) && value <= alreadyAccepted) return null;
   return { terms_version: value };
 }
@@ -65,7 +86,7 @@ async function refreshExistingProfile(tx: FirebaseFirestore.Transaction, snap: F
 export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
   const data = (request.data ?? {}) as { handle?: unknown; displayName?: unknown; termsVersion?: unknown };
-  if (caller.provider === 'anonymous' && data.termsVersion !== '2026-10-04') {
+  if (caller.provider === 'anonymous' && !anonymousTermsAccepted(data.termsVersion)) {
     throw new HttpsError('failed-precondition', 'Accept the current terms before anonymous use');
   }
 

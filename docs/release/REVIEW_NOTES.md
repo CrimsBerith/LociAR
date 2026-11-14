@@ -1,7 +1,7 @@
-# LociAR 1.0 — App Store Review Notes & Reviewer Instructions
+# LociDrop 1.0 — App Store Review Notes & Reviewer Instructions
 
 > Target: Apple App Review Team  
-> App Name: LociAR  
+> App Name: LociDrop  
 > Bundle Identifier: `com.khankartal.lociar`  
 > Version: 1.0.0 (Build 1)  
 > Date: 2 Kasım 2026  
@@ -10,7 +10,7 @@
 
 ## 1. Review Account Credentials
 
-- **Review Email**: `apple-review@alfagolab.com`
+- **Review Email**: `apple-review@locidrop.com`
 - **One-Time Code / Sign-In Method**: Direct Sign-In configured for App Review.
   - Review credentials can be verified using the dedicated reviewer token generated at release provisioning time (`scripts/provision-review-account.mjs`).
   - For OTP authentication, reviewer codes sent to this address can be viewed or bypassed via the verified review account profile.
@@ -33,7 +33,7 @@
 2. Point the iPhone camera at a horizontal or vertical textured surface (such as a desk or floor).
 3. Move the device slightly so ARKit detects the surface plane.
 4. The center reticle will animate into a focused state. Tap the screen to open the creation editor.
-5. Enter a test message (e.g., "Welcome App Review team!"), optionally pick a GIPHY GIF from the search sheet, and tap **Publish**.
+5. Enter a test message (e.g., "Welcome App Review team!"), optionally pick a KLIPY GIF from the search sheet, and tap **Publish**.
 6. The post will instantly anchor to that physical surface in 3D augmented reality space.
 
 ### 2.3 Community Safety & Reporting
@@ -60,7 +60,7 @@
 2. **External Links Are Blocked**:
    - To maintain safety and prevent spam, users cannot post external URLs (social media, websites, etc.).
 3. **No Direct User Photo/Video Uploads in Posts**:
-   - AR posts support text and GIPHY GIFs only. User-submitted photos/videos are not allowed for posts (avatars are the only image uploads).
+   - AR posts support text and KLIPY GIFs only. User-submitted photos/videos are not allowed for posts (avatars are the only image uploads).
 4. **Testing in Non-AR Environments**:
    - If testing on a desk without sufficient surface texture, ARKit may take a few seconds to detect planes. Simply tilt the device slightly across the floor or table surface.
 
@@ -69,5 +69,5 @@
 ## 4. Contact Information
 
 - **Developer Team**: AlfaGo Lab / Khan Kartal
-- **Support Email**: `support@alfagolab.com`
-- **Technical Contact**: `apple-review@alfagolab.com`
+- **Support Email**: `support@locidrop.com`
+- **Technical Contact**: `apple-review@locidrop.com`

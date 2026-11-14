@@ -80,7 +80,7 @@ enum UITestFixtures {
                 UIColor.black.withAlphaComponent(0.45).setFill()
                 UIBezierPath(roundedRect: badgeRect, cornerRadius: 28).fill()
                 
-                let text = "LociAR\nDuvar Fotoğrafı"
+                let text = "LociDrop\nDuvar Fotoğrafı"
                 let paragraphStyle = NSMutableParagraphStyle()
                 paragraphStyle.alignment = .center
                 let attrs: [NSAttributedString.Key: Any] = [

@@ -186,6 +186,18 @@ final class ArchitectureAndPublishTests: XCTestCase {
         XCTAssertTrue(arSource.contains("accessibilityIdentifier(\"ar-cancel-mapping\")"))
         XCTAssertTrue(arSource.contains(".onChange(of: canPrepareContent)"))
         XCTAssertTrue(arSource.contains("accessibilityIdentifier(\"ar-mapping-diagnostic\")"))
+        XCTAssertTrue(arSource.contains("accessibilityIdentifier(\"ar-mapping-diagnostic-toggle\")"))
+    }
+
+    func testPlaceNoteKeepsPendingMutationAndDismissesKeyboardInTheInset() throws {
+        let root = try sourceCheckoutRoot()
+        let source = try String(
+            contentsOf: root.appendingPathComponent("LociAR/Features/Map/PlaceNoteComposer.swift"),
+            encoding: .utf8
+        )
+        XCTAssertFalse(source.contains("ToolbarItemGroup(placement: .keyboard)"))
+        XCTAssertTrue(source.contains("guard !hasPendingIntent, !submitted else { return }"))
+        XCTAssertTrue(source.contains("accessibilityIdentifier(\"keyboard-done-button\")"))
     }
 
     func testARWorldMappingUsesDeviceOptimizedCameraAndBoundedCaptureRetry() throws {
@@ -293,6 +305,19 @@ final class ArchitectureAndPublishTests: XCTestCase {
         XCTAssertEqual(publishedCount, 1)
         XCTAssertTrue(try context.fetch(FetchDescriptor<DraftRecord>()).isEmpty)
         XCTAssertTrue(try context.fetch(FetchDescriptor<SyncQueueRecord>()).isEmpty)
+        let flags = await repository.mayAlreadyExistFlags
+        XCTAssertEqual(flags, [false], "a brand-new post skips the own_receipt read")
+    }
+
+    func testRetryOfAFailedPublishReadsTheServerReceiptFirst() async throws {
+        let context = try makeContext()
+        let failing = PublishRepositoryStub(shouldFail: true)
+        _ = try await PublishPostCoordinator(postRepository: failing).submit(UITestFixtures.post, attemptRemote: true, modelContext: context)
+        let retrying = PublishRepositoryStub(shouldFail: false)
+        _ = try await PublishPostCoordinator(postRepository: retrying).submit(UITestFixtures.post, attemptRemote: true, modelContext: context)
+        let first = await failing.mayAlreadyExistFlags, second = await retrying.mayAlreadyExistFlags
+        XCTAssertEqual(first, [false])
+        XCTAssertEqual(second, [true], "the first attempt may have reached the server before failing")
     }
 
     func testRetrySuccessCleansQueueAndMatchingDraft() async throws {
@@ -511,6 +536,7 @@ private actor PublishRepositoryStub: PostRepository {
     let rejectionMessage: String?
     private(set) var publishedCount = 0
     private(set) var lastPublishedCreatorID: UUID?
+    private(set) var mayAlreadyExistFlags: [Bool] = []
 
     init(shouldFail: Bool, rejectionMessage: String? = nil) {
         self.shouldFail = shouldFail
@@ -519,7 +545,8 @@ private actor PublishRepositoryStub: PostRepository {
 
     func nearby(latitude: Double, longitude: Double, radiusMeters: Double) async throws -> [LociPost] { [] }
     func discover() async throws -> [LociPost] { [] }
-    func publish(_ post: LociPost) async throws -> PostPublishReceipt {
+    func publish(_ post: LociPost, mayAlreadyExist: Bool) async throws -> PostPublishReceipt {
+        mayAlreadyExistFlags.append(mayAlreadyExist)
         if let rejectionMessage { throw PostPublishError.rejected(rejectionMessage) }
         if shouldFail { throw StubFailure.expected }
         publishedCount += 1

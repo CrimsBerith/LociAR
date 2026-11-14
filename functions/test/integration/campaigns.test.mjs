@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { adminDb, closeClients, newUser, newAnonymousUser, expectFailure } from './_harness.mjs';
+const { processAdminNotificationBatchPage, deliverAdminNotification } = await import('../../lib/campaigns.js');
 after(closeClients);
 
 test('brand membership can submit only an idempotent draft; no audience or notification authority is granted', async () => {
@@ -186,4 +187,136 @@ test('assigned campaign alerts require global notification consent without consu
   await pref.update({ notifications: true });
   const result = await f.recipient.call('recordCampaignArrival', { ...f.body, confirmationStartedAt: Date.now() - 3000, location: { ...f.body.location, measuredAt: Date.now() } });
   assert.equal(result.notify, true);
+});
+
+test('administrator notification batches fan out to consented active users and recheck consent at delivery', async () => {
+  const actor = 'batch-admin-' + randomUUID(), recipient = randomUUID(), optedOut = randomUUID(), batchId = randomUUID(), revision = randomUUID();
+  await adminDb.collection('admin_role_assignments').add({ user_id: actor, role_key: 'super_admin', revoked_at: null });
+  await adminDb.collection('profiles').doc(recipient).set({ handle: 'batch-recipient' });
+  await adminDb.collection('profiles').doc(optedOut).set({ handle: 'batch-opted-out' });
+  await adminDb.collection('user_data_preferences').doc(recipient).set({ notifications: true, promotions: false, revision });
+  await adminDb.collection('user_data_preferences').doc(optedOut).set({ notifications: false, promotions: false, revision: randomUUID() });
+  const batchRef = adminDb.collection('admin_notification_batches').doc(batchId);
+  await batchRef.set({
+    target: 'selected',
+    recipient_ids: [recipient, optedOut],
+    actor_uid: actor,
+    title: 'LociAR',
+    message: 'A service update is ready.',
+    status: 'queued',
+    cursor: null,
+    processed: 0,
+    queued: 0,
+    skipped: 0,
+    created_at: Timestamp.now(),
+    expires_at: Timestamp.fromMillis(Date.now() + 86_400_000),
+  });
+  await processAdminNotificationBatchPage(batchId);
+  const batch = await batchRef.get();
+  assert.equal(batch.get('status'), 'complete');
+  assert.equal(batch.get('processed'), 2);
+  assert.equal(batch.get('queued'), 1);
+  assert.equal(batch.get('skipped'), 1);
+  assert.equal(batch.get('recipient_ids'), undefined, 'completed batches do not retain selected user IDs');
+  const jobs = await adminDb.collection('admin_notification_jobs').where('batch_id', '==', batchId).get();
+  assert.equal(jobs.size, 1);
+  assert.equal(jobs.docs[0].get('recipient_id'), recipient);
+  assert.equal(jobs.docs[0].get('consent_revision'), revision);
+  assert.equal(jobs.docs[0].get('campaign_id'), undefined);
+  const activity = await adminDb.collection('activity_events').doc(`admin_${jobs.docs[0].id}`).get();
+  assert.equal(activity.get('kind'), 'admin_notice');
+  assert.equal(activity.get('body'), 'A service update is ready.');
+  assert.equal((await adminDb.collection('promotion_push_quota').doc(`${recipient}_${new Date().toISOString().slice(0, 10)}`).get()).get('count'), 1);
+
+  await adminDb.collection('push_tokens').doc(randomUUID()).set({
+    owner_luid: recipient, token: 'batch-test-token-' + randomUUID(), locale: 'en',
+    expires_at: Timestamp.fromMillis(Date.now() + 86_400_000),
+  });
+  await adminDb.collection('user_data_preferences').doc(recipient).update({ notifications: false, revision: randomUUID() });
+  let sent = 0;
+  assert.equal(await deliverAdminNotification(jobs.docs[0].id, async () => { sent++; return 'synthetic-acceptance'; }), 0);
+  assert.equal(sent, 0, 'consent revoked after queueing must block delivery');
+
+  const allRecipient = `00000000-0000-4000-8000-${randomUUID().slice(-12)}`, allBatchId = randomUUID();
+  await adminDb.collection('profiles').doc(allRecipient).set({ handle: 'all-batch-recipient' });
+  await adminDb.collection('user_data_preferences').doc(allRecipient).set({ notifications: true, promotions: false, revision: randomUUID() });
+  const allBatch = adminDb.collection('admin_notification_batches').doc(allBatchId);
+  await allBatch.set({
+    target: 'all', actor_uid: actor, title: 'LociAR', message: 'A global service update.',
+    status: 'queued', cursor: '00000000-0000-4000-8000-000000000000',
+    processed: 0, queued: 0, skipped: 0,
+    created_at: Timestamp.now(), expires_at: Timestamp.fromMillis(Date.now() + 86_400_000),
+  });
+  await processAdminNotificationBatchPage(allBatchId);
+  const allJobs = await adminDb.collection('admin_notification_jobs').where('batch_id', '==', allBatchId).get();
+  assert.ok(allJobs.docs.some(job => job.get('recipient_id') === allRecipient), 'all-target paging must include active consented profiles');
+});
+
+test('a selected batch larger than one page is processed page by page and then drops its recipient list', async () => {
+  const actor = 'batch-admin-' + randomUUID(), batchId = randomUUID();
+  await adminDb.collection('admin_role_assignments').add({ user_id: actor, role_key: 'super_admin', revoked_at: null });
+  const recipients = Array.from({ length: 120 }, () => randomUUID()).sort();
+  const writer = adminDb.bulkWriter();
+  for (const id of recipients) {
+    writer.set(adminDb.collection('profiles').doc(id), { handle: 'page-' + id.slice(0, 8) });
+    writer.set(adminDb.collection('user_data_preferences').doc(id), { notifications: true, promotions: false, revision: randomUUID() });
+  }
+  await writer.close();
+  const batchRef = adminDb.collection('admin_notification_batches').doc(batchId);
+  await batchRef.set({
+    target: 'selected', recipient_ids: recipients, actor_uid: actor, title: 'LociAR', message: 'A service update is ready.',
+    status: 'queued', cursor: null, processed: 0, queued: 0, skipped: 0,
+    created_at: Timestamp.now(), expires_at: Timestamp.fromMillis(Date.now() + 86_400_000),
+  });
+  for (let page = 0; page < 3; page++) await processAdminNotificationBatchPage(batchId);
+  const batch = await batchRef.get();
+  assert.equal(batch.get('status'), 'complete');
+  assert.equal(batch.get('processed'), 120);
+  assert.equal(batch.get('queued'), 120);
+  assert.equal(batch.get('recipient_ids'), undefined);
+  assert.equal((await adminDb.collection('admin_notification_jobs').where('batch_id', '==', batchId).get()).size, 120);
+});
+
+test('a notification batch stops when the service is paused or the sender loses super_admin, and a replayed page sends nothing twice', async () => {
+  const actor = 'batch-admin-' + randomUUID(), recipient = randomUUID();
+  const role = await adminDb.collection('admin_role_assignments').add({ user_id: actor, role_key: 'super_admin', revoked_at: null });
+  await adminDb.collection('profiles').doc(recipient).set({ handle: 'guard-' + recipient.slice(0, 8) });
+  await adminDb.collection('user_data_preferences').doc(recipient).set({ notifications: true, promotions: false, revision: randomUUID() });
+  const newBatch = async () => {
+    const ref = adminDb.collection('admin_notification_batches').doc(randomUUID());
+    await ref.set({
+      target: 'selected', recipient_ids: [recipient], actor_uid: actor, title: 'LociAR', message: 'Guard test.',
+      status: 'queued', cursor: null, processed: 0, queued: 0, skipped: 0,
+      created_at: Timestamp.now(), expires_at: Timestamp.fromMillis(Date.now() + 86_400_000),
+    });
+    return ref;
+  };
+  const jobsFor = async (ref) => (await adminDb.collection('admin_notification_jobs').where('batch_id', '==', ref.id).get()).size;
+
+  await adminDb.collection('system').doc('flags').set({ kill_switch: true }, { merge: true });
+  try {
+    const paused = await newBatch();
+    await processAdminNotificationBatchPage(paused.id);
+    assert.equal((await paused.get()).get('status'), 'blocked');
+    assert.equal((await paused.get()).get('error_code'), 'service_paused');
+    assert.equal(await jobsFor(paused), 0);
+  } finally {
+    await adminDb.collection('system').doc('flags').set({ kill_switch: false }, { merge: true });
+  }
+
+  const sent = await newBatch();
+  await processAdminNotificationBatchPage(sent.id);
+  assert.equal(await jobsFor(sent), 1);
+  // A retried trigger that sees the same page again (status forced back) must not queue a second job.
+  await sent.update({ status: 'processing', cursor: 0, recipient_ids: [recipient] });
+  await processAdminNotificationBatchPage(sent.id);
+  assert.equal(await jobsFor(sent), 1, 'deterministic job ids keep a replayed page idempotent');
+  assert.equal((await sent.get()).get('skipped'), 1);
+
+  await role.update({ revoked_at: Timestamp.now() });
+  const revoked = await newBatch();
+  await processAdminNotificationBatchPage(revoked.id);
+  assert.equal((await revoked.get()).get('status'), 'blocked');
+  assert.equal((await revoked.get()).get('error_code'), 'permission_revoked');
+  assert.equal(await jobsFor(revoked), 0);
 });

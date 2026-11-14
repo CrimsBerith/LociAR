@@ -1,4 +1,4 @@
-# LociAR 1.0 — Third-Party SDK & Apple Requirements Audit
+# LociDrop 1.0 — Third-Party SDK & Apple Requirements Audit
 
 > Phase: P5 / P11  
 > Owner: A13 (SDK / Monetization / Compliance Specialist)  
@@ -8,7 +8,7 @@
 
 ## 1. Third-Party SDK Inventory & Verification
 
-Apple requires that commonly used third-party SDKs include privacy manifests and code signatures. The following table records all external packages linked into the LociAR application binary:
+Apple requires that commonly used third-party SDKs include privacy manifests and code signatures. The following table records all external packages linked into the LociDrop application binary:
 
 | Package / Framework | Version | Repository URL | Apple Listed SDK? | Privacy Manifest Included? | Signature Verified? | Purpose / Function |
 |---|---|---|---|---|---|---|
@@ -29,12 +29,12 @@ Apple requires that commonly used third-party SDKs include privacy manifests and
 
 ---
 
-## 2. GIPHY Compliance
+## 2. KLIPY Integration
 
-- **API Key**: The app **does not embed** a GIPHY API key. GIPHY search requests are executed server-side via the `searchGifs` Cloud Function.
-- **Rating**: Content rating is capped at `pg-13` in `functions/src/giphy.ts`.
-- **Media CDN**: Media assets are loaded strictly from `media.giphy.com` via HTTPS.
-- **Attribution**: The mandatory "Powered by GIPHY" attribution is prominently rendered on all search and selection interfaces, satisfying GIPHY Terms of Service.
+- **Requests**: Search and media requests originate on the iOS device; no server-side search proxy or media cache is used.
+- **App key**: `getGifConfig` supplies `KLIPY_APP_KEY` to signed-in, App Check-verified clients.
+- **Content filter**: Search requests use the `low` filter.
+- **Attribution**: "Powered by KLIPY" appears on GIF search and selection interfaces.
 
 ---
 

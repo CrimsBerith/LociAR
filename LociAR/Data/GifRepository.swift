@@ -1,6 +1,6 @@
 import Foundation
 
-/// One GIPHY search result. `title` is shown to VoiceOver only.
+/// One GIF search result. `title` is shown to VoiceOver only.
 struct GifSearchResult: Hashable, Sendable, Identifiable {
     let gif: GifReference
     let title: String
@@ -31,36 +31,30 @@ enum GifSearchError: LocalizedError, Equatable, Sendable {
     }
 }
 
-/// Server contract: functions/src/giphy.ts (`searchGifs`). The GIPHY key never reaches the app.
+/// An empty query returns trending GIFs.
 protocol GifRepository: Sendable {
-    /// An empty query returns trending GIFs.
     func search(query: String, offset: Int) async throws -> GifSearchPage
 }
 
+/// GIF search on KLIPY, called straight from the device (KLIPY does not allow a server in between).
+/// The app key comes from the `getGifConfig` callable; see KlipyMediaResolver.swift.
 final class FirebaseGifRepository: GifRepository, @unchecked Sendable {
-    private let callables: CallableClient
-
-    init(callables: CallableClient) { self.callables = callables }
-
-    private struct Response: Decodable {
-        struct Item: Decodable { let id: String; let title: String; let width: Int; let height: Int }
-        let gifs: [Item]
-        let nextOffset: Int?
+    init(callables: CallableClient) {
+        KlipyCallables.shared.set(callables)
     }
 
     func search(query: String, offset: Int) async throws -> GifSearchPage {
         guard let owner = FirebaseIdentity.currentLUID() else { throw AuthFlowError.notSignedIn }
-        let locale = Locale.current.identifier
-        // Match the server's 50 UTF-16-unit query and bounded offset before keying memory.
+        let region = KlipyAPI.regionCode() ?? ""
+        // The picker pages by offset; KLIPY pages by number. 50 UTF-16 units and 480 are the picker's bounds.
         let normalized = GifSearchQuery.normalized(query)
         let offset = max(0, min(offset, 480))
-        let key = "\(owner.uuidString)|\(locale)|\(offset)|\(normalized)"
-        let client = callables
+        let key = "\(owner.uuidString)|\(region)|\(offset)|\(normalized)"
         let page = try await ClientReadCaches.gifs.value(for: key, ttl: 300, cost: { page in
             page.results.reduce(64) { $0 + $1.title.utf8.count + $1.gif.id.utf8.count + 64 }
         }) {
             guard FirebaseIdentity.currentLUID() == owner else { throw AuthFlowError.notSignedIn }
-            let page = try await Self.fetch(client: client, query: normalized, offset: offset, locale: locale)
+            let page = try await Self.fetch(query: normalized, offset: offset, region: region, owner: owner)
             guard FirebaseIdentity.currentLUID() == owner else { throw AuthFlowError.notSignedIn }
             return page
         }
@@ -68,22 +62,44 @@ final class FirebaseGifRepository: GifRepository, @unchecked Sendable {
         return page
     }
 
-    private static func fetch(client: CallableClient, query: String, offset: Int, locale: String) async throws -> GifSearchPage {
-        let data: Data
+    static func queryItems(query: String, page: Int, config: GifClientConfig, region: String, owner: UUID) -> [URLQueryItem] {
+        var items = [
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "per_page", value: String(config.perPage)),
+            URLQueryItem(name: "customer_id", value: KlipyAPI.customerID(for: owner)),
+            URLQueryItem(name: "content_filter", value: config.contentFilter),
+            // Only the renditions the app shows.
+            URLQueryItem(name: "format_filter", value: "gif,jpg,mp4"),
+        ]
+        if !query.isEmpty { items.append(URLQueryItem(name: "q", value: query)) }
+        if !region.isEmpty { items.append(URLQueryItem(name: "locale", value: region)) }
+        return items
+    }
+
+    private static func fetch(query: String, offset: Int, region: String, owner: UUID) async throws -> GifSearchPage {
+        guard let config = await KlipyConfigStore.shared.config() else { throw GifSearchError.unavailable }
+        let perPage = min(max(config.perPage, 8), 50)
+        let settings = GifClientConfig(provider: config.provider, appKey: config.appKey, contentFilter: config.contentFilter, perPage: perPage)
+        let items = queryItems(query: query, page: offset / perPage + 1, config: settings, region: region, owner: owner)
+        let page: KlipyAPI.Page
         do {
-            data = try await client.callRaw("searchGifs", object: [
-                "query": query, "offset": offset, "locale": locale,
-            ] as [String: Any])
-        } catch BackendCallError.rejected(_, _, let reason) where reason == "rate_limited" {
+            page = try await KlipyAPI.page(path: query.isEmpty ? "trending" : "search", query: items)
+        } catch KlipyError.rateLimited {
             throw GifSearchError.rateLimited
-        } catch BackendCallError.rejected {
+        } catch {
             throw GifSearchError.unavailable
         }
-        let response = try JSONDecoder().decode(Response.self, from: data)
-        let results = response.gifs.compactMap { item in
-            GifReference(id: item.id, width: item.width, height: item.height).map { GifSearchResult(gif: $0, title: item.title) }
+        // KLIPY's order is kept as returned; only items the app cannot show safely are left out.
+        var media: [(slug: String, media: GifMedia)] = []
+        var results: [GifSearchResult] = []
+        for item in page.items {
+            guard let itemMedia = item.media,
+                  let gif = GifReference(klipySlug: item.slug, width: item.size.width, height: item.size.height) else { continue }
+            media.append((item.slug, itemMedia))
+            results.append(GifSearchResult(gif: gif, title: item.title ?? ""))
         }
-        return GifSearchPage(results: results, nextOffset: response.nextOffset)
+        await KlipyMediaResolver.shared.register(media)
+        return GifSearchPage(results: results, nextOffset: page.hasNext && offset + perPage <= 480 ? offset + perPage : nil)
     }
 }
 
@@ -92,7 +108,7 @@ struct PreviewGifRepository: GifRepository {
     func search(query: String, offset: Int) async throws -> GifSearchPage {
 #if DEBUG
         if UITestFixtures.sampleContentEnabled, offset == 0,
-           let gif = GifReference(id: "l0MYt5jPR6QX5pnqM", width: 200, height: 200) {
+           let gif = GifReference(klipySlug: "sample-dance-gif", width: 200, height: 200) {
             return GifSearchPage(results: [GifSearchResult(gif: gif, title: "")], nextOffset: nil)
         }
 #endif

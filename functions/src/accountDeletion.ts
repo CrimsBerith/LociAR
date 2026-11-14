@@ -191,6 +191,15 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ['support_checkout_locks', 'owner_luid'], ['support_refresh_quota', 'owner_luid'],
     ];
     await forEachSequential(byField, async ([collection, field]) => { await deleteQuery(db.collection(collection).where(field, '==', luid)); });
+    await deleteQuery(db.collection('admin_notification_batches').where('actor_uid', '==', job.uid));
+    for await (const batches of deletionPages(db.collection('admin_notification_batches').where('recipient_ids', 'array-contains', luid))) {
+      if (batches.empty) break;
+      checkBudget();
+      const removal = db.batch();
+      batches.docs.forEach(batch => removal.update(batch.ref, { recipient_ids: FieldValue.arrayRemove(luid) }));
+      await commit(removal);
+      if (batches.size < PAGE_SIZE) break;
+    }
     await deleteQuery(db.collection('admin_role_assignments').where('user_id', '==', job.uid));
     await deleteQuery(db.collection('admin_user_invites').where('invited_user_id', '==', job.uid));
     await forEachSequential(['admin_email_challenges', 'admin_email_sessions', 'admin_email_limits'], async (collection) => {

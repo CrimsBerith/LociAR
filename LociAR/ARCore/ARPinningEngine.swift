@@ -37,6 +37,9 @@ final class ARPinningEngine: NSObject {
     private(set) var meshAnchorCount = 0
 
     private(set) var hasRecentCameraFrame = false
+    /// The camera delivers frames, but they have been black for several seconds (covered lens,
+    /// no light or a failed sensor). Views explain it instead of showing an unexplained black screen.
+    private(set) var isCameraFeedDark = false
     private(set) var renderedPostID: UUID?
     @ObservationIgnored private var contentRenderGeneration = UUID()
 
@@ -77,6 +80,15 @@ final class ARPinningEngine: NSObject {
     @ObservationIgnored private var compassWorldAlignment = false
     @ObservationIgnored private var lastFrameReceivedAt: Date?
     @ObservationIgnored private var sessionGeneration = UUID()
+    /// Watches for a feed that stops without an ARKit interruption or failure callback.
+    @ObservationIgnored private var frameWatchdogTask: Task<Void, Never>?
+    @ObservationIgnored private var cameraFeedExpectedSince: Date?
+    @ObservationIgnored private var cameraRecoveryAttempts = 0
+    @ObservationIgnored private var lastFrameWatchdogTickAt: Date?
+    /// One automatic restart per session after a recoverable ARKit failure.
+    @ObservationIgnored private var didAutoRestartAfterFailure = false
+    @ObservationIgnored private var darkFeedDetector = DarkCameraFeedDetector()
+    @ObservationIgnored private var lastLumaSampleAt = Date.distantPast
     @ObservationIgnored private var cameraOwnerGeneration = UUID()
     @ObservationIgnored private var lastFrameCountersAt = Date.distantPast
     @ObservationIgnored private var sessionStartedAt: Date?
@@ -143,27 +155,8 @@ final class ARPinningEngine: NSObject {
         let bounds = "\(Int(view.bounds.width.rounded()))x\(Int(view.bounds.height.rounded()))"
         let hostBounds = view.superview.map { "\(Int($0.bounds.width.rounded()))x\(Int($0.bounds.height.rounded()))" } ?? "none"
         var luma = "none"
-        if let buffer = view.session.currentFrame?.capturedImage,
-           CVPixelBufferGetPlaneCount(buffer) > 0,
-           CVPixelBufferLockBaseAddress(buffer, .readOnly) == kCVReturnSuccess {
-            defer { _ = CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
-            if let base = CVPixelBufferGetBaseAddressOfPlane(buffer, 0) {
-                let width = CVPixelBufferGetWidthOfPlane(buffer, 0)
-                let height = CVPixelBufferGetHeightOfPlane(buffer, 0)
-                let stride = CVPixelBufferGetBytesPerRowOfPlane(buffer, 0)
-                if width > 0, height > 0 {
-                    let pixels = base.assumingMemoryBound(to: UInt8.self)
-                    var total = 0
-                    for row in 0..<16 {
-                        let y = min(height - 1, (row * 2 + 1) * height / 32)
-                        for column in 0..<16 {
-                            let x = min(width - 1, (column * 2 + 1) * width / 32)
-                            total += Int(pixels[y * stride + x])
-                        }
-                    }
-                    luma = String(total / 256)
-                }
-            }
+        if let buffer = view.session.currentFrame?.capturedImage, let value = ARCameraHealth.averageLuma(buffer) {
+            luma = String(value)
         }
         cachedCameraRenderDiagnostic = "camera view=\(bounds) host=\(hostBounds) window=\(view.window != nil ? 1 : 0) hidden=\(hidden ? 1 : 0) owner=\(owner)/\(preferred) hosts=\(hosts.count)/\(attached.count) luma=\(luma)"
         return cachedCameraRenderDiagnostic
@@ -257,7 +250,9 @@ final class ARPinningEngine: NSObject {
         guard !Task.isCancelled,
               sessionGeneration == generation,
               ownsCameraSession(ownerGeneration) else { return false }
-        transition(to: .failed, message: String(localized: "Kameradan canlı görüntü alınamadı. Tekrar deneyin."))
+        // A hot device is paused on purpose and resumes on its own; that is not a camera failure.
+        guard !isPausedForThermalPressure else { return false }
+        failCameraFeed()
         return false
 #endif
     }
@@ -318,14 +313,20 @@ final class ARPinningEngine: NSObject {
         onSessionStarted?(cameraOwnerGeneration)
         if await waitForLiveCameraFrame(generation: generation) { return true }
         guard !Task.isCancelled, sessionGeneration == generation else { return false }
-        transition(to: .failed, message: String(localized: "Kameradan canlı görüntü alınamadı. Tekrar deneyin."))
+        guard !isPausedForThermalPressure else { return false }
+        failCameraFeed()
         return false
 #endif
     }
 
+    /// Waits for a live frame. The watchdog decides when the feed has failed (it stops this wait by
+    /// moving to `.failed`); the budget here only ends the wait if the watchdog is not running.
     private func waitForLiveCameraFrame(generation: UUID) async -> Bool {
-        for _ in 0..<60 {
+        let polls = Int((ARCameraHealth.firstFrameWaitBudget * 10).rounded(.up))
+        for _ in 0..<polls {
             guard !Task.isCancelled, sessionGeneration == generation else { return false }
+            // The watchdog already gave up (or the device is too hot): stop waiting.
+            if state == .failed || isPausedForThermalPressure { return false }
             if let lastFrameReceivedAt,
                Date().timeIntervalSince(lastFrameReceivedAt) < 1 {
                 return true
@@ -369,9 +370,19 @@ final class ARPinningEngine: NSObject {
             transition(to: .failed, error: .unsupported)
             return
         }
-        transition(to: .initializing, message: String(localized: "Kamera hazırlanıyor…"))
         hasRecentCameraFrame = false
         lastFrameReceivedAt = nil
+        resetDarkFeed()
+        guard ARCameraHealth.mayStartSession(thermalState: ProcessInfo.processInfo.thermalState) else {
+            // Starting the camera on a critically hot device makes it hotter; the thermal observer
+            // starts the session once the device has cooled down.
+            stopFrameWatchdog()
+            pausedForThermalPressure = true
+            transition(to: .interrupted, message: String(localized: "Cihaz sıcaklığı yüksek; AR geçici olarak duraklatıldı."))
+            return
+        }
+        pausedForThermalPressure = false
+        transition(to: .initializing, message: String(localized: "Kamera hazırlanıyor…"))
         stopTrackedRaycast()
         let configuration = makeConfiguration()
         let options: ARSession.RunOptions = reset ? [.resetTracking, .removeExistingAnchors] : []
@@ -382,6 +393,7 @@ final class ARPinningEngine: NSObject {
         planeAnchorCount = 0
         meshAnchorCount = 0
         arView.session.run(configuration, options: options)
+        startFrameWatchdog()
         beginTrackedRaycastWhenReady()
 #endif
     }
@@ -410,6 +422,10 @@ final class ARPinningEngine: NSObject {
     func stopSession() {
         sessionGeneration = UUID()
         cameraOwnerGeneration = UUID()
+        stopFrameWatchdog()
+        pausedForThermalPressure = false
+        didAutoRestartAfterFailure = false
+        resetDarkFeed()
         contentRenderGeneration = UUID()
         renderedPostID = nil
         stopTrackedRaycast()
@@ -529,10 +545,30 @@ final class ARPinningEngine: NSObject {
 
     /// Also valid after a physical pin whose world map could not be saved (`.placed`/`.mapping`):
     /// the physical anchor is then replaced by a new approximate one without persistence.
-    func offerApproximatePlacement() {
-        let allowed: [PinSessionState] = [.scanning, .candidateReady, .approximateOffered, .placed, .mapping]
-        guard allowed.contains(state) else { return }
+    /// States from which an approximate (free-space) placement may be offered.
+    private static let approximatePlacementStates: [PinSessionState] = [.scanning, .candidateReady, .approximateOffered, .placed, .mapping]
+
+    /// Whether "Yaklaşık yerleştir" can act right now: the session has started scanning and the
+    /// camera delivers frames. Screens disable the button until then, so a tap during
+    /// `initializing`/`coaching` (common in the first seconds on a physical device) cannot be
+    /// swallowed without feedback.
+    var canOfferApproximatePlacement: Bool {
+        Self.approximatePlacementStates.contains(state) && hasRecentCameraFrame
+    }
+
+    /// Returns false when the session is not ready; the status message then says why.
+    @discardableResult
+    func offerApproximatePlacement() -> Bool {
+        guard Self.approximatePlacementStates.contains(state) else {
+            let notReady = String(localized: "Kamera hazırlanıyor. Yaklaşık yerleştirme birkaç saniye içinde kullanılabilir.")
+            switch state {
+            case .initializing, .coaching, .placing: transition(to: state, message: notReady)
+            default: recordDiagnostic("Approximate placement refused in state \(state.rawValue)")
+            }
+            return false
+        }
         transition(to: .approximateOffered, message: String(localized: "Yaklaşık yerleştirme seçildi. İçerik kameranın 0,8 m önünde konumlanacak."))
+        return true
     }
 
     func placeApproximate() {
@@ -774,6 +810,8 @@ final class ARPinningEngine: NSObject {
         relocalizationDeadline = Date().addingTimeInterval(TimeInterval(Self.relocalizationTimeoutSeconds))
         transition(to: .relocalizing, message: String(localized: "Dünya konumu hazırlanıyor. Post desene bağlı değil."))
         arView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+        // The feed normally keeps running across this run; the watchdog covers the case where it does not.
+        startFrameWatchdog()
 
         if let expectedAnchor, let restored = restoredAnchor {
             installEntity(for: restored, visible: false, quality: expectedAnchor.pinQuality, alignment: expectedAnchor.surfaceAlignment)
@@ -957,15 +995,9 @@ final class ARPinningEngine: NSObject {
 
     private static let gifVideoEntityName = "gif-video"
 
-    /// Plays the GIPHY MP4 (muted, looping) over the GIF area of the message bubble. The plane is
+    /// Plays the GIF MP4 (muted, looping) over the GIF area of the message bubble. The plane is
     /// added only once the video is ready, so the poster frame stays visible while it loads or if it fails.
     private func attachGifVideo(_ gif: GifReference, area: CGRect, bubbleSize: PhysicalRectMeters, to model: ModelEntity, postID: UUID) {
-        let player = AVQueuePlayer()
-        player.isMuted = true
-        player.preventsDisplaySleepDuringVideoPlayback = false
-        let looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: gif.videoURL))
-        videoPlayers[postID] = player
-        gifLoopers[postID] = looper
         let width = bubbleSize.width * Float(area.width)
         let height = bubbleSize.height * Float(area.height)
         let position = SIMD3<Float>(
@@ -973,13 +1005,29 @@ final class ARPinningEngine: NSObject {
             (0.5 - Float(area.midY)) * bubbleSize.height,
             0.001
         )
+        let generation = contentRenderGeneration
         Task { [weak self, weak model] in
+            // KLIPY media URLs are read from KLIPY; a failure leaves the poster frame and never
+            // touches the AR session.
+            guard let videoURL = await KlipyMediaResolver.shared.media(for: gif)?.videoURL else { return }
+            guard let self, let model, self.contentRenderGeneration == generation, self.videoPlayers[postID] == nil else { return }
+            let player = AVQueuePlayer()
+            player.isMuted = true
+            player.preventsDisplaySleepDuringVideoPlayback = false
+            let looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: videoURL))
+            self.videoPlayers[postID] = player
+            self.gifLoopers[postID] = looper
             for _ in 0..<100 {
                 if player.currentItem?.status == .readyToPlay { break }
-                if player.currentItem?.status == .failed { return }
+                if player.currentItem?.status == .failed { break }
                 try? await Task.sleep(for: .milliseconds(100))
             }
-            guard let self, let model, self.videoPlayers[postID] === player, player.currentItem?.status == .readyToPlay else { return }
+            guard self.videoPlayers[postID] === player else { return }
+            guard player.currentItem?.status == .readyToPlay else {
+                self.videoPlayers[postID] = nil
+                self.gifLoopers[postID] = nil
+                return
+            }
             let video = ModelEntity(
                 mesh: .generatePlane(width: width, height: height, cornerRadius: min(width, height) * 0.03),
                 materials: [VideoMaterial(avPlayer: player)]
@@ -1072,8 +1120,160 @@ final class ARPinningEngine: NSObject {
         transition(to: .relocalizing, message: String(localized: "AR oturumu yeniden eşleştiriliyor."))
         let configuration = makeConfiguration()
         configuration.initialWorldMap = activeInitialWorldMap
+        hasRecentCameraFrame = false
+        lastFrameReceivedAt = nil
         arView.session.run(configuration)
+        startFrameWatchdog()
         beginRelocalizationTimeout()
+    }
+
+    // MARK: Camera feed health
+
+    private func resetDarkFeed() {
+        darkFeedDetector.reset()
+        lastLumaSampleAt = .distantPast
+        if isCameraFeedDark { isCameraFeedDark = false }
+    }
+
+    private func stopFrameWatchdog() {
+        frameWatchdogTask?.cancel()
+        frameWatchdogTask = nil
+        cameraFeedExpectedSince = nil
+        cameraRecoveryAttempts = 0
+        lastFrameWatchdogTickAt = nil
+    }
+
+    /// Runs while a session is supposed to deliver frames. Ends when the session is replaced
+    /// (new generation), stopped or failed.
+    private func startFrameWatchdog() {
+        frameWatchdogTask?.cancel()
+        cameraFeedExpectedSince = Date()
+        cameraRecoveryAttempts = 0
+        lastFrameWatchdogTickAt = nil
+#if !targetEnvironment(simulator)
+        let generation = sessionGeneration
+        frameWatchdogTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: ARCameraHealth.watchdogInterval) } catch { return }
+                guard let self, self.sessionGeneration == generation else { return }
+                guard self.checkCameraFeed(now: Date()) else { return }
+            }
+        }
+#endif
+    }
+
+    /// Returns false when the watchdog should stop.
+    private func checkCameraFeed(now: Date) -> Bool {
+        switch state {
+        case .idle, .failed, .permissionRequired:
+            return false
+        case .interrupted:
+            // Paused on purpose (background, phone call, heat). Count from the moment it resumes.
+            cameraFeedExpectedSince = now
+            return true
+        default:
+            break
+        }
+        // The delegate callbacks stop while the app is not active; do not treat that as a stall.
+        guard UIApplication.shared.applicationState == .active else {
+            cameraFeedExpectedSince = now
+            return true
+        }
+        // Frames arrive on the main thread. If this check itself ran late, the main thread was
+        // busy or the app was suspended, so the missing frames say nothing about the camera.
+        let previousTick = lastFrameWatchdogTickAt
+        lastFrameWatchdogTickAt = now
+        if let previousTick, now.timeIntervalSince(previousTick) > 1.5 {
+            cameraFeedExpectedSince = now
+            return true
+        }
+        switch ARCameraHealth.action(
+            now: now,
+            expectedSince: cameraFeedExpectedSince ?? now,
+            lastFrameAt: lastFrameReceivedAt,
+            attempts: cameraRecoveryAttempts
+        ) {
+        case .healthy:
+            if cameraRecoveryAttempts != 0 { cameraRecoveryAttempts = 0 }
+        case .waiting:
+            hideStaleCameraFeed(now: now)
+        case .rerun:
+            hideStaleCameraFeed(now: now)
+            cameraRecoveryAttempts += 1
+            cameraFeedExpectedSince = now
+            let message = "AR camera feed stalled; rerun \(cameraRecoveryAttempts)/\(ARCameraHealth.maximumRecoveryAttempts) state=\(state.rawValue)"
+            logger.error("\(message, privacy: .public)")
+            recordDiagnostic(message)
+            rerunCameraFeed()
+        case .fail:
+            failCameraFeed()
+            return false
+        }
+        return true
+    }
+
+    /// Shows the "preparing camera" card instead of a frozen or black camera view.
+    private func hideStaleCameraFeed(now: Date) {
+        guard hasRecentCameraFrame else { return }
+        if let lastFrameReceivedAt, now.timeIntervalSince(lastFrameReceivedAt) < ARCameraHealth.stallThreshold { return }
+        hasRecentCameraFrame = false
+    }
+
+    /// Runs the session again without changing its generation, so screens waiting on it keep waiting.
+    private func rerunCameraFeed() {
+        let configuration = makeConfiguration()
+        if state == .relocalizing, let activeInitialWorldMap {
+            configuration.initialWorldMap = activeInitialWorldMap
+        }
+        arView.session.run(configuration, options: [])
+    }
+
+    /// The camera produced no usable feed: release it and leave a state every AR screen can retry from.
+    private func failCameraFeed(
+        message: String = String(localized: "Kameradan canlı görüntü alınamadı. Tekrar deneyin.")
+    ) {
+        stopFrameWatchdog()
+        existingARView?.session.pause()
+        hasRecentCameraFrame = false
+        lastFrameReceivedAt = nil
+        resetDarkFeed()
+        transition(to: .failed, message: message)
+    }
+
+    /// Whether a recoverable ARKit failure may be answered with one fresh session: only before
+    /// anything is pinned, because a restart drops every anchor.
+    private var canAutoRestartAfterFailure: Bool {
+        guard !didAutoRestartAfterFailure, currentAnchor == nil, activeInitialWorldMap == nil else { return false }
+        switch state {
+        case .initializing, .coaching, .scanning, .candidateReady: return true
+        default: return false
+        }
+    }
+
+    private func handleSessionFailure(domain: String, code: Int) {
+        let message = "AR session failed: \(domain) \(code) state=\(state.rawValue)"
+        logger.error("\(message, privacy: .public)")
+        recordDiagnostic(message)
+        switch ARCameraHealth.failureKind(domain: domain, code: code) {
+        case .cameraDenied:
+            stopFrameWatchdog()
+            hasRecentCameraFrame = false
+            lastFrameReceivedAt = nil
+            transition(to: .failed, error: .cameraDenied)
+        case .restartable where canAutoRestartAfterFailure:
+            didAutoRestartAfterFailure = true
+            hasRecentCameraFrame = false
+            lastFrameReceivedAt = nil
+            stopTrackedRaycast()
+            latestEstimatedResult = nil
+            candidateSamples.removeAll()
+            candidateQuality = nil
+            arView.session.run(makeConfiguration(), options: [.resetTracking, .removeExistingAnchors])
+            startFrameWatchdog()
+            beginTrackedRaycastWhenReady()
+        case .restartable, .fatal:
+            failCameraFeed(message: String(localized: "AR oturumu beklenmedik şekilde durdu. Tekrar deneyin."))
+        }
     }
 
     func beginTrackedRaycastWhenReady(attempt: Int = 0) {
@@ -1597,6 +1797,13 @@ extension ARPinningEngine: ARSessionDelegate {
         let mappingChanged = mappingQuality != quality
         lastFrameReceivedAt = now
         if !hasRecentCameraFrame { hasRecentCameraFrame = true }
+        if now.timeIntervalSince(lastLumaSampleAt) >= 1 {
+            lastLumaSampleAt = now
+            if let luma = ARCameraHealth.averageLuma(frame.capturedImage) {
+                let dark = darkFeedDetector.update(luma: luma, now: now)
+                if dark != isCameraFeedDark { isCameraFeedDark = dark }
+            }
+        }
         if mappingChanged { mappingQuality = quality }
         if let anchor = currentAnchor, anchor.worldMappingStatus != quality {
             currentAnchor?.worldMappingStatus = quality
@@ -1651,6 +1858,11 @@ extension ARPinningEngine: ARSessionDelegate {
     }
 
     nonisolated func session(_ session: ARSession, didFailWithError error: Error) {
+#if !targetEnvironment(simulator)
+        let failure = error as NSError
+        let failureDomain = failure.domain
+        let failureCode = failure.code
+#endif
         Task { @MainActor [weak self] in
             guard let self, ![.idle, .permissionRequired].contains(self.state) else { return }
 #if targetEnvironment(simulator)
@@ -1663,8 +1875,7 @@ extension ARPinningEngine: ARSessionDelegate {
                 self.transition(to: .scanning, message: String(localized: "Simülatör kamerası sınırlı. Pin arayüzü açık."))
             }
 #else
-            self.hasRecentCameraFrame = false
-            self.transition(to: .failed, message: String(localized: "AR oturumu beklenmedik şekilde durdu. Tekrar deneyin."))
+            self.handleSessionFailure(domain: failureDomain, code: failureCode)
 #endif
         }
     }

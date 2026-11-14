@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { db, auth as adminAuth, Timestamp, luidForUid } from '../lib/core.js';
 import { readPublicContent } from '../lib/publicContent.js';
-import { searchGifs } from '../lib/giphy.js';
 import { deliverActivityPush } from '../lib/push.js';
 import { ownCampaignOffers } from '../lib/campaigns.js';
 import { onPostWritten, onProfileUpdated } from '../lib/triggers.js';
@@ -34,46 +33,6 @@ test('own_receipt performs one fresh account transaction and still rejects suspe
   suspended = true;
   await assert.rejects(readPublicContent.run({ auth, data: { mode: 'own_receipt', postId } }), error => error.code === 'permission-denied');
   assert.equal(io.reads(), 5, 'the rejected account never reads the post');
-});
-
-test('parallel GIF searches share only the external request, never account/quota checks; failures can retry', async t => {
-  const previousKey = process.env.GIPHY_API_KEY;
-  process.env.GIPHY_API_KEY = 'fake-api-key';
-  const io = transaction(t, ref => {
-    assert.ok(['profiles', 'account_deletion_jobs', 'gif_search_quota'].includes(ref.parent.id));
-    if (ref.parent.id === 'profiles') return {};
-  });
-  let calls = 0, release;
-  const gate = new Promise(resolve => { release = resolve; });
-  let fail = false;
-  t.mock.method(globalThis, 'fetch', async () => {
-    calls++; await gate;
-    if (fail) throw new Error('synthetic-network-failure');
-    return { ok: true, status: 200, json: async () => ({ data: [] }) };
-  });
-  const request = (index, query, offset = 0, locale = 'en') => searchGifs.run({
-    auth: { ...auth, uid: `cost-search-${index}` }, data: { query, offset, locale },
-  });
-  try {
-    const pending = Array.from({ length: 8 }, (_, i) => request(i, 'shared-cost-regression'));
-    await new Promise(resolve => setImmediate(resolve));
-    assert.equal(calls, 1); release();
-    await Promise.all(pending);
-    assert.equal(io.reads(), 24); assert.equal(io.writes(), 8);
-    await request(8, 'shared-cost-regression'); assert.equal(calls, 1);
-    assert.equal(io.reads(), 27); assert.equal(io.writes(), 9);
-    await Promise.all([request(9, 'shared-cost-regression', 24), request(10, 'shared-cost-regression', 0, 'tr')]);
-    assert.equal(calls, 3, 'locale and page do not share results');
-    fail = true;
-    await assert.rejects(request(11, 'failed-cost-regression'), error => error.details?.reason === 'gif_unavailable');
-    fail = false;
-    await request(12, 'failed-cost-regression');
-    assert.equal(calls, 5, 'a rejected pending lookup is removed');
-  } finally {
-    release();
-    if (previousKey === undefined) delete process.env.GIPHY_API_KEY;
-    else process.env.GIPHY_API_KEY = previousKey;
-  }
 });
 
 for (const mode of ['disabled', 'receipt', 'quota']) {

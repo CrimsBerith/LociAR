@@ -12,10 +12,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function CampaignsPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const admin = await requireAdmin({ permission: 'campaigns.read' }), db = adminDb(), parameters = await searchParams;
-  const [brands, campaigns, jobs, assignments] = await Promise.all([
+  const [brands, campaigns, jobs, batches, assignments] = await Promise.all([
     db.collection('brands').orderBy('created_at', 'desc').limit(100).get(),
     readDocumentPage(db.collection('campaigns'), { scope: 'campaigns', cursors: pageCursors(parameters), size: 25 }),
     admin.permissions.has('notifications.send') ? db.collection('admin_notification_jobs').orderBy('created_at', 'desc').limit(25).get() : null,
+    admin.permissions.has('notifications.send') ? db.collection('admin_notification_batches').orderBy('created_at', 'desc').limit(25).get() : null,
     admin.permissions.has('campaigns.audience') && admin.permissions.has('users.location.read') && admin.permissions.has('notifications.send')
       ? db.collection('campaign_targets').orderBy('created_at', 'desc').limit(25).get() : null,
   ]);
@@ -49,9 +50,17 @@ export default async function CampaignsPage({ searchParams }: Readonly<{ searchP
       {assignments.docs.map(a => <p key={a.id}>{String(a.get('campaign_id'))} · {String(a.get('owner_luid'))} · {String(a.get('notification_mode') ?? 'immediate')}
         {' · '}{a.get('arrival_notified_at') ? `${t('Reminder admitted')} (${a.get('movement_event') ?? 'entry'}) ${iso(a.get('arrival_notified_at'))}` : t('No reminder admitted')} · {t('Expires')} {iso(a.get('expires_at'))}</p>)}
     </section> : null}
-    {jobs ? <section className="panel"><h2>{t('Latest notification attempts')}</h2><p className="muted">{t('Accepted means FCM accepted the request. Device delivery and opening are not guaranteed. Up to 3 promotional jobs per user per day.')}</p>
+    {jobs ? <section className="panel"><h2>{t('Latest notification attempts')}</h2><p className="muted">{t('Accepted means FCM accepted the request. Device delivery and opening are not guaranteed. Up to 3 promotion or administrator-notice jobs per user per day share a limit.')}</p>
       {jobs.empty ? <p className="muted">{t('No notification attempts yet.')}</p> : null}
       {jobs.docs.map(j => <p key={j.id}>{j.id} · {String(j.get('recipient_id'))} · {t(String(j.get('status')))} · {t('Accepted')} {Number(j.get('accepted') ?? 0)} · {t('Failed')} {Number(j.get('failed') ?? 0)} · {t('Attempts')} {Number(j.get('attempts') ?? 0)}{j.get('no_device') ? ` · ${t('No registered device')}` : ''}</p>)}
+    </section> : null}
+    {batches ? <section className="panel"><h2>{t('Notification batches')}</h2>
+      <p className="muted">{t('Batch status tracks server-side eligibility checks and queueing, not device delivery.')}</p>
+      {batches.empty ? <p className="muted">{t('No notification batches yet.')}</p> : null}
+      {batches.docs.map(b => <p key={b.id}>{b.id} · {t(b.get('target') === 'all' ? 'All eligible users' : 'Selected users on this page')} · {t(String(b.get('status')))} ·
+        {' '}{t('Processed {processed} · queued {queued} · skipped {skipped}', {
+          processed: Number(b.get('processed') ?? 0), queued: Number(b.get('queued') ?? 0), skipped: Number(b.get('skipped') ?? 0),
+        })} · {iso(b.get('created_at'))}</p>)}
     </section> : null}
   </section>;
 }

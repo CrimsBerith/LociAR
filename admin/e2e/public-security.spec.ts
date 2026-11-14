@@ -7,8 +7,8 @@ test.describe('admin login in English', () => {
   test('admin login is branded, responsive and security-hardened', async ({ page }) => {
     const response = await page.goto('/admin/login');
     expect(response?.ok()).toBeTruthy();
-    await expect(page).toHaveTitle(/LociAR Admin/);
-    await expect(page.getByText('LociAR administration', { exact: true })).toBeVisible();
+    await expect(page).toHaveTitle(/LociDrop Admin/);
+    await expect(page.getByText('LociDrop administration', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Administrator sign-in' })).toBeVisible();
     // The email-code form is the default; the older link form stays collapsed in <details>.
     await expect(page.locator('#otp-email')).toBeVisible();
@@ -28,7 +28,7 @@ test.describe('admin login in Turkish', () => {
   test('admin login follows a Turkish browser language', async ({ page }) => {
     const response = await page.goto('/admin/login');
     expect(response?.ok()).toBeTruthy();
-    await expect(page.getByText('LociAR yönetim', { exact: true })).toBeVisible();
+    await expect(page.getByText('LociDrop yönetim', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Yönetici girişi' })).toBeVisible();
     await expect(page.locator('#otp-email')).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);

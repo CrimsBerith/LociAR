@@ -1,8 +1,8 @@
-# LociAR 1.0 — Operational Release & Deployment Runbook
+# LociDrop 1.0 — Operational Release & Deployment Runbook
 
 > Phase: P9 / P11  
 > Owners: A12 (CI/CD Specialist), A00 (Technical Leader)  
-> Application: LociAR iOS & Firebase Backend (`lociar-2f38c`)  
+> Application: LociDrop iOS & Firebase Backend (`lociar-2f38c`)  
 > Target Date: 2 Kasım 2026  
 
 ---
@@ -72,10 +72,10 @@ firebase deploy --only apphosting --project lociar-2f38c
 ```bash
 cd functions
 # Generate reviewer credentials into a secure local file (not inside repo)
-node scripts/provision-review-account.mjs apple-review@alfagolab.com
+node scripts/provision-review-account.mjs apple-review@locidrop.com
 
 # Seed sample review content around Apple Park and Istanbul
-node scripts/seed-review-content.mjs apple-review@alfagolab.com
+node scripts/seed-review-content.mjs apple-review@locidrop.com
 ```
 
 ---

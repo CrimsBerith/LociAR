@@ -39,7 +39,7 @@ final class StoreReadinessTests: XCTestCase {
         // Google ARCore, which processes the camera / location data (ARCore disclosure).
         for key in ["NSCameraUsageDescription", "NSLocationWhenInUseUsageDescription"] {
             let text = try XCTUnwrap(bundle.object(forInfoDictionaryKey: key) as? String, key)
-            XCTAssertTrue(text.contains("LociAR") && text.contains("Google ARCore"), "\(key): \(text)")
+            XCTAssertTrue(text.contains("LociDrop") && text.contains("Google ARCore"), "\(key): \(text)")
         }
         let temporary = try XCTUnwrap(
             bundle.object(forInfoDictionaryKey: "NSLocationTemporaryUsageDescriptionDictionary") as? [String: String]
@@ -55,7 +55,7 @@ final class StoreReadinessTests: XCTestCase {
             ["UIInterfaceOrientationPortrait"]
         )
         XCTAssertNil(bundle.object(forInfoDictionaryKey: "UISupportedInterfaceOrientations~ipad"))
-        XCTAssertEqual(bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "LociAR")
+        XCTAssertEqual(bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "LociDrop")
         XCTAssertEqual(
             bundle.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String,
             "public.app-category.social-networking"
@@ -81,6 +81,7 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeUserID"))
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypePhotosorVideos"))
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeOtherUserContent"))
+        XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeSearchHistory"), "GIF search words go from the device to KLIPY")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeName"), "Apple full name is sent to ensureProfile")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeProductInteraction"), "views/likes and analytics_events")
         XCTAssertTrue(collectedTypes.contains("NSPrivacyCollectedDataTypeCoarseLocation"), "analytics_events keep approximate location")
@@ -175,9 +176,9 @@ final class StoreReadinessTests: XCTestCase {
 
     func testShippedConfigurationExposesConfiguredLegalHTTPSURLs() throws {
         let configuration = AppConfiguration.load(bundle: appBundle)
-        XCTAssertEqual(configuration.privacyPolicyURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy")
-        XCTAssertEqual(configuration.termsURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms")
-        XCTAssertEqual(configuration.supportURL?.absoluteString, "https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support")
+        XCTAssertEqual(configuration.privacyPolicyURL?.absoluteString, "https://locidrop.com/privacy")
+        XCTAssertEqual(configuration.termsURL?.absoluteString, "https://locidrop.com/terms")
+        XCTAssertEqual(configuration.supportURL?.absoluteString, "https://locidrop.com/support")
         XCTAssertTrue(configuration.appleAuthEnabled)
         for url in [configuration.privacyPolicyURL, configuration.termsURL, configuration.supportURL] {
             let value = try XCTUnwrap(url?.absoluteString)

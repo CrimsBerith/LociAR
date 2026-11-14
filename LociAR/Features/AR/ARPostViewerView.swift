@@ -49,6 +49,9 @@ struct ARPostViewerView: View {
             if !engine.hasRecentCameraFrame {
                 ARCameraBackdrop(failed: engine.state == .failed, message: message)
             }
+            if engine.hasRecentCameraFrame, engine.isCameraFeedDark {
+                ARDarkCameraNotice()
+            }
             if isAiming, engine.state != .resolved {
                 aimingReticle
             }

@@ -1,8 +1,8 @@
-# LociAR App Profile
+# LociDrop App Profile
 
 ## Ürün
 
-LociAR, insanların gerçek şehir yüzeylerine konuma ve bakış açısına bağlı dijital içerik bırakıp keşfetmesini sağlayan sosyal AR uygulamasıdır.
+LociDrop, insanların gerçek şehir yüzeylerine konuma ve bakış açısına bağlı dijital içerik bırakıp keşfetmesini sağlayan sosyal AR uygulamasıdır.
 
 ## Değer önerisi
 

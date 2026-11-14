@@ -59,9 +59,9 @@ export default function UserInvitationPage() {
   }
 
   return <main id="main" tabIndex={-1} className="authPage"><section className="authCard">
-    <div className="brandMark">L</div><p className="eyebrow">LociAR invitation</p>
-    <h1>{finished ? 'Your account is ready' : user ? 'Set a password for LociAR' : 'Accept your invitation'}</h1>
-    {finished ? <><p>Open LociAR on your iPhone and sign in with your email and the password you just set. Choose your handle and complete onboarding in the app.</p><a className="buttonLink" href="lociar://open">Open LociAR</a></> : null}
+    <div className="brandMark">L</div><p className="eyebrow">LociDrop invitation</p>
+    <h1>{finished ? 'Your account is ready' : user ? 'Set a password for LociDrop' : 'Accept your invitation'}</h1>
+    {finished ? <><p>Open LociDrop on your iPhone and sign in with your email and the password you just set. Choose your handle and complete onboarding in the app.</p><a className="buttonLink" href="lociar://open">Open LociDrop</a></> : null}
     {ready && !user && !finished ? <form className="stack" onSubmit={confirmEmail}>
       <label htmlFor="invite-email">Invited email</label><input id="invite-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} />
       <button disabled={busy}>{busy ? 'Verifying…' : 'Verify email and continue'}</button>

@@ -107,7 +107,7 @@ struct MainTabView: View {
                 router.pendingPostID = nil
             }
         }
-        .alert("LociAR", isPresented: Binding(get: { deepLinkMessage != nil }, set: { if !$0 { deepLinkMessage = nil } })) {
+        .alert("LociDrop", isPresented: Binding(get: { deepLinkMessage != nil }, set: { if !$0 { deepLinkMessage = nil } })) {
             Button("Tamam", role: .cancel) {
                 // Dismissing the alert requires no additional action.
             }

@@ -193,7 +193,7 @@ export async function queueNotification(body: Record<string, unknown>, actor: st
   const campaignId = body.campaignId ? uuid(body.campaignId, 'campaignId').toLowerCase() : null;
   const mode = body.notificationMode ?? 'immediate';
   if (typeof mode !== 'string' || !['immediate', 'map', 'arrival', 'departure'].includes(mode) || (!campaignId && mode !== 'immediate')) throw new ValidationError('Invalid notification mode');
-  const title = campaignId && !body.title ? 'LociAR' : text(body.title, 'title', 80), message = campaignId && !body.message ? '' : text(body.message, 'message', 240);
+  const title = campaignId && !body.title ? 'LociDrop' : text(body.title, 'title', 80), message = campaignId && !body.message ? '' : text(body.message, 'message', 240);
   const departureRadius = mode === 'departure' ? numeric(body.departureRadius ?? 150, 'departure radius', 100, 500) : null;
   const db = adminDb(), hash = mutationHash(actor, 'notification_queue', recipient, { campaignId, title, message, mode, departureRadius, reason });
   return await db.runTransaction(async tx => {
@@ -233,5 +233,69 @@ export async function queueNotification(body: Record<string, unknown>, actor: st
     writeAudit(tx, key, { requestHash: hash, actorId: actor, action: 'notification_queue', resourceType: 'notification', resourceId: id,
       after: { campaignId, kind: campaignId ? 'promotion' : 'admin_notice' }, reason, permissionKey: 'notifications.send', riskLevel: 'sensitive' });
     return { id };
+  });
+}
+
+export const MAX_SELECTED_NOTIFICATION_RECIPIENTS = 200;
+const HANDLE_PATTERN = /^[a-z0-9._]{3,30}$/;
+/** Code-unit order, the same order Array.prototype.sort used before; the audit hash depends on it. */
+const byCodeUnit = (a: string, b: string) => (a < b ? -1 : Number(a > b));
+
+/** Resolve typed @handles to profile ids; an unknown handle stops the whole batch instead of being skipped silently. */
+async function recipientsForHandles(value: unknown): Promise<string[]> {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > MAX_SELECTED_NOTIFICATION_RECIPIENTS || value.some(handle => typeof handle !== 'string')) throw new ValidationError('invalid_notification_recipients');
+  const handles = [...new Set(value.map(handle => String(handle).trim().replace(/^@/, '').toLowerCase()))];
+  if (handles.some(handle => !HANDLE_PATTERN.test(handle))) throw new ValidationError('invalid_notification_handles');
+  const found = new Map<string, string>();
+  for (let index = 0; index < handles.length; index += 30) {
+    const snapshot = await adminDb().collection('profiles').where('handle', 'in', handles.slice(index, index + 30)).get();
+    for (const doc of snapshot.docs) found.set(String(doc.get('handle')), doc.id);
+  }
+  if (handles.some(handle => !found.has(handle))) throw new ValidationError('unknown_notification_handles');
+  return [...found.values()];
+}
+
+export async function queueNotificationBatch(body: Record<string, unknown>, actor: string, reason: string, key: string) {
+  const target = body.target;
+  let recipientIds: string[] | null = null;
+  if (target === 'selected') {
+    const listed = body.recipientIds === undefined ? [] : body.recipientIds;
+    if (!Array.isArray(listed) || listed.length > MAX_SELECTED_NOTIFICATION_RECIPIENTS || listed.some(id => typeof id !== 'string')) throw new ValidationError('invalid_notification_recipients');
+    const ids = listed.map(id => uuid(id, 'recipientId').toLowerCase());
+    if (new Set(ids).size !== ids.length) throw new ValidationError('invalid_notification_recipients');
+    recipientIds = [...new Set([...ids, ...await recipientsForHandles(body.handles)])].sort(byCodeUnit);
+    if (recipientIds.length < 1 || recipientIds.length > MAX_SELECTED_NOTIFICATION_RECIPIENTS) throw new ValidationError('invalid_notification_recipients');
+  } else if (target === 'all') {
+    if (body.confirmAll !== true || body.recipientIds !== undefined || body.handles !== undefined) throw new ValidationError('notification_confirmation_required');
+  } else {
+    throw new ValidationError('invalid_notification_target');
+  }
+  const title = text(body.title, 'title', 80), message = text(body.message, 'message', 240);
+  const id = derivedKey(key, 'admin-notification-batch'), db = adminDb();
+  const hash = mutationHash(actor, 'notification_batch_queue', id, { target, recipientIds, title, message, reason });
+  return await db.runTransaction(async tx => {
+    await access(tx, actor, 'notifications.send');
+    const receipt = await tx.get(db.collection('admin_audit_log').doc(key));
+    if (checkReceipt(receipt, hash)) return { id, target, recipientCount: recipientIds?.length ?? null };
+    tx.create(db.collection('admin_notification_batches').doc(id), {
+      target,
+      ...(recipientIds ? { recipient_ids: recipientIds } : {}),
+      actor_uid: actor,
+      title,
+      message,
+      status: 'queued',
+      cursor: null,
+      processed: 0,
+      queued: 0,
+      skipped: 0,
+      created_at: FieldValue.serverTimestamp(),
+      expires_at: Timestamp.fromMillis(Date.now() + 7 * 86_400_000),
+    });
+    writeAudit(tx, key, {
+      requestHash: hash, actorId: actor, action: 'notification_batch_queue', resourceType: 'notification_batch', resourceId: id,
+      after: { target, recipientCount: recipientIds?.length ?? null }, reason, permissionKey: 'notifications.send', riskLevel: 'sensitive',
+    });
+    return { id, target, recipientCount: recipientIds?.length ?? null };
   });
 }

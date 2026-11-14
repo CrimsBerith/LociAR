@@ -1,4 +1,4 @@
-# LociAR 1.0 — Privacy Compliance & Manifest Audit
+# LociDrop 1.0 — Privacy Compliance & Manifest Audit
 
 > Phase: P5 (Security, Privacy & Compliance)  
 > Owners: A07 (Privacy Specialist), A13 (Compliance Specialist)  
@@ -100,7 +100,7 @@ The application target includes a verified `PrivacyInfo.xcprivacy` declaring all
 
 ## 2. Third-Party SDK Privacy Manifests
 
-Both binary and source packages included in LociAR have been validated to contain official Apple privacy manifests:
+Both binary and source packages included in LociDrop have been validated to contain official Apple privacy manifests:
 1. **Firebase iOS SDK (12.19.3)**: Bundles dedicated `PrivacyInfo.xcprivacy` files for FirebaseCore, FirebaseAuth, FirebaseFirestore, FirebaseStorage, FirebaseCrashlytics, and FirebaseMessaging.
 2. **Google ARCore SDK (1.56.0)**: Bundles verified `PrivacyInfo.xcprivacy` covering geospatial camera frame processing and cloud anchor resolution.
 

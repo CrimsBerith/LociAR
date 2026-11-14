@@ -3,10 +3,10 @@
 export const LEGAL_ENTITY = {
   controllerName: 'Kağan Kartal Babahan',
   controllerAddress: 'Edremit, Balıkesir, Türkiye',
-  contactEmail: 'support@alfagolab.com',
+  contactEmail: 'support@locidrop.com',
   analyticsRetentionDays: 180,
   /** Crash reports are kept by Firebase Crashlytics for 90 days. */
   crashRetentionDays: 90,
-  updatedTr: '26 Ekim 2026',
-  updatedEn: '26 October 2026',
+  updatedTr: '13 Kasım 2026',
+  updatedEn: '13 November 2026',
 };

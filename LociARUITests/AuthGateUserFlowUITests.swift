@@ -23,7 +23,7 @@ extension AuthGateUITests {
         XCTAssertTrue(publishButton.waitForExistence(timeout: 5))
         publishButton.tap()
 
-        let alert = app.alerts["LociAR"]
+        let alert = app.alerts["LociDrop"]
         XCTAssertTrue(alert.waitForExistence(timeout: 10))
         alert.buttons["Tamam"].tap()
 

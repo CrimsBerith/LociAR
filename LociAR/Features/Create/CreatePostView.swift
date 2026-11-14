@@ -17,7 +17,7 @@ struct CreatePostView: View {
     @State private var publishAnonymously = true
     /// Frozen once this id is submitted; retries must never change public attribution.
     @State private var intentAnonymously: Bool?
-    /// The post's GIPHY GIF (at most one); posts are a message: text and/or a GIF.
+    /// The post's selected GIF (at most one); posts are a message: text and/or a GIF.
     @State private var selectedGif: GifReference?
     @State private var showGifPicker = false
     @State private var isPublishing = false
@@ -70,7 +70,7 @@ struct CreatePostView: View {
             }
         }
         .arcoreDisclosure()
-        .alert("LociAR", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+        .alert("LociDrop", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             if offerLocationSettings {
                 Button("Konum ayarlarını aç") {
                     offerLocationSettings = false
@@ -129,6 +129,9 @@ struct CreatePostView: View {
             if !engine.hasRecentCameraFrame {
                 ARCameraBackdrop(failed: engine.state == .failed, message: engine.statusMessage)
             }
+            if engine.hasRecentCameraFrame, engine.isCameraFeedDark {
+                ARDarkCameraNotice()
+            }
             Circle().stroke(engine.candidateQuality != nil ? LociTheme.accent : LociTheme.mediaOverlayText, lineWidth: LociTheme.Stroke.emphasis).frame(width: 54, height: 54)
             VStack {
                 LociCard(appearance: isSearchingSurface ? .arSearch : .floating) {
@@ -145,13 +148,10 @@ struct CreatePostView: View {
                             .font(.footnote)
                             .foregroundStyle(isSearchingSurface ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText)
 #if DEBUG
-                        DisclosureGroup(String(localized: "Tanılama")) {
-                            Text(engine.mappingDiagnosticSummary)
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(isSearchingSurface ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText)
-                                .accessibilityIdentifier("ar-mapping-diagnostic")
-                        }
-                        .font(.caption)
+                        MappingDiagnosticDisclosure(
+                            summary: engine.mappingDiagnosticSummary,
+                            ink: isSearchingSurface ? LociTheme.arSearchInk.opacity(0.82) : LociTheme.secondaryText
+                        )
 #endif
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -203,6 +203,7 @@ struct CreatePostView: View {
                                     }
                                 }
                                 .buttonStyle(LociSecondaryButtonStyle())
+                                .disabled(!engine.canOfferApproximatePlacement)
                             }
                         }
                         Button("Bu yerleşimi kullan") { startCommit(anchor) }
@@ -226,6 +227,9 @@ struct CreatePostView: View {
                         }
                         .buttonStyle(LociSecondaryButtonStyle())
                         .padding(.top, LociTheme.Spacing.xs)
+                        // Disabled until the session scans with a live camera frame; an earlier tap
+                        // would be refused by the engine and the screen would stay on "Yüzey seç".
+                        .disabled(!engine.canOfferApproximatePlacement || isCommitting)
                         .accessibilityIdentifier("create-place-approximate")
                     }
                 }
@@ -322,7 +326,7 @@ struct CreatePostView: View {
     }
 
     private func editor(anchor: SurfaceAnchor) -> some View {
-        // Posts are a message: text and/or one GIPHY GIF (no photos, videos, drawings or links).
+        // Posts are a message: text and/or one KLIPY GIF (no photos, videos, drawings or links).
         ScrollView {
             VStack(spacing: LociTheme.Spacing.l) {
                 LociCard {
@@ -384,10 +388,11 @@ struct CreatePostView: View {
             VStack(alignment: .leading, spacing: LociTheme.Spacing.m) {
                 LociSectionLabel(title: String(localized: "GIF"), symbol: "photo.stack")
                 if let gif = selectedGif {
-                    AnimatedGIFView(url: gif.previewURL)
+                    AnimatedGIFView(gif: gif)
                         .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                         .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
+                        .overlay(alignment: .bottomLeading) { KlipyWatermark() }
                         .accessibilityIdentifier("create-gif-preview")
                     HStack {
                         Button("Değiştir") { showGifPicker = true }
@@ -396,7 +401,7 @@ struct CreatePostView: View {
                             .buttonStyle(LociCompactButtonStyle())
                             .accessibilityIdentifier("create-gif-remove")
                         Spacer()
-                        Text(verbatim: "Powered by GIPHY").font(.caption2.weight(.bold)).foregroundStyle(LociTheme.secondaryText)
+                        KlipyPoweredByMark(height: 16)
                     }
                 } else {
                     Button { showGifPicker = true } label: {
@@ -561,7 +566,7 @@ struct CreatePostView: View {
                     ? String(localized: "Post cihaz test modunda saklandı. Canlı backend bağlandığında yayınlanabilir.")
                     : String(localized: "İnternet bağlantısı yok. Post cihazda sıraya alındı ve bağlantı geri geldiğinde yeniden denenecek.")
             case .queued(.servicePaused):
-                message = String(localized: "LociAR geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak.")
+                message = String(localized: "LociDrop geçici olarak durduruldu. Post cihazda sıraya alındı ve hizmet açıldığında yayınlanacak.")
             case .queued(.backendUnavailable):
                 message = String(localized: "Yayın ilk denemede tamamlanamadı. Post Profil > Postlarım’da görünür; uygulama 15 saniyede bir yeniden dener veya ‘Şimdi yayınla’ ile hemen gönderebilirsin.")
             case .rejected(let reason):

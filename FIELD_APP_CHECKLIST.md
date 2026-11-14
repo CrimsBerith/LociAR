@@ -1,4 +1,4 @@
-# LociAR — App Field / QA Checklist (Issue #18)
+# LociDrop — App Field / QA Checklist (Issue #18)
 
 Mevcut Sekmeler: **AR (`viewfinder`) / Harita (`map.fill`) / Paylaş (`plus.circle.fill`) / Keşfet (`safari.fill`) / Profil (`person.crop.circle.fill`)** (`MainTabView.swift`)
 
@@ -47,14 +47,14 @@ Mevcut Sekmeler: **AR (`viewfinder`) / Harita (`map.fill`) / Paylaş (`plus.circ
 |---|--------|-------|
 | D1 | Harita sekmesinde yakındaki postlar pin olarak yükleniyor / boş durum gösteriliyor | [x] Geçti |
 | D2 | Keşfet araması post listesini anlık güncelliyor | [ ] Tekrar test |
-| D3 | Paylaş sekmesi: bağlantı ve çizim seçeneği yok; metin ve/veya 1 GIF (GIPHY araması, "Powered by GIPHY") paylaşılabiliyor; AR'da mesaj balonu ve oynayan GIF görünüyor | [ ] Tekrar test |
+| D3 | Paylaş sekmesi: bağlantı ve çizim seçeneği yok; metin ve/veya 1 GIF (KLIPY araması, "Powered by KLIPY") paylaşılabiliyor; AR'da mesaj balonu ve oynayan GIF görünüyor | [ ] Tekrar test |
 | D4 | AR yüzey tespiti 1-3 saniye içinde yüzey geometrisini kilitliyor | [x] Geçti |
 | D5 | Google ARCore veri bildirimi ilk seferde çıkıyor ve onay sonrası kapanıyor | [x] Geçti |
 | D6 | Paylaş sekmesinde "İçerik ekle": önce Cloud Anchor host edilir ("Yüzey Google AR'a kaydediliyor…"), olmazsa dünya haritası; post `createPost` ile `pending_review` olarak yazılır, çevrimdışıysa sıraya alınır | [ ] Tekrar test |
 | D7 | Giriş ekranı: gizlilik/topluluk kuralları onay kutusu işaretlenmeden e-posta ve Apple girişi kapalı | [ ] Tekrar test |
 | D8 | İlk yayından sonra bildirim izni soruluyor; başka hesaptan beğeni/yorum/takip push olarak geliyor ve dokununca post açılıyor | [ ] Tekrar test |
 | D9 | Profil → Ayarlar: bildirim durumu doğru, "Çökme raporları" anahtarı kapanıp açılıyor | [ ] Tekrar test |
-| D10 | Admin → System → kill switch açıkken yayın "LociAR geçici olarak durduruldu" diyor, post sırada bekliyor; kapatınca yayınlanıyor | [ ] Tekrar test |
+| D10 | Admin → System → kill switch açıkken yayın "LociDrop geçici olarak durduruldu" diyor, post sırada bekliyor; kapatınca yayınlanıyor | [ ] Tekrar test |
 | D11 | Hesap silme: Apple hesabında Apple ile yeniden giriş, e-posta hesabında şifre soruluyor; sonra hesap tamamen siliniyor | [ ] Tekrar test |
 | D12 | Cihaz dili İngilizce (ve en az bir başka dil, ör. Arapça sağdan-sola) iken tüm sekmeler, uyarılar ve izin metinleri o dilde | [ ] Tekrar test |
 | D13 | Post AR'da açılırken 8 sn sonra "Yaklaşık göster" çıkıyor ve yaklaşık görünümü açıyor; kapatınca kamera tekrar açılmıyor | [ ] Tekrar test |

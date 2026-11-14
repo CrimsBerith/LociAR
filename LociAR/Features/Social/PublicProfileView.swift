@@ -71,7 +71,7 @@ struct PublicProfileView: View {
                 if isLoading { HStack { Spacer(); ProgressView().tint(LociTheme.accent); Spacer() }.padding(LociTheme.Spacing.l) }
                 else if posts.isEmpty { LociEmptyState(title: String(localized: "Henüz not yok"), message: message ?? String(localized: "Bu hesap henüz bir not paylaşmadı."), symbol: "rectangle.stack") }
                 ForEach(posts) { post in
-                    NavigationLink(value: post) { PostCard(post: post) }.listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    PostCardLink(post: post) { PostCard(post: post) }.listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
             }
         }

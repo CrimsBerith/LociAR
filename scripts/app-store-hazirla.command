@@ -77,7 +77,7 @@ ask "Gerçek cap/uyarı/kota durumunu ve hizmet sürekliliğini kontrol ettim, d
 
 # ---------------------------------------------------------------- 4
 step "4/8  Eksik secret'lar (Firebase deploy her secret'ı ister)"
-for name in APPLE_PRIVATE_KEY GIPHY_API_KEY SUPPORT_STRIPE_SECRET_KEY SUPPORT_STRIPE_WEBHOOK_SECRET; do
+for name in APPLE_PRIVATE_KEY KLIPY_APP_KEY SUPPORT_STRIPE_SECRET_KEY SUPPORT_STRIPE_WEBHOOK_SECRET; do
   if "$FIREBASE" functions:secrets:get "$name" --project "$PROJECT" >/dev/null 2>&1; then echo "✓ $name var"
   else fail "$name Secret Manager'da yok; bu gerçek bir anahtar, rastgele değerle doldurulamaz (docs/CREDENTIALS.md)."; fi
 done
@@ -98,11 +98,11 @@ if ask "Canlı Firebase'e deploy edeyim mi?"; then
 fi
 
 # ---------------------------------------------------------------- 6
-step "6/8  Admin ve yasal sayfalar (yeni destek adresi support@alfagolab.com)"
+step "6/8  Admin ve yasal sayfalar (yeni destek adresi support@locidrop.com)"
 if ask "Admin panelini yayınlayayım mı?"; then
   (cd admin && npx --no-install tsc --noEmit && npm test --silent) || fail "Admin kontrolleri geçmedi."
   "$FIREBASE" deploy --only apphosting --project "$PROJECT" --non-interactive || fail "Admin yayını başarısız."
-  echo "✅ Kontrol: https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support (support@alfagolab.com görünmeli)"
+  echo "✅ Kontrol: https://locidrop.com/support (support@locidrop.com görünmeli)"
 fi
 
 # ---------------------------------------------------------------- 7
@@ -116,7 +116,7 @@ fi
 
 # ---------------------------------------------------------------- 8
 step "8/8  App Review hesabı ve açılış içeriği"
-if command -v gcloud >/dev/null 2>&1 && ask "apple-review@alfagolab.com hesabını açayım ve örnek içeriği yükleyeyim mi?"; then
+if command -v gcloud >/dev/null 2>&1 && ask "apple-review@locidrop.com hesabını açayım ve örnek içeriği yükleyeyim mi?"; then
   gcloud auth application-default print-access-token >/dev/null 2>&1 || gcloud auth application-default login || fail "Google kimliği yok."
   gcloud auth application-default set-quota-project "$PROJECT" >/dev/null 2>&1 || true
   CRED="$HOME/Desktop/lociar-review-$STAMP.json"
@@ -124,7 +124,7 @@ if command -v gcloud >/dev/null 2>&1 && ask "apple-review@alfagolab.com hesabın
     || fail "İnceleme hesabı açılamadı."
   echo "Parola: $CRED (yalnız App Store Connect → Sign-In Information alanına gir; sonra dosyayı sil)."
   read -r -p "Şimdi telefonda bu hesapla bir kez giriş yap (profil oluşsun), sonra Enter'a bas… " _
-  (cd functions && FIREBASE_PROJECT_ID="$PROJECT" node scripts/seed-review-content.mjs apple-review@alfagolab.com) \
+  (cd functions && FIREBASE_PROJECT_ID="$PROJECT" node scripts/seed-review-content.mjs apple-review@locidrop.com) \
     || fail "Örnek içerik yüklenemedi (hesapla uygulamada giriş yapıldı mı?)."
   echo "✅ İnceleme içeriği hazır. Eski apple-review@lociar.app hesabını admin panelinden sil."
   if ask "Açılış seed'ini (başkentler + işletme notları) de yükleyeyim mi?"; then

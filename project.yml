@@ -48,13 +48,13 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.khankartal.lociar
         PRODUCT_NAME: LociAR
         INFOPLIST_FILE: LociAR/Resources/Info.plist
-        INFOPLIST_KEY_CFBundleDisplayName: LociAR
+        INFOPLIST_KEY_CFBundleDisplayName: LociDrop
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.social-networking
         CODE_SIGN_ENTITLEMENTS: LociAR/Resources/LociAR.entitlements
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ZSRUTGX74S
         GENERATE_INFOPLIST_FILE: NO
-        CURRENT_PROJECT_VERSION: 1
+        CURRENT_PROJECT_VERSION: 6
         MARKETING_VERSION: 1.0.0
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: NO

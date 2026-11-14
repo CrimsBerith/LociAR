@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { giphyPreviewUrl, strokePolylines, summarizePostContent } from "../lib/postContent.ts";
+import { klipyAppKey, klipyItemsUrl, klipyPreviewFromItems, strokePolylines, summarizePostContent } from "../lib/postContent.ts";
 
 const post = (layers, source) => ({
   edit_data_json: JSON.stringify({ layers }),
@@ -29,7 +29,7 @@ test("summary drops unsafe colours, non-https links and malformed points", () =>
 });
 
 test("summary tolerates missing or invalid JSON", () => {
-  assert.deepEqual(summarizePostContent({ edit_data_json: "{nope", content_source_json: 5 }), { texts: [], gifs: [], strokes: [], source: null });
+  assert.deepEqual(summarizePostContent({ edit_data_json: "{nope", content_source_json: 5 }), { texts: [], klipyGifs: [], strokes: [], source: null });
 });
 
 test("polylines fit inside the box with padding", () => {
@@ -39,11 +39,30 @@ test("polylines fit inside the box with padding", () => {
   assert.deepEqual(strokePolylines([]), []);
 });
 
-test("GIF layers surface a single validated GIPHY id for moderators", () => {
-  const s = summarizePostContent(post([{ type: "text", text: "Selam" }, { type: "gif", gifId: "l0MYt5jPR6QX5pnqM" }, { type: "gif", gifId: "second" }]));
+test("a gifId is not shown; only a KLIPY slug is", () => {
+  const s = summarizePostContent(post([{ type: "text", text: "Selam" }, { type: "gif", gifId: "l0MYt5jPR6QX5pnqM" }]));
   assert.deepEqual(s.texts, ["Selam"]);
-  assert.deepEqual(s.gifs, ["l0MYt5jPR6QX5pnqM"]);
-  assert.deepEqual(summarizePostContent(post([{ type: "gif", gifId: "../x" }])).gifs, []);
-  assert.equal(giphyPreviewUrl("l0MYt5jPR6QX5pnqM"), "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/200w.gif");
-  assert.equal(giphyPreviewUrl("a/b"), null);
+  assert.deepEqual(s.klipyGifs, []);
+});
+
+test("KLIPY GIF layers surface a validated slug; media is looked up in the browser and only from KLIPY hosts", () => {
+  const s = summarizePostContent(post([{ type: "text", text: "Selam" }, { type: "gif", provider: "klipy", gifSlug: "happy-cat-f7u--kOKp0sbu4", width: 480, height: 270 }, { type: "gif", gifId: "second" }]));
+  assert.deepEqual(s.klipyGifs, ["happy-cat-f7u--kOKp0sbu4"]);
+  for (const gifSlug of ["https://static.klipy.com/x.gif", "a/b", "../x", "a b", "", 5]) {
+    assert.deepEqual(summarizePostContent(post([{ type: "gif", provider: "klipy", gifSlug }])).klipyGifs, [], String(gifSlug));
+  }
+  const key = "emulatorKlipyKey0123456789abcdefABCDEF";
+  assert.equal(klipyAppKey(` ${key} `), key);
+  for (const bad of [undefined, "", "short", "has/slash0123456789"]) assert.equal(klipyAppKey(bad), null);
+  assert.equal(klipyItemsUrl(key, "happy-cat"), `https://api.klipy.com/api/v1/${key}/gifs/items?slugs=happy-cat&content_filter=low`);
+  assert.equal(klipyItemsUrl(key, "a/b"), null);
+  assert.equal(klipyItemsUrl("bad key", "happy-cat"), null);
+  const items = (url) => ({ result: true, data: { data: [{ slug: "happy-cat", file: { sm: { gif: { url } } } }] } });
+  assert.equal(klipyPreviewFromItems(items("https://static.klipy.com/ii/a/b.gif")), "https://static.klipy.com/ii/a/b.gif");
+  assert.equal(klipyPreviewFromItems(items("https://static2.klipy.com/ii/a/b.gif")), "https://static2.klipy.com/ii/a/b.gif");
+  for (const bad of ["http://static.klipy.com/a.gif", "https://evil.example/a.gif", "https://static.klipy.com.evil.example/a.gif", "https://user@static.klipy.com/a.gif", "javascript:alert(1)", 5]) {
+    assert.equal(klipyPreviewFromItems(items(bad)), null, String(bad));
+  }
+  assert.equal(klipyPreviewFromItems({ result: true, data: { data: [] } }), null);
+  assert.equal(klipyPreviewFromItems(null), null);
 });

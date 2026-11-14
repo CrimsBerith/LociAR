@@ -30,7 +30,7 @@ export function anonymousIdentity(postId: string, creatorId: string, viewerId: s
 export function publicEditData(value: unknown): Record<string, unknown> {
   const data = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   const layers = Array.isArray(data.layers) ? data.layers : [];
-  const keys = ['id', 'type', 'text', 'color', 'opacity', 'scale', 'rotation', 'points', 'gifId', 'width', 'height',
+  const keys = ['id', 'type', 'text', 'color', 'opacity', 'scale', 'rotation', 'points', 'provider', 'gifSlug', 'width', 'height',
     'x', 'y', 'zIndex', 'strokeWidth', 'fontSize'];
   const safe = layers.flatMap(raw => {
     if (!raw || typeof raw !== 'object') return [];
@@ -39,7 +39,7 @@ export function publicEditData(value: unknown): Record<string, unknown> {
     const cleaned: Record<string, unknown> = { type };
     for (const key of keys) {
       const item = layer[key];
-      if ((['id', 'text', 'color', 'gifId'].includes(key) && typeof item === 'string')
+      if ((['id', 'text', 'color', 'provider', 'gifSlug'].includes(key) && typeof item === 'string')
           || (typeof item === 'number' && Number.isFinite(item))) cleaned[key] = item;
     }
     if (Array.isArray(layer.points)) cleaned.points = layer.points.slice(0, 2000).flatMap(point => {

@@ -3,6 +3,19 @@ import SwiftUI
 import SwiftData
 import UIKit
 
+/// Pushes a post from a list row without the system disclosure chevron, which otherwise
+/// squeezes the card and leaves a stray ">" outside it.
+struct PostCardLink<Label: View>: View {
+    let post: LociPost
+    @ViewBuilder var label: Label
+
+    var body: some View {
+        label
+            .accessibilityAddTraits(.isButton)
+            .overlay { NavigationLink(value: post) { EmptyView() }.opacity(0) }
+    }
+}
+
 struct PostCard: View {
     let post: LociPost
     var likeCount: Int? = nil
@@ -18,17 +31,11 @@ struct PostCard: View {
             }
             authorHeader
             if let gif = post.gif {
-                AnimatedGIFView(url: gif.previewURL)
+                AnimatedGIFView(gif: gif)
                     .aspectRatio(min(max(gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
-                    .overlay(alignment: .bottomTrailing) {
-                        Text(verbatim: "GIPHY")
-                            .font(.caption2.weight(.heavy))
-                            .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xs)
-                            .background(LociTheme.background.opacity(0.72), in: Capsule()).overlay(Capsule().stroke(LociTheme.hairline))
-                            .padding(LociTheme.Spacing.xs)
-                    }
+                    .overlay(alignment: .bottomLeading) { KlipyWatermark() }
                     .accessibilityElement()
                     .accessibilityLabel(Text("GIF"))
                 if let text = post.messageText {
@@ -110,7 +117,7 @@ struct PostCard: View {
 
 struct OfficialContentBadge: View {
     var body: some View {
-        Label { Text(verbatim: "LociAR") } icon: { Image(systemName: "checkmark.seal.fill") }
+        Label { Text(verbatim: "LociDrop") } icon: { Image(systemName: "checkmark.seal.fill") }
             .lineLimit(1).fixedSize(horizontal: true, vertical: false)
             .font(.caption2.weight(.semibold)).foregroundStyle(LociTheme.accent)
             .padding(.horizontal, LociTheme.Spacing.s).padding(.vertical, LociTheme.Spacing.xs)

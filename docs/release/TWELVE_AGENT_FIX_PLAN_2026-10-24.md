@@ -1,4 +1,4 @@
-# FIX-12 — LociAR on iki ajanlı düzeltme planı
+# FIX-12 — LociDrop on iki ajanlı düzeltme planı
 
 **Güncel el:** [GEMINI_CONTINUE_2026-10-24.md](GEMINI_CONTINUE_2026-10-24.md). Bu dosyayı baştan yürütme. HEAD artık `60afbca` değil.
 

@@ -3,15 +3,15 @@ import LegalLayout from '../legal-layout';
 import { LEGAL_ENTITY as E } from '../legal-entity';
 
 export const metadata = {
-  title: 'LociAR Destek',
-  description: 'LociAR hesap silme, içerik ve yorum bildirme, engelleme, bildirim ve gizlilik yardımı.',
+  title: 'LociDrop Destek',
+  description: 'LociDrop hesap silme, içerik ve yorum bildirme, engelleme, bildirim ve gizlilik yardımı.',
 };
 
 export default function SupportPage() {
   return (
     <LegalLayout title="Destek" updated={E.updatedTr}>
       <p>
-        Uygulamadaki işlemlerin çoğu doğrudan LociAR içinden yapılır. Yardıma ihtiyacınız olursa bize e-posta ile ulaşın.
+        Uygulamadaki işlemlerin çoğu doğrudan LociDrop içinden yapılır. Yardıma ihtiyacınız olursa bize e-posta ile ulaşın.
         {' '}<Link href="/support/en">English</Link>
       </p>
 
@@ -34,7 +34,7 @@ export default function SupportPage() {
 
       <h2>Bildirimler ve izinler</h2>
       <p>
-        Bildirimleri, kamerayı ve konumu iOS Ayarlar → LociAR yolundan açıp kapatabilirsiniz. Çökme raporlarını Profil →
+        Bildirimleri, kamerayı ve konumu iOS Ayarlar → LociDrop yolundan açıp kapatabilirsiniz. Çökme raporlarını Profil →
         Ayarlar&apos;dan kapatabilirsiniz.
       </p>
 

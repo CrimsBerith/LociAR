@@ -1,9 +1,27 @@
-# LociAR Multi-Agent Test Evidence & Verification Log
+# LociDrop Multi-Agent Test Evidence & Verification Log
 
 **Date:** 2026-11-02  
 **Environment:** macOS (Darwin 24), Node.js v20.x, Xcode 16 / Swift 6, Firebase Emulators  
 **Branch:** `origin/codex/fix-anonymous-location-audit`  
 **Latest Verification Commit:** `10c5229` (Release Candidate `v1.0.0-rc1`)
+
+> **Tarihsel kayıt.** Aşağıdaki sayılar 2 Kasım 2026, `10c5229` içindir ve bugünkü commit'in kanıtı değildir (test planı, 12 Kas). Güncel durum: [TRACEABILITY.md](TRACEABILITY.md) ve aşağıdaki "12 Kasım 2026" bölümü.
+
+## 12 Kasım 2026 — `claude/klipy-migration` (VM, Linux, Node 22, JDK 21, Firebase emulators)
+
+| Alan | Komut | Sonuç |
+|---|---|---|
+| Functions birim | `cd functions && npm test` | 192/192 |
+| Firestore + Storage Rules | `npm run test:rules` | 97/97 |
+| Functions emülatör entegrasyonu + notes | dosya başına ayrı `emulators:exec` | 229/229 (27 dosya) |
+| Cost / support | `test:cost`, `test:support` | 29/29, 17/17 |
+| Admin | `tsc --noEmit`, `npm test`, `test:emulator` | temiz, 52/52, 128/128 (12 Chromium testi VM'de koşulamadı: sistem kütüphanesi eksik) |
+| l10n / secret scan | `build_catalog.py --check`, `qa-secret-scan.sh` | 739×12 ✅, ✅ |
+| iOS | `scripts/claude-h-verify-and-pr.command` (Mac) | bekliyor |
+
+Not: 4 GB'lık VM'de tüm entegrasyon dosyaları tek emülatörde koşunca functions işçileri belleği doldurup Firestore emülatörünü öldürdü (SIGKILL); her dosya ayrı koşunca hepsi yeşil. CI (ubuntu-latest, 16 GB) bundan etkilenmez.
+
+---
 
 ---
 

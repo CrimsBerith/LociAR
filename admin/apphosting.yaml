@@ -16,7 +16,7 @@ env:
     availability:
       - RUNTIME
   - variable: ADMIN_EMAIL_FROM
-    value: LociAR <onboarding@resend.dev>
+    value: LociDrop <onboarding@resend.dev>
     availability:
       - RUNTIME
   - variable: ADMIN_ORIGIN

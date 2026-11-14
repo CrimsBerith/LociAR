@@ -1,4 +1,4 @@
-# Premium Score — LociAR 1.0 Design-System Baseline
+# Premium Score — LociDrop 1.0 Design-System Baseline
 
 ## Mandatory gates
 

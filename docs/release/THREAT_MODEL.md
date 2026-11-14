@@ -1,4 +1,4 @@
-# LociAR 1.0 — Threat Model & Security Architecture (STRIDE)
+# LociDrop 1.0 — Threat Model & Security Architecture (STRIDE)
 
 > Phase: P2 / P5  
 > Owner: A07 (Security & Privacy Specialist)  

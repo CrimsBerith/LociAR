@@ -84,11 +84,12 @@ function decode(value:unknown,scope:string):{id:string;date:Timestamp}|null{
 export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInstances:CALLABLE_MAX_INSTANCES,timeoutSeconds:60},async request=>{
  const caller=requireCaller(request);const body=(request.data??{})as Record<string,unknown>,mode=scalarText(body.mode??'discover');
  if (mode === 'own_receipt') return readOwnReceipt(body, caller.luid);
- if (!['eligible_authors', 'profile', 'single', 'search_profiles', 'nearby', 'map_groups', 'map_group', 'saved', 'collection', 'comments', 'discover', 'creator'].includes(mode)) {
+ if (!['eligible_authors', 'profile', 'single', 'search_profiles', 'nearby', 'map_groups', 'map_group', 'saved', 'collection', 'comments', 'discover', 'creator', 'blocked'].includes(mode)) {
    throw new HttpsError('invalid-argument', 'Invalid content mode');
  }
  await db.runTransaction(tx=>requireActiveAccount(tx,caller.luid));
  if (mode === 'saved' || mode === 'collection') return readEdgePage(body, caller.luid, mode === 'collection');
+ if (mode === 'blocked') return readBlockedProfiles(caller.luid);
  const blocked = await exclusions(caller.luid);
  switch (mode) {
  case 'eligible_authors': return readEligibleAuthors(body, blocked);
@@ -120,6 +121,26 @@ const id=scalarText(body.postId??'');if(!/^[0-9a-f-]{36}$/.test(id)){ throw new 
 async function readEligibleAuthors(body: Record<string, unknown>, blocked: BlockSets) {
 const ids=body.authorIds;if(!Array.isArray(ids)||ids.length>100||ids.some(id=>typeof id!=='string'||!/^[0-9a-f-]{36}$/.test(id))){ throw new HttpsError('invalid-argument','Invalid author list'); }
   return {authorIds:[...await visibleAuthors(ids,blocked.identity)]};
+}
+
+/** Upper bound of the caller's own block list served to the Blocked accounts screen. */
+export const BLOCKED_LIST_LIMIT = 200;
+
+/**
+ * The caller's own identity blocks with the minimum needed to recognise them: handle and preset avatar.
+ * Rules hide a blocked profile from the client, so the list is projected here. Blocks against the caller
+ * and anonymous mutes are never listed; photos, bios and counters are not returned.
+ */
+async function readBlockedProfiles(luid: string) {
+  const blocks = await db.collection('user_blocks').where('blocker_id', '==', luid).limit(BLOCKED_LIST_LIMIT).get();
+  const ids = [...new Set(blocks.docs.map(doc => String(doc.get('blocked_id') ?? '').toLowerCase()).filter(isUUID))];
+  const profiles = ids.length ? await db.getAll(...ids.map(id => db.collection('profiles').doc(id))) : [];
+  return { profiles: profiles.map((profile, i) => {
+    const live = profile.exists && !profile.get('deleted_at');
+    const handle = live ? profile.get('handle') : null;
+    const preset = live ? profile.get('avatar_preset') : null;
+    return { id: ids[i], handle: typeof handle === 'string' && handle ? handle : null, avatar_preset: typeof preset === 'string' ? preset : null };
+  }) };
 }
 
 async function readProfile(body: Record<string, unknown>, blocked: BlockSets) {

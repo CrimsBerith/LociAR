@@ -2,7 +2,7 @@
 
 Güncel native iOS / Firebase yayın planı: [RELEASE_READINESS.md](release/RELEASE_READINESS.md). Bu arşiv yayın onayı değildir.
 
-# LociAR Pre-Deploy Inventory
+# LociDrop Pre-Deploy Inventory
 
 **Updated:** 2026-08-06  
 **Purpose:** Single map of product surface, services, flags, and open gaps for D0→D2.

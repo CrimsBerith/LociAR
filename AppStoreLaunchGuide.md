@@ -1,4 +1,4 @@
-# LociAR — App Store launch (verified sources)
+# LociDrop — App Store launch (verified sources)
 
 **This checklist contains no review credentials or assumed working demo links.** The canonical release materials below take precedence over generated marketing drafts.
 

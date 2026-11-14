@@ -1,4 +1,4 @@
-# LociAR çalışma panosu
+# LociDrop çalışma panosu
 
 Güncelleme: 10 Ekim 2026. Güncel kapsam native iOS + Firebase + Next.js App Hosting'dir.
 Önceki çalışma panosu Git geçmişinde korunur; geçmiş test sonuçları bu adayın yayın onayı değildir.
@@ -13,8 +13,8 @@ Kod kuralları: [AGENTS.md](AGENTS.md). Test komutları: [docs/QA_MATRIX.md](doc
 
 10 Ekim: Mac'te 127 birim + 19 simülatör UI testi ve 19 kapılı backend/admin preflight geçti.
 Geniş UI kapsamı CI'ya alındı; test ortamı demo bucket/credential ayarlarıyla izole edildi.
-GIPHY beta anahtarı yalnız Secret Manager'da; 2 profilin `account_access` backfill'i sonrası
-`changed=0`. Canlı rules repo ile aynı; 18 indeks READY, 19 TTL ACTIVE. Functions
+KLIPY araması cihazda yapılır; `KLIPY_APP_KEY` yalnız Secret Manager'da tutulur ve `getGifConfig` ile sağlanır.
+2 profilin `account_access` backfill'i sonrası `changed=0`. Canlı rules repo ile aynı; 18 indeks READY, 19 TTL ACTIVE. Functions
 dağıtımı sıralıdır; private Pub/Sub Storage bildirimleri region ve retry ile doğrulanır.
 Son canlı/saha kabulü ve aday CI sonucu ayrı kanıt gerektirir.
 Aşağıdaki 5 Ekim iş kayıtları fiziksel veya canlı yayın onayı sayılmaz.

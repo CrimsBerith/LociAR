@@ -35,7 +35,7 @@ These local policy/emulator checks do not prove provider settlement.
 
 ## Provider and deployment status
 
-The UK Stripe account is labeled LociAR. Three GBP test prices, the restricted test key and the active four-event test webhook exist; both secret values are in Google Secret Manager. A setup-only Checkout session showed card, Apple Pay and Revolut Pay, but **no payment was submitted** and the destination has **zero deliveries**.
+The UK Stripe account is labeled LociDrop. Three GBP test prices, the restricted test key and the active four-event test webhook exist; both secret values are in Google Secret Manager. A setup-only Checkout session showed card, Apple Pay and Revolut Pay, but **no payment was submitted** and the destination has **zero deliveries**.
 
 The new Firebase/Cloud Run revisions build successfully and fail runtime readiness on port 8080. Latest checked return revision: `supportcheckoutreturn-00004-sow`, `Ready: False`, `HealthCheckContainerError`; return-page HTTP probe: 403. Its Functions metadata still says ACTIVE, which is not proof of readiness. Standard service-agent role bindings are present; no missing-role repair was justified. Automatic runtime updates remain enabled. The root cause is not established.
 

@@ -231,7 +231,7 @@ struct AppSettingsView: View {
             Text("Arka planda paylaşılmaz. Kapatınca paylaşılan son konum silinir; notlarının konumu ve iOS konum izni değişmez.")
                 .font(.footnote).foregroundStyle(LociTheme.secondaryText)
             if sharing.locationPermissionDenied {
-                Text("Konum izni kapalı. Ayarlar’dan LociAR için konumu açın.").font(.footnote)
+                Text("Konum izni kapalı. Ayarlar’dan LociDrop için konumu açın.").font(.footnote)
                 Button("Ayarları aç") { openAppSettings() }
             }
         }

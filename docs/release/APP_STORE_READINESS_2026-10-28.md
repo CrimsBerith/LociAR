@@ -1,4 +1,4 @@
-# LociAR App Store kabulü — 28 Ekim 2026
+# LociDrop App Store kabulü — 28 Ekim 2026
 
 **Karar: henüz gönderime hazır değil.** Firebase mimarisi ve kullanıcının ₺10 Cloud Functions sınırı
 korundu. Yerel kabul, canlı web, canlı mobil API ve App Store alanları ayrı değerlendirilir.

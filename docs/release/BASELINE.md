@@ -1,4 +1,4 @@
-# LociAR 1.0 — Initial Technical Baseline & Verification Record
+# LociDrop 1.0 — Initial Technical Baseline & Verification Record
 
 > Phase: P1  
 > Owners: A00 (Technical Leader), A12 (CI/CD Specialist), A09 (Test Specialist)  

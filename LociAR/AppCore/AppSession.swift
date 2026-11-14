@@ -195,6 +195,10 @@ final class AppSession {
         do {
             if let user = try await authRepository.completeAuthCallback(url) {
                 guard !Task.isCancelled, generation == operationGeneration else { return }
+                // Firebase resets passwords on its hosted page, so a lociar://password-reset link carries no
+                // recovery session. It must not move an account that is already signed in into recovery,
+                // where "back to sign in" would sign it out (any app or page can open this URL).
+                if url.host?.lowercased() == "password-reset", case let .signedIn(current) = phase, current.id == user.id { return }
                 phase = user.isAnonymousAccount ? .signedOut
                     : url.host == "password-reset" ? .passwordRecovery(user) : .signedIn(user)
             }
@@ -248,6 +252,9 @@ final class AppSession {
         ClientReadCaches.clear() // Also discard work started while push/Auth sign-out was draining.
         AvatarURLCache.shared.clear()
         phase = .signedOut
+        // Observe again now that sign-out has finished, so a later Auth change (a sign-in completed
+        // elsewhere, an expired session) reaches the UI without waiting for a foreground transition.
+        startAuthObservationIfNeeded()
     }
 
     func accountDeletionMethod() async throws -> AccountDeletionMethod {

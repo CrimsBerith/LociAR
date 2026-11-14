@@ -1,4 +1,4 @@
-# LociAR çok ajanlı uçtan uca denetim — 24 Ekim 2026
+# LociDrop çok ajanlı uçtan uca denetim — 24 Ekim 2026
 
 **Sonuç: Mevcut sürüm yayın için hazır kabul edilemez.** Test paketleri geçiyor; buna rağmen bu tur ayrı senaryolarla anonimlik, özel ilişki mahremiyeti, admin rol yetkisi ve harita okuma geometrisi kusurları yeniden üretildi. Canlı ödeme altyapısı da eksik/sağlıksız. Bu rapor mevcut kodu düzeltmiş veya dağıtmış sayılmaz.
 

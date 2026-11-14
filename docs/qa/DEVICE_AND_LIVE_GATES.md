@@ -1,4 +1,6 @@
-# LociAR Device Readiness & Live Production Gates
+# LociDrop Device Readiness & Live Production Gates
+
+> **Tarihsel kayıt (2 Kasım 2026).** Bu belgedeki cihaz ve canlı kapı iddiaları bugünkü commit için taze değildir. Güncel durum ve açık kanıt: [TRACEABILITY.md](TRACEABILITY.md), `docs/release/IOS_PHYSICAL_DEVICE_QA_2026-11-11.md`.
 
 **Audit Date:** 2026-11-02  
 **Target Platform:** iOS 17.0+ (Swift 6 strict concurrency)  

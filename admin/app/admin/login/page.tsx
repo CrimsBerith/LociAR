@@ -59,7 +59,7 @@ export default function AdminLogin() {
 
   return <main id="main" tabIndex={-1} className="authPage"><section className="authCard">
     <div className="authTop"><div className="brandMark">L</div><LanguageSwitcher /></div>
-    <p className="eyebrow">{t('LociAR administration')}</p><h1>{t('Administrator sign-in')}</h1>
+    <p className="eyebrow">{t('LociDrop administration')}</p><h1>{t('Administrator sign-in')}</h1>
     <p className="muted">{t('Sign in with the 6-digit code sent to your email. Only authorized administrator accounts can access.')}</p>
     {!sent ? <form onSubmit={requestCode} className="stack">
       <label htmlFor="otp-email">{t('Email')}</label>

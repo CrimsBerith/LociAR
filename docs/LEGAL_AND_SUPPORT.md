@@ -8,7 +8,7 @@ live in `admin/app/legal-entity.ts`.
 
 | Item | Turkish | English |
 |------|---------|---------|
-| Privacy Policy (KVKK + GDPR) | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy` | `…/privacy/en` |
+| Privacy Policy (KVKK + GDPR) | `https://locidrop.com/privacy` | `…/privacy/en` |
 | Terms of Use + community rules (incl. Apple EULA, zero tolerance) | `…/terms` | `…/terms/en` |
 | Support | `…/support` | `…/support/en` |
 
@@ -30,9 +30,9 @@ domain is attached, update `Config/Base.xcconfig`, `admin/apphosting.yaml` (`ADM
 
 ## App Review contact
 
-- Email: same as support (`support@alfagolab.com`, the owner's Alfago Lab domain with Hostinger mail; owner decision
+- Email: same as support (`support@locidrop.com` on the app's own domain locidrop.com; owner decision 13 Nov 2026, previously support@alfagolab.com from
   26 Oct 2026). `lociar.app` is not registered, so no `@lociar.app` address is used.
-- Demo path: verified `apple-review@alfagolab.com` account + `seed-review-content.mjs` sample posts (password only in
+- Demo path: verified `apple-review@locidrop.com` account + `seed-review-content.mjs` sample posts (password only in
   App Store Connect).
 
 ## UGC statement (for App Review notes)

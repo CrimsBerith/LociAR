@@ -15,13 +15,14 @@ test('public edit data drops legacy media and hidden owner metadata while preser
     { id: 'text', type: 'text', text: 'Keep this note', uri: 'storage://owner/text', owner: 'owner' },
     { id: 'image', type: 'image', uri: 'storage://owner/photo' },
     { id: 'drawing', type: 'drawing', points: [{ x: 1, y: 2, owner: 'owner' }] },
-    { id: 'gif', type: 'gif', gifId: 'Valid123', width: 200, height: 300 },
+    { id: 'gif', type: 'gif', provider: 'klipy', gifSlug: 'happy-cat', gifId: 'Valid123', width: 200, height: 300 },
   ] };
   const projected = publicEditData(source);
   assert.equal(JSON.stringify(projected).includes('owner'), false);
   assert.equal(projected.layers.length, 3);
   assert.deepEqual(projected.layers[1].points, [{ x: 1, y: 2 }]);
-  assert.equal(projected.layers[2].gifId, 'Valid123');
+  assert.equal(projected.layers[2].gifSlug, 'happy-cat');
+  assert.equal(projected.layers[2].gifId, undefined);
   assert.equal(source.layers.length, 4, 'projection never mutates the server source');
 });
 test('each anonymous post exposes its own alias, never the author account or handle', () => {

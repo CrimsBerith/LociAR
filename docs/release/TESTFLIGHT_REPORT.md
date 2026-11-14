@@ -1,4 +1,4 @@
-# LociAR 1.0 — TestFlight & Real Device Readiness Report
+# LociDrop 1.0 — TestFlight & Real Device Readiness Report
 
 > Phase: P10  
 > Owners: A14 (App Store / TestFlight Specialist), A15 (Independent Red Team QA)  
@@ -9,7 +9,7 @@
 
 ## 1. Beta Distribution Strategy
 
-LociAR 1.0 is prepared for TestFlight distribution in two sequential rings:
+LociDrop 1.0 is prepared for TestFlight distribution in two sequential rings:
 
 ```text
 Phase 1: Internal Testing Ring (Engineering & Operations)

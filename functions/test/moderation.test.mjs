@@ -3,10 +3,23 @@ import assert from 'node:assert/strict';
 import { containsBlockedTerm } from '../lib/moderation.js';
 import { containsURL } from '../lib/moderation.js';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { Script } from 'node:vm';
 import ts from 'typescript';
 const adminCode = ts.transpileModule(readFileSync(new URL('../../admin/lib/content-moderation.ts', import.meta.url), 'utf8'),
-  { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
-const admin = await import('data:text/javascript;base64,' + Buffer.from(adminCode + '\n//# sourceURL=admin-moderation-under-test.js').toString('base64'));
+  { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const adminModule = { exports: {} };
+new Script(adminCode, { filename: 'admin-moderation-under-test.js' }).runInNewContext({
+  exports: adminModule.exports,
+  // The Functions CI job installs only functions/, so the admin copy loads tldts from here; the pin test keeps the versions equal.
+  require: createRequire(import.meta.url),
+});
+const admin = adminModule.exports;
+const pinnedTldts = dir => JSON.parse(readFileSync(new URL(`../${dir}package.json`, import.meta.url), 'utf8')).dependencies.tldts;
+
+test('admin and functions pin the same tldts release', () => {
+  assert.equal(pinnedTldts('../admin/'), pinnedTldts(''));
+});
 
 test('flags blocked words, leet and spaced spellings; ignores normal text', () => {
   assert.equal(containsBlockedTerm('Harika bir yer, tekrar geleceğim!'), false);
@@ -34,5 +47,34 @@ test('Unicode evasions, directed insults and links cannot bypass the filter; ord
   for (const filter of [containsURL, admin.containsURL]) {
     for (const text of ['ｈｔｔｐｓ：／／example．com', 'h\u200Bttps://example.com', 'https://example.com']) assert.equal(filter(text), true, text);
     assert.equal(filter('This product is low quality.'), false);
+  }
+});
+
+test('bare domains, obfuscated dots, paths and IP addresses are links; a missing space after a full stop is not', () => {
+  const links = ['ornek.com', 'Ornek.COM', 'ornek.com.tr', 'bit.ly/abc', 'site.de/x', 'a.b.de', 'shop.example.de', 'x.museum/path',
+    'ornek.xn--p1ai', 'ornek.online', 'ornek.cloud/x', 'www.ornek.cloud', 'a.b.today', 'sub.ornek.shop', 'abc.co', 'bit.ly',
+    'ornek.com:8080', 'ornek.com?ref=1', 'ornek[.]com', 'ornek (dot) com', 'ornek (nokta) com', '192.168.1.1', 'a@b.co',
+    'kişisel.com', 'yandex.рф', 'www.ornek'];
+  const sentences = ['tamam.sonra görüşürüz', 'Tamam.Sonra', 'geldim.bekliyorum', 'Harika.Tekrar gelirim', "Saat 3.30'da",
+    'v2.5 çıktı', 'Kahve 25.50 TL', '3.14', '1.2.3', 'gel.de bana bak', 'evet.ve hayır', 'Bilmiyorum.ne yapalım',
+    'şurada.az kaldı', 'tamam.de?', 'geldin.mi?', 'No.it was fine', 'Mr.Smith', 'a.m.', 'e.g. this', 'ok...see you',
+    // Everyday words that are also ICANN TLDs, after a missing space.
+    'Geldim.Kim gelecek?', 'Akşam.Moda tarafına geçtik', 'Harika gün.today değil mi', 'ok.how are you', 'Great day.Love it',
+    'Bu sokak.istanbul gibi', 'Süper.film gibiydi', 'Çok güzel.Bar kapalıydı', 'Nice view.Fun place'];
+  for (const filter of [containsURL, admin.containsURL]) {
+    for (const text of links) assert.equal(filter(text), true, text);
+    for (const text of sentences) assert.equal(filter(text), false, text);
+  }
+});
+
+test('obfuscated dots join across spaces and long whitespace runs stay fast', () => {
+  const spaces = ' '.repeat(20000);
+  for (const filter of [containsURL, admin.containsURL]) {
+    for (const text of ['ornek ( . ) com', 'ornek[dot]com', 'ornek  [ DOT ]  com', 'a (nokta) b (nokta) de']) assert.equal(filter(text), true, text);
+    assert.equal(filter('Harika (nokta) değil'), false);
+    const started = performance.now();
+    assert.equal(filter(`tamam${spaces}(${spaces}`), false);
+    assert.equal(filter(`tamam${spaces}x`), false);
+    assert.ok(performance.now() - started < 500, 'whitespace runs must not backtrack');
   }
 });

@@ -735,6 +735,8 @@ struct MapFeatureView: View {
 #endif
         if container.isBackendConfigured, !session.isLocalPreview {
             posts = localDraftsForCurrentUser()
+            // Distance and nearest-first order need the device position; opening the map never asks for permission.
+            if location.authorizationStatus == .authorizedWhenInUse || location.authorizationStatus == .authorizedAlways { location.start() }
             if mayFetchMap { container.mapRequests.resume() }
             if force { container.mapRequests.refresh() }
             if container.mapRequests.presentation != nil { applyMapPresentation() }

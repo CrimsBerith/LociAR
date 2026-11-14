@@ -1,15 +1,15 @@
-# LociAR 1.0 — Release Policy & Governance
+# LociDrop 1.0 — Release Policy & Governance
 
 > Phase: P0 (Product, Scope & Risk Governance)  
 > Owners: A00 (Technical Leader), A01 (Product Auditor), A14 (App Store Specialist)  
 > Date: 2 Kasım 2026  
-> Scope: LociAR iOS Application & Cloud Operations  
+> Scope: LociDrop iOS Application & Cloud Operations  
 
 ---
 
 ## 1. Release Classification & Semantic Versioning
 
-LociAR adheres to strict Semantic Versioning (`MAJOR.MINOR.PATCH`) accompanied by monotonically incrementing integer build numbers:
+LociDrop adheres to strict Semantic Versioning (`MAJOR.MINOR.PATCH`) accompanied by monotonically incrementing integer build numbers:
 - **Major (X.0.0)**: Substantial user journey shifts, breaking data schema migrations, or fundamental architectural changes (e.g., v1.0.0 Initial App Store Release).
 - **Minor (1.X.0)**: Backwards-compatible feature introductions (e.g., new AR interaction styles, expanded spatial clustering, additional localization languages).
 - **Patch (1.0.X)**: Targeted bug fixes, security patches, performance improvements, and App Store compliance adjustments.
@@ -35,7 +35,7 @@ LociAR adheres to strict Semantic Versioning (`MAJOR.MINOR.PATCH`) accompanied b
    - Creator support payments are **strictly disabled** in release builds (`PostSupportAvailability.releaseBuilds = false`).
    - Digital tips, crypto transfers, and third-party checkout flows are retired and concealed.
 2. **Media Uploads**:
-   - Photo and video file uploads are retired. Posts consist strictly of UTF-8 text and approved GIPHY identifiers (`giphy_id`).
+   - Photo and video file uploads are retired. Posts consist strictly of UTF-8 text and validated KLIPY GIF slugs (`gifSlug`).
    - External URL hyperlinks within posts are prohibited and scrubbed by Cloud Functions.
 3. **Guest Sessions**:
    - Anonymous browsing is allowed, but interactive writes (comments, posts) require verified Apple Sign-In or verified Email identity.

@@ -1,10 +1,12 @@
 import AuthenticationServices
 import CryptoKit
+import OSLog
 import SwiftUI
 import UIKit
 
 struct AuthView: View {
     private enum Mode { case signIn, signUp }
+    private static let logger = Logger(subsystem: "com.khankartal.lociar", category: "auth")
     private enum Field { case email, password, confirmation }
 
     @Environment(AppSession.self) private var session
@@ -24,6 +26,12 @@ struct AuthView: View {
     @State private var currentNonce: String?
     @AppStorage(TermsConsent.storageKey) private var acceptedTermsVersion = ""
     @FocusState private var focusedField: Field?
+
+    /// UI sweeps type both password fields. `.newPassword` raises the iOS strong-password
+    /// sheet, which keeps keyboard focus off the confirmation field.
+    private var uiTestTypesPasswords: Bool {
+        ProcessInfo.processInfo.arguments.contains("UITEST_SIGNED_OUT")
+    }
 
     var body: some View {
         ZStack {
@@ -59,21 +67,7 @@ struct AuthView: View {
     }
 
     private var brandHeader: some View {
-        VStack(spacing: LociTheme.Spacing.m) {
-            ZStack {
-                Circle().fill(LociTheme.accent.opacity(0.12)).frame(width: 92, height: 92)
-                Circle().stroke(LociTheme.accent.opacity(0.22), lineWidth: 1).frame(width: 74, height: 74)
-                Image(systemName: "location.viewfinder")
-                    .font(.system(size: 41, weight: .semibold))
-                    .foregroundStyle(LociTheme.accent)
-            }
-            .accessibilityHidden(true)
-            VStack(spacing: LociTheme.Spacing.s) {
-                Text("LociAR").font(.largeTitle.bold())
-                Text("Gerçek mekânlara bağlı hikâyeler.")
-                    .foregroundStyle(LociTheme.secondaryText)
-            }
-        }
+        LociWordmark(tagline: String(localized: "Gerçek mekânlara bağlı hikâyeler."))
     }
 
     @ViewBuilder
@@ -156,7 +150,7 @@ struct AuthView: View {
                             SecureField("Şifre", text: $password)
                         }
                     }
-                    .textContentType(mode == .signUp ? .newPassword : .password)
+                    .textContentType(uiTestTypesPasswords ? nil : (mode == .signUp ? .newPassword : .password))
                     .focused($focusedField, equals: .password)
                     .submitLabel(mode == .signUp ? .next : .go)
                     .onSubmit {
@@ -180,7 +174,7 @@ struct AuthView: View {
 
                 if mode == .signUp {
                     SecureField("Şifreyi tekrar yaz", text: $passwordConfirmation)
-                        .textContentType(.newPassword)
+                        .textContentType(uiTestTypesPasswords ? nil : .newPassword)
                         .focused($focusedField, equals: .confirmation)
                         .submitLabel(.go)
                         .onSubmit { if canSubmit { Task { await submit() } } }
@@ -291,6 +285,7 @@ struct AuthView: View {
             request.requestedScopes = [.email, .fullName]
             request.nonce = Nonce.sha256(nonce)
         } onCompletion: { result in
+            if case .failure(let error) = result, (error as? ASAuthorizationError)?.code == .canceled { return }
             guard case .success(let authorization) = result,
                   let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let tokenData = credential.identityToken,
@@ -423,7 +418,9 @@ struct AuthView: View {
         do {
             try await session.acceptAppleCredential(identityToken: token, nonce: nonce, fullName: fullName)
         } catch {
-            message = String(localized: "Apple ile giriş şu anda tamamlanamadı. Tekrar dene.")
+            let failure = AppleSignInFailure.classify(error)
+            Self.logger.error("apple_sign_in_failed:\(failure.code, privacy: .public)")
+            message = failure.message
         }
     }
 }
@@ -566,7 +563,7 @@ private struct ForgotPasswordView: View {
                 Text(sent ? String(localized: "E-postanı kontrol et") : String(localized: "Şifreni yenile"))
                     .font(.title2.bold())
                 Text(sent
-                     ? String(localized: "Şifre yenileme bağlantısını gönderdik. Bağlantı LociAR’da yeni şifre ekranını açacak.")
+                     ? String(localized: "Şifre yenileme bağlantısını gönderdik. Bağlantı LociDrop’ta yeni şifre ekranını açacak.")
                      : String(localized: "Hesabında kullandığın e-posta adresini yaz."))
                     .foregroundStyle(LociTheme.secondaryText)
 

@@ -120,3 +120,34 @@ final class CallableAuthenticationRecoveryTests: XCTestCase, @unchecked Sendable
         XCTAssertFalse(InviteFailurePresentation.message(for: raw).contains("SECRET"))
     }
 }
+
+/// Apple sign-in failures must say why on a real device (13 Nov: "Apple ile giriş çalışmıyor").
+final class AppleSignInFailureTests: XCTestCase {
+    private func authError(_ code: Int) -> NSError { NSError(domain: AppleSignInFailure.authErrorDomain, code: code) }
+
+    func testFirebaseAuthCodesAreClassified() {
+        XCTAssertEqual(AppleSignInFailure.classify(authError(17006)), .providerDisabled)
+        XCTAssertEqual(AppleSignInFailure.classify(authError(17004)), .invalidToken)
+        XCTAssertEqual(AppleSignInFailure.classify(authError(17094)), .invalidToken)
+        XCTAssertEqual(AppleSignInFailure.classify(authError(17020)), .network)
+        XCTAssertEqual(AppleSignInFailure.classify(authError(17005)), .accountDisabled)
+        XCTAssertEqual(AppleSignInFailure.classify(authError(17999)), .other(code: "auth_17999"))
+    }
+
+    func testBackendRejectionKeepsItsReason() {
+        let error = BackendCallError.rejected(code: 7, message: "x", reason: "identity_unverified")
+        XCTAssertEqual(AppleSignInFailure.classify(error).code, "backend_identity_unverified")
+        XCTAssertEqual(AppleSignInFailure.classify(BackendCallError.rejected(code: 13, message: "x", reason: nil)).code, "backend_13")
+    }
+
+    func testCredentialAlreadyInUseIsRecognisedForTheGuestFallback() {
+        XCTAssertTrue(AppleSignInFailure.isCredentialAlreadyInUse(authError(17025)))
+        XCTAssertFalse(AppleSignInFailure.isCredentialAlreadyInUse(NSError(domain: "Other", code: 17025)))
+    }
+
+    func testMessagesNeverCarryTheTokenAndOtherCarriesOnlyTheCode() {
+        let message = AppleSignInFailure.other(code: "auth_17999").message
+        XCTAssertTrue(message.contains("auth_17999"))
+        XCTAssertFalse(AppleSignInFailure.providerDisabled.message.isEmpty)
+    }
+}

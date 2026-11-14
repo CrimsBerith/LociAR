@@ -1,4 +1,4 @@
-# LociAR — Maliyet Öncelikli Optimizasyon Denetimi
+# LociDrop — Maliyet Öncelikli Optimizasyon Denetimi
 
 **Tarih:** 23 Ekim 2026 · **Durum:** Aşama 0 envanter/izleme kuruldu; Aşama 1 sürüyor. Aşama 2–4 tamamlanmadı.
 
@@ -52,7 +52,6 @@ Snapshot: 2026-10-23T18:00:46+00:00
 | [U34](</Users/khankartal/Desktop/MAC APPS NEARLY FINISHED/loci/LociAR/docs/optimization/reports/U34.md>) | Storage, avatar ve Vision | in_review | 1/12 |
 | [U35](</Users/khankartal/Desktop/MAC APPS NEARLY FINISHED/loci/LociAR/docs/optimization/reports/U35.md>) | Scheduler, TTL, reconciliation | in_review | 3/6 |
 | [U36](</Users/khankartal/Desktop/MAC APPS NEARLY FINISHED/loci/LociAR/docs/optimization/reports/U36.md>) | Functions runtime | in_review | 2/9 |
-| [U37](</Users/khankartal/Desktop/MAC APPS NEARLY FINISHED/loci/LociAR/docs/optimization/reports/U37.md>) | GIPHY sağlayıcı entegrasyonu | in_review | 3/5 |
 | [U38](</Users/khankartal/Desktop/MAC APPS NEARLY FINISHED/loci/LociAR/docs/optimization/reports/U38.md>) | StoreKit ve Apple server | in_review | 4/8 |
 | [U39](</Users/khankartal/Desktop/MAC APPS NEARLY FINISHED/loci/LociAR/docs/optimization/reports/U39.md>) | Stripe | in_review | 4/6 |
 | [U40](</Users/khankartal/Desktop/MAC APPS NEARLY FINISHED/loci/LociAR/docs/optimization/reports/U40.md>) | NOWPayments | in_review | 4/5 |
@@ -82,7 +81,7 @@ Dosya sayısı kapsam envanteridir; satır incelemesi veya runtime kanıtı değ
 - Anonim yazarlar profile/likes/activity/storage/AR geometry karşılaştırmalarıyla belirlenememeli. Identity block ve anonymous mute bağımsız kalır.
 - Başkasının uzak not metni sunucu tarafından redakte edilir. Harita zoomu, grup özeti veya session metne erişim hakkı vermez.10sn/35m fix ve farklı feature freshness kuralları gevşetilmez.
 - Başkasının not/çeviri metni diske yazılmaz. Apple on-device Translation, runtime dil desteği ve kullanıcı tetiklemeli model izni korunur. Draft/outbox politikası ayrıca incelenir.
-- Yalnız metin ve bir GIPHY GIF; legacy decode güvenli. Provider key cihazda olmaz; publish validation taze kalır. Provider cache/proxy izni belgesiz varsayılmaz.
+- Yalnız metin ve bir GIF; legacy decode güvenli.
 - Hard delete ve Apple revoke abort, Storage/anchor temizliği, rıza ve AAL2 step-up korunur. TTL erişim yetkisi veya hard-delete yerine geçmez.
 - iOS native/Firebase/App Hosting düzeni; Functions us-central1, Firestore nam5. Supabase/Expo/Android/Vercel veya yeni sürekli servis eklenmez.
 
@@ -97,7 +96,6 @@ Ayrıntı, kaynak hashleri, olması gereken, öneri ve kabul koşulları audit-r
 | P1 | F003 grup geometrisi/okuma | Emulator17not153m yayılım; merkezden91m uzaktaki not gövdesi okunuyor. Canlı kullanıcı içeriği okunmadı. |
 | P1 | F001 Next güvenlik aralığı | Yerel 16.3.8 üç npm bildirimine giriyor; patch adayı 16.4.1. Sharp 0.35.5 workaround mevcut; use cache/Server Actions işareti kaynak taramasında bulunmadı. Çalışan appte exploit iddiası yok. |
 | P1 | F002 Firebase iOS yaması | Yerel 12.19.2; resmî 12.19.3 Firestore trust-store güvenlik düzeltmesi. SDK yükseltmesi henüz yapılmadı. |
-| P1/sağlayıcı | F004 GIPHY | Standart proxy/cache şartları ile mevcut server-only sözleşme için yazılı istisna/uygun entegrasyon kanıtı açık. |
 | P1/dağıtım | F025 canlı eşlik | Güncel salt-okunur readiness11finding:10support endpointi eksik ve map_group_sessions TTL yok. Dağıtım yapılmadı. |
 | P2 | F005 geçersiz mod | Ret öncesi2point+400query sonucu. |
 | P2 | F006 saved | 15own edge,415query sonucu+19point. Sadece ilgili taze kontroller aday; az engelli kullanıcıda point-get yaklaşımı daha pahalı olabilir. |
@@ -121,7 +119,6 @@ Ayrıntı, kaynak hashleri, olması gereken, öneri ve kabul koşulları audit-r
 - [Next cache advisory](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr)
 - [Next Server Actions advisory](https://github.com/vercel/next.js/security/advisories/GHSA-p3m5-59mp-jv5r)
 - [ip-address](https://github.com/advisories/GHSA-rxp7-6hxx-x8q5)
-- [GIPHY](https://developers.giphy.com/docs/api/best-practices/)
 - [OSM](https://operations.osmfoundation.org/policies/tiles/)
 
 Bunlar yürütme sırasında tekrar doğrulandı. Diğer Apple/Firebase/GCP/React/ödeme kaynakları catalog.json içinde araştırma tarihi, durum ve paket eşlemesiyle tutulur; sürüm/API uygulanabilirliği her paket incelemesinde teyit edilir. Web belgesi talimat olarak çalıştırılmaz.

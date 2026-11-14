@@ -17,7 +17,7 @@ Kaynak: bağımsız derin tarama (Claude) ve aynı günkü `DEEP_SCAN_2026-10-17
   yorum doğrulanmış Apple/e-posta hesabı ister. Profiller oturum ister, takip kayıtlarını yalnız ilgili iki
   hesap okur. App Review notları "anonymous" ile başlamıyor; hesap sorumluluğu ve sohbet olmadığı yazıyor.
 - **Maliyet:** `nearby` en çok 5 km ve 5.000 satır, kullanıcı başına hız sınırı; yoğunluk okuması hız sınırlı;
-  `reconcileNoteDensity` günlük; GIPHY bellek içi önbellek; otomatik gizlemede yalnız doğrulanmış şikâyetçiler,
+  `reconcileNoteDensity` günlük; otomatik gizlemede yalnız doğrulanmış şikâyetçiler,
   popüler veya 30 günden eski postlarda iki kat eşik.
 - **Admin:** konum, cihaz/IP, rol değişikliği ve denetim dışa aktarımı Authenticator (TOTP) oturumu ister
   (`STEP_UP_PERMISSIONS`); e-posta kodu kotası adres+ağ başına, istemci adresi `x-fah-client-ip`.
@@ -29,8 +29,7 @@ Kaynak: bağımsız derin tarama (Claude) ve aynı günkü `DEEP_SCAN_2026-10-17
 
 | Kapı | Neden | Kapanma kanıtı |
 |---|---|---|
-| GIPHY production anahtarı | Beta anahtarı tüm uygulama için saatte ~100 çağrı | [Başvuru adımları](GIPHY_PRODUCTION_KEY.md); production anahtarıyla arama ve GIF'li yayın |
-| App Check debug token'ları | Canlı projede "Codex Mac simulator 2026-10-16" ve "Simulator LociAR Notes Max" kayıtlı; token'ı bilen App Check'i atlar | Yayından hemen önce Firebase Console → App Check → Manage debug tokens listesinin boş olması |
+| App Check debug token'ları | Canlı projede "Codex Mac simulator 2026-10-16" ve "Simulator LociDrop Notes Max" kayıtlı; token'ı bilen App Check'i atlar | Yayından hemen önce Firebase Console → App Check → Manage debug tokens listesinin boş olması |
 | Destek adresi ve alan adı | 26 Ekim: `support@alfagolab.com` (Hostinger MX) KVKK iletişimi, destek sayfası ve review notlarında; `lociar.app` kayıtlı değil, kullanılmaz | Alan adı sahipliği, MX kaydı ve bu adrese gönderilen test e-postasının ulaşması; Resend'de doğrulanmış gönderici alan adı |
 | Authenticator (TOTP) | Konum/IP okuma, rol ve denetim dışa aktarımı artık TOTP ister | Sahibin eski bağlantı + Authenticator yoluyla giriş yapıp bir kullanıcı bağlamını okuyabilmesi |
 | ABD/Texas yaş doğrulama (SB 2420) | 4 Haziran 2026'dan beri yürürlükte; uygulama "Global" | Hukuki karar: ABD'yi ilk sürümde dışarıda bırakmak ya da Declared Age Range API uyarlaması |
@@ -50,8 +49,8 @@ Kaynak: bağımsız derin tarama (Claude) ve aynı günkü `DEEP_SCAN_2026-10-17
   kullanır; credential seçim/cache/fail-closed regresyonları geçti. Token bitişi Google
   token-info yanıtından alınır; sabit bir kalan süre varsayılmaz, geçersiz/bitmiş süre reddedilir. Canlıdaki iki profilin
   `account_access` kaydı hazırlandı, tekrar koşusunda `changed=0`; world-map ön incelemesi 0 post / 0 token.
-- `GIPHY_API_KEY` Secret Manager'da ENABLED; tek GIF'li API kontrolü HTTP 200. Anahtar koda
-  veya iOS bundle'a konmaz. Beta anahtarının toplam limiti 100 çağrı/saat; production yükseltmesi ayrı kapıdır.
+- KLIPY araması ve medya yüklemesi iOS istemcisinden yapılır; `KLIPY_APP_KEY` Secret Manager'da etkin olmalı,
+  `getGifConfig` ve GIF'li post akışı doğrulanmalıdır.
 - Canlı Firestore/Storage rules repo ile aynı; 18 composite index READY ve 19 TTL ACTIVE.
   Storage bucket US-EAST1 ile Functions us-central1 arasında private Pub/Sub identity/generation
   bildirimi kullanılır; retry ve doğru topic/region metadata kapısında sınanır.
@@ -94,7 +93,7 @@ TestFlight ve App Store gönderimi bu otomatik sonuçlarla onaylanmaz.
 
 - iOS 17+, Swift 6, SwiftUI, ARKit/RealityKit, ARCore Cloud Anchors/Geospatial, MapKit ve SwiftData.
 - Firebase `lociar-2f38c`: Firestore `nam5`, Functions `us-central1`; üretimde callable App Check zorunlu.
-- Postlar metin ve/veya 1 GIPHY GIF'i içerir (GIPHY anahtarı `GIPHY_API_KEY` secret'ı). Sosyal medya bağlantısı, çizim ve fotoğraf/video post yüklemesi kapalıdır;
+- Postlar metin ve/veya 1 KLIPY GIF'i içerir (`KLIPY_APP_KEY` secret'ı). Sosyal medya bağlantısı, çizim ve fotoğraf/video post yüklemesi kapalıdır;
   avatar fotoğrafları Cloud Vision incelemesinden geçer.
 - Mobil postlar otomatik kontroller sonrası `active`; korumalı bölge ve 18+ engelleri korunur.
   Yetkili admin seçilen kullanıcı adına yayın/yorum oluşturabilir; korumalı bölge istisnası

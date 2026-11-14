@@ -3,8 +3,8 @@ import LegalLayout from '../../legal-layout';
 import { LEGAL_ENTITY as E } from '../../legal-entity';
 
 export const metadata = {
-  title: 'LociAR Terms of Use',
-  description: 'LociAR community rules, user content, zero-tolerance policy and account rules.',
+  title: 'LociDrop Terms of Use',
+  description: 'LociDrop community rules, user content, zero-tolerance policy and account rules.',
 };
 
 const APPLE_EULA = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
@@ -13,14 +13,14 @@ export default function TermsPageEn() {
   return (
     <LegalLayout title="Terms of use and community rules" updated={E.updatedEn} lang="en">
       <p>
-        These terms govern your use of the LociAR iOS app, provided by {E.controllerName}, {E.controllerAddress}
+        These terms govern your use of the LociDrop iOS app, provided by {E.controllerName}, {E.controllerAddress}
         {' '}(<a href={`mailto:${E.contactEmail}`}>{E.contactEmail}</a>). By creating an account or using the app you accept
         these terms and Apple&apos;s <a href={APPLE_EULA}>Standard End User License Agreement (EULA)</a>.
         {' '}<Link href="/terms">Türkçe sürüm</Link>
       </p>
 
       <h2>Minimum age</h2>
-      <p>You must be at least 13 years old to use LociAR. If you are under 18, you need the consent of a parent or guardian.</p>
+      <p>You must be at least 13 years old to use LociDrop. If you are under 18, you need the consent of a parent or guardian.</p>
 
       <h2>Your account</h2>
       <p>
@@ -30,7 +30,7 @@ export default function TermsPageEn() {
 
       <h2>Content rules</h2>
       <ul>
-        <li>Posts are a short text message and/or one GIF from GIPHY; photos, videos, drawings and links cannot be shared. GIFs are subject to GIPHY&apos;s terms.</li>
+        <li>Posts are a short text message and/or one GIF from KLIPY; photos, videos, drawings and links cannot be shared. GIFs are subject to KLIPY&apos;s terms.</li>
         <li>Sexual / 18+ content is prohibited and is rejected by the server.</li>
         <li>Creating content in protected places such as schools, hospitals, places of worship and government sites is prohibited.</li>
         <li>Harassment, bullying, hate speech, threats, incitement to violence, illegal content, infringing content, spam and
@@ -40,7 +40,7 @@ export default function TermsPageEn() {
       </ul>
 
       <h2>Zero tolerance for objectionable content and abusive users</h2>
-      <p>LociAR has <strong>zero tolerance</strong> for objectionable content and for users who harass or abuse others.</p>
+      <p>LociDrop has <strong>zero tolerance</strong> for objectionable content and for users who harass or abuse others.</p>
       <ul>
         <li>You can report posts, comments and users and block users from inside the app. Content from users you block is hidden from you.</li>
         <li>Posts, location notes and comments go live once they pass the automatic filter; content is hidden automatically after enough reports from different users.</li>

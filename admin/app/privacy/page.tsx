@@ -3,15 +3,15 @@ import LegalLayout from '../legal-layout';
 import { LEGAL_ENTITY as E } from '../legal-entity';
 
 export const metadata = {
-  title: 'LociAR Gizlilik Politikası ve KVKK Aydınlatma Metni',
-  description: 'LociAR konum, kamera, hesap, bildirim, çökme raporu ve kullanıcı içeriği verilerini nasıl işler.',
+  title: 'LociDrop Gizlilik Politikası ve KVKK Aydınlatma Metni',
+  description: 'LociDrop konum, kamera, hesap, bildirim, çökme raporu ve kullanıcı içeriği verilerini nasıl işler.',
 };
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="26 Ekim 2026">
+    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="13 Kasım 2026">
       <p>
-        LociAR, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
+        LociDrop, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.10 kapsamında aydınlatma metni olarak da
         hazırlanmıştır. <Link href="/privacy/en">English version</Link>
       </p>
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         <li><strong>Konum:</strong> uygulama açıkken, yakındaki içerikleri göstermek ve paylaştığınız içeriğin konumunu kaydetmek için
           (hassas konum; AR konumlandırma gerektiğinde iOS geçici hassas konum izni ister).</li>
         <li><strong>Kamera:</strong> yalnızca AR yerleşimi için kullanılır; kamera görüntüsü kaydedilmez. Gönderiler metin
-          ve/veya GIPHY&apos;den seçilen bir GIF&apos;tir; fotoğraf, video veya bağlantı gönderisi yoktur. Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası
+          ve/veya KLIPY&apos;den seçilen bir GIF&apos;tir; fotoğraf, video veya bağlantı gönderisi yoktur. Bir içeriği sabitlediğinizde o yüzeyin AR harita dosyası
           (fotoğraf değil, nokta haritası) saklanabilir.</li>
         <li><strong>Profil fotoğrafı:</strong> kendi yüklediğiniz fotoğraf, yayınlanmadan önce otomatik güvenlik incelemesinden geçer
           (aşağıda &quot;Google Cloud Vision&quot;).</li>
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
         <li><strong>Google Cloud Vision:</strong> profil fotoğraflarının çıplaklık, şiddet ve benzeri içerik açısından otomatik incelenmesi.
           Fotoğraf yalnızca bu inceleme için gönderilir; reddedilen fotoğraflar silinir.</li>
         <li><strong>Google ARCore:</strong> AR konumlandırma (aşağıda).</li>
-        <li><strong>GIPHY:</strong> GIF arama ve GIF gösterimi (aşağıda).</li>
+        <li><strong>KLIPY:</strong> GIF arama ve GIF gösterimi (aşağıda).</li>
       </ul>
       <p>
         Herkese açık gönderiler diğer kullanıcılara görünür. Yeni notlar varsayılan olarak anonimdir; kullanıcı adınızı göstermeyi seçerseniz adınız ve profiliniz notla birlikte görünür. Anonim gönderilerde yazarın adı ve profili gizlenir. Yetkili kurumların hukuka uygun talepleri
@@ -92,12 +92,13 @@ export default function PrivacyPage() {
         <a href="https://policies.google.com/privacy">Google Gizlilik Politikası</a>.
       </p>
 
-      <h2>GIPHY (GIF&apos;ler)</h2>
+      <h2>KLIPY (GIF&apos;ler)</h2>
       <p>
-        GIF&apos;ler GIPHY, Inc. tarafından sağlanır. Bir GIF aradığınızda arama kelimeleri ve uygulama diliniz, hesap
-        bilgileriniz olmadan sunucularımız üzerinden GIPHY&apos;ye gönderilir. GIF görüntüleri ve videoları cihazınız tarafından
-        doğrudan GIPHY sunucularından yüklenir; bu nedenle GIPHY IP adresinizi ve standart cihaz bilgilerini alır. Bir post
-        yalnızca seçtiğiniz GIF&apos;in GIPHY kimliğini saklar. Ayrıntılar: <a href="https://giphy.com/privacy">GIPHY Gizlilik Politikası</a>.
+        GIF&apos;ler KLIPY tarafından sağlanır. Bir GIF aradığınızda arama kelimeleri, cihazınızın ülke kodu ve hesabınızdan
+        türetilmiş, sizi tanımlamayan takma bir kimlik cihazınızdan doğrudan KLIPY&apos;ye gönderilir; adınız, e-postanız veya
+        hesap kimliğiniz gönderilmez. GIF görüntüleri ve videoları da cihazınız tarafından doğrudan KLIPY sunucularından
+        yüklenir; bu nedenle KLIPY IP adresinizi ve standart cihaz bilgilerini alır. Bir post yalnızca seçtiğiniz GIF&apos;in
+        KLIPY kimliğini saklar. Ayrıntılar: <a href="https://klipy.com">klipy.com</a>.
       </p>
 
       <h2>Bildirimler ve konum hatırlatmaları</h2>
@@ -117,7 +118,7 @@ export default function PrivacyPage() {
         Büyük GPS alanı hassas konum kontrolünü başlatır: konum notlarında bildirim gidene, alandan çıkana veya en fazla
         10 dakika; teklif varışlarında en fazla iki dakika. Not uzaktayken daha düşük hassasiyet kullanılır.
         Konum notu girişi 15–100 m yarıçaplı alanda, ölçüm belirsizliği alana değdiğinde (en fazla 20 m tolerans,
-        35 m'den kötü ölçümler sayılmaz), yürüme hızında ve en az beş saniye arayla iki uyumlu ölçümle kabul edilir.
+        35 m'den kötü ölçümler sayılmaz), yürüme hızında ve en az on saniye arayla iki uyumlu ölçümle kabul edilir.
         Teklif varışları da aynı kuralla, 15–100 m yarıçapta kontrol edilir; mağazanın önünden yürüyerek veya araçla geçmek yeterlidir.
         Teklif seçiminde, gönüllü paylaştığınız son konum kampanyanın belirlediği süre kadar (en fazla 24 saat) eski olabilir; hiçbir yer ev olarak etiketlenmez.
         Arka planda Her zaman konum izni ve Kesin Konum gerekir; iOS konum göstergesini gösterir. İnternet ve güncel sunucu onayı gerekir.
@@ -134,7 +135,7 @@ export default function PrivacyPage() {
         saklanmaz. Kampanya ilerlemeniz ve size verilen kodlar kampanya bitiminden 30 gün sonra silinir. Yeni kampanya veya not
         bölgenizde yayına girdiğinde telefon, yaklaşık 39 × 20 km&apos;lik bölge kanalı üzerinden sessiz bir bildirimle listesini yeniler.</p>
       <p>Bulunduğunuz noktaya anonim konum notu bırakabilirsiniz; otomatik içerik filtresinden geçip hemen yayınlanır. Not, telefonunuzun ölçtüğü
-        konuma veya bu konumun en fazla 50 m yakınına elle koyduğunuz pine kaydedilir; ölçüm doğruluğu ve pinin kaydırıldığı
+        konuma veya bu konumun en fazla 12 m yakınına elle koyduğunuz pine kaydedilir; ölçüm doğruluğu ve pinin kaydırıldığı
         mesafe de saklanır. Ziyaret doğrulanmaz. Yetkili yöneticiler not ve yazar bağlantısını özel panelde görür.
         Notlar beğeniye göre sıralanır. Bir gününü doldurmuş hesaplardan yeterli beğeni alan not, oraya gelen kişilere bildirim
         olarak gider; her kişiye her not en fazla bir kez gönderilir. Farklı kişilerden yeterli şikayet alan not otomatik gizlenir. Notlar kendiliğinden eskimez; yönetici bitiş tarihi koyabilir veya
@@ -180,7 +181,7 @@ export default function PrivacyPage() {
       </ul>
 
       <h2>Çocuklar</h2>
-      <p>LociAR çocuklara yönelik değildir; 13 yaşından küçüklerin hesap açmaması gerekir.</p>
+      <p>LociDrop çocuklara yönelik değildir; 13 yaşından küçüklerin hesap açmaması gerekir.</p>
 
       <h2>Değişiklikler</h2>
       <p>Bu metin güncellendiğinde yukarıdaki tarih değişir; önemli değişiklikler uygulama içinde duyurulur.</p>

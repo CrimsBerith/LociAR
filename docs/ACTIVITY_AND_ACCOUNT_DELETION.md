@@ -97,7 +97,7 @@ kaldırılmaz ve Auth kaldırıldıktan sonra Storage ikinci kez taranır.
 
 İki taramadan sonra tamamlanan, önceden yetkilendirilmiş bir yükleme veya avatar
 kopyası için `onDeletedAccountObjectFinalized` Storage finalization trigger'ı
-kalıcı silme işi/erişim engelini yeniden kontrol eder. Bilinen LociAR klasörlerinde
+kalıcı silme işi/erişim engelini yeniden kontrol eder. Bilinen LociDrop klasörlerinde
 silinen hesaba ait nesneyi yalnız event'in tam generation değeriyle siler. Eski
 generation için 404/412 zararsızdır; Firestore/Storage geçici hataları retry
 edilir. Aktif/askıya alınmış hesaplar ve bilinmeyen klasörler korunur. Tamamlanmış

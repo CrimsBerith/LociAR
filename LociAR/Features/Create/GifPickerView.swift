@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// GIPHY search for the post editor. An empty search shows trending GIFs. Results come from the
-/// `searchGifs` callable; the picker only ever hands back a `GifReference` (an id and a size).
+/// GIF search for the post editor. An empty search shows trending GIFs. Results come from the
+/// KLIPY API; the picker only ever hands back a `GifReference` (a slug and a size).
 struct GifPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppContainer.self) private var container
@@ -30,7 +30,7 @@ struct GifPickerView: View {
                             onPick(result.gif)
                             dismiss()
                         } label: {
-                            AnimatedGIFView(url: result.gif.previewURL, contentMode: .fill)
+                            AnimatedGIFView(gif: result.gif, contentMode: .fill)
                                 .aspectRatio(min(max(result.gif.aspectRatio, 0.6), 1.8), contentMode: .fit)
                                 .clipShape(RoundedRectangle(cornerRadius: LociTheme.Radius.small, style: .continuous))
                         }
@@ -66,16 +66,15 @@ struct GifPickerView: View {
             }
             .background(LociTheme.background)
             .safeAreaInset(edge: .bottom) {
-                // GIPHY's API terms require visible attribution wherever its results are shown.
-                Text(verbatim: "Powered by GIPHY")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(LociTheme.secondaryText)
+                // KLIPY attribution guideline: "Search KLIPY" as the search placeholder (required) and the
+                // "Powered by KLIPY" logo visible while the picker is open (brand/klipy).
+                KlipyPoweredByMark()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, LociTheme.Spacing.s)
                     .background(LociTheme.background.opacity(0.98))
                     .accessibilityIdentifier("gif-attribution")
             }
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("GIF ara"))
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(verbatim: "Search KLIPY"))
             .navigationTitle("GIF seç")
             .navigationBarTitleDisplayMode(.inline)
             .tint(LociTheme.accent)
@@ -86,7 +85,9 @@ struct GifPickerView: View {
                 searchGeneration += 1
                 let generation = searchGeneration, requestedQuery = normalizedQuery
                 activeQuery = requestedQuery
-                results = []; nextOffset = nil; errorMessage = nil; isLoading = true
+                // Keep the previous grid while typing so it does not flash empty on every keystroke;
+                // paging is paused until the new query answers.
+                nextOffset = nil; errorMessage = nil; isLoading = true
                 // Debounce typing; an empty query loads trending GIFs immediately.
                 if !requestedQuery.isEmpty {
                     do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
@@ -138,5 +139,37 @@ struct GifPickerView: View {
             failure = error
             errorMessage = (error as? GifSearchError)?.errorDescription ?? GifSearchError.unavailable.errorDescription
         }
+    }
+}
+
+/// KLIPY's official "Powered by KLIPY" logo (brand/klipy/picker). The asset catalog holds a
+/// dark-text variant for light mode and a white-text variant for dark mode.
+struct KlipyPoweredByMark: View {
+    var height: CGFloat = 20
+
+    var body: some View {
+        Image(.klipyPoweredBy)
+            .resizable()
+            .scaledToFit()
+            .frame(height: height)
+            .accessibilityElement()
+            .accessibilityLabel(Text(verbatim: "Powered by KLIPY"))
+    }
+}
+
+/// KLIPY's semi-transparent white watermark for a posted GIF (brand/klipy/watermark). The
+/// guideline places it in the bottom-left corner of the card.
+struct KlipyWatermark: View {
+    var height: CGFloat = 12
+
+    var body: some View {
+        Image(.klipyWatermark)
+            .resizable()
+            .scaledToFit()
+            .frame(height: height)
+            .shadow(color: .black.opacity(0.35), radius: 1)
+            .padding(LociTheme.Spacing.s)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }

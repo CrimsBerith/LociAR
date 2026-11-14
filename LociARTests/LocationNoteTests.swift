@@ -167,6 +167,31 @@ final class LocationNoteTests: XCTestCase {
         XCTAssertEqual(outcome(51), .tooUncertain(51))
     }
 
+    func testManualPinPublishesUpToTheServerCreationLimit() {
+        // Every accuracy that asks for a manual pin (16-50 m) must also be publishable with one.
+        for accuracy in [16.0, 34.9, 35, 49.9, 50] {
+            XCTAssertTrue(LocationNotePolicy.acceptsCreate(accuracy: accuracy, manualPin: true), "\(accuracy) m manual pin")
+        }
+        XCTAssertFalse(LocationNotePolicy.acceptsCreate(accuracy: 50.1, manualPin: true))
+        XCTAssertTrue(LocationNotePolicy.acceptsCreate(accuracy: 34.9, manualPin: false))
+        XCTAssertFalse(LocationNotePolicy.acceptsCreate(accuracy: 35, manualPin: false))
+        for invalid in [-1.0, .nan, .infinity] {
+            XCTAssertFalse(LocationNotePolicy.acceptsCreate(accuracy: invalid, manualPin: true))
+        }
+    }
+
+    func testCameraConfirmedPositionStaysPublishableForAMinute() {
+        let now = Date()
+        func fix(age: TimeInterval) -> LocationSample {
+            LocationSample(latitude: 41, longitude: 29, accuracy: 3, timestamp: now.addingTimeInterval(-age))
+        }
+        XCTAssertTrue(LocationNotePolicy.cameraFixUsable(fix(age: 4), at: now), "older than a GPS sample is fine")
+        XCTAssertTrue(LocationNotePolicy.cameraFixUsable(fix(age: 59), at: now))
+        XCTAssertFalse(LocationNotePolicy.cameraFixUsable(fix(age: 61), at: now))
+        var simulated = fix(age: 1); simulated.simulated = true
+        XCTAssertFalse(LocationNotePolicy.cameraFixUsable(simulated, at: now))
+    }
+
     func testStoppedStreamLosesReadinessAndCannotPublishAnOldFix() {
         var estimator = LocationFixEstimator(startedAt: start)
         for t in [1.0, 2, 3] { estimator.add(sample(north: 0, accuracy: 5, at: t), now: start.addingTimeInterval(t)) }

@@ -1,4 +1,4 @@
-# LociAR 1.0 — Technical & Operational Risk Register
+# LociDrop 1.0 — Technical & Operational Risk Register
 
 > Phase: P1 (Baseline & Debt Mapping)  
 > Owners: A00 (Technical Leader), A07 (Security Specialist), A02 (Architecture)  

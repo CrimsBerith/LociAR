@@ -1,4 +1,4 @@
-# LociAR — Architectural Decision Records (ADRs)
+# LociDrop — Architectural Decision Records (ADRs)
 
 > Phase: P2 / P3  
 > Owner: A02 (Architecture & Big Refactor Specialist)  

@@ -1,6 +1,6 @@
 # Nocturnal screenshot backgrounds
 
-Five full-bleed RGB PNG panels, each **1320 × 2868 pixels**. They use the LociAR
+Five full-bleed RGB PNG panels, each **1320 × 2868 pixels**. They use the LociDrop
 night gradient (`#08101A` → `#050814`) and restrained mint (`#38E0B8`) ambient light.
 The top quarter is reserved for localized headlines; the middle/lower center is
 reserved for real app screenshots. No phones, screens, UI, lettering or service

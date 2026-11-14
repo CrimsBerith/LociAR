@@ -142,6 +142,7 @@ protocol SocialRepository: Sendable {
     func setFollowing(_ following: Bool, targetID: UUID, userID: UUID) async throws
     func followingIDs(for userID: UUID) async throws -> [UUID]
     func blockedUserIDs(for userID: UUID) async throws -> [UUID]
+    func blockedProfiles(for userID: UUID) async throws -> [BlockedProfile]
     func setBlocked(_ blocked: Bool, targetID: UUID, userID: UUID) async throws
     func collections(for userID: UUID) async throws -> [LociCollection]
     func createCollection(title: String, userID: UUID) async throws -> LociCollection
@@ -156,6 +157,14 @@ protocol SocialRepository: Sendable {
     func reportComment(_ comment: LociComment, userID: UUID, reason: String) async throws
     func reportUser(targetID: UUID, userID: UUID, reason: String) async throws
     func deleteComment(id: UUID) async throws
+}
+
+/// A row of the Blocked accounts screen. Rules hide blocked profiles, so the server projects only these fields.
+struct BlockedProfile: Identifiable, Equatable, Sendable {
+    let id: UUID
+    /// Nil when the account was deleted.
+    let handle: String?
+    let avatarPreset: String?
 }
 
 extension SocialRepository {
@@ -347,6 +356,21 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
             .compactMap { uuid($0.1["blocked_id"]) }
     }
 
+    func blockedProfiles(for userID: UUID) async throws -> [BlockedProfile] {
+        guard FirebaseIdentity.currentLUID() == userID else { throw AuthFlowError.notSignedIn }
+        struct Payload: Encodable { let mode = "blocked" }
+        struct Row: Decodable {
+            let id: String; let handle: String?; let avatarPreset: String?
+            enum CodingKeys: String, CodingKey { case id, handle, avatarPreset = "avatar_preset" }
+        }
+        struct Response: Decodable { let profiles: [Row] }
+        let response: Response = try await callables.call("readPublicContent", payload: Payload())
+        guard FirebaseIdentity.currentLUID() == userID else { throw AuthFlowError.notSignedIn }
+        return response.profiles.compactMap { row in
+            uuid(row.id).map { BlockedProfile(id: $0, handle: row.handle, avatarPreset: row.avatarPreset) }
+        }
+    }
+
     func setBlocked(_ blocked: Bool, targetID: UUID, userID: UUID) async throws {
         guard targetID != userID else { return }
         try await setEdge(
@@ -404,7 +428,8 @@ final class FirestoreSocialRepository: SocialRepository, @unchecked Sendable {
             "collection_id": key(collectionID),
             "post_id": key(postID),
             "owner_id": key(me),
-            "sort_order": Int(Date().timeIntervalSince1970) % 100_000,
+            // Seconds since 1970: monotonic. (A `% 100_000` here used to wrap every ~27.7 hours.)
+            "sort_order": Int(Date().timeIntervalSince1970),
             "created_at": FieldValue.serverTimestamp(),
         ])
     }
@@ -504,6 +529,7 @@ actor PreviewSocialRepository: SocialRepository {
     func setFollowing(_ following: Bool, targetID: UUID, userID: UUID) async throws {}
     func followingIDs(for userID: UUID) async throws -> [UUID] { [] }
     func blockedUserIDs(for userID: UUID) async throws -> [UUID] { [] }
+    func blockedProfiles(for userID: UUID) async throws -> [BlockedProfile] { [] }
     func setBlocked(_ blocked: Bool, targetID: UUID, userID: UUID) async throws {}
     func collections(for userID: UUID) async throws -> [LociCollection] { [] }
     func createCollection(title: String, userID: UUID) async throws -> LociCollection {

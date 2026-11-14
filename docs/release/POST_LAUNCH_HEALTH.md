@@ -1,8 +1,8 @@
-# LociAR 1.0 — Post-Launch Health & Observability Plan
+# LociDrop 1.0 — Post-Launch Health & Observability Plan
 
 > Phase: P12  
 > Owners: A00 (Technical Leader), A06 (Backend Reliability), A08 (Performance), A14 (App Store)  
-> Application: LociAR iOS 1.0.0  
+> Application: LociDrop iOS 1.0.0  
 > Date: 2 Kasım 2026  
 
 ---
@@ -26,7 +26,7 @@ The initial 72 hours post-release require vigilant monitoring across mobile clie
 - **App Hang Rate**: < 0.1% of sessions experiencing hangs > 250 ms.
 
 ### 1.2 Backend Serverless SLOs
-- **`createPost` Latency (p95)**: ≤ 1200 ms (including GIPHY validation, text filtering, and ARCore anchor signing).
+- **`createPost` Latency (p95)**: ≤ 1200 ms (including KLIPY slug validation, text filtering, and ARCore anchor signing).
 - **`readPublicContent` / Map Cells Latency (p95)**: ≤ 350 ms.
 - **Cloud Functions Error Rate**: < 0.1% non-retryable 5xx failures.
 - **Google Cloud Spend**: Bounded within the ₺10 budget alert threshold. 3 scheduled jobs limitation strictly monitored.
@@ -53,5 +53,5 @@ The initial 72 hours post-release require vigilant monitoring across mobile clie
 ## 3. Post-Launch Review & Retrospective Schedule
 
 1. **24-Hour Review**: Initial crash volumes, App Store review team feedback, authentication success rate.
-2. **72-Hour Health Sign-Off**: Verification of crash-free rates, database read consumption, and GIPHY API quota stability.
+2. **72-Hour Health Sign-Off**: Verification of crash-free rates, database read consumption, and KLIPY client integration stability.
 3. **Sprint 1 Retrospective**: Evaluate user-reported edge cases, prepare version 1.0.1 maintenance release backlog.

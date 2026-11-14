@@ -1,6 +1,6 @@
-# LociAR App Store Gönderim ve İnceleme Rehberi
+# LociDrop App Store Gönderim ve İnceleme Rehberi
 
-Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App Review) gönderilmesi sırasında girilmesi gereken tüm meta verileri, yasal bildirimleri, inceleme notlarını ve teknik parametreleri içerir.
+Bu belge, LociDrop'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App Review) gönderilmesi sırasında girilmesi gereken tüm meta verileri, yasal bildirimleri, inceleme notlarını ve teknik parametreleri içerir.
 
 ---
 
@@ -30,7 +30,7 @@ Bu belge, LociAR'ın App Store Connect üzerinden Apple İnceleme Ekibi'ne (App 
   dahil ölçütlerle hesap sahibi kendi durumunu değerlendirir; tüccar ise doğrulanmış adres, telefon ve e-posta
   AB mağaza sayfasında görünür. [Apple'ın öz değerlendirme ölçütleri](https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements/).
 * **Üçüncü taraf içerik (Content Rights):** "Evet, üçüncü taraf içerik içerir ve gerekli haklara sahibim" —
-  GIF'ler GIPHY API koşullarıyla gösterilir, "Powered by GIPHY" atfı arama ekranında var.
+  GIF arama ve medya KLIPY üzerinden yapılır, arama ekranında "Powered by KLIPY" atfı vardır.
 * **Build numarası:** `project.yml` → `CURRENT_PROJECT_VERSION`. İlk yükleme `1`; App Store Connect'e her yeni
   yükleme (TestFlight dahil) için bir artırılır, sonra `xcodegen generate`.
 * **Diller:** 12 dil (tr, en, de, es, fr, pt, ru, ar, hi, bn, ja, zh-Hans). App Store Connect'te her dil için
@@ -46,21 +46,21 @@ Apple'ın doğruladığı iddia edilmez. Canlı sayfalar hâlâ eski destek adre
 yeni adresin sayfalarda görünmesi gönderimden önce doğrulanmalı.
 
 * **Gizlilik Politikası (Privacy Policy URL):**  
-  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy`
+  `https://locidrop.com/privacy`
 * **Kullanım Koşulları ve EULA (Terms of Use URL):**  
-  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms`
+  `https://locidrop.com/terms`
 * **Destek Sayfası (Support URL):**  
-  `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support`
+  `https://locidrop.com/support`
 * **İngilizce sürümler** (İngilizce App Store sayfası için): `/privacy/en`, `/terms/en`, `/support/en`
 * **Destek İletişim E-Postası (Contact Email):**  
-  `support@alfagolab.com` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmalıdır; Alfago Lab
+  `support@locidrop.com` *(Apple Guideline 1.2 ve 1.5 gereği destek sayfasında açıkça yayımlanmalıdır; Alfago Lab
   alan adı, Hostinger e-postası — sahip kararı 26 Ekim 2026. `lociar.app` kayıtlı olmadığı için kullanılmaz.)*
 
 ---
 
 ## 4. Uygulama Gizlilik Bildirimi (App Privacy - Nutrition Labels)
 
-`LociAR/Resources/PrivacyInfo.xcprivacy` ile birebir aynı App Store Connect yanıtları (12 veri türü; manifest
+`LociAR/Resources/PrivacyInfo.xcprivacy` ile birebir aynı App Store Connect yanıtları (13 veri türü; manifest
 değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manifesti doğrular):
 
 ### Veri Toplama: "Evet, bu uygulamadan veri topluyoruz"
@@ -74,7 +74,8 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 | **Email Address** | Evet | Hayır | App Functionality — giriş ve hesap doğrulama |
 | **Name** | Evet | Hayır | App Functionality — Apple ile girişte paylaşılan ad |
 | **Photos or Videos** | Evet | Hayır | App Functionality — yalnız isteğe bağlı profil fotoğrafı (post olarak fotoğraf/video yok) |
-| **Other User Content** | Evet | Hayır | App Functionality — metin mesajı, GIPHY GIF kimliği, yorum, beğeni, AR kaydı |
+| **Other User Content** | Evet | Hayır | App Functionality — metin mesajı, KLIPY GIF slug'ı, yorum, beğeni, AR kaydı |
+| **Search History** (Arama Geçmişi) | Evet | Hayır | App Functionality — GIF arama kelimeleri cihazdan doğrudan KLIPY'ye gider (hesaptan türetilmiş takma kimlikle; ad, e-posta, hesap kimliği gitmez). Takma kimlik hesaptan türetildiği için temkinli olarak "kimlikle ilişkili" işaretlenir |
 | **Product Interaction** | Evet | Hayır | App Functionality, Analytics — görüntülenme/beğeni sayaçları |
 | **Device ID** | Evet | Hayır | App Functionality — push bildirim belirteci (FCM/APNs) |
 | **Crash Data** | Hayır | Hayır | App Functionality — Firebase Crashlytics (kapatılabilir) |
@@ -87,7 +88,7 @@ değişirse bu tablo da değişir, `LociARTests/StoreReadinessTests.swift` manif
 ## 5. Yaş Derecelendirmesi (Age Rating)
 
 Uygulama Kullanıcı Tarafından Üretilen İçerik (UGC) barındırdığı için Apple anketinde şu yanıtlar verilmelidir:
-* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin mesajı ve/veya GIPHY'den bir GIF paylaşabilir; fotoğraf, video, çizim veya bağlantı yok. GIF'ler GIPHY `pg-13` sınırıyla aranır ve sunucuda yeniden doğrulanır. Postlar otomatik metin filtresi, bağlantı yasağı, korumalı bölge ve 18+ kontrollerinden geçince hemen yayınlanır; denetim sonradan yapılır: şikâyet, birden çok şikâyette otomatik gizleme, 24 saat içinde moderatör incelemesi — sahip kararı 18 Ekim 2026)
+* **Kullanıcı Etkileşimi / UGC:** Evet (Kullanıcılar kısa metin mesajı ve/veya KLIPY'den bir GIF paylaşabilir; fotoğraf, video, çizim veya bağlantı yok. GIF araması `low` içerik filtresiyle cihazda yapılır. Postlar otomatik metin filtresi, bağlantı yasağı, korumalı bölge ve 18+ kontrollerinden geçince hemen yayınlanır; denetim sonradan yapılır: şikâyet, birden çok şikâyette otomatik gizleme, 24 saat içinde moderatör incelemesi — sahip kararı 18 Ekim 2026)
 * **Mesajlaşma / sohbet:** Hayır (özel mesaj yok; yorumlar herkese açık ve şikâyet edilebilir)
 * **Reklam:** Üçüncü taraf reklam SDK'sı yok. Marka teklifleri (varsayılan kapalı, ayrı onaylı) reklam sayılır:
   yayında aktif kampanya varsa "Evet", yoksa "Hayır" de ve ilk kampanyadan önce cevabı güncelle.
@@ -105,7 +106,7 @@ App Store Connect'te **App Review Information** bölümüne girilecek metin:
 
 ### Giriş Bilgileri (Sign-In Information)
 * **Giriş Gerekli mi (Sign-in required):** Evet (Kutu işaretlenmeli)
-* **Kullanıcı Adı (Username):** `apple-review@alfagolab.com`
+* **Kullanıcı Adı (Username):** `apple-review@locidrop.com`
 * **Şifre (Password):** Parola yöneticisindeki güncel değeri yalnızca App Store Connect'in Sign-In Information alanına girin; depoya veya inceleme notlarına yazmayın.
 
 Daha önce depoda bulunan parola canlı hesapta değiştirilmeli ve App Store Connect güncellenmelidir. Güvenli oluşturma/yenileme adımları: [CREDENTIALS.md](../CREDENTIALS.md).

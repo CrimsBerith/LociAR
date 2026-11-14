@@ -1,4 +1,4 @@
-# LociAR 1.0 — Security, Privacy & Apple Compliance Report
+# LociDrop 1.0 — Security, Privacy & Apple Compliance Report
 
 > Phase: P5  
 > Owners: A07 (Security & Privacy), A13 (SDK Compliance), A14 (App Store Specialist)  
@@ -17,7 +17,7 @@
 
 ### 1.2 Firebase & Cloud Infrastructure Credentials
 - `Config/Base.xcconfig` defines client-side public identifiers (`LOCIAR_FIREBASE_API_KEY`, `LOCIAR_FIREBASE_PROJECT_ID`). These are public client project identifiers, as documented by Google Firebase security guidelines.
-- Service-role credentials, Apple private keys, and GIPHY API keys reside exclusively in Google Cloud Secret Manager (`functions/src/secrets.ts`).
+- Service-role credentials, Apple private keys, and `KLIPY_APP_KEY` reside in Google Cloud Secret Manager; `getGifConfig` returns the app key only to signed-in, App Check-verified clients.
 - `testShippedBundleDoesNotEmbedServiceRoleSecrets` in `StoreReadinessTests` verifies that the app bundle contains zero service role secrets.
 
 ### 1.3 Transport Security (ATS)

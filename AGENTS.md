@@ -1,8 +1,26 @@
-# LociAR Agent Instructions
+# LociDrop Agent Instructions
 
-LociAR mobile is the **native iOS app** (SwiftUI + ARKit + RealityKit). No Expo, Metro, or React Native.
+LociDrop mobile is the **native iOS app** (SwiftUI + ARKit + RealityKit). No Expo, Metro, or React Native.
 
 Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen generate`.
+
+## Git workflow (owner decision 13 Nov 2026) — one branch, clean tree
+
+- Solo project. Work on `main` directly. No feature branches and no pull requests for routine work;
+  a branch is only for a risky experiment and lives a few hours at most.
+- Every session ends with its work committed. Never leave uncommitted changes for the next session;
+  if work must pause, `git stash push -u -m "wip: <what>"` and say so.
+- One agent session edits this repository at a time. Do not start a second session on the same tree.
+- Small, frequent commits; each commit passes: functions `npm test`, admin `tsc` + `npm test`,
+  `python3 scripts/l10n/build_catalog.py --check`, `bash scripts/qa-secret-scan.sh`. Swift changes
+  additionally need `scripts/verify.command` on the Mac (unit tests + device build + push).
+- Commit only files you changed (`git add <paths>`, never `git add -A`). Local agent files
+  (`.caveman*`, `.rtk/`, `.cursorrules`, `.claude/settings.local.json`, Copilot instructions) are
+  git-ignored on purpose.
+- One-off helper scripts are not committed. `scripts/verify.command` (Mac verify + push) and
+  `scripts/deploy-admin.command`, `scripts/firebase-deploy.command` (owner-approved deploys) are the
+  only operational `.command` entry points; add to them instead of creating `claude-x-*.command`.
+- Archive instead of deleting history: `archive/*` tags keep retired branches.
 
 ## Backend: Firebase (since 27 Sep 2026) — Supabase is retired
 
@@ -38,8 +56,8 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   audited; account deletion retries cannot be paused. Keep the task lists in `admin/lib/maintenance.ts` and
   `functions/src/maintenance.ts` equal (`admin/tests/maintenance.test.mjs`).
 - Service-account keys and Admin SDK credentials never ship in the iOS app or in `NEXT_PUBLIC_*`.
-- Posts are a **message: text and/or one GIPHY GIF** (owner decision, 9 Oct 2026), shown as a chat-style bubble in AR. Device photo/video uploads were removed on 29 Sep 2026; social media links (Spotify, YouTube, TikTok, Instagram, X, Facebook) and new drawings on 9 Oct 2026: `createPost` accepts only `text` and `gif` layers and rejects image layers, drawings, own video and any URL (`functions/src/placement.ts`); the admin content editor creates text posts only (`admin/lib/content-ops.ts`); Storage denies uploads to `post-layer-assets` and `post-video-assets`. Old posts may still carry a drawing (still rendered) or a link in `content_source_json`; clients must decode it without crashing and never show the link. Do not re-add media or links without a product decision.
-- **GIFs come from GIPHY** (Tenor's public API shut down on 30 Jun 2026). The key is the `GIPHY_API_KEY` secret, used only by the `searchGifs` callable and `createPost` (`functions/src/giphy.ts`); never ship it in the app. A GIF layer stores only the GIPHY id (`gifId`, letters and digits); `createPost` re-reads it from GIPHY (rating at most `pg-13`) and writes the size GIPHY reports. The app builds media URLs from the id on `media.giphy.com` only and shows "Powered by GIPHY" wherever search results appear.
+- Posts are a **message: text and/or one KLIPY GIF**, shown as a chat-style bubble in AR. Device photo/video uploads were removed on 29 Sep 2026; social media links (Spotify, YouTube, TikTok, Instagram, X, Facebook) and new drawings on 9 Oct 2026: `createPost` accepts only `text` and `gif` layers and rejects image layers, drawings, own video and any URL (`functions/src/placement.ts`); the admin content editor creates text posts only (`admin/lib/content-ops.ts`); Storage denies uploads to `post-layer-assets` and `post-video-assets`. Old posts may still carry a drawing (still rendered) or a link in `content_source_json`; clients must decode it without crashing and never show the link. Do not re-add media or links without a product decision.
+- **GIFs come from KLIPY only.** The key is the `KLIPY_APP_KEY` secret, distributed to authenticated clients via the `getGifConfig` callable (`functions/src/gifConfig.ts`). KLIPY requires searches and media to be requested by the client device. A GIF layer stores the KLIPY slug (`gifSlug`), provider (`klipy`), and dimensions; `createPost` validates the slug format and dimensions (`functions/src/gifId.ts`) and refuses a `gifId`. Media URLs are loaded via `KlipyMediaResolver` directly from KLIPY CDN. The app shows "Powered by KLIPY" wherever search results appear. A stored `gifId` layer is skipped, not fetched.
 
 ## Product decisions
 
@@ -101,7 +119,7 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   or iOS versions retain the original. Never translate locked text or persist note/translation text on disk;
   discard late results after content, language, visibility or scene changes. Check language support at runtime.
   Comments, previews and AR bubbles share this policy; translated AR textures bypass the reusable cache.
-- **Official guide badge:** only server-stamped `admin_managed` post provenance shows the LociAR badge.
+- **Official guide badge:** only server-stamped `admin_managed` post provenance shows the LociDrop badge.
   Admin publishing derives it from the selected managed content identity, never a supplied handle or client flag.
   Anonymous attribution and independent block semantics still apply. A/B seed drafts are generated by
   `scripts/seed/turkey_launch.py`; all require coordinate review, and A's 12 AR drafts require field Cloud Anchors.
@@ -113,4 +131,4 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   (Purchases) and App Review notes. Go-live checklist: `docs/release/APP_STORE_GO_LIVE_2026-10-26.md`.
 - **Crash reporting:** Firebase Crashlytics enabled.
 - **Store availability:** Global (all territories).
-- **Media model:** Text and/or one GIPHY GIF (no photos, videos, drawings or links). Social media links and drawings removed 9 Oct 2026.
+- **Media model:** Text and/or one KLIPY GIF (no photos, videos, drawings, links, or other GIF hosts). Social media links and drawings removed 9 Oct 2026.

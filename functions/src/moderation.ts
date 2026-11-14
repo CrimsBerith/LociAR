@@ -1,3 +1,5 @@
+import { parse } from 'tldts';
+
 /**
  * Multilingual lexical filter for user text (Guideline 1.2 "method for filtering objectionable material").
  * Matching is on normalised whole words so ordinary text is not caught by substrings.
@@ -71,10 +73,57 @@ export function anyBlocked(texts: Array<string | null | undefined>): boolean {
   return texts.some((t) => typeof t === 'string' && t.length > 0 && containsBlockedTerm(t));
 }
 
-/** User-authored text never carries URLs; GIPHY URLs are constructed separately by the server. */
+/**
+ * Two-letter TLDs that are also common words (Turkish de/ve/ne/ki/mu/da/az, English in/it/to/is/me…). After a
+ * missing space ("tamam.de geldim") they are ordinary text; they count as a link only with a path or more labels.
+ */
+const AMBIGUOUS_TLDS = new Set([
+  'de', 've', 'ne', 'ki', 'mu', 'da', 'az', 'in', 'it', 'to', 'us', 'es', 'no', 'at', 'be', 'is', 'so', 'do', 'my',
+  'by', 'am', 'as', 'la', 'el', 'le', 'se', 'me',
+]);
+/**
+ * TLDs that make a bare `name.tld` a link: the classic generic ones and those mostly seen in links. Two-letter
+ * country codes (except AMBIGUOUS_TLDS) and IDN TLDs count too. Every other ICANN TLD is also an everyday word
+ * (.today, .love, .kim, .moda, .how, .istanbul…): after a missing space ("Geldim.Kim gelecek?") it is ordinary
+ * text, so it counts as a link only with a scheme, `www.`, a path or more labels ("a.b.today").
+ */
+const LINK_TLDS = new Set([
+  'com', 'net', 'org', 'info', 'biz', 'edu', 'gov', 'mil', 'int', 'name', 'pro', 'mobi',
+  'io', 'co', 'app', 'dev', 'ai', 'xyz', 'ly', 'gg', 'tv', 'online', 'site', 'tech', 'рф',
+]);
+const DOTTED_NAME = /(?<![\p{L}\p{N}.-])((?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+)([\p{L}\p{N}-]{2,63})(?![\p{L}\p{N}])(:\d{2,5}|\/\S*|[?#]\w\S*)?/gu;
+const IPV4 = /(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])/u;
+
+const OBFUSCATED_DOT = /[[(]\s*(?:\.|dot|nokta)\s*[\])]/iu;
+
+/**
+ * "name[.]com", "name(dot)com", "name (nokta) com" are the same link. Splitting and trimming
+ * the neighbours keeps this linear; a regex with open \s* runs on both sides backtracks.
+ */
+function joinObfuscatedDots(text: string): string {
+  const parts = text.split(OBFUSCATED_DOT);
+  return parts.map((part, i) => {
+    const start = i > 0 ? part.trimStart() : part;
+    return i < parts.length - 1 ? start.trimEnd() : start;
+  }).join('.');
+}
+
+/**
+ * User-authored text never carries URLs; media URLs are constructed separately by the server.
+ * A sentence with a missing space after a full stop ("tamam.sonra görüşürüz") is not a link.
+ */
 export function containsURL(text: string): boolean {
-  const clean = text.normalize('NFKC').replace(/\p{Cf}/gu, '');
-  return clean.includes('://') || /www\.|(?:mailto|javascript|data|tel):|[\p{L}\p{N}-]{1,253}\.\p{L}{2,63}(?:\b|$)/iu.test(clean);
+  const clean = joinObfuscatedDots(text.normalize('NFKC').replace(/\p{Cf}/gu, ''));
+  if (clean.includes('://') || /www\.|(?:mailto|javascript|data|tel):/iu.test(clean) || IPV4.test(clean)) return true;
+  for (const match of clean.matchAll(DOTTED_NAME)) {
+    const tld = match[2].toLowerCase(), labels = match[1].split('.').length - 1, path = match[3] !== undefined;
+    if (path) return true;
+    if (AMBIGUOUS_TLDS.has(tld) && labels < 2) continue;
+    if (!parse(`${match[1]}${match[2]}`).isIcann) continue;
+    const linkTld = LINK_TLDS.has(tld) || tld.startsWith('xn--') || /^[a-z]{2}$/.test(tld);
+    if (linkTld || labels >= 2) return true;
+  }
+  return false;
 }
 
 export function handleIsBlocked(handle: string): boolean {

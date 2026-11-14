@@ -145,14 +145,13 @@ struct ProfileEditView: View {
                     .font(.body)
                     .padding(LociTheme.Spacing.m)
                     .lociGlassSurface(cornerRadius: LociTheme.Radius.small)
-                                        .onChange(of: bio) { _, newValue in
-                        if newValue.count > 300 {
-                            bio = String(newValue.prefix(300))
-                        }
+                    .onChange(of: bio) { _, newValue in
+                        let clamped = ProfileTextPolicy.clamped(newValue, limit: ProfileTextPolicy.bioLimit)
+                        if clamped != newValue { bio = clamped }
                     }
                 HStack {
                     Spacer()
-                    Text("\(bio.count)/300")
+                    Text(verbatim: "\(ProfileTextPolicy.length(bio))/\(ProfileTextPolicy.bioLimit)")
                         .font(.caption2)
                         .foregroundStyle(LociTheme.tertiaryText)
                 }

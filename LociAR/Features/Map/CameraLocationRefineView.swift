@@ -23,6 +23,13 @@ struct CameraLocationRefineView: View {
     @Environment(ARPinningEngine.self) private var engine
     @State private var cameraSessionGeneration: UUID?
     @State private var cameraReady = true
+    /// Incremented by "Tekrar dene" to start the camera again after a failure.
+    @State private var cameraAttempt = 0
+
+    /// The camera gave no live image (and is not merely paused for heat or an interruption).
+    private var cameraFailed: Bool {
+        engine.state == .failed || (!cameraReady && engine.state != .interrupted)
+    }
     @State private var used = false
 
     private var fix: LocationSample? {
@@ -35,7 +42,10 @@ struct CameraLocationRefineView: View {
         ZStack {
             ARViewContainer(engine: engine).ignoresSafeArea()
             if !engine.hasRecentCameraFrame {
-                ARCameraBackdrop(failed: !cameraReady || engine.state == .failed, message: engine.statusMessage)
+                ARCameraBackdrop(failed: cameraFailed, message: engine.statusMessage)
+            }
+            if engine.hasRecentCameraFrame, engine.isCameraFeedDark {
+                ARDarkCameraNotice()
             }
             VStack(spacing: LociTheme.Spacing.m) {
                 HStack {
@@ -59,7 +69,8 @@ struct CameraLocationRefineView: View {
         }
         .background(LociTheme.background)
         .arcoreDisclosure()
-        .task {
+        .task(id: cameraAttempt) {
+            cameraReady = true
             let ready = await engine.ensureLiveCameraSession { generation in
                 cameraSessionGeneration = generation
             }
@@ -86,6 +97,11 @@ struct CameraLocationRefineView: View {
                 Label("Çevre taranıyor…", systemImage: "camera.viewfinder").font(.headline)
                 Text("Telefonu göz hizasına kaldır ve çevredeki binalara, tabelalara doğru yavaşça çevir. Açık havada en iyi sonuç verir; kapalı alanda çalışmayabilir.")
                     .font(.caption).foregroundStyle(LociTheme.secondaryText)
+            }
+            if cameraFailed, !engine.hasRecentCameraFrame {
+                Button("Tekrar dene", systemImage: "arrow.clockwise") { cameraAttempt += 1 }
+                    .buttonStyle(LociCompactButtonStyle())
+                    .accessibilityIdentifier("camera-refine-retry")
             }
             Button {
                 if let fix { use(fix) }

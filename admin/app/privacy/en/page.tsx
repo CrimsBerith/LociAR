@@ -3,15 +3,15 @@ import LegalLayout from '../../legal-layout';
 import { LEGAL_ENTITY as E } from '../../legal-entity';
 
 export const metadata = {
-  title: 'LociAR Privacy Policy',
-  description: 'How LociAR processes location, camera, account, notification, crash and user-generated content data.',
+  title: 'LociDrop Privacy Policy',
+  description: 'How LociDrop processes location, camera, account, notification, crash and user-generated content data.',
 };
 
 export default function PrivacyPageEn() {
   return (
-    <LegalLayout title="Privacy policy" updated="October 26, 2026" lang="en">
+    <LegalLayout title="Privacy policy" updated="November 13, 2026" lang="en">
       <p>
-        LociAR is an iOS app for sharing short text notes anchored to real-world surfaces. This
+        LociDrop is an iOS app for sharing short text notes anchored to real-world surfaces. This
         policy explains which personal data we process. <Link href="/privacy">Türkçe sürüm</Link>
       </p>
 
@@ -26,7 +26,7 @@ export default function PrivacyPageEn() {
         <li><strong>Location:</strong> while the app is in use, to show nearby content and store where you place a post (precise
           location; iOS asks for temporary precise location when AR positioning needs it).</li>
         <li><strong>Camera:</strong> used only for AR placement; the camera feed is not recorded. Posts are text
-          and/or one GIF chosen from GIPHY; there are no photo, video or link posts. When you pin content, an AR map file for that surface (a feature map, not a
+          and/or one GIF chosen from KLIPY; there are no photo, video or link posts. When you pin content, an AR map file for that surface (a feature map, not a
           photo) may be stored.</li>
         <li><strong>Profile photo:</strong> a photo you upload is screened automatically before it is shown (see &quot;Google Cloud Vision&quot;).</li>
         <li><strong>User content:</strong> posts, captions, comments, likes, saves, collections, follows, blocks and reports.</li>
@@ -71,7 +71,7 @@ export default function PrivacyPageEn() {
         <li><strong>Google Cloud Vision:</strong> automatic screening of profile photos for nudity, violence and similar content. The photo
           is sent only for this check; rejected photos are deleted.</li>
         <li><strong>Google ARCore:</strong> AR positioning (below).</li>
-        <li><strong>GIPHY:</strong> GIF search and GIF display (below).</li>
+        <li><strong>KLIPY:</strong> GIF search and GIF display (below).</li>
       </ul>
       <p>Public posts are visible to other users. New notes are anonymous by default; choosing to show your username makes your name and profile visible with the note. Anonymous posts hide the author&apos;s name and profile. We may disclose data in response to lawful requests.</p>
 
@@ -86,12 +86,13 @@ export default function PrivacyPageEn() {
         <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.
       </p>
 
-      <h2>GIPHY (GIFs)</h2>
+      <h2>KLIPY (GIFs)</h2>
       <p>
-        GIFs are provided by GIPHY, Inc. When you search for a GIF, the search words and your app language are sent to GIPHY
-        by our servers, without your account details. GIF images and videos are loaded by your device directly from
-        GIPHY&apos;s servers, which therefore receive your IP address and standard device information. A post stores only the
-        GIPHY ID of the GIF you chose. Learn more: <a href="https://giphy.com/privacy">GIPHY Privacy Policy</a>.
+        GIFs are provided by KLIPY. When you search for a GIF, the search words, your device&apos;s country code and a
+        pseudonymous identifier derived from your account (which does not identify you) are sent from your device directly
+        to KLIPY; your name, email address and account ID are not sent. GIF images and videos are also loaded by your
+        device directly from KLIPY&apos;s servers, which therefore receive your IP address and standard device information.
+        A post stores only the KLIPY ID of the GIF you chose. Learn more: <a href="https://klipy.com">klipy.com</a>.
       </p>
 
       <h2>Notifications and location reminders</h2>
@@ -110,7 +111,7 @@ export default function PrivacyPageEn() {
         about 500 m. A larger GPS area wakes a precise location check: for location notes until a reminder is sent, you
         leave the area, or at most 10 minutes; for offer arrivals at most two minutes. Lower accuracy is used while notes
         are still far away. Location-note entry uses a 15–100 m radius: your reported uncertainty may touch the area (at most
-        20 m tolerance; fixes worse than 35 m are ignored), at walking speed, with two agreeing fixes at least five seconds apart.
+        20 m tolerance; fixes worse than 35 m are ignored), at walking speed, with two agreeing fixes at least ten seconds apart.
         Offer arrivals use the same rule with a 15–100 m radius; walking or driving past the shop counts. Offer selection may use
         your last voluntarily shared location up to the campaign&apos;s age limit (at most 24 hours); no place is labelled home. Background use requires Always location
         permission and Precise Location and displays the iOS location indicator. Internet and current server approval are
@@ -127,7 +128,7 @@ export default function PrivacyPageEn() {
         codes issued to you are deleted 30 days after the campaign ends. When a campaign or note goes live in your area, a silent
         notification on an area channel of about 39 × 20 km tells the phone to refresh its list.</p>
       <p>You can leave an anonymous location note where you are; it passes an automatic content filter and is published at once. The note is saved at the
-        position your phone measured, or at a pin you place by hand within 50 m of it; the measured accuracy and the pin
+        position your phone measured, or at a pin you place by hand within 12 m of it; the measured accuracy and the pin
         distance are stored too. Attendance is not verified. Authorized administrators see the note and author association
         privately. Notes are ordered by likes. A note liked by enough accounts older than a day is sent as a reminder to people
         who come there; each note reaches each person at most once. Notes reported by enough different people are hidden automatically. Notes do not expire on their own; administrators
@@ -171,7 +172,7 @@ export default function PrivacyPageEn() {
       </ul>
 
       <h2>Children</h2>
-      <p>LociAR is not directed to children; users under 13 must not create an account.</p>
+      <p>LociDrop is not directed to children; users under 13 must not create an account.</p>
 
       <h2>Changes</h2>
       <p>When this policy changes, the date above is updated; material changes are announced in the app.</p>

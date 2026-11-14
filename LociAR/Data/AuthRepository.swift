@@ -80,6 +80,7 @@ enum AuthFlowError: LocalizedError, Sendable {
     case invalidDeletionCredential
     case reauthenticationCancelled
     case deletionPending
+    case bioTooLong
 
     var errorDescription: String? {
         switch self {
@@ -115,6 +116,8 @@ enum AuthFlowError: LocalizedError, Sendable {
             String(localized: "Kimlik doğrulama iptal edildi. Hesabın silinmedi.")
         case .deletionPending:
             String(localized: "Silme isteğiniz alındı. İşlem arka planda tamamlanacak.")
+        case .bioTooLong:
+            String(localized: "Hakkında metni çok uzun. Kısaltıp tekrar dene.")
         }
     }
 }
@@ -330,7 +333,7 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         ]
         if let bio {
             let cleanBio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard cleanBio.count <= 300 else { throw AuthFlowError.invalidHandle }
+            guard ProfileTextPolicy.length(cleanBio) <= ProfileTextPolicy.bioLimit else { throw AuthFlowError.bioTooLong }
             profileUpdates["bio"] = cleanBio.isEmpty ? NSNull() : cleanBio
         }
         switch avatar {
@@ -391,7 +394,15 @@ final class FirebaseAuthRepository: AuthRepository, @unchecked Sendable {
         let credential = OAuthProvider.appleCredential(withIDToken: identityToken, rawNonce: nonce, fullName: nil)
         let result: AuthDataResult
         if let anonymous = Auth.auth().currentUser, anonymous.isAnonymous {
-            result = try await anonymous.link(with: credential)
+            do {
+                result = try await anonymous.link(with: credential)
+            } catch let error as NSError where AppleSignInFailure.isCredentialAlreadyInUse(error) {
+                // This Apple ID already has an account (a guest session from an older build is still on
+                // the device): sign in to that account instead of failing. Firebase hands back a fresh
+                // credential, because the Apple token was consumed by the link attempt.
+                let existing = error.userInfo[AuthErrors.userInfoUpdatedCredentialKey] as? AuthCredential ?? credential
+                result = try await Auth.auth().signIn(with: existing)
+            }
         } else { result = try await Auth.auth().signIn(with: credential) }
         let name = fullName?.trimmingCharacters(in: .whitespacesAndNewlines)
         return try await establish(result.user, displayName: (name?.isEmpty ?? true) ? nil : name)
@@ -627,4 +638,58 @@ actor UnavailableAuthRepository: AuthRepository {
     func signOut() async {}
     func accountDeletionMethod() async throws -> AccountDeletionMethod { throw missing }
     func deleteAccount(password _: String?, expectedUserID _: UUID) async throws { throw missing }
+}
+
+/// Why Apple sign-in failed. Only the short `code` is logged (never a token, email or name); the
+/// screen shows `message`, so a failure on a real device can be told apart without a debugger.
+enum AppleSignInFailure: Equatable, Sendable {
+    case providerDisabled
+    case invalidToken
+    case network
+    case accountDisabled
+    case other(code: String)
+
+    nonisolated static var authErrorDomain: String { AuthErrors.domain }
+
+    nonisolated static func isCredentialAlreadyInUse(_ error: NSError) -> Bool {
+        error.domain == authErrorDomain && error.code == 17025
+    }
+
+    nonisolated static func classify(_ error: Error) -> AppleSignInFailure {
+        if let backend = error as? BackendCallError {
+            switch backend {
+            case .rejected(let code, _, let reason): return .other(code: "backend_\(reason ?? String(code))")
+            case .invalidResponse: return .other(code: "backend_invalid_response")
+            }
+        }
+        let ns = error as NSError
+        guard ns.domain == authErrorDomain else { return .other(code: "\(ns.domain)_\(ns.code)") }
+        switch ns.code {
+        case 17006: return .providerDisabled       // operationNotAllowed: Apple is off in Firebase Auth
+        case 17004, 17094: return .invalidToken    // invalidCredential, missingOrInvalidNonce
+        case 17020: return .network
+        case 17005: return .accountDisabled
+        default: return .other(code: "auth_\(ns.code)")
+        }
+    }
+
+    nonisolated var code: String {
+        switch self {
+        case .providerDisabled: "auth_provider_disabled"
+        case .invalidToken: "auth_invalid_token"
+        case .network: "network"
+        case .accountDisabled: "account_disabled"
+        case .other(let code): code
+        }
+    }
+
+    nonisolated var message: String {
+        switch self {
+        case .providerDisabled: String(localized: "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin.")
+        case .network: String(localized: "Bağlantı yok. İnternetini kontrol edip tekrar dene.")
+        case .accountDisabled: String(localized: "Bu hesap kullanılamıyor. Destek ile iletişime geç.")
+        case .invalidToken, .other:
+            String(format: String(localized: "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)"), code)
+        }
+    }
 }

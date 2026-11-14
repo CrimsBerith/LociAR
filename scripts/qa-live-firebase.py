@@ -24,7 +24,7 @@ CHECKS = {
     'scheduler': ['scheduler', 'jobs', 'list', f'--location={REGION}', '--format=json(name,state,schedule,timeZone)'],
     'storage': ['storage', 'buckets', 'describe', f'gs://{BUCKET}', '--format=json(name,lifecycle_config)'],
     'apple_secret_versions': ['secrets', 'versions', 'list', 'APPLE_PRIVATE_KEY', '--format=json(name,state)'],
-    'giphy_secret_versions': ['secrets', 'versions', 'list', 'GIPHY_API_KEY', '--format=json(name,state)'],
+    'klipy_secret_versions': ['secrets', 'versions', 'list', 'KLIPY_APP_KEY', '--format=json(name,state)'],
     'storage_notifications': ['storage', 'buckets', 'notifications', 'list', f'gs://{BUCKET}', '--format=json'],
 }
 REPORT_DIRECTORY = Path(__file__).resolve().parents[1] / 'build' / 'firebase-readiness'

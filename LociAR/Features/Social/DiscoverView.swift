@@ -37,7 +37,7 @@ struct DiscoverView: View {
             } else {
                 List {
                     ForEach(filteredPosts) { post in
-                        NavigationLink(value: post) { PostCard(post: post) }
+                        PostCardLink(post: post) { PostCard(post: post) }
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))

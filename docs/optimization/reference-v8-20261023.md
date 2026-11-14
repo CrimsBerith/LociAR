@@ -1,4 +1,4 @@
-# LociAR — A'dan Z'ye Optimizasyon Planı
+# LociDrop — A'dan Z'ye Optimizasyon Planı
 
 **Sürüm:** 8 — uygulama sonrası derin denetim · **Tarih:** 23 Ekim 2026 · **Durum:** Yerel uygulama korundu; yeni grup geometrisi/okuma bulgusu açık, canlı geçiş yapılmadı
 **Kapsam:** Firestore, Cloud Functions, Storage, push, iOS uygulaması (AR, konum, medya, açılış, listeler), admin paneli, dağıtım ve maliyet kontrolü
@@ -7,8 +7,6 @@
 **Bu sürümde:** Önceki harita koordinatörü korunarak zincir denetimindeki D1–D13'ün güvenli uygulamaları ve O1/O2/O3/O4/O5/O6/O7/O8/O11 işleri eklendi. D12'nin dış sağlayıcı hazırlıklarını öne almama, D11'in 15 sn zamanlayıcısını koruma ve D8'in bağımsız yoğunluk tetikleyicilerini birleştirmeme sınırları aşağıda açıktır. 54 maddenin tamamı bitmiş değildir.
 
 **V8, önce düzeltilmesi gereken bulgu:** Gerçek Firestore emülatöründe sunucu spotuna kenardan eklenen 17 not tek grupta 153 m'ye yayıldı; merkezdeki okuyucu 91 m uzaktaki notun gövdesini de aldı. A1 geometri/okuma düzeltmesi daha fazla cache veya grup dizininden önce gelmeli. Önceki testlerin geçmesi bu yeni senaryoyu kapsadığı anlamına gelmiyor.
-
-**V8 sağlayıcı düzeltmesi:** GIPHY'nin güncel resmî belgesi standart entegrasyon için proxy, URL yeniden yazımı ve izinsiz medya cache'ini kısıtlıyor. Önceki cache önerisi sağlayıcı onayı açısından eksikti; artık özel izin/uygun entegrasyon şartına bağlıdır. AGENTS.md'deki sunucuda anahtar/yayın doğrulaması sözleşmesi değiştirilmedi.
 
 **Yeni derin tarama:** 8 gerçek Firestore + 2 mevcut Swift mantık tanısı kalan davranışları yeniden üretti; bunların geçmesi sağlık/kabul sonucu değildir. TypeScript build geçti. Üretim kodu bu tarama turunda değiştirilmedi. Ayrıntı ve kabul koşulları `docs/release/COST_POST_IMPLEMENTATION_DEEP_AUDIT_2026-10-23.md` ve aşağıdaki §Q'dadır.
 
@@ -118,7 +116,7 @@ Maliyeti azaltmanın ilk yolu aynı veriyi yeniden istememek, sonra her isteğin
 | p7 ısı, yakın gruplar ve hassas özetler | Sunucu; cihazda kısa ömürlü kişiye özel görsel önbellek | Kesin konumları/yazar bağlarını herkese açmadan güncel süzgeç uygulanır |
 | Not/yorum gövdesi ve yerinde okuma | Sunucu yetkilendirir; telefon bellekte gösterir | Eski karo veya önbellek bir erişim hakkı değildir |
 | Sayaçlar, kotalar, yoğunluk, rıza, moderasyon | Sunucu | İstemciye güvenilmez; başarısız callable doğrudan yazmaya dönüşmez |
-| Çeviri, uygun görsel küçültme ve oynatma | Telefon | Apple Translation politikası ve GIPHY/SafeSearch kuralları korunur |
+| Çeviri, uygun görsel küçültme ve oynatma | Telefon | Apple Translation politikası ve medya derecelendirme kuralları korunur |
 | Bölge bildirimi adayları ve tekrar kontrolü | Sunucu; cihaz yalnızca yetkili sonucu izler | Anonim yazarı bulduracak aday/süzgeç farkı oluşmaz |
 
 **Karma model tercih edilir.** Bütün notların kimliğini/konumunu şehrin tek dosyasına koymak ve engelleri telefonda çözmek kabul edilmez. Yalnızca genel, kaba, kimliksiz ısı dosyaları ortaktır. İki seçeneğin “ayda 8 $ farkı” gibi rakamları henüz doğrulanmış olmadığı için karar gerekçesinden çıkarıldı.
@@ -138,7 +136,7 @@ Cloud Storage yerleşik önbelleği küçük trafikte ek Cloud CDN/yük dengeley
 5. **8 + 2A:** Kapsamı ve sayfa başına taramayı gerçekten sınırlayan sunucu protokolü/dizini ekle.
 6. **52:** Güvenli statik karoları, üretim+dağıtım toplamı ekonomik olduğunda aç. Tüm harita optimizasyonu bunu beklemez.
 
-**Harita sonrası küçük paket sırası:** `own_receipt` çift hesap okuması (D4), GIPHY'de aynı dış aramayı paylaşma (D3), push retlerini önce çözme (D2), kampanya rızasıyla erken çıkma (D5); önceki O1/O2 ve cihaz O3/O5/O6 işleriyle birlikte. **13/D1 protokolü yerelde uygulandı:** yeni hesap beğenilerinde geçmiş taramasını azaltan ipucu yolu yaş/iptal/tekrar testleriyle doğrulandı; üretimde indeks/backfill sonrası bayrakla açılır. D kimlikleri zincir raporuna aittir; yerel uygulama tamamlandı, sınırlar ve aktivasyon §13/16/24 ile uygulama raporundadır.
+**Harita sonrası küçük paket sırası:** `own_receipt` çift hesap okuması (D4), aynı dış aramayı paylaşma (D3), push retlerini önce çözme (D2), kampanya rızasıyla erken çıkma (D5); önceki O1/O2 ve cihaz O3/O5/O6 işleriyle birlikte. **13/D1 protokolü yerelde uygulandı:** yeni hesap beğenilerinde geçmiş taramasını azaltan ipucu yolu yaş/iptal/tekrar testleriyle doğrulandı; üretimde indeks/backfill sonrası bayrakla açılır. D kimlikleri zincir raporuna aittir; yerel uygulama tamamlandı, sınırlar ve aktivasyon §13/16/24 ile uygulama raporundadır.
 **Uygulanan sözleşme düzeltmesi:** D13'te yayın anındaki tamamlanmış eski GIF doğrulama cache'i kaldırıldı; arama/trend cache'i korunabilir. Güvenlik kararı telefona veya eski arama sonucuna devredilmez. Bu gerekli sağlayıcı okumasını azaltılmış maliyet gibi göstermeyiz.
 
 | Ayar | Başlangıç değeri | Anlamı |
@@ -221,7 +219,6 @@ Boyutlar göreli kapsamı gösterir: **K** küçük, **O** orta, **B** büyük. 
 | 32 | Genel veri tekrar indiriliyor | Diskte uygun cache yok | Yalnızca kaba genel veri; 20 MiB/LRU/24 saat | Taze isabetlerde ağ yok | O | 1A–3 |
 | 34 | LiDAR örgüsü her AR oturumunda açık, ama yalnızca tanılama sayacında kullanılıyor | Sürekli ek CPU/GPU, ısınma | Örgü kapalı (tanılamada açık); saha testi | Daha az pil ve ısınma | K | 1B |
 | 35 | Harita ekranında GPS en yüksek doğrulukta, süzgeçsiz ve pusulayla sürekli açık | Yüksek pil | İlk konumdan sonra 10 m / 25 m; pusula gerektiğinde | Pil tasarrufu | K | 1B |
-| 36 | AR orijinal boyutta GIPHY MP4'ü, kartlar `200w.gif` indiriyor | Büyük indirme ve çözme | Küçük MP4 sürümü; kartlarda MP4/WebP | Daha az veri ve pil | K | 3 |
 | 37 | Avatar cache'i öğe sayılı, aynı byte indirmesi paylaşılmıyor | 101 × <3 MiB teorik sıkıştırılmış veri sınırı; fiziksel ölçüm yok | Byte LRU, aynı indirmeyi paylaşma, uygun decode; güncel metadata kontrolünü koru | Daha az tekrar indirme ve kontrollü telefon belleği | K | 1B |
 | 38 | Parça erişim kontrolü tekrarlanıyor | Dosya/izin yoluna bağlı | Oturum + güncel iptal; görünürken indirme | İzin güvenliğiyle ölçülür | O | 3 |
 | 39 | Uzun listeler tembel olmayan `VStack` ile çiziliyor | Bütün satırlar aynı anda | `LazyVStack` | Akıcı kaydırma | K | 1B |
@@ -509,7 +506,7 @@ Bu tablo uygulanan adımlarla henüz açık hedefleri birlikte gösterir; günce
 - Mevcut tam mesafe kontrolü ve yoğunluk kilidi korunur. Yerel `readDensityLocks` 27 komşu kilit belgesi okuyor; bu korunurken çağrının tamamına 1–2 okuma denmez.
 - Daha ucuz kabul yolu ancak oluşturma/silme/statü değişimiyle aynı transaction'da tutulan doğru üyelik/sayaç ve komşu sınır protokolüyle açılır. Yaklaşık indeks yalnızca ret/ön bilgi için kullanılabilir; yanlış kabul veremez.
 - Harita dizini pazarın/yükün göstergesidir, güvenlik/kota otoritesi değildir. Korumalı bölgeler ve 18+ kontrolleri değişmez.
-- **D12 kısmen uygulandı:** 27 yoğunluk kilidi okuması transaction içinde saat/gün kabul kapısının sonrasına taşındı; bu retlerde çalışmaz. İzin yolunda aynı atomik kilitler ve tam mesafe kontrolü kalır. Storage/GIPHY/yer hazırlıkları hâlâ transaction öncesidir; her izinli isteğe fazladan ön okuma ekleyen genel preflight bu pakette eklenmedi. Kota hazırlık bitmeden tüketilmez.
+- **D12 kısmen uygulandı:** 27 yoğunluk kilidi okuması transaction içinde saat/gün kabul kapısının sonrasına taşındı; bu retlerde çalışmaz. İzin yolunda aynı atomik kilitler ve tam mesafe kontrolü kalır. Storage/yer hazırlıkları hâlâ transaction öncesidir; her izinli isteğe fazladan ön okuma ekleyen genel preflight bu pakette eklenmedi. Kota hazırlık bitmeden tüketilmez.
 - **Test:** Biriken tetikleyiciler altında paralel oluşturma, komşu hücre, pending/active, silme ve sınırın tam kenarı.
 
 ### 25. Okuma alındıları: sınırlı parçalar, not başına süre
@@ -522,12 +519,11 @@ Bu tablo uygulanan adımlarla henüz açık hedefleri birlikte gösterir; günce
 
 ### 26. GIF arama ve yayın doğrulaması
 
-- **V8/A2 sağlayıcı koşulu:** Aşağıdakiler yereldeki uygulamanın kaydıdır; sağlayıcı uyum onayı değildir. [GIPHY resmî kuralları](https://developers.giphy.com/docs/api/#best-practices) proxy, URL yeniden yazımı ve izinsiz medya cache'ini kısıtlıyor. İncelenen repo içinde özel izin kanıtı bulunmadı; sağlayıcı hesabındaki istisna ayrıca doğrulanır. Sunucu secret'ını istemciye taşımaya yetki vermez. Cache genişletme önerisi bu koşula bağlandı.
 - **V8/A9 medya tanısı:** Arama sonuç cache'inden ayrı `GifDataCache` aynı URL için sekiz eşzamanlı tüketicide sekiz sentetik indirme başlattı. Sağlayıcı koşullarıyla uyumlu devam eden indirme paylaşımı ve rendition/byte seçimi adaydır; bitmiş medya cache'ini otomatik büyütme önerilmiyor.
 - **Arama sunucusu:** 30 dk arama/10 dk trend cache'i korunur. D3 uygulandı: her kullanıcının güncel hesap/kota kontrolünden sonra sorgu/dil/ofsete göre aynı süreçteki dış istek paylaşılır; 500 bekleyen anahtar sınırı ve finally temizliği vardır. Sekiz aynı paralel arama 8→1 dış çağrı; her kullanıcının kotası ayrı kontrol edilir. Farklı örneklerde tek çağrı garantisi yoktur.
 - **Cihaz O6 uygulandı:** Hesap/locale/normalize sorgu/ofset anahtarıyla 120 sn, 24 öğe/256 KiB bellek cache'i; aynı istek paylaşımı, sınırlı pending ve TTL uzatmayan LRU. Başarısızlık başarı diye saklanmaz; hesap/oturum değişimi geç sonucu atar. Terimler diske yazılmaz. Cihaz çağrıyı hiç göndermediğinde callable ve hesap/kota I/O'su da oluşmaz.
 - **D13 düzeltildi:** Altı saatlik kabul edilmiş GIF doğrulama cache'i kaldırıldı. Her yeni yayında id/rating/boyut sağlayıcıdan yeniden okunur; varsayılan fetch yolunda rating g→r, kaldırılan GIF ve boyut değişimi regresyonları eklendi. Aynı tamamlanmış mutation replay'i idempotent yol olarak ayrı kalır. Bu zorunlu taze okuma maliyet tasarrufu diye sayılmaz.
-- **Sınır:** GIPHY anahtarı sunucuda; arama cache'i yayın yetkisi vermez. Sıcak sunucu cache hit'inde de hesap/kota okuma/yazması vardır; bütün aramaya sıfır Firestore denmez.
+- **Sınır:** Arama cache'i yayın yetkisi vermez. Sıcak sunucu cache hit'inde de hesap/kota okuma/yazması vardır; bütün aramaya sıfır Firestore denmez.
 
 ### 27. Kapsayıcı imaj temizliği
 
@@ -603,9 +599,8 @@ Bu tablo uygulanan adımlarla henüz açık hedefleri birlikte gösterir; günce
 ### 36. GIF sürümleri
 
 - **Çözüm:**
-  - AR'da orijinal `giphy.mp4` yerine baloncuk boyutuna uygun küçük bir MP4 sürümü kullanılır (ör. `200w.mp4`); kalite sahada kontrol edilir.
+  - AR'da orijinal medya yerine baloncuk boyutuna uygun küçük bir MP4 sürümü kullanılır; kalite sahada kontrol edilir.
   - Kartlarda döngülü MP4 ya da (ImageIO destekliyorsa) WebP kullanılır.
-  - "Powered by GIPHY" ve yalnızca kimlik saklama kuralı değişmez.
 - **Kazanç:** Daha az mobil veri ve pil.
 
 ### 37. Avatar boyutu ve tekrar kontrolü
@@ -950,7 +945,6 @@ Yerel test, staging, canlı revizyon, fiziksel cihaz ve App Store/TestFlight ayr
 | `beginAvatarUpload`, `screenAvatar` | 30, 37 |
 | `getArcoreToken` | Token 1 saat önbellekte; sorun yok |
 | `registerPushToken`, `unregisterPushToken` | Günde en fazla 1; sorun yok |
-| `searchGifs` | 26 |
 | `submitBrandCampaign` | Seyrek; sorun yok |
 | `readPublicContent` `nearby` | Bu checkout'ta post taraması; 4, 5, 15, 23, 31, 54 |
 | `readPublicContent` `map_groups` | Mevcut; 2, 4, 5, 21, 54 |
@@ -1107,7 +1101,7 @@ Yerel test, staging, canlı revizyon, fiziksel cihaz ve App Store/TestFlight ayr
 - **Boyut/indeks:** Büyüyen alanlar parçalanır, sorgulanmayan iç haritalar indeks dışı tutulur. İçteki grant süreleri belge TTL'siyle karıştırılmaz.
 - **Bakım:** Zamanlayıcı sayısı önce gerçek envanterle belirlenir; v4'ün “AGENTS toplam üç iş istiyor” iddiası mevcut talimatta bulunmadı. Gereksiz yeni periyodik gider eklenmez.
 - **Admin:** Statik RBAC, canlı hesap/rol kontrolü, dar izin/gerekçe/audit ve konum/IP/rol/audit dışa aktarımında AAL2 korunur.
-- **Ürün sözleşmesi:** iOS native; metin ve/veya tek GIPHY GIF; yayın sırasında GIPHY yeniden doğrulaması; Apple cihaz içi çeviri; 12 dil kaynak dosyaları üzerinden güncellenir. Sunucuya medya/link/çeviri fallback'i eklenmez.
+- **Ürün sözleşmesi:** iOS native; metin ve/veya tek GIF; yayın sırasında GIF yeniden doğrulaması; Apple cihaz içi çeviri; 12 dil kaynak dosyaları üzerinden güncellenir. Sunucuya medya/link/çeviri fallback'i eklenmez.
 - **Dağıtım:** İndeks/TTL/protokol eşitliği, eski istemci uyumu ve gerçek revizyon ayrı doğrulanır. Blaze gereksinimi ve default-deny kurallar korunur.
 
 ---
@@ -1142,7 +1136,6 @@ Ayrıntılı kanıt: `docs/release/COST_POST_IMPLEMENTATION_DEEP_AUDIT_2026-10-2
 | Öncelik | Bulgu | Kanıt / sonraki adım |
 |---|---|---|
 | P1 | A1, grup kenarından katılım ve uzak gövde | 17 not/153 m; merkezden 91 m uzaktaki gövde açık. Kanonik geometri + geçiş + kapalı okuma kontrolü önce. |
-| Sağlayıcı kararı | A2, GIPHY proxy/medya cache koşulları | Resmî belge ve kaynak karşılaştırması; özel izin varsa kanıtı doğrulanmalı. Önceki cache önerisi bu bakımdan eksikti. |
 | P2 | A3, aynı bölge ihtiyacında tekrar | 6 aynı yenileme →6 işlem turu, 1 uygulama. Anlamı değişmeyen ihtiyaç aynı uçuşu yeniden geçersizleştirmesin. |
 | P2 | A4, olgun beğenide sabit 200'lük çözüm | Eşik 3 için 602 mantıksal belge; hem aday hem profil parçasını kalan eşikle sınırla, devamı koru. |
 | P2 | A5, geçersiz mode pahalı ret | 400 ilgisiz engel +2 hesap okumasından sonra ret. Parametre/mod doğrulamasını öne al. |

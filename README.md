@@ -1,4 +1,4 @@
-# LociAR Native iOS
+# LociDrop Native iOS
 
 SwiftUI + ARKit/RealityKit + ARCore (Cloud Anchors, Geospatial) + MapKit + SwiftData consumer uygulaması; backend Firebase (Auth, Firestore, Storage, Cloud Functions, Cloud Messaging push, Crashlytics). Admin paneli ve yasal sayfalar (`admin/`) Firebase App Hosting'de çalışır. Uygulama 12 dilde yerelleştirilmiştir (`scripts/l10n/`). Expo, React Native ve JavaScript runtime içermez. Minimum sürüm iOS 17, bundle kimliği `com.khankartal.lociar`.
 
@@ -47,8 +47,8 @@ Simulator build/test, fiziksel AR kilidi kanıtı değildir. LiDAR ve LiDAR olma
 
 ![CI](https://github.com/CrimsBerith/LociAR/actions/workflows/ci.yml/badge.svg)
 
-LociAR is a native iOS AR app built with SwiftUI, ARKit/RealityKit, and ARCore.
-Users pin text messages and/or one GIPHY GIF to real places. Firebase powers the
+LociDrop is a native iOS AR app built with SwiftUI, ARKit/RealityKit, and ARCore.
+Users pin text messages and/or one KLIPY GIF to real places. Firebase powers the
 backend, and a Next.js admin panel runs on Firebase App Hosting.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development requirements and verification

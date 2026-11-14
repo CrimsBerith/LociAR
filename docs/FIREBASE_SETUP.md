@@ -1,4 +1,4 @@
-# LociAR — Firebase kurulum ve canlıya alma rehberi
+# LociDrop — Firebase kurulum ve canlıya alma rehberi
 
 Her şey Firebase'de: Auth, Firestore, Storage, Cloud Functions, Cloud Messaging (push), Crashlytics ve admin paneli
 (Firebase App Hosting).
@@ -27,7 +27,7 @@ review/test hesapları yeni parolalara geçirilmeli ve güncel aday ayrı doğru
 | İndeksler, TTL, Cloud Functions (`us-central1`) | ⚠️ 24 fonksiyon — yeni sürüm (push, kill switch, `terms_version`) deploy bekliyor |
 | Admin + yasal sayfalar (App Hosting, backend `lociar-admin`) | ⚠️ yeni sürüm (EN sayfalar, kill switch paneli, nonce CSP) deploy bekliyor |
 | Identity Platform + ilk süper admin | ✅ yapıldı (proje sahibinin hesabı, TOTP MFA açık) |
-| İnceleme hesabı + seed içerik | ⚠️ 26 Ekim: yeniden yapılmalı. Eski `apple-review@lociar.app` kayıtsız alan adında (parola sıfırlama başkasına gidebilir); yeni hesap `apple-review@alfagolab.com` |
+| İnceleme hesabı + seed içerik | ⚠️ 26 Ekim: yeniden yapılmalı. Eski `apple-review@lociar.app` kayıtsız alan adında (parola sıfırlama başkasına gidebilir); yeni hesap `apple-review@locidrop.com` |
 
 ## Mimari özeti
 
@@ -157,9 +157,9 @@ node scripts/import-protected-zones.mjs zones.json           # okul/hastane/ibad
 ```
 
 App Review hesabı:
-1. Uygulamada `apple-review@alfagolab.com` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
+1. Uygulamada `apple-review@locidrop.com` ile hesap aç, gelen doğrulama e-postasındaki bağlantıya tıkla,
    uygulamada bir kez giriş yap (profil oluşur).
-2. `node scripts/seed-review-content.mjs apple-review@alfagolab.com` → İstanbul ve Cupertino'da 7 onaylı örnek post.
+2. `node scripts/seed-review-content.mjs apple-review@locidrop.com` → İstanbul ve Cupertino'da 7 onaylı örnek post.
 3. Parolayı [CREDENTIALS.md](CREDENTIALS.md) adımlarına göre yenile ve App Store Connect'in Sign-In Information alanına gir; inceleme notlarına veya depoya yazma.
 
 ## 4. iOS uygulaması
@@ -189,13 +189,13 @@ gcloud services enable firebaseapphosting.googleapis.com --project lociar-2f38c
 ./functions/node_modules/.bin/firebase apphosting:backends:create --project lociar-2f38c \
   --backend lociar-admin --primary-region us-central1 --root-dir admin
 ```
-- Sihirbaz bir **web app** bağlamayı sorar → "LociAR Admin" web app'ini seç/oluştur. Public istemci kimlikleri
+- Sihirbaz bir **web app** bağlamayı sorar → "LociDrop Admin" web app'ini seç/oluştur. Public istemci kimlikleri
   derleme sırasında `FIREBASE_WEBAPP_CONFIG` olarak gelir (`admin/next.config.ts`), elle girilmez.
 - Backend servis hesabına (`firebase-app-hosting-compute@lociar-2f38c.iam.gserviceaccount.com`)
   `Firebase Admin SDK Administrator Service Agent` rolü gerekir (Auth/Firestore/Storage). Avatar incelemesi
   görüntüyü sunucu üzerinden aktarır (imzalı URL yok), bu yüzden kendi üzerinde Token Creator verilmez.
   `scripts/google-cloud-setup.command` bunu verir.
-- Authentication → Settings → Authorized domains: `lociar-admin--lociar-2f38c.us-central1.hosted.app`.
+- Authentication → Settings → Authorized domains: `locidrop.com` (özel alan adı, 13 Kas 2026) ve `lociar-admin--lociar-2f38c.us-central1.hosted.app`.
 
 Dağıtım: `./functions/node_modules/.bin/firebase deploy --only apphosting --project lociar-2f38c` (ya da GitHub bağlantısıyla
 otomatik). Adres: `https://lociar-admin--lociar-2f38c.us-central1.hosted.app` — iOS `Config/Base.xcconfig`
@@ -220,7 +220,7 @@ Admin girişi (16 Ekim 2026 ürün kararı): e-posta → 6 haneli tek kullanıml
 ## 6a. Kill switch (acil durdurma)
 
 Admin → System → "Kill switch": `system/flags.kill_switch` açılınca post oluşturma, Cloud Anchor kaydı, ARCore token
-ve avatar yükleme callable'ları `unavailable` + `service_paused` döner. Uygulama "LociAR geçici olarak durduruldu"
+ve avatar yükleme callable'ları `unavailable` + `service_paused` döner. Uygulama "LociDrop geçici olarak durduruldu"
 mesajını gösterir, sıradaki postlar deneme hakkı harcamadan bekler. İşlem audit log'a yazılır; kapatınca 15 sn
 içinde normale döner.
 
@@ -248,11 +248,11 @@ Crashlytics toplama, semboller, maliyet sınırları ve gerçek teslim testi: [D
   [Storage → Pub/Sub kurulumu](STORAGE_FINALIZE_DELIVERY.md) gerekir. Tek `OBJECT_FINALIZE` / `NONE`
   notification kullanılır; bucket ve Functions bölgeleri değiştirilmez. Metadata kapısı notification,
   topic, retry ve consumer bölgesini de denetler.
-- **GIF'ler (GIPHY).** Tenor'un genel API'si 30 Haziran 2026'da kapandığı için GIPHY kullanılır. Kurulum:
-  1. <https://developers.giphy.com/dashboard/> üzerinden bir **API** uygulaması oluştur (SDK değil). Beta anahtarı saatte 100 istekle sınırlıdır; yayından önce GIPHY'den production anahtarı iste (uygulamada "Powered by GIPHY" etiketi zaten var).
-  2. `cd functions && npx firebase functions:secrets:set GIPHY_API_KEY --project lociar-2f38c` ve anahtarı yapıştır. Anahtar uygulamaya hiç gitmez.
-  3. `firebase deploy --only functions,firestore:indexes` (`searchGifs` callable'ı ve `gif_search_quota` TTL'i). Secret yoksa deploy durur; `scripts/qa-live-firebase.py` `giphy_secret_unavailable` bildirir.
-  Arama kullanıcı başına saatte 120 istekle sınırlıdır (`gif_search_quota`, hesap silmede silinir). `createPost` her GIF id'sini GIPHY'den yeniden okur: bilinmeyen ya da `pg-13` üstü GIF `gif_invalid`, GIPHY'ye ulaşılamazsa `gif_unavailable` (uygulama postu kuyrukta tutar ve yeniden dener). Admin post sayfası GIF'i `media.giphy.com` üzerinden gösterir (yalnızca admin CSP'si buna izin verir).
+- **GIF'ler (KLIPY).** KLIPY araması ve medya istekleri iOS cihazından yapılır; postlarda KLIPY slug'ı, sağlayıcı ve boyutlar saklanır. KLIPY anahtarı Firebase Secret Manager'a `KLIPY_APP_KEY` adıyla eklenir:
+  1. `cd functions && npx firebase functions:secrets:set KLIPY_APP_KEY --project lociar-2f38c` komutunu çalıştırıp KLIPY uygulama anahtarını gir.
+  2. `firebase deploy --only functions --project lociar-2f38c` ile `getGifConfig` callable'ını dağıt. Çağrı, oturum açmış ve App Check doğrulamalı istemciye anahtarı verir; anahtar uygulama ikilisinde saklanmaz.
+  3. Uygulamada GIF ara; arama ve seçim ekranlarında "Powered by KLIPY" görünmeli. Güvenlik filtresi `low` (G, PG ve PG-13) olarak ayarlanmıştır.
+  Eski `gifId` katmanları saklanan postlarda kalabilir; uygulama bunları yüklemez veya göstermez. Yeni postlar yalnız KLIPY slug'ı kabul eder.
 - **Davet kodu (beta).** `createInvites` (kullanıcı başına 3 kod) ve `redeemInvite` (tek kullanım, saatte en fazla 10 hatalı deneme) `functions/src/invites.ts` içinde; durum `users_private/{luid}` (`invite_redeemed_at`, `invited_by`, `invites_created`, `invite_exempt`). `LOCIAR_INVITE_REQUIRED=true` iken kod kullanmamış hesap post yayınlayamaz (`invite_required`); gezmek serbest. Açmadan önce App Review demo hesabına `invite_exempt: true` yaz ve inceleme notlarını güncelle (`docs/release/APP_STORE_SUBMISSION_GUIDE.md` 6.1). Uygulamada Profil > Davet kodu ekranı vardır. Hesap silme `invites` ve `invite_attempts` kayıtlarını da siler.
 - **Doğrudan yayın.** Tüm postlar otomatik içerik, yerleşim, korumalı bölge, yaş ve hız/yoğunluk kontrollerini geçince `active` olur. Ön onay yoktur; `system/flags.post_review_required` yok sayılır. Acil durumda `system/flags.kill_switch` yeni içerik oluşturmayı durdurabilir.
 - **Mekan katmanı.** `places/{id}` (`name`, `city`, `lat`, `lng`, `radius_meters`, `active`) herkese açık okunur, yalnızca betikle yazılır. `createPost` konum bir mekanın yarıçapına düşüyorsa sunucuda `place_id` yazar (en yakın merkez kazanır; istemciye güvenilmez; okunamazsa `null`). Yükleme: `cd functions && FIREBASE_PROJECT_ID=lociar-2f38c node scripts/import-places.mjs scripts/places.sample.json` (kuru çalıştırma), sonra `--apply`. Betik korumalı bölgeyle çakışan mekanı reddeder. `places.sample.json` koordinatları yaklaşıktır; yüklemeden önce haritadan ve ARCore VPS kapsamından doğrula. iOS mekan haritası/sayfası henüz yok. `firebase deploy --only firestore:rules` gerekir.

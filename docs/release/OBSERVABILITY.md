@@ -1,4 +1,4 @@
-# LociAR 1.0 — Observability, Telemetry & Incident Architecture
+# LociDrop 1.0 — Observability, Telemetry & Incident Architecture
 
 > Phase: P9 (CI/CD, Signing & Observability)  
 > Owners: A08 (Performance Specialist), A00 (Technical Leader), A06 (Backend Reliability)  

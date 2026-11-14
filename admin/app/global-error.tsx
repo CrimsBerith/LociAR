@@ -6,7 +6,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   const digest = error.digest && /^[a-zA-Z0-9_-]{1,128}$/.test(error.digest) ? error.digest : undefined;
   return (
     <html lang="tr">
-      <head><title>LociAR – Sayfa açılamadı</title></head>
+      <head><title>LociDrop – Sayfa açılamadı</title></head>
       <body>
         <main id="main" tabIndex={-1} className="authPage routeState">
           <section className="authCard" aria-labelledby="global-error-heading">

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getAdminContext, SESSION_COOKIE, verifiedAdminSession } from './lib/admin';
+import { PUBLIC_SITE_HOME, publicSiteDecision } from './lib/public-site';
 
 // Resolve page authorization before loading boundaries can begin streaming. Server components
 // and API handlers still independently enforce their session, MFA and permission checks.
@@ -28,9 +29,11 @@ async function protectedPageRedirect(request: NextRequest) {
 const CONNECT = "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com";
 const COMMON = "font-src 'self'; object-src 'none'; frame-src https://*.firebaseapp.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 const IMG = "img-src 'self' data: blob:";
-// Moderators review GIF posts: admin pages may show GIPHY media (images only, no scripts or frames).
+// Moderators review GIF posts: admin pages may show KLIPY media.
+// (images only, no scripts or frames). KLIPY media URLs are looked up in the moderator's browser.
 // Map pickers for zones and notes load OpenStreetMap raster tiles (images only).
-const ADMIN_IMG = `${IMG} https://media.giphy.com https://tile.openstreetmap.org`;
+const ADMIN_IMG = `${IMG} https://static.klipy.com https://static1.klipy.com https://static2.klipy.com https://tile.openstreetmap.org`;
+const ADMIN_CONNECT = `${CONNECT} https://api.klipy.com`;
 
 /** Admin and sign-in pages are rendered per request, so they get a per-request script nonce. */
 function isDynamicAdminPath(pathname: string): boolean {
@@ -38,6 +41,12 @@ function isDynamicAdminPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  // locidrop.com shows only the legal and support pages; the admin lives on the App Hosting address.
+  const site = publicSiteDecision(request.headers.get('host'), request.nextUrl.pathname);
+  if (site === 'home') return NextResponse.redirect(new URL(PUBLIC_SITE_HOME, request.url));
+  if (site === 'not_found') {
+    return new NextResponse('Not found', { status: 404, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+  }
   const earlyRedirect = await protectedPageRedirect(request);
   const isDev = process.env.NODE_ENV === 'development';
   let csp: string;
@@ -45,7 +54,7 @@ export async function proxy(request: NextRequest) {
   if (isDynamicAdminPath(request.nextUrl.pathname)) {
     // No 'unsafe-inline' scripts: only scripts carrying this request's nonce (and what they load) run.
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-    csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}; style-src 'self' 'unsafe-inline'; ${CONNECT}; ${ADMIN_IMG}; ${COMMON}`;
+    csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}; style-src 'self' 'unsafe-inline'; ${ADMIN_CONNECT}; ${ADMIN_IMG}; ${COMMON}`;
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-nonce', nonce);
     requestHeaders.set('Content-Security-Policy', csp);

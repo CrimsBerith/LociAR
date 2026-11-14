@@ -1,4 +1,4 @@
-# LociAR Accessibility Acceptance
+# LociDrop Accessibility Acceptance
 
 ## Visual access
 

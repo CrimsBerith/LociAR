@@ -1,4 +1,4 @@
-# LociAR 1.0 — Security Audit & Penetration Review
+# LociDrop 1.0 — Security Audit & Penetration Review
 
 > Phase: P5 (Security, Privacy & Compliance)  
 > Owners: A07 (Security & Privacy Specialist), A15 (Independent Red Team)  
@@ -13,8 +13,8 @@
 - **Scope**: Scanned all tracked and non-ignored files (Swift, TypeScript, JSON, Markdown, Shell, CI workflows).
 - **Result**: `Secret scan passed (tracked and non-ignored files, including docs and tests). Findings: 0`
 - **Key Isolation Architecture**:
-  - GIPHY production API key is stored exclusively as a Google Cloud secret in Firebase Functions (`functions/src/giphy.ts`) and is never embedded in the iOS binary.
-  - Client queries the server proxy `getGiphyTrending` / `searchGiphy`; the client never sees the raw GIPHY key.
+  - `KLIPY_APP_KEY` is held in Secret Manager and returned by `getGifConfig` only to signed-in, App Check-verified clients.
+  - Search and media requests run directly from the iOS client; no server-side GIF proxy or media cache is used.
   - Reviewer account passwords are generated dynamically on demand and never committed to version control.
 
 ---

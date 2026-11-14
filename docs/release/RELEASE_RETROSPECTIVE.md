@@ -1,4 +1,4 @@
-# LociAR 1.0 — Release Retrospective & Continuous Improvement
+# LociDrop 1.0 — Release Retrospective & Continuous Improvement
 
 > Phase: P12 (Post-Launch Health & Retrospective)  
 > Owners: A00 (Release Orchestrator), All 16 Engineering Specialists (A01–A15)  
@@ -8,7 +8,7 @@
 
 ## 1. Release Milestone Evaluation
 
-The 16-agent engineering audit (A00–A15) successfully transitioned LociAR from an active development prototype into an evidence-backed, production-grade release candidate:
+The 16-agent engineering audit (A00–A15) successfully transitioned LociDrop from an active development prototype into an evidence-backed, production-grade release candidate:
 - **Test Suite Maturation**: Automated test count expanded to 583 tests across iOS native, UI automation, backend Cloud Functions, Admin console, and release scripts. 581 passed, 2 safely skipped for physical hardware, 0 unexpected failures.
 - **Security Hardening**: 100% of mutations isolated to server-authoritative Cloud Functions with zero client write access to posts. Differential privacy verified on anonymous author blocks.
 - **Compliance & Privacy**: Full compliance with App Store Review Guidelines 5.1.1(v) (Apple Sign-In revocation & in-app deletion), 5.1.2 (0 tracking, no ATT needed), and 3.1.1 (concealment of unapproved creator support payment flows in Release mode).

@@ -1,4 +1,4 @@
-# LociAR 1.0 — Independent Red Team & Final QA Veto Report
+# LociDrop 1.0 — Independent Red Team & Final QA Veto Report
 
 > Phase: P10 / P11  
 > Specialist: A15 (Independent Red Team / Final QA)  

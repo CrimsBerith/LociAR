@@ -638,6 +638,12 @@
       "indexes": []
     },
     {
+      "collectionGroup": "admin_notification_batches",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "admin_notification_receipts",
       "fieldPath": "expires_at",
       "ttl": true,

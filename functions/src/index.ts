@@ -1,6 +1,6 @@
 export { ensureProfile, updateHandle } from './profile';
 export { readDataPreferences, setDataPreferences, recordUserContext } from './userContext';
-export { onAdminNotificationQueued, submitBrandCampaign } from './campaigns';
+export { onAdminNotificationQueued, onAdminNotificationBatchChanged, submitBrandCampaign } from './campaigns';
 export { readCampaignRegions, recordCampaignArrival } from './campaignArrivals';
 export { createPlaceNote, readPlaceNoteRegions, recordPlaceNoteVisit } from './placeNotes';
 export { onPostDensityWritten, readNoteDensity } from './noteDensity';
@@ -25,7 +25,7 @@ export { registerCloudAnchor } from './anchors';
 export { registerPushToken, unregisterPushToken, onActivityCreated } from './push';
 export { markActivityRead } from './activity';
 export { createInvites, redeemInvite } from './invites';
-export { searchGifs } from './giphy';
+export { getGifConfig } from './gifConfig';
 export { readPublicContent } from './publicContent';
 export { onWorldMapFinalized } from './mapStorageFinalize';
 export { beginApplePostSupport, confirmApplePostSupport, supportAppleNotifications } from './supportApple';

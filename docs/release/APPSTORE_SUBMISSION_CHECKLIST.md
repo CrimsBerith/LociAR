@@ -1,4 +1,4 @@
-# LociAR 1.0 — App Store Connect Submission Checklist
+# LociDrop 1.0 — App Store Connect Submission Checklist
 
 > Phase: P11  
 > Owners: A14 (App Store / Submission Specialist), A00 (Technical Leader)  
@@ -19,10 +19,10 @@
 | **Primary Language** | English (`en-US`) | Development language. |
 | **Localizations** | 12 languages (en, tr, zh-Hans, hi, es, fr, ar, bn, pt, ru, de, ja) | 100% translated in String Catalogs. |
 | **Copyright** | `© 2026 LociAR` | Verified. |
-| **Support URL** | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/support` | Live HTTPS endpoint, active contact options. |
-| **Marketing URL** | `https://lociar-admin--lociar-2f38c.us-central1.hosted.app` | Live HTTPS endpoint. |
-| **Privacy Policy URL**| `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/privacy` | Live HTTPS endpoint, complete data practices. |
-| **Terms of Service URL**| `https://lociar-admin--lociar-2f38c.us-central1.hosted.app/terms` | Live HTTPS endpoint, community rules. |
+| **Support URL** | `https://locidrop.com/support` | Live HTTPS endpoint, active contact options. |
+| **Marketing URL** | `https://locidrop.com` | Live HTTPS endpoint. |
+| **Privacy Policy URL**| `https://locidrop.com/privacy` | Live HTTPS endpoint, complete data practices. |
+| **Terms of Service URL**| `https://locidrop.com/terms` | Live HTTPS endpoint, community rules. |
 
 ---
 
@@ -33,7 +33,7 @@
   1. AR Camera Surface Placement ("Gerçek dünyaya not bırak").
   2. Cam Katman Glass Heat Map ("Çevrendeki notları keşfet").
   3. Location Note Detail & Interaction ("Mekâna özel ipuçları").
-  4. GIPHY AR Chat Bubble ("GIF ve metinle anlat").
+  4. KLIPY AR Chat Bubble ("GIF ve metinle anlat").
   5. Profile & Community Safety ("Güvenli ve şeffaf topluluk").
 
 ---
@@ -68,7 +68,7 @@ The declarations in App Store Connect must strictly mirror `PrivacyInfo.xcprivac
 ## 5. App Review Notes & Demo Account
 
 - **Demo Credentials**:
-  - Account: `apple-review@alfagolab.com`
+  - Account: `apple-review@locidrop.com`
   - Credentials: Generated via `scripts/provision-review-account.mjs` and securely pasted into App Store Connect Review Notes.
   - Demo Seed Content: Pre-populated around Apple Park (Cupertino) and Istanbul landmarks via `scripts/seed-review-content.mjs`.
 - **Special Hardware Notes**: Explained that ARKit camera surface detection requires physical camera motion; Map features can be tested using simulated GPS coordinates.

@@ -98,7 +98,7 @@ export async function createStripeSupportCheckout(stripe: Stripe, saved: Documen
   const returnURL = 'https://us-central1-lociar-2f38c.cloudfunctions.net/supportCheckoutReturn';
   const checkout = await stripe.checkout.sessions.create({
     mode: 'payment', line_items: [{ price: saved.get('stripe_price_id'), quantity: 1 }],
-    branding_settings: { display_name: 'LociAR' },
+    branding_settings: { display_name: 'LociDrop' },
     adaptive_pricing: { enabled: false }, allow_promotion_codes: false,
     client_reference_id: saved.id, metadata: { support_intent: saved.id },
     payment_intent_data: { metadata: { support_intent: saved.id } },

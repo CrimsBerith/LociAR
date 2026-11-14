@@ -13,7 +13,7 @@ import { protectedZoneAt } from './protectedZones';
 import { assertAccountNotDeleting, requireActiveAccount } from './profileGuard';
 import { INVITE_REQUIRED, inviteGate } from './invites';
 import { placeAt } from './places';
-import { GIPHY_API_KEY, resolveGifLayers } from './giphy';
+import { resolveGifLayers } from './gifId';
 import { mayPublishAnonymously } from './anonymous';
 import { contentBlocked } from './anonymousAccess';
 import { campaignOffer } from './campaigns';
@@ -34,6 +34,7 @@ export type LocationNoteMetadata = { source: 'geospatial' | 'gps' | 'manual'; ac
 function assertPublishingRequest(body: CreatePostBody, caller: ReturnType<typeof requireCaller>) {
   if (body?.userId !== caller.luid) throw reasonError('permission-denied', 'Publishing session changed', 'session_changed');
   const validationError = validateCreatePostBody(body, caller.luid);
+  if (validationError === 'Invalid GIF') throw reasonError('invalid-argument', validationError, 'gif_invalid');
   if (validationError) throw new HttpsError('invalid-argument', validationError);
   if (!mayPublishAnonymously(caller)) {
     throw reasonError('permission-denied', 'A verified Apple or email identity is required', 'identity_unverified');
@@ -86,8 +87,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
   // Storage validation can perform network I/O. Do it before opening a transaction; no quota
   // has been consumed, so a timeout or an invalid anchor cannot leak admission slots.
   const placement = await evaluatePlacement(body, caller.luid, storageObjectExists);
-  // A GIF layer keeps only the GIPHY id; its size comes from GIPHY, never from the client.
-  await resolveGifLayers(body.editData as { layers?: unknown[] });
+  resolveGifLayers(body.editData as { layers?: unknown[] });
   // Posts passing automated content, placement, protected-zone, age and rate/density checks go live at once.
   const publishStatus = 'active';
   // Landmark layer (growth plan 2.5): computed here, never trusted from the client; null on failure.
@@ -201,7 +201,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
   return { post: serializePost(postId, document), publishStatus, idempotentReplay: false };
 }
 
-export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, secrets: [GIPHY_API_KEY] }, request => createPostHandler(request));
+export const createPost = onCall({ memory: '512MiB', timeoutSeconds: 60, enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, request => createPostHandler(request));
 
 export const deleteOwnPost = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
   const caller = requireCaller(request);
@@ -259,8 +259,10 @@ export const recordPostView = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIn
       || (post.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
     if (!viewable) throw new HttpsError('permission-denied', 'post_not_viewable');
     if (await contentBlocked(caller.luid, post, tx)) throw new HttpsError('permission-denied', 'post_not_viewable');
-    const receipt = await tx.get(receiptRef);
     const current = Number(post.views_count ?? 0);
+    // An author opening their own post is not an audience view: no receipt, no counter change.
+    if (post.creator_id === caller.luid) return { views: current };
+    const receipt = await tx.get(receiptRef);
     if (receipt.exists) return { views: current };
     tx.create(receiptRef, { post_id: id, user_id: caller.luid, viewed_on: day, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(Date.now() + 30 * 86_400_000) });
     tx.update(postRef, {

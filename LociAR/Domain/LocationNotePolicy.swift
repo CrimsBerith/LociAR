@@ -28,6 +28,9 @@ enum LocationNotePolicy {
     static let stableSpread: CLLocationDistance = 5
     static let minimumWarmup: TimeInterval = 2
     static let maxSampleAge: TimeInterval = 3
+    /// A position the author confirmed with the camera may be published this long after it was measured.
+    /// The server checks creation accuracy and source, not the age of the measurement.
+    static let maxCameraFixAge: TimeInterval = 60
 
     static let maxEntryAccuracy: CLLocationAccuracy = 35
     static let entryToleranceCap: CLLocationDistance = 20
@@ -37,6 +40,18 @@ enum LocationNotePolicy {
     static let maxFixAge: TimeInterval = 10
     /// Precise GPS after a wake ends on notification, exit, or after this long.
     static let maxPreciseWindow: TimeInterval = 600
+
+    /// Creation accuracy gate. A hand-placed pin may use the server's full limit (MAX_CREATE_ACCURACY_M);
+    /// GPS and camera positions need an entry-grade fix.
+    static func acceptsCreate(accuracy: CLLocationAccuracy, manualPin: Bool) -> Bool {
+        guard accuracy.isFinite, accuracy >= 0 else { return false }
+        return manualPin ? accuracy <= maxCreateAccuracy : accuracy < ProximityPolicy.maxHorizontalAccuracy
+    }
+
+    /// A camera-confirmed position stays publishable while the author finishes typing.
+    static func cameraFixUsable(_ fix: LocationSample, at now: Date) -> Bool {
+        fix.isUsable(at: now, maxAge: maxCameraFixAge)
+    }
 
     /// The visitor's uncertainty circle may touch the note circle, within a bounded tolerance.
     static func fixInsideNote(distance: CLLocationDistance, accuracy: CLLocationAccuracy, radius: Double) -> Bool {
