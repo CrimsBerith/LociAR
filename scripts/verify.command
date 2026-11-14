@@ -39,6 +39,10 @@ xcodebuild -project LociAR.xcodeproj -scheme LociAR -configuration Debug -destin
 RC=$?
 grep -E "error:|\*\* BUILD (SUCCEEDED|FAILED) \*\*" "$CI/device-build.log" | tail -20 >>"$LOG"
 [ $RC -eq 0 ] || fail "device build rc=$RC ($CI/device-build.log)"
+# CI resolves packages strictly (-onlyUsePackageVersionsFromResolvedFile); a local build that had to
+# rewrite Package.resolved would pass here and fail there.
+git diff --quiet -- LociAR.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
+  || fail "Xcode rewrote Package.resolved (a pinned package version cannot resolve); CI would reject it"
 step push
 git push -u origin "$BR" >>"$LOG" 2>&1 || fail push
 # Eski koşu klasörlerini temizle (son 3 kalsın)
