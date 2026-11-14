@@ -32,7 +32,7 @@ struct DiagnosticEvent: Hashable, Sendable {
 
     nonisolated var sanitizedError: NSError {
         NSError(domain: "LociAR.\(component.rawValue)", code: failure.rawValue,
-                userInfo: [NSLocalizedDescriptionKey: "LociAR diagnostic category \(failure.rawValue)"])
+                userInfo: [NSLocalizedDescriptionKey: "LociDrop diagnostic category \(failure.rawValue)"])
     }
 }
 

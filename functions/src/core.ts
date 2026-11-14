@@ -179,7 +179,7 @@ export function resetKillSwitchCache(): void {
 export async function assertServiceEnabled(feature: KillableFeature): Promise<void> {
   if (await killSwitchOn()) {
     logger.warn('kill_switch_refused', { feature });
-    throw reasonError('unavailable', 'LociAR is temporarily paused', 'service_paused');
+    throw reasonError('unavailable', 'LociDrop is temporarily paused', 'service_paused');
   }
 }
 

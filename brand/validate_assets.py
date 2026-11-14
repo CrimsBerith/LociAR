@@ -42,7 +42,12 @@ def validate_app_icons():
             assert len(appearance) == 1 and appearance[0]['appearance'] == 'luminosity'
             kind = appearance[0]['value']
             assert kind in ['dark', 'tinted']
-            check(icon / entry['filename'], (1024, 1024), 'RGBA', True)
+            if kind == 'dark':
+                # The dark icon is the same opaque graphite tile as the default one (owner decision, 14 Nov 2026).
+                check(icon / entry['filename'], (1024, 1024), 'RGB')
+            else:
+                # Tinted is an opaque grayscale tile; iOS applies the tint itself.
+                check(icon / entry['filename'], (1024, 1024), 'RGBA')
             appearances.add(kind)
             if kind == 'tinted':
                 with Image.open(icon / entry['filename']) as image:
@@ -69,7 +74,7 @@ def validate_admin_assets():
     for name in ['opengraph-image']:
         check(ADMIN_APP / f'{name}.png', (1200,630), 'RGB')
         assert (ADMIN_APP / f'{name}.png').stat().st_size < 1_000_000
-        assert (ADMIN_APP / f'{name}.alt.txt').read_text().strip() == 'LociAR – notes pinned to real places'
+        assert (ADMIN_APP / f'{name}.alt.txt').read_text().strip() == 'LociDrop – notes pinned to real places'
 
 
 def validate_illustrations():

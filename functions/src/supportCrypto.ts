@@ -38,7 +38,7 @@ export const beginCryptoPostSupport = onCall({ enforceAppCheck: ENFORCE_APP_CHEC
   const returnURL = 'https://us-central1-lociar-2f38c.cloudfunctions.net/supportCheckoutReturn';
   const invoice = await cryptoAPI(settings, '/invoice', {
     price_amount: saved.get('gross_milliunits') / 1000, price_currency: saved.get('currency').toLowerCase(),
-    order_id: intent.intentId, order_description: 'LociAR writer support',
+    order_id: intent.intentId, order_description: 'LociDrop writer support',
     ipn_callback_url: 'https://us-central1-lociar-2f38c.cloudfunctions.net/supportCryptoWebhook',
     success_url: returnURL, cancel_url: returnURL,
     is_fee_paid_by_user: false, is_fixed_rate: true,
