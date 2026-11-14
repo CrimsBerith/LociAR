@@ -82,7 +82,7 @@ function managementStub({ list = {}, deleteStatus = 200, failList = false } = {}
             return { data: {} };
           }
           if (failList) throw Object.assign(new Error('page token expired'), { response: { status: 400 } });
-          const token = new URL(url).searchParams.get('page_token') ?? '';
+          const token = new URL(url).searchParams.get('next_page_token') ?? '';
           return { data: list[token] ?? { anchors: [] } };
         },
       }),

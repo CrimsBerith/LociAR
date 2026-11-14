@@ -45,16 +45,30 @@ export async function deleteCloudAnchor(anchorId: string | null | undefined, dep
 
 export type ManagedAnchor = { id: string; createTime: string };
 
-/** One page of hosted anchors, oldest first. */
+/**
+ * One page of hosted anchors, in the API's default order (the orphan sweep filters by age itself).
+ * The documented query is `page_size`, `order_by` and `next_page_token`; the earlier
+ * `order_by=create_time` + `page_token` request was refused with HTTP 400 every night (7–14 Nov 2026),
+ * so only the size and the documented token parameter are sent.
+ */
 export async function listCloudAnchors(pageToken?: string, deps: ManagementDeps = {}): Promise<{ anchors: ManagedAnchor[]; nextPageToken?: string }> {
   if (disabled()) return { anchors: [] };
   const client = await (deps.getClient ?? realClient)();
-  const params = new URLSearchParams({ page_size: '200', order_by: 'create_time' });
-  if (pageToken) params.set('page_token', pageToken);
-  const response = await client.request<{ anchors?: Array<{ name?: string; createTime?: string }>; nextPageToken?: string }>({
-    url: `${API}?${params.toString()}`,
-    method: 'GET',
-  });
+  const params = new URLSearchParams({ page_size: '200' });
+  if (pageToken) params.set('next_page_token', pageToken);
+  let response: { data: { anchors?: Array<{ name?: string; createTime?: string }>; nextPageToken?: string } };
+  try {
+    response = await client.request({ url: `${API}?${params.toString()}`, method: 'GET' });
+  } catch (error) {
+    // Google's own status and message (no user data) make the next failure diagnosable from the logs.
+    const detail = (error as { response?: { status?: number; data?: { error?: { status?: string; message?: string } } } }).response;
+    logger.error('cloud_anchor_list_failed', {
+      code: detail?.status ?? 'provider_error',
+      reason: String(detail?.data?.error?.status ?? '').slice(0, 64),
+      detail: String(detail?.data?.error?.message ?? '').slice(0, 200),
+    });
+    throw error;
+  }
   const anchors = (response.data.anchors ?? [])
     .map((a) => ({ id: String(a.name ?? '').replace(/^anchors\//, ''), createTime: String(a.createTime ?? '') }))
     .filter((a) => a.id.length > 0);

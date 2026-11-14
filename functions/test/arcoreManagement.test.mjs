@@ -33,13 +33,16 @@ test('listCloudAnchors maps names, skips blanks and forwards page tokens', async
   const page = await listCloudAnchors('abc', client);
   assert.deepEqual(page.anchors, [{ id: 'ua-1', createTime: '2026-01-01T00:00:00Z' }]);
   assert.equal(page.nextPageToken, 'tok');
-  assert.match(urls[0], /page_token=abc/);
+  const query = new URL(urls[0]).searchParams;
+  assert.equal(query.get('next_page_token'), 'abc');
+  assert.equal(query.get('page_token'), null);
+  assert.equal(query.get('order_by'), null);
 });
 
 test('1500 fake anchors are fully covered by three 5-page runs worth of pages', async () => {
   const all = Array.from({ length: 1500 }, (_, i) => ({ name: `anchors/ua-${String(i).padStart(6, '0')}`, createTime: '2020-01-01T00:00:00Z' }));
   const client = { getClient: async () => ({ request: async ({ url }) => {
-    const token = new URL(url).searchParams.get('page_token');
+    const token = new URL(url).searchParams.get('next_page_token');
     const start = token ? Number(token) : 0;
     const slice = all.slice(start, start + 200);
     return { data: { anchors: slice, nextPageToken: start + 200 < all.length ? String(start + 200) : undefined } };
