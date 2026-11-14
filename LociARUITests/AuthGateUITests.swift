@@ -276,9 +276,15 @@ extension AuthGateUITests {
 
     func testScreenTour09ARViewer() {
         let app = screenTourApp(["UITEST_OTHER_USER", "UITEST_OPEN_POST_DIRECTLY"])
-        XCTAssertTrue(app.buttons["post-open-ar"].waitForExistence(timeout: 10))
-        app.buttons["post-open-ar"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["ar-post-viewer"].waitForExistence(timeout: 10))
+        let openAR = app.buttons["post-open-ar"]
+        XCTAssertTrue(openAR.waitForExistence(timeout: 10))
+        XCTAssertTrue(waitForHittable(openAR, timeout: 10))
+        let viewer = app.descendants(matching: .any)["ar-post-viewer"]
+        openAR.tap()
+        // A loaded CI runner can drop a tap that lands while the post screen is still settling
+        // (run 43595101911). Tap once more only if the post screen is still in front.
+        if !viewer.waitForExistence(timeout: 10), openAR.exists, openAR.isHittable { openAR.tap() }
+        XCTAssertTrue(viewer.waitForExistence(timeout: 20))
         capture(app, name: "screen-37-ar-post-viewer")
     }
 
