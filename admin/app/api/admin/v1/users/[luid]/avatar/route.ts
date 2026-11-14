@@ -47,7 +47,8 @@ export async function POST(request:Request,context:{params:Promise<{luid:string}
     const hash=createHash('sha256').update(JSON.stringify({actor:access.context.user.id,luid,digest,reason})).digest('hex');
     const initial=await db.runTransaction(async tx=>{
       await requireManagedProfilePermission(tx,access.context.user.id);
-      const [job,profile,account,deletion,review]=await tx.getAll(jobRef,db.collection('profiles').doc(luid),db.collection('account_access').doc(luid),db.collection('account_deletion_jobs').doc(luid),reviewRef);
+      // The review document is read so a concurrent review change conflicts with this transaction.
+      const [job,profile,account,deletion]=await tx.getAll(jobRef,db.collection('profiles').doc(luid),db.collection('account_access').doc(luid),db.collection('account_deletion_jobs').doc(luid),reviewRef);
       if(job.exists){
         if(job.get('request_hash')!==hash)throw new ConflictError('idempotency_key_reused');
         const status=String(job.get('status'));

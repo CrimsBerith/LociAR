@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { apiError, enforceRateLimit, requireSameOrigin, unauthorized } from '../../../../../lib/api';
 import { requireAdminApi } from '../../../../../lib/admin';
-import { idempotencyKey, parseJson, requiredString, uuid } from '../../../../../lib/validation';
+import { idempotencyKey, parseJson, requiredString } from '../../../../../lib/validation';
 import { parseContentInput, saveAdminPost } from '../../../../../lib/content-ops';
 
 export async function POST(request: Request) {
