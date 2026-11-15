@@ -587,7 +587,8 @@ extension AuthGateUITests {
         capture(springboard, name: "simulator-location-entry-notification")
         notification.tap()
         XCTAssertTrue(app.navigationBars["Not"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts["Notları görmek için yaklaş ve haritada aç."].waitForExistence(timeout: 20))
+        // The note page (PostPreviewView) explains a locked note this way; the map banner text differs.
+        XCTAssertTrue(app.staticTexts["Bu not konumunda açılır."].waitForExistence(timeout: 20))
         XCTAssertFalse(app.staticTexts[prepared["body"]!].exists, "Bildirim yönlendirmesi konumsuz not gövdesini açmamalı.")
         XCTAssertTrue(app.buttons["Konumu gör"].firstMatch.exists)
         XCTAssertFalse(app.staticTexts["Kamera açık"].exists)
