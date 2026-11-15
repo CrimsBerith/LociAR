@@ -547,13 +547,22 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
     func synchronizeIfNeeded() async -> Bool {
         guard enabled, isSupported, placeNotesEnabled || promotionsEnabled, let id = userID,
               FirebaseIdentity.currentLUID() == id,
-              manager.authorizationStatus == .authorizedAlways || foreground && manager.authorizationStatus == .authorizedWhenInUse else { return false }
+              manager.authorizationStatus == .authorizedAlways || foreground && manager.authorizationStatus == .authorizedWhenInUse else {
+            logSkippedSynchronization()
+            return false
+        }
         if lastRegionRefresh != .distantPast, !needsMonitoringRecovery,
            !regionQueryPolicy.needsRefresh(scope: regionQueryScope, fix: regionSearchFix, now: ProcessInfo.processInfo.systemUptime) { return true }
         guard regionQueryPolicy.mayAttempt(scope: regionQueryScope, now: ProcessInfo.processInfo.systemUptime) else { return false }
         let unchangedFlight = refreshCoordinator.isInFlight
             && !regionQueryInFlight.needsRefresh(scope: regionQueryScope, fix: regionSearchFix, now: ProcessInfo.processInfo.systemUptime)
         return await refreshCoordinator.refresh(invalidating: !unchangedFlight) { [weak self] in await self?.synchronizeOnce() ?? false }
+    }
+
+    /// Why a region refresh did not run (flags only, no identifiers or coordinates).
+    private func logSkippedSynchronization() {
+        let status = manager.authorizationStatus.rawValue
+        Self.deliveryLog.info("Region refresh skipped: enabled=\(self.enabled, privacy: .public) supported=\(self.isSupported, privacy: .public) notes=\(self.placeNotesEnabled, privacy: .public) promotions=\(self.promotionsEnabled, privacy: .public) session=\(self.userID != nil && FirebaseIdentity.currentLUID() == self.userID, privacy: .public) authorization=\(status, privacy: .public) foreground=\(self.foreground, privacy: .public)")
     }
 
     private func synchronizeOnce() async -> Bool {

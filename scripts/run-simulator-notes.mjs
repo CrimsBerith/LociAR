@@ -12,10 +12,13 @@ const root = resolve(import.meta.dirname, '..'); process.chdir(root);
 const output = resolve(process.env.LOCIAR_TEST_OUTPUT ?? 'build/simulator-note-e2e');
 mkdirSync(output, { recursive: true });
 writeFileSync(join(output, 'runner.pid'), String(process.pid));
+// 8080 can be held by another local service; LOCIAR_FIRESTORE_EMULATOR_PORT moves the Firestore emulator.
+const firestorePort = Number(process.env.LOCIAR_FIRESTORE_EMULATOR_PORT ?? 8080);
+assert.ok(Number.isInteger(firestorePort) && firestorePort >= 1024 && firestorePort <= 65535, 'Invalid LOCIAR_FIRESTORE_EMULATOR_PORT.');
 const env = { ...process.env, GCLOUD_PROJECT: 'demo-lociar', GOOGLE_CLOUD_PROJECT: 'demo-lociar', FUNCTIONS_EMULATOR: 'true',
   FIREBASE_CONFIG: JSON.stringify({ projectId: 'demo-lociar', storageBucket: 'demo-lociar.firebasestorage.app' }),
   FIREBASE_STORAGE_BUCKET: 'demo-lociar.firebasestorage.app',
-  FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080', FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099', FIREBASE_STORAGE_EMULATOR_HOST: '127.0.0.1:9199' };
+  FIRESTORE_EMULATOR_HOST: '127.0.0.1:' + firestorePort, FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099', FIREBASE_STORAGE_EMULATOR_HOST: '127.0.0.1:9199' };
 delete env.GOOGLE_APPLICATION_CREDENTIALS; delete env.FIREBASE_TOKEN;
 delete env.FIREBASE_SERVICE_ACCOUNT_JSON;
 // A selected UI plan can publish one to four own notes before account
@@ -78,7 +81,7 @@ async function stop() {
 process.once('SIGINT', async () => { await stop(); process.exit(130); });
 process.once('SIGTERM', async () => { await stop(); process.exit(143); });
 try {
-  await Promise.all([9099, 8080, 9199, 5001, 4400, 4500, 9150, 9867].map(async port => {
+  await Promise.all([9099, firestorePort, 9199, 5001, 4400, 4500, 9150, 9867].map(async port => {
     assert.equal(await listening(port), false, `Port ${port} is occupied.`);
   }));
   const inventory = command('xcrun', ['simctl', 'list', 'devices', '-j']);
@@ -114,6 +117,7 @@ try {
   const config = JSON.parse(readFileSync('firebase.json'));
   config.firestore.rules = resolve('firestore.rules'); config.firestore.indexes = resolve('firestore.indexes.json'); config.storage.rules = resolve('storage.rules');
   config.functions = [{ source: relative(output, frozen), codebase: 'default', runtime: 'nodejs22' }];
+  config.emulators.firestore.port = firestorePort;
   const configFile = join(output, 'firebase.json'); writeFileSync(configFile, JSON.stringify(config));
   const backend = start(process.execPath, [resolve('functions/node_modules/firebase-tools/lib/bin/firebase.js'), 'emulators:start', '--project', 'demo-lociar', '--config', configFile, '--only', 'auth,firestore,storage,functions'], 'emulators');
   await pollUntil(async () => {
@@ -133,7 +137,7 @@ try {
   const common = ['-project', 'LociAR.xcodeproj', '-scheme', 'LociAR', '-configuration', 'Debug', '-destination', 'platform=iOS Simulator,id=' + sim,
     '-derivedDataPath', derivedData,
     '-clonedSourcePackagesDirPath', resolve('build/ci-ios/SourcePackages'), '-disableAutomaticPackageResolution', '-onlyUsePackageVersionsFromResolvedFile',
-    '-parallel-testing-enabled', 'NO', 'LOCIAR_EMULATOR_HOST=' + host, 'LOCIAR_FIREBASE_PROJECT_ID=demo-lociar',
+    '-parallel-testing-enabled', 'NO', 'LOCIAR_EMULATOR_HOST=' + host, 'LOCIAR_EMULATOR_FIRESTORE_PORT=' + firestorePort, 'LOCIAR_FIREBASE_PROJECT_ID=demo-lociar',
     'LOCIAR_FIREBASE_STORAGE_BUCKET=demo-lociar.firebasestorage.app', 'LOCIAR_FIREBASE_API_KEY=AIza' + 'A'.repeat(35),
     'LOCIAR_FIREBASE_GOOGLE_APP_ID=1:123456789012:ios:abcdef0123456789', 'LOCIAR_FIREBASE_GCM_SENDER_ID=123456789012'];
   await run('xcodebuild', [...common, 'build-for-testing'], 'build');

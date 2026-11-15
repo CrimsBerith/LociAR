@@ -239,6 +239,14 @@ final class StoreReadinessTests: XCTestCase {
 
     /// The repository is public, so the debug token comes from the git-ignored local configuration.
     /// Anything that is not a UUID (unset, or an unexpanded build setting) must not be used as a token.
+    func testEmulatorFirestorePortAcceptsOnlyUnprivilegedPorts() {
+        XCTAssertNil(AppConfiguration.emulatorPort(from: nil))
+        XCTAssertNil(AppConfiguration.emulatorPort(from: ""))
+        XCTAssertNil(AppConfiguration.emulatorPort(from: "$(LOCIAR_EMULATOR_FIRESTORE_PORT)"))
+        XCTAssertNil(AppConfiguration.emulatorPort(from: "80"))
+        XCTAssertEqual(AppConfiguration.emulatorPort(from: " 18080 "), 18080)
+    }
+
     func testAppCheckDebugTokenIsReadFromLocalConfigurationAndMustBeAUUID() {
         XCTAssertNil(AppConfiguration.appCheckDebugToken(from: nil))
         XCTAssertNil(AppConfiguration.appCheckDebugToken(from: ""))

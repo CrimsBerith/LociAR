@@ -173,7 +173,7 @@ struct AppConfiguration: Sendable {
         )
         Auth.auth().useEmulator(withHost: host, port: 9099)
         let firestore = Firestore.firestore()
-        firestore.useEmulator(withHost: host, port: 8080)
+        firestore.useEmulator(withHost: host, port: Self.emulatorFirestorePort())
         if permitsDemoHTTP {
             // useEmulator changes only the host in Firebase 12.19. The local suite
             // serves plaintext; keep this opt-in limited to synthetic demo credentials.
@@ -189,6 +189,17 @@ struct AppConfiguration: Sendable {
         // opt-in is allowed solely for our disposable demo project and synthetic identifiers.
         // No production Auth/App Check/FCM credentials may use this test transport.
         functions.allowInsecureTokenAttachment = permitsDemoHTTP
+    }
+
+    /// Firestore emulator port. 8080 by default (firebase.json); a test run can move it when another
+    /// local service already holds 8080 (LOCIAR_EMULATOR_FIRESTORE_PORT build setting).
+    nonisolated static func emulatorFirestorePort(bundle: Bundle = .main) -> Int {
+        emulatorPort(from: bundle.object(forInfoDictionaryKey: "LOCIAR_EMULATOR_FIRESTORE_PORT") as? String) ?? 8080
+    }
+
+    nonisolated static func emulatorPort(from raw: String?) -> Int? {
+        guard let raw, let port = Int(raw.trimmingCharacters(in: .whitespacesAndNewlines)), (1024...65535).contains(port) else { return nil }
+        return port
     }
 
     nonisolated static func permitsDemoEmulatorHTTP(settings: FirebaseSettings?, host: String?, optedIn: Bool) -> Bool {
