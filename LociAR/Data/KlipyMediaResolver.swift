@@ -151,9 +151,11 @@ enum KlipyAPI {
             do {
                 (data, response) = try await session.data(from: endpoint)
             } catch {
+                FieldTestLog.record("gif_klipy", ["path": path, "status": "network_error", "code": String((error as NSError).code)])
                 throw .unavailable
             }
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            FieldTestLog.record("gif_klipy", ["path": path, "status": String(status), "attempt": String(attempt)])
             if status == 429 { throw .rateLimited }
             // KLIPY answers an unknown key with 404 and `result: false`.
             if [401, 403, 404].contains(status), attempt == 0 {
@@ -203,6 +205,7 @@ final class KlipyCallables: @unchecked Sendable {
 actor KlipyConfigStore {
     static let shared = KlipyConfigStore()
     private static let lifetime: TimeInterval = 3_600
+    static let readDeadline: Double = 12
     private var cached: (config: GifClientConfig, expiresAt: Date)?
     private var inFlight: Task<GifClientConfig?, Never>?
 
@@ -210,10 +213,29 @@ actor KlipyConfigStore {
         if let cached, cached.expiresAt > Date() { return cached.config }
         if let inFlight { return await inFlight.value }
         let task = Task<GifClientConfig?, Never> {
-            guard let client = KlipyCallables.shared.current,
-                  let data = try? await client.callRaw("getGifConfig", object: [:] as [String: Any]),
-                  let config = try? JSONDecoder().decode(GifClientConfig.self, from: data),
-                  config.provider == "klipy", KlipyAPI.isValidAppKey(config.appKey) else { return nil }
+            let started = Date()
+            guard let client = KlipyCallables.shared.current else {
+                FieldTestLog.record("gif_config", ["ms": "0", "outcome": "no_client"])
+                return nil
+            }
+            // The callable's own timeout covers only the HTTP request; App Check and Auth token reads
+            // before it have none. A shared in-flight read that never ends would block every search.
+            let data: Data
+            do {
+                data = try await GifDeadline.run(seconds: Self.readDeadline) {
+                    try await client.callRaw("getGifConfig", object: [:] as [String: Any], timeout: Self.readDeadline)
+                }
+            } catch {
+                FieldTestLog.record("gif_config", ["ms": String(Int(Date().timeIntervalSince(started) * 1000)),
+                                                   "outcome": error is GifDeadline.Expired ? "timeout" : String(describing: error)])
+                return nil
+            }
+            guard let config = try? JSONDecoder().decode(GifClientConfig.self, from: data),
+                  config.provider == "klipy", KlipyAPI.isValidAppKey(config.appKey) else {
+                FieldTestLog.record("gif_config", ["ms": String(Int(Date().timeIntervalSince(started) * 1000)), "outcome": "invalid"])
+                return nil
+            }
+            FieldTestLog.record("gif_config", ["ms": String(Int(Date().timeIntervalSince(started) * 1000)), "outcome": "ok"])
             return config
         }
         inFlight = task

@@ -206,4 +206,20 @@ private final class ClockBox: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         value = value.addingTimeInterval(seconds)
     }
+
+    func testGifDeadlineReturnsFastWorkAndEndsWorkThatNeverFinishes() async throws {
+        let value = try await GifDeadline.run(seconds: 2) { 42 }
+        XCTAssertEqual(value, 42)
+        let started = Date()
+        do {
+            // A continuation that is never resumed: the shape of a hung Firebase/App Check read.
+            _ = try await GifDeadline.run(seconds: 0.2) { () async throws -> Int in
+                try await withCheckedThrowingContinuation { (_: CheckedContinuation<Int, Error>) in }
+            }
+            XCTFail("expected the deadline to end the wait")
+        } catch {
+            XCTAssertTrue(error is GifDeadline.Expired)
+        }
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2)
+    }
 }

@@ -31,6 +31,38 @@ enum GifSearchError: LocalizedError, Equatable, Sendable {
     }
 }
 
+/// Upper bound for an awaited step whose underlying API may ignore cancellation (Firebase callables,
+/// App Check token fetches). The caller resumes when the deadline passes; the late result is dropped.
+enum GifDeadline {
+    struct Expired: Error, Equatable {}
+
+    /// Resumes exactly once: whichever of the work or the deadline finishes first.
+    private final class Gate<Value: Sendable>: @unchecked Sendable {
+        private let lock = NSLock()
+        private var continuation: CheckedContinuation<Value, Error>?
+        init(_ continuation: CheckedContinuation<Value, Error>) { self.continuation = continuation }
+        @discardableResult
+        func resume(_ result: Result<Value, Error>) -> Bool {
+            lock.lock(); let pending = continuation; continuation = nil; lock.unlock()
+            pending?.resume(with: result)
+            return pending != nil
+        }
+    }
+
+    nonisolated static func run<Value: Sendable>(seconds: Double, _ work: @escaping @Sendable () async throws -> Value) async throws -> Value {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Value, Error>) in
+            let gate = Gate(continuation)
+            let task = Task {
+                do { gate.resume(.success(try await work())) } catch { gate.resume(.failure(error)) }
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(seconds))
+                if gate.resume(.failure(Expired())) { task.cancel() }
+            }
+        }
+    }
+}
+
 /// An empty query returns trending GIFs.
 protocol GifRepository: Sendable {
     func search(query: String, offset: Int) async throws -> GifSearchPage
@@ -54,7 +86,22 @@ final class FirebaseGifRepository: GifRepository, @unchecked Sendable {
             page.results.reduce(64) { $0 + $1.title.utf8.count + $1.gif.id.utf8.count + 64 }
         }) {
             guard FirebaseIdentity.currentLUID() == owner else { throw AuthFlowError.notSignedIn }
-            let page = try await Self.fetch(query: normalized, offset: offset, region: region, owner: owner)
+            let started = Date()
+            let page: GifSearchPage
+            do {
+                // A stalled step (key read, App Check, network) must end in an error the picker can show,
+                // never in a spinner that never stops (reported on device, 16 Nov 2026).
+                page = try await GifDeadline.run(seconds: Self.searchDeadline) {
+                    try await Self.fetch(query: normalized, offset: offset, region: region, owner: owner)
+                }
+                FieldTestLog.record("gif_search", ["ms": String(Int(Date().timeIntervalSince(started) * 1000)), "outcome": "ok",
+                                                   "count": String(page.results.count), "trending": normalized.isEmpty ? "1" : "0"])
+            } catch {
+                FieldTestLog.record("gif_search", ["ms": String(Int(Date().timeIntervalSince(started) * 1000)),
+                                                   "outcome": error is GifDeadline.Expired ? "timeout" : String(describing: error)])
+                if error is GifDeadline.Expired { throw GifSearchError.unavailable }
+                throw error
+            }
             guard FirebaseIdentity.currentLUID() == owner else { throw AuthFlowError.notSignedIn }
             return page
         }
@@ -75,6 +122,9 @@ final class FirebaseGifRepository: GifRepository, @unchecked Sendable {
         if !region.isEmpty { items.append(URLQueryItem(name: "locale", value: region)) }
         return items
     }
+
+    /// Longest the picker waits for one page: key read (12 s) plus one KLIPY request with its retry.
+    nonisolated static let searchDeadline: Double = 25
 
     private static func fetch(query: String, offset: Int, region: String, owner: UUID) async throws -> GifSearchPage {
         guard let config = await KlipyConfigStore.shared.config() else { throw GifSearchError.unavailable }
