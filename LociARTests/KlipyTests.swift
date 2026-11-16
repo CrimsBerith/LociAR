@@ -193,19 +193,6 @@ final class KlipyTests: XCTestCase {
         let calls = await counter.calls
         XCTAssertEqual(calls.count, 2)
     }
-}
-
-private final class ClockBox: @unchecked Sendable {
-    private let lock = NSLock()
-    private var value = Date(timeIntervalSince1970: 1_800_000_000)
-    var now: Date {
-        lock.lock(); defer { lock.unlock() }
-        return value
-    }
-    func advance(_ seconds: TimeInterval) {
-        lock.lock(); defer { lock.unlock() }
-        value = value.addingTimeInterval(seconds)
-    }
 
     func testGifDeadlineReturnsFastWorkAndEndsWorkThatNeverFinishes() async throws {
         let value = try await GifDeadline.run(seconds: 2) { 42 }
@@ -221,5 +208,18 @@ private final class ClockBox: @unchecked Sendable {
             XCTAssertTrue(error is GifDeadline.Expired)
         }
         XCTAssertLessThan(Date().timeIntervalSince(started), 2)
+    }
+}
+
+private final class ClockBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = Date(timeIntervalSince1970: 1_800_000_000)
+    var now: Date {
+        lock.lock(); defer { lock.unlock() }
+        return value
+    }
+    func advance(_ seconds: TimeInterval) {
+        lock.lock(); defer { lock.unlock() }
+        value = value.addingTimeInterval(seconds)
     }
 }
