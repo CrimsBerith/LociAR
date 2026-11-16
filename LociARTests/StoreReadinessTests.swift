@@ -307,4 +307,15 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertEqual(first, ["e": "anchor_resolve", "ms": "812", "ok": "1", "t": "2026-11-15T10:20:30.123Z"])
         XCTAssertEqual(FieldTestLog.thermalName(.serious), "serious")
     }
+
+    func testPerformanceSummaryKeepsNumbersOnlyAndAveragesHistograms() {
+        XCTAssertNil(PerformanceSummary.mean([]))
+        XCTAssertEqual(PerformanceSummary.mean([(start: 0, end: 100, count: 1), (start: 100, end: 300, count: 3)]), 162.5)
+        let summary = PerformanceSummary(launchMs: 420, hangMsTotal: 1_500, scrollHitchMsPerS: 2.5, peakMemoryMB: 240, foregroundMemoryExits: 0)
+        let fields = summary.fields
+        XCTAssertEqual(Set(fields.keys), ["launch_ms", "hang_ms_total", "scroll_hitch_ms_per_s", "peak_memory_mb", "fg_memory_exits"])
+        XCTAssertTrue(fields.values.allSatisfy { $0 is Int || $0 is Double }, "only numbers leave the device")
+        XCTAssertTrue(PerformanceSummary().fields.isEmpty)
+        XCTAssertEqual(PerformanceReporter.errorDomain, "LociPerformance")
+    }
 }

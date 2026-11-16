@@ -118,6 +118,7 @@
 		E647892C572A0083C3DEB8DE /* ARCoreCloudAnchors in Frameworks */ = {isa = PBXBuildFile; productRef = 7FA0874FC2B2AAC168661435 /* ARCoreCloudAnchors */; };
 		E7692203B338A88B9E0405B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BAEE8ECEDD31A81CAD4C30E /* Assets.xcassets */; };
 		E9F6E8DF5FE25C9C2ABF8D70 /* PostPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C87CB8533EB3EFBA2856489 /* PostPreviewView.swift */; };
+		EA625BDA2DE3598383DD93BF /* PerformanceReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A23F7CE37867D278C139EBB7 /* PerformanceReporter.swift */; };
 		EEE858332726DF3937A43C22 /* PostSupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7831730EA2D5D16CB4828400 /* PostSupportView.swift */; };
 		F021D45F7D7C568D359FBD18 /* ARPinningTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B86FFC5FFC8A6B8124476DA /* ARPinningTypes.swift */; };
 		F06E6E1085B1AE5E8DC2A43A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05B01A8DAF9F0336F36CF9 /* OnboardingView.swift */; };
@@ -292,6 +293,7 @@
 		9DA84B891EC9E2694905E20D /* ARPostViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPostViewerView.swift; sourceTree = "<group>"; };
 		9FC522B99519A8C034C847F6 /* turkey.tsv */ = {isa = PBXFileReference; path = turkey.tsv; sourceTree = "<group>"; };
 		A066184A4986CA47D43E7043 /* ARCoreDisclosure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreDisclosure.swift; sourceTree = "<group>"; };
+		A23F7CE37867D278C139EBB7 /* PerformanceReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceReporter.swift; sourceTree = "<group>"; };
 		A2ED685C51D74EA3E25BAE4B /* supplement.tsv */ = {isa = PBXFileReference; path = supplement.tsv; sourceTree = "<group>"; };
 		A3F633ABA0A741C6F24F0E79 /* NoteTranslation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTranslation.swift; sourceTree = "<group>"; };
 		A490648EDF65B459DC92A21A /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
@@ -527,6 +529,7 @@
 				9309C5EFBE40B5DE193B3ECF /* LocationController.swift */,
 				DD09E0AEC82F3444FCB8D00F /* LociARApp.swift */,
 				6C46B83A003BDC6A241B3BDD /* NotificationService.swift */,
+				A23F7CE37867D278C139EBB7 /* PerformanceReporter.swift */,
 				EC3C669048AEFCDD2404B036 /* PlaceNoteDeliveryRecovery.swift */,
 				5F3FB818959D6EA5ADDE7F1E /* RootView.swift */,
 				F7796ACFDBCBD0E65741ABF9 /* UserContextService.swift */,
@@ -1152,6 +1155,7 @@
 				9650A8640D9D62627B2826BD /* NoteTranslation.swift in Sources */,
 				60C720C4226E7EADD4D73BD5 /* NotificationService.swift in Sources */,
 				F06E6E1085B1AE5E8DC2A43A /* OnboardingView.swift in Sources */,
+				EA625BDA2DE3598383DD93BF /* PerformanceReporter.swift in Sources */,
 				4B1BCB9297B5674E33DF6D45 /* PersistenceModels.swift in Sources */,
 				AC781F66C329CD3224975507 /* PinCommitCoordinator.swift in Sources */,
 				C90516C31363F14E29490888 /* PinPlacementPolicy.swift in Sources */,

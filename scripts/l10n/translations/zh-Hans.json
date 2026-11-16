@@ -534,7 +534,7 @@
  "Tümü": "全部",
  "Uygulama arka planda; AR oturumu duraklatıldı.": "应用程序在后台运行； AR 会话已暂停。",
  "Uygulama açıkken son konumun, doğruluğu ve zamanı yetkili yöneticilere gönderilir. Anonim notların hesabınla ilişkilendirilebilir.": "应用打开时，上次位置、精度和时间会发送给获授权的管理员。你的匿名笔记可能与账号关联。",
- "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "应用崩溃时，Firebase Crashlytics 会收到设备型号、iOS 版本和错误报告。不会发送位置、内容或个人信息。",
+ "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı; ayrıca günde en fazla bir kez açılış süresi, takılma ve bellek özeti Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "应用崩溃时，Firebase Crashlytics 会收到设备型号、iOS 版本和错误报告，并且每天最多一次收到启动时间、卡顿和内存使用的摘要。不会发送位置、内容或个人信息。",
  "Vazgeç": "取消",
  "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene.": "无法更新数据共享设置。请检查连接后重试。",
  "World map boş veya 50 MB sınırını aşıyor.": "AR 环境地图为空或超过 50 MB 限制。",

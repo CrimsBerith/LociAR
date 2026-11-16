@@ -41763,79 +41763,79 @@
         }
       }
     },
-    "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez." : {
+    "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı; ayrıca günde en fazla bir kez açılış süresi, takılma ve bellek özeti Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez." : {
       "extractionState" : "manual",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez."
+            "value" : "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı; ayrıca günde en fazla bir kez açılış süresi, takılma ve bellek özeti Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "If the app crashes, Firebase Crashlytics receives the device model, iOS version and error report. Location, content and personal details are not sent."
+            "value" : "If the app crashes, Firebase Crashlytics receives the device model, iOS version and error report, and at most once a day a summary of launch time, hangs and memory use. Location, content and personal details are not sent."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bei einem Absturz erhält Firebase Crashlytics das Gerätemodell, die iOS-Version und den Fehlerbericht. Standort, Inhalte und persönliche Angaben werden nicht gesendet."
+            "value" : "Bei einem Absturz erhält Firebase Crashlytics das Gerätemodell, die iOS-Version und den Fehlerbericht, außerdem höchstens einmal täglich eine Zusammenfassung von Startzeit, Hängern und Speichernutzung. Standort, Inhalte und persönliche Angaben werden nicht gesendet."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Si la aplicación falla, Firebase Crashlytics recibe el modelo del dispositivo, la versión de iOS y el informe de error. No se envían la ubicación, el contenido ni datos personales."
+            "value" : "Si la aplicación falla, Firebase Crashlytics recibe el modelo del dispositivo, la versión de iOS y el informe de error, y como máximo una vez al día un resumen del tiempo de inicio, los bloqueos y el uso de memoria. No se envían la ubicación, el contenido ni datos personales."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Si l’application plante, Firebase Crashlytics reçoit le modèle de l’appareil, la version d’iOS et le rapport d’erreur. La position, le contenu et les informations personnelles ne sont pas envoyés."
+            "value" : "Si l’application plante, Firebase Crashlytics reçoit le modèle de l’appareil, la version d’iOS et le rapport d’erreur, ainsi qu’au plus une fois par jour un résumé du temps de lancement, des blocages et de l’utilisation de la mémoire. La position, le contenu et les informations personnelles ne sont pas envoyés."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se o aplicativo falhar, o Firebase Crashlytics recebe o modelo do dispositivo, a versão do iOS e o relatório de erro. Localização, conteúdo e dados pessoais não são enviados."
+            "value" : "Se o aplicativo falhar, o Firebase Crashlytics recebe o modelo do dispositivo, a versão do iOS e o relatório de erro e, no máximo uma vez por dia, um resumo do tempo de abertura, travamentos e uso de memória. Localização, conteúdo e dados pessoais não são enviados."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "При сбое Firebase Crashlytics получает модель устройства, версию iOS и отчёт об ошибке. Местоположение, содержимое и личные сведения не передаются."
+            "value" : "При сбое Firebase Crashlytics получает модель устройства, версию iOS и отчёт об ошибке, а также не чаще раза в день сводку о времени запуска, зависаниях и использовании памяти. Местоположение, содержимое и личные сведения не передаются."
           }
         },
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إذا تعطل التطبيق، تتلقى Firebase Crashlytics طراز الجهاز وإصدار iOS وتقرير الخطأ. لا يُرسل الموقع أو المحتوى أو المعلومات الشخصية."
+            "value" : "إذا تعطل التطبيق، تتلقى Firebase Crashlytics طراز الجهاز وإصدار iOS وتقرير الخطأ، ومرة واحدة يوميًا على الأكثر ملخصًا لوقت الفتح والتجمد واستخدام الذاكرة. لا يُرسل الموقع أو المحتوى أو المعلومات الشخصية."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ऐप क्रैश होने पर Firebase Crashlytics को डिवाइस मॉडल, iOS संस्करण और त्रुटि रिपोर्ट भेजी जाती है। स्थान, सामग्री और व्यक्तिगत जानकारी नहीं भेजी जाती।"
+            "value" : "ऐप क्रैश होने पर Firebase Crashlytics को डिवाइस मॉडल, iOS संस्करण और त्रुटि रिपोर्ट भेजी जाती है, और दिन में अधिकतम एक बार लॉन्च समय, अटकने और मेमोरी उपयोग का सारांश भी। स्थान, सामग्री और व्यक्तिगत जानकारी नहीं भेजी जाती।"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "অ্যাপ ক্র্যাশ করলে Firebase Crashlytics-এ ডিভাইসের মডেল, iOS সংস্করণ ও ত্রুটির রিপোর্ট পাঠানো হয়। অবস্থান, বিষয়বস্তু বা ব্যক্তিগত তথ্য পাঠানো হয় না।"
+            "value" : "অ্যাপ ক্র্যাশ করলে Firebase Crashlytics-এ ডিভাইসের মডেল, iOS সংস্করণ ও ত্রুটির রিপোর্ট পাঠানো হয়, আর দিনে সর্বোচ্চ একবার চালু হওয়ার সময়, আটকে যাওয়া ও মেমরি ব্যবহারের সারাংশ। অবস্থান, বিষয়বস্তু বা ব্যক্তিগত তথ্য পাঠানো হয় না।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アプリがクラッシュすると、端末モデル、iOSバージョン、エラーレポートがFirebase Crashlyticsに送信されます。位置情報、コンテンツ、個人情報は送信されません。"
+            "value" : "アプリがクラッシュすると、端末モデル、iOSバージョン、エラーレポートがFirebase Crashlyticsに送信されます。また1日1回まで、起動時間・フリーズ・メモリ使用量の概要も送信されます。位置情報、コンテンツ、個人情報は送信されません。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "应用崩溃时，Firebase Crashlytics 会收到设备型号、iOS 版本和错误报告。不会发送位置、内容或个人信息。"
+            "value" : "应用崩溃时，Firebase Crashlytics 会收到设备型号、iOS 版本和错误报告，并且每天最多一次收到启动时间、卡顿和内存使用的摘要。不会发送位置、内容或个人信息。"
           }
         }
       }

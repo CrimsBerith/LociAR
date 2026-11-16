@@ -534,7 +534,7 @@
  "Tümü": "सभी",
  "Uygulama arka planda; AR oturumu duraklatıldı.": "एप्लिकेशन पृष्ठभूमि में है; एआर सत्र रुका हुआ है.",
  "Uygulama açıkken son konumun, doğruluğu ve zamanı yetkili yöneticilere gönderilir. Anonim notların hesabınla ilişkilendirilebilir.": "ऐप खुला रहने पर आपकी आखिरी लोकेशन, सटीकता और समय अधिकृत व्यवस्थापकों को भेजे जाते हैं। आपके गुमनाम नोट आपके खाते से जोड़े जा सकते हैं।",
- "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "ऐप क्रैश होने पर Firebase Crashlytics को डिवाइस मॉडल, iOS संस्करण और त्रुटि रिपोर्ट भेजी जाती है। स्थान, सामग्री और व्यक्तिगत जानकारी नहीं भेजी जाती।",
+ "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı; ayrıca günde en fazla bir kez açılış süresi, takılma ve bellek özeti Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "ऐप क्रैश होने पर Firebase Crashlytics को डिवाइस मॉडल, iOS संस्करण और त्रुटि रिपोर्ट भेजी जाती है, और दिन में अधिकतम एक बार लॉन्च समय, अटकने और मेमोरी उपयोग का सारांश भी। स्थान, सामग्री और व्यक्तिगत जानकारी नहीं भेजी जाती।",
  "Vazgeç": "रद्द करें",
  "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene.": "डेटा साझाकरण अपडेट नहीं हो सका। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
  "World map boş veya 50 MB sınırını aşıyor.": "AR परिवेश का मानचित्र खाली है या 50 MB की सीमा से अधिक है।",

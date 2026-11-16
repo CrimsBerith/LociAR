@@ -534,7 +534,7 @@
  "Tümü": "All",
  "Uygulama arka planda; AR oturumu duraklatıldı.": "The application is in the background; AR session is paused.",
  "Uygulama açıkken son konumun, doğruluğu ve zamanı yetkili yöneticilere gönderilir. Anonim notların hesabınla ilişkilendirilebilir.": "While the app is open, your last location, accuracy and timestamp are sent to authorized admins. Your anonymous notes may be linked to your account.",
- "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "If the app crashes, Firebase Crashlytics receives the device model, iOS version and error report. Location, content and personal details are not sent.",
+ "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı; ayrıca günde en fazla bir kez açılış süresi, takılma ve bellek özeti Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "If the app crashes, Firebase Crashlytics receives the device model, iOS version and error report, and at most once a day a summary of launch time, hangs and memory use. Location, content and personal details are not sent.",
  "Vazgeç": "Cancel",
  "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene.": "Data sharing could not be updated. Check your connection and try again.",
  "World map boş veya 50 MB sınırını aşıyor.": "The AR environment map is empty or exceeds the 50 MB limit.",

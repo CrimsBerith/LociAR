@@ -474,6 +474,7 @@ final class LociAppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ _: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FieldTestLog.configure()
+        PerformanceReporter.shared.start()
         if launchOptions?[.location] != nil { FieldTestLog.record("launched_for_location") }
         restoreBackgroundServices()
         if launchOptions?[.location] != nil { CampaignArrivalService.shared.resumeBackgroundLocation() }

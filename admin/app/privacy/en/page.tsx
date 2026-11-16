@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPageEn() {
   return (
-    <LegalLayout title="Privacy policy" updated="November 13, 2026" lang="en">
+    <LegalLayout title="Privacy policy" updated="November 16, 2026" lang="en">
       <p>
         LociDrop is an iOS app for sharing short text notes anchored to real-world surfaces. This
         policy explains which personal data we process. <Link href="/privacy">Türkçe sürüm</Link>
@@ -32,7 +32,9 @@ export default function PrivacyPageEn() {
         <li><strong>User content:</strong> posts, captions, comments, likes, saves, collections, follows, blocks and reports.</li>
         <li><strong>Notification token:</strong> if you allow notifications, your device&apos;s Apple Push / Firebase Cloud Messaging token.</li>
         <li><strong>Crash and diagnostic data:</strong> when the app crashes, the device model, iOS version, app version, stack trace and a
-          random installation ID (Firebase Crashlytics).</li>
+          random installation ID (Firebase Crashlytics); and at most once a day a performance summary that Apple computes on
+          the device (launch time, hangs, memory and CPU use, number of unexpected terminations; Apple MetricKit, sent through
+          Firebase Crashlytics). Turning off Settings → &quot;Crash reports&quot; stops both.</li>
         <li><strong>Security:</strong> session tokens, device attestation (Apple App Attest / Firebase App Check), IP address
           processed by our infrastructure provider, and abuse-prevention records.</li>
       </ul>
@@ -67,7 +69,7 @@ export default function PrivacyPageEn() {
       <ul>
         <li><strong>Firebase Authentication, Cloud Firestore, Cloud Storage, Cloud Functions, App Check:</strong> accounts, content and security.</li>
         <li><strong>Firebase Cloud Messaging:</strong> delivering notifications (via the Apple Push Notification service).</li>
-        <li><strong>Firebase Crashlytics:</strong> crash reports, kept for {E.crashRetentionDays} days.</li>
+        <li><strong>Firebase Crashlytics:</strong> crash reports and daily performance summaries, kept for {E.crashRetentionDays} days.</li>
         <li><strong>Google Cloud Vision:</strong> automatic screening of profile photos for nudity, violence and similar content. The photo
           is sent only for this check; rejected photos are deleted.</li>
         <li><strong>Google ARCore:</strong> AR positioning (below).</li>

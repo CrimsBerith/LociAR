@@ -276,7 +276,7 @@ struct AppSettingsView: View {
                 .onChange(of: crashReports) { _, enabled in CrashReportingPreference.isEnabled = enabled }
                 .accessibilityIdentifier("settings-crash-reports")
         } footer: {
-            Text("Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.")
+            Text("Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı; ayrıca günde en fazla bir kez açılış süresi, takılma ve bellek özeti Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.")
         }
         .lociGlassRowBackground()
     }

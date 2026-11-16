@@ -534,7 +534,7 @@
  "Tümü": "Toutes",
  "Uygulama arka planda; AR oturumu duraklatıldı.": "L'application est en arrière-plan ; La session AR est suspendue.",
  "Uygulama açıkken son konumun, doğruluğu ve zamanı yetkili yöneticilere gönderilir. Anonim notların hesabınla ilişkilendirilebilir.": "Lorsque l’app est ouverte, votre dernière position, sa précision et son heure sont envoyées aux administrateurs autorisés. Vos notes anonymes peuvent être reliées à votre compte.",
- "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "Si l’application plante, Firebase Crashlytics reçoit le modèle de l’appareil, la version d’iOS et le rapport d’erreur. La position, le contenu et les informations personnelles ne sont pas envoyés.",
+ "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı; ayrıca günde en fazla bir kez açılış süresi, takılma ve bellek özeti Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "Si l’application plante, Firebase Crashlytics reçoit le modèle de l’appareil, la version d’iOS et le rapport d’erreur, ainsi qu’au plus une fois par jour un résumé du temps de lancement, des blocages et de l’utilisation de la mémoire. La position, le contenu et les informations personnelles ne sont pas envoyés.",
  "Vazgeç": "Annuler",
  "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene.": "Le partage de données n’a pas pu être mis à jour. Vérifiez votre connexion et réessayez.",
  "World map boş veya 50 MB sınırını aşıyor.": "La carte de l’environnement AR est vide ou dépasse la limite de 50 Mo.",

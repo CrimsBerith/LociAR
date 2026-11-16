@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="13 Kasım 2026">
+    <LegalLayout title="Gizlilik politikası ve KVKK aydınlatma metni" updated="16 Kasım 2026">
       <p>
         LociDrop, gerçek yüzeylere bağlı kısa metin notları paylaşılan bir iOS uygulamasıdır.
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m.10 kapsamında aydınlatma metni olarak da
@@ -34,7 +34,9 @@ export default function PrivacyPage() {
         <li><strong>Kullanıcı içeriği:</strong> gönderi, açıklama, yorum, beğeni, kaydetme, koleksiyon, takip, engelleme ve raporlar.</li>
         <li><strong>Bildirim belirteci:</strong> bildirimlere izin verirseniz cihazınızın Apple Push / Firebase Cloud Messaging belirteci.</li>
         <li><strong>Çökme ve tanılama verileri:</strong> uygulama çöktüğünde cihaz modeli, iOS sürümü, uygulama sürümü, çökme anındaki
-          kod izi ve rastgele bir kurulum kimliği (Firebase Crashlytics).</li>
+          kod izi ve rastgele bir kurulum kimliği; ayrıca günde en fazla bir kez Apple&apos;ın cihazda hesapladığı performans özeti
+          (açılış süresi, takılma, bellek ve işlemci kullanımı, beklenmedik kapanma sayısı; Apple MetricKit, Firebase Crashlytics ile
+          gönderilir). Ayarlar → &quot;Çökme raporları&quot; kapatılırsa ikisi de gönderilmez.</li>
         <li><strong>İşlem güvenliği:</strong> oturum belirteçleri, cihaz doğrulaması (Apple App Attest / Firebase App Check),
           hizmet sağlayıcının işlediği IP adresi ve kötüye kullanım kayıtları.</li>
       </ul>
@@ -70,7 +72,7 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>Firebase Authentication, Cloud Firestore, Cloud Storage, Cloud Functions, App Check:</strong> hesap, içerik ve güvenlik.</li>
         <li><strong>Firebase Cloud Messaging:</strong> bildirimlerin iletilmesi (Apple Push Notification service üzerinden).</li>
-        <li><strong>Firebase Crashlytics:</strong> çökme raporları; {E.crashRetentionDays} gün saklanır.</li>
+        <li><strong>Firebase Crashlytics:</strong> çökme raporları ve günlük performans özetleri; {E.crashRetentionDays} gün saklanır.</li>
         <li><strong>Google Cloud Vision:</strong> profil fotoğraflarının çıplaklık, şiddet ve benzeri içerik açısından otomatik incelenmesi.
           Fotoğraf yalnızca bu inceleme için gönderilir; reddedilen fotoğraflar silinir.</li>
         <li><strong>Google ARCore:</strong> AR konumlandırma (aşağıda).</li>

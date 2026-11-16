@@ -534,7 +534,7 @@
  "Tümü": "الكل",
  "Uygulama arka planda; AR oturumu duraklatıldı.": "التطبيق في الخلفية. جلسة الواقع المعزز متوقفة مؤقتًا.",
  "Uygulama açıkken son konumun, doğruluğu ve zamanı yetkili yöneticilere gönderilir. Anonim notların hesabınla ilişkilendirilebilir.": "أثناء فتح التطبيق، يُرسل آخر موقع لك ودقته ووقته إلى المسؤولين المخولين. قد تُربط ملاحظاتك المجهولة بحسابك.",
- "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "إذا تعطل التطبيق، تتلقى Firebase Crashlytics طراز الجهاز وإصدار iOS وتقرير الخطأ. لا يُرسل الموقع أو المحتوى أو المعلومات الشخصية.",
+ "Uygulama çökerse cihaz modeli, iOS sürümü ve hata kaydı; ayrıca günde en fazla bir kez açılış süresi, takılma ve bellek özeti Firebase Crashlytics ile gönderilir. Konum, içerik veya kişisel bilgi gönderilmez.": "إذا تعطل التطبيق، تتلقى Firebase Crashlytics طراز الجهاز وإصدار iOS وتقرير الخطأ، ومرة واحدة يوميًا على الأكثر ملخصًا لوقت الفتح والتجمد واستخدام الذاكرة. لا يُرسل الموقع أو المحتوى أو المعلومات الشخصية.",
  "Vazgeç": "إلغاء",
  "Veri paylaşımı güncellenemedi. Bağlantını kontrol edip tekrar dene.": "تعذّر تحديث مشاركة البيانات. تحقّق من اتصالك وحاول مجددًا.",
  "World map boş veya 50 MB sınırını aşıyor.": "خريطة بيئة الواقع المعزز فارغة أو تتجاوز حد 50 ميجابايت.",

@@ -125,6 +125,8 @@ EXCLUDE = {
     ') : cleanHandle)', '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._', 'LociAR.Push', 'LociAR.RegionMonitoring', 'Report reason',
     '^[A-Za-z0-9_-]{1,200}$', 'lociar.acceptedAccountDeletions',
     'GACAppCheckDebugToken',
+    # Field-test recorder and MetricKit reporter: launch argument, file path, defaults key, error domain.
+    '-LociFieldTest', 'FieldTest/log.jsonl', 'LociFieldTestLogEnabled', 'LociPerformance',
 }
 
 # Shown to users but not written as a literal in the app (activity texts written by Cloud
