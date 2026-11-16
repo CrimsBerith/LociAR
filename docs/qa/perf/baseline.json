@@ -1,0 +1,31 @@
+{
+ "testPerf01ColdLaunch": {
+  "launch_s": 0.433
+ },
+ "testPerf02DiscoverScroll": {
+  "scroll_hitch_ms_per_s": 0.997,
+  "scroll_fps": 83.441
+ },
+ "testPerf03TabSwitch": {
+  "clock_s": 9.258,
+  "memory_peak_kb": 239545.99,
+  "cpu_s": 1.362,
+  "memory_kb": 235659.706
+ },
+ "testPerf04MapPanZoom": {
+  "memory_peak_kb": 291149.061,
+  "cpu_s": 1.929,
+  "memory_kb": 268257.336
+ },
+ "testPerf05OpenPost": {
+  "clock_s": 3.967,
+  "open_post_hitch_ms_per_s": 33.275,
+  "open_post_fps": 87.815
+ },
+ "testPerf06OpenAR": {
+  "clock_s": 9.747,
+  "memory_peak_kb": 448497.984,
+  "memory_kb": 432245.056,
+  "cpu_s": 4.347
+ }
+}
