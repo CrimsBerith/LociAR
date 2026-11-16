@@ -63,7 +63,7 @@ struct PostCard: View {
             }
         }
         .padding(LociTheme.Spacing.l)
-        .lociGlassSurface(cornerRadius: LociTheme.Radius.large)
+        .lociCardSurface(cornerRadius: LociTheme.Radius.large)
         .accessibilityElement(children: .contain)
     }
 

@@ -1573,4 +1573,123 @@ extension AuthGateUITests {
             app.terminate()
         }
     }
+
+    // MARK: - Performance (physical iPhone, Release build, live account already signed in)
+    // Run with build/claude-run/a-perf-run.command. Read-only: opens screens and scrolls, never posts.
+
+    private func perfApp() throws -> XCUIApplication {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Performans ölçümü gerçek iPhone ister.")
+#else
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        resolveLocationOrCameraPromptIfPresent()
+        guard app.tabBars.firstMatch.waitForExistence(timeout: 25) else {
+            throw XCTSkip("Telefonda oturum açık değil; performans ölçümü atlandı.")
+        }
+        return app
+#endif
+    }
+
+    private func perfMetrics(_ app: XCUIApplication, _ extra: [XCTMetric] = []) -> [XCTMetric] {
+        var metrics = extra
+        if #available(iOS 26.0, *) { metrics.append(XCTHitchMetric(application: app)) }
+        return metrics
+    }
+
+    private func perfOptions(_ iterations: Int = 5, manual: Bool = false) -> XCTMeasureOptions {
+        let options = XCTMeasureOptions()
+        options.iterationCount = iterations
+        if manual { options.invocationOptions = [.manuallyStop] }
+        return options
+    }
+
+    private func perfOpenTab(_ app: XCUIApplication, _ title: String, screen: String) {
+        app.tabBars.buttons[title].tap()
+        XCTAssertTrue(app.descendants(matching: .any)[screen].waitForExistence(timeout: 15), "\(screen) açılmadı")
+    }
+
+    func testPerf01ColdLaunch() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Gerçek iPhone gerekir.")
+#else
+        _ = try perfApp()
+        measure(metrics: [XCTApplicationLaunchMetric(waitUntilResponsive: true)], options: perfOptions(5)) {
+            XCUIApplication().launch()
+        }
+#endif
+    }
+
+    func testPerf02DiscoverScroll() throws {
+        let app = try perfApp()
+        perfOpenTab(app, "Keşfet", screen: "screen-discover")
+        let list = app.descendants(matching: .any)["discover-post-list"]
+        XCTAssertTrue(list.waitForExistence(timeout: 20), "Keşfet listesi yüklenmedi")
+        sleep(2)
+        capture(app, name: "perf-discover")
+        measure(metrics: perfMetrics(app, [XCTOSSignpostMetric.scrollingAndDecelerationMetric]), options: perfOptions(5, manual: true)) {
+            list.swipeUp(velocity: .fast)
+            list.swipeUp(velocity: .fast)
+            list.swipeUp(velocity: .fast)
+            stopMeasuring()
+            for _ in 0..<4 { list.swipeDown(velocity: .fast) }
+        }
+    }
+
+    func testPerf03TabSwitch() throws {
+        let app = try perfApp()
+        perfOpenTab(app, "Harita", screen: "screen-map")
+        measure(metrics: perfMetrics(app, [XCTClockMetric(), XCTCPUMetric(application: app), XCTMemoryMetric(application: app)]),
+                options: perfOptions(5)) {
+            perfOpenTab(app, "Keşfet", screen: "screen-discover")
+            perfOpenTab(app, "Profil", screen: "screen-profile")
+            perfOpenTab(app, "Harita", screen: "screen-map")
+        }
+        perfOpenTab(app, "Profil", screen: "screen-profile")
+        sleep(1)
+        capture(app, name: "perf-profile")
+    }
+
+    func testPerf04MapPanZoom() throws {
+        let app = try perfApp()
+        perfOpenTab(app, "Harita", screen: "screen-map")
+        let map = app.maps.firstMatch
+        XCTAssertTrue(map.waitForExistence(timeout: 15))
+        sleep(3)
+        measure(metrics: perfMetrics(app, [XCTCPUMetric(application: app), XCTMemoryMetric(application: app)]),
+                options: perfOptions(5)) {
+            map.swipeLeft(velocity: .fast)
+            map.swipeRight(velocity: .fast)
+            map.pinch(withScale: 0.4, velocity: -1.5)
+            map.pinch(withScale: 2.5, velocity: 1.5)
+        }
+    }
+
+    func testPerf05OpenPost() throws {
+        let app = try perfApp()
+        perfOpenTab(app, "Keşfet", screen: "screen-discover")
+        let list = app.descendants(matching: .any)["discover-post-list"]
+        XCTAssertTrue(list.waitForExistence(timeout: 20))
+        let cell = list.cells.element(boundBy: 1)
+        XCTAssertTrue(cell.waitForExistence(timeout: 10), "Keşfet'te gönderi yok")
+        measure(metrics: perfMetrics(app, [XCTOSSignpostMetric.navigationTransitionMetric, XCTClockMetric()]),
+                options: perfOptions(5)) {
+            cell.tap()
+            XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 10))
+            app.navigationBars.buttons.firstMatch.tap()
+            XCTAssertTrue(list.waitForExistence(timeout: 10))
+        }
+    }
+
+    func testPerf06OpenAR() throws {
+        let app = try perfApp()
+        perfOpenTab(app, "Harita", screen: "screen-map")
+        measure(metrics: perfMetrics(app, [XCTClockMetric(), XCTMemoryMetric(application: app), XCTCPUMetric(application: app)]),
+                options: perfOptions(3)) {
+            perfOpenTab(app, "AR", screen: "screen-ar")
+            sleep(4)
+            perfOpenTab(app, "Harita", screen: "screen-map")
+        }
+    }
 }

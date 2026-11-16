@@ -292,26 +292,34 @@ extension CallableClient {
 // MARK: - Firestore document → Codable bridge
 
 enum FirestoreJSON {
+    // Built once: creating an ISO8601DateFormatter is expensive (ICU setup) and every date in every
+    // callable response went through two new ones plus one in isoString. ISO8601DateFormatter is
+    // thread-safe once configured, and these are never mutated after initialization.
+    private nonisolated(unsafe) static let fractionalFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    private nonisolated(unsafe) static let plainFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
     /// Accepts ISO-8601 with or without fractional seconds (Cloud Functions write milliseconds).
     nonisolated static func decoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let raw = try container.decode(String.self)
-            let fractional = ISO8601DateFormatter()
-            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let plain = ISO8601DateFormatter()
-            plain.formatOptions = [.withInternetDateTime]
-            if let date = fractional.date(from: raw) ?? plain.date(from: raw) { return date }
+            if let date = fractionalFormatter.date(from: raw) ?? plainFormatter.date(from: raw) { return date }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date \(raw)")
         }
         return decoder
     }
 
     nonisolated static func isoString(_ date: Date) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.string(from: date)
+        fractionalFormatter.string(from: date)
     }
 
     /// Converts Firestore values (Timestamp, nested maps, JSON-string blobs) into JSON-safe values.

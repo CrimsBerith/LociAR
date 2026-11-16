@@ -267,4 +267,14 @@ final class StoreReadinessTests: XCTestCase {
         }
         return root
     }
+
+    func testFirestoreDatesDecodeWithAndWithoutFractionAndRoundTrip() throws {
+        struct Row: Decodable { let a: Date; let b: Date }
+        let json = Data(#"{"a":"2026-11-15T10:20:30.123Z","b":"2026-11-15T10:20:30Z"}"#.utf8)
+        let row = try FirestoreJSON.decoder().decode(Row.self, from: json)
+        XCTAssertEqual(row.a.timeIntervalSince1970, 1_794_738_030.123, accuracy: 0.0005)
+        XCTAssertEqual(row.b.timeIntervalSince1970, 1_794_738_030, accuracy: 0.0005)
+        XCTAssertEqual(FirestoreJSON.isoString(row.a), "2026-11-15T10:20:30.123Z")
+        XCTAssertThrowsError(try FirestoreJSON.decoder().decode(Row.self, from: Data(#"{"a":"x","b":"y"}"#.utf8)))
+    }
 }

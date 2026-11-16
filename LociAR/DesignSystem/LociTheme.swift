@@ -293,6 +293,13 @@ extension View {
 
     /// Text input surface. Fields are content inside cards, so they stay flat: glass on glass is
     /// the nested-glass anti-pattern and lowers text contrast.
+    /// Repeated content (feed cards, grouped sections in a scroll view). No Liquid Glass and no blurred
+    /// shadow: glass belongs to controls, and one glass pass plus one offscreen shadow per card made the
+    /// Discover feed scroll at 14-25 fps on an iPhone 14 Pro Max (16 Nov 2026 measurement).
+    func lociCardSurface(cornerRadius: CGFloat = LociTheme.Radius.large) -> some View {
+        background(LociGlassRowSurface(cornerRadius: cornerRadius))
+    }
+
     func lociFieldSurface(cornerRadius: CGFloat = LociTheme.Radius.small) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return background(LociTheme.field, in: shape).overlay(shape.stroke(LociTheme.glassBorder))
@@ -345,6 +352,18 @@ struct LociScreenBackground: View {
     @Environment(\.colorScheme) private var colorScheme
     private var glow: CGFloat { LociTheme.palette(for: colorScheme == .dark ? .dark : .light).ambientGlow }
 
+    /// Soft spot equivalent to the former blurred circle: flat core, smooth falloff to clear.
+    private static func glowSpot(_ color: Color, diameter: CGFloat) -> some View {
+        Circle()
+            .fill(RadialGradient(gradient: Gradient(stops: [
+                .init(color: color, location: 0),
+                .init(color: color.opacity(0.85), location: 0.3),
+                .init(color: color.opacity(0.35), location: 0.62),
+                .init(color: color.opacity(0), location: 1)
+            ]), center: .center, startRadius: 0, endRadius: diameter / 2))
+            .frame(width: diameter, height: diameter)
+    }
+
     var body: some View {
         ZStack {
             LociTheme.spatialGradient
@@ -353,16 +372,12 @@ struct LociScreenBackground: View {
             // ZStack children they widened the background and shifted screens that stack content on it.
             Color.clear
                 .overlay {
+                    // Radial gradients, not blurred circles: a blur filter is re-rendered on every frame
+                    // that glass or a scrolling list composites over it (measured: feed at 14-25 fps).
                     ZStack {
-                        Circle()
-                            .fill(LociTheme.ambientBlue.opacity(glow))
-                            .frame(width: 460, height: 460)
-                            .blur(radius: 70)
+                        Self.glowSpot(LociTheme.ambientBlue.opacity(glow), diameter: 740)
                             .offset(x: 190, y: -360)
-                        Circle()
-                            .fill(LociTheme.ambientBlue.opacity(glow * 0.4))
-                            .frame(width: 380, height: 380)
-                            .blur(radius: 80)
+                        Self.glowSpot(LociTheme.ambientBlue.opacity(glow * 0.4), diameter: 700)
                             .offset(x: -210, y: 120)
                     }
                 }
@@ -387,7 +402,8 @@ struct LociCard<Content: View>: View {
     var body: some View {
         switch appearance {
         case .content:
-            content.padding(LociTheme.Spacing.l).lociGlassSurface(cornerRadius: LociTheme.Radius.large)
+            // Content cards sit in scroll views: flat surface. Glass stays on .floating (controls over the map).
+            content.padding(LociTheme.Spacing.l).lociCardSurface(cornerRadius: LociTheme.Radius.large)
         case .floating:
             content.padding(LociTheme.Spacing.l).lociGlassSurface()
         case .auth:

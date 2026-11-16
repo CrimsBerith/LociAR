@@ -171,7 +171,7 @@ struct ProfileView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, LociTheme.Spacing.l)
             .padding(.vertical, LociTheme.Spacing.m)
-            .lociGlassSurface(cornerRadius: LociTheme.Radius.large)
+            .lociCardSurface(cornerRadius: LociTheme.Radius.large)
         }
     }
 
