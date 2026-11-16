@@ -277,4 +277,34 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertEqual(FirestoreJSON.isoString(row.a), "2026-11-15T10:20:30.123Z")
         XCTAssertThrowsError(try FirestoreJSON.decoder().decode(Row.self, from: Data(#"{"a":"x","b":"y"}"#.utf8)))
     }
+
+    func testFieldTestLogIsOffByDefaultAndTogglesOnlyByLaunchArgument() throws {
+        let suite = "field-test-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        XCTAssertFalse(defaults.bool(forKey: FieldTestLog.defaultsKey))
+        FieldTestLog.configure(arguments: ["app"], defaults: defaults)
+        XCTAssertFalse(defaults.bool(forKey: FieldTestLog.defaultsKey))
+        FieldTestLog.configure(arguments: ["app", "-LociFieldTest"], defaults: defaults)
+        XCTAssertFalse(defaults.bool(forKey: FieldTestLog.defaultsKey))
+        FieldTestLog.configure(arguments: ["app", "-LociFieldTest", "maybe"], defaults: defaults)
+        XCTAssertFalse(defaults.bool(forKey: FieldTestLog.defaultsKey))
+        defaults.set(true, forKey: FieldTestLog.defaultsKey)
+        FieldTestLog.configure(arguments: ["app", "-LociFieldTest", "off"], defaults: defaults)
+        XCTAssertFalse(defaults.bool(forKey: FieldTestLog.defaultsKey))
+    }
+
+    func testFieldTestLogWritesOneJSONObjectPerLine() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("field-test-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = FieldTestLog.fileURL(base: folder)
+        let date = Date(timeIntervalSince1970: 1_794_738_030.123)
+        FieldTestLog.write(FieldTestLog.line(event: "anchor_resolve", fields: ["ms": "812", "ok": "1"], at: date), to: url, synchronously: true)
+        FieldTestLog.write(FieldTestLog.line(event: "visit_result", fields: ["notify": "1"], at: date), to: url, synchronously: true)
+        let lines = try String(contentsOf: url, encoding: .utf8).split(separator: "\n")
+        XCTAssertEqual(lines.count, 2)
+        let first = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(lines[0].utf8)) as? [String: String])
+        XCTAssertEqual(first, ["e": "anchor_resolve", "ms": "812", "ok": "1", "t": "2026-11-15T10:20:30.123Z"])
+        XCTAssertEqual(FieldTestLog.thermalName(.serious), "serious")
+    }
 }

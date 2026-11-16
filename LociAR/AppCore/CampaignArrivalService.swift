@@ -621,6 +621,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             persistArmedExits()
             UserDefaults.standard.set(try JSONEncoder().encode(selected), forKey: regionsKey(id))
             let monitored = selected.filter { !$0.isLeaveStep }
+            FieldTestLog.record("regions_refreshed", ["count": String(selected.count), "placeNotes": String(selected.filter(\.isPlaceNote).count)])
             applyRegionRegistration(selected, account: id)
             updateUsualPlaceRegion()
             if let fix {
@@ -842,6 +843,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             requestFreshRegionFix() // Expired/missing metadata must fetch replacements around a new fix.
             return
         }
+        FieldTestLog.record(exit ? "region_exit" : "region_enter", ["placeNote": regions[campaign]?.isPlaceNote == true ? "1" : "0"])
         if regions[campaign]?.isPlaceNote == true, exit {
             leavePlaceNoteRegion(campaign)
             return
@@ -898,6 +900,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
             preciseWindow?.cancel(); preciseWindow = nil
         }
         guard enabled, preciseWindow == nil, manager.accuracyAuthorization == .fullAccuracy else { return }
+        FieldTestLog.record("precise_window_start", ["targets": String(precisionTargets.count), "long": long ? "1" : "0"])
         preciseWindowLong = long
         setLowPower(false)
         preciseWindow = Task { [weak self] in
@@ -1130,6 +1133,8 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                     let requestStarted = Date()
                     result = try await callables.call("recordPlaceNoteVisit", payload: NoteVisitPayload(userId: FirebaseIdentity.key(id), location: Self.payloadFix(location), confirmationStartedAt: firstGood[campaign].map { $0.timeIntervalSince1970 * 1000 }, deliveryId: attempt.deliveryID.uuidString.lowercased()), timeout: 8)
                     Self.deliveryLog.info("Visit request completed in \(Int(Date().timeIntervalSince(requestStarted) * 1000), privacy: .public) ms; admitted: \(result.notify, privacy: .public)")
+                    FieldTestLog.record("visit_result", ["ms": String(Int(Date().timeIntervalSince(requestStarted) * 1000)), "notify": result.notify ? "1" : "0",
+                                                         "reason": result.reason ?? "", "kind": result.kind ?? "note", "accuracy": String(Int(location.horizontalAccuracy))])
                     guard epoch == generation, userID == id else { break }
                     failures.removeValue(forKey: campaign)
                     // Everything here was already delivered: stop measuring for this cluster.
@@ -1172,6 +1177,7 @@ final class CampaignArrivalService: NSObject, @preconcurrency CLLocationManagerD
                     let queueStarted = Date()
                     if !queued && !delivered { try await center.add(UNNotificationRequest(identifier: activity, content: content, trigger: nil)) }
                     Self.deliveryLog.info("Local notification queue completed in \(Int(Date().timeIntervalSince(queueStarted) * 1000), privacy: .public) ms")
+                    FieldTestLog.record("notification_queued", ["ms": String(Int(Date().timeIntervalSince(queueStarted) * 1000)), "alreadyQueued": queued || delivered ? "1" : "0"])
                 } else { try await center.add(UNNotificationRequest(identifier: activity, content: content, trigger: nil)) }
                 if !enabled || generation != epoch || userID != id {
                     UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [activity])

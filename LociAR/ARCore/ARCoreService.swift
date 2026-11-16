@@ -253,11 +253,13 @@ final class ARCoreService {
     /// nil on failure, timeout or cancellation (callers then fall back to the ARKit world map).
     func hostCloudAnchor(_ anchor: ARAnchor, timeout: Duration = .seconds(60)) async -> String? {
         guard let session, isReadyForCloudAnchors else { return nil }
+        let hostStarted = Date()
         let result: String? = await runFuture(timeout: timeout) { once in
             try session.hostCloudAnchor(anchor, ttlDays: Self.cloudAnchorTTLDays) { identifier, state in
                 once.resume(state == .success ? identifier : nil)
             }
         }
+        FieldTestLog.record("anchor_host", ["ms": String(Int(Date().timeIntervalSince(hostStarted) * 1000)), "ok": result == nil ? "0" : "1"])
         guard let hostedId = result else {
             logger.info("Cloud Anchor hosting failed, timed out or was cancelled")
             return nil
@@ -292,12 +294,15 @@ final class ARCoreService {
     /// Resolves a hosted Cloud Anchor in the current ARKit world and returns its transform.
     func resolveCloudAnchor(_ identifier: String, timeout: Duration = .seconds(20)) async -> simd_float4x4? {
         guard let session, isReadyForCloudAnchors else { return nil }
-        return await runFuture(timeout: timeout) { once in
+        let resolveStarted = Date()
+        let transform: simd_float4x4? = await runFuture(timeout: timeout) { once in
             try session.resolveCloudAnchor(identifier) { anchor, state in
                 guard state == .success, let anchor, anchor.hasValidTransform else { once.resume(nil); return }
                 once.resume(anchor.transform)
             }
         }
+        FieldTestLog.record("anchor_resolve", ["ms": String(Int(Date().timeIntervalSince(resolveStarted) * 1000)), "ok": transform == nil ? "0" : "1"])
+        return transform
     }
 
     /// Keeps each async ARCore future alive until its callback runs, keyed per operation so

@@ -1087,6 +1087,7 @@ final class ARPinningEngine: NSObject {
         })
         notificationTokens.append(center.addObserver(forName: ProcessInfo.thermalStateDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
+                FieldTestLog.record("thermal", ["state": FieldTestLog.thermalName(ProcessInfo.processInfo.thermalState)])
                 guard let self else { return }
                 if ProcessInfo.processInfo.thermalState == .critical {
                     // Nothing to pause (and nothing to resume later) when AR is not running.
@@ -1515,6 +1516,7 @@ final class ARPinningEngine: NSObject {
         logger.info("AR state=\(next.rawValue, privacy: .public) tracking=\(self.trackingQuality.rawValue, privacy: .public) mapping=\(self.mappingQuality.rawValue, privacy: .public) message=\(message, privacy: .public)")
         diagnostics.append(makeDiagnosticSnapshot(message: message))
         if diagnostics.count > 500 { diagnostics.removeFirst(diagnostics.count - 500) }
+        recordFieldTest("ar_state")
     }
 
     private func transition(to next: PinSessionState, error: ARPinningError) {
@@ -1525,6 +1527,19 @@ final class ARPinningEngine: NSObject {
     private func recordDiagnostic(_ message: String) {
         diagnostics.append(makeDiagnosticSnapshot(message: message))
         if diagnostics.count > 500 { diagnostics.removeFirst(diagnostics.count - 500) }
+        recordFieldTest("ar_diag")
+    }
+
+    /// Mirrors the newest diagnostic snapshot into the field-test file (no-op unless switched on).
+    private func recordFieldTest(_ event: String) {
+        guard FieldTestLog.isEnabled, let last = diagnostics.last else { return }
+        FieldTestLog.record(event, [
+            "state": last.state.rawValue, "tracking": last.trackingQuality.rawValue, "mapping": last.mappingQuality.rawValue,
+            "planes": String(last.planeAnchorCount), "features": String(last.rawFeaturePointCount),
+            "sinceStart": last.secondsSinceSessionStart.map { String(format: "%.2f", $0) } ?? "",
+            "sincePin": last.secondsSincePhysicalPin.map { String(format: "%.2f", $0) } ?? "",
+            "message": last.message
+        ])
     }
 
     private func makeDiagnosticSnapshot(message: String) -> PinDiagnosticSnapshot {
