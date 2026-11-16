@@ -20,6 +20,42 @@ async function until(read, done, label) {
   throw new Error(`timed out waiting for ${label}`);
 }
 
+test('a scheduled run with an empty queue skips the lease and writes at most once per hour; admin runs still run', async () => {
+  const name = `idle_${randomUUID().slice(0, 8)}`;
+  let calls = 0, empty = true;
+  const task = { name, job: 'every_five_minutes', leaseMs: 60_000, pausable: true, idle: async () => empty, run: async () => { calls++; return 1; } };
+  let clock = 1_000_000_000_000;
+  assert.deepEqual(await runMaintenanceTask(task, { trigger: 'schedule' }, () => clock), { status: 'idle' });
+  const first = (await runs(name).get()).data();
+  assert.equal(first.last_status, 'ok');
+  assert.deepEqual(first.last_result, { count: 0 });
+  assert.equal(first.running_until, undefined, 'no lease for an idle run');
+  assert.equal(calls, 0);
+  await runs(name).update({ last_trigger: 'marker' });
+  clock += 5 * 60_000;
+  assert.deepEqual(await runMaintenanceTask(task, { trigger: 'schedule' }, () => clock), { status: 'idle' });
+  assert.equal((await runs(name).get()).get('last_trigger'), 'marker', 'no write within the hour');
+  clock += 60 * 60_000;
+  await runMaintenanceTask(task, { trigger: 'schedule' }, () => clock);
+  assert.equal((await runs(name).get()).get('last_trigger'), 'schedule', 'recorded again after an hour');
+  assert.equal((await runMaintenanceTask(task, { trigger: 'admin', actorId: 'admin-1' }, () => clock)).status, 'ok', 'run now ignores the idle check');
+  assert.equal(calls, 1);
+  empty = false;
+  assert.equal((await runMaintenanceTask(task, { trigger: 'schedule' }, () => clock)).status, 'ok', 'work due runs normally');
+  assert.equal(calls, 2);
+});
+
+test('the idle checks of the frequent tasks see a due queue entry', async () => {
+  const now = Date.now();
+  const byName = Object.fromEntries(MAINTENANCE_TASKS.map(task => [task.name, task]));
+  for (const name of ['avatar_deletions', 'account_deletions', 'removed_media', 'scheduled_note_ends']) assert.equal(typeof byName[name].idle, 'function', name);
+  const ref = adminDb.collection('avatar_deletions').doc(`idle-${randomUUID()}`);
+  await ref.set({ next_at: Timestamp.fromMillis(now - 1_000), attempts: 0 });
+  try {
+    assert.equal(await byName.avatar_deletions.idle(now), false, 'a due entry is work');
+  } finally { await ref.delete(); }
+});
+
 test('a maintenance run records its outcome, holds a lease, honours pause and records failures', async () => {
   const name = `test_${randomUUID().slice(0, 8)}`;
   let calls = 0;

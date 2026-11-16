@@ -23,21 +23,38 @@ export type MaintenanceTask = {
   leaseMs: number;
   pausable: boolean;
   run: () => Promise<unknown>;
+  /**
+   * Cheap check (one indexed read) that the task has nothing to do. Scheduled runs skip the lease
+   * transaction and outcome write when it says idle: those bookkeeping writes of empty runs were
+   * ~1,500 of the ~1,550 daily Firestore writes (Cloud Monitoring, 3-16 Nov 2026).
+   */
+  idle?: (nowMs: number) => Promise<boolean>;
 };
 export type MaintenanceTrigger = { trigger: 'schedule' | 'admin'; actorId?: string; requestId?: string };
-export type MaintenanceOutcome = { status: 'ok' | 'paused' | 'busy'; result?: MaintenanceResult };
+export type MaintenanceOutcome = { status: 'ok' | 'paused' | 'busy' | 'idle'; result?: MaintenanceResult };
 
 const MINUTE = 60_000;
+/** An idle task still records a successful run this often, so the admin panel shows the job is alive. */
+export const IDLE_RECORD_MS = 60 * MINUTE;
+
+/** True when no document matches: a keys-only query with limit 1 costs a single read. */
+async function nothingDue(query: FirebaseFirestore.Query): Promise<boolean> {
+  return (await query.select().limit(1).get()).empty;
+}
 
 export const MAINTENANCE_TASKS: readonly MaintenanceTask[] = [
   // Bounded avatar object deletions (at most 100 jobs per run).
-  { name: 'avatar_deletions', job: 'every_five_minutes', leaseMs: 4 * MINUTE, pausable: true, run: () => drainAvatarDeletions() },
+  { name: 'avatar_deletions', job: 'every_five_minutes', leaseMs: 4 * MINUTE, pausable: true, run: () => drainAvatarDeletions(),
+    idle: now => nothingDue(db.collection('avatar_deletions').where('next_at', '<=', Timestamp.fromMillis(now))) },
   // Accepted account deletions resume independently of the deleted user's session (240 s budget per job).
-  { name: 'account_deletions', job: 'every_five_minutes', leaseMs: 9 * MINUTE, pausable: false, run: () => retryPendingAccountDeletions(Date.now(), 2) },
+  { name: 'account_deletions', job: 'every_five_minutes', leaseMs: 9 * MINUTE, pausable: false, run: () => retryPendingAccountDeletions(Date.now(), 2),
+    idle: now => nothingDue(db.collection('account_deletion_jobs').where('next_at', '<=', Timestamp.fromMillis(now))) },
   // Resume partial or abandoned media purges without waiting for the nightly pass.
-  { name: 'removed_media', job: 'every_fifteen_minutes', leaseMs: 9 * MINUTE, pausable: true, run: () => purgeDueRemovedMedia(Date.now(), 20) },
+  { name: 'removed_media', job: 'every_fifteen_minutes', leaseMs: 9 * MINUTE, pausable: true, run: () => purgeDueRemovedMedia(Date.now(), 20),
+    idle: now => nothingDue(db.collection('media_purge_queue').where('due_at', '<=', Timestamp.fromMillis(now))) },
   // Notes with an administrator end date (launch seed retirement removes up to 200 per run).
-  { name: 'scheduled_note_ends', job: 'every_fifteen_minutes', leaseMs: 5 * MINUTE, pausable: true, run: () => expireDueNotes() },
+  { name: 'scheduled_note_ends', job: 'every_fifteen_minutes', leaseMs: 5 * MINUTE, pausable: true, run: () => expireDueNotes(),
+    idle: now => nothingDue(db.collection('posts').where('ends_at', '<=', Timestamp.fromMillis(now))) },
   { name: 'post_media_cleanup', job: 'nightly_maintenance', leaseMs: 9 * MINUTE, pausable: true, run: () => cleanupPostMedia() },
   { name: 'post_counters', job: 'nightly_maintenance', leaseMs: 9 * MINUTE, pausable: true, run: () => reconcilePostCounters() },
   { name: 'note_density', job: 'nightly_maintenance', leaseMs: 9 * MINUTE, pausable: true, run: () => reconcileNoteDensity() },
@@ -55,9 +72,22 @@ export function summarize(value: unknown): MaintenanceResult {
 }
 
 /** Claims the task's lease, runs it and records the outcome. Failures are recorded, then rethrown. */
+/** Per instance: when each idle task last recorded a run (bounded by the task list). */
+const idleRecordedAt = new Map<string, number>();
+
 export async function runMaintenanceTask(task: MaintenanceTask, by: MaintenanceTrigger, now = () => Date.now()): Promise<MaintenanceOutcome> {
   const runRef = db.collection('maintenance_runs').doc(task.name);
   const started = now();
+  // Administrator "run now" always runs; only scheduled runs may skip an empty queue.
+  if (by.trigger === 'schedule' && task.idle && await task.idle(started)) {
+    if (started - (idleRecordedAt.get(task.name) ?? 0) >= IDLE_RECORD_MS) {
+      idleRecordedAt.set(task.name, started);
+      await runRef.set({ task: task.name, last_status: 'ok', last_code: null, last_result: { count: 0 }, last_trigger: 'schedule',
+        last_actor_id: null, last_finished_at: FieldValue.serverTimestamp(), last_success_at: FieldValue.serverTimestamp(),
+        last_duration_ms: Math.max(0, now() - started), consecutive_failures: 0 }, { merge: true });
+    }
+    return { status: 'idle' };
+  }
   const claim = await db.runTransaction(async tx => {
     const [run, settings] = await tx.getAll(runRef, db.collection('system').doc('maintenance'));
     if (by.trigger === 'schedule' && task.pausable && settings.get(`paused.${task.name}`) === true) {
