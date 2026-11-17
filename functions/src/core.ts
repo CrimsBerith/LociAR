@@ -26,6 +26,15 @@ setGlobalOptions({ region: REGION, maxInstances: 1, minInstances: 0, cpu: 'gcf_g
 export const CALLABLE_MAX_INSTANCES = 4;
 
 /**
+ * Social Firestore triggers (likes, comments, saves, follows, post/profile writes, activity push).
+ * Every handler is idempotent and re-reads current state inside a transaction, so parallel
+ * instances cannot double-count or apply stale order. One instance queued a launch burst
+ * (e.g. 50 likes + the post counter writes they cause) behind a 3-5 s cold start.
+ * Idle cost is unchanged (minInstances 0).
+ */
+export const TRIGGER_MAX_INSTANCES = 3;
+
+/**
  * Callables reject requests without a valid App Check token in production. v2 callables are not
  * covered by the console's enforcement switch, so this has to be set per function. The emulator
  * suite (local E2E) has no attestation provider, so enforcement is off there.

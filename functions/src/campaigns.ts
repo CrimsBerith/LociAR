@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
 import { getMessaging, type Message } from 'firebase-admin/messaging';
-import { db, FieldValue, Timestamp, isUUID, luidForUid, HttpsError, requireCaller, identityVerified, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, safeErrorCode, logger } from './core';
+import { db, FieldValue, Timestamp, isUUID, luidForUid, HttpsError, requireCaller, identityVerified, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, safeErrorCode, logger, TRIGGER_MAX_INSTANCES } from './core';
 import { requireActiveAccount, accountDeletionRef, profileBlock } from './profileGuard';
 import { identityBlocked } from './anonymousAccess';
 import { distanceMeters } from './geo';
@@ -289,7 +289,7 @@ export const onAdminNotificationBatchChanged = onDocumentWritten({ document: 'ad
   await processAdminNotificationBatchPage(event.params.batchId);
 });
 
-export const onAdminNotificationQueued = onDocumentCreated('admin_notification_jobs/{jobId}', async event => {
+export const onAdminNotificationQueued = onDocumentCreated({ document: 'admin_notification_jobs/{jobId}', maxInstances: TRIGGER_MAX_INSTANCES }, async event => {
   // Emulator tests inject a sender; never contact live FCM with Mac credentials.
   if (process.env.FUNCTIONS_EMULATOR === 'true') return;
   if (event.data) await deliverAdminNotification(event.params.jobId, message => getMessaging().send(message));

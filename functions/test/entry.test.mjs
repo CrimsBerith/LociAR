@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const indexSource = readFileSync(new URL('../src/index.ts', import.meta.url), 'utf8');
@@ -13,7 +14,7 @@ function load(target) {
   // A fresh process per case: the entry decides what to load at require time.
   const env = { ...process.env, GCLOUD_PROJECT: 'demo-lociar', FIREBASE_CONFIG: '{"projectId":"demo-lociar"}' };
   if (target) env.FUNCTION_TARGET = target; else delete env.FUNCTION_TARGET;
-  const lib = new URL('../lib/', import.meta.url).pathname;
+  const lib = fileURLToPath(new URL('../lib/', import.meta.url));
   const script = `const m = require(${JSON.stringify(lib + 'entry.js')});
     const loaded = Object.keys(require.cache).filter(p => p.startsWith(${JSON.stringify(lib)})).map(p => p.slice(${JSON.stringify(lib)}.length));
     process.stdout.write(JSON.stringify({ exports: Object.keys(m).sort(), loaded }));`;

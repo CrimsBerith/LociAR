@@ -2,7 +2,7 @@ import { forEachSequential } from './async';
 import { onCall } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getMessaging, type Message } from 'firebase-admin/messaging';
-import { assertServiceEnabled, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID, requireCaller, Timestamp } from './core';
+import { assertServiceEnabled, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, isUUID, requireCaller, Timestamp, TRIGGER_MAX_INSTANCES } from './core';
 import { assertAccountNotDeleting, accountDeletionRef, profileBlock } from './profileGuard';
 import { reasonError } from './errors';
 import { invalidPushTokenCode, MAX_PUSH_DEVICES, postApprovedBody, pushBody, pushDeliveryId, pushLocale, pushQuotaDecision, pushQuotaId, PUSH_QUOTA_RETENTION_DAYS, PUSH_RECEIPT_RETENTION_DAYS, PUSH_TOKEN_RETENTION_DAYS, pushTokenId, utcDay, pushAddress, pushAddressId, pushAddressMatches } from './pushPolicy';
@@ -203,7 +203,7 @@ export async function deliverPostApprovedPush(postId: string, send: PushSender, 
   return attempts;
 }
 
-export const onActivityCreated = onDocumentCreated('activity_events/{activityId}', async event => {
+export const onActivityCreated = onDocumentCreated({ document: 'activity_events/{activityId}', maxInstances: TRIGGER_MAX_INSTANCES }, async event => {
   // FCM has no local emulator. Demo activity must never reach the live messaging API.
   if (process.env.FUNCTIONS_EMULATOR === 'true') return;
   await deliverActivityPush(event.params.activityId, message => getMessaging().send(message));

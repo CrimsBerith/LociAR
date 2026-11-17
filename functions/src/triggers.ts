@@ -2,7 +2,7 @@ import { forEachSequential } from './async';
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { createHash, randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { analyticsEventDoc, db, FieldValue, Timestamp } from './core';
+import { analyticsEventDoc, db, FieldValue, Timestamp, TRIGGER_MAX_INSTANCES } from './core';
 import { applyCountersOnce, isPublicActive } from './counters';
 import { isAccountDeleting } from './profileGuard';
 import { anyBlocked, containsBlockedTerm } from './moderation';
@@ -56,7 +56,7 @@ async function postCreator(postId: string): Promise<string | null> {
   return typeof creator === 'string' ? creator : null;
 }
 
-export const onLikeCreated = onDocumentCreated({ document: 'likes/{id}', retry: true }, async (event) => {
+export const onLikeCreated = onDocumentCreated({ document: 'likes/{id}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const like = event.data?.data();
   if (!like) return;
   await applyCountersOnce(event.id, [{ path: `posts/${like.post_id}`, fields: ['likes_count'] }]);
@@ -71,13 +71,13 @@ export const onLikeCreated = onDocumentCreated({ document: 'likes/{id}', retry: 
   await emitActivity('like', like.user_id, typeof post.get('creator_id') === 'string' ? post.get('creator_id') : null, like.post_id, 'Postunu beğendi.', activityId);
 });
 
-export const onLikeDeleted = onDocumentDeleted({ document: 'likes/{id}', retry: true }, async (event) => {
+export const onLikeDeleted = onDocumentDeleted({ document: 'likes/{id}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const like = event.data?.data();
   if (!like) return;
   await applyCountersOnce(event.id, [{ path: `posts/${like.post_id}`, fields: ['likes_count'] }]);
 });
 
-export const onCommentCreated = onDocumentCreated({ document: 'comments/{id}', retry: true }, async (event) => {
+export const onCommentCreated = onDocumentCreated({ document: 'comments/{id}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const snap = event.data;
   const comment = snap?.data();
   if (!snap || !comment) return;
@@ -133,24 +133,24 @@ export const onCommentCreated = onDocumentCreated({ document: 'comments/{id}', r
   await emitActivity('comment', comment.user_id, await postCreator(comment.post_id), comment.post_id, 'Postuna yorum yaptı.', `comment_${snap.id}`);
 });
 
-export const onCommentDeleted = onDocumentDeleted({ document: 'comments/{id}', retry: true }, async (event) => {
+export const onCommentDeleted = onDocumentDeleted({ document: 'comments/{id}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const comment = event.data?.data();
   if (!comment) return;
   const filtered = db.collection('filtered_comments').doc(event.params.id);
   await applyCountersOnce(event.id, [{ path: `posts/${comment.post_id}`, fields: ['comments_count'] }], filtered);
 });
 
-export const onSaveCreated = onDocumentCreated({ document: 'post_saves/{id}', retry: true }, async (event) => {
+export const onSaveCreated = onDocumentCreated({ document: 'post_saves/{id}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const save = event.data?.data();
   if (save) await applyCountersOnce(event.id, [{ path: `posts/${save.post_id}`, fields: ['saves_count'] }]);
 });
 
-export const onSaveDeleted = onDocumentDeleted({ document: 'post_saves/{id}', retry: true }, async (event) => {
+export const onSaveDeleted = onDocumentDeleted({ document: 'post_saves/{id}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const save = event.data?.data();
   if (save) await applyCountersOnce(event.id, [{ path: `posts/${save.post_id}`, fields: ['saves_count'] }]);
 });
 
-export const onFollowCreated = onDocumentCreated({ document: 'follows/{id}', retry: true }, async (event) => {
+export const onFollowCreated = onDocumentCreated({ document: 'follows/{id}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const follow = event.data?.data();
   if (!follow) return;
   await applyCountersOnce(event.id, [
@@ -160,7 +160,7 @@ export const onFollowCreated = onDocumentCreated({ document: 'follows/{id}', ret
   await emitActivity('follow', follow.follower_id, follow.following_id, null, 'Seni takip etmeye başladı.', `follow_${follow.follower_id}_${follow.following_id}`);
 });
 
-export const onFollowDeleted = onDocumentDeleted({ document: 'follows/{id}', retry: true }, async (event) => {
+export const onFollowDeleted = onDocumentDeleted({ document: 'follows/{id}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const follow = event.data?.data();
   if (!follow) return;
   await applyCountersOnce(event.id, [
@@ -169,7 +169,7 @@ export const onFollowDeleted = onDocumentDeleted({ document: 'follows/{id}', ret
   ]);
 });
 
-export const onPostWritten = onDocumentWritten({ document: 'posts/{postId}', retry: true }, async (event) => {
+export const onPostWritten = onDocumentWritten({ document: 'posts/{postId}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const before = event.data?.before.data();
   const after = event.data?.after.data();
   // Counter-only writes (views, likes, comments, saves) change none of these fields: exit at once.
@@ -232,7 +232,7 @@ async function fanOut(collection: string, ownerField: string, luid: string, fiel
  * 30-day handle cooldown bounds how often this can run per user). Free-text profile fields
  * are screened here because Security Rules cannot run the blocklist.
  */
-export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}', retry: true }, async (event) => {
+export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}', retry: true, maxInstances: TRIGGER_MAX_INSTANCES }, async (event) => {
   const before = event.data?.before.data();
   const after = event.data?.after.data();
   if (!before || !after) return;
