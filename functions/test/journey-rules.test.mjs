@@ -48,3 +48,10 @@ test('frequency, step order and codes', () => {
   assert.equal(requirementMet(step, { s1: { count: 1, lastAt: now - 7 * hour } }, now), false, 'expired after 6 h');
   assert.match(makeCode('beer', n => new Uint8Array(n).fill(7)), /^BEER-[A-Z2-9]{6}$/);
 });
+
+test('street bounds centre a street that crosses the antimeridian', () => {
+  const street = { kind: 'street', width: 20, points: [{ lat: -16.5, lng: 179.999 }, { lat: -16.5, lng: -179.999 }] };
+  const b = zoneBounds(street);
+  assert.ok(Math.abs(Math.abs(b.lng) - 180) < 0.01, `centre ${b.lng} must sit on the antimeridian`);
+  assert.ok(b.radius < 1_000, `radius ${b.radius} must cover the short street, not half the planet`);
+});

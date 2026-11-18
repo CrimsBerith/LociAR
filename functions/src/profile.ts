@@ -3,7 +3,7 @@ import { auth, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsE
 import { reasonError } from './errors';
 import { handleIsBlocked, isReservedHandle, anyBlocked } from './moderation';
 import { handleCooldownRemaining } from './limits';
-import { assertAccountNotDeleting } from './profileGuard';
+import { accountDeletionRef, assertAccountNotDeleting } from './profileGuard';
 
 export const HANDLE_PATTERN = /^[a-z0-9_.]{3,30}$/;
 
@@ -54,13 +54,15 @@ function isFree(snap: FirebaseFirestore.DocumentSnapshot, luid: string): boolean
 }
 
 async function refreshExistingProfile(tx: FirebaseFirestore.Transaction, snap: FirebaseFirestore.DocumentSnapshot,
-  caller: ReturnType<typeof requireCaller>, privateSnap: FirebaseFirestore.DocumentSnapshot, consentFields: Record<string, unknown>) {
+  caller: ReturnType<typeof requireCaller>, privateSnap: FirebaseFirestore.DocumentSnapshot, consentFields: Record<string, unknown>,
+  access: FirebaseFirestore.DocumentSnapshot) {
   const existing = snap.data()!;
   if (existing.deleted_at) throw new HttpsError('permission-denied', 'Account was deleted');
   // Profiles created before handle reservations existed claim their handle on next sign-in.
   const handle = String(existing.handle ?? '');
-  const accessRef = db.collection('account_access').doc(caller.luid);
-  const [access, reservation] = await tx.getAll(accessRef, ...(HANDLE_PATTERN.test(handle) ? [handleRef(handle)] : []));
+  const accessRef = access.ref;
+  // account_access arrives with the first batched read; only a legacy handle needs a second one.
+  const reservation = HANDLE_PATTERN.test(handle) ? await tx.get(handleRef(handle)) : null;
   if (reservation && !reservation.exists) tx.set(reservation.ref, { luid: caller.luid, created_at: FieldValue.serverTimestamp() });
   const identity = {
     uid: caller.uid, email: caller.email, auth_provider: caller.provider,
@@ -106,15 +108,16 @@ export const ensureProfile = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
   const privateRef = db.collection('users_private').doc(caller.luid);
 
   const profile = await db.runTransaction(async (tx) => {
-    await assertAccountNotDeleting(tx, caller.luid);
-    const snap = await tx.get(profileRef);
+    // Deletion fence, profile, private record and access state in one round trip (was three to four).
     // Explicit consent (checkbox on the sign-in screen): which terms version was accepted and when.
     // users_private is server-only, so this record cannot be forged by a client write.
-    const privateSnap = await tx.get(privateRef);
+    const [deletion, snap, privateSnap, access] = await tx.getAll(
+      accountDeletionRef(caller.luid), profileRef, privateRef, db.collection('account_access').doc(caller.luid));
+    if (deletion.exists) throw reasonError('permission-denied', 'Account deletion is in progress', 'profile_missing');
     const consent = termsConsentUpdate(data.termsVersion, privateSnap.data()?.terms_version);
     const consentFields = consent ? { ...consent, terms_accepted_at: FieldValue.serverTimestamp() } : {};
     if (snap.exists) {
-      return await refreshExistingProfile(tx, snap, caller, privateSnap, consentFields);
+      return await refreshExistingProfile(tx, snap, caller, privateSnap, consentFields, access);
     }
     const requested = typeof data.handle === 'string' ? data.handle.trim().toLowerCase() : '';
     const requestedOk = HANDLE_PATTERN.test(requested) && !isReservedHandle(requested) && !handleIsBlocked(requested);

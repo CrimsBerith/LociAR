@@ -218,7 +218,9 @@ export const deleteOwnPost = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxIns
     if (!['active', 'pending_review', 'flagged', 'draft'].includes(post.status)) return false;
     cloudAnchorId = typeof post.cloud_anchor_id === 'string' ? post.cloud_anchor_id : null;
     tx.set(db.collection('storage_reclamations').doc(postId.toLowerCase()), { creator_id: caller.luid, state: 'removed', public_readable: false }, { merge: true });
-    tx.update(ref, { status: 'removed', deleted_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
+    tx.update(ref, { status: 'removed', deleted_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp(),
+      // A deleted note leaves the push_state == 'approved' candidate set read on every region refresh.
+      ...(post.push_state === 'approved' ? { push_state: 'revoked', push_revoked_by: 'system:author_delete' } : {}) });
     return true;
   });
   if (removed) {

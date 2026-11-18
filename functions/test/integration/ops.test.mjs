@@ -116,6 +116,12 @@ test('anchor deletion queue: a 500 is queued, and the next drain deletes it and 
   const retried = (await adminDb.collection('cloud_anchor_deletions').doc(id).get()).data();
   assert.equal(retried.attempts, 1);
   assert.ok(retried.next_at.toMillis() > Date.now(), 'backs off');
+  // A second direct delete failure for the same anchor keeps the backoff instead of resetting it.
+  assert.equal(await deleteAnchorOrQueue(id, managementStub({ deleteStatus: 502 }).deps), false);
+  const requeued = (await adminDb.collection('cloud_anchor_deletions').doc(id).get()).data();
+  assert.equal(requeued.attempts, 1);
+  assert.equal(requeued.next_at.toMillis(), retried.next_at.toMillis());
+  assert.equal(requeued.last_error, 'http_502');
 
   const ok = managementStub();
   const deleted = await drainAnchorDeletionQueue(Date.now() + 2 * 86_400_000, 500, ok.deps);

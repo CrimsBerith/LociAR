@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { onCall } from 'firebase-functions/v2/https';
 import { CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID, requireCaller, Timestamp } from './core';
-import { assertAccountNotDeleting } from './profileGuard';
+import { accountDeletionRef } from './profileGuard';
 import { isPublicActive } from './counters';
 import { reasonError } from './errors';
 import { bumpWindow } from './limits';
@@ -15,8 +15,8 @@ const REASONS: Record<string, string> = { spam: 'spam', harassment: 'harassment'
 
 /** Suspended people retain the safety-report path; deletion and missing profiles remain fenced. */
 async function reportAccount(tx: FirebaseFirestore.Transaction, luid: string) {
-  await assertAccountNotDeleting(tx, luid);
-  const profile = await tx.get(db.collection('profiles').doc(luid));
+  const [deletion, profile] = await tx.getAll(accountDeletionRef(luid), db.collection('profiles').doc(luid));
+  if (deletion.exists) throw reasonError('permission-denied', 'Account deletion is in progress', 'profile_missing');
   if (!profile.exists || profile.get('deleted_at')) throw reasonError('permission-denied', 'Account unavailable', 'profile_missing');
   return profile;
 }

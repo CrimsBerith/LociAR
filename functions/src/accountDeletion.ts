@@ -188,6 +188,8 @@ export async function runAccountDeletion(luid: string, deps: AccountDeletionDepe
       ['storage_reclamations', 'creator_id'], ['storage_reclamation_queue', 'creator_id'],
       ['invites', 'creator_id'], ['invites', 'redeemed_by'], ['invite_attempts', 'owner_luid'],
       ['support_balances', 'owner_luid'], ['support_quota', 'owner_luid'],
+      // Admin-created persona jobs name the managed account they made or changed.
+      ['admin_user_creations', 'luid'], ['admin_managed_avatar_uploads', 'luid'],
       ['support_checkout_locks', 'owner_luid'], ['support_refresh_quota', 'owner_luid'],
     ];
     await forEachSequential(byField, async ([collection, field]) => { await deleteQuery(db.collection(collection).where(field, '==', luid)); });

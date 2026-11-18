@@ -46,7 +46,9 @@ async function emitActivity(kind: 'like' | 'comment' | 'follow', actorId: string
       created_at: FieldValue.serverTimestamp(),
       expires_at: Timestamp.fromMillis(Date.now() + 180 * 86_400_000),
     });
-    if (keyRef) tx.create(keyRef, { event_id: publicId, created_at: FieldValue.serverTimestamp() });
+    // The dedup key lives exactly as long as the event it guards (TTL on expires_at).
+    if (keyRef) tx.create(keyRef, { event_id: publicId, created_at: FieldValue.serverTimestamp(),
+      expires_at: Timestamp.fromMillis(Date.now() + 180 * 86_400_000) });
   });
 }
 

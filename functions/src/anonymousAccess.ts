@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { onCall } from 'firebase-functions/v2/https';
-import { hasPostReport } from './postReports';
+import { reportedPostIds } from './postReports';
 import { bucket, CALLABLE_MAX_INSTANCES, db, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID, Timestamp, requireCaller } from './core';
 
 import { requireActiveAccount, profileBlock, accountDeletionRef } from './profileGuard';
-import { isPublicActive } from './counters';
+import { displayedLikeCount, isPublicActive } from './counters';
 import { denseLocks } from './denseSpots';
 import { bumpWindow } from './limits';
 import { reasonError } from './errors';
@@ -40,13 +40,18 @@ export async function contentBlocked(viewer: string, post: FirebaseFirestore.Doc
 
 async function readablePost(postId: string, luid: string) {
   return await db.runTransaction(async tx => {
-    await requireActiveAccount(tx, luid);
-    const snap = await tx.get(db.collection('posts').doc(postId));
-    const post = snap.data();
+    // Caller fence and post in parallel; the caller's own error still wins when both fail.
+    const [caller, snap] = await Promise.allSettled([requireActiveAccount(tx, luid), tx.get(db.collection('posts').doc(postId))]);
+    if (caller.status === 'rejected') throw caller.reason;
+    if (snap.status === 'rejected') throw snap.reason;
+    const post = snap.value.data();
     if (!post) throw new HttpsError('permission-denied', 'Post unavailable');
-    await requireActiveAccount(tx, String(post.creator_id));
-    if (post.deleted_at || !(post.creator_id === luid || isPublicActive(post))
-      || await contentBlocked(luid, post, tx)) throw new HttpsError('permission-denied', 'Post unavailable');
+    // Author fence and block check in parallel, errors reported in the original order.
+    const [author, blocked] = await Promise.allSettled([requireActiveAccount(tx, String(post.creator_id)), contentBlocked(luid, post, tx)]);
+    if (author.status === 'rejected') throw author.reason;
+    if (post.deleted_at || !(post.creator_id === luid || isPublicActive(post))) throw new HttpsError('permission-denied', 'Post unavailable');
+    if (blocked.status === 'rejected') throw blocked.reason;
+    if (blocked.value) throw new HttpsError('permission-denied', 'Post unavailable');
     return post;
   });
 }
@@ -59,9 +64,10 @@ function requestedPost(data: unknown): string {
 
 export const readLikeCount = onCall(options, async request => {
   const caller = requireCaller(request), postId = requestedPost(request.data);
-  await readablePost(postId, caller.luid);
+  const post = await readablePost(postId, caller.luid);
   const count = await db.collection('likes').where('post_id', '==', postId).count().get();
-  return { count: count.data().count };
+  // Same number the post row shows (admin offsets included), so liking never makes it jump down.
+  return { count: displayedLikeCount(count.data().count, post) };
 });
 
 /**
@@ -162,8 +168,8 @@ export const readActivity = onCall(options, async request => {
         return post.get('is_anonymous') === true ? !blocked.has(anonymousMuteRef(caller.luid, author).path)
           : !identityBlockRefs(caller.luid, author).some(ref => blocked.has(ref.path));
       });
-      const reports = await Promise.all(visible.map(post => hasPostReport(tx, caller.luid, post.id)));
-      return visible.filter((_, i) => !reports[i]);
+      const reported = await reportedPostIds(tx, caller.luid, visible.map(post => post.id));
+      return visible.filter(post => !reported.has(post.id));
     });
     permitted.forEach(post => readable.set(post.id, post));
   }

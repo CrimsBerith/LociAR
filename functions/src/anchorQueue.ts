@@ -22,12 +22,19 @@ export async function deleteAnchorOrQueue(anchorId: string | null | undefined, d
   const outcome = await deleteCloudAnchorDetailed(anchorId, deps);
   if (outcome.ok) { await anchorDeletionRef(anchorId).delete(); return true; }
   if (outcome.skipped && inEmulator()) return false; // emulator: API intentionally off, nothing to retry
-  await anchorDeletionRef(anchorId).set({
-    attempts: 0,
-    last_error: outcome.error ?? 'unknown',
-    next_at: Timestamp.now(),
-    created_at: FieldValue.serverTimestamp(),
-  }, { merge: true });
+  const ref = anchorDeletionRef(anchorId);
+  try {
+    await ref.create({
+      attempts: 0,
+      last_error: outcome.error ?? 'unknown',
+      next_at: Timestamp.now(),
+      created_at: FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    // Already queued: keep its attempt count, backoff and age; only record the newest failure.
+    if ((error as { code?: unknown }).code !== 6) throw error; // gRPC ALREADY_EXISTS
+    await ref.update({ last_error: outcome.error ?? 'unknown' });
+  }
   return false;
 }
 

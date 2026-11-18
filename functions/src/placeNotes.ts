@@ -115,8 +115,14 @@ async function unseenNotes(tx: FirebaseFirestore.Transaction, posts: FirebaseFir
     const receipts = await tx.getAll(...batch.map(post => receiptRef(luid, post.id)));
     const unseen = batch.filter((_, index) => !receipts[index].exists
       || includePending && receipts[index].get('delivery_state') === 'pending' && retryActive(receipts[index], now));
-    const readable = await readableNoteIds(tx, unseen, luid);
-    result.push(...unseen.filter(post => readable.has(post.id)));
+    // Author/block/report checks only for as many unseen notes as can still be used, in order;
+    // a small headroom covers unreadable ones without checking the whole batch of 80.
+    for (let start = 0; start < unseen.length && result.length < limit;) {
+      const slice = unseen.slice(start, start + Math.max(2 * (limit - result.length), 8));
+      start += slice.length;
+      const readable = await readableNoteIds(tx, slice, luid);
+      result.push(...slice.filter(post => readable.has(post.id)));
+    }
   });
   return result.slice(0, limit);
 }

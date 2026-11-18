@@ -63,3 +63,8 @@ test('post approval text exists for every app language and falls back to English
     assert.ok(postApprovedBody(locale).length > 0, locale);
   }
 });
+
+test('push locale ignores surrounding whitespace', () => {
+  assert.equal(pushLocale(' tr-TR '), 'tr');
+  assert.equal(pushLocale('\tzh_Hans'), 'zh-Hans');
+});

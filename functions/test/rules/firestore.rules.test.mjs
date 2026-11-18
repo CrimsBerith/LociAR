@@ -181,6 +181,11 @@ test('anyone reads active public posts; pending only by creator', async () => {
   await assertFails(getDocs(query(collection(anon, 'posts'), where('status', '==', 'active'), where('visibility', '==', 'public'))), 'public feeds require server projection');
   await assertFails(getDocs(query(collection(anon, 'posts'), where('status', '==', 'pending_review'))));
   await assertSucceeds(getDocs(query(collection(as(BOB), 'posts'), where('creator_id', '==', BOB))));
+  // "Notlarım" (PostRepository.myPostsPage) hides the author's removed posts in the query itself.
+  await assertSucceeds(getDocs(query(collection(as(BOB), 'posts'), where('creator_id', '==', BOB),
+    where('status', 'in', ['active', 'pending_review', 'flagged', 'draft', 'blocked_protected_zone']))));
+  await assertFails(getDocs(query(collection(as(ALICE), 'posts'), where('creator_id', '==', BOB),
+    where('status', 'in', ['active', 'pending_review']))), 'another author\'s list stays closed');
 });
 
 test('clients can never write posts directly', async () => {

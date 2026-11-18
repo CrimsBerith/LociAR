@@ -721,6 +721,18 @@
       "indexes": []
     },
     {
+      "collectionGroup": "invite_attempts",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "activity_keys",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "anonymous_block_quota",
       "fieldPath": "expires_at",
       "ttl": true,

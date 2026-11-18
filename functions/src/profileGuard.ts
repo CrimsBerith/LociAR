@@ -17,8 +17,9 @@ export async function assertAccountNotDeleting(tx: FirebaseFirestore.Transaction
 
 /** Read inside the SAME transaction as the write, before its first write. */
 export async function requireActiveAccount(tx: FirebaseFirestore.Transaction, luid: string): Promise<FirebaseFirestore.DocumentData> {
-  await assertAccountNotDeleting(tx, luid);
-  const profile = await tx.get(db.collection('profiles').doc(luid));
+  // One round trip for both fence documents; the deletion fence is still evaluated first.
+  const [deletion, profile] = await tx.getAll(accountDeletionRef(luid), db.collection('profiles').doc(luid));
+  if (deletion.exists) throw reasonError('permission-denied', 'Account deletion is in progress', 'profile_missing');
   const blocked = profileBlock(profile.data());
   if (blocked) throw reasonError('permission-denied', blocked.message, blocked.reason);
   return profile.data()!;

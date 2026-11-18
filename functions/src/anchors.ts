@@ -33,9 +33,11 @@ export const registerCloudAnchor = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, 
   // cannot exceed it. Idempotent re-registration by the owner does not consume a slot.
   const quotaRef = db.collection('anchor_quota').doc(`${caller.luid}_d${Math.floor(now / DAY_MS)}`);
   const limited = await withContentionGuard(() => db.runTransaction(async (tx) => {
-    await requireActiveAccount(tx, caller.luid);
-    const [snap, quota] = await Promise.all([tx.get(ref), tx.get(quotaRef)]);
-    const deletion = await tx.get(anchorDeletionRef(id));
+    // Account fence and the three anchor documents in one parallel round trip.
+    const [, [snap, quota, deletion]] = await Promise.all([
+      requireActiveAccount(tx, caller.luid),
+      tx.getAll(ref, quotaRef, anchorDeletionRef(id)),
+    ]);
     if (deletion.exists || snap.get('state') === 'deleting' || snap.get('state') === 'deleted') throw new HttpsError('failed-precondition', 'Cloud anchor is being reclaimed');
     if (snap.exists) {
       // Idempotent for the owner; never re-assign an id that someone else registered.

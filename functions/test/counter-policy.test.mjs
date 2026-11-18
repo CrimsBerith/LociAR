@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { engagementScore, legacyManualMetrics, isPublicActive } from '../lib/counters.js';
+import { engagementScore, legacyManualMetrics, isPublicActive, displayedLikeCount } from '../lib/counters.js';
 
 test('engagement uses visible nonnegative metrics and rejects nonfinite stored values', () => {
   assert.equal(engagementScore(7, 2, 3), 28);
@@ -18,4 +18,11 @@ test('public post counts include legacy optional fields and exclude all hidden s
   for (const override of [{ status: 'removed' }, { visibility: 'private' }, { age_rating: '18_plus' }, { deleted_at: 1 }]) {
     assert.equal(isPublicActive({ status: 'active', visibility: 'public', ...override }), false);
   }
+});
+test('readLikeCount shows the stored metric: live edges plus admin offset, frozen legacy edits', () => {
+  assert.equal(displayedLikeCount(3, {}), 3);
+  assert.equal(displayedLikeCount(3, { metrics_counter_offsets: { likes_count: 40, comments_count: 0 } }), 43);
+  assert.equal(displayedLikeCount(3, { metrics_counter_offsets: { likes_count: -10, comments_count: 0 } }), 0);
+  assert.equal(displayedLikeCount(3, { metrics_counter_offsets: { likes_count: 1.5 } }), 3);
+  assert.equal(displayedLikeCount(3, { metrics_admin_edited_by: 'admin', likes_count: 120 }), 120);
 });

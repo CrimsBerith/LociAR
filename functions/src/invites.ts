@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { onCall } from 'firebase-functions/v2/https';
-import { db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, logEvent, requireCaller } from './core';
+import { db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, HttpsError, identityVerified, logEvent, requireCaller, Timestamp } from './core';
 import { reasonError } from './errors';
 import { requireActiveAccount } from './profileGuard';
 
@@ -54,6 +54,12 @@ export function attemptState(stored: { window_start?: number; count?: number } |
 
 const attemptsAllowed = (state: AttemptState) => state.count < MAX_FAILED_REDEEMS_PER_HOUR;
 
+/** The counter document after one more failed attempt; TTL removes it a day after its window. */
+export function failedAttemptRecord(owner: string, state: AttemptState) {
+  return { owner_luid: owner, window_start: state.windowStart, count: state.count + 1,
+    expires_at: Timestamp.fromMillis(state.windowStart + ATTEMPT_WINDOW_MS + 86_400_000) };
+}
+
 
 /** Creates the caller's remaining invite codes (3 per user, ever) and returns all of them. */
 export const createInvites = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES }, async (request) => {
@@ -94,33 +100,28 @@ export const redeemInvite = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInst
   if (!code) throw reasonError('invalid-argument', 'Invalid invite code', 'invite_invalid');
 
   const attemptsRef = db.collection('invite_attempts').doc(caller.luid);
-  const now = Date.now();
-  const before = attemptState((await attemptsRef.get()).data() as { window_start?: number; count?: number } | undefined, now);
-  if (!attemptsAllowed(before)) throw reasonError('resource-exhausted', 'Too many invalid codes; try again later', 'rate_limited');
-
   const privateRef = db.collection('users_private').doc(caller.luid);
   const inviteRef = db.collection('invites').doc(code);
-  try {
-    const result = await db.runTransaction(async (tx) => {
-      await requireActiveAccount(tx, caller.luid);
-      const [invite, priv] = await Promise.all([tx.get(inviteRef), tx.get(privateRef)]);
-      if (priv.data()?.invite_redeemed_at != null) return { ok: true, alreadyRedeemed: true };
-      // One reason for unknown, used and own codes, so the response is not an oracle.
-      if (!invite.exists || invite.get('redeemed_by') != null || invite.get('creator_id') === caller.luid) {
-        throw reasonError('failed-precondition', 'Invalid invite code', 'invite_invalid');
-      }
-      tx.update(inviteRef, { redeemed_by: caller.luid, redeemed_at: FieldValue.serverTimestamp() });
-      tx.set(privateRef, { invite_redeemed_at: FieldValue.serverTimestamp(), invited_by: invite.get('creator_id') }, { merge: true });
-      return { ok: true, alreadyRedeemed: false };
-    });
-    // Funnel event for the admin analytics page; never blocks the redeem.
-    if (!result.alreadyRedeemed) await logEvent({ userId: caller.luid, name: 'invite_redeemed' }).catch(() => undefined);
-    return result;
-  } catch (error) {
-    const reason = (error as { details?: { reason?: string } }).details?.reason;
-    if (reason === 'invite_invalid') {
-      await attemptsRef.set({ owner_luid: caller.luid, window_start: before.windowStart, count: before.count + 1 });
+  // The failed-attempt counter is read and written in the redeem transaction, so parallel guesses
+  // from one account serialise on it and cannot all pass the hourly limit.
+  const outcome = await db.runTransaction(async (tx) => {
+    await requireActiveAccount(tx, caller.luid);
+    const [attempts, invite, priv] = await tx.getAll(attemptsRef, inviteRef, privateRef);
+    const state = attemptState(attempts.data() as { window_start?: number; count?: number } | undefined, Date.now());
+    if (!attemptsAllowed(state)) return { kind: 'limited' as const };
+    if (priv.data()?.invite_redeemed_at != null) return { kind: 'ok' as const, alreadyRedeemed: true };
+    // One reason for unknown, used and own codes, so the response is not an oracle.
+    if (!invite.exists || invite.get('redeemed_by') != null || invite.get('creator_id') === caller.luid) {
+      tx.set(attemptsRef, failedAttemptRecord(caller.luid, state));
+      return { kind: 'invalid' as const };
     }
-    throw error;
-  }
+    tx.update(inviteRef, { redeemed_by: caller.luid, redeemed_at: FieldValue.serverTimestamp() });
+    tx.set(privateRef, { invite_redeemed_at: FieldValue.serverTimestamp(), invited_by: invite.get('creator_id') }, { merge: true });
+    return { kind: 'ok' as const, alreadyRedeemed: false };
+  });
+  if (outcome.kind === 'limited') throw reasonError('resource-exhausted', 'Too many invalid codes; try again later', 'rate_limited');
+  if (outcome.kind === 'invalid') throw reasonError('failed-precondition', 'Invalid invite code', 'invite_invalid');
+  // Funnel event for the admin analytics page; never blocks the redeem.
+  if (!outcome.alreadyRedeemed) await logEvent({ userId: caller.luid, name: 'invite_redeemed' }).catch(() => undefined);
+  return { ok: true, alreadyRedeemed: outcome.alreadyRedeemed };
 });

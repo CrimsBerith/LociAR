@@ -2,7 +2,7 @@
  * Zone-campaign (journey) rules shared by the callables and unit tests. The iOS client mirrors
  * the geometry in CampaignZone.swift; the admin panel validates the same step shape.
  */
-import { distanceMeters } from './geo';
+import { distanceMeters, meanLongitude } from './geo';
 import { ENTRY_TOLERANCE_CAP_M, MAX_ENTRY_ACCURACY_M, type Fix } from './placeNoteRules';
 
 export type Zone =
@@ -55,7 +55,8 @@ export function fixOutsideZone(fix: Fix, zone: Zone): boolean {
 /** Centre and radius of a circle covering the zone, used for iOS wake regions. */
 export function zoneBounds(zone: Zone): { lat: number; lng: number; radius: number } {
   if (zone.kind === 'circle') return { lat: zone.lat, lng: zone.lng, radius: zone.radius };
-  const lat = zone.points.reduce((s, p) => s + p.lat, 0) / zone.points.length, lng = zone.points.reduce((s, p) => s + p.lng, 0) / zone.points.length;
+  // Longitudes wrap: a street crossing ±180° must not be centred on the opposite side of the Earth.
+  const lat = zone.points.reduce((s, p) => s + p.lat, 0) / zone.points.length, lng = meanLongitude(zone.points.map(p => p.lng));
   return { lat, lng, radius: Math.max(...zone.points.map(p => distanceMeters(lat, lng, p.lat, p.lng))) + zone.width / 2 };
 }
 

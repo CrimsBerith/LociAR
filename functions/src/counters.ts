@@ -18,6 +18,18 @@ export function legacyManualMetrics(data: FirebaseFirestore.DocumentData): boole
     && !(offsets && Number.isSafeInteger(offsets.likes_count) && Number.isSafeInteger(offsets.comments_count));
 }
 
+/**
+ * The like count a viewer sees, matching what triggers store in `likes_count`: the live edge count
+ * plus the admin-approved offset, or the frozen value for legacy manual edits without offsets.
+ */
+export function displayedLikeCount(liveCount: number, post: FirebaseFirestore.DocumentData): number {
+  if (legacyManualMetrics(post) && typeof post.likes_count === 'number' && Number.isFinite(post.likes_count)) {
+    return Math.max(0, Math.trunc(post.likes_count));
+  }
+  const offset = post.metrics_counter_offsets?.likes_count;
+  return Math.max(0, liveCount + (Number.isSafeInteger(offset) ? offset : 0));
+}
+
 export function isPublicActive(post: FirebaseFirestore.DocumentData | undefined): boolean {
   return Boolean(post?.status === 'active' && post.visibility === 'public' && post.age_rating !== '18_plus' && !post.deleted_at);
 }

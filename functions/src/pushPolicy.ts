@@ -47,7 +47,7 @@ const bodies: Record<string, [string, string, string]> = {
 
 export function pushLocale(value: unknown): string {
   if (typeof value !== 'string') return 'en';
-  const language = value.split(/[-_]/)[0].toLowerCase();
+  const language = value.trim().split(/[-_]/)[0].toLowerCase();
   const normalized = language === 'zh' ? 'zh-Hans' : language;
   return Object.hasOwn(bodies, normalized) ? normalized : 'en';
 }

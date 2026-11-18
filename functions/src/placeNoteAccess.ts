@@ -2,7 +2,7 @@ import { db, isUUID } from './core';
 import { anonymousMuteRef, identityBlockRefs } from './anonymousAccess';
 import { isPublicActive } from './counters';
 import { accountDeletionRef, profileBlock } from './profileGuard';
-import { hasPostReport } from './postReports';
+import { reportedPostIds } from './postReports';
 
 export function noteCandidate(post: FirebaseFirestore.DocumentSnapshot, viewer: string): boolean {
   const data = post.data();
@@ -36,8 +36,7 @@ export async function readableNoteIds(tx: FirebaseFirestore.Transaction, posts: 
       : identityBlockRefs(viewer, author).some(ref => blocks.get(ref.path) === true);
   };
   // Each note is checked independently; comment flags do not silence the parent note.
-  const checks = await Promise.all(candidates.filter(post => !hidden(post)).map(async post => {
-    return await hasPostReport(tx, viewer, post.id) ? null : post.id;
-  }));
-  return new Set(checks.filter((id): id is string => id !== null));
+  const visible = candidates.filter(post => !hidden(post)).map(post => post.id);
+  const reported = await reportedPostIds(tx, viewer, visible);
+  return new Set(visible.filter(id => !reported.has(id)));
 }

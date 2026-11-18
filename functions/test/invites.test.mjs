@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  generateInviteCode, normalizeInviteCode, inviteGate, attemptState, INVITES_PER_USER, MAX_FAILED_REDEEMS_PER_HOUR,
+  generateInviteCode, normalizeInviteCode, inviteGate, attemptState, failedAttemptRecord, INVITES_PER_USER, MAX_FAILED_REDEEMS_PER_HOUR,
 } from '../lib/invites.js';
 
 test('generated codes are 8 characters from the unambiguous alphabet', () => {
@@ -43,4 +43,13 @@ test('failed redeem attempts reset after an hour', () => {
   assert.deepEqual(attemptState({ window_start: now - 3_600_000, count: 9 }, now), { windowStart: now, count: 0 });
   assert.equal(MAX_FAILED_REDEEMS_PER_HOUR, 10);
   assert.equal(INVITES_PER_USER, 3);
+});
+
+test('a failed redeem counts inside its window and expires a day after it', () => {
+  const now = 1_800_000_000_000;
+  const record = failedAttemptRecord('luid-1', { windowStart: now - 1000, count: 4 });
+  assert.equal(record.owner_luid, 'luid-1');
+  assert.equal(record.window_start, now - 1000);
+  assert.equal(record.count, 5);
+  assert.equal(record.expires_at.toMillis(), now - 1000 + 3_600_000 + 86_400_000);
 });

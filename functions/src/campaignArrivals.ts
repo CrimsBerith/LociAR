@@ -43,10 +43,13 @@ export const readCampaignRegions = onCall(options, async request => {
       const departure = a.get('notification_mode') === 'departure';
       if ((!departure && a.get('notification_mode') !== 'arrival') || a.get('arrival_notified_at')
           || pref.get(departure ? 'departures' : 'arrivals') !== true) return;
-      const offer = await campaignOffer(tx, caller.luid, a.get('campaign_id'), now);
+      // The offer check and the two region documents are independent reads: one round trip.
+      const [offer, c, origin] = await Promise.all([
+        campaignOffer(tx, caller.luid, a.get('campaign_id'), now),
+        tx.get(db.collection('campaigns').doc(String(a.get('campaign_id')))),
+        departure ? tx.get(db.collection('campaign_departure_regions').doc(a.id)) : Promise.resolve(null),
+      ]);
       if (!offer) return;
-      const c = await tx.get(db.collection('campaigns').doc(a.get('campaign_id')));
-      const origin = departure ? await tx.get(db.collection('campaign_departure_regions').doc(a.id)) : null;
       if (departure && !liveDepartureOrigin(origin, pref, now)) return;
       const lat = departure ? origin!.get('lat') : c.get('lat'), lng = departure ? origin!.get('lng') : c.get('lng');
       const radius = departure ? origin!.get('radius') : c.get('arrivalRadius') ?? 150;
