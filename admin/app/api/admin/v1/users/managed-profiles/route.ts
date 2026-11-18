@@ -53,13 +53,14 @@ export async function POST(request: Request) {
     }
     const rows=rowsFrom(body,10), reason=requiredString(body.reason,'reason',8,1000);
     const limited=await enforceRateLimit(access.context.user.id,'managed-profiles.update',30,60); if(limited)return limited;
-    const key=idempotencyKey(request),results:Array<{luid:string;updated:boolean;error?:string}> = [];
-    for(const row of rows){
+    // At most 10 rows, each an idempotent transaction: run together, results keep row order.
+    const key=idempotencyKey(request);
+    const results:Array<{luid:string;updated:boolean;error?:string}> = await Promise.all(rows.map(async row=>{
       try{
         await updateManagedProfile(row.luid,row.patch,access.context.user.id,reason,derivedKey(key,`profile:${row.luid}`));
-        results.push({luid:row.luid,updated:true});
-      }catch(error){results.push({luid:row.luid,updated:false,error:error instanceof Error?error.message:'unexpected'});}
-    }
+        return {luid:row.luid,updated:true};
+      }catch(error){return {luid:row.luid,updated:false,error:error instanceof Error?error.message:'unexpected'};}
+    }));
     return NextResponse.json({results,updated:results.filter(row=>row.updated).length,failed:results.filter(row=>!row.updated).length});
   }catch(error){return apiError(error);}
 }

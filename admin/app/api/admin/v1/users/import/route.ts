@@ -38,13 +38,13 @@ export async function POST(request: Request) {
     const rows = rowsFrom(body,10);
     const limited = await enforceRateLimit(access.context.user.id, 'users.create-batch', 60, 60); if (limited) return limited;
     const key = idempotencyKey(request), reason = requiredString(body.reason, 'reason', 8, 1000);
-    const results: Array<{handle:string;id?:string;error?:string}> = [];
-    for (const row of rows) {
+    // At most 10 rows; each is its own idempotent transaction, so they run together (results keep row order).
+    const results: Array<{handle:string;id?:string;error?:string}> = await Promise.all(rows.map(async row => {
       try {
         const user = await createManagedUser(row, access.context.user.id, reason, derivedKey(key, `persona:${row.handle}`));
-        results.push({ handle: row.handle, id: user.id });
-      } catch (error) { results.push({ handle: row.handle, error: error instanceof Error ? error.message : 'unexpected' }); }
-    }
+        return { handle: row.handle, id: user.id };
+      } catch (error) { return { handle: row.handle, error: error instanceof Error ? error.message : 'unexpected' }; }
+    }));
     return NextResponse.json({ results, created: results.filter(row => row.id).length, failed: results.filter(row => row.error).length });
   } catch (error) { return apiError(error); }
 }

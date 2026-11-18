@@ -27,14 +27,34 @@ struct NoteTranslationRequest: Equatable, Sendable {
         preferredLocalizations.compactMap(canonicalLanguage).first ?? "en"
     }
 
+    /// Views ask this from `body` (the AR viewer re-renders on every engine/location change), so
+    /// the language model runs once per note text, not once per render.
     var detectedSource: String? {
+        let key = original as NSString
+        if let cached = DetectedLanguageCache.shared.object(forKey: key) { return cached.language }
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(original)
-        guard let best = recognizer.languageHypotheses(withMaximum: 1).first, best.value >= 0.65 else { return nil }
-        return Self.canonicalLanguage(best.key.rawValue)
+        let language = recognizer.languageHypotheses(withMaximum: 1).first
+            .flatMap { $0.value >= 0.65 ? Self.canonicalLanguage($0.key.rawValue) : nil }
+        DetectedLanguageCache.shared.setObject(DetectedLanguage(language), forKey: key)
+        return language
     }
 
     var isAlreadyInTargetLanguage: Bool { detectedSource == targetLanguage }
+}
+
+/// Text-only memo (no location, no account): NSCache is thread-safe and evicts under memory pressure.
+private final class DetectedLanguage: NSObject {
+    let language: String?
+    init(_ language: String?) { self.language = language }
+}
+
+private enum DetectedLanguageCache {
+    nonisolated(unsafe) static let shared: NSCache<NSString, DetectedLanguage> = {
+        let cache = NSCache<NSString, DetectedLanguage>()
+        cache.countLimit = 256
+        return cache
+    }()
 }
 
 /// View-lifetime state only. No note text, translation or location is written to a cache on disk.
