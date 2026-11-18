@@ -77,18 +77,30 @@ export default function PersonaTransfer({ canImport, canExport, exportStepUpRequ
   }
   async function apply() {
     setBusy(true); setMessage('');
+    // Rows the server already created leave the list, so a retry sends only what is left
+    // instead of re-importing created profiles as handle conflicts.
+    const succeeded = new Set<string>();
+    const remaining = (list: Persona[]) => list.filter(row => !succeeded.has(row.handle.toLowerCase()));
+    const keepRemaining = () => {
+      setRows(remaining);
+      setPreview(current => current && { rows: remaining(current.rows), conflicts: [] });
+      mutation.current.clear();
+    };
     try {
       let created=0; const failures:Array<{handle:string;error:string}> = [];
       for (let start=0; start<rows.length; start+=10) {
         const batch=rows.slice(start,start+10), result = await postWithRateRetry({mode:'import',rows:batch,reason});
         const summary = result as {created:number;results:Array<{handle:string;id?:string;error?:string}>}; created += summary.created;
-        failures.push(...summary.results.filter(row=>row.error).map(row=>({handle:row.handle,error:row.error!})));
+        for (const row of summary.results) {
+          if (row.error) failures.push({handle:row.handle,error:row.error});
+          else succeeded.add(row.handle.toLowerCase());
+        }
         setMessage(`${Math.min(start+batch.length,rows.length)} / ${rows.length} processed`);
       }
       setMessage(`${created} created · ${failures.length} failed${failures.length ? `: ${failures.map(row=>`${row.handle} (${row.error})`).join(', ')}` : ''}`);
-      if (failures.length) setPartial(true);
+      if (failures.length) { setPartial(true); keepRemaining(); }
       else { setRows([]); setPreview(null); setReason(''); setPartial(false); if (fileRef.current) fileRef.current.value = ''; mutation.current.clear(); }
-    } catch (error) { setPartial(true); setMessage(mutationError(error)); } finally { setBusy(false); }
+    } catch (error) { setPartial(true); keepRemaining(); setMessage(mutationError(error)); } finally { setBusy(false); }
   }
   return <section className="panel">
     <h2>{t('User data transfer')}</h2>

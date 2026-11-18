@@ -26,7 +26,9 @@ function webAppConfigEnv(): Record<string, string> {
 const nextConfig: NextConfig = {
   env: webAppConfigEnv(),
   async redirects() {
-    return [{ source: '/en/privacy', destination: '/privacy/en', permanent: true }];
+    // Language-first legal URLs (/en/terms) resolve to the canonical /terms/en page. Redirects run
+    // before the public-site proxy, so these paths never reach its 404 rule.
+    return ['privacy', 'terms', 'support'].map(page => ({ source: `/en/${page}`, destination: `/${page}/en`, permanent: true }));
   },
   turbopack: {
     root: process.cwd(),

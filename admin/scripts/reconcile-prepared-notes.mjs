@@ -22,8 +22,9 @@ for(let start=0;start<expected.length;start+=100){
  const docs=await db.getAll(...ids.map(id=>db.collection('posts').doc(id)));
  for(const doc of docs)posts.set(doc.id,doc);
 }
-const handles=[...new Set([...newById.values()].map(i=>i.author_handle))];
-const handleDocs=await db.getAll(...handles.map(h=>db.collection('handles').doc(h)));
+const handles=[...new Set([...newById.values()].map(i=>i.author_handle).filter(Boolean))];
+// getAll() with no references throws; a run with no new notes has no authors to resolve.
+const handleDocs=handles.length?await db.getAll(...handles.map(h=>db.collection('handles').doc(h))):[];
 const authorIds=new Map(handleDocs.map((d,i)=>[handles[i],d.get('luid')]));
 const originalEdits=new Map(editPlan.rows.map(r=>[r.post_id,r.input]));
 for(const row of expected){

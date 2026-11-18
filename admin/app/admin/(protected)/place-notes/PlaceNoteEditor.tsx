@@ -1,5 +1,5 @@
 'use client';
-import { scalarText } from '../../../../lib/values';
+import { parseLocalDateTime, scalarText } from '../../../../lib/values';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
@@ -18,12 +18,12 @@ function useSubmit(success: string) {
       mutation.current.clear(ENDPOINT, body); setMessage(t(success)); router.refresh();
     } catch (error) { setMessage(t(mutationError(error))); } finally { setBusy(false); }
   }
-  return { busy, message, send, t };
+  return { busy, message, setMessage, send, t };
 }
 
 /** Notification radius and optional end date for one note. */
 export function PlaceNoteEditor({ id, radius, endsAt, canEditRadius, canEditEnd }: Readonly<{ id: string; radius: number; endsAt: string | null; canEditRadius: boolean; canEditEnd: boolean }>) {
-  const { busy, message, send, t } = useSubmit('Saved and audited.');
+  const { busy, message, setMessage, send, t } = useSubmit('Saved and audited.');
   return <details><summary>{t('Radius')} {radius} m{endsAt ? ` · ${t('ends')} ${endsAt}` : ` · ${t('no end date')}`}</summary>
     {canEditRadius ? <form className="decisionForm" onSubmit={event => { event.preventDefault(); const f = new FormData(event.currentTarget);
       void send({ action: 'set_radius', id, radius: Number(f.get('radius')), reason: scalarText(f.get('reason')) }); }}>
@@ -32,7 +32,9 @@ export function PlaceNoteEditor({ id, radius, endsAt, canEditRadius, canEditEnd 
       <label>{t('Reason')}<input name="reason" required minLength={8} maxLength={1000}/></label><button type="submit" disabled={busy}>{t('Save radius')}</button>
     </form> : null}
     {canEditEnd ? <form className="decisionForm" onSubmit={event => { event.preventDefault(); const f = new FormData(event.currentTarget);
-      const value = scalarText(f.get('endsAt') ?? ''); void send({ action: 'set_end', id, endsAt: value ? new Date(value).toISOString() : null, reason: scalarText(f.get('reason')) }); }}>
+      const end = parseLocalDateTime(scalarText(f.get('endsAt') ?? ''));
+      if (!end.valid) { setMessage(t('Invalid date')); return; }
+      void send({ action: 'set_end', id, endsAt: end.iso, reason: scalarText(f.get('reason')) }); }}>
       <label>{t('End date (optional)')}<input name="endsAt" type="datetime-local" defaultValue={endsAt ? endsAt.slice(0, 16) : ''}/></label>
       <p className="muted">{t('Notes never expire on their own. At this time the note is removed like a moderator soft delete. Leave empty to clear.')}</p>
       <label>{t('Reason')}<input name="reason" required minLength={8} maxLength={1000}/></label><button type="submit" disabled={busy}>{t('Save end date')}</button>

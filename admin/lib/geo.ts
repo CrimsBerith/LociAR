@@ -43,6 +43,13 @@ export function encodeGeohash(latitude: number, longitude: number, precision = 1
   return hash;
 }
 
+/** Mean of longitudes across the ±180° seam (same as functions/src/geo.ts). */
+export function meanLongitude(longitudes: number[]): number {
+  const anchor = longitudes[0];
+  const delta = longitudes.reduce((sum, lng) => sum + ((lng - anchor + 540) % 360 - 180), 0) / longitudes.length;
+  return (anchor + delta + 540) % 360 - 180;
+}
+
 export function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);

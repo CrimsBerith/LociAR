@@ -1,7 +1,7 @@
 import 'server-only';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { adminDb, isoOrNull } from './firebase-admin';
-import { checkReceipt, ConflictError, mutationHash, requireActorAccountActive, writeAudit } from './ops';
+import { checkReceipt, ConflictError, mutationHash, requireActorPermission, writeAudit } from './ops';
 import { ValidationError } from './validation';
 
 /**
@@ -102,7 +102,7 @@ export async function requestMaintenanceRun(name: unknown, actorId: string, reas
   const db = adminDb();
   const hash = mutationHash(actorId, 'maintenance_run', task.name, { reason });
   return await db.runTransaction(async tx => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'system.maintenance');
     const [audit, open] = await Promise.all([
       tx.get(db.collection('admin_audit_log').doc(idempotencyKey)),
       tx.get(db.collection('maintenance_requests').where('task', '==', task.name).where('status', 'in', ['queued', 'running']).limit(5)),
@@ -128,7 +128,7 @@ export async function setMaintenancePaused(name: unknown, paused: boolean, actor
   const ref = db.collection('system').doc('maintenance');
   const hash = mutationHash(actorId, 'maintenance_pause', task.name, { paused, reason });
   return await db.runTransaction(async tx => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'system.maintenance');
     const [audit, before] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
     const after = { task: task.name, paused };

@@ -43,6 +43,15 @@ export function needsStepUp(context: { roles: string[]; assuranceLevel: 'aal1' |
   return context.assuranceLevel === 'email_code' && STEP_UP_PERMISSIONS.has(permission) && permissionsFor(context.roles).has(permission);
 }
 
+/** Display names for the invitation form; every role but super_admin can be granted by invitation. */
+export const ROLE_LABELS: Record<string, string> = {
+  trust_safety_admin: 'Trust & Safety Admin', ar_operations_admin: 'AR Operations Admin',
+  product_operations: 'Product Operations', engineering_observer: 'Engineering Observer', analyst: 'Analyst',
+  support_agent: 'Support Agent', legal_privacy_admin: 'Legal & Privacy Admin',
+  ad_operations_admin: 'Ad Operations Admin', finance_admin: 'Finance Admin',
+};
+export const INVITABLE_ROLES: readonly string[] = Object.keys(ROLE_PERMISSIONS).filter(role => role !== 'super_admin');
+
 export function isKnownRole(role: string): boolean {
   return Object.prototype.hasOwnProperty.call(ROLE_PERMISSIONS, role);
 }

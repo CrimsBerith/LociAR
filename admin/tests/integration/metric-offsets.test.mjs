@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test, { after } from 'node:test';
+import { grantRole } from './admin-roles.mjs';
 import { initializeApp, getApps, deleteApp } from 'firebase-admin/app';
 import { Timestamp } from 'firebase-admin/firestore';
 
@@ -22,7 +23,7 @@ async function sourceFixture() {
 }
 
 test('direct metric edits persist signed source offsets and accurate audit fields without replay drift', async () => {
-  const { db, post } = await sourceFixture(); const key = randomUUID(); const actor = randomUUID();
+  const { db, post } = await sourceFixture(); const key = randomUUID(); const actor = await grantRole(adminDb(), randomUUID());
   await setPostMetrics(post.id, { views: 10, likes: 8, comments: 1 }, actor, 'Reviewed metric correction', key, null);
   const beforeReplay = (await post.get()).data();
   assert.deepEqual(beforeReplay.metrics_counter_offsets, { likes_count: 6, comments_count: -2 });
@@ -37,7 +38,7 @@ test('direct metric edits persist signed source offsets and accurate audit field
 });
 
 test('approved metric edits use the same source offsets and audit the actual persisted counter fields', async () => {
-  const { db, post } = await sourceFixture(); const actor = randomUUID(); const requester = randomUUID();
+  const { db, post } = await sourceFixture(); const actor = await grantRole(adminDb(), randomUUID()); const requester = randomUUID();
   const approval = db.collection('admin_approval_requests').doc(randomUUID());
   await approval.set({ action: 'post_metrics_set', resource_type: 'post', resource_id: post.id,
     requested_by: requester, target_version: postVersion((await post.get()).data()),
@@ -55,7 +56,7 @@ test('approved metric edits use the same source offsets and audit the actual per
 
 
 test('deletion fences reject target and actor mutations before metrics, moderation or audit changes', async () => {
-  const { db, post } = await sourceFixture(); const target = randomUUID(); const actor = randomUUID();
+  const { db, post } = await sourceFixture(); const target = randomUUID(); const actor = await grantRole(adminDb(), randomUUID());
   await post.update({ creator_id: target });
   await db.collection('profiles').doc(target).set({ suspended: false });
   await db.collection('avatar_reviews').doc(target).set({ status: 'pending', path: 'avatars/test/pending/avatar.jpg' });

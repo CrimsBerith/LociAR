@@ -15,8 +15,10 @@ async function check(name: string, run: () => Promise<string>, failed: string): 
   }
 }
 
-export default async function SystemPage() {
+export default async function SystemPage({ searchParams }: Readonly<{ searchParams: Promise<Record<string, string | string[] | undefined>> }>) {
   const admin = await requireAdmin({ permission: 'dashboard.read' });
+  // Live Cloud Function probes wake (cold start) each function; run them only when asked.
+  const probeFunctions = (await searchParams).probe === 'functions';
   const { t } = await getI18n();
   const flagSnapshot = await adminDb().collection('system').doc('flags').get().catch(() => null);
   const flagsAvailable = flagSnapshot !== null;
@@ -29,7 +31,7 @@ export default async function SystemPage() {
     check('Firestore', async () => { await adminDb().collection('profiles').limit(1).get(); return t('Service query passed'); }, t('Check failed')),
     check('Auth', async () => { await adminAuth().listUsers(1); return t('Admin API reachable'); }, t('Check failed')),
     check('Storage', async () => { const [exists] = await adminBucket().exists(); if (!exists) { throw new Error('Service health check failed'); } return t('Default bucket reachable'); }, t('Check failed')),
-    ...functionNames.map(name => check(`Cloud Function · ${name}`, async () => {
+    ...(!probeFunctions ? [] : functionNames).map(name => check(`Cloud Function · ${name}`, async () => {
       const response = await fetch(`https://${region}-${projectId()}.cloudfunctions.net/${name}`, {
         method: 'OPTIONS',
         signal: AbortSignal.timeout(5000),
@@ -60,6 +62,9 @@ export default async function SystemPage() {
           />
         ) : <p className="muted">{flagsAvailable ? t('Requires the system.kill_switch permission.') : t('Retry after service configuration becomes available.')}</p>}
       </section>
+      <p>{probeFunctions
+        ? <a href="/admin/system">{t('Hide Cloud Function checks')}</a>
+        : <a href="/admin/system?probe=functions">{t('Check Cloud Functions now')}</a>}</p>
       <section className="healthGrid">
         {checks.map(item => (
           <article className="panel healthCard" key={item.name}><span className={`healthState ${item.ok ? '' : 'down'}`}>{item.ok ? t('Operational') : t('Failed')}</span><strong>{item.name}</strong><small className="muted">{item.detail}</small></article>

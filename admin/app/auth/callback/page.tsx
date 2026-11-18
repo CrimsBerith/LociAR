@@ -14,6 +14,7 @@ export default function AuthCallbackPage() {
   const [email, setEmail] = useState('');
   const [resolver, setResolver] = useState<MultiFactorResolver | null>(null);
   const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState('');
   const [busy, setBusy] = useState(false);
   const linkRef = useRef('');
 
@@ -70,11 +71,30 @@ export default function AuthCallbackPage() {
     event.preventDefault();
     if (!resolver) return;
     setBusy(true);
+    setCodeError('');
+    const hint = resolver.hints.find(item => item.factorId === TotpMultiFactorGenerator.FACTOR_ID);
+    if (!hint) { setFailure('no_totp_factor'); setBusy(false); return; }
+    let credential: UserCredential;
     try {
-      const hint = resolver.hints.find(item => item.factorId === TotpMultiFactorGenerator.FACTOR_ID);
-      if (!hint) throw new Error('no_totp_factor');
       const assertion = TotpMultiFactorGenerator.assertionForSignIn(hint.uid, code.replace(/\s/g, ''));
-      await finish(await resolver.resolveSignIn(assertion));
+      credential = await resolver.resolveSignIn(assertion);
+    } catch (error) {
+      // A mistyped or rotated code keeps the form: the one-time email link is already spent.
+      const reason = (error as { code?: string }).code;
+      if (reason === 'auth/invalid-verification-code' || reason === 'auth/too-many-requests') {
+        setCodeError(reason === 'auth/too-many-requests'
+          ? 'Too many attempts. Wait a minute, then enter the current code.'
+          : 'That code is not valid. Enter the current 6-digit code.');
+        setCode('');
+        setBusy(false);
+        return;
+      }
+      setFailure(error instanceof Error ? error.message : 'mfa_failed');
+      setBusy(false);
+      return;
+    }
+    try {
+      await finish(credential);
     } catch (error) {
       setFailure(error instanceof Error ? error.message : 'mfa_failed');
       setBusy(false);
@@ -94,7 +114,8 @@ export default function AuthCallbackPage() {
         {!failure && resolver ? (
           <form onSubmit={submitCode} className="stack">
             <label htmlFor="totp">Authenticator code</label>
-            <input id="totp" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event => setCode(event.target.value)} required autoComplete="one-time-code" />
+            <input id="totp" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event => setCode(event.target.value)} required autoComplete="one-time-code" aria-invalid={codeError ? true : undefined} aria-describedby={codeError ? 'totp-error' : undefined} />
+            {codeError ? <p id="totp-error" className="formMessage" role="alert">{codeError}</p> : null}
             <button type="submit" disabled={busy}>{busy ? 'Verifying…' : 'Verify and continue'}</button>
           </form>
         ) : null}

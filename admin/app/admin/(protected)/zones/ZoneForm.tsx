@@ -17,7 +17,9 @@ export default function ZoneForm() {
   const [form, setForm] = useState({ name: '', category: 'school', lat: '', lng: '', radius_meters: '150', reason: '' });
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const set = (key: keyof typeof form) => (event: { target: { value: string } }) => setForm({ ...form, [key]: event.target.value });
+  const set = (key: keyof typeof form) => (event: { target: { value: string } }) => setForm(previous => ({ ...previous, [key]: event.target.value }));
+  const coordinate = (value: string, limit: number) => value.trim() !== '' && Number.isFinite(Number(value)) && Math.abs(Number(value)) <= limit;
+  const validCoordinates = coordinate(form.lat, 90) && coordinate(form.lng, 180);
 
   async function submit() {
     if (busy) return;
@@ -49,7 +51,7 @@ export default function ZoneForm() {
       <input value={form.radius_meters} onChange={set('radius_meters')} placeholder={t('Radius (m)')} aria-label={t('Radius in meters')} inputMode="numeric" />
       <input value={form.reason} onChange={set('reason')} placeholder={t('Reason (minimum 8 characters)')} aria-label={t('Reason')} />
       <div className="buttonRow">
-        <button type="button" disabled={busy || form.reason.trim().length < 8 || !form.name || !form.lat || !form.lng} onClick={submit}>{t('Add zone')}</button>
+        <button type="button" disabled={busy || form.reason.trim().length < 8 || !form.name.trim() || !validCoordinates} onClick={submit}>{t('Add zone')}</button>
       </div>
       {message ? <output className="muted">{message}</output> : null}
     </div>

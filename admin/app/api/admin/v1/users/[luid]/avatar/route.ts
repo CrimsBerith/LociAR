@@ -99,7 +99,8 @@ export async function POST(request:Request,context:{params:Promise<{luid:string}
     const currentPath=`avatars/${luid}/current/${initial.path.split('/').at(-1)}`;
     await pending.copy(adminBucket().file(currentPath));
     await adminBucket().file(currentPath).setMetadata({metadata:{firebaseStorageDownloadTokens:null}});
-    const published=await db.runTransaction(async tx=>{
+    let published:boolean;
+    try{published=await db.runTransaction(async tx=>{
       await requireManagedProfilePermission(tx,access.context.user.id);
       const [job,profile,review,slot,deletion]=await tx.getAll(jobRef,db.collection('profiles').doc(luid),reviewRef,
         db.collection('avatar_uploads').doc(initial.path.split('/').at(-1)!.replace('.jpg','')),db.collection('account_deletion_jobs').doc(luid));
@@ -119,7 +120,12 @@ export async function POST(request:Request,context:{params:Promise<{luid:string}
         before:{avatar_set:!!initial.previousAvatar,avatar_preset:initial.previousPreset??null},after:{status:'accepted_pending_human_review',safe_search:safeSearchSummary(annotation)},
         reason,permissionKey:'users.managed_profiles.write',riskLevel:'sensitive'});
       return true;
-    });
+    });}catch(error){
+      // The copy to current/ already exists. Queue it for the deletion drain, which skips any file a
+      // profile still points to, so a concurrent retry that did publish it keeps its avatar.
+      await db.runTransaction(async tx=>{queueAvatarDelete(tx,luid,currentPath);}).catch(()=>undefined);
+      throw error;
+    }
     if(!published){
       await db.runTransaction(async tx=>{
         const [job,slot]=await tx.getAll(jobRef,db.collection('avatar_uploads').doc(initial.path.split('/').at(-1)!.replace('.jpg','')));

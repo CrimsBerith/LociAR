@@ -9,6 +9,7 @@ import { useLang, useT } from '../I18nProvider';
 const API_MESSAGES_EN: Record<string, string> = {
   'Adres yetkiliyse giriş kodu gönderildi. Gelen kutunu ve spam klasörünü kontrol et.': 'If this address is authorized, a sign-in code was sent. Check your inbox and spam folder.',
   'Kod geçersiz, süresi dolmuş veya deneme sınırına ulaşılmış. Yeni kod iste.': 'The code is invalid, expired or out of attempts. Request a new code.',
+  'Geçerli bir e-posta adresi yaz.': 'Enter a valid email address.',
   'Geçersiz işlem.': 'Invalid operation.',
   'JSON gerekli.': 'JSON required.',
   'Çok fazla istek. Bir süre sonra yeniden dene.': 'Too many requests. Try again in a while.',

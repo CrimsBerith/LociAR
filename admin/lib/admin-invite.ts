@@ -39,12 +39,11 @@ export async function createUserInvitation(input: InvitationInput) {
   }
   const invitedUid = uid;
   return db.runTransaction(async tx => {
-    const [stored, audit] = await Promise.all([
+    const [stored, audit, invitedDeleting, actorDeleting] = await Promise.all([
       tx.get(ref), tx.get(db.collection('admin_audit_log').doc(input.key)),
+      accountDeletionStarted(invitedUid, tx), accountDeletionStarted(input.actorId, tx),
     ]);
-    if (await accountDeletionStarted(invitedUid, tx) || await accountDeletionStarted(input.actorId, tx)) {
-      throw new ConflictError('account_deletion_in_progress');
-    }
+    if (invitedDeleting || actorDeleting) throw new ConflictError('account_deletion_in_progress');
     if (stored.exists && !matchesRequest(stored.data()!, input)) throw new ConflictError('idempotency_key_reused');
     if (audit.exists && (audit.get('action') !== 'user_invited' || audit.get('resource_id') !== input.key
       || audit.get('actor_id') !== input.actorId)) throw new ConflictError('idempotency_key_reused');
@@ -71,16 +70,17 @@ export async function acceptUserInvitation(uid: string, identity: Identity, invi
   const db = adminDb();
   try {
     return await db.runTransaction(async tx => {
-      if (await accountDeletionStarted(uid, tx)) return 'account_deletion_in_progress';
       const inviteRef = db.collection('admin_user_invites').doc(inviteId);
-      const invite = await tx.get(inviteRef);
+      // Deletion fence, invitation and its acceptance audit in one round trip.
+      const [deleting, invite, audit] = await Promise.all([
+        accountDeletionStarted(uid, tx), tx.get(inviteRef), tx.get(db.collection('admin_audit_log').doc(`invite-accept-${inviteId}`)),
+      ]);
+      if (deleting) return 'account_deletion_in_progress';
       if (!invite.exists || invite.get('invited_user_id') !== uid) return 'invite_not_found';
       const data = invite.data()!;
       const roleKey = data.requested_role_key as string | null;
       if (regularOnly && roleKey) return 'admin_invite_requires_admin_sign_in';
       if (roleKey && (!isKnownRole(roleKey) || roleKey === 'super_admin')) return 'invalid_invite_role';
-      const auditKey = `invite-accept-${invite.id}`;
-      const audit = await tx.get(db.collection('admin_audit_log').doc(auditKey));
       if (audit.exists && (audit.get('actor_id') !== uid || audit.get('resource_id') !== uid
         || audit.get('action') !== (roleKey ? 'admin_invite_accepted' : 'user_invite_accepted'))) {
         return 'invite_audit_conflict';
@@ -119,7 +119,7 @@ export async function acceptUserInvitation(uid: string, identity: Identity, invi
         }, { merge: true });
       }
       if (data.status !== 'accepted') tx.update(inviteRef, { status: 'accepted', accepted_at: FieldValue.serverTimestamp() });
-      if (!audit.exists) writeAudit(tx, auditKey, {
+      if (!audit.exists) writeAudit(tx, `invite-accept-${inviteId}`, {
         actorId: uid, action: roleKey ? 'admin_invite_accepted' : 'user_invite_accepted',
         resourceType: roleKey ? 'admin_role_assignment' : 'user_invite', resourceId: uid,
         after: { roleKey, inviteId: invite.id }, reason: 'Verified email owner accepted a recorded invitation.',

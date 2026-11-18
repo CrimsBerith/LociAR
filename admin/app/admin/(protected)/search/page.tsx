@@ -13,6 +13,10 @@ type Row = Record<string, unknown> & { id: string };
 
 export default async function SearchPage({ searchParams }: Readonly<{ searchParams: Promise<SearchParameters> }>) {
   const admin = await requireAdmin({ permission: 'dashboard.read' });
+  // The page itself is a dashboard tool; each result type needs the permission of its own page.
+  const canUsers = admin.permissions.has('users.read');
+  const canPosts = admin.permissions.has('posts.read');
+  const canAnchors = canPosts || admin.permissions.has('anchors.read');
   const { t } = await getI18n();
   const params = await searchParams;
   const term = textParameter(params.q);
@@ -30,17 +34,21 @@ export default async function SearchPage({ searchParams }: Readonly<{ searchPara
       const userCursors = pageCursors(params, 'users');
       const postCursors = pageCursors(params, 'posts');
       const [loadedUsers, loadedPosts, byId] = await Promise.all([
-        readDocumentPage(db.collection('profiles').where('handle', '>=', handle).where('handle', '<=', handle + '\uf8ff'), {
+        !canUsers ? Promise.resolve(null) : readDocumentPage(db.collection('profiles').where('handle', '>=', handle).where('handle', '<=', handle + '\uf8ff'), {
           field: 'handle', direction: 'asc', scope: JSON.stringify(['search-users', handle]), cursors: userCursors, size: 25,
         }),
-        readCaptionPage(db.collection('posts'), { scope: JSON.stringify(['search-posts', needle]), cursors: postCursors, size: 250, needle }),
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(needle) ? db.collection('posts').doc(needle).get() : Promise.resolve(null),
+        !canAnchors ? Promise.resolve(null) : readCaptionPage(db.collection('posts'), { scope: JSON.stringify(['search-posts', needle]), cursors: postCursors, size: 250, needle }),
+        canAnchors && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(needle) ? db.collection('posts').doc(needle).get() : Promise.resolve(null),
       ]);
-      await recordPersonalDataRead(admin.user.id, 'search_profiles', loadedUsers.documents.length);
-      userPage = loadedUsers;
-      postPage = loadedPosts;
-      users = userPage.documents.map(d => ({ ...d.data(), id: d.id }));
-      posts = loadedPosts.matches.map(d => ({ ...d.data(), id: d.id }) as Row);
+      if (loadedUsers) {
+        await recordPersonalDataRead(admin.user.id, 'search_profiles', loadedUsers.documents.length);
+        userPage = loadedUsers;
+        users = userPage.documents.map(d => ({ ...d.data(), id: d.id }));
+      }
+      if (loadedPosts) {
+        postPage = loadedPosts;
+        posts = loadedPosts.matches.map(d => ({ ...d.data(), id: d.id }) as Row);
+      }
       if (byId?.exists) posts = [{ ...byId.data(), id: byId.id }, ...posts.filter(p => p.id !== byId.id)];
     } catch (error) {
       failed = true;
@@ -62,10 +70,10 @@ export default async function SearchPage({ searchParams }: Readonly<{ searchPara
       {term && !failed ? <p className="readOnlyNotice">{t('Caption and anchor matches in this batch of {count} posts.', { count: postPage.documents.length })} {postPage.next ? t('Continue searching older records to scan the remaining posts, even when this batch has no matches.') : t('There are no older posts after this batch.')} {t('Exact post IDs are looked up directly.')}</p> : null}
       <section className="dashboardGrid">
         <div className="stack">
-          <section className="panel"><div className="panelHeader"><h2>{t('Users')}</h2></div><QueryResult failed={failed} isEmpty={users.length === 0} failure={<p className="emptyState">{t('User search failed.')}</p>} empty={<p className="emptyState">{t('No users in this page.')}</p>}>{() => users.map(user => <div className="dataRow" key={user.id}><span><b>@{String(user.handle)}</b><small>{user.id}</small></span><span>{user.suspended ? t('Suspended') : t('Active')}</span></div>)}</QueryResult>{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="users" next={userPage.next} previous={userPage.previous} /> : null}</section>
-          <section className="panel"><div className="panelHeader"><h2>{t('Posts')}</h2></div><QueryResult failed={failed} isEmpty={posts.length === 0} failure={<p className="emptyState">{t('Post search failed.')}</p>} empty={<p className="emptyState">{t('No matching posts in this batch.')}</p>}>{() => posts.map(post => <div className="dataRow" key={post.id}><span><b>{scalarText(post.caption || t('Untitled post'))}</b><small>{post.id}</small></span><span>{post.deleted_at ? t('trash') : t(String(post.status).replaceAll('_', ' '))}</span></div>)}</QueryResult>{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="posts" next={postPage.next} previous={postPage.previous} scan /> : null}</section>
+          {canUsers ? <section className="panel"><div className="panelHeader"><h2>{t('Users')}</h2></div><QueryResult failed={failed} isEmpty={users.length === 0} failure={<p className="emptyState">{t('User search failed.')}</p>} empty={<p className="emptyState">{t('No users in this page.')}</p>}>{() => users.map(user => <div className="dataRow" key={user.id}><span><b>@{String(user.handle)}</b><small>{user.id}</small></span><span>{user.suspended ? t('Suspended') : t('Active')}</span></div>)}</QueryResult>{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="users" next={userPage.next} previous={userPage.previous} /> : null}</section> : null}
+          {canPosts ? <section className="panel"><div className="panelHeader"><h2>{t('Posts')}</h2></div><QueryResult failed={failed} isEmpty={posts.length === 0} failure={<p className="emptyState">{t('Post search failed.')}</p>} empty={<p className="emptyState">{t('No matching posts in this batch.')}</p>}>{() => posts.map(post => <div className="dataRow" key={post.id}><span><b>{scalarText(post.caption || t('Untitled post'))}</b><small>{post.id}</small></span><span>{post.deleted_at ? t('trash') : t(String(post.status).replaceAll('_', ' '))}</span></div>)}</QueryResult>{!failed ? <PageNavigation path="/admin/search" parameters={parameters} prefix="posts" next={postPage.next} previous={postPage.previous} scan /> : null}</section> : null}
         </div>
-        <section className="panel"><div className="panelHeader"><h2>{t('AR anchors')}</h2></div><QueryResult failed={failed} isEmpty={anchors.length === 0} failure={<p className="emptyState">{t('Anchor search failed.')}</p>} empty={<p className="emptyState">{t('No matching anchors in this batch.')}</p>}>{() => anchors.map(anchor => <div className="auditList" key={anchor.id}><article><span className="auditIcon">⌖</span><div><b>{scalarText(anchor.caption || t('Untitled post'))}</b><small>{String(anchor.native_provider)} · {String(anchor.placement_state)} · {t('quality')} {anchor.placement_quality == null ? t('unmeasured') : Number(anchor.placement_quality).toFixed(2)}</small></div></article></div>)}</QueryResult></section>
+        {canAnchors ? <section className="panel"><div className="panelHeader"><h2>{t('AR anchors')}</h2></div><QueryResult failed={failed} isEmpty={anchors.length === 0} failure={<p className="emptyState">{t('Anchor search failed.')}</p>} empty={<p className="emptyState">{t('No matching anchors in this batch.')}</p>}>{() => anchors.map(anchor => <div className="auditList" key={anchor.id}><article><span className="auditIcon">⌖</span><div><b>{scalarText(anchor.caption || t('Untitled post'))}</b><small>{String(anchor.native_provider)} · {String(anchor.placement_state)} · {t('quality')} {anchor.placement_quality == null ? t('unmeasured') : Number(anchor.placement_quality).toFixed(2)}</small></div></article></div>)}</QueryResult></section> : null}
       </section>
     </section>
   );

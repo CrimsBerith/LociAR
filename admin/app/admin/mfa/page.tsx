@@ -7,8 +7,10 @@ import { clientAuth } from '../../../lib/firebase-client';
 import { useT } from '../I18nProvider';
 
 async function endSession() {
-  await fetch('/api/auth/signout', { method: 'POST', credentials: 'same-origin' });
-  await signOut(clientAuth());
+  // A failed server call must not keep this browser signed in: the cookie expires on its own,
+  // the local Firebase session does not.
+  await fetch('/api/auth/signout', { method: 'POST', credentials: 'same-origin' }).catch(() => undefined);
+  await signOut(clientAuth()).catch(() => undefined);
 }
 
 export default function AdminMfa() {

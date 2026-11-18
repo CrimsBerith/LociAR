@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAdminContextForSession, SESSION_COOKIE, verifiedAdminSession, type AdminContext } from './admin-session';
@@ -7,9 +8,16 @@ export { needsStepUp } from './rbac';
 export { required } from './firebase-admin';
 export { activeRoles, SESSION_COOKIE, verifiedAdminSession, type AdminContext } from './admin-session';
 
+/**
+ * One session verification and role read per server render: the layout, the page and nested
+ * components all call requireAdmin(). Outside a render (proxy, route handlers) React's cache is a
+ * pass-through, so API routes still verify on every request.
+ */
+const contextForSession = cache(getAdminContextForSession);
+
 export async function getAdminContext(sessionOverride?: string | null): Promise<AdminContext | null> {
   const session = sessionOverride === undefined ? (await cookies()).get(SESSION_COOKIE)?.value ?? null : sessionOverride;
-  return getAdminContextForSession(session);
+  return contextForSession(session);
 }
 
 export async function requireAdmin(options?: { permission?: string; requireVerifiedSession?: boolean }) {

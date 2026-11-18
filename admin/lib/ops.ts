@@ -5,6 +5,7 @@ import { FieldValue, Timestamp, type DocumentData, type Transaction } from 'fire
 import { adminBucket, adminDb, iso } from './firebase-admin';
 import { ValidationError } from './validation';
 import { accountDeletionStarted } from './account-lifecycle';
+import { permissionsFor } from './rbac';
 
 /**
  * Admin operations ported from the Supabase SQL functions (admin_moderate_post,
@@ -27,6 +28,20 @@ export async function requireTargetAccountActive(tx: Transaction, luid: unknown)
 
 export async function requireActorAccountActive(tx: Transaction, uid: string): Promise<void> {
   if (await accountDeletionStarted(uid, tx)) throw new ConflictError('account_deleting');
+}
+
+/**
+ * The route checked the permission when the request arrived; this re-checks it inside the
+ * mutation's transaction, so a role revoked in between fences the write (same rule as
+ * campaigns, content and place-note mutations).
+ */
+export async function requireActorPermission(tx: Transaction, uid: string, permission: string): Promise<void> {
+  const [deleting, roles] = await Promise.all([
+    accountDeletionStarted(uid, tx),
+    tx.get(adminDb().collection('admin_role_assignments').where('user_id', '==', uid).where('revoked_at', '==', null)),
+  ]);
+  if (deleting) throw new ConflictError('account_deleting');
+  if (!permissionsFor(roles.docs.map(role => String(role.get('role_key')))).has(permission)) throw new ConflictError('permission_revoked');
 }
 
 type AuditEntry = {
@@ -151,7 +166,7 @@ export async function moderatePost(postId: string, action: string, actorId: stri
   const db = adminDb();
   const postRef = db.collection('posts').doc(postId);
   return db.runTransaction(async (tx) => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'posts.moderate');
     const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
     const snap = await tx.get(postRef);
     if (!snap.exists) throw new ValidationError('post_not_found');
@@ -172,7 +187,7 @@ export async function resolveModerationFlag(flagId: string, action: string, acto
   const db = adminDb();
   const flagRef = db.collection('moderation_flags').doc(flagId);
   return db.runTransaction(async (tx) => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'posts.moderate');
     const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
     const flagSnap = await tx.get(flagRef);
     if (!flagSnap.exists) throw new ValidationError('moderation_flag_not_found');
@@ -302,7 +317,7 @@ export async function setPostMetrics(
   const db = adminDb();
   const postRef = db.collection('posts').doc(postId);
   return db.runTransaction(async (tx) => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'posts.metrics.write');
     const change = await tx.get(db.collection('admin_metric_changes').doc(idempotencyKey));
     const snap = await tx.get(postRef);
     if (!snap.exists) throw new ValidationError('post_not_found');
@@ -337,7 +352,7 @@ export async function decideApproval(approvalId: string, decision: 'approved' | 
   const db = adminDb();
   const approvalRef = db.collection('admin_approval_requests').doc(approvalId);
   return db.runTransaction(async (tx) => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'posts.metrics.write');
     const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
     const snap = await tx.get(approvalRef);
     if (!snap.exists) throw new ValidationError('approval_not_found');
@@ -417,7 +432,7 @@ export async function setUserSuspended(luid: string, suspended: boolean, actorId
   const db = adminDb();
   const profileRef = db.collection('profiles').doc(luid);
   return db.runTransaction(async (tx) => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'users.suspend');
     const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
     const snap = await tx.get(profileRef);
     if (!snap.exists) throw new ValidationError('user_not_found');
@@ -442,7 +457,7 @@ export async function decideAvatar(luid: string, action: 'approve' | 'remove', a
   const reviewRef = db.collection('avatar_reviews').doc(luid);
   const profileRef = db.collection('profiles').doc(luid);
   const result = await db.runTransaction(async (tx) => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'users.suspend');
     const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
     const [review, profile] = await Promise.all([tx.get(reviewRef), tx.get(profileRef)]);
     if (!review.exists) throw new ValidationError('avatar_review_not_found');
@@ -486,7 +501,7 @@ export async function createProtectedZone(zone: ZoneInput, actorId: string, reas
   const ref = db.collection('protected_zones').doc(derivedKey(idempotencyKey, 'zone'));
   const hash = mutationHash(actorId, 'zone_create', ref.id, { zone, reason });
   return await db.runTransaction(async tx => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'zones.write');
     const audit = await tx.get(db.collection('admin_audit_log').doc(idempotencyKey));
     if (checkReceipt(audit, hash)) return { id: ref.id };
     const after = { ...zone, policy: 'hard_block', active: true };
@@ -502,7 +517,7 @@ export async function setProtectedZoneActive(zoneId: string, active: boolean, ac
   const ref = db.collection('protected_zones').doc(zoneId);
   const hash = mutationHash(actorId, 'zone_active', zoneId, { active, reason });
   return await db.runTransaction(async tx => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'zones.write');
     const [audit, snap] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
     if (!snap.exists) throw new ValidationError('zone_not_found');
@@ -520,7 +535,7 @@ export async function setServicePaused(enabled: boolean, actorId: string, reason
   const ref = db.collection('system').doc('flags');
   const hash = mutationHash(actorId, 'service_paused', 'flags', { enabled, reason });
   return await db.runTransaction(async tx => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'system.kill_switch');
     const [audit, before] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
     const after = { kill_switch: enabled, kill_reason: enabled ? reason : null };
@@ -536,7 +551,7 @@ export async function revokeAdminRole(assignmentId: string, actorId: string, rea
   const ref = db.collection('admin_role_assignments').doc(assignmentId);
   const hash = mutationHash(actorId, 'role_revoke', assignmentId, { reason });
   return await db.runTransaction(async tx => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'admin_users.write');
     const [audit, snap] = await Promise.all([tx.get(db.collection('admin_audit_log').doc(idempotencyKey)), tx.get(ref)]);
     if (checkReceipt(audit, hash)) return audit.get('after_state');
     if (!snap.exists) throw new ValidationError('role_assignment_not_found');
@@ -588,7 +603,7 @@ export async function requestMetricApproval(postId: string, payload: { viewsCoun
   const db = adminDb();
   const hash = mutationHash(actorId, 'approval_requested', postId, { payload, reason });
   return await db.runTransaction(async tx => {
-    await requireActorAccountActive(tx, actorId);
+    await requireActorPermission(tx, actorId, 'posts.metrics.write');
     const ref = db.collection('admin_approval_requests').doc(key);
     const [existing, post] = await tx.getAll(ref, db.collection('posts').doc(postId));
     if (checkReceipt(existing, hash)) return { ...sanitize(existing.data()) as Record<string, unknown>, idempotent: true };

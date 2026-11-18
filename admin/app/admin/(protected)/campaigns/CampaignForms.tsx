@@ -1,5 +1,5 @@
 'use client';
-import { scalarText } from '../../../../lib/values';
+import { parseLocalDateTime, scalarText } from '../../../../lib/values';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
@@ -14,7 +14,12 @@ export default function CampaignForms({ brands, canBrand }: Readonly<{ brands: A
   async function submit(event: React.FormEvent<HTMLFormElement>, action: string) {
     event.preventDefault(); const form = event.currentTarget, data = new FormData(form), body: Record<string, unknown> = { action };
     for (const [key, value] of data) body[key] = ['lat', 'lng', 'radius', 'arrivalRadius', 'entryRadius', 'audienceMaxAgeMinutes', 'minPosts', 'minLikes'].includes(key) ? Number(value) : scalarText(value);
-    for (const date of ['startsAt', 'endsAt']) if (body[date]) body[date] = new Date(scalarText(body[date])).toISOString();
+    for (const date of ['startsAt', 'endsAt']) {
+      if (!body[date]) continue;
+      const parsed = parseLocalDateTime(scalarText(body[date]));
+      if (!parsed.valid) { setMessage(t('Invalid date')); return; }
+      body[date] = parsed.iso;
+    }
     setBusy(true); setMessage('');
     try {
       const { response, result } = await mutation.current.post('/api/admin/v1/campaigns', body);

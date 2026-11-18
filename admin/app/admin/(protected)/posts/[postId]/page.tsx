@@ -17,14 +17,16 @@ export const dynamic='force-dynamic';
 export default async function PostDetail({params,searchParams}:Readonly<{params:Promise<{postId:string}>;searchParams:Promise<SearchParameters>}>){
  const admin=await requireAdmin({permission:'posts.read'});const {t}=await getI18n();const {postId}=await params;
  if(!/^[0-9a-f-]{36}$/.test(postId)){ notFound(); }
- const db=adminDb(),snapshot=await db.collection('posts').doc(postId).get();if(!snapshot.exists){ notFound(); }const post=snapshot.data()!;
+ const db=adminDb(),cursors=pageCursors(await searchParams);
+ // The post and its first comment page are independent reads: one round trip instead of two.
+ const [snapshot,page]=await Promise.all([db.collection('posts').doc(postId).get(),readDocumentPage(db.collection('comments').where('post_id','==',postId),{scope:'post-comments-'+postId,cursors,size:25})]);
+ if(!snapshot.exists){ notFound(); }const post=snapshot.data()!;
  const pose=(parseJsonField(post.pose_json)??{}) as Record<string,unknown>;const anchor=(pose.anchor??{}) as Record<string,unknown>;const rect=(anchor.physicalRectMeters??{}) as Record<string,number>;
  const edit=(parseJsonField(post.edit_data_json)??{}) as {layers?:Array<Record<string,unknown>>};const layer=edit.layers?.find(l=>l.type==='text')??{};
  const initial:ContentInput={...emptyContent,authorAttribution:post.is_anonymous===true?'anonymous':'named',locationNote:post.note_kind==='location',notifyRadius:Number(post.notify_radius_m??20),approveNotifications:post.push_state==='approved',authorId:String(post.creator_id),caption:String(post.caption??''),text:String(layer.text??post.caption??''),
  platform:'text',url:'',lat:Number(post.lat),lng:Number(post.lng),altitude:Number(pose.altitude??0),heading:Number(pose.heading??0),
  width:Number(rect.width??0.45),height:Number(rect.height??0.51),color:scalarText(layer.color??'#FFFFFF'),opacity:Number(layer.opacity??1),scale:Number(layer.scale??1),rotation:Number(layer.rotation??0),
  visibility:post.visibility,ageRating:['all','13_plus','16_plus'].includes(post.age_rating)?post.age_rating:'all',status:post.status==='active'?'active':'pending_review'};
- const page=await readDocumentPage(db.collection('comments').where('post_id','==',postId),{scope:'post-comments-'+postId,cursors:pageCursors(await searchParams),size:25});
  return <section className="page"><div className="pageHeading"><div><a href="/admin/posts">← {t('Posts')}</a><h1>{String(post.caption)}</h1><p>@{String(post.creator_handle)} · {postId} · {t(String(post.status).replaceAll('_', ' '))}</p></div>
  <PostActions postId={postId} status={post.status} deleted={Boolean(post.deleted_at)} views={Number(post.views_count??0)} likes={Number(post.likes_count??0)} comments={Number(post.comments_count??0)}/></div>
  <section className="panel"><h2>{t('Stored content')}</h2><PostContentPreview post={post}/></section>

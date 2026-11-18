@@ -1,4 +1,5 @@
 import test, { after } from 'node:test';
+import { grantRole } from './admin-roles.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -14,6 +15,7 @@ const require = createRequire(new URL('../../../functions/package.json', import.
 const core = require('./lib/core.js');
 const { purgeDueRemovedMedia, schedulePurgeOnStatusChange } = require('./lib/cleanup.js');
 const db = adminDb();
+await grantRole(db, 'test-admin');
 after(async () => {
   await core.db.terminate();
   await Promise.all(getApps().map(deleteApp));

@@ -19,15 +19,24 @@ export async function readPrivateUserContext(admin: AdminContext, rawLuid: strin
   const luid = uuid(rawLuid, 'luid').toLowerCase(), reason = requiredString(rawReason, 'reason', 8, 1000);
   const db = adminDb(), now = Date.now();
   return await db.runTransaction(async tx => {
-    await requireActorAccountActive(tx, admin.user.id);
+    // All fences and the data documents are independent reads: one round trip instead of four.
     // Context creation precedes this read; role revocation must fence the transaction too.
-    const roles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', admin.user.id).where('revoked_at', '==', null));
-    if (!permissionsFor(roles.docs.map(role => String(role.get('role_key')))).has(permission)) {
+    const [actor, roleRead, target, documents] = await Promise.allSettled([
+      requireActorAccountActive(tx, admin.user.id),
+      tx.get(db.collection('admin_role_assignments').where('user_id', '==', admin.user.id).where('revoked_at', '==', null)),
+      requireTargetAccountActive(tx, luid),
+      tx.getAll(db.collection('profiles').doc(luid), db.collection('user_data_preferences').doc(luid),
+        db.collection(kind === 'location' ? 'user_locations' : 'user_device_context').doc(luid)),
+    ]);
+    // Errors keep the original precedence: actor, role, target, then data.
+    if (actor.status === 'rejected') throw actor.reason;
+    if (roleRead.status === 'rejected') throw roleRead.reason;
+    if (!permissionsFor(roleRead.value.docs.map(role => String(role.get('role_key')))).has(permission)) {
       const error = new ValidationError('permission_revoked'); error.status = 403; throw error;
     }
-    await requireTargetAccountActive(tx, luid);
-    const [profile, preference, snapshot] = await tx.getAll(db.collection('profiles').doc(luid),
-      db.collection('user_data_preferences').doc(luid), db.collection(kind === 'location' ? 'user_locations' : 'user_device_context').doc(luid));
+    if (target.status === 'rejected') throw target.reason;
+    if (documents.status === 'rejected') throw documents.reason;
+    const [profile, preference, snapshot] = documents.value;
     if (!profile.exists || profile.get('deleted_at')) throw new ValidationError('User not available');
     const data = snapshot.data();
     const consented = preference.get(kind) === true;

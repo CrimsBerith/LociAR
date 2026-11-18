@@ -5,6 +5,7 @@ import { sendSignInLinkToEmail } from 'firebase/auth';
 import { clientAuth } from '../../../../lib/firebase-client';
 import { createMutationClient, mutationError } from '../../../../lib/client-mutation';
 import { useT } from '../../I18nProvider';
+import { INVITABLE_ROLES, ROLE_LABELS } from '../../../../lib/rbac';
 
 export default function InviteUserForm() {
   const t = useT();
@@ -59,10 +60,7 @@ export default function InviteUserForm() {
             <label>{t('Admin role')}
               <select name="roleKey" defaultValue="">
                 <option value="">{t('Regular user')}</option>
-                <option value="trust_safety_admin">Trust & Safety Admin</option>
-                <option value="ar_operations_admin">AR Operations Admin</option>
-                <option value="support_agent">Support Agent</option>
-                <option value="analyst">Analyst</option>
+                {INVITABLE_ROLES.map(role => <option key={role} value={role}>{ROLE_LABELS[role] ?? role}</option>)}
               </select>
             </label>
             <label className="wide">{t('Reason')}<input name="reason" minLength={8} maxLength={1000} required placeholder={t('Why is this invitation needed?')} /></label>

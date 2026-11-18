@@ -13,7 +13,7 @@ export default function UserContextPanel({ luid, canLocation, canTelemetry, canN
   const t = useT();
   const [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [result, setResult] = useState<Result | null>(null);
-  const [now, setNow] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15_000);
     const clear = () => { if (document.visibilityState !== 'visible') setResult(null); };

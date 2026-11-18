@@ -1,4 +1,5 @@
 import test, { after } from 'node:test';
+import { grantRole } from './admin-roles.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { initializeApp, deleteApp, getApps } from 'firebase-admin/app';
@@ -10,6 +11,7 @@ const { luidForUid } = await import('../../lib/account-lifecycle.ts');
 const db = adminDb();
 after(async () => Promise.all(getApps().map(deleteApp)));
 const actor = 'operations-' + randomUUID();
+await grantRole(db, actor);
 const reason = 'Operational integration verification';
 
 test('emergency stop audit is atomic and payload-bound retries cannot flip a later state', async () => {
@@ -62,16 +64,29 @@ test('concurrent role revocations cannot remove the last active super admin', as
   for (const doc of prior.docs) await doc.ref.update({ revoked_at: new Date() });
   const ids = [randomUUID(), randomUUID()];
   for (const id of ids) await db.collection('admin_role_assignments').doc(id).set({ user_id: id, role_key: 'super_admin', revoked_at: null });
-  const results = await Promise.allSettled(ids.map(id => revokeAdminRole(id, actor, reason, randomUUID())));
+  // The last two super admins revoke each other at once. Revocation needs a live role inside the
+  // transaction, so the loser fails either on the last-admin rule or on its own revoked role.
+  const results = await Promise.allSettled(ids.map((id, index) => revokeAdminRole(id, ids[1 - index], reason, randomUUID())));
   assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
-  assert.match(String(results.find(r => r.status === 'rejected').reason), /cannot_revoke_last_super_admin/);
+  assert.match(String(results.find(r => r.status === 'rejected').reason), /cannot_revoke_last_super_admin|permission_revoked/);
   assert.equal((await db.collection('admin_role_assignments').where('role_key', '==', 'super_admin').where('revoked_at', '==', null).get()).size, 1);
   const remaining = (await db.collection('admin_role_assignments').where('role_key', '==', 'super_admin').where('revoked_at', '==', null).get()).docs[0];
   const deletedUid = randomUUID();
   await db.collection('admin_role_assignments').doc(deletedUid).set({ user_id: deletedUid, role_key: 'super_admin', revoked_at: null });
   await db.collection('account_deletion_jobs').doc(luidForUid(deletedUid)).set({ status: 'done' });
-  await assert.rejects(revokeAdminRole(remaining.id, actor, reason, randomUUID()), /cannot_revoke_last_super_admin/);
+  await assert.rejects(revokeAdminRole(remaining.id, remaining.get('user_id'), reason, randomUUID()), /cannot_revoke_last_super_admin/);
   assert.equal((await remaining.ref.get()).get('revoked_at'), null, 'a deleted identity does not count as a usable backup admin');
+  // Later tests in this file act as `actor`; its role was revoked with every prior super admin above.
+  await grantRole(db, actor);
+});
+
+test('a role revoked after the request was authorized fences the mutation inside its transaction', async () => {
+  const revoked = randomUUID();
+  await grantRole(db, revoked);
+  await db.collection('admin_role_assignments').doc(`${revoked}_super_admin`).update({ revoked_at: new Date() });
+  const key = randomUUID();
+  await assert.rejects(setServicePaused(true, revoked, reason, key), /permission_revoked/);
+  assert.equal((await db.collection('admin_audit_log').doc(key).get()).exists, false);
 });
 
 test('false-positive restoration removes the exclusion marker and cannot resurrect deleted authors', async () => {

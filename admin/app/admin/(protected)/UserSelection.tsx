@@ -43,9 +43,15 @@ export default function UserSelectionControls() {
     document.addEventListener('change', onChange);
     window.addEventListener(EVENT, apply);
     // A new page of users arrives without reloading this component: re-tick what is already selected.
-    const observer = new MutationObserver(apply);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => { document.removeEventListener('change', onChange); window.removeEventListener(EVENT, apply); observer.disconnect(); };
+    // Mutations are coalesced to one pass per frame and watched only inside the page content.
+    let frame = 0;
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; apply(); }); };
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.getElementById('main') ?? document.body, { childList: true, subtree: true });
+    return () => {
+      document.removeEventListener('change', onChange); window.removeEventListener(EVENT, apply); observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
   return <div className="inlineSearch" role="group" aria-label={t('User selection for notifications')}>
     <button type="button" className="secondaryButton" onClick={() => writeSelection([...readSelection(), ...boxes().filter(box => box.dataset.notify === 'on').map(box => box.value)])}>{t('Select all with notifications on (this page)')}</button>

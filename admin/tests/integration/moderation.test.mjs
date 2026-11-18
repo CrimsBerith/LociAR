@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test, { after } from 'node:test';
+import { grantRole } from './admin-roles.mjs';
 import { deleteApp, getApps, initializeApp } from 'firebase-admin/app';
 
 // Refuse to run mutations against a live project, even if credentials are injected.
@@ -9,6 +10,7 @@ initializeApp({ projectId: 'demo-lociar' });
 const { adminDb } = await import('../../lib/firebase-admin.ts');
 const { moderatePost, resolveModerationFlag } = await import('../../lib/ops.ts');
 after(async () => Promise.all(getApps().map(deleteApp)));
+await grantRole(adminDb(), 'test-admin');
 
 test('author deletions cannot be relabeled or restored through post or flag moderation', async () => {
   const db = adminDb();

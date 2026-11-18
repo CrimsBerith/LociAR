@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scalarText, withStableKeys } from '../lib/values.ts';
+import { parseLocalDateTime, scalarText, withStableKeys } from '../lib/values.ts';
 import { isEmailAddress } from '../lib/validation.ts';
 
 test('untrusted objects cannot supply display text through coercion', () => {
@@ -23,4 +23,12 @@ test('display keys survive reordering and distinguish duplicate values', () => {
   assert.equal(before[1].key, after[0].key);
   assert.equal(before[0].key, after[1].key);
   assert.equal(new Set(before.map(item => item.key)).size, 3);
+});
+
+test('datetime-local values clear when empty and never throw on invalid text', () => {
+  assert.deepEqual(parseLocalDateTime(''), { valid: true, iso: null });
+  assert.deepEqual(parseLocalDateTime('  '), { valid: true, iso: null });
+  assert.deepEqual(parseLocalDateTime('not a date'), { valid: false, iso: null });
+  assert.equal(parseLocalDateTime('2026-11-18T12:30').valid, true);
+  assert.match(parseLocalDateTime('2026-11-18T12:30').iso, /^2026-11-18T\d{2}:30:00\.000Z$/);
 });

@@ -5,7 +5,7 @@ import { anyBlocked, containsURL } from './content-moderation';
 import { permissionsFor } from './rbac';
 import { checkReceipt, ConflictError, mutationHash, requireActorAccountActive, writeAudit } from './ops';
 import { requiredString, uuid, ValidationError } from './validation';
-import { distanceMeters } from './geo';
+import { distanceMeters, meanLongitude } from './geo';
 
 /**
  * Zone-campaign steps, validated with the same shape functions/src/journeyRules.ts admits.
@@ -44,7 +44,7 @@ function stepZone(s: Record<string, any>, trigger: JourneyStep['trigger'], id: s
   if (points.length < 2 || points.length > 20) throw new ValidationError(`Step ${id}: a street needs 2–20 points`);
   const width = Math.round(num(s.zone.width, `Step ${id} street width`, 10, 200));
   const lat = points.reduce((sum: number, p: { lat: number }) => sum + p.lat, 0) / points.length;
-  const lng = points.reduce((sum: number, p: { lng: number }) => sum + p.lng, 0) / points.length;
+  const lng = meanLongitude(points.map((p: { lng: number }) => p.lng));
   // One native wake circle covers this whole step, with a 50 m walking margin.
   if (Math.max(...points.map((p: { lat: number; lng: number }) => distanceMeters(lat, lng, p.lat, p.lng))) + width / 2 > 2_950) {
     throw new ValidationError(`Step ${id}: street exceeds the 3 km monitoring circle; split it into shorter steps`);

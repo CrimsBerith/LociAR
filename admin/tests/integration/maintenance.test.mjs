@@ -1,4 +1,5 @@
 import test, { after } from 'node:test';
+import { grantRole } from './admin-roles.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { initializeApp, deleteApp, getApps } from 'firebase-admin/app';
@@ -10,6 +11,7 @@ const { luidForUid } = await import('../../lib/account-lifecycle.ts');
 const db = adminDb();
 after(async () => Promise.all(getApps().map(deleteApp)));
 const actor = 'maintenance-' + randomUUID();
+await grantRole(adminDb(), actor);
 const reason = 'Maintenance panel verification';
 
 test('"run now" queues one audited request per task and refuses a second while the first is open', async () => {
