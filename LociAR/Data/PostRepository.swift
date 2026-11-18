@@ -105,7 +105,12 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             struct ExistingResponse: Decodable { let receipt: PostPublishReceipt? }
             let existing: ExistingResponse = try await callables.call("readPublicContent", payload: PublicRequest(mode: "own_receipt", postId: FirebaseIdentity.key(post.id)))
             guard FirebaseIdentity.currentLUID() == post.creatorID else { throw AuthFlowError.notSignedIn }
-            if let receipt = existing.receipt { return receipt }
+            if let receipt = existing.receipt {
+                // The original createPost response was lost before the map/feed were invalidated.
+                await MapRequestCoordinator.shared.invalidate()
+                await ContentUpdates.shared.changed()
+                return receipt
+            }
         }
         // Posts queued before photo/video removal (29 Sep 2026) would be refused by Storage and
         // createPost; fail them permanently instead of retrying uploads.
@@ -152,7 +157,7 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
             throw PostContractError.profileNotReady
         } catch BackendCallError.rejected(_, let message, let reason) {
             // Server refused (validation, protected zone, rate limit): uploaded media is orphaned.
-            await MediaAssetStore.removeRemoteAssets(ownerID: post.creatorID, postID: post.id)
+            await MediaAssetStore.removeUploadedWorldMap(of: post)
             throw PostPublishError.rejected(Self.serverMessage(message, reason: reason))
         }
         // Network/transient errors propagate untouched; the call is idempotent on clientMutationId,
@@ -205,7 +210,10 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
 
     func myPostsPage(cursor: String?) async throws -> PostPage {
         guard let me = FirebaseIdentity.currentLUID() else { return PostPage(posts: [], next: nil) }
+        // Own removed posts (deleteOwnPost / moderation) stay in Firestore with status "removed";
+        // filtering here keeps every page full, unlike a client-side filter after `limit`.
         var query = posts.whereField("creator_id", isEqualTo: FirebaseIdentity.key(me))
+            .whereField("status", in: Self.ownerVisibleStatuses)
             .order(by: "created_at", descending: true).order(by: FieldPath.documentID(), descending: true)
         if let cursor, let data = Data(base64Encoded: cursor), let position = try? JSONDecoder().decode(OwnCursor.self, from: data), position.owner == me {
             query = query.start(after: [Timestamp(seconds: position.seconds, nanoseconds: position.nanoseconds), position.id])
@@ -216,8 +224,16 @@ final class FirestorePostRepository: PostRepository, @unchecked Sendable {
         if page.documents.count > 50, let last = docs.last, let timestamp = last.data()["created_at"] as? Timestamp {
             next = try JSONEncoder().encode(OwnCursor(owner: me, id: last.documentID, seconds: timestamp.seconds, nanoseconds: timestamp.nanoseconds)).base64EncodedString()
         } else { next = nil }
-        return PostPage(posts: await materialize(docs.map { ($0.documentID, $0.data()) }), next: next)
+        let visible = docs.filter { doc in
+            let deletedAt = doc.data()["deleted_at"]
+            return deletedAt == nil || deletedAt is NSNull
+        }
+        return PostPage(posts: await materialize(visible.map { ($0.documentID, $0.data()) }), next: next)
     }
+    /// Statuses an author still sees in "Notlarım". `removed` is excluded on purpose.
+    nonisolated static let ownerVisibleStatuses = [
+        PostStatus.active, .pendingReview, .flagged, .draft, .blockedProtectedZone,
+    ].map(\.rawValue)
     private struct OwnCursor: Codable { let owner: UUID; let id: String; let seconds: Int64; let nanoseconds: Int32 }
 
     func removeOwnPost(id: UUID) async throws {

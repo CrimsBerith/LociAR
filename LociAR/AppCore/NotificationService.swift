@@ -383,8 +383,11 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         if let activityID = target.activityID, let social {
             Task {
                 guard self.desiredUserID == userID else { return }
-                do { _ = try await social.markActivityRead(ids: [activityID], for: userID) }
-                catch { Self.recordFailure(error) }
+                do {
+                    _ = try await social.markActivityRead(ids: [activityID], for: userID)
+                    // An open activity list must drop the unread dot for the tapped notification.
+                    ContentUpdates.shared.activityChanged()
+                } catch { Self.recordFailure(error) }
             }
         }
     }

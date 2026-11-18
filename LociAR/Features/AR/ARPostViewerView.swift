@@ -412,6 +412,20 @@ struct ARPostViewerView: View {
         guard isVisible, scenePhase == .active else { revokeAccess(); return false }
         if session.isLocalPreview { return true }
         let now = Date()
+        if proximityVerified {
+            // Already opened: turning around or a quiet GPS stream must not close the post;
+            // walking away (with hysteresis) or losing location for 30 s still does.
+            guard locationAuthorized, location.errorMessage == nil,
+                  let recent = location.recentLocation(maxAge: ProximityPolicy.sustainFixAge, at: now) else {
+                revokeAccess(reason: location.errorMessage ?? String(localized: "Konum doğrulanamadı. AR erişimi açılmadı."))
+                return false
+            }
+            guard ProximityPolicy.sustains(post: post, viewer: recent, at: now) else {
+                revokeAccess(reason: String(localized: "AR görüntüleme için posta yaklaşın."))
+                return false
+            }
+            return true
+        }
         guard locationAuthorized, location.errorMessage == nil,
               let current = location.freshLocation(at: now) else {
             revokeAccess(reason: location.errorMessage ?? String(localized: "Konum doğrulanamadı. AR erişimi açılmadı."))

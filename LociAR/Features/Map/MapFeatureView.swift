@@ -19,7 +19,7 @@ struct MapFeatureView: View {
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var selection: UUID?
     @State private var posts: [LociPost] = []
-    @State private var location = LocationController()
+    @State private var location = LocationController(tracksHeading: false)
     @State private var message: String?
     @State private var isLoading = false
     /// Set when a reload is requested while one is running (e.g. right after a post is created);

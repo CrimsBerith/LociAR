@@ -24,15 +24,29 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
                                    maxAge: LocationNotePolicy.maxFixAge)
     }
 
+    /// Like `freshLocation`, with a caller-chosen age (an already opened AR post tolerates a
+    /// stationary GPS stream for longer than an entry check does).
+    func recentLocation(maxAge: TimeInterval, at now: Date = Date()) -> CLLocation? {
+        ArrivalFixSelection.latest(location.map { [$0] } ?? [], at: now, maxAge: maxAge)
+    }
+
     /// Purpose key in Info.plist `NSLocationTemporaryUsageDescriptionDictionary`.
     nonisolated static let geospatialAccuracyPurposeKey = "GeospatialAccuracy"
+
+    /// Only AR screens use the compass; the map keeps it off to save power.
+    private let tracksHeading: Bool
 
     override convenience init() {
         self.init(locationManager: CLLocationManager())
     }
 
-    init(locationManager: CLLocationManager) {
+    convenience init(tracksHeading: Bool) {
+        self.init(locationManager: CLLocationManager(), tracksHeading: tracksHeading)
+    }
+
+    init(locationManager: CLLocationManager, tracksHeading: Bool = true) {
         manager = locationManager
+        self.tracksHeading = tracksHeading
         authorizationStatus = .notDetermined
         errorMessage = nil
         super.init()
@@ -72,7 +86,7 @@ final class LocationController: NSObject, @preconcurrency CLLocationManagerDeleg
         }
         errorMessage = nil
         manager.startUpdatingLocation()
-        if CLLocationManager.headingAvailable() { manager.startUpdatingHeading() }
+        if tracksHeading, CLLocationManager.headingAvailable() { manager.startUpdatingHeading() }
     }
 
     /// ARCore Geospatial needs precise location. When the user granted only approximate location,

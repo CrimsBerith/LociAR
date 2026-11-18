@@ -80,7 +80,8 @@ struct CameraLocationRefineView: View {
             cameraReady = ready
         }
         .onDisappear { engine.stopSession(ifGenerationMatches: cameraSessionGeneration) }
-        .onChange(of: container.arcore.cameraFix) { _, _ in
+        // `initial`: a warm AR session may already hold a fresh (≤ 3 s), precise fix when this opens.
+        .onChange(of: container.arcore.cameraFix, initial: true) { _, _ in
             if let fix, fix.accuracy <= Self.autoAcceptAccuracy { use(fix) }
         }
     }

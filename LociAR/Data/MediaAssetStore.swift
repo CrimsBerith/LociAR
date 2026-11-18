@@ -77,6 +77,29 @@ enum MediaAssetStore {
         return root
     }
 
+    /// Pinning writes `<anchor>.lociarmap` (+ `.jpg`) under LociARWorldMaps before a draft exists;
+    /// a re-pin or an abandoned create screen leaves them behind (up to 20 MB each). Removes files
+    /// no saved draft or queued publish names, once they are older than `age`.
+    nonisolated static func sweepUnreferencedWorldMaps(referenced: Set<String>, olderThan age: TimeInterval = 86_400,
+                                                       now: Date = Date()) async {
+        await Task.detached(priority: .utility) {
+            let fileManager = FileManager.default
+            let directory = applicationSupportDirectory(fileManager: fileManager)
+                .appendingPathComponent("LociARWorldMaps", isDirectory: true)
+            guard let files = try? fileManager.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey]
+            ) else { return }
+            let kept = Set(referenced.map { $0.lowercased() })
+            let cutoff = now.addingTimeInterval(-age)
+            for url in files where !kept.contains(url.lastPathComponent.lowercased()) {
+                let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey])
+                guard values?.isRegularFile == true,
+                      (values?.contentModificationDate ?? .distantFuture) < cutoff else { continue }
+                try? fileManager.removeItem(at: url)
+            }
+        }.value
+    }
+
     private nonisolated static func isOwnedLocalAsset(_ url: URL) -> Bool {
         guard url.isFileURL else { return false }
         let fileManager = FileManager.default
@@ -134,18 +157,14 @@ enum MediaAssetStore {
         return post
     }
 
-    /// Best-effort removal of every object a draft/post uploaded (used when the server rejects a publish).
-    nonisolated static func removeRemoteAssets(ownerID: UUID, postID: UUID) async {
-        let prefix = "\(StorageObjectPath.ownerFolder(ownerID))/\(postID.uuidString.lowercased())"
-        for bucket in StorageObjectPath.folders {
-            await deleteRecursively(Storage.storage().reference(withPath: "\(bucket)/\(prefix)"))
-        }
-    }
-
-    private nonisolated static func deleteRecursively(_ folder: StorageReference) async {
-        guard let listing = try? await folder.listAll() else { return }
-        for item in listing.items { try? await item.delete() }
-        for child in listing.prefixes { await deleteRecursively(child) }
+    /// Best-effort removal of the world map a rejected publish uploaded. Storage rules deny listing,
+    /// so a prefix walk deleted nothing; the owner may delete its still-draft map by exact path.
+    /// Anything left behind is reclaimed by the server's orphan-upload sweep.
+    nonisolated static func removeUploadedWorldMap(of post: LociPost) async {
+        guard let raw = post.anchorBundle.anchor.persistence?.storagePath,
+              let url = URL(string: raw), let reference = StorageAssetReference(url: url),
+              reference.bucket == "post-world-maps" else { return }
+        try? await storageReference(reference).delete()
     }
 
     nonisolated static func storageURL(bucket: String, path: String) -> URL {

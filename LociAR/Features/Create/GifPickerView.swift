@@ -105,7 +105,9 @@ struct GifPickerView: View {
         do {
             let page = try await container.gifs.search(query: query, offset: 0)
             guard !Task.isCancelled, generation == searchGeneration, query == normalizedQuery else { return }
-            results = page.results
+            // A page can repeat a slug; duplicate IDs break ForEach identity and the load-more trigger.
+            var seen = Set<String>()
+            results = page.results.filter { seen.insert($0.id).inserted }
             nextOffset = page.nextOffset
         } catch {
             guard !Task.isCancelled, generation == searchGeneration, query == normalizedQuery else { return }

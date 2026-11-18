@@ -30,6 +30,12 @@ final class ARCoreService {
     private(set) var lastError: String?
 
     @ObservationIgnored private var session: GARSession?
+    /// The current token, re-applied when a released session is recreated (no new token call).
+    @ObservationIgnored private var authToken: String?
+    @ObservationIgnored private var lastFrameAt = Date.distantPast
+    @ObservationIgnored private var idleRelease: Task<Void, Never>?
+    /// After this long without camera frames (every AR screen closed) the GARSession is released.
+    nonisolated static let idleReleaseAfter: TimeInterval = 120
     @ObservationIgnored private let callables: CallableClient?
     /// Expiry of the real ARCore token returned by the server. Nil when no valid token has arrived.
     @ObservationIgnored private var tokenExpiry: Date?
@@ -71,6 +77,7 @@ final class ARCoreService {
     /// Called by ARPinningEngine on the main actor for every ARKit frame.
     func consume(_ frame: ARFrame) {
         guard callables != nil, !isStartFailed, disclosureAcknowledged else { return }
+        lastFrameAt = Date()
         if session == nil { start() }
         guard let session else { return }
         refreshTokenIfNeeded()
@@ -105,6 +112,11 @@ final class ARCoreService {
                 logger.info("Geospatial disabled: \(error.localizedDescription, privacy: .public)")
             }
             session = created
+            if let authToken, let tokenExpiry, tokenExpiry.timeIntervalSinceNow > Self.tokenRefreshMargin {
+                created.setAuthToken(authToken)
+            }
+            lastFrameAt = Date()
+            scheduleIdleRelease()
             refreshTokenIfNeeded()
         } catch {
             isStartFailed = true
@@ -129,6 +141,34 @@ final class ARCoreService {
         }
     }
 
+    /// GARSession holds Earth and feature-map state in memory after the last AR screen closes.
+    /// Release it once frames have stopped and nothing is hosting or resolving; the next frame
+    /// starts a new one (with the still-valid token), so a quick return to AR keeps its session.
+    private func scheduleIdleRelease() {
+        idleRelease?.cancel()
+        idleRelease = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(30)) } catch { return }
+                guard let self, !self.releaseIfIdle() else { return }
+            }
+        }
+    }
+
+    /// True when no session remains (released now or earlier).
+    private func releaseIfIdle(now: Date = Date()) -> Bool {
+        guard session != nil else { return true }
+        guard pendingFutures.isEmpty, tokenTask == nil,
+              now.timeIntervalSince(lastFrameAt) >= Self.idleReleaseAfter else { return false }
+        session = nil
+        availability = .notStarted
+        isEarthTracking = false
+        horizontalAccuracy = nil
+        yawAccuracy = nil
+        cameraFix = nil
+        logger.info("ARCore session released after idle")
+        return true
+    }
+
     private func refreshTokenIfNeeded() {
         guard tokenTask == nil, let callables else { return }
         if let tokenExpiry, tokenExpiry.timeIntervalSinceNow > Self.tokenRefreshMargin { return }
@@ -139,6 +179,7 @@ final class ARCoreService {
                 let response: Response = try await callables.call("getArcoreToken")
                 guard let self else { return }
                 self.session?.setAuthToken(response.token)
+                self.authToken = response.token
                 // expiresIn is relative, so a wrong device clock cannot make a fresh token look expired
                 // (or an expired one look valid); expiresAt is the fallback for older servers.
                 self.tokenExpiry = response.expiresIn.map { Date().addingTimeInterval($0) } ?? response.expiresAt

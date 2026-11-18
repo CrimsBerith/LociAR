@@ -83,7 +83,8 @@ struct ARExperienceView: View {
             mappingWaitExpired = false
             guard engine.currentAnchor?.pinQuality.isPhysicalSurface == true,
                   !canPrepareContent else { return }
-            try? await Task.sleep(for: .seconds(45))
+            // A cancelled wait (anchor changed, view gone) must not raise the timeout afterwards.
+            do { try await Task.sleep(for: .seconds(45)) } catch { return }
             if engine.currentAnchor?.pinQuality.isPhysicalSurface == true,
                !canPrepareContent {
                 mappingWaitExpired = true
@@ -103,6 +104,7 @@ struct ARExperienceView: View {
                 isPreparingContent = false
                 prepareStatus = nil
                 errorMessage = nil
+                mappingWaitExpired = false
                 isCreationMode = false
             } else if mode == .discover, tab == .ar {
                 tabChangeTask?.cancel()

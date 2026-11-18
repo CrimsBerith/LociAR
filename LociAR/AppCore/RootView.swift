@@ -59,6 +59,10 @@ struct RootView: View {
                 DiagnosticsReporter.report(error, component: .backend)
             }
             await LocalAccountDeletion.resume(in: modelContext)
+            // A failed read keeps every file: never sweep without knowing what drafts still need.
+            if let referenced = try? LocalWorldMapReferences.fileNames(in: modelContext) {
+                await MediaAssetStore.sweepUnreferencedWorldMaps(referenced: referenced)
+            }
         }
         .onChange(of: session.phase) { previous, phase in
             if case let .signedIn(oldUser) = previous,

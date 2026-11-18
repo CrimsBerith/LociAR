@@ -143,7 +143,13 @@ struct DiscoverView: View {
 
     private func localDiscoverDrafts() -> [LociPost] {
         guard case let .signedIn(user) = session.phase else { return [] }
-        var descriptor = FetchDescriptor<DraftRecord>(sortBy: [SortDescriptor(\.updatedAt, order: .reverse)])
+        // Filter by owner in the store so another account's drafts never fill the 30-row limit
+        // (or get JSON-decoded on the main actor). Legacy rows without an owner are still checked below.
+        let owner: UUID? = user.id
+        var descriptor = FetchDescriptor<DraftRecord>(
+            predicate: #Predicate { $0.ownerID == owner || $0.ownerID == nil },
+            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+        )
         descriptor.fetchLimit = 30
         guard let records = try? modelContext.fetch(descriptor) else { return [] }
         let decoder = JSONDecoder()

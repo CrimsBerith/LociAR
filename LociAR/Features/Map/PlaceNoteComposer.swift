@@ -34,6 +34,10 @@ final class PlaceNoteClient {
         let result: Existing = try await callables.call("readPublicContent", payload: Request(postId: FirebaseIdentity.key(mutation)), timeout: 15)
         guard !Task.isCancelled, FirebaseIdentity.currentLUID() == user else { throw AuthFlowError.notSignedIn }
         guard let receipt = result.receipt, receipt.postID == mutation else { return nil }
+        // A recovered note was created by a call whose response was lost, so the map was never
+        // invalidated for it (FirebaseBackend does that only on a createPlaceNote success).
+        MapRequestCoordinator.shared.invalidate()
+        ContentUpdates.shared.changed()
         return Response(publishStatus: receipt.status)
     }
 

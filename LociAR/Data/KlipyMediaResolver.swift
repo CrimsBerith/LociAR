@@ -271,6 +271,16 @@ actor KlipyMediaResolver {
     private let now: @Sendable () -> Date
     private var cache: [String: (media: GifMedia, expiresAt: Date)] = [:]
     private var missing: [String: Date] = [:]
+
+    /// Keeps the negative cache bounded without forgetting the slug just added: expired entries go
+    /// first, then the ones closest to expiry. Clearing everything re-requested every removed GIF.
+    private func trimMissing(at date: Date) {
+        guard missing.count > Self.maximumEntries else { return }
+        missing = missing.filter { $0.value > date }
+        let excess = missing.count - Self.maximumEntries
+        guard excess > 0 else { return }
+        for entry in missing.sorted(by: { $0.value < $1.value }).prefix(excess) { missing[entry.key] = nil }
+    }
     private var inFlight: [String: Task<Lookup, Never>] = [:]
 
     init(
@@ -317,7 +327,7 @@ actor KlipyMediaResolver {
             return media
         case .notFound:
             missing[slug] = now().addingTimeInterval(Self.missingLifetime)
-            if missing.count > Self.maximumEntries { missing.removeAll() }
+            trimMissing(at: now())
             return nil
         case .failed:
             return nil

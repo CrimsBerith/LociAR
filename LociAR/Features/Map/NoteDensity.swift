@@ -258,7 +258,7 @@ struct MapNoteGroupSheet: View {
     @Environment(AppContainer.self) private var container
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
-    @State private var location = LocationController()
+    @State private var location = LocationController(tracksHeading: false)
     @State private var posts: [LociPost] = []
     @State private var nextOffset: Int?
     @State private var pageToken: String?

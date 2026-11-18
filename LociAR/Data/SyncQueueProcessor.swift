@@ -48,7 +48,11 @@ enum SyncQueueProcessor {
         // but never steal active in-flight records currently being published in the foreground.
         var descriptor = force
             ? FetchDescriptor<SyncQueueRecord>(
-                predicate: #Predicate { $0.ownerID == owner && ($0.nextAttemptAt <= now || $0.deadLetterReason != nil) },
+                // Deferred retries (attemptCount > 0, nextAttemptAt in the future) are included; a
+                // foreground in-flight publish holds a lease with attemptCount == 0 and stays excluded.
+                predicate: #Predicate {
+                    $0.ownerID == owner && ($0.nextAttemptAt <= now || $0.deadLetterReason != nil || $0.attemptCount > 0)
+                },
                 sortBy: [SortDescriptor(\.nextAttemptAt)]
             )
             : FetchDescriptor<SyncQueueRecord>(

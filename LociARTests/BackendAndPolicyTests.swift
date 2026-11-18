@@ -195,6 +195,29 @@ final class BackendAndPolicyTests: XCTestCase {
         XCTAssertFalse(ProximityPolicy.evaluate(post: approximate, viewer: viewer, viewerHeading: 0, targeted: false).allowed)
     }
 
+    func testOpenedPostSurvivesLookingAroundButNotWalkingAwayOrStaleLocation() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let approximate = makePost(quality: .freeSpaceApproximate, heading: 180)
+        let atPin = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29),
+                               altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: now.addingTimeInterval(-20))
+        // Entry still requires the direction; sustaining does not.
+        XCTAssertFalse(ProximityPolicy.evaluate(post: approximate, viewer: atPin, viewerHeading: 0, targeted: true, at: now).allowed)
+        XCTAssertTrue(ProximityPolicy.sustains(post: approximate, viewer: atPin, at: now))
+        // 0.0007° latitude ≈ 78 m: inside the 90 m hysteresis, outside the 60 m entry radius.
+        let drifted = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41.0007, longitude: 29),
+                                 altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: now)
+        XCTAssertTrue(ProximityPolicy.sustains(post: approximate, viewer: drifted, at: now))
+        let walkedAway = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41.001, longitude: 29),
+                                    altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: now)
+        XCTAssertFalse(ProximityPolicy.sustains(post: approximate, viewer: walkedAway, at: now))
+        let stale = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29),
+                               altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: now.addingTimeInterval(-31))
+        XCTAssertFalse(ProximityPolicy.sustains(post: approximate, viewer: stale, at: now))
+        let coarse = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29),
+                                altitude: 0, horizontalAccuracy: 80, verticalAccuracy: 4, timestamp: now)
+        XCTAssertFalse(ProximityPolicy.sustains(post: approximate, viewer: coarse, at: now))
+    }
+
     func testNearbyARDiscoveryReturnsOnlyViewablePostsNearestFirst() {
         let viewer = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 41, longitude: 29),
                                 altitude: 0, horizontalAccuracy: 4, verticalAccuracy: 4, timestamp: Date())

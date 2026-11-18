@@ -29,6 +29,25 @@ enum ProximityPolicy {
 
     static let maxFixAge: TimeInterval = 10
     static let maxHorizontalAccuracy: CLLocationAccuracy = 35
+    /// Once a post has been opened, looking around (heading) never closes it. Only walking away
+    /// (distance with hysteresis) or losing location for this long does.
+    static let sustainFixAge: TimeInterval = 30
+    static let sustainDistanceFactor = 1.5
+
+    /// Keeps an already verified viewer open. Heading is ignored on purpose: the entry check in
+    /// `evaluate` already required the right direction, and turning to look around must not revoke.
+    static func sustains(post: LociPost, viewer: CLLocation, at now: Date = Date()) -> Bool {
+        let age = now.timeIntervalSince(viewer.timestamp)
+        guard age.isFinite, age >= 0, age < sustainFixAge,
+              viewer.horizontalAccuracy.isFinite, viewer.horizontalAccuracy >= 0,
+              viewer.horizontalAccuracy < maxHorizontalAccuracy * 2,
+              LocationProvenancePolicy.accepts(viewer),
+              isValidCoordinate(latitude: viewer.coordinate.latitude, longitude: viewer.coordinate.longitude),
+              let target = post.anchorBundle.anchor.geoPose,
+              isValidCoordinate(latitude: target.latitude, longitude: target.longitude) else { return false }
+        let distance = viewer.distance(from: CLLocation(latitude: target.latitude, longitude: target.longitude))
+        return distance.isFinite && distance >= 0 && distance < distanceMeters * sustainDistanceFactor
+    }
 
     /// Evaluate at use time, including resolver completion; a retained CLLocation is not proof of presence.
     static func isUsableFix(_ viewer: CLLocation, at now: Date = Date()) -> Bool {

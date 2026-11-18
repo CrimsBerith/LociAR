@@ -194,7 +194,9 @@ final class ClientRequestCache<Value: Sendable> {
             try Task.checkCancellation()
             return value
         } catch {
-            if !(error is CancellationError) && flights[key]?.id == flight.id {
+            // Includes a load that itself threw CancellationError: a kept flight would hold one of
+            // the `maxPending` slots forever. After clear() the ID no longer matches, so this is a no-op.
+            if flights[key]?.id == flight.id {
                 flights.removeValue(forKey: key)
                 wakeCapacityWaiters()
             }

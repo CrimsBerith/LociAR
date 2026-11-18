@@ -93,6 +93,9 @@ final class PostSupportClient: PostSupportServing {
     nonisolated static let productIDs = ["com.khankartal.lociar.support.small", "com.khankartal.lociar.support.medium", "com.khankartal.lociar.support.large"]
     @ObservationIgnored private var callables: CallableClient?
     @ObservationIgnored private var updates: Task<Void, Never>?
+    /// `Transaction.updates`, `Transaction.unfinished` (twice at launch) and `purchase()` can all
+    /// deliver the same transaction. One confirmation per transaction ID; later callers share it.
+    @ObservationIgnored private var confirmations: [UInt64: Task<PostSupportReceipt, Error>] = [:]
 
     func storefrontCountry() async -> String { await Storefront.current?.countryCode ?? "" }
 
@@ -163,6 +166,17 @@ final class PostSupportClient: PostSupportServing {
     private func confirm(_ result: VerificationResult<StoreKit.Transaction>) async throws -> PostSupportReceipt {
         guard case let .verified(transaction) = result, Self.productIDs.contains(transaction.productID),
               let callables else { throw PostSupportError.verification }
+        if let running = confirmations[transaction.id] { return try await running.value }
+        let task = Task { @MainActor in
+            try await Self.confirmOnce(result, transaction: transaction, callables: callables)
+        }
+        confirmations[transaction.id] = task
+        defer { confirmations[transaction.id] = nil }
+        return try await task.value
+    }
+
+    private static func confirmOnce(_ result: VerificationResult<StoreKit.Transaction>, transaction: StoreKit.Transaction,
+                                    callables: CallableClient) async throws -> PostSupportReceipt {
         struct Payload: Encodable { let signedTransaction: String }
         let receipt: PostSupportReceipt = try await callables.call("confirmApplePostSupport",
             payload: Payload(signedTransaction: result.jwsRepresentation), timeout: 60)

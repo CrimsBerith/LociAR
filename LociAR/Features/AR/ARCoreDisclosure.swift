@@ -60,18 +60,35 @@ private struct ARCoreNoticeAlert: ViewModifier {
     @Binding var isPresented: Bool
     let onAcknowledge: () -> Void
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+    /// Any alert button dismisses the alert, so "Daha fazla bilgi" cannot keep it open. The notice
+    /// comes back when the user returns from Safari; until "Tamam" ARCore processes no frame.
+    @State private var reopenAfterLearnMore = false
 
     func body(content: Content) -> some View {
         content.alert("Google AR", isPresented: $isPresented) {
             Button("Daha fazla bilgi") {
-                openURL(ARCoreDisclosureModifier.learnMoreURL)
-                isPresented = true
+                reopenAfterLearnMore = true
+                openURL(ARCoreDisclosureModifier.learnMoreURL) { accepted in
+                    guard !accepted else { return }
+                    // No browser opened, so no scene change will bring the notice back.
+                    reopenAfterLearnMore = false
+                    DispatchQueue.main.async { isPresented = true }
+                }
             }
-            Button("Tamam") { onAcknowledge() }
+            Button("Tamam") {
+                reopenAfterLearnMore = false
+                onAcknowledge()
+            }
         } message: {
             // English value is Google's required wording: "To power this session, Google will process
             // sensor data (e.g., camera and location)."
             Text("Bu oturumu çalıştırmak için Google, sensör verilerini (ör. kamera ve konum) işler.")
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, reopenAfterLearnMore else { return }
+            reopenAfterLearnMore = false
+            isPresented = true
         }
     }
 }

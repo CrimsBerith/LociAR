@@ -129,3 +129,29 @@ enum LocalAccountDeletion {
         }
     }
 }
+
+/// Local world-map files still needed by a saved draft or a queued publish (any account on this
+/// device). Payloads are scanned as text, so an undecodable legacy record still protects its files.
+enum LocalWorldMapReferences {
+    @MainActor static func fileNames(in context: ModelContext) throws -> Set<String> {
+        let drafts = try context.fetch(FetchDescriptor<DraftRecord>()).map(\.payload)
+        let queued = try context.fetch(FetchDescriptor<SyncQueueRecord>()).map(\.payload)
+        return try fileNames(inPayloads: drafts + queued)
+    }
+
+    /// Throws instead of returning an empty set: an empty answer would let the sweep delete everything.
+    nonisolated static func fileNames(inPayloads payloads: [Data]) throws -> Set<String> {
+        let pattern = try NSRegularExpression(
+            pattern: "[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\\.(?:lociarmap|jpg)"
+        )
+        var names = Set<String>()
+        for payload in payloads {
+            let text = String(decoding: payload, as: UTF8.self)
+            let range = NSRange(text.startIndex..., in: text)
+            for match in pattern.matches(in: text, range: range) {
+                if let found = Range(match.range, in: text) { names.insert(String(text[found])) }
+            }
+        }
+        return names
+    }
+}

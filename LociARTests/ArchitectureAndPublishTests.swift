@@ -223,7 +223,7 @@ final class ArchitectureAndPublishTests: XCTestCase {
         let function = try String(contentsOf: root.appendingPathComponent("functions/src/posts.ts"), encoding: .utf8)
         let media = try String(contentsOf: root.appendingPathComponent("LociAR/Data/WorldMapStore.swift"), encoding: .utf8)
         XCTAssertTrue(source.contains("callables.call(\"deleteOwnPost\""))
-        XCTAssertTrue(source.contains("await MediaAssetStore.removeRemoteAssets(ownerID: post.creatorID, postID: post.id)"))
+        XCTAssertTrue(source.contains("await MediaAssetStore.removeUploadedWorldMap(of: post)"))
         XCTAssertTrue(function.contains("await deleteStoragePrefix(`${caller.luid}/${postId.toLowerCase()}/`);"))
         XCTAssertTrue(media.contains("\"post-world-maps\", \"post-reference-images\", \"post-layer-assets\""))
         XCTAssertFalse(source.contains("removeOwnPosts()"))
@@ -241,6 +241,32 @@ final class ArchitectureAndPublishTests: XCTestCase {
         )
         XCTAssertTrue(controller.contains("guard wantsLocationUpdates else { return }"))
         XCTAssertTrue(geoCapture.contains("guard continuation != nil else { return }"))
+    }
+
+    func testWorldMapSweepKeepsReferencedAndRecentFilesOnly() async throws {
+        let fileManager = FileManager.default
+        let directory = try XCTUnwrap(fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first)
+            .appendingPathComponent("LociARWorldMaps", isDirectory: true)
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        let kept = UUID().uuidString + ".lociarmap"
+        let orphan = UUID().uuidString + ".lociarmap"
+        let fresh = UUID().uuidString + ".lociarmap"
+        for name in [kept, orphan, fresh] { try Data("map".utf8).write(to: directory.appendingPathComponent(name)) }
+        let old = Date(timeIntervalSinceNow: -2 * 86_400)
+        for name in [kept, orphan] {
+            try fileManager.setAttributes([.modificationDate: old], ofItemAtPath: directory.appendingPathComponent(name).path)
+        }
+        defer { for name in [kept, orphan, fresh] { try? fileManager.removeItem(at: directory.appendingPathComponent(name)) } }
+
+        // JSONEncoder escapes "/" in file URLs; the file name itself is matched either way.
+        let payload = Data("{\"assetURI\":\"file:\\/\\/\\/x\\/LociARWorldMaps\\/\(kept)\"}".utf8)
+        let referenced = try LocalWorldMapReferences.fileNames(inPayloads: [payload])
+        XCTAssertEqual(referenced, [kept])
+
+        await MediaAssetStore.sweepUnreferencedWorldMaps(referenced: referenced)
+        XCTAssertTrue(fileManager.fileExists(atPath: directory.appendingPathComponent(kept).path), "a draft still needs it")
+        XCTAssertFalse(fileManager.fileExists(atPath: directory.appendingPathComponent(orphan).path), "old and unreferenced")
+        XCTAssertTrue(fileManager.fileExists(atPath: directory.appendingPathComponent(fresh).path), "younger than a day")
     }
 
     func testAppLaunchNeverDeletesUserPostsOrDrafts() throws {

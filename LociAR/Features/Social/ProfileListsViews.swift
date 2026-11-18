@@ -9,6 +9,7 @@ struct CollectionsView: View {
     @State private var collections: [LociCollection] = []
     @State private var title = ""
     @State private var showCreate = false
+    @State private var isCreating = false
     @State private var message: String?
     @State private var isLoading = true
 
@@ -57,11 +58,13 @@ struct CollectionsView: View {
         }
         .background(LociScreenBackground())
         .navigationTitle("Koleksiyonlar")
-        .toolbar { Button("Yeni", systemImage: "plus") { showCreate = true } }
+        .toolbar { Button("Yeni", systemImage: "plus") { showCreate = true }.disabled(isCreating) }
         .alert("Yeni koleksiyon", isPresented: $showCreate) {
             TextField("Başlık", text: $title)
-            Button("Oluştur") { Task { await create() } }.disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Button("Vazgeç", role: .cancel) { /* SwiftUI dismisses the alert; cancellation performs no write. */ }
+            Button("Oluştur") { Task { await create() } }
+                .disabled(isCreating || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            // Cancellation performs no write; the next "Yeni" starts with an empty title.
+            Button("Vazgeç", role: .cancel) { title = "" }
         }
         .task { await load() }
     }
@@ -96,9 +99,13 @@ struct CollectionsView: View {
     }
 
     private func create() async {
+        // Reopening the alert while a create is in flight must not create the same collection twice.
+        guard !isCreating else { return }
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard case let .signedIn(user) = session.phase, canUseCollections, !cleanTitle.isEmpty else { return }
         guard cleanTitle.count <= 80 else { message = String(localized: "Koleksiyon başlığı en fazla 80 karakter olabilir."); return }
+        isCreating = true
+        defer { isCreating = false }
         message = nil
         do {
             let created = try await container.social.createCollection(title: cleanTitle, userID: user.id)

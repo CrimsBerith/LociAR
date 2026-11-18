@@ -68,8 +68,17 @@ actor SpatialContentRenderer {
         inFlightAssetTasks.removeAll()
     }
 
+    /// Only the fields drawPost reads. Hashing the whole post put like/view/comment counters in
+    /// the key, so every counter refresh missed the cache and re-rendered the texture.
     private func postCacheKey(_ post: LociPost) -> String {
-        "\(post.id.uuidString)_\(post.hashValue)"
+        var hasher = Hasher()
+        hasher.combine(post.editData)
+        hasher.combine(post.caption)
+        hasher.combine(post.contentSource)
+        hasher.combine(post.sponsorship)
+        hasher.combine(post.creatorHandle)
+        hasher.combine(post.isAnonymous)
+        return "\(post.id.uuidString)_\(hasher.finalize())"
     }
 
     private func recordRenderedImage(_ image: RenderedPost, forKey key: String) {

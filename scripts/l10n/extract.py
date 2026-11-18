@@ -127,6 +127,8 @@ EXCLUDE = {
     'GACAppCheckDebugToken',
     # Field-test recorder and MetricKit reporter: launch argument, file path, defaults key, error domain.
     '-LociFieldTest', 'FieldTest/log.jsonl', 'LociFieldTestLogEnabled', 'LociPerformance',
+    # Local world-map sweep: file-name pattern (PersistenceModels.swift).
+    r'[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\.(?:lociarmap|jpg)',
 }
 
 # Shown to users but not written as a literal in the app (activity texts written by Cloud

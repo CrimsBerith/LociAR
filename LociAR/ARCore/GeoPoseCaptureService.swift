@@ -9,6 +9,9 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
     private var timeoutTask: Task<Void, Never>?
     private var locationRequestStarted = false
     private var bestLocation: CLLocation?
+    /// A good fix waiting briefly for the first compass sample (see `finishWithHeading`).
+    private var awaitingHeading: CLLocation?
+    private var headingWait: Task<Void, Never>?
 
     /// createPost rejects poses with worse horizontal accuracy (functions/src/placement.ts).
     nonisolated static let maximumPublishAccuracyMeters: Double = 100
@@ -63,7 +66,7 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
             if let location = manager.location,
                Self.isPublishable(location),
                location.horizontalAccuracy <= Self.preferredPublishAccuracyMeters {
-                finish(makeGeoPose(from: location))
+                finishWithHeading(location)
             } else {
                 manager.startUpdatingLocation()
             }
@@ -82,6 +85,7 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
         guard newHeading.headingAccuracy >= 0, abs(newHeading.timestamp.timeIntervalSinceNow) <= 10 else { return }
         latestHeading = newHeading
+        if continuation != nil { finishAwaitingHeading() }
     }
 
     func locationManager(_ _: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -91,8 +95,28 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
             bestLocation = location
         }
         if location.horizontalAccuracy <= Self.preferredPublishAccuracyMeters {
-            finish(makeGeoPose(from: location))
+            finishWithHeading(location)
         }
+    }
+
+    /// startUpdatingHeading() and a cached or quick fix race: publishing at once stored heading 0°
+    /// (north) whenever the first compass sample had not arrived yet. Wait up to 0.8 s for it.
+    private func finishWithHeading(_ location: CLLocation) {
+        if latestHeading != nil || !CLLocationManager.headingAvailable() {
+            finish(makeGeoPose(from: location))
+            return
+        }
+        awaitingHeading = location
+        guard headingWait == nil else { return }
+        headingWait = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .milliseconds(800)) } catch { return }
+            self?.finishAwaitingHeading()
+        }
+    }
+
+    private func finishAwaitingHeading() {
+        guard let location = awaitingHeading else { return }
+        finish(makeGeoPose(from: location))
     }
 
     private func makeGeoPose(from location: CLLocation) -> GeoPose {
@@ -124,6 +148,9 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
         locationRequestStarted = false
         bestLocation = nil
         latestHeading = nil
+        awaitingHeading = nil
+        headingWait?.cancel()
+        headingWait = nil
         manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
         continuation.resume(returning: pose)
