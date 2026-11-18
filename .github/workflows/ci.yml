@@ -177,7 +177,9 @@ jobs:
           persist-credentials: false
       - run: bash scripts/ci-ios.sh
       # Release-only code paths (#if !DEBUG, Release entitlements, symbol phase) never run in the Debug tests.
-      - run: >-
+      # `shell: bash` adds pipefail, so a failed xcodebuild is not hidden behind tee's success.
+      - shell: bash
+        run: >-
           xcodebuild -project LociAR.xcodeproj -scheme LociAR -configuration Release
           -destination 'generic/platform=iOS' -derivedDataPath build/ci-ios/ReleaseDerivedData
           -clonedSourcePackagesDirPath build/ci-ios/SourcePackages

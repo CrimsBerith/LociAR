@@ -15,8 +15,9 @@ export default function ApprovalActions({ approvalId }: { approvalId: string }) 
       decision === 'approved'
         ? t('Independent approval reason (minimum 8 characters)')
         : t('Rejection reason (minimum 8 characters)'),
-    );
+    )?.trim();
     if (!reason) return;
+    if (reason.length < 8) { setMessage(t('Reason (minimum 8 characters)')); return; }
     setBusy(true);
     setMessage('');
     try {

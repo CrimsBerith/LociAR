@@ -41,6 +41,11 @@ export async function requireAdminApi(permission: string) {
   if (!verifiedAdminSession(context)) {
     return { ok: false as const, status: 403, error: 'Email-code verification or MFA is required' };
   }
+  return requireContextPermission(context, permission);
+}
+
+/** A further permission for a context requireAdminApi already verified, without re-reading the session. */
+export function requireContextPermission(context: AdminContext, permission: string) {
   if (needsStepUp(context, permission)) {
     return { ok: false as const, status: 403, error: 'Sign in with an authenticator code for this action' };
   }

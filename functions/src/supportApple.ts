@@ -9,8 +9,10 @@ import { loadSupportSettings } from './supportStripe';
 import { supportProduct, supportSplit, type SupportSettings } from './supportPolicy';
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
+let appleRoot: Buffer | undefined; // read once per instance, not per purchase
 function verifier(settings: SupportSettings) {
-  const roots = [readFileSync(join(__dirname, '../certificates/AppleRootCA-G3.cer'))];
+  appleRoot ??= readFileSync(join(__dirname, '../certificates/AppleRootCA-G3.cer'));
+  const roots = [appleRoot];
   return new SignedDataVerifier(roots, true,
     settings.environment === 'production' ? Environment.PRODUCTION : Environment.SANDBOX,
     'com.khankartal.lociar', settings.appleId || undefined);

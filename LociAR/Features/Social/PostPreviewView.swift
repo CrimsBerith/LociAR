@@ -498,6 +498,12 @@ struct PostPreviewView: View {
             if refreshGate.isCurrent(ticket, scope: refreshScope, revision: ContentUpdates.shared.revision) { isLoading = false }
             refreshGate.finish(ticket, succeeded: succeeded, error: failure)
         }
+        // Like/save state does not depend on the view receipt or the comments: fetch it alongside them.
+        var membershipUser: UUID?
+        if !automatic, post.sponsorship == nil, !UITestFixtures.sampleContentEnabled,
+           container.isBackendConfigured || session.isLocalPreview, case let .signedIn(user) = session.phase { membershipUser = user.id }
+        let membershipUserID = membershipUser, social = container.social, postID = post.id
+        async let membership = Self.membership(social, postID: postID, userID: membershipUserID)
         if !post.isLocked { await recordViewIfNeeded() }
         if post.sponsorship != nil { succeeded = true; return }
         guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision,
@@ -527,9 +533,8 @@ struct PostPreviewView: View {
             }
         }
         }
-        if !automatic, case let .signedIn(user) = session.phase {
-            async let membership = container.social.membership(postID: post.id, userID: user.id)
-            let membershipResult = try? await membership
+        if membershipUserID != nil {
+            let membershipResult = await membership
             guard isCurrentCommentsLoad(requestID, viewerID: viewerID), revision == ContentUpdates.shared.revision else { return }
             if let membershipResult {
                 if saveTaps == saveRevision { saved = membershipResult.saved }
@@ -538,6 +543,11 @@ struct PostPreviewView: View {
             }
         }
         loadedRevision = revision; hasLoadedOlder = false; succeeded = !commentsFailed
+    }
+
+    private nonisolated static func membership(_ social: any SocialRepository, postID: UUID, userID: UUID?) async -> PostMembership? {
+        guard let userID else { return nil }
+        return try? await social.membership(postID: postID, userID: userID)
     }
 
     private func loadCollections() async {

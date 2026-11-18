@@ -5,7 +5,7 @@ import { db, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCE
 import { isPublicActive } from './counters';
 import { distanceMeters, geohashCoverPrefixes } from './geo';
 import { info } from 'firebase-functions/logger';
-import { requireActiveAccount } from './profileGuard';
+import { requireActiveAccount, requireActiveAccountNow } from './profileGuard';
 import { createHash, randomUUID } from 'node:crypto';
 import { rankForDiscover } from './discoverRanking';
 import { anonymousGeometry, anonymousIdentity, publicEditData } from './anonymous';
@@ -87,10 +87,14 @@ export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInst
  if (!['eligible_authors', 'profile', 'single', 'search_profiles', 'nearby', 'map_groups', 'map_group', 'saved', 'collection', 'comments', 'discover', 'creator', 'blocked'].includes(mode)) {
    throw new HttpsError('invalid-argument', 'Invalid content mode');
  }
- await db.runTransaction(tx=>requireActiveAccount(tx,caller.luid));
- if (mode === 'saved' || mode === 'collection') return readEdgePage(body, caller.luid, mode === 'collection');
- if (mode === 'blocked') return readBlockedProfiles(caller.luid);
- const blocked = await exclusions(caller.luid);
+ // Read-only fence (no transaction), fetched together with the block lists it gates.
+ const active = requireActiveAccountNow(caller.luid);
+ if (mode === 'saved' || mode === 'collection') { await active; return readEdgePage(body, caller.luid, mode === 'collection'); }
+ if (mode === 'blocked') { await active; return readBlockedProfiles(caller.luid); }
+ const [fence, lists] = await Promise.allSettled([active, exclusions(caller.luid)]);
+ if (fence.status === 'rejected') throw fence.reason; // an inactive account's error wins
+ if (lists.status === 'rejected') throw lists.reason;
+ const blocked = lists.value;
  switch (mode) {
  case 'eligible_authors': return readEligibleAuthors(body, blocked);
  case 'profile': return readProfile(body, blocked);

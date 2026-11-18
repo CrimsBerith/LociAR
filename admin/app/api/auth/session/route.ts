@@ -52,11 +52,14 @@ export async function POST(request: NextRequest) {
     { ok: true, redirect: secondFactor ? '/admin/dashboard' : '/admin/mfa' },
     { status: 200, headers: noStoreHeaders },
   );
-  await recordAudit(randomUUID(), {
-    actorId: decoded.uid, action: 'admin_sign_in', resourceType: 'admin_session', resourceId: decoded.uid,
-    after: { secondFactor: Boolean(secondFactor) }, reason: 'Administrator signed in.', permissionKey: 'session.sign_in', riskLevel: 'sensitive',
-  }).catch(() => console.error('[admin-audit] write_failed'));
-  await auditMfaEnrollment(decoded.uid).catch(() => console.error('[admin-audit] write_failed'));
+  // Independent audit writes; neither blocks sign-in on failure.
+  await Promise.all([
+    recordAudit(randomUUID(), {
+      actorId: decoded.uid, action: 'admin_sign_in', resourceType: 'admin_session', resourceId: decoded.uid,
+      after: { secondFactor: Boolean(secondFactor) }, reason: 'Administrator signed in.', permissionKey: 'session.sign_in', riskLevel: 'sensitive',
+    }).catch(() => console.error('[admin-audit] write_failed')),
+    auditMfaEnrollment(decoded.uid).catch(() => console.error('[admin-audit] write_failed')),
+  ]);
   response.cookies.set(SESSION_COOKIE, cookie, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production' || requestUrl.protocol === 'https:',

@@ -25,6 +25,15 @@ export async function requireActiveAccount(tx: FirebaseFirestore.Transaction, lu
   return profile.data()!;
 }
 
+/** requireActiveAccount for read-only callers: the same fence, without a transaction's extra round trips. */
+export async function requireActiveAccountNow(luid: string): Promise<FirebaseFirestore.DocumentData> {
+  const [deletion, profile] = await db.getAll(accountDeletionRef(luid), db.collection('profiles').doc(luid));
+  if (deletion.exists) throw reasonError('permission-denied', 'Account deletion is in progress', 'profile_missing');
+  const blocked = profileBlock(profile.data());
+  if (blocked) throw reasonError('permission-denied', blocked.message, blocked.reason);
+  return profile.data()!;
+}
+
 /** Why a profile may not use signed-in features, or null when it is active. */
 export function profileBlock(profile: { suspended?: unknown; deleted_at?: unknown } | undefined): { message: string; reason: Reason } | null {
   if (!profile || profile.deleted_at) return { message: 'Profile missing; call ensureProfile first', reason: 'profile_missing' };

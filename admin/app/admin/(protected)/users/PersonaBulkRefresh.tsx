@@ -55,7 +55,7 @@ function matchingHandles(bios: BioRow[], images: ImageRow[]): string[] {
 }
 
 async function lookup(handle: string): Promise<Target | null> {
-  const response = await fetch(`/api/admin/v1/users/lookup?q=${encodeURIComponent(handle)}`, { credentials: 'same-origin', cache: 'no-store' });
+  const response = await fetch(`/api/admin/v1/users/lookup?exact=1&q=${encodeURIComponent(handle)}`, { credentials: 'same-origin', cache: 'no-store' });
   const result = await response.json().catch(() => ({})) as { users?: Target[]; error?: string };
   if (!response.ok) throw new Error(result.error ?? `Could not look up @${handle}`);
   return result.users?.find(user => user.handle.toLowerCase() === handle) ?? null;

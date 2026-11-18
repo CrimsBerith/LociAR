@@ -1,6 +1,6 @@
 import { scalarText } from '../../../../../lib/values';
 import { NextResponse } from 'next/server';
-import { requireAdminApi } from '../../../../../lib/admin';
+import { requireAdminApi, requireContextPermission } from '../../../../../lib/admin';
 import { apiError, enforceRateLimit, requireSameOrigin, unauthorized } from '../../../../../lib/api';
 import { campaignAudience, campaignInput, campaignStatus, createCampaign, queueNotification, queueNotificationBatch, saveBrand } from '../../../../../lib/campaigns';
 import { redeemCode, saveCampaignSteps } from '../../../../../lib/campaign-journeys';
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const access = await requireAdminApi(permission); if (!access.ok) return unauthorized(access);
     // Audience search and campaign-targeted notifications read people's shared locations.
     if (action === 'audience' || (action === 'notify' && body.campaignId)) {
-      const location = await requireAdminApi('users.location.read'); if (!location.ok) return unauthorized(location);
+      const location = requireContextPermission(access.context, 'users.location.read'); if (!location.ok) return unauthorized(location);
     }
     const limited = await enforceRateLimit(access.context.user.id, 'campaign-operations', 20); if (limited) return limited;
     const reason = requiredString(body.reason, 'reason', 8, 1000), actor = access.context.user.id;

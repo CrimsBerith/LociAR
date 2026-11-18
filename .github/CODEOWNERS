@@ -3,3 +3,9 @@
 /storage.rules       @CrimsBerith
 /functions/          @CrimsBerith
 /.github/            @CrimsBerith
+/admin/              @CrimsBerith
+/LociAR/             @CrimsBerith
+/scripts/            @CrimsBerith
+/project.yml         @CrimsBerith
+/firebase.json       @CrimsBerith
+/firestore.indexes.json @CrimsBerith

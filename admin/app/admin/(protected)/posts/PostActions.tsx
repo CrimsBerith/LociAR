@@ -21,8 +21,9 @@ export default function PostActions(props: Props) {
   const mutation = useRef(createMutationClient());
 
   async function moderate(action: 'approve' | 'flag' | 'soft_delete' | 'restore') {
-    const reason = window.prompt(t('Reason (minimum 8 characters)'));
+    const reason = window.prompt(t('Reason (minimum 8 characters)'))?.trim();
     if (!reason) return;
+    if (reason.length < 8) { setMessage(t('Reason (minimum 8 characters)')); return; }
     setBusy(true);
     setMessage('');
     try {

@@ -382,7 +382,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             pendingTap = nil
             onActivityNotificationTapped()
         }
-        if let activityID = target.activityID, let social {
+        // Crowded-spot alerts are local-only: the server writes no activity row for them.
+        if let activityID = target.activityID, !activityID.hasPrefix("dense_spot_"), let social {
             Task {
                 guard self.desiredUserID == userID else { return }
                 do {

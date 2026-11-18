@@ -17,13 +17,11 @@ export async function GET(_request: Request, context: { params: Promise<{ luid: 
     const { luid: rawLuid } = await context.params;
     const luid = uuid(rawLuid, 'luid').toLowerCase();
     const db = adminDb();
-    const [review, profile] = await Promise.all([
-      db.collection('avatar_reviews').doc(luid).get(),
-      db.collection('profiles').doc(luid).get(),
-    ]);
-    const reviewPath = review.data()?.path;
+    // The users list loads one image per row: read the review only when the profile has no photo.
+    const profile = await db.collection('profiles').doc(luid).get();
     const profilePath = String(profile.data()?.avatar_url ?? '').replace(/^storage:\/\//, '');
-    const path = AVATAR_PATH.test(profilePath) ? profilePath : String(reviewPath ?? '');
+    const path = AVATAR_PATH.test(profilePath) ? profilePath
+      : String((await db.collection('avatar_reviews').doc(luid).get()).data()?.path ?? '');
     if (!AVATAR_PATH.test(path) || !path.startsWith(`avatars/${luid}/`)) {
       return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
     }

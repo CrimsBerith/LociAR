@@ -151,7 +151,8 @@ private struct DeviceTranslatedPostText: View {
         operation = Operation(request: request, generation: state.generation, permitsDownload: permitsDownload)
         let source = request.detectedSource.map { Locale.Language(identifier: $0) }
         let target = Locale.Language(identifier: request.targetLanguage)
-        if configuration != nil { configuration?.invalidate() }
+        // Same languages: re-run the existing session. A different note language needs a new configuration.
+        if let current = configuration, current.source == source, current.target == target { configuration?.invalidate() }
         else if #available(iOS 26.4, *) {
             configuration = TranslationSession.Configuration(source: source, target: target, preferredStrategy: .lowLatency)
         } else { configuration = TranslationSession.Configuration(source: source, target: target) }

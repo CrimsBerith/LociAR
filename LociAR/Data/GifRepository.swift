@@ -40,11 +40,18 @@ enum GifDeadline {
     private final class Gate<Value: Sendable>: @unchecked Sendable {
         private let lock = NSLock()
         private var continuation: CheckedContinuation<Value, Error>?
+        private var timer: Task<Void, Never>?
         init(_ continuation: CheckedContinuation<Value, Error>) { self.continuation = continuation }
+        /// The deadline task; cancelled as soon as either side resumes, so no sleeper outlives the call.
+        func setTimer(_ task: Task<Void, Never>) {
+            lock.lock(); let done = continuation == nil; if !done { timer = task }; lock.unlock()
+            if done { task.cancel() }
+        }
         @discardableResult
         func resume(_ result: Result<Value, Error>) -> Bool {
-            lock.lock(); let pending = continuation; continuation = nil; lock.unlock()
+            lock.lock(); let pending = continuation; continuation = nil; let timer = self.timer; self.timer = nil; lock.unlock()
             pending?.resume(with: result)
+            timer?.cancel()
             return pending != nil
         }
     }
@@ -55,10 +62,10 @@ enum GifDeadline {
             let task = Task {
                 do { gate.resume(.success(try await work())) } catch { gate.resume(.failure(error)) }
             }
-            Task {
-                try? await Task.sleep(for: .seconds(seconds))
+            gate.setTimer(Task {
+                do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
                 if gate.resume(.failure(Expired())) { task.cancel() }
-            }
+            })
         }
     }
 }
