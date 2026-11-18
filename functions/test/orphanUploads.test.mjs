@@ -13,7 +13,7 @@ function storageFixture() {
   const posts = new Set();
   const claims = new Map();
   const jobs = new Map();
-  const errors = [];
+  const errors = [], released = [];
   let cursor = { last_name: null, pending: null };
   let clock = 0;
   const io = {
@@ -44,10 +44,10 @@ function storageFixture() {
       files.delete(file.name);
     },
     async failed(job, error) { errors.push(error); await io.saveJob(job); },
-    async release() {},
+    async release(job) { released.push(job.post_id); },
   };
   const put = (name, updated = 1, generation = '1') => files.set(name, { name, updated, generation });
-  return { io, files, posts, claims, jobs, errors, put, cursor: () => structuredClone(cursor) };
+  return { io, files, posts, claims, jobs, errors, released, put, cursor: () => structuredClone(cursor) };
 }
 
 test('300 valid old folders cannot permanently hide the next orphan', async () => {
@@ -186,4 +186,15 @@ test('unknown object age or generation fails closed without deleting a sibling',
   await resumeOrphanUploadReclamations(f.io);
   assert.equal(f.files.size, 2);
   assert.equal(f.claims.size, 0);
+});
+
+test('completed and cancelled jobs are not released again; their queue rows are gone', async () => {
+  const f = storageFixture();
+  f.put(path(1)); f.put(path(2));
+  await scanOrphanUploadFolders(f.io, CUTOFF);
+  assert.equal(f.jobs.size, 2);
+  f.posts.add(post(2)); // repaired: cancelled, files kept
+  await resumeOrphanUploadReclamations(f.io);
+  assert.equal(f.jobs.size, 0);
+  assert.deepEqual(f.released, []);
 });

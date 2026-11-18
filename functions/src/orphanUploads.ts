@@ -98,12 +98,14 @@ export async function resumeOrphanUploadReclamations(
   const jobs = await io.queued(maxJobs);
   let pages = 0;
   let completed = 0;
+  const finished = new Set<string>(); // completed or cancelled: the queue row is already gone
   for (const original of jobs) {
     let job = { ...original };
     try {
       while (pages < maxPages) {
         if (await io.postExists(job.post_id)) {
           await io.cancel(job); // A privileged repair can attach a post; preserve all remaining files.
+          finished.add(job.post_id);
           break;
         }
         const prefix = `${RECLAIM_STORAGE_FOLDERS[job.folder_index]}/${job.prefix}`;
@@ -113,6 +115,7 @@ export async function resumeOrphanUploadReclamations(
           // A fresh upload before the claim or an unexpected privileged write must be kept.
           if (job.phase === 'validating') await io.cancel(job);
           else await io.complete(job); // Preserve the expired-draft marker after a partial deletion.
+          finished.add(job.post_id);
           break;
         }
         if (job.phase === 'validating') {
@@ -133,6 +136,7 @@ export async function resumeOrphanUploadReclamations(
               job.folder_index = 0;
             } else {
               await io.complete(job);
+              finished.add(job.post_id);
               completed++;
               break;
             }
@@ -147,6 +151,6 @@ export async function resumeOrphanUploadReclamations(
     if (pages >= maxPages) break;
   }
   // Even jobs not reached within this run's budget must release their leases.
-  await Promise.all(jobs.map((job) => io.release(job)));
+  await Promise.all(jobs.filter((job) => !finished.has(job.post_id)).map((job) => io.release(job)));
   return completed;
 }
