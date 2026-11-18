@@ -73,7 +73,7 @@ private struct ARCoreNoticeAlert: ViewModifier {
                     guard !accepted else { return }
                     // No browser opened, so no scene change will bring the notice back.
                     reopenAfterLearnMore = false
-                    DispatchQueue.main.async { isPresented = true }
+                    Task { @MainActor in isPresented = true }
                 }
             }
             Button("Tamam") {
