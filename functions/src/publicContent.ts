@@ -11,7 +11,7 @@ import { rankForDiscover } from './discoverRanking';
 import { anonymousGeometry, anonymousIdentity, publicEditData } from './anonymous';
 import { campaignOffer, ownCampaignOffers } from './campaigns';
 import { denseLocks, spotSettings, type SpotLock } from './denseSpots';
-import { mapNoteGroups } from './mapNoteGroups';
+import { mapNoteGroups, withLocationCounts } from './mapNoteGroups';
 import { validCoordinates, UNLOCK_TTL_MS, SPOT_JOIN_RADIUS_M, SPOT_MEMBERSHIP_VERSION, type Fix } from './placeNoteRules';
 import { postHiddenByBlocks, type BlockSets } from './visibility';
 import { MEMORY_LIMITS_ENABLED, WindowLimiter } from './memoryLimits';
@@ -389,9 +389,10 @@ async function readMapGroups(body: Record<string, unknown>, luid: string, blocke
   const area = searchArea({ ...body, radiusMeters: Math.min(Number(body.radiusMeters), MAP_CELL_MAX_RADIUS_M) }, luid);
   // The index answers from a few cell documents; the scan fallback reads every post in range.
   const indexed = await indexedNearby(area, luid, blocked);
-  const points = indexed ? indexed.map(c => ({ id: c.id, lat: c.lat, lng: c.lng, spotId: c.spotId ?? undefined }))
-    : (await scanNearby(area, luid, blocked)).matches.filter(d => isPublicActive(d.data())).map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), spotId: d.get('spot_id') }));
-  const groups = mapNoteGroups(points);
+  const points = indexed ? indexed.map(c => ({ id: c.id, lat: c.lat, lng: c.lng, spotId: c.spotId ?? undefined, locationNote: c.locationNote }))
+    : (await scanNearby(area, luid, blocked)).matches.filter(d => isPublicActive(d.data())).map(d => ({ id: d.id, lat: d.get('lat'), lng: d.get('lng'), spotId: d.get('spot_id'), locationNote: d.get('note_kind') === 'location' }));
+  // Per-group location-note count lets the map's AR / location filter work on summaries.
+  const groups = withLocationCounts(mapNoteGroups(points), points);
   const { unlockRadius } = await spotSettings();
   // No caption, media, author or likes are returned by the map-summary surface.
   return { groups, unlockRadius, summaryVersion: 1, complete: true,

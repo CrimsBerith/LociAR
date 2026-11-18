@@ -18,11 +18,12 @@ enum LegacyMigrationCoordinator {
         for (key, data) in result.values {
             if key.hasPrefix("lociar_posts_v4_mockup"),
                let rows = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                // Drafts are read back as encoded LociPost (Discover, AR, Notlarım). A raw legacy
+                // dictionary never decodes there, so convert each row; one that can't be is skipped
+                // rather than stored as an undecodable record that still fills draft fetch limits.
                 for row in rows {
-                    let id = (row["id"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
-                    let payload = try JSONSerialization.data(withJSONObject: row)
-                    let ownerID = (row["creator_id"] as? String).flatMap(UUID.init(uuidString:))
-                    modelContext.insert(DraftRecord(id: id, ownerID: ownerID, payload: payload))
+                    guard let post = legacyDraftPost(row) else { continue }
+                    modelContext.insert(DraftRecord(id: post.id, ownerID: post.creatorID, payload: try draftEncoder.encode(post)))
                 }
             } else if key.hasPrefix("lociar_pending_sync") || key.hasPrefix("lociar_dead_letter_sync") {
                 try importLegacyQueue(data, deadLetter: key.hasPrefix("lociar_dead_letter_sync"), modelContext: modelContext)
@@ -37,6 +38,30 @@ enum LegacyMigrationCoordinator {
         }
         try modelContext.save()
         importer.markCompleted()
+    }
+
+    private static var draftEncoder: JSONEncoder {
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }
+
+    /// A legacy local post row (snake_case, possibly with the RN app's camelCase fields) as a LociPost.
+    static func legacyDraftPost(_ row: [String: Any]) -> LociPost? {
+        var legacy = row
+        for (camel, snake) in [("editData", "edit_data"), ("contentSource", "content_source"), ("ageRating", "age_rating"),
+                               ("anchorBundle", "anchor_bundle"), ("creatorId", "creator_id"), ("createdAt", "created_at")] {
+            if legacy[snake] == nil, let value = legacy.removeValue(forKey: camel) { legacy[snake] = value }
+        }
+        guard (legacy["id"] as? String).flatMap(UUID.init(uuidString:)) != nil,
+              (legacy["creator_id"] as? String).flatMap(UUID.init(uuidString:)) != nil else { return nil }
+        legacy["age_rating"] = legacy["age_rating"] ?? "all"
+        legacy["status"] = "draft" // never published to the server, whatever the mockup row claimed
+        legacy["created_at"] = legacy["created_at"] ?? ISO8601DateFormatter().string(from: Date())
+        for counter in ["views_count", "likes_count", "comments_count"] { legacy[counter] = legacy[counter] ?? 0 }
+        guard JSONSerialization.isValidJSONObject(legacy),
+              let data = try? JSONSerialization.data(withJSONObject: legacy) else { return nil }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(BackendPostRow.self, from: data).domainPost()
     }
 
     static func importedAppearancePreference(from data: Data) -> String? {

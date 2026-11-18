@@ -9,6 +9,8 @@ test('only public, active, placed posts enter the map index, with what map reads
   assert.deepEqual(mapCellPlacement(post({ is_anonymous: true, spot_id: 's1', caption: 'secret' })),
     { cell: 'sxk973', entry: [41.0082, 28.9784, 'a1', 1, 's1'] });
   assert.deepEqual(mapCellPlacement(post()).entry, [41.0082, 28.9784, 'a1', 0, '']);
+  // Location notes add a trailing flag; AR entries stay five fields so they are not rewritten.
+  assert.deepEqual(mapCellPlacement(post({ note_kind: 'location' })).entry, [41.0082, 28.9784, 'a1', 0, '', 1]);
   for (const hidden of [{ status: 'pending_review' }, { visibility: 'private' }, { age_rating: '18_plus' }, { deleted_at: new Date() },
     { lat: 91 }, { lng: 'x' }, { creator_id: undefined }]) assert.equal(mapCellPlacement(post(hidden)), null, JSON.stringify(hidden));
   assert.equal(mapCellPlacement(undefined), null);

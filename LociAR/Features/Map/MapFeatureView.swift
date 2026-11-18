@@ -67,8 +67,16 @@ struct MapFeatureView: View {
     }
 
     private var usesMapGroups: Bool { !layer.isHeat && container.isBackendConfigured && !session.isLocalPreview }
+    /// The AR / location filter applies to server group summaries too (each carries its location count).
+    private var filteredMapGroups: [MapNoteGroup] {
+        switch filter {
+        case .all: mapGroups
+        case .arOnly: mapGroups.compactMap { $0.limited(toLocationNotes: false) }
+        case .locationOnly: mapGroups.compactMap { $0.limited(toLocationNotes: true) }
+        }
+    }
     private var mapClusters: [MapNoteCluster] {
-        MapNoteCluster.cluster(mapGroups, longitudeSpan: visibleRegion?.span.longitudeDelta ?? 0.01,
+        MapNoteCluster.cluster(filteredMapGroups, longitudeSpan: visibleRegion?.span.longitudeDelta ?? 0.01,
                                viewportWidth: mapWidth, centerLongitude: visibleRegion?.center.longitude ?? 0)
     }
     private var unlistedOwnPosts: [LociPost] {
@@ -566,18 +574,18 @@ struct MapFeatureView: View {
                 Label("Yakındaki notlar", systemImage: "map")
                     .font(.headline)
                 Spacer()
-                if !mapGroups.isEmpty {
-                    let noteCount = mapGroups.reduce(0) { $0 + $1.count }
+                if !filteredMapGroups.isEmpty {
+                    let noteCount = filteredMapGroups.reduce(0) { $0 + $1.count }
                     Text("\(noteCount) not").font(.caption).foregroundStyle(LociTheme.secondaryText)
                 }
             }
             if container.mapRequests.failed {
                 Text("Postlar şu anda yüklenemiyor. Bağlantını kontrol edip tekrar dene.")
                     .font(.caption).foregroundStyle(LociTheme.secondaryText)
-            } else if !layer.isHeat, !mapGroups.isEmpty {
+            } else if !layer.isHeat, !filteredMapGroups.isEmpty {
                 ScrollView(.horizontal) {
                     HStack(spacing: LociTheme.Spacing.m) {
-                        ForEach(mapGroups.prefix(15)) { group in
+                        ForEach(filteredMapGroups.prefix(15)) { group in
                             Button {
                                 selectedMapGroupFix = nil
                                 selectedMapGroup = group

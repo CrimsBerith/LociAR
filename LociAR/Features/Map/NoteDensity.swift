@@ -195,8 +195,19 @@ struct MapNoteGroup: Decodable, Identifiable, Hashable, Sendable {
     let count: Int
     let radius: Double
     let postIDs: [String]
+    /// Location notes among `count` (the rest are AR notes); nil from servers before the map filter.
+    var locationCount: Int? = nil
     var coordinate: CLLocationCoordinate2D { .init(latitude: lat, longitude: lng) }
-    enum CodingKeys: String, CodingKey { case id, lat, lng, count, radius; case postIDs = "post_ids" }
+    enum CodingKeys: String, CodingKey { case id, lat, lng, count, radius, locationCount = "location_count"; case postIDs = "post_ids" }
+
+    /// The group as a kind filter shows it: its badge counts only matching notes, and a group with
+    /// none disappears. Without `locationCount` every group stays (the kind is unknown).
+    func limited(toLocationNotes locationNotes: Bool) -> MapNoteGroup? {
+        guard let locationCount else { return self }
+        let shown = locationNotes ? locationCount : count - locationCount
+        guard shown > 0 else { return nil }
+        return MapNoteGroup(id: id, lat: lat, lng: lng, count: shown, radius: radius, postIDs: postIDs, locationCount: locationCount)
+    }
 
     static func containing(_ postID: String, groupID: String, in groups: [Self]) -> Self? {
         groups.first { $0.postIDs.contains(postID) } ?? groups.first { $0.id == groupID }

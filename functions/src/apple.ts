@@ -45,6 +45,8 @@ export async function revokeAppleAuthorization(config: AppleConfig, authorizatio
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ client_id: config.clientId, client_secret: secret, ...params }).toString(),
+      // Account deletion waits on this; a stalled Apple endpoint must fail, not hold the call open.
+      signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) throw new Error(`apple_${path}_${response.status}`);
     return response;

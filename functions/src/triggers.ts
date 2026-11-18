@@ -4,7 +4,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { analyticsEventDoc, db, FieldValue, Timestamp, TRIGGER_MAX_INSTANCES } from './core';
 import { applyCountersOnce, isPublicActive } from './counters';
-import { isAccountDeleting } from './profileGuard';
+import { isAccountDeleting, postAvatarURL } from './profileGuard';
 import { anyBlocked, containsBlockedTerm } from './moderation';
 import { schedulePurgeOnStatusChange } from './cleanup';
 import { getMessaging } from 'firebase-admin/messaging';
@@ -276,7 +276,8 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
     }
   });
   const handleChanged = before.handle !== after.handle;
-  const avatarChanged = before.avatar_url !== after.avatar_url;
+  // A preset choice is an avatar too: posts show it through the same creator_avatar_url field.
+  const avatarChanged = postAvatarURL(before) !== postAvatarURL(after);
   if (!handleChanged && !avatarChanged) return;
   const currentProfile = await db.collection('profiles').doc(luid).get();
   if (!currentProfile.exists || currentProfile.get('deleted_at')) return;
@@ -285,6 +286,6 @@ export const onProfileUpdated = onDocumentUpdated({ document: 'profiles/{luid}',
     await fanOut('comments', 'user_id', luid, 'username', currentProfile.get('handle'));
   }
   if (avatarChanged) {
-    await fanOut('posts', 'creator_id', luid, 'creator_avatar_url', currentProfile.get('avatar_url') ?? null);
+    await fanOut('posts', 'creator_id', luid, 'creator_avatar_url', postAvatarURL(currentProfile.data()));
   }
 });

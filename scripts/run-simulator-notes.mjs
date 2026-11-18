@@ -118,6 +118,8 @@ try {
   config.firestore.rules = resolve('firestore.rules'); config.firestore.indexes = resolve('firestore.indexes.json'); config.storage.rules = resolve('storage.rules');
   config.functions = [{ source: relative(output, frozen), codebase: 'default', runtime: 'nodejs22' }];
   config.emulators.firestore.port = firestorePort;
+  // firebase.json binds loopback only; this disposable run needs LAN (simulator) and loopback (fixtures).
+  for (const value of Object.values(config.emulators)) if (value && typeof value === 'object' && 'host' in value) value.host = '0.0.0.0';
   const configFile = join(output, 'firebase.json'); writeFileSync(configFile, JSON.stringify(config));
   const backend = start(process.execPath, [resolve('functions/node_modules/firebase-tools/lib/bin/firebase.js'), 'emulators:start', '--project', 'demo-lociar', '--config', configFile, '--only', 'auth,firestore,storage,functions'], 'emulators');
   await pollUntil(async () => {

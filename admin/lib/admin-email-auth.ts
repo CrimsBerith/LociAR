@@ -86,7 +86,8 @@ export async function requestAdminEmailCode(rawEmail: unknown, source: string, s
     catch {
       await db.runTransaction(async tx => {
         const latest = await tx.get(challenge);
-        if (latest.get('generation') === generation) tx.update(challenge, { code_hash: null, ready: false });
+        // Nothing was sent: drop the code and the resend cooldown so the administrator can retry now.
+        if (latest.get('generation') === generation) tx.update(challenge, { code_hash: null, ready: false, requested_at: null });
       });
       throw new EmailDeliveryError();
     }

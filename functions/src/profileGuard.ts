@@ -31,3 +31,16 @@ export function profileBlock(profile: { suspended?: unknown; deleted_at?: unknow
   if (profile.suspended === true) return { message: 'This account cannot publish', reason: 'account_suspended' };
   return null;
 }
+
+/** Must match AvatarReference.presets (iOS) and avatarPreset() in firestore.rules. */
+const AVATAR_PRESETS = new Set(['hare', 'tortoise', 'cat', 'dog', 'bear', 'bird', 'fish', 'leaf', 'star', 'moon', 'sun', 'bolt']);
+
+/**
+ * The avatar a post carries for its author: an uploaded photo, else a preset as the
+ * `avatar-preset:<name>` URL the app already renders (LociAvatar), else none.
+ */
+export function postAvatarURL(profile: { avatar_url?: unknown; avatar_preset?: unknown } | undefined): string | null {
+  if (typeof profile?.avatar_url === 'string' && profile.avatar_url) return profile.avatar_url;
+  const preset = profile?.avatar_preset;
+  return typeof preset === 'string' && AVATAR_PRESETS.has(preset) ? `avatar-preset:${preset}` : null;
+}

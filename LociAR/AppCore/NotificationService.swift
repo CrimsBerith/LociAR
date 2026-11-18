@@ -206,6 +206,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().isAutoInitEnabled = false
         Messaging.messaging().delegate = self
+        if let userID = desiredUserID { scheduleTransition(to: userID) }
     }
 
     private static func recordFailure(_ error: Error) {
@@ -252,7 +253,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func setUser(_ userID: UUID?) {
-        guard coordinator != nil else { return }
+        // Remember the account even before configure (launch-order independent); configure replays it.
+        guard coordinator != nil else { desiredUserID = userID; return }
         if desiredUserID == userID {
             if userID != nil { scheduleTransition(to: userID) }
             return

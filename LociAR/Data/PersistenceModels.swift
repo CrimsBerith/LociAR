@@ -112,12 +112,14 @@ enum LocalAccountDeletion {
                 ClientReadCaches.clear()
                 if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
                     let accountCache = caches.appendingPathComponent("LociARWorldMaps", isDirectory: true).appendingPathComponent(raw, isDirectory: true)
-                    try WorldMapDownloadCache(directory: accountCache, owner: owner).removeAll()
+                    // Disposable download caches: best effort. The account's records are already gone,
+                    // and a stuck cache file must not keep the tombstone (and its cache resets) alive.
+                    try? WorldMapDownloadCache(directory: accountCache, owner: owner).removeAll()
                     // Retired cache used unscoped filenames. It is a disposable download cache;
                     // staged drafts belonging to other accounts are never removed here.
                     let old = caches.appendingPathComponent("LociARWorldMaps", isDirectory: true)
                     for file in (try? FileManager.default.contentsOfDirectory(at: old, includingPropertiesForKeys: nil)) ?? [] where file.pathExtension == "lociarmap" {
-                        try FileManager.default.removeItem(at: file)
+                        try? FileManager.default.removeItem(at: file)
                     }
                 }
                 var pending = UserDefaults.standard.stringArray(forKey: key) ?? []

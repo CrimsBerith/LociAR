@@ -5,7 +5,8 @@ import { validCoordinates } from './placeNoteRules';
 
 /**
  * Map cell index: one server-only document per ~1.2 km × 0.6 km geohash-6 cell holding the position of
- * every public post in it (`map_cells/{cell}.posts.{postId} = [lat, lng, creatorId, anonymous, spotId]`).
+ * every public post in it (`map_cells/{cell}.posts.{postId} = [lat, lng, creatorId, anonymous, spotId]`, plus a
+ * trailing `1` for location notes so the map's AR/location filter can count groups without reading posts).
  * A map view reads the few cells it covers instead of scanning every post of a 5–40 km geohash range,
  * so its cost no longer grows with how many posts the city has. Bodies are read only for the rows a
  * reply returns. The trigger keeps cells current (onPostDensityWritten → syncMapCell); the nightly
@@ -19,8 +20,8 @@ export const MAP_CELL_MAX_RADIUS_M = 2_000;
 export const MAP_CELL_CAPACITY = 2_500;
 const MAX_CELLS_PER_READ = 64;
 
-export type MapCellEntry = [lat: number, lng: number, creatorId: string, anonymous: 0 | 1, spotId: string];
-export type MapCandidate = { id: string; lat: number; lng: number; creatorId: string; anonymous: boolean; spotId: string | null };
+export type MapCellEntry = [lat: number, lng: number, creatorId: string, anonymous: 0 | 1, spotId: string, locationNote?: 1];
+export type MapCandidate = { id: string; lat: number; lng: number; creatorId: string; anonymous: boolean; spotId: string | null; locationNote: boolean };
 
 const cellRef = (cell: string) => db.collection('map_cells').doc(cell);
 const memberRef = (postId: string) => db.collection('map_cell_members').doc(postId);
@@ -29,7 +30,9 @@ const memberRef = (postId: string) => db.collection('map_cell_members').doc(post
 export function mapCellPlacement(post: FirebaseFirestore.DocumentData | undefined): { cell: string; entry: MapCellEntry } | null {
   if (!post || !isPublicActive(post) || !validCoordinates(post.lat, post.lng) || typeof post.creator_id !== 'string') return null;
   return { cell: encodeGeohash(post.lat, post.lng, MAP_CELL_PRECISION),
-    entry: [post.lat, post.lng, post.creator_id, post.is_anonymous === true ? 1 : 0, typeof post.spot_id === 'string' ? post.spot_id : ''] };
+    // AR entries keep the original five fields (no index rewrite); only location notes gain a sixth.
+    entry: [post.lat, post.lng, post.creator_id, post.is_anonymous === true ? 1 : 0, typeof post.spot_id === 'string' ? post.spot_id : '',
+      ...(post.note_kind === 'location' ? [1 as const] : [])] as MapCellEntry };
 }
 
 /** True when a write changes what the index holds for the post. */
@@ -134,9 +137,9 @@ export async function mapCellCandidates(lat: number, lng: number, radius: number
     const posts = snapshot.get('posts') as Record<string, unknown> | undefined;
     for (const [id, value] of Object.entries(posts ?? {})) {
       if (!Array.isArray(value) || value.length < 5) continue;
-      const [pLat, pLng, creatorId, anonymous, spotId] = value as MapCellEntry;
+      const [pLat, pLng, creatorId, anonymous, spotId, locationNote] = value as MapCellEntry;
       if (!validCoordinates(pLat, pLng) || typeof creatorId !== 'string' || distanceMeters(lat, lng, pLat, pLng) > radius) continue;
-      candidates.push({ id, lat: pLat, lng: pLng, creatorId, anonymous: anonymous === 1, spotId: spotId || null });
+      candidates.push({ id, lat: pLat, lng: pLng, creatorId, anonymous: anonymous === 1, spotId: spotId || null, locationNote: locationNote === 1 });
     }
   }
   return { candidates, overflow };

@@ -65,7 +65,9 @@ else
   sleep 2
   log "Functions build + emulator baslatiliyor..."
   ( cd functions && npm run build >/dev/null 2>&1 ) || { log "HATA: functions build"; exit 1; }
-  nohup ./functions/node_modules/.bin/firebase emulators:start --only auth,firestore,storage,functions \
+  # firebase.json binds loopback only; the phone needs the LAN, so this run gets its own config.
+  node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync("firebase.json"));for(const v of Object.values(c.emulators))if(v&&typeof v==="object"&&"host" in v)v.host="0.0.0.0";fs.writeFileSync(".firebase.device-e2e.json",JSON.stringify(c))' || { log "HATA: emulator config"; exit 1; }
+  nohup ./functions/node_modules/.bin/firebase emulators:start --config .firebase.device-e2e.json --only auth,firestore,storage,functions \
     --project "$PROJECT_ID" > "$ROOT/scripts/.emulator.log" 2>&1 &
   EMULATOR_PID=$!
   for i in $(seq 1 90); do

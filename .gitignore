@@ -119,3 +119,4 @@ graphify-out/
 .claude/settings.local.json
 build/verify/
 build/claude-run/
+.firebase.device-e2e.json

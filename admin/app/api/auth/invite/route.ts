@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminAuth } from '../../../../lib/firebase-admin';
 import { acceptUserInvitation } from '../../../../lib/admin-invite';
 import { requireSameOrigin } from '../../../../lib/api';
+import { consumeRateLimit } from '../../../../lib/ops';
 
 const headers = { 'Cache-Control': 'private, no-store, max-age=0' };
 function failure(status: number, reason: string) {
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
   try { decoded = await adminAuth().verifyIdToken(idToken, true); } catch { return failure(401, 'invalid_session'); }
   if (Date.now() / 1000 - decoded.auth_time > 300) return failure(401, 'stale_sign_in');
   if (decoded.firebase.sign_in_provider !== 'password' || decoded.email_verified !== true) return failure(403, 'verified_email_sign_in_required');
+  // Per account: invitation IDs are unguessable, but each attempt still costs reads and writes.
+  let allowed: boolean;
+  try { allowed = await consumeRateLimit(decoded.uid, 'auth_invite_accept', 10, 600); } catch { return failure(403, 'account_unavailable'); }
+  if (!allowed) return failure(429, 'rate_limited');
   const error = await acceptUserInvitation(decoded.uid, { email: decoded.email, emailVerified: decoded.email_verified }, inviteId, true);
   if (error) return failure(error === 'invite_accept_failed' ? 500 : 403, error);
   return NextResponse.json({ ok: true }, { headers });

@@ -7,6 +7,8 @@ import { EMAIL_CHALLENGE_COOKIE, EMAIL_CODE_SECONDS, EMAIL_SESSION_SECONDS, Emai
 
 export const runtime = 'nodejs';
 const headers = { 'Cache-Control': 'private, no-store, max-age=0' };
+/** Above a normal mail-provider round trip, so admin and non-admin requests finish alike. */
+const REQUEST_RESPONSE_FLOOR_MS = 2_500;
 
 export async function POST(request: NextRequest) {
   const originFailure = requireSameOrigin(request); if (originFailure) return originFailure;
@@ -19,7 +21,12 @@ export async function POST(request: NextRequest) {
       // App Hosting sets x-fah-client-ip; the last X-Forwarded-For hop there is a Google proxy.
       const source = request.headers.get('x-fah-client-ip')?.trim()
         || request.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() || 'unknown';
-      const challenge = await requestAdminEmailCode(body.email, source);
+      // Only administrator addresses wait on the mail provider; a fixed minimum response time keeps
+      // that wait from telling an observer which addresses are administrators.
+      const started = Date.now();
+      let challenge: string;
+      try { challenge = await requestAdminEmailCode(body.email, source); }
+      finally { await new Promise(resolve => setTimeout(resolve, Math.max(0, started + REQUEST_RESPONSE_FLOOR_MS - Date.now()))); }
       const response = NextResponse.json({ ok: true, message: 'Adres yetkiliyse giriş kodu gönderildi. Gelen kutunu ve spam klasörünü kontrol et.' }, { headers });
       response.cookies.set(EMAIL_CHALLENGE_COOKIE, challenge, { ...cookieOptions, path: '/api/auth/email-code', maxAge: EMAIL_CODE_SECONDS });
       return response;

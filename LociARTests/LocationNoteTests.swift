@@ -386,6 +386,17 @@ final class NoteMapLayerTests: XCTestCase {
         XCTAssertGreaterThan(NoteDensityCell.intensity(1), 0.1, "a single note still shows")
         XCTAssertLessThan(NoteDensityCell.intensity(1), NoteDensityCell.intensity(10))
     }
+    func testMapKindFilterAppliesToGroupSummaries() throws {
+        let json = Data(#"{"id":"spot:a","lat":41,"lng":29,"count":5,"radius":3,"post_ids":[],"location_count":2}"#.utf8)
+        let group = try JSONDecoder().decode(MapNoteGroup.self, from: json)
+        XCTAssertEqual(group.limited(toLocationNotes: true)?.count, 2)
+        XCTAssertEqual(group.limited(toLocationNotes: false)?.count, 3)
+        let onlyAR = MapNoteGroup(id: "post:b", lat: 41, lng: 29, count: 2, radius: 0, postIDs: [], locationCount: 0)
+        XCTAssertNil(onlyAR.limited(toLocationNotes: true), "a group without location notes leaves the location filter")
+        let legacy = MapNoteGroup(id: "post:c", lat: 41, lng: 29, count: 4, radius: 0, postIDs: [])
+        XCTAssertEqual(legacy.limited(toLocationNotes: true)?.count, 4, "older servers keep every group")
+    }
+
     func testMapGroupReadingRequiresPhysicalProximityAndFreshAccurateFix() {
         let now = Date()
         let group = MapNoteGroup(id: "post:one", lat: 41, lng: 29, count: 10, radius: 0, postIDs: [])

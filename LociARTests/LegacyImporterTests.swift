@@ -15,6 +15,24 @@ final class LegacyImporterTests: XCTestCase {
         XCTAssertNil(LegacyMigrationCoordinator.importedAppearancePreference(from: Data("unexpected".utf8)))
     }
 
+    @MainActor
+    func testLegacyMockupRowsBecomeDecodableLocalDrafts() throws {
+        let id = UUID(), creator = UUID(), layer = UUID()
+        let row: [String: Any] = [
+            "id": id.uuidString, "creator_id": creator.uuidString, "status": "active",
+            "pose": ["latitude": 41.0, "longitude": 29.0, "heading": 90.0],
+            "editData": ["version": 1, "canvas": ["width": 1080, "height": 1920], "layers": [[
+                "id": layer.uuidString, "type": "text", "text": "Loci", "color": "#FFFFFF", "opacity": 1, "scale": 1, "rotation": 0
+            ]]],
+            "caption": "Eski taslak", "visibility": "public"
+        ]
+        let post = try XCTUnwrap(LegacyMigrationCoordinator.legacyDraftPost(row))
+        XCTAssertEqual(post.id, id)
+        XCTAssertEqual(post.creatorID, creator)
+        XCTAssertEqual(post.status, .draft)
+        XCTAssertNil(LegacyMigrationCoordinator.legacyDraftPost(["id": "draft"]))
+    }
+
     func testManifestImportIsAllowListedAndIdempotent() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let directory = root.appendingPathComponent("RCTAsyncLocalStorage_V1")

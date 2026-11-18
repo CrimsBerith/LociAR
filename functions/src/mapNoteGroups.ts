@@ -11,6 +11,12 @@ export function mapGroupSummary(id: string, posts: MapGroupPost[]): MapNoteGroup
   return { id, ...spotOf(posts), post_ids: posts.map(post => post.id) };
 }
 
+/** Adds how many of each group's posts are location notes (the rest are AR notes). */
+export function withLocationCounts(groups: MapNoteGroup[], posts: Array<{ id: string; locationNote?: boolean }>): Array<MapNoteGroup & { location_count: number }> {
+  const location = new Set(posts.filter(post => post.locationNote === true).map(post => post.id));
+  return groups.map(group => ({ ...group, location_count: group.post_ids.filter(id => location.has(id)).length }));
+}
+
 /** Stable identities come from server spots; small, not-yet-clustered sets use a fixed 6 m anchor. */
 export function mapNoteGroups(posts: MapGroupPost[]): MapNoteGroup[] {
   const groups: Array<{ id: string; spotId?: string; anchorLat: number; anchorLng: number; posts: MapGroupPost[] }> = [];

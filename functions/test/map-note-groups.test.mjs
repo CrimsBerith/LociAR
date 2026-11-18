@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mapNoteGroups } from '../lib/mapNoteGroups.js';
+import { mapNoteGroups, withLocationCounts } from '../lib/mapNoteGroups.js';
 
 test('ten notes at the same place form one exact group, not ten map pins', () => {
   const posts = Array.from({ length: 10 }, (_, i) => ({ id: `note-${i}`, spotId: 'place', lat: 41, lng: 29 }));
@@ -40,4 +40,17 @@ test('fallback and persistent groups keep antimeridian neighbours beside the dat
     assert.ok(Math.abs(group.lng) > 179.9999);
     assert.ok(group.radius > 2 && group.radius < 3);
   }
+});
+
+test('map groups report how many of their notes are location notes for the AR / location filter', () => {
+  const posts = [
+    { id: 'a', lat: 41, lng: 29, spotId: 'place', locationNote: true },
+    { id: 'b', lat: 41, lng: 29, spotId: 'place' },
+    { id: 'c', lat: 41.01, lng: 29.01, locationNote: false },
+  ];
+  const groups = withLocationCounts(mapNoteGroups(posts), posts);
+  const place = groups.find(g => g.post_ids.includes('a'));
+  assert.equal(place.count, 2);
+  assert.equal(place.location_count, 1);
+  assert.equal(groups.find(g => g.post_ids.includes('c')).location_count, 0);
 });

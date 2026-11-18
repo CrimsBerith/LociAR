@@ -363,6 +363,8 @@ enum FirestorePostMapper {
             "id": id,
             "creator_id": data["creator_id"] ?? NSNull(),
             "creator_handle": data["creator_handle"] ?? NSNull(),
+            // Own-post lists read Firestore directly; keep the author's avatar like readPublicContent rows.
+            "creator_avatar_url": data["creator_avatar_url"] ?? NSNull(),
             "is_anonymous": data["is_anonymous"] ?? false,
             "sponsorship": data["sponsorship"] ?? NSNull(),
             "note_kind": data["note_kind"] ?? NSNull(),

@@ -236,17 +236,18 @@ struct PostSupportView: View {
                 }
             } else {
                 let processor = method == "crypto" ? catalog?.cryptoProvider ?? "nowpayments" : "stripe"
+                // Check the live storefront before the server opens a checkout session, not after.
+                let currentCountry = await container.postSupport.storefrontCountry()
+                guard isCurrent(token, user) else { return }
+                guard currentCountry == "USA" else { message = PostSupportError.unavailable.localizedDescription; return }
                 let (id, url) = try await container.postSupport.externalCheckout(postID: post.id, productID: selection,
-                    crypto: method == "crypto", processor: catalog?.cryptoProvider ?? "nowpayments", storefront: storefront,
+                    crypto: method == "crypto", processor: catalog?.cryptoProvider ?? "nowpayments", storefront: currentCountry,
                     previousIntentID: previousIntentID)
                 guard isCurrent(token, user) else { return }
                 pendingReceipt = PostSupportReceipt(status: .awaitingPayment, writerShareBps: 7200,
                     intentId: id, processor: processor, url: url, environment: catalog?.environment,
                     externalIOSAllowed: catalog?.externalIOSAllowed)
                 paymentEnvironment = catalog?.environment
-                let currentCountry = await container.postSupport.storefrontCountry()
-                guard isCurrent(token, user) else { return }
-                guard currentCountry == "USA" else { message = PostSupportError.unavailable.localizedDescription; return }
                 openURL(url) { accepted in if !accepted, isCurrent(token, user) { message = PostSupportError.verification.localizedDescription } }
             }
         } catch {

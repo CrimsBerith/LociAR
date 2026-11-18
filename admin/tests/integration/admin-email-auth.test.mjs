@@ -91,6 +91,9 @@ test('mail failures leave no usable challenge; there is no success before the se
   }, f.now), EmailDeliveryError);
   const stored = (await db.collection('admin_email_challenges').doc(hash(f.email)).get()).data();
   assert.equal(stored.ready, false); assert.equal(stored.code_hash, null); assert.match(captured, /^\d{6}$/);
+  // A failed send keeps no cooldown: the administrator can ask again at once.
+  assert.equal(stored.requested_at, null);
+  await challenge(f, f.now + 1);
 });
 
 test('hourly send limits apply even when addresses are not administrators', async () => {

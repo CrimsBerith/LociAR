@@ -48,6 +48,16 @@ test('post edit preserves the author; replacing a physical lock requires explici
  assert.equal((await db.collection('cloud_anchor_deletions').doc(anchorId).get()).exists,true);
  await assert.rejects(saveAdminPost({...body,authorId:randomUUID()},actor,reason,randomUUID(),created.id),/author_unavailable|post_author_cannot/);
 });
+test('editing a post rewrites only its first text layer; GIF layers and the canvas survive',async()=>{
+ const{actor,author}=await fixture(),body=input(author),created=await saveAdminPost(body,actor,reason,randomUUID()),ref=db.collection('posts').doc(created.id);
+ const gif={id:randomUUID(),type:'gif',assetURL:'klipy://gif/abc',x:10,y:20,zIndex:1,scale:1,rotation:0,opacity:1};
+ const edit=JSON.parse((await ref.get()).get('edit_data_json'));edit.canvas={width:720,height:1280};edit.layers.push(gif);
+ await ref.update({edit_data_json:JSON.stringify(edit)});
+ await saveAdminPost({...body,text:'Edited AR content'},actor,reason,randomUUID(),created.id);
+ const saved=JSON.parse((await ref.get()).get('edit_data_json'));
+ assert.deepEqual(saved.canvas,{width:720,height:1280});assert.equal(saved.layers.length,2);
+ assert.equal(saved.layers[0].text,'Edited AR content');assert.equal(saved.layers[0].id,edit.layers[0].id);assert.deepEqual(saved.layers[1],gif);
+});
 test('comments can be created, edited and removed as selected users with independent actor audit',async()=>{
  const{actor,author}=await fixture(),post=await saveAdminPost(input(author),actor,reason,randomUUID()),key=randomUUID();
  const comment=await saveAdminComment(post.id,author,'Panel comment',actor,reason,key);assert.deepEqual(await saveAdminComment(post.id,author,'Panel comment',actor,reason,key),comment);

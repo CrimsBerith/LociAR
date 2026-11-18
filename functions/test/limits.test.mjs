@@ -69,4 +69,7 @@ test('apple revoke: success, and a 400 from Apple aborts with an error', async (
   assert.deepEqual(calls.map((u) => u.split('/').pop()), ['token', 'revoke']);
   const bad = async () => new Response('{}', { status: 400 });
   await assert.rejects(revokeAppleAuthorization(config, 'code', { fetchImpl: bad }), /apple_token_400/);
+  const signals = [];
+  await revokeAppleAuthorization(config, 'code', { fetchImpl: async (url, init) => { signals.push(init.signal); return ok(url); } });
+  assert.ok(signals.length === 2 && signals.every(signal => signal instanceof AbortSignal), 'every Apple call has a timeout');
 });

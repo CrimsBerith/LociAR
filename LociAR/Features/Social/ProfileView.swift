@@ -65,7 +65,9 @@ struct ProfileView: View {
             }
             profileGroup(title: "İçerik") {
                 NavigationLink { MyPostsView() } label: { ProfileLinkRow(title: String(localized: "Notlarım"), symbol: "rectangle.stack.fill", color: LociTheme.accent) }
-                NavigationLink { ActivityView() } label: {
+                // One Activity destination per stack: MainTabView owns it via the router, so a
+                // notification tap while Activity is open no longer pushes a second copy.
+                Button { container.router.isActivityPresented = true } label: {
                     ProfileLinkRow(title: "Aktivite", symbol: "bell.fill", color: LociTheme.accent)
                 }
                 .accessibilityIdentifier("profile-activity")

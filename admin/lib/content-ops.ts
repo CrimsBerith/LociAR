@@ -126,10 +126,29 @@ function placementChange(before: FirebaseFirestore.DocumentSnapshot, input: Cont
   return { oldPose, moved };
 }
 
+/**
+ * The form edits the first text layer only (that is what the editor loads). Every other layer of
+ * an existing post (KLIPY GIFs, images, drawings, further text) and its canvas are kept as they are.
+ */
+export function adminEditData(before: FirebaseFirestore.DocumentSnapshot, input: ContentInput, id: string) {
+  const text = { type:'text', text:input.text, color:input.color, opacity:input.opacity, scale:input.scale, rotation:input.rotation };
+  const fresh = { version:1, canvas:{width:1080,height:1920}, backgroundColor:input.background,
+    layers:[{ id:derivedKey(id,'text'), ...text, x:0, y:0, zIndex:0, fontSize:32 }] };
+  if (!before.exists) return fresh;
+  let old: unknown;
+  try { old = JSON.parse(String(before.get('edit_data_json') || 'null')); } catch { old = null; }
+  const layers = (old as { layers?: unknown } | null)?.layers;
+  if (!old || typeof old !== 'object' || !Array.isArray(layers)) return fresh;
+  const index = layers.findIndex(layer => (layer as { type?: unknown } | null)?.type === 'text');
+  const kept = layers.slice();
+  if (index >= 0) kept[index] = { ...(layers[index] as object), ...text };
+  else kept.push(fresh.layers[0]);
+  return { ...(old as object), backgroundColor:input.background, layers:kept };
+}
+
 function postChanges(input: ContentInput, id: string, actorId: string, before: FirebaseFirestore.DocumentSnapshot,
   blockedZones: FirebaseFirestore.QueryDocumentSnapshot[], moved: boolean) {
-  const editData = { version:1, canvas:{width:1080,height:1920}, backgroundColor:input.background,
-    layers:[{id:derivedKey(id,'text'),type:'text',text:input.text,color:input.color,opacity:input.opacity,scale:input.scale,rotation:input.rotation,x:0,y:0,zIndex:0,fontSize:32}] };
+  const editData = adminEditData(before, input, id);
   const contentSource = {platform:'other',title:input.text};
   const changed = {
     caption:input.caption,edit_data_json:JSON.stringify(editData),content_source_json:JSON.stringify(contentSource),

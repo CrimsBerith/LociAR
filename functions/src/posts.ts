@@ -10,7 +10,7 @@ import { reasonError, withContentionGuard } from './errors';
 import { admitPost, anchorBindError, deleteAnchorOfPost, MAX_NOTES_NEARBY, MAX_POSTS_NEARBY } from './anchors';
 import { activeDensity, readDensityLocks, updateDensityLock } from './postAdmission';
 import { protectedZoneAt } from './protectedZones';
-import { assertAccountNotDeleting, requireActiveAccount } from './profileGuard';
+import { assertAccountNotDeleting, postAvatarURL, requireActiveAccount } from './profileGuard';
 import { INVITE_REQUIRED, inviteGate } from './invites';
 import { placeAt } from './places';
 import { resolveGifLayers } from './gifId';
@@ -179,7 +179,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
     updateDensityLock(tx, densityLock, Date.now());
     if (anchorRef) tx.update(anchorRef, { post_id: postId, bound_at: FieldValue.serverTimestamp(), expires_at: FieldValue.delete() });
     tx.set(db.collection('storage_reclamations').doc(postId), { post_id: postId, creator_id: caller.luid, state: 'committed', is_anonymous: body.anonymous !== false, world_map_path: worldMapPath, public_readable: publishStatus === 'active' && body.visibility === 'public', claimed_at: FieldValue.serverTimestamp() });
-    tx.create(postRef, { ...document, creator_handle: String(profile.handle ?? ''), creator_avatar_url: typeof profile.avatar_url === 'string' ? profile.avatar_url : null });
+    tx.create(postRef, { ...document, creator_handle: String(profile.handle ?? ''), creator_avatar_url: postAvatarURL(profile) });
     tx.create(db.collection('analytics_events').doc(randomUUID()), analyticsEventDoc({
       userId: caller.luid, postId,
       name: 'post_published_active',
