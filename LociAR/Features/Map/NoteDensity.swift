@@ -266,6 +266,8 @@ struct MapNoteGroupSheet: View {
     let group: MapNoteGroup
     let unlockRadius: Double
     let initialFix: LocationSample?
+    /// The map's kind filter: true = location notes only, false = AR notes only, nil = all.
+    var locationNotesOnly: Bool? = nil
     @Environment(AppContainer.self) private var container
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -283,7 +285,8 @@ struct MapNoteGroupSheet: View {
     @State private var reloadAfterCurrentRead = false
     @State private var isVisible = true
 
-    private var noteCount: Int { totalCount ?? group.count }
+    // The server total counts every kind; under a filter the map group already carries the filtered count.
+    private var noteCount: Int { locationNotesOnly == nil ? totalCount ?? group.count : group.count }
     private var bestFix: LocationSample? {
         guard location.authorizationStatus != .denied, location.authorizationStatus != .restricted else { return nil }
         let live = DenseSpotClient.bestFix(gps: location.freshLocation(at: clock), camera: container.arcore.cameraFix, now: clock)
@@ -292,7 +295,12 @@ struct MapNoteGroupSheet: View {
     }
     private var resolvedGroup: MapNoteGroup { currentGroup ?? group }
     private var isNear: Bool { resolvedGroup.isNear(bestFix, unlockRadius: unlockRadius, now: clock) }
-    private var readablePosts: [LociPost] { isNear ? posts.filter { !$0.isLocked } : [] }
+    private var readablePosts: [LociPost] {
+        guard isNear else { return [] }
+        return posts.filter { post in
+            !post.isLocked && (locationNotesOnly.map { wanted in post.isLocationNote == wanted } ?? true)
+        }
+    }
 
     var body: some View {
         NavigationStack(path: $path) {

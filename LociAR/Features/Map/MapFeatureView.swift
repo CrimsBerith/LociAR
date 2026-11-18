@@ -173,7 +173,8 @@ struct MapFeatureView: View {
         .onChange(of: container.mapRequests.presentationRevision) { _, _ in applyMapPresentation() }
         .sheet(item: $selectedMapGroup) { group in
             MapNoteGroupSheet(group: group, unlockRadius: mapUnlockRadius,
-                              initialFix: selectedMapGroupFix ?? DenseSpotClient.bestFix(gps: location.freshLocation(), camera: container.arcore.cameraFix))
+                              initialFix: selectedMapGroupFix ?? DenseSpotClient.bestFix(gps: location.freshLocation(), camera: container.arcore.cameraFix),
+                              locationNotesOnly: filter == .all ? nil : filter == .locationOnly)
         }
         .sheet(isPresented: $showPlaceNote, onDismiss: {
             selection = nil
