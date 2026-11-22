@@ -23,7 +23,8 @@ export async function readSupportReceipt(caller: Caller, data: { intentId?: unkn
     const payment = typeof paymentId === 'string' ? await tx.get(db.collection('support_payments').doc(paymentId)) : null;
     return { status: payment?.get('status') ?? (intent.get('status') === 'expired' ? 'expired' : 'awaiting_payment'),
       writerShareBps: 7200, intentId: intent.id, environment: intent.get('environment'),
-      externalIOSAllowed: settings.allowExternalIOS && intent.get('environment') === settings.environment
+      // Apple In-App Purchase intents never use the external checkout, whatever the crypto/Stripe settings.
+      externalIOSAllowed: intent.get('provider') !== 'apple' && settings.allowExternalIOS && intent.get('environment') === settings.environment
         && (intent.get('provider') === 'stripe' ? settings.stripeEnabled : settings.cryptoEnabled),
       processor: intent.get('crypto_processor') === 'nowpayments' ? 'nowpayments' : 'stripe',
       ...(typeof intent.get('checkout_url') === 'string' ? { url: intent.get('checkout_url') } : {}) };

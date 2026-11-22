@@ -45,19 +45,19 @@ export async function ownCampaignOffers(luid: string, lat: number, lng: number, 
     await requireActiveAccount(tx, luid);
     if ((await tx.get(db.collection('user_data_preferences').doc(luid))).get('promotions') !== true) return [];
     const assignments = await tx.get(db.collection('campaign_targets').where('owner_luid', '==', luid).where('expires_at', '>', Timestamp.now()).limit(50));
-    const offers: Array<NonNullable<Awaited<ReturnType<typeof campaignOffer>>>> = [];
-    await forEachSequential(assignments.docs, async (assignment) => {
+    // Assignments are independent: resolve them in parallel within the transaction, keeping their order.
+    const resolved = await Promise.all(assignments.docs.map(async (assignment) => {
       const id = assignment.get('campaign_id');
-      if (!isUUID(id)) return;
-      const offer = assignment.id === `${id}_${luid}`
+      if (!isUUID(id)) return null;
+      return assignment.id === `${id}_${luid}`
         ? await offerFromSnapshots(tx, luid, await tx.get(db.collection('campaigns').doc(id)), assignment, Date.now(), true)
         : await campaignOffer(tx, luid, id);
-      if (offer) {
-        const pose = JSON.parse(offer.pose_json);
-        if (distanceMeters(lat, lng, pose.latitude, pose.longitude) <= radius) offers.push(offer);
-      }
+    }));
+    return resolved.filter((offer): offer is NonNullable<typeof offer> => {
+      if (!offer) return false;
+      const pose = JSON.parse(offer.pose_json);
+      return distanceMeters(lat, lng, pose.latitude, pose.longitude) <= radius;
     });
-    return offers;
   });
 }
 
@@ -99,18 +99,22 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
   await forEachSequential(devices.docs, async (device) => {
     const receiptRef = db.collection('admin_notification_receipts').doc(pushDeliveryId(id, device.id));
     const quotaRef = db.collection('promotion_push_quota').doc(pushQuotaId(recipient, now));
+    const activityRef = db.collection('activity_events').doc(`admin_${id}`);
     const message = await db.runTransaction(async tx => {
-      if ((await tx.get(db.collection('system').doc('flags'))).get('kill_switch') === true) return null;
-      const [job, target, receipt, profile, deletion, pref, quota, actorDeletion] = await tx.getAll(ref, device.ref, receiptRef,
-        db.collection('profiles').doc(recipient), accountDeletionRef(recipient), db.collection('user_data_preferences').doc(recipient), quotaRef,
-        accountDeletionRef(luidForUid(initial.actor_uid)));
+      // One batched read plus the sender's role query in parallel (they were five sequential round trips).
+      const [[flags, job, target, receipt, profile, deletion, pref, quota, actorDeletion, activity], roles] = await Promise.all([
+        tx.getAll(db.collection('system').doc('flags'), ref, device.ref, receiptRef,
+          db.collection('profiles').doc(recipient), accountDeletionRef(recipient), db.collection('user_data_preferences').doc(recipient), quotaRef,
+          accountDeletionRef(luidForUid(initial.actor_uid)), activityRef),
+        tx.get(db.collection('admin_role_assignments').where('user_id', '==', initial.actor_uid).where('revoked_at', '==', null)),
+      ]);
+      if (flags.get('kill_switch') === true) return null;
       const data = job.data(), address = pushAddress(target.data());
-      if (!data || data.recipient_id !== recipient || data.status === 'complete' || !(data.expires_at instanceof Timestamp) || data.expires_at.toMillis() <= now
+      if (!data || data.recipient_id !== recipient || data.actor_uid !== initial.actor_uid || data.status === 'complete' || !(data.expires_at instanceof Timestamp) || data.expires_at.toMillis() <= now
           || receipt.exists || !profile.exists || profile.get('suspended') || profile.get('deleted_at') || deletion.exists || actorDeletion.exists
           || pref.get('notifications') !== true || (data.campaign_id && pref.get('promotions') !== true) || pref.get('revision') !== data.consent_revision
           || !target.exists || target.get('owner_luid') !== recipient || !address
           || !(target.get('expires_at') instanceof Timestamp) || target.get('expires_at').toMillis() <= now) return null;
-      const roles = await tx.get(db.collection('admin_role_assignments').where('user_id', '==', data.actor_uid).where('revoked_at', '==', null));
       // Only super admins send in this first phase; a future brand editor cannot address users.
       if (!roles.docs.some(d => d.get('role_key') === 'super_admin')) return null;
       let activityBody = data.message, body = data.message, postId = '';
@@ -121,7 +125,6 @@ export async function deliverAdminNotification(id: string, send: (message: Messa
       }
       const decision = pushQuotaDecision(quota.data(), id, 3);
       if (!decision.allow) return null;
-      const activityRef = db.collection('activity_events').doc(`admin_${id}`), activity = await tx.get(activityRef);
       if (decision.next) tx.set(quotaRef, { owner_luid: recipient, ...decision.next, expires_at: Timestamp.fromMillis(now + 2 * 86_400_000) });
       if (!activity.exists) tx.create(activityRef, { kind: postId ? 'promotion' : 'admin_notice', anonymous: true, actor_id: null,
         recipient_id: recipient, post_id: postId || null, body: activityBody, read_at: null, created_at: FieldValue.serverTimestamp(), expires_at: Timestamp.fromMillis(now + 30 * 86_400_000) });

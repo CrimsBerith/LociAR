@@ -21,21 +21,23 @@ export async function createSupportIntent(caller: Caller, data: Record<string, u
   try { productId = supportProduct(data.productId); } catch { throw new HttpsError('invalid-argument', 'Invalid support product'); }
   const postId = data.postId.toLowerCase(), id = randomUUID();
   return db.runTransaction(async tx => {
-    await requireActiveAccount(tx, caller.luid);
-    const post = (await tx.get(db.collection('posts').doc(postId))).data();
-    if (!isPublicActive(post) || post?.sponsorship || post?.creator_id === caller.luid
-        || await contentBlocked(caller.luid, post!, tx) || await hasPostReport(tx, caller.luid, postId)) {
-      throw new HttpsError('permission-denied', 'Content unavailable');
-    }
-    await requireActiveAccount(tx, String(post!.creator_id));
+    const lockRef = supportLockRef(caller.luid, postId, settings.environment);
+    const quotaRef = db.collection('support_quota').doc(caller.luid);
+    // Independent documents in one batched read instead of four sequential round trips.
+    const [, [postSnap, grant, lock, quota]] = await Promise.all([
+      requireActiveAccount(tx, caller.luid),
+      tx.getAll(db.collection('posts').doc(postId), db.collection('dense_spot_unlocks').doc(`${caller.luid}_note_${postId}`), lockRef, quotaRef),
+    ]);
+    const post = postSnap.data();
+    if (!isPublicActive(post) || post?.sponsorship || post?.creator_id === caller.luid) throw new HttpsError('permission-denied', 'Content unavailable');
+    const [blocked, reported] = await Promise.all([contentBlocked(caller.luid, post!, tx), hasPostReport(tx, caller.luid, postId),
+      requireActiveAccount(tx, String(post!.creator_id))]);
+    if (blocked || reported) throw new HttpsError('permission-denied', 'Content unavailable');
     // These receipts grant comment/support actions only, never remote note text access.
-    if (post!.note_kind === 'location') {
-      const grant = await tx.get(db.collection('dense_spot_unlocks').doc(`${caller.luid}_note_${postId}`));
-      if (!(grant.get('expires_at') instanceof Timestamp) || grant.get('expires_at').toMillis() <= Date.now()) {
-        throw new HttpsError('permission-denied', 'Open the note on site first');
-      }
+    if (post!.note_kind === 'location'
+      && (!(grant.get('expires_at') instanceof Timestamp) || grant.get('expires_at').toMillis() <= Date.now())) {
+      throw new HttpsError('permission-denied', 'Open the note on site first');
     }
-    const lockRef = supportLockRef(caller.luid, postId, settings.environment), lock = await tx.get(lockRef);
     if (lock.exists) {
       const pending = await tx.get(db.collection('support_intents').doc(String(lock.get('intent_id'))));
       if (!pending.exists || pending.get('buyer_luid') !== caller.luid || pending.get('post_id') !== postId
@@ -50,7 +52,6 @@ export async function createSupportIntent(caller: Caller, data: Record<string, u
         return { intentId: pending.id, productId };
       }
     }
-    const quotaRef = db.collection('support_quota').doc(caller.luid), quota = await tx.get(quotaRef);
     const window = bumpWindow(quota.get('hour'), Date.now(), 3_600_000, 20);
     if (!window.allowed) throw new HttpsError('resource-exhausted', 'Too many support attempts');
     tx.set(quotaRef, { owner_luid: caller.luid, hour: window.next });

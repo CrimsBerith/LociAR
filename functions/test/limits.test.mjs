@@ -73,3 +73,12 @@ test('apple revoke: success, and a 400 from Apple aborts with an error', async (
   await revokeAppleAuthorization(config, 'code', { fetchImpl: async (url, init) => { signals.push(init.signal); return ok(url); } });
   assert.ok(signals.length === 2 && signals.every(signal => signal instanceof AbortSignal), 'every Apple call has a timeout');
 });
+
+test('corrupted window counters and impossible sign-in times fail closed', () => {
+  const t = 1_700_000_000_000, window = Math.floor(t / 3_600_000);
+  for (const count of [Number.NaN, 'x', -1]) assert.equal(bumpWindow({ window, count }, t, 3_600_000, 5).allowed, false, String(count));
+  assert.equal(isRecentAuth(Number.NaN, t), false);
+  assert.equal(isRecentAuth(0, t), false);
+  assert.equal(isRecentAuth(t / 1000 + 3_600, t), false, 'a sign-in an hour in the future');
+  assert.equal(isRecentAuth(t / 1000 - 10, t), true);
+});

@@ -1,3 +1,4 @@
+import { logger } from 'firebase-functions/v2';
 import { db } from './core';
 import { distanceMeters } from './geo';
 
@@ -7,10 +8,16 @@ export type Place = { id: string; name: string; city: string; lat: number; lng: 
 const PLACE_CACHE_MS = 5 * 60 * 1000;
 let placeCache: { at: number; places: Place[] } | null = null;
 
+/** Landmarks are building-sized; a larger or non-finite radius would label posts across a whole city. */
+const MAX_PLACE_RADIUS_M = 5_000;
+
 function isPlace(value: unknown): value is Place {
   const p = value as Partial<Place> | null;
-  return !!p && typeof p.id === 'string' && typeof p.lat === 'number' && typeof p.lng === 'number'
-    && typeof p.radius_meters === 'number' && p.radius_meters > 0 && Number.isFinite(p.lat) && Number.isFinite(p.lng);
+  return !!p && typeof p.id === 'string' && (p.name == null || typeof p.name === 'string') && (p.city == null || typeof p.city === 'string')
+    && typeof p.lat === 'number' && Number.isFinite(p.lat) && Math.abs(p.lat) <= 90
+    && typeof p.lng === 'number' && Number.isFinite(p.lng) && Math.abs(p.lng) <= 180
+    && typeof p.radius_meters === 'number' && Number.isFinite(p.radius_meters)
+    && p.radius_meters > 0 && p.radius_meters <= MAX_PLACE_RADIUS_M;
 }
 
 /** The closest place whose radius contains the point, or null. Ties go to the smaller id. */
@@ -28,14 +35,16 @@ export function matchPlace(lat: number, lng: number, places: readonly Place[]): 
 export async function placeAt(lat: number, lng: number): Promise<Place | null> {
   try {
     if (!placeCache || Date.now() - placeCache.at > PLACE_CACHE_MS) {
-      const snap = await db.collection('places').where('active', '==', true).limit(200).get();
+      // Ordered so the 200-place cap keeps the same places on every instance.
+      const snap = await db.collection('places').where('active', '==', true).orderBy('__name__').limit(200).get();
       placeCache = {
         at: Date.now(),
         places: snap.docs.map((d) => ({ ...(d.data() as Omit<Place, 'id'>), id: d.id })).filter(isPlace),
       };
     }
     return matchPlace(lat, lng, placeCache.places);
-  } catch {
+  } catch (error) {
+    logger.warn('place_lookup_failed', { code: (error as { code?: unknown })?.code ?? 'unknown' });
     return null;
   }
 }

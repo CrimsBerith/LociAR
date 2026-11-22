@@ -495,6 +495,15 @@ export function checkReceipt(audit: FirebaseFirestore.DocumentSnapshot, hash: st
   return true;
 }
 
+/**
+ * createPost reuses its zone list while `system/protected_zones_meta.version` is unchanged
+ * (functions/src/protectedZones.ts). Every zone change bumps it in the same transaction.
+ */
+function bumpZoneVersion(tx: Transaction) {
+  tx.set(adminDb().collection('system').doc('protected_zones_meta'),
+    { version: FieldValue.increment(1), updated_at: FieldValue.serverTimestamp() }, { merge: true });
+}
+
 /** New zones are distinct records; retries of one operation reuse its deterministic ID. */
 export async function createProtectedZone(zone: ZoneInput, actorId: string, reason: string, idempotencyKey: string) {
   const db = adminDb();
@@ -506,6 +515,7 @@ export async function createProtectedZone(zone: ZoneInput, actorId: string, reas
     if (checkReceipt(audit, hash)) return { id: ref.id };
     const after = { ...zone, policy: 'hard_block', active: true };
     tx.create(ref, { ...after, created_at: FieldValue.serverTimestamp(), updated_at: FieldValue.serverTimestamp() });
+    bumpZoneVersion(tx);
     writeAudit(tx, idempotencyKey, { requestHash: hash, actorId, action: 'zone_create', resourceType: 'protected_zone', resourceId: ref.id,
       after, reason, permissionKey: 'zones.write', riskLevel: 'sensitive' });
     return { id: ref.id };
@@ -523,6 +533,7 @@ export async function setProtectedZoneActive(zoneId: string, active: boolean, ac
     if (!snap.exists) throw new ValidationError('zone_not_found');
     const after = { ...snap.data(), active };
     tx.update(ref, { active, updated_at: FieldValue.serverTimestamp() });
+    bumpZoneVersion(tx);
     writeAudit(tx, idempotencyKey, { requestHash: hash, actorId, action: active ? 'zone_enable' : 'zone_disable', resourceType: 'protected_zone',
       resourceId: zoneId, before: snap.data(), after, reason, permissionKey: 'zones.write', riskLevel: 'sensitive' });
     return sanitize(after);

@@ -73,9 +73,11 @@ function reactionPages(tx: FirebaseFirestore.Transaction, base: FirebaseFirestor
 /** Approves a location note for notifications once enough established accounts like it. */
 export async function autoApproveNote(postId: string, now = Date.now()) {
   return await db.runTransaction(async tx => {
-    const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
+    const ref = db.collection('posts').doc(postId);
+    const [post, limits] = await Promise.all([tx.get(ref), thresholds(tx)]);
+    const data = post.data();
     if (data?.note_kind !== 'location' || !isPublicActive(data) || (data.push_state ?? 'none') !== 'none') return false;
-    const { like, indexedLikes } = await thresholds(tx);
+    const { like, indexedLikes } = limits;
     if (Number(data.likes_count ?? 0) < like) return false;
     let base = db.collection('likes').where('post_id', '==', postId);
     // Gate only after the composite index + existing edges are backfilled/verified. Young
@@ -119,9 +121,11 @@ function countEstablishedReporters(candidates: string[], records: FirebaseFirest
 /** Hides a public post once distinct users file enough open reports; moderators can restore it. */
 export async function autoHideReported(postId: string, now = Date.now()) {
   return await db.runTransaction(async tx => {
-    const ref = db.collection('posts').doc(postId), post = await tx.get(ref), data = post.data();
+    const ref = db.collection('posts').doc(postId);
+    const [post, limits] = await Promise.all([tx.get(ref), thresholds(tx)]);
+    const data = post.data();
     if (data?.status !== 'active') return false;
-    const report = reportsNeeded((await thresholds(tx)).report, data, now);
+    const report = reportsNeeded(limits.report, data, now);
     const base = db.collection('moderation_flags').where('post_id', '==', postId).where('status', '==', 'open').orderBy('__name__');
     const reporters = new Set<string>();
     const inspected = new Set<string>();
@@ -141,6 +145,8 @@ export async function autoHideReported(postId: string, now = Date.now()) {
 }
 
 export const onReportCreated = onDocumentCreated({ document: 'moderation_flags/{flagId}', retry: true, maxInstances: 5 }, async event => {
-  const postId = event.data?.get('post_id');
-  if (typeof postId === 'string' && /^[0-9a-f-]{36}$/.test(postId)) await autoHideReported(postId);
+  const flag = event.data?.data(), postId = flag?.post_id;
+  // Comment and profile reports also carry a post_id but never count toward hiding the post:
+  // skip the recount transaction for them.
+  if (flag && isPostReport(flag) && isUUID(postId)) await autoHideReported(postId.toLowerCase());
 });

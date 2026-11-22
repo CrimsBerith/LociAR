@@ -42,7 +42,7 @@ const progressOf = (doc: FirebaseFirestore.DocumentSnapshot): Progress => {
 const consented = (pref: FirebaseFirestore.DocumentSnapshot, trigger: Step['trigger']) =>
   pref.get('promotions') === true && (trigger === 'leave_usual_place' ? pref.get('departures') === true : pref.get('arrivals') === true);
 
-function wakeRegions(c: FirebaseFirestore.QueryDocumentSnapshot, pref: FirebaseFirestore.DocumentSnapshot, done: Progress, now: number) {
+function wakeRegions(c: { id: string; get(field: string): any; data(): FirebaseFirestore.DocumentData }, pref: FirebaseFirestore.DocumentSnapshot, done: Progress, now: number) {
   const regions = [];
   const timezone = String(c.get('timezone') ?? 'Europe/Istanbul');
   for (const step of steps(c.data())) {
@@ -65,6 +65,21 @@ function wakeRegions(c: FirebaseFirestore.QueryDocumentSnapshot, pref: FirebaseF
   return regions;
 }
 
+/**
+ * Active zone campaigns, shared by every caller of an instance for a minute. Wake regions are only a
+ * hint to start monitoring (recordCampaignStep re-checks the campaign live), so a minute of staleness
+ * is safe, and it replaces up to 300 reads per call with 300 per instance-minute. Never cached in the emulator.
+ */
+const ZONE_CAMPAIGN_TTL_MS = 60_000;
+let zoneCampaignCache: { until: number; docs: Array<{ id: string; data: FirebaseFirestore.DocumentData }> } | null = null;
+async function activeZoneCampaigns(now: number) {
+  if (zoneCampaignCache && zoneCampaignCache.until > now && process.env.FUNCTIONS_EMULATOR !== 'true') return zoneCampaignCache.docs;
+  const snap = await db.collection('campaigns').where('audience', '==', 'zone').where('status', '==', 'active').limit(300).get();
+  const docs = snap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+  zoneCampaignCache = { until: now + ZONE_CAMPAIGN_TTL_MS, docs };
+  return docs;
+}
+
 /** Active zone campaigns around a coarse fix, as wake regions; exhausted and locked steps are left out. */
 export const readCampaignZones = onCall(options, async request => {
   const caller = requireCaller(request), now = Date.now(), f = parseFix(request.data?.location);
@@ -73,10 +88,10 @@ export const readCampaignZones = onCall(options, async request => {
     await requireActiveAccount(tx, caller.luid);
     const [pref, flags] = await tx.getAll(db.collection('user_data_preferences').doc(caller.luid), db.collection('system').doc('flags'));
     if (flags.get('kill_switch') === true || pref.get('notifications') !== true || pref.get('promotions') !== true) return { regions: [] };
-    const campaigns = await tx.get(db.collection('campaigns').where('audience', '==', 'zone').where('status', '==', 'active').limit(300));
-    const live = campaigns.docs.filter(c => campaignLive(c.data(), now) && distanceMeters(f.lat, f.lng, c.get('lat'), c.get('lng')) <= Number(c.get('radius') ?? 0) + SEARCH_M);
+    const campaigns = await activeZoneCampaigns(now);
+    const live = campaigns.filter(c => campaignLive(c.data, now) && distanceMeters(f.lat, f.lng, c.data.lat, c.data.lng) <= Number(c.data.radius ?? 0) + SEARCH_M);
     const progress = live.length ? await tx.getAll(...live.map(c => progressRef(c.id, caller.luid))) : [];
-    const regions = live.flatMap((c, i) => wakeRegions(c, pref, progressOf(progress[i]), now));
+    const regions = live.flatMap((c, i) => wakeRegions({ id: c.id, get: field => c.data[field], data: () => c.data }, pref, progressOf(progress[i]), now));
     regions.sort((a, b) => distanceMeters(f.lat, f.lng, a.lat, a.lng) - distanceMeters(f.lat, f.lng, b.lat, b.lng));
     return { regions: regions.slice(0, 8) };
   });

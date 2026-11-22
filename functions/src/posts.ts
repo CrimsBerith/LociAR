@@ -10,7 +10,7 @@ import { cloudAnchorIdOf, evaluatePlacement, validateCreatePostBody, type Create
 import { reasonError, withContentionGuard } from './errors';
 import { admitPost, anchorBindError, deleteAnchorOfPost, MAX_NOTES_NEARBY, MAX_POSTS_NEARBY } from './anchors';
 import { activeDensity, readDensityLocks, updateDensityLock } from './postAdmission';
-import { protectedZoneAt } from './protectedZones';
+import { ensureZonesMeta, protectedZoneAt } from './protectedZones';
 import { assertAccountNotDeleting, postAvatarURL, requireActiveAccount } from './profileGuard';
 import { INVITE_REQUIRED, inviteGate } from './invites';
 import { placeAt } from './places';
@@ -147,6 +147,7 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
     created_at: FieldValue.serverTimestamp(),
     updated_at: FieldValue.serverTimestamp(),
   };
+  await ensureZonesMeta();
   const outcome = await withContentionGuard(() => db.runTransaction(async (tx) => {
     const profile = await requireActiveAccount(tx, caller.luid);
     const [existing, reclamation] = await Promise.all([

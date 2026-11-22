@@ -12,14 +12,23 @@ async function reconcileCollection(collection: 'posts' | 'profiles', fields: Cou
   if (typeof cursor === 'string' && cursor) query = query.startAfter(cursor);
   const page = await query.get();
   let repaired = 0;
-  const reconcile = (listed: FirebaseFirestore.QueryDocumentSnapshot) => db.runTransaction(async (tx) => {
-    const target = await tx.get(listed.ref);
+  const drift = async (tx: FirebaseFirestore.Transaction, ref: FirebaseFirestore.DocumentReference) => {
+    const target = await tx.get(ref);
     const next = await readCounterUpdate(tx, target, fields);
-    const fix = Object.fromEntries(Object.entries(next).filter(([field, value]) => target.get(field) !== value));
-    if (Object.keys(fix).length === 0) return false;
-    tx.update(target.ref, fix);
-    return true;
-  });
+    return { target, fix: Object.fromEntries(Object.entries(next).filter(([field, value]) => target.get(field) !== value)) };
+  };
+  // Nearly every row is already correct: check it in a read-only transaction (no locks on the row or
+  // its sources), and open a locking transaction only for the rows that actually need a repair.
+  const reconcile = async (listed: FirebaseFirestore.QueryDocumentSnapshot) => {
+    const check = await db.runTransaction(tx => drift(tx, listed.ref), { readOnly: true });
+    if (Object.keys(check.fix).length === 0) return false;
+    return db.runTransaction(async (tx) => {
+      const { target, fix } = await drift(tx, listed.ref);
+      if (Object.keys(fix).length === 0) return false;
+      tx.update(target.ref, fix);
+      return true;
+    });
+  };
   // Different documents never contend: a few transactions at a time instead of one after another.
   for (let start = 0; start < page.docs.length; start += RECONCILE_CONCURRENCY) {
     const settled = await Promise.allSettled(page.docs.slice(start, start + RECONCILE_CONCURRENCY).map(reconcile));

@@ -25,6 +25,8 @@ const BLOCKED_TERMS = [
 ];
 
 const TERMS = new Set(BLOCKED_TERMS.map(normalize));
+// Terms long enough to be matched inside a run of single letters ("f u c k"); computed once.
+const RUN_TERMS = [...TERMS].filter(term => term.length >= 4);
 
 function normalize(text: string): string {
   return text
@@ -52,7 +54,7 @@ export function containsBlockedTerm(text: string): boolean {
   let run = '';
   for (const word of [...words, 'end']) {
     if ([...word].length === 1) { run += word; }
-    else { if ([...TERMS].some(term => term.length >= 4 && run.includes(term))) { return true; } run = ''; }
+    else { if (run.length >= 4 && RUN_TERMS.some(term => run.includes(term))) { return true; } run = ''; }
   }
   return false;
 }

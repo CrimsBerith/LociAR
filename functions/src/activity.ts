@@ -15,7 +15,7 @@ export const markActivityRead = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, max
   const ids = [...new Set(data.activityIds as string[])];
   return db.runTransaction(async tx => {
     await assertAccountNotDeleting(tx, caller.luid);
-    const snapshots = await Promise.all(ids.map(id => activityForCaller(tx, id)));
+    const snapshots = await activitiesForCaller(tx, ids);
     const now = Timestamp.now();
     const activities: Array<{ id: string; readAt: string }> = [];
     for (const [index, snap] of snapshots.entries()) {
@@ -30,10 +30,21 @@ export const markActivityRead = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, max
   });
 });
 
-/** Direct id, or the act_ id stored on an older predictable document. */
-async function activityForCaller(tx: FirebaseFirestore.Transaction, id: string) {
-  const direct = await tx.get(db.collection('activity_events').doc(id));
-  if (direct.exists || !id.startsWith('act_')) return direct;
-  const found = await tx.get(db.collection('activity_events').where('public_ref', '==', id).limit(1));
-  return found.docs[0] ?? direct;
+/**
+ * Direct ids in one batched read; ids still missing that use the older predictable `act_` form are
+ * resolved through `public_ref` with `in` queries (30 values each) instead of one query per id.
+ */
+async function activitiesForCaller(tx: FirebaseFirestore.Transaction, ids: string[]) {
+  const events = db.collection('activity_events');
+  const direct = await tx.getAll(...ids.map(id => events.doc(id)));
+  const legacy = ids.filter((id, index) => !direct[index].exists && id.startsWith('act_'));
+  const byRef = new Map<string, FirebaseFirestore.DocumentSnapshot>();
+  const chunks: string[][] = [];
+  for (let i = 0; i < legacy.length; i += 30) chunks.push(legacy.slice(i, i + 30));
+  const pages = await Promise.all(chunks.map(chunk => tx.get(events.where('public_ref', 'in', chunk))));
+  for (const page of pages) for (const doc of page.docs) {
+    const ref = doc.get('public_ref');
+    if (typeof ref === 'string' && !byRef.has(ref)) byRef.set(ref, doc);
+  }
+  return ids.map((id, index) => direct[index].exists ? direct[index] : byRef.get(id) ?? direct[index]);
 }

@@ -38,7 +38,7 @@ export function supportSettings(data: Record<string, unknown> = {}): SupportSett
       && (cryptoProvider !== 'stripe' || stripeAllowed)
       && (environment === 'sandbox' || (merchantCountry !== 'TR' && data.crypto_approved === true
         && (cryptoProvider !== 'stripe' || merchantCountry === 'US' || data.stripe_crypto_preview_approved === true))),
-    appleId: Number(data.apple_id) || 0,
+    appleId: Number.isSafeInteger(data.apple_id) && Number(data.apple_id) > 0 ? Number(data.apple_id) : 0,
     // External iOS checkout is currently implemented only for the US App Store storefront.
     allowExternalIOS: enabled && data.external_ios_us_enabled === true,
     allowExternalWeb: enabled && data.external_web_enabled === true,
@@ -52,7 +52,7 @@ export function supportSettings(data: Record<string, unknown> = {}): SupportSett
           || !Number.isSafeInteger(offer.gross_milliunits) || Number(offer.gross_milliunits) < 1000
           || Number(offer.gross_milliunits) > 1_000_000_000 || Number(offer.gross_milliunits) % 10 !== 0) return [];
       return [{ productId: String(offer.product_id), currency: String(offer.currency), grossMilliunits: Number(offer.gross_milliunits) }];
-    }).slice(0, 3) : [],
+    }).filter((offer, index, all) => all.findIndex(other => other.productId === offer.productId) === index).slice(0, 3) : [],
     stripePrices: Object.fromEntries(Object.entries(prices).filter(([id, price]) =>
       SUPPORT_PRODUCT_IDS.some(product => product === id) && typeof price === 'string' && /^price_[a-zA-Z0-9]+$/.test(price))) as Record<string, string>,
   };

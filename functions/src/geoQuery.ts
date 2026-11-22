@@ -1,7 +1,7 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import { distanceMeters, geohashCoverPrefixes } from './geo';
 import { validCoordinates } from './placeNoteRules';
-import { forEachSequential, readPages } from './async';
+import { readPages } from './async';
 
 /** Complete, bounded range scans. A full page is never interpreted as an empty neighbourhood. */
 export async function geoCandidates(tx: FirebaseFirestore.Transaction, base: FirebaseFirestore.Query,
@@ -13,10 +13,12 @@ export async function geoCandidates(tx: FirebaseFirestore.Transaction, base: Fir
     : [base.where('lat', '>=', Math.max(-90, lat - delta)).where('lat', '<=', Math.min(90, lat + delta)).orderBy('lat').orderBy('__name__')];
   const found = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
   let scanned = 0;
-  await forEachSequential(ranges, async range => {
+  // Ranges are read in parallel (a 9-cell cover took nine sequential round trips). The shared budget is
+  // checked after every page, so a dense area still fails explicitly; the overshoot is at most one page per range.
+  await Promise.all(ranges.map(async range => {
     const pages = readPages(async (cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined) => {
       // One look-ahead record distinguishes exactly-budget complete scans from truncated ones.
-      const size = Math.min(250, budget - scanned + 1);
+      const size = Math.max(1, Math.min(250, budget - scanned + 1));
       const page = await tx.get((cursor ? range.startAfter(cursor) : range).limit(size));
       scanned += page.size;
       if (scanned > budget) throw new HttpsError('resource-exhausted', 'Location search is too dense; retry in a smaller area');
@@ -28,6 +30,7 @@ export async function geoCandidates(tx: FirebaseFirestore.Transaction, base: Fir
         if (validCoordinates(a, b) && distanceMeters(lat, lng, a, b) <= radius) found.set(doc.id, doc);
       }
     }
-  });
-  return [...found.values()];
+  }));
+  // Parallel ranges finish in any order; sort so callers see a stable sequence.
+  return [...found.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
