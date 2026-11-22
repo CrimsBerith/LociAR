@@ -1,11 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useT } from '../../I18nProvider';
 export default function AuthorPicker({value,onChange,disabled=false}:Readonly<{value:string;onChange:(id:string)=>void;disabled?:boolean}>){
   const t=useT();
   const [query,setQuery]=useState(value),[users,setUsers]=useState<Array<{id:string;handle:string;managed:boolean}>>([]),[message,setMessage]=useState('');
-  // A parent reset (value cleared after a successful post) clears the search box too.
-  useEffect(()=>{if(!value)setQuery('');},[value]);
+  // A parent reset (a selected value cleared after a successful post) clears the search box too.
+  // Only on that transition: on mount it would wipe text typed before hydration finished.
+  const previousValue=useRef(value);
+  useEffect(()=>{if(previousValue.current&&!value)setQuery('');previousValue.current=value;},[value]);
   useEffect(()=>{
     if(disabled||query.trim().length<2){setUsers([]);setMessage('');return;}
     const controller=new AbortController();
