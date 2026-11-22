@@ -23,8 +23,11 @@ async function runtimeServiceAccountEmail(): Promise<string> {
 async function signJwt(email: string, payload: object): Promise<string> {
   const client = await googleAuth.getClient();
   const url = `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(email)}:signJwt`;
-  const response = await client.request<{ signedJwt: string }>({ url, method: 'POST', data: { payload: JSON.stringify(payload) } });
-  return response.data.signedJwt;
+  // Bounded well inside the callable's 30 s, so the quota rollback below still runs when IAM hangs.
+  const response = await client.request<{ signedJwt?: unknown }>({ url, method: 'POST', data: { payload: JSON.stringify(payload) }, timeout: 10_000 });
+  const token = response.data?.signedJwt;
+  if (typeof token !== 'string' || token.split('.').length !== 3) throw new Error('IAM returned no signed JWT');
+  return token;
 }
 
 export const getArcoreToken = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 30 }, async (request) => {

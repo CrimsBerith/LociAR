@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { deleteAccountStorage } from '../lib/accountStorage.js';
 
+const OWNER = '22222222-2222-5222-8222-222222222222';
+
 test('large account Storage deletion stays paged and bounded while deleting across changing pages', async () => {
   const owner = '11111111-1111-5111-8111-111111111111';
   const names = new Set(Array.from({ length: 701 }, (_, i) => `post-world-maps/${owner}/draft/${i}.lociarmap`));
@@ -29,7 +31,7 @@ test('large account Storage deletion stays paged and bounded while deleting acro
 });
 
 test('a permanent Storage deletion failure is propagated and a later invocation clears surviving objects', async () => {
-  const names = new Set(['avatars/owner/current/a.jpg', 'avatars/owner/current/b.jpg']);
+  const names = new Set([`avatars/${OWNER}/current/a.jpg`, `avatars/${OWNER}/current/b.jpg`]);
   let fail = true;
   const io = {
     async list(prefix) {
@@ -41,22 +43,29 @@ test('a permanent Storage deletion failure is propagated and a later invocation 
       }));
     },
   };
-  await assert.rejects(deleteAccountStorage('owner/', () => {}, io), /Storage failure/);
-  assert.equal(names.has('avatars/owner/current/b.jpg'), true);
+  await assert.rejects(deleteAccountStorage(`${OWNER}/`, () => {}, io), /Storage failure/);
+  assert.equal(names.has(`avatars/${OWNER}/current/b.jpg`), true);
   fail = false;
-  assert.equal(await deleteAccountStorage('owner/', () => {}, io), 1);
+  assert.equal(await deleteAccountStorage(`${OWNER}/`, () => {}, io), 1);
   assert.equal(names.size, 0);
 });
 
 test('budget exhaustion and a mismatched Storage listing stop before unsafe deletes', async () => {
   let listings = 0;
-  await assert.rejects(deleteAccountStorage('owner/', () => { throw new Error('budget exhausted'); }, {
+  await assert.rejects(deleteAccountStorage(`${OWNER}/`, () => { throw new Error('budget exhausted'); }, {
     async list() { listings++; return []; },
   }), /budget exhausted/);
   assert.equal(listings, 0);
   let deletes = 0;
-  await assert.rejects(deleteAccountStorage('owner/', () => {}, {
+  await assert.rejects(deleteAccountStorage(`${OWNER}/`, () => {}, {
     async list() { return [{ name: 'avatars/other-owner/file.jpg', async delete() { deletes++; } }]; },
   }), /Unexpected Storage prefix/);
   assert.equal(deletes, 0);
+});
+
+test('Storage deletion refuses any prefix that is not an account or one of its posts', async () => {
+  const io = { list: async () => { throw new Error('listed'); } };
+  for (const prefix of ['', '/', 'owner/', `${OWNER}`, `${OWNER}/x/`, `../${OWNER}/`, `${OWNER}/${OWNER}/${OWNER}/`]) {
+    await assert.rejects(deleteAccountStorage(prefix, () => {}, io), /Invalid Storage deletion prefix/, JSON.stringify(prefix));
+  }
 });

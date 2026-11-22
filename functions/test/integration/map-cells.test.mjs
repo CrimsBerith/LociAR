@@ -5,7 +5,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { adminDb, closeClients, newUser } from './_harness.mjs';
 import { encodeGeohash } from '../../lib/geo.js';
-const { syncMapCell, mapCellPlacement, MAP_CELL_PRECISION } = await import('../../lib/mapCells.js');
+const { syncMapCell, mapCellPlacement, MAP_CELL_PRECISION, MAP_CELLS_VERSION } = await import('../../lib/mapCells.js');
 
 after(closeClients);
 const flags = adminDb.collection('system').doc('geo_queries');
@@ -44,7 +44,7 @@ async function settled(refs) {
 async function both(viewer, payload) {
   await flags.set({ map_cells_version: FieldValue.delete() }, { merge: true });
   const scan = await viewer.call('readPublicContent', payload);
-  await flags.set({ map_cells_version: 1 }, { merge: true });
+  await flags.set({ map_cells_version: MAP_CELLS_VERSION }, { merge: true });
   const index = await viewer.call('readPublicContent', payload);
   return { scan, index };
 }

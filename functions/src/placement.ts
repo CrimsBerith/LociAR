@@ -106,6 +106,7 @@ function isValidPose(pose: CreatePostBody['pose'] | undefined): boolean {
     && typeof pose.latitude === 'number'
     && typeof pose.longitude === 'number'
     && typeof pose.heading === 'number'
+    && (pose.accuracy == null || Number.isFinite(pose.accuracy) && pose.accuracy >= 0)
     && Math.abs(pose.latitude) <= 90
     && Math.abs(pose.longitude) <= 180
     && pose.heading >= 0
@@ -113,8 +114,8 @@ function isValidPose(pose: CreatePostBody['pose'] | undefined): boolean {
   if (!validBase) return false;
   if (!pose.anchor) return true;
   const a = pose.anchor;
-  return typeof a.x === 'number' && typeof a.y === 'number' && typeof a.z === 'number'
-    && typeof a.yaw === 'number' && typeof a.pitch === 'number' && typeof a.roll === 'number'
+  // Infinity and NaN pass `typeof === 'number'` and would be stored and rendered, so require finite numbers.
+  return [a.x, a.y, a.z, a.yaw, a.pitch, a.roll].every(value => typeof value === 'number' && Number.isFinite(value))
     && typeof a.capturedAt === 'string';
 }
 
@@ -184,7 +185,12 @@ function layerShapeError(layers: unknown[]): string | null {
     // The id is stored with the post and read back by clients: a short string (the app sends a UUID).
     if (layer.id != null && (typeof layer.id !== 'string' || layer.id.length > 64)) return 'Invalid edit layer';
     if (invalidLayerColor(layer.color)) return 'Invalid layer color';
-    if (typeof layer.text === 'string' && layer.text.length > MAX_LAYER_TEXT) return 'Layer text is too long';
+    // `content` and `title` are read as text too (layerTexts), so they share the limit and must be strings.
+    for (const key of ['text', 'content', 'title'] as const) {
+      const value = layer[key];
+      if (value != null && typeof value !== 'string') return 'Invalid edit layer';
+      if (typeof value === 'string' && value.length > MAX_LAYER_TEXT) return 'Layer text is too long';
+    }
     if (String(layer.type ?? layer.kind) !== 'drawing' || layer.points == null) continue;
     const points = layer.points;
     if (!Array.isArray(points) || points.length > MAX_POINTS_PER_DRAWING) return 'Invalid drawing';
@@ -289,7 +295,8 @@ function hasValidPersistentResolver(anchor: PoseAnchor | undefined, worldMapObje
   const persistence = anchor?.persistence;
   if (!anchor?.nativeAnchorId || !persistence || persistence.version !== 1) return false;
   if (String(persistence.originalNativeAnchorId).toLowerCase() !== anchor.nativeAnchorId.toLowerCase()) return false;
-  if (persistence.expiresAt && Date.parse(persistence.expiresAt) <= Date.now()) return false;
+  // An unparsable date is NaN, which compares false: treat it as expired rather than as "never".
+  if (persistence.expiresAt && !(Date.parse(persistence.expiresAt) > Date.now())) return false;
   const validCloudAnchor = persistence.kind === 'arcore_cloud_anchor'
     && typeof persistence.cloudAnchorId === 'string' && CLOUD_ANCHOR_ID.test(persistence.cloudAnchorId);
   // iOS pins live in ARKit world space; they persist either as a world map or as a Cloud Anchor.

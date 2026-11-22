@@ -23,10 +23,15 @@ const RECEIPT_FLAG_TTL_MS = 10 * 60_000;
 let receiptFlag: { value: boolean; readAt: number } | null = null;
 async function receiptsAuthoritative(now = Date.now()): Promise<boolean> {
   if (receiptFlag && now - receiptFlag.readAt < RECEIPT_FLAG_TTL_MS) return receiptFlag.value;
-  const value = await db.collection('system').doc('report_receipts').get()
-    .then(snap => snap.get('complete') === true).catch(() => false);
-  receiptFlag = { value, readAt: now };
-  return value;
+  try {
+    const value = (await db.collection('system').doc('report_receipts').get()).get('complete') === true;
+    receiptFlag = { value, readAt: now };
+    return value;
+  } catch {
+    // The flag scan is always correct, so a failed read falls back for this request only and is not
+    // cached: caching it would keep a healthy instance on the costly path for ten minutes.
+    return false;
+  }
 }
 
 /** Posts the viewer has reported, in one batched read once receipts are authoritative. */

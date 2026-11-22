@@ -13,7 +13,7 @@ const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/arcore.m
 const disabled = () => process.env.FUNCTIONS_EMULATOR === 'true' || process.env.ARCORE_MANAGEMENT_DISABLED === 'true';
 
 /** Minimal client surface so tests can stub the Management API (no real Google calls in CI). */
-export type ManagementClient = { request<T = unknown>(options: { url: string; method: string }): Promise<{ data: T }> };
+export type ManagementClient = { request<T = unknown>(options: { url: string; method: string; timeout?: number }): Promise<{ data: T }> };
 export type ManagementDeps = { getClient?: () => Promise<ManagementClient> };
 const realClient = async (): Promise<ManagementClient> => (await auth.getClient()) as unknown as ManagementClient;
 
@@ -28,7 +28,7 @@ export async function deleteCloudAnchorDetailed(anchorId: string | null | undefi
   if (disabled()) return { ok: false, skipped: true, error: 'management_disabled' };
   try {
     const client = await (deps.getClient ?? realClient)();
-    await client.request({ url: `${API}/${encodeURIComponent(anchorId)}`, method: 'DELETE' });
+    await client.request({ url: `${API}/${encodeURIComponent(anchorId)}`, method: 'DELETE', timeout: 15_000 });
     return { ok: true, status: 200 };
   } catch (error) {
     const status = (error as { response?: { status?: number } }).response?.status;
@@ -58,7 +58,7 @@ export async function listCloudAnchors(pageToken?: string, deps: ManagementDeps 
   if (pageToken) params.set('next_page_token', pageToken);
   let response: { data: { anchors?: Array<{ name?: string; createTime?: string }>; nextPageToken?: string } };
   try {
-    response = await client.request({ url: `${API}?${params.toString()}`, method: 'GET' });
+    response = await client.request({ url: `${API}?${params.toString()}`, method: 'GET', timeout: 15_000 });
   } catch (error) {
     // Google's own status and message (no user data) make the next failure diagnosable from the logs.
     const detail = (error as { response?: { status?: number; data?: { error?: { status?: string; message?: string } } } }).response;

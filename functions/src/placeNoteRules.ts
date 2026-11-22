@@ -205,6 +205,10 @@ export function geohashesInBox(box: Box, precision: number, limit: number): stri
   const bits = precision * 5;
   const cellLat = 180 / 2 ** Math.floor(bits / 2), cellLng = 360 / 2 ** Math.ceil(bits / 2);
   // Sampling every cell height/width plus the far edge visits each row and column once.
+  // Count the samples before building them: a world-sized box at a fine precision would otherwise
+  // allocate hundreds of thousands of numbers only to be rejected.
+  const count = (min: number, max: number, size: number) => Math.max(0, Math.ceil((max - min) / size)) + 1;
+  if (count(box.minLat, box.maxLat, cellLat) * count(box.minLng, box.maxLng, cellLng) > 4 * limit) return null;
   const steps = (min: number, max: number, size: number) => {
     const values: number[] = [];
     for (let v = min; v < max; v += size) values.push(v);

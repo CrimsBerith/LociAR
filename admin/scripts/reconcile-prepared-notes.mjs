@@ -55,7 +55,7 @@ const unexpected=actualBatch.docs.filter(d=>!newById.has(d.id)).map(d=>d.id);
 const flags=await db.collection('system').doc('geo_queries').get();
 const report={checked_at:new Date().toISOString(),mode:opts.pilot?'pilot':'full',expected:expected.length,matched:expected.length-new Set(issues.map(x=>x.id)).size,issues,index_issues:indexIssues,unexpected_batch_ids:unexpected,map_cells_version:flags.get('map_cells_version')??null,
  payload_sha256:createHash('sha256').update(readFileSync(childPath(folder,'new-note-payload.json'))).digest('hex'),
- complete:issues.length===0&&indexIssues.length===0&&unexpected.length===0&&flags.get('map_cells_version')===1&&(!opts.pilot?actualBatch.size===1260:true),post_writes:0};
+ complete:issues.length===0&&indexIssues.length===0&&unexpected.length===0&&flags.get('map_cells_version')===2&&(!opts.pilot?actualBatch.size===1260:true),post_writes:0};
 writeFileSync(childPath(folder,opts.pilot?'pilot-reconciliation.json':'full-reconciliation.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});
 console.log(JSON.stringify({mode:report.mode,expected:report.expected,issues:issues.length,index_issues:indexIssues.length,unexpected:unexpected.length,complete:report.complete,post_writes:0}));
 process.exit(report.complete ? 0 : 1);

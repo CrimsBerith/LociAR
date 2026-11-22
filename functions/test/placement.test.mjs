@@ -157,6 +157,15 @@ test('iOS pins can persist as a Google Cloud Anchor; geospatial poses are valida
   const expired = structuredClone(body);
   expired.pose.anchor.persistence.expiresAt = new Date(Date.now() - 1000).toISOString();
   assert.equal((await evaluatePlacement(expired, luid, async () => false)).hasPersistentResolver, false);
+  const garbled = structuredClone(body);
+  garbled.pose.anchor.persistence.expiresAt = 'not a date';
+  assert.equal((await evaluatePlacement(garbled, luid, async () => false)).hasPersistentResolver, false, 'an unparsable expiry is not "never"');
+  const infinite = structuredClone(body);
+  infinite.pose.anchor.x = Infinity;
+  assert.equal(validateCreatePostBody(infinite), 'Invalid pose');
+  const negative = structuredClone(body);
+  negative.pose.accuracy = -5;
+  assert.equal(validateCreatePostBody(negative), 'Invalid pose');
 });
 
 test('surfaceTextureUri is rejected', () => {
@@ -208,4 +217,9 @@ test('layer shape limits', () => {
   assert.equal(validateCreatePostBody(withLayers([{ id: { nested: true }, type: 'text', text: 'x' }])), 'Invalid edit layer');
   assert.equal(validateCreatePostBody(withLayers([{ id: 'x'.repeat(65), type: 'text', text: 'x' }])), 'Invalid edit layer');
   assert.equal(validateCreatePostBody(withLayers([{ id: 'x'.repeat(64), type: 'text', text: 'x' }])), null);
+  for (const key of ['content', 'title']) {
+    assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'x', [key]: 'a'.repeat(1001) }])), 'Layer text is too long', key);
+    assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 'x', [key]: 42 }])), 'Invalid edit layer', key);
+  }
+  assert.equal(validateCreatePostBody(withLayers([{ id: 't', type: 'text', text: 42 }])), 'Invalid edit layer');
 });

@@ -64,7 +64,8 @@ service cloud.firestore {
       allow create, delete: if false;
       // Handles change only through the updateHandle callable (uniqueness); photo avatars are set
       // only by the moderation function. The owner may pick a preset or remove the photo.
-      allow update: if mayWrite() && me() == luid
+      // A suspended account keeps read access but cannot change what others see on its profile.
+      allow update: if mayWrite() && me() == luid && resource.data.get('suspended', false) != true
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['avatar_url', 'avatar_preset', 'bio', 'display_name', 'updated_at'])
         && request.resource.data.updated_at == request.time

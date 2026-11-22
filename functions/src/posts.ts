@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { logger } from 'firebase-functions/v2';
 import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import {
   analyticsEventDoc, bucket, db, CALLABLE_MAX_INSTANCES, deleteStoragePrefix, ENFORCE_APP_CHECK, FieldValue, HttpsError, isUUID,
@@ -22,6 +23,20 @@ async function storageObjectExists(path: string | null): Promise<boolean> {
   if (!path) return false;
   const [exists] = await bucket().file(path).exists();
   return exists;
+}
+
+/**
+ * Storage rules let a draft owner upload map files under the post folder until it is committed, but only
+ * one is published. Remove the others once the post exists so a draft cannot leave unbounded geometry behind.
+ * Best effort: the post is already live, and a later post deletion clears the whole folder anyway.
+ */
+async function pruneUnusedWorldMaps(luid: string, postId: string, keep: string | null): Promise<void> {
+  try {
+    const [files] = await bucket().getFiles({ prefix: `post-world-maps/${luid}/${postId}/`, autoPaginate: false, maxResults: 50 });
+    await Promise.all(files.filter(file => file.name !== keep).map(file => file.delete({ ignoreNotFound: true })));
+  } catch (error) {
+    logger.warn('world_map_prune_failed', { code: (error as { code?: unknown })?.code ?? 'unknown' });
+  }
 }
 
 function serializePost(id: string, data: FirebaseFirestore.DocumentData) {
@@ -192,12 +207,13 @@ export async function createPostHandler(request: CallableRequest<CreatePostBody>
         multiUserReady: placement.hasPersistentResolver,
       }, lat, lng,
     }));
-    return { kind: 'created' as const };
+    return { kind: 'created' as const, mapDraft: reclamation.exists };
   }, { maxAttempts: 10 }));
   if (outcome.kind === 'replay') return { post: outcome.post, publishStatus: outcome.publishStatus, idempotentReplay: true };
   if (outcome.kind === 'protected') throw reasonError('permission-denied', `Creation is blocked in protected zone: ${outcome.zoneName}`, 'protected_zone');
   if (outcome.kind === 'limited') throw reasonError('resource-exhausted', 'Creation limit reached for this area or account', 'rate_limited');
 
+  if (outcome.mapDraft) await pruneUnusedWorldMaps(caller.luid, postId, worldMapPath);
   return { post: serializePost(postId, document), publishStatus, idempotentReplay: false };
 }
 

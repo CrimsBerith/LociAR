@@ -12,7 +12,7 @@ const NEW_POST = '44444444-4444-4444-8444-444444444444';
 const OWN_POST = '55555555-5555-4555-8555-555555555555';
 const AVATAR_SLOT = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
-const mapPath = `post-world-maps/${ALICE}/${OLD_POST}/existing.lociarmap`;
+const mapPath = `post-world-maps/${ALICE}/${OLD_POST}/d4d4d4d4-4444-4444-8444-444444444444.lociarmap`;
 const legacyPaths = [
   `post-layer-assets/${ALICE}/old/image.jpg`,
   `post-video-assets/${ALICE}/old/video.mp4`,
@@ -109,7 +109,7 @@ const surfaces = {
     () => setDoc(doc(aliceDb(), 'moderation_flags', 'new-report'), { post_id: NEW_POST, user_id: ALICE, reason: 'spam', status: 'open', metadata: { source: 'native_ios' }, created_at: serverTimestamp() }),
   ],
   'world-map creation, updates and deletion': () => [
-    () => uploadBytes(ref(aliceStorage(), `post-world-maps/${ALICE}/${NEW_POST}/new.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }),
+    () => uploadBytes(ref(aliceStorage(), `post-world-maps/${ALICE}/${NEW_POST}/c3c3c3c3-3333-4333-8333-333333333333.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }),
     () => uploadBytes(ref(aliceStorage(), mapPath), jpeg, { contentType: 'application/x-lociarmap' }),
     () => deleteObject(ref(aliceStorage(), mapPath)),
   ],

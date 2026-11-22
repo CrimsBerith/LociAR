@@ -81,7 +81,7 @@ test('AR includes nearby own pending content beyond the public page and excludes
   const flags = db.collection('system').doc('geo_queries');
   const prior = (await flags.get()).get('map_cells_version');
   try {
-    for (const version of [0, 1]) {
+    for (const version of [0, 2]) {
       await flags.set({ map_cells_version: version }, { merge: true });
       const legacy = await v.call(base);
       assert.equal(legacy.posts.length, 100); assert.equal(legacy.posts.some(p => p.id === own), false);

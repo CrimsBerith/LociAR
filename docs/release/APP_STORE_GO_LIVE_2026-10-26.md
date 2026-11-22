@@ -100,7 +100,7 @@ inceleme notları ve rehber güncellendi. Yapılacaklar:
    emekli zamanlayıcı yok). Ayrıca kimliksiz POST ile `createInvites`, `redeemInvite`, `markActivityRead`,
    `unlockDenseSpot` 401 dönmeli, 403 değil (18 Ekim'deki IAM sorunu).
 5. Admin → Bakım görevleri → "Map index repair" (`map_cells`) → şimdi çalıştır. Tam tur bitince harita dizini
-   kendiliğinden açılır (`system/geo_queries.map_cells_version = 1`); o zamana kadar harita eski tarama yoluyla
+   kendiliğinden açılır (`system/geo_queries.map_cells_version = 2`); o zamana kadar harita eski tarama yoluyla
    çalışır (daha pahalı ama doğru).
 
 ## 5. İnceleme hesabı ve açılış içeriği (~20 dk)

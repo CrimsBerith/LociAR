@@ -31,14 +31,17 @@ before(async () => {
 after(async () => env?.cleanup());
 const as = (luid) => env.authenticatedContext(`uid-${luid}`, { luid }).storage();
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+const ANCHOR = 'a1a1a1a1-1111-4111-8111-111111111111', OTHER_ANCHOR = 'b2b2b2b2-2222-4222-8222-222222222222';
 
 test('owners upload into their own draft only and committed maps are immutable', async () => {
   await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(),'storage_reclamations',ACTIVE),{creator_id:ALICE,state:'draft'}); });
-  await assertSucceeds(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
-  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`), new Uint8Array([1,2,3,4]), { contentType: 'application/x-lociarmap' }), 'a draft object is create-only too');
+  await assertSucceeds(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/${ANCHOR}.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/${ANCHOR}.lociarmap`), new Uint8Array([1,2,3,4]), { contentType: 'application/x-lociarmap' }), 'a draft object is create-only too');
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }), 'map files are named by anchor UUID');
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/${OTHER_ANCHOR}.lociarmap`), new Uint8Array(), { contentType: 'application/x-lociarmap' }), 'empty maps are refused');
   await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(),'storage_reclamations',ACTIVE),{creator_id:ALICE,state:'committed',world_map_path:`post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`,public_readable:true}); });
-  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/another.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }), 'publishing freezes new map uploads');
-  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${BOB}/${ACTIVE}/anchor.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/${OTHER_ANCHOR}.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }), 'publishing freezes new map uploads');
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${BOB}/${ACTIVE}/${ANCHOR}.lociarmap`), jpeg, { contentType: 'application/x-lociarmap' }));
   await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/anchor.exe`), jpeg, { contentType: 'application/octet-stream' }));
 });
 
@@ -160,5 +163,5 @@ test('camera reference frames can no longer be uploaded or read', async () => {
 
 test('world maps are capped at 20 MB (compressed)', async () => {
   const big = new Uint8Array(20 * 1024 * 1024 + 1);
-  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/anchor.lociarmap`), big, { contentType: 'application/x-lociarmap' }));
+  await assertFails(uploadBytes(ref(as(ALICE), `post-world-maps/${ALICE}/${ACTIVE}/${ANCHOR}.lociarmap`), big, { contentType: 'application/x-lociarmap' }));
 });

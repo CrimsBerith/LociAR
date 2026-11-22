@@ -24,6 +24,8 @@ test('public edit data drops legacy media and hidden owner metadata while preser
   assert.equal(projected.layers[2].gifSlug, 'happy-cat');
   assert.equal(projected.layers[2].gifId, undefined);
   assert.equal(source.layers.length, 4, 'projection never mutates the server source');
+  const mistyped = publicEditData({ layers: [{ type: 'text', id: 7, text: 42, color: 1, x: '3', fontSize: 18 }] });
+  assert.deepEqual(mistyped.layers[0], { type: 'text', fontSize: 18 }, 'fields keep the type the app decodes');
 });
 test('each anonymous post exposes its own alias, never the author account or handle', () => {
   assert.deepEqual(anonymousIdentity('post-a', 'secret-owner', 'viewer', true), { creator_id: 'post-a', creator_handle: null, is_anonymous: true });

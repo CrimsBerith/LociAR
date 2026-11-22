@@ -269,6 +269,10 @@ test('suspended accounts cannot interact or bypass the server report path', asyn
   await assertFails(setDoc(doc(db, 'likes', `${POST}_${CAROL}`), { post_id: POST, user_id: CAROL, created_at: serverTimestamp() }));
   await assertFails(setDoc(doc(db, 'follows', `${CAROL}_${BOB}`), { follower_id: CAROL, following_id: BOB, created_at: serverTimestamp() }));
   await assertFails(setDoc(doc(db, 'moderation_flags', 'r-s'), { post_id: POST, user_id: CAROL, reason: 'spam', status: 'open', metadata: {}, created_at: serverTimestamp() }));
+  // Profile text and avatar are public: a suspension freezes them until moderation lifts it.
+  await assertFails(updateDoc(doc(db, 'profiles', CAROL), { bio: 'still here', updated_at: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db, 'profiles', CAROL), { avatar_preset: 'cat', updated_at: serverTimestamp() }));
+  await assertSucceeds(getDoc(doc(db, 'profiles', CAROL)), 'reads stay available');
 });
 
 test('blocked users cannot comment, like or follow the blocker', async () => {

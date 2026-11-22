@@ -137,8 +137,18 @@ export async function logEvent(event: AnalyticsEvent): Promise<void> {
 
 export const ANALYTICS_RETENTION_DAYS = 180;
 
+/**
+ * Storage deletion prefixes are always an account (`<luid>/`) or one of its posts (`<luid>/<postId>/`).
+ * Anything else — an empty string above all, which would match every object of a folder — is a bug.
+ */
+export function assertOwnerPrefix(prefix: string): void {
+  const parts = typeof prefix === 'string' && prefix.endsWith('/') ? prefix.slice(0, -1).split('/') : [];
+  if (parts.length < 1 || parts.length > 2 || !parts.every(isUUID)) throw new Error('Invalid Storage deletion prefix');
+}
+
 /** Deletes every object under `<folder>/<prefix>` for each LociAR storage folder. */
 export async function deleteStoragePrefix(prefix: string): Promise<number> {
+  assertOwnerPrefix(prefix);
   let removed = 0;
   await forEachSequential(STORAGE_FOLDERS, async (folder) => {
     removed += await deletePagedStorageFiles(async pageToken => {

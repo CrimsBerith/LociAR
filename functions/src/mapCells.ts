@@ -11,8 +11,13 @@ import { validCoordinates } from './placeNoteRules';
  * so its cost no longer grows with how many posts the city has. Bodies are read only for the rows a
  * reply returns. The trigger keeps cells current (onPostDensityWritten → syncMapCell); the nightly
  * `map_cells` maintenance task repairs drift and, after its first full post/member passes, switches readers on
- * (`system/geo_queries.map_cells_version = 1`). Clients can never read these collections.
+ * (`system/geo_queries.map_cells_version = MAP_CELLS_VERSION`). Clients can never read these collections.
+ *
+ * Version 2 added the location-note marker. Cells written by version 1 hold location notes as five-field
+ * entries, which would count as AR posts, so readers keep the post scan until a full version-2 pass has
+ * rewritten every entry.
  */
+export const MAP_CELLS_VERSION = 2;
 export const MAP_CELL_PRECISION = 6;
 /** Larger areas keep the bounded range scan; the app asks for at most 2 km (map groups). */
 export const MAP_CELL_MAX_RADIUS_M = 2_000;
@@ -84,7 +89,10 @@ const GEO_FLAGS = () => db.collection('system').doc('geo_queries');
  * at most 1,000 of each per run. Readers switch on after both scans have completed a full pass.
  */
 export async function reconcileMapCells(pageSize = 1_000) {
-  const state = await CELL_STATE().get();
+  const snapshot = await CELL_STATE().get();
+  // A pass started under an older entry format does not prove the current format: restart both scans.
+  const current = snapshot.get('pass_version') === MAP_CELLS_VERSION;
+  const state = { get: (field: string) => current ? snapshot.get(field) : undefined };
   const cursor = state.get('cursor');
   let query = db.collection('posts').orderBy('__name__').select().limit(pageSize);
   if (typeof cursor === 'string' && cursor) query = query.startAfter(cursor);
@@ -100,12 +108,13 @@ export async function reconcileMapCells(pageSize = 1_000) {
   for (const member of members.docs) await syncMapCell(member.id);
   const membersFinished = members.size < pageSize;
   await CELL_STATE().set({ cursor: finished ? null : page.docs.at(-1)!.id, updated_at: FieldValue.serverTimestamp(),
-    member_cursor: membersFinished ? null : members.docs.at(-1)!.id,
+    member_cursor: membersFinished ? null : members.docs.at(-1)!.id, pass_version: MAP_CELLS_VERSION,
+    ...(current ? {} : { last_full_pass_at: FieldValue.delete(), last_member_pass_at: FieldValue.delete() }),
     ...(finished ? { last_full_pass_at: FieldValue.serverTimestamp() } : {}),
     ...(membersFinished ? { last_member_pass_at: FieldValue.serverTimestamp() } : {}) }, { merge: true });
   if ((finished || state.get('last_full_pass_at')) && (membersFinished || state.get('last_member_pass_at'))
-    && (await GEO_FLAGS().get()).get('map_cells_version') !== 1) {
-    await GEO_FLAGS().set({ map_cells_version: 1, map_cells_enabled_at: FieldValue.serverTimestamp() }, { merge: true });
+    && (await GEO_FLAGS().get()).get('map_cells_version') !== MAP_CELLS_VERSION) {
+    await GEO_FLAGS().set({ map_cells_version: MAP_CELLS_VERSION, map_cells_enabled_at: FieldValue.serverTimestamp() }, { merge: true });
   }
   return { checked: page.size, finished: finished ? 1 : 0, membersChecked: members.size };
 }
@@ -114,7 +123,7 @@ let flagCache: { enabled: boolean; until: number } | null = null;
 /** Whether readers may use the index; cached for a minute per instance (one read instead of one per request). */
 export async function mapCellsEnabled(now = Date.now()): Promise<boolean> {
   if (flagCache && flagCache.until > now) return flagCache.enabled;
-  const enabled = (await GEO_FLAGS().get()).get('map_cells_version') === 1;
+  const enabled = (await GEO_FLAGS().get()).get('map_cells_version') === MAP_CELLS_VERSION;
   flagCache = { enabled, until: now + (process.env.FUNCTIONS_EMULATOR === 'true' ? 0 : 60_000) };
   return enabled;
 }

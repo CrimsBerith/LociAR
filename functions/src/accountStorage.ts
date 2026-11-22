@@ -1,4 +1,4 @@
-import { bucket, STORAGE_FOLDERS } from './core';
+import { assertOwnerPrefix, bucket, STORAGE_FOLDERS } from './core';
 
 type StorageObject = { name: string; delete: () => Promise<unknown> };
 export type AccountStorageIO = {
@@ -13,6 +13,7 @@ const storageIO: AccountStorageIO = {
 
 /** Re-list the first surviving page after deleting it: deleting objects cannot shift a bookmark. */
 export async function deleteAccountStorage(prefix: string, checkBudget: () => void = () => {}, io: AccountStorageIO = storageIO): Promise<number> {
+  assertOwnerPrefix(prefix);
   let removed = 0;
   for (const folder of STORAGE_FOLDERS) {
     const fullPrefix = `${folder}/${prefix}`;

@@ -43,7 +43,9 @@ service firebase.storage {
     }
     match /post-world-maps/{luid}/{postId}/{file} {
       allow read: if signedIn() && uuid(postId) && mapAccess(postId, luid, file);
-      allow create: if resource == null && activeOwner(luid) && uuid(postId) && draftNotReclaimed(postId) && under(20) && file.matches('.*\\.lociarmap')
+      // One file per anchor (`<anchorId>.lociarmap`); createPost removes the unpublished ones.
+      allow create: if resource == null && activeOwner(luid) && uuid(postId) && draftNotReclaimed(postId) && under(20)
+        && request.resource.size > 0 && file.matches('[0-9a-fA-F-]{36}\\.lociarmap')
         && request.resource.contentType == 'application/x-lociarmap';
       allow update: if false;
       allow delete: if activeOwner(luid) && draftNotReclaimed(postId);

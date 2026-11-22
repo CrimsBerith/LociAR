@@ -29,18 +29,20 @@ export function anonymousIdentity(postId: string, creatorId: string, viewerId: s
 /** Public content has no legacy media locators or arbitrary metadata containing owner folders. */
 export function publicEditData(value: unknown): Record<string, unknown> {
   const data = value && typeof value === 'object' ? value as Record<string, unknown> : {};
-  const layers = Array.isArray(data.layers) ? data.layers : [];
-  const keys = ['id', 'type', 'text', 'color', 'opacity', 'scale', 'rotation', 'points', 'provider', 'gifSlug', 'width', 'height',
-    'x', 'y', 'zIndex', 'strokeWidth', 'fontSize'];
+  // createPost now allows 20 layers; the bound leaves room for older posts while capping the projection.
+  const layers = Array.isArray(data.layers) ? data.layers.slice(0, 100) : [];
+  // Each key keeps one type: a number in a text field (or the reverse) would fail the app's decoder.
+  const stringKeys = ['id', 'text', 'color', 'provider', 'gifSlug'];
+  const numberKeys = ['opacity', 'scale', 'rotation', 'width', 'height', 'x', 'y', 'zIndex', 'strokeWidth', 'fontSize'];
   const safe = layers.flatMap(raw => {
     if (!raw || typeof raw !== 'object') return [];
     const layer = raw as Record<string, unknown>, type = layer.type ?? layer.kind;
     if (!['text', 'gif', 'drawing'].includes(String(type))) return [];
     const cleaned: Record<string, unknown> = { type };
-    for (const key of keys) {
+    for (const key of stringKeys) if (typeof layer[key] === 'string') cleaned[key] = layer[key];
+    for (const key of numberKeys) {
       const item = layer[key];
-      if ((['id', 'text', 'color', 'provider', 'gifSlug'].includes(key) && typeof item === 'string')
-          || (typeof item === 'number' && Number.isFinite(item))) cleaned[key] = item;
+      if (typeof item === 'number' && Number.isFinite(item)) cleaned[key] = item;
     }
     if (Array.isArray(layer.points)) cleaned.points = layer.points.slice(0, 2000).flatMap(point => {
       if (!point || typeof point !== 'object') return [];
