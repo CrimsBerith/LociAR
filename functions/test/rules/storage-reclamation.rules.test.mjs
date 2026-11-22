@@ -21,6 +21,7 @@ before(async () => {
 });
 after(async () => env?.cleanup());
 const owner = () => env.authenticatedContext('reclamation-owner', { luid: OWNER });
+const ANCHOR = 'f1f1f1f1-1111-4111-8111-111111111111'; // map files are named by anchor UUID
 const upload = (storage, name) => uploadBytes(ref(storage, name), bytes, { contentType: 'application/x-lociarmap' });
 
 test('anonymous public geometry stays owner-only at its real account path', async () => {
@@ -44,13 +45,13 @@ test('pending and reclaimed draft claims block new and replacement maps, includi
       await setDoc(doc(ctx.firestore(), 'storage_reclamations', POST), { creator_id: OWNER, state });
     });
     await assertFails(upload(owner().storage(), path));
-    await assertFails(upload(owner().storage(), `post-world-maps/${OWNER}/${POST}/new.lociarmap`));
+    await assertFails(upload(owner().storage(), `post-world-maps/${OWNER}/${POST}/${ANCHOR}.lociarmap`));
     await assertFails(getBytes(ref(owner().storage(), path)), 'reclaimed geometry is no longer accessible');
   }
   await env.withSecurityRulesDisabled(async (ctx) => { await deleteDoc(doc(ctx.firestore(), 'storage_reclamations', POST)); });
   await assertFails(upload(owner().storage(), path), 'missing admission never reopens an expired upload');
   await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(),'storage_reclamations',POST),{creator_id:OWNER,state:'draft'}); });
-  await assertSucceeds(upload(owner().storage(), `post-world-maps/${OWNER}/${POST}/fresh.lociarmap`), 'an admitted draft can create a fresh immutable map');
+  await assertSucceeds(upload(owner().storage(), `post-world-maps/${OWNER}/${POST}/${ANCHOR}.lociarmap`), 'an admitted draft can create a fresh immutable map');
 });
 
 test('clients cannot create or clear storage reclamation claims or jobs', async () => {
