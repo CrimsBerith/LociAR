@@ -47,12 +47,13 @@ trap cleanup EXIT
 
 # 2) Emulators. Reuse only if the PHONE can reach them (bound to 0.0.0.0, see firebase.json);
 #    occupied ports are reported without stopping another project's services.
-if curl -sf "http://$LAN_IP:9099/emulator/v1/projects/$PROJECT_ID/config" >/dev/null 2>&1; then
-  STATUS="$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"data":{}}' "http://$LAN_IP:5001/$PROJECT_ID/us-central1/readPlaceNoteRegions")"
+if curl -sf --max-time 5 "http://$LAN_IP:9099/emulator/v1/projects/$PROJECT_ID/config" >/dev/null 2>&1; then
+  STATUS="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"data":{}}' "http://$LAN_IP:5001/$PROJECT_ID/us-central1/readPlaceNoteRegions")"
   [ "$STATUS" = 401 ] || { log "HATA: mevcut Functions emulator demo-lociar projesine ait değil"; exit 1; }
   log "Emulator zaten calisiyor (LAN'dan erisilebilir)."
 else
-  if curl -sf "http://$AUTH/emulator/v1/projects/$PROJECT_ID/config" >/dev/null 2>&1; then
+  # $AUTH is the LAN address by now; a loopback-only emulator answers on 127.0.0.1 alone.
+  if curl -sf --max-time 5 "http://127.0.0.1:9099/emulator/v1/projects/$PROJECT_ID/config" >/dev/null 2>&1; then
     log "HATA: mevcut emulator yalnız 127.0.0.1'de. Sahibinden durdurmasını isteyin."
     exit 1
   fi
@@ -71,11 +72,11 @@ else
     --project "$PROJECT_ID" > "$ROOT/scripts/.emulator.log" 2>&1 &
   EMULATOR_PID=$!
   for i in $(seq 1 90); do
-    curl -sf "http://$LAN_IP:9099/emulator/v1/projects/$PROJECT_ID/config" >/dev/null 2>&1 && grep -q "All emulators ready" "$ROOT/scripts/.emulator.log" && break
+    curl -sf --max-time 5 "http://$LAN_IP:9099/emulator/v1/projects/$PROJECT_ID/config" >/dev/null 2>&1 && grep -q "All emulators ready" "$ROOT/scripts/.emulator.log" && break
     sleep 2
   done
   grep -q "All emulators ready" "$ROOT/scripts/.emulator.log" || { log "HATA: emulator hazir olmadi (scripts/.emulator.log)"; exit 1; }
-  STATUS="$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"data":{}}' "http://$LAN_IP:5001/$PROJECT_ID/us-central1/ensureProfile")"
+  STATUS="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"data":{}}' "http://$LAN_IP:5001/$PROJECT_ID/us-central1/ensureProfile")"
   [ "$STATUS" = 401 ] || { log "HATA: Functions yüklenmedi; emulator hazır mesajı tek başına yeterli değil"; exit 1; }
   log "Emulator hazir."
 fi
@@ -83,13 +84,13 @@ fi
 # 3) Background loop: verify every pending verification email (replaces clicking the link)
 (
   while true; do
-    curl -s "http://$AUTH/emulator/v1/projects/$PROJECT_ID/oobCodes" | AUTH_BASE="$AUTH" python3 -c '
-import json,sys,os,urllib.request
+    curl -s --max-time 10 "http://$AUTH/emulator/v1/projects/$PROJECT_ID/oobCodes" | AUTH_BASE="$AUTH" python3 -c '
+import json,sys,os,urllib.request,urllib.parse
 try: data=json.load(sys.stdin)
 except Exception: sys.exit(0)
 for c in data.get("oobCodes",[]):
     if c.get("requestType")=="VERIFY_EMAIL":
-        try: urllib.request.urlopen("http://%s/emulator/action?mode=verifyEmail&oobCode=%s&apiKey=fake-api-key" % (os.environ["AUTH_BASE"], c["oobCode"]), timeout=5).read()
+        try: urllib.request.urlopen("http://%s/emulator/action?mode=verifyEmail&oobCode=%s&apiKey=fake-api-key" % (os.environ["AUTH_BASE"], urllib.parse.quote(str(c["oobCode"]), safe="")), timeout=5).read()
         except Exception: pass
 ' >/dev/null 2>&1
     sleep 2

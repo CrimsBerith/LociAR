@@ -3,7 +3,7 @@ import { forEachSequential, pollUntil } from './async.mjs';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createConnection } from 'node:net';
-import { mkdirSync, mkdtempSync, cpSync, copyFileSync, symlinkSync, readFileSync, writeFileSync, openSync, closeSync, readdirSync, constants } from 'node:fs';
+import { mkdirSync, mkdtempSync, cpSync, copyFileSync, symlinkSync, readFileSync, writeFileSync, openSync, closeSync, readdirSync, rmSync, constants } from 'node:fs';
 import { resolve, join, relative } from 'node:path';
 import { randomBytes, generateKeyPairSync, createHash } from 'node:crypto';
 
@@ -37,9 +37,15 @@ const children = [];
 let stopping = false;
 let simulatorHTTPEnvironmentChanged = false, previousSimulatorHTTPEnvironment = null;
 const command = (file, args) => spawnSync(file, args, { cwd: root, env, encoding: 'utf8' });
+/** A fresh log per step: a reused output folder keeps an old log, which 'wx' would refuse. */
+function logFile(name) {
+  const path = join(output, name + '.log');
+  rmSync(path, { force: true });
+  return openSync(path, 'wx', 0o600);
+}
 async function run(file, args, name) {
   assert.equal(stopping, false, 'The simulator run is stopping.');
-  const fd = openSync(join(output, name + '.log'), 'wx', 0o600);
+  const fd = logFile(name);
   const child = spawn(file, args, { cwd: root, env, stdio: ['ignore', fd, fd] });
   children.push(child); closeSync(fd);
   const code = await new Promise((accept, reject) => { child.once('error', reject); child.once('exit', accept); });
@@ -48,7 +54,7 @@ async function run(file, args, name) {
 }
 function start(file, args, name) {
   assert.equal(stopping, false, 'The simulator run is stopping.');
-  const fd = openSync(join(output, name + '.log'), 'wx', 0o600);
+  const fd = logFile(name);
   const child = spawn(file, args, { cwd: root, env, detached: true, stdio: ['ignore', fd, fd] });
   closeSync(fd); children.push(child); return child;
 }
@@ -57,7 +63,14 @@ async function listening(port) {
     socket.setTimeout(300); socket.once('connect', () => { socket.destroy(); accept(true); });
     socket.once('error', () => accept(false)); socket.once('timeout', () => { socket.destroy(); accept(false); }); });
 }
-async function stop() {
+const secretFiles = [];
+let stopped = null;
+/** Idempotent: a signal arriving while the finally block already stops shares the same run. */
+function stop() {
+  stopped ??= stopOnce();
+  return stopped;
+}
+async function stopOnce() {
   stopping = true;
   const active = children.toReversed().filter(child => child.exitCode == null && child.signalCode == null);
   for (const child of active) {
@@ -67,9 +80,15 @@ async function stop() {
   }
   await Promise.all(active.map(child => new Promise(accept => {
     if (child.exitCode != null || child.signalCode != null) { accept(); return; }
-    const timer = setTimeout(accept, 10_000);
+    // An emulator (Java) that ignores SIGINT would keep its ports: force it after 10 s.
+    const timer = setTimeout(() => {
+      try { if (child.spawnargs.includes('emulators:start') || child.spawnargs.includes('scripts/simulator-note-fixture.mjs')) process.kill(-child.pid, 'SIGKILL'); else child.kill('SIGKILL'); } catch {}
+      accept();
+    }, 10_000);
     child.once('exit', () => { clearTimeout(timer); accept(); });
   })));
+  // The generated Apple key and KLIPY key must not outlive the run.
+  for (const file of secretFiles) rmSync(file, { force: true });
   if (simulatorHTTPEnvironmentChanged) {
     const args = previousSimulatorHTTPEnvironment == null
       ? ['unsetenv', 'LOCIAR_DEMO_EMULATOR_HTTP']
@@ -111,6 +130,7 @@ try {
   copyFileSync('functions/package.json', join(frozen, 'package.json'));
   symlinkSync(resolve('functions/node_modules'), join(frozen, 'node_modules'));
   const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1', privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+  secretFiles.push(join(frozen, '.secret.local'));
   writeFileSync(join(frozen, '.secret.local'), Object.entries({ APPLE_PRIVATE_KEY: privateKey, KLIPY_APP_KEY: 'emulatorKlipyKey0123456789abcdefABCDEF' })
     .map(([name, value]) => name + '=' + JSON.stringify(value)).join('\n') + '\n', { mode: 0o600 });
   writeFileSync(join(frozen, '.env.demo-lociar'), 'APPLE_TEAM_ID=EMULATOR\nAPPLE_KEY_ID=EMULATOR\nAPPLE_CLIENT_ID=com.khankartal.lociar\nAPPLE_AUTH_BASE_URL=http://127.0.0.1:1\n', { mode: 0o600 });

@@ -22,7 +22,10 @@ export async function queueThroughSimulatorAdminPanel({adminAuth, adminDb, admin
   assert.ok(!process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   assert.match(recipient, /^[a-f0-9-]{36}$/);
   const email = `${adminUID}@example.test`;
-  await adminAuth.createUser({uid: adminUID, email, emailVerified: true});
+  // Idempotent: a rerun against the same emulator reuses the fixture admin.
+  await adminAuth.createUser({uid: adminUID, email, emailVerified: true}).catch(error => {
+    if (error?.code !== 'auth/uid-already-exists') throw error;
+  });
   const allocator = createServer();
   allocator.listen(0, '127.0.0.1'); await once(allocator, 'listening');
   const port = allocator.address().port;
@@ -37,7 +40,7 @@ export async function queueThroughSimulatorAdminPanel({adminAuth, adminDb, admin
     const deadline = Date.now() + 30000;
     let ready = false;
     while (Date.now() < deadline && server.exitCode === null) {
-      try { if ((await fetch(origin + '/admin/login')).ok) { ready = true; break; } } catch {}
+      try { if ((await fetch(origin + '/admin/login', {signal: AbortSignal.timeout(2000)})).ok) { ready = true; break; } } catch {}
       await new Promise(accept => setTimeout(accept, 200));
     }
     assert.ok(ready, 'The isolated local admin server did not start');
@@ -50,9 +53,12 @@ export async function queueThroughSimulatorAdminPanel({adminAuth, adminDb, admin
     const idToken = [Buffer.from(JSON.stringify({alg: 'none', typ: 'JWT'})).toString('base64url'),
       Buffer.from(JSON.stringify(claims)).toString('base64url'), ''].join('.');
     const session = await fetch(origin + '/api/auth/session', {method: 'POST',
-      headers: {origin, 'content-type': 'application/json'}, body: JSON.stringify({idToken})});
+      headers: {origin, 'content-type': 'application/json'}, body: JSON.stringify({idToken}), signal: AbortSignal.timeout(15000)});
     assert.equal(session.status, 200);
-    const cookie = session.headers.get('set-cookie').split(';')[0].slice('__session='.length);
+    const sessionCookie = (session.headers.getSetCookie?.() ?? [session.headers.get('set-cookie') ?? ''])
+      .map(header => header.split(';')[0]).find(pair => pair.startsWith('__session='));
+    assert.ok(sessionCookie, 'The session response set no __session cookie');
+    const cookie = sessionCookie.slice('__session='.length);
     browser = await chromium.launch({executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH, args: ['--no-sandbox']});
     const context = await browser.newContext({viewport: {width: 1280, height: 900}, locale: 'en-US'});
     await context.addCookies([{name: '__session', value: cookie, url: origin, httpOnly: true, secure: true, sameSite: 'Strict'}]);
@@ -84,11 +90,13 @@ export async function queueThroughSimulatorAdminPanel({adminAuth, adminDb, admin
     assert.ok(job, 'The panel did not persist this exact recipient/message');
     return job.ref;
   } finally {
-    await browser?.close();
-    if (server.exitCode === null) {
+    // A failing browser close must not leave the Next.js server running.
+    try { await browser?.close(); } catch {}
+    if (server.exitCode === null && server.signalCode === null) {
+      const exited = once(server, 'exit');
       server.kill('SIGTERM');
       const timer = setTimeout(() => server.kill('SIGKILL'), 5000);
-      await once(server, 'exit'); clearTimeout(timer);
+      await exited; clearTimeout(timer);
     }
   }
 }

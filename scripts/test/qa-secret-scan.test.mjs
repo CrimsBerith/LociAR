@@ -134,3 +134,15 @@ for (const name of ['run-device-e2e-prod.command', 'run-device-e2e-prod-rest.com
     assert.ok(!existsSync(join(root, 'scripts', '.e2e', 'build-prod.log')));
   });
 }
+
+test('finds provider keys, key files and UTF-16 text', t => {
+  const root = fixture(t);
+  // Assembled at runtime so this source never contains a matching literal.
+  const resend = ['re', 'Synthetic1', 'abcdefghijklmnopqrstu'].join('_');
+  const stripe = ['sk', 'live', 'abcdefghijklmnopqrstuvwx'].join('_');
+  writeFileSync(join(root, 'config.md'), `${resend}\n${stripe}\n`);
+  writeFileSync(join(root, 'AuthKey_TEST.p8'), 'not a real key');
+  writeFileSync(join(root, 'notes.txt'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(`token ${stripe}\n`, 'utf16le')]));
+  const rules = scanRepository(root).map(f => `${f.path}:${f.rule}`).sort();
+  assert.deepEqual(rules, ['AuthKey_TEST.p8:credential-file', 'config.md:resend-key', 'config.md:stripe-secret', 'notes.txt:stripe-secret']);
+});

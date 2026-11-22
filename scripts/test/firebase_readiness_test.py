@@ -111,6 +111,10 @@ class FirebaseReadinessTests(unittest.TestCase):
         report = ready_report()
         report['resources']['scheduler'].append({'name': 'projects/other/locations/us-central1/jobs/firebase-schedule-x-us-central1', 'state': 'ENABLED'})
         self.assertTrue(validate_report(report)['readiness']['ready'])
+        # Our own job in another region is billed like any other and must be reported.
+        report = ready_report()
+        report['resources']['scheduler'].append({'name': f'projects/{PROJECT}/locations/europe-west1/jobs/firebase-schedule-x-europe-west1', 'state': 'ENABLED'})
+        self.assertEqual({f['code'] for f in validate_report(report)['readiness']['findings']}, {'scheduler_unexpected'})
 
     def test_equivalent_cron_schedules_and_explicit_timezone(self):
         report = ready_report()

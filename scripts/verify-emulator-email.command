@@ -22,13 +22,14 @@ PROJECT="demo-lociar"
 EMULATOR_HOST="${LOCIAR_TEST_LAN_IP:-$(cat scripts/.emulator-host.txt 2>/dev/null | tr -d '[:space:]')}"
 HOST="${EMULATOR_HOST:-127.0.0.1}:9099"
 
-if ! curl -sf "http://$HOST/emulator/v1/projects/$PROJECT/config" >/dev/null 2>&1; then
+if ! curl -sf --max-time 5 "http://$HOST/emulator/v1/projects/$PROJECT/config" >/dev/null 2>&1; then
   echo "XX Auth emulator'a ulasilamiyor ($HOST). Once start-emulators.command calisiyor olmali."
   pause
   exit 1
 fi
 
-RESPONSE="$(curl -s "http://$HOST/emulator/v1/projects/$PROJECT/oobCodes")"
+RESPONSE="$(curl -sf --max-time 10 "http://$HOST/emulator/v1/projects/$PROJECT/oobCodes")" || {
+  echo "XX Dogrulama kodlari okunamadi ($HOST)."; pause; exit 1; }
 OOB_CODE="$(echo "$RESPONSE" | EMAIL_ARG="$EMAIL" python3 -c "
 import json, sys, os
 data = json.load(sys.stdin)
@@ -44,7 +45,13 @@ if [ -z "$OOB_CODE" ]; then
   exit 1
 fi
 
-curl -s "http://$HOST/emulator/action?mode=verifyEmail&oobCode=$OOB_CODE&apiKey=fake-api-key" >/dev/null
+# -G with --data-urlencode encodes the code; -f turns an emulator error into a failure instead of "OK".
+if ! curl -sfG --max-time 10 "http://$HOST/emulator/action" --data-urlencode "mode=verifyEmail" \
+    --data-urlencode "oobCode=$OOB_CODE" --data-urlencode "apiKey=fake-api-key" >/dev/null; then
+  echo "XX '$EMAIL' dogrulanamadi (emulator hata dondu)."
+  pause
+  exit 1
+fi
 
 echo "OK '$EMAIL' dogrulandi. Simdi uygulamada 'Giris yap' ile ayni bilgilerle giris yapabilirsiniz."
 rm -f scripts/.pending-verify-email.txt

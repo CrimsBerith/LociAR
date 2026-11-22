@@ -147,7 +147,7 @@ cat <<TXT
      https://console.firebase.google.com/project/$PROJECT/settings/cloudmessaging
      → Apple app configuration → APNs Authentication Key: .p8 dosyası, Key ID ve Team ID ZSRUTGX74S.
      (Sign in with Apple .p8'inden ayrı bir anahtardır.)
-  4) Bütçe uyarısı ($10 / $50): https://console.cloud.google.com/billing/budgets?project=$PROJECT
+  4) Bütçe uyarısı (\$10 / \$50): https://console.cloud.google.com/billing/budgets?project=$PROJECT
 TXT
 pause "Bunları yaptıysan (veya sonra yapacaksan) deploy için Enter…"
 

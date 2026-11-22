@@ -10,7 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="$(pwd)"
 PROJECT="lociar-2f38c"
-BRANCH="${SEED_BRANCH:-codex/fix-anonymous-location-audit}"
+BRANCH="${SEED_BRANCH:-main}"  # one-branch workflow (AGENTS.md)
 WORK="$HOME/.lociar-seed"
 LOG="$REPO/.git/lociar-seed-load.log"
 exec > >(tee "$LOG") 2>&1
@@ -74,7 +74,9 @@ run() { GOOGLE_CLOUD_PROJECT="$PROJECT" node --conditions=react-server --import 
 step "Süper admin ve @loci.guide içerik hesabı"
 ACTOR="$(run scripts/seed-prepare.mjs ${SEED_ACTOR_EMAIL:+--actor-email "$SEED_ACTOR_EMAIL"} | tail -n 1)"
 
-for SEED in ${SEED_LIST:-world-capitals landmark-businesses}; do
+read -r -a SEEDS <<< "${SEED_LIST:-world-capitals landmark-businesses}"
+for SEED in "${SEEDS[@]}"; do
+  [[ "$SEED" =~ ^[a-z0-9-]+$ ]] || { echo "Geçersiz seed adı: $SEED"; exit 1; }
   step "Kontrol: $SEED (yalnız okur)"
   run scripts/seed-notes.mjs --seed "$SEED" --actor "$ACTOR" --require-complete
   step "Yükleme: $SEED"

@@ -1,23 +1,38 @@
 #!/usr/bin/env python3
 import json
+import re
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+import html
 
-DESKTOP_DIR = "/Users/khankartal/Desktop/LociAR_Tum_Ekranlar"
+# Output and target come from the environment; the defaults belong to no single developer.
+DESKTOP_DIR = os.path.expanduser(os.environ.get("LOCIAR_SCREENS_DIR", "~/Desktop/LociAR_Tum_Ekranlar"))
 # Private per-run work directory (mode 0700) instead of fixed, shared /tmp paths.
 WORK_DIR = tempfile.mkdtemp(prefix="lociar-screen-tour-")
 XCRESULT_PATH = os.path.join(WORK_DIR, "MasterDeviceTour.xcresult")
 ATTACHMENTS_DIR = os.path.join(WORK_DIR, "MasterTourAttachments")
-DEVICE_ID = "00008120-001079DE0E07C01E"
+DEVICE_ID = os.environ.get("LOCIAR_TEST_DEVICE", "")
 
 def log(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
+def stream_output(proc):
+    for line in iter(proc.stdout.readline, ''):
+        line_clean = line.strip()
+        if "Test Case" in line_clean or "capture" in line_clean or "passed" in line_clean or "failed" in line_clean or "Testing started" in line_clean:
+            log(line_clean)
+            
+    proc.stdout.close()
+    proc.wait()
+
 def main():
+    if not re.fullmatch(r"[0-9A-Fa-f-]{20,40}", DEVICE_ID):
+        log("HATA: LOCIAR_TEST_DEVICE=<UDID> gerekli.")
+        sys.exit(2)
     os.makedirs(DESKTOP_DIR, exist_ok=True)
     
     if os.path.exists(XCRESULT_PATH):
@@ -37,14 +52,18 @@ def main():
     
     loci_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     proc = subprocess.Popen(cmd, cwd=loci_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        stream_output(proc)
+    except KeyboardInterrupt:
+        # Never leave xcodebuild running after Ctrl-C.
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+        raise
+    tests_failed = proc.returncode != 0
     
-    for line in iter(proc.stdout.readline, ''):
-        line_clean = line.strip()
-        if "Test Case" in line_clean or "capture" in line_clean or "passed" in line_clean or "failed" in line_clean or "Testing started" in line_clean:
-            log(line_clean)
-            
-    proc.stdout.close()
-    proc.wait()
     log(f"Test yürütmesi tamamlandı. Çıkış kodu: {proc.returncode}")
     
     if not os.path.exists(XCRESULT_PATH):
@@ -78,6 +97,8 @@ def main():
         attachments = test_entry.get("attachments", [])
         for att in attachments:
             exported_name = att.get("exportedFileName")
+            if not exported_name:
+                continue
             human_name = att.get("suggestedHumanReadableName", exported_name)
             
             # Clean up the human readable name (strip UUID suffixes if present)
@@ -88,7 +109,8 @@ def main():
                 if len(parts) >= 3 and parts[-1].endswith(".png") and len(parts[-1]) >= 30:
                     base_title = "_".join(parts[:-2]) + ".png"
             
-            src = os.path.join(ATTACHMENTS_DIR, exported_name)
+            src = os.path.join(ATTACHMENTS_DIR, os.path.basename(exported_name))
+            base_title = os.path.basename(base_title) or os.path.basename(exported_name)
             dst = os.path.join(DESKTOP_DIR, base_title)
             
             if os.path.exists(src):
@@ -96,7 +118,7 @@ def main():
                 captured_files.append(base_title)
                 log(f" Kaydedildi: {base_title}")
                 
-    captured_files.sort()
+    captured_files = sorted(set(captured_files))
     
     # Generate HTML Gallery
     html_path = os.path.join(DESKTOP_DIR, "INDEX.html")
@@ -129,13 +151,13 @@ def main():
             f.write(f"""
         <div class="card">
             <div class="img-container">
-                <a href="{item}" target="_blank">
-                    <img src="{item}" alt="{item}" loading="lazy">
+                <a href="{html.escape(item)}" target="_blank">
+                    <img src="{html.escape(item)}" alt="{html.escape(item)}" loading="lazy">
                 </a>
             </div>
             <div class="info">
                 <span class="badge">Orijinal Retina Ekran</span>
-                <div class="title">{item}</div>
+                <div class="title">{html.escape(item)}</div>
             </div>
         </div>
 """)
@@ -159,7 +181,14 @@ def main():
             f.write(f"| {idx:02d} | `{item}` | {desc} |\n")
 
     log(f"Tamamlandı! Toplam {len(captured_files)} ekran görüntüsü başarıyla '{DESKTOP_DIR}' klasörüne kaydedildi.")
+    if tests_failed:
+        log("Bazı testler başarısız oldu; çıkış kodu 1.")
+    return 1 if tests_failed else 0
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    finally:
+        shutil.rmtree(WORK_DIR, ignore_errors=True)
 

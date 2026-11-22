@@ -3,6 +3,19 @@ export function forEachSequential(items, visit) {
   return Array.from(items).reduce((previous, item, index) => previous.then(() => visit(item, index)), Promise.resolve());
 }
 
+/** Runs `visit` over items with at most `limit` in flight; the first failure rejects. */
+export async function forEachLimited(items, limit, visit) {
+  const list = Array.from(items);
+  let next = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const index = next++;
+      await visit(list[index], index);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, list.length) }, worker));
+}
+
 /** @template T, Cursor @param {(cursor: Cursor | undefined) => Promise<{value: T, next?: Cursor}>} read @returns {AsyncIterable<T>} */
 export function readPages(read) {
   return {

@@ -153,7 +153,6 @@
 /* Begin PBXFileReference section */
 		01A23C147C20012051098DFF /* MapRequestCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapRequestCoordinator.swift; sourceTree = "<group>"; };
 		02D3113CEC157B882DCE675A /* AvatarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarStore.swift; sourceTree = "<group>"; };
-		03ABA85929C6F74977881FD5 /* merge-push.command */ = {isa = PBXFileReference; path = "merge-push.command"; sourceTree = "<group>"; };
 		03D0D82051B3183881D26C01 /* ARCameraHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraHealthTests.swift; sourceTree = "<group>"; };
 		041909C4E5F7479357846A3E /* ProximityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityPolicy.swift; sourceTree = "<group>"; };
 		04E8117F8C7E1D50FD5825E2 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
@@ -203,7 +202,6 @@
 		4027622B720A874A1EACB0A3 /* istanbul-beta.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "istanbul-beta.json"; sourceTree = "<group>"; };
 		41DE7123190D418D03738028 /* firebase_readiness_test.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = firebase_readiness_test.py; sourceTree = "<group>"; };
 		434D26C7AA79D9C6478327D4 /* tr.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tr.json; sourceTree = "<group>"; };
-		4612E920E5A6D745E95C2013 /* github-push.command */ = {isa = PBXFileReference; path = "github-push.command"; sourceTree = "<group>"; };
 		461FB3FEC1E8CB28DCC797C9 /* ARCoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCoreService.swift; sourceTree = "<group>"; };
 		4771EBA3971F58BE96D754D8 /* EnglishSmokeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnglishSmokeUITests.swift; sourceTree = "<group>"; };
 		47FB0D46D978C9FC1FA2F9C4 /* KlipyMediaResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlipyMediaResolver.swift; sourceTree = "<group>"; };
@@ -248,7 +246,6 @@
 		6C04CA57618158AFB7B57C58 /* register-simulator-appcheck.command */ = {isa = PBXFileReference; path = "register-simulator-appcheck.command"; sourceTree = "<group>"; };
 		6C46B83A003BDC6A241B3BDD /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		6CCC70FD7B3D3B5105D7BF3D /* firebase-readiness.test.mjs */ = {isa = PBXFileReference; path = "firebase-readiness.test.mjs"; sourceTree = "<group>"; };
-		6DA4DF8AF3CF1E310B83883E /* commit-push-branch.command */ = {isa = PBXFileReference; path = "commit-push-branch.command"; sourceTree = "<group>"; };
 		6DD8B14236AFF53B87CD2AF7 /* WorldMapStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldMapStore.swift; sourceTree = "<group>"; };
 		6E3D29D96E27984134D0C362 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		6E67E031DF7B44AC1B15898E /* infoplist.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = infoplist.json; sourceTree = "<group>"; };
@@ -684,7 +681,6 @@
 				87B556217F9630B7D6B359BB /* check-dependency-audit.mjs */,
 				3739EB7988784D9FD9412B9B /* check-localization.mjs */,
 				F0F655592D05AF26D3A5B729 /* ci-ios.sh */,
-				6DA4DF8AF3CF1E310B83883E /* commit-push-branch.command */,
 				723E54D5773C8E36DD869A3A /* configure-admin-email.py */,
 				4979FB253E999A46182D749E /* deploy-admin.command */,
 				F8229C95C09C1297AA2A8B79 /* diag-java.command */,
@@ -692,11 +688,9 @@
 				3AFCE8A70E5100C9C6747D36 /* firebase_readiness.py */,
 				F8F70E3E967266F30D47CF79 /* firebase-deploy.command */,
 				82725366030AB2301F1EA68A /* firebase-deploy.mjs */,
-				4612E920E5A6D745E95C2013 /* github-push.command */,
 				C524B2F3FFD5C335251DAC13 /* google-cloud-setup.command */,
 				B9C03CD9EF9520AF45CFD3A4 /* install-java.command */,
 				5BC72C88CD7A0EE6534278CC /* load-launch-seed.command */,
-				03ABA85929C6F74977881FD5 /* merge-push.command */,
 				CF07C739957FA64A8364CB12 /* monitoring-setup.command */,
 				F85288778DB29C117DF41C4F /* nearby-geohash-migration.mjs */,
 				80B1185171E7084754A9B874 /* optimization_audit.py */,

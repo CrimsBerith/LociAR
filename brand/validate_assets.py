@@ -5,6 +5,10 @@ from PIL import Image
 import json
 import xml.etree.ElementTree as ET
 
+# Every check below is an assert: under `python3 -O` they would all vanish and the script would pass.
+if not __debug__:
+    raise SystemExit('validate_assets.py relies on assert; run it without -O.')
+
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / 'LociAR/Resources/Assets.xcassets'
 ADMIN_APP = ROOT / 'admin/app'
@@ -29,7 +33,7 @@ def check(path, size, mode, transparent=False):
 
 def validate_app_icons():
     icon = CATALOG / 'AppIcon.appiconset'
-    contents = json.loads((icon / 'Contents.json').read_text())
+    contents = json.loads((icon / 'Contents.json').read_text(encoding='utf-8'))
     assert len(contents['images']) == 3
     appearances = set()
     for entry in contents['images']:
@@ -74,7 +78,7 @@ def validate_admin_assets():
     for name in ['opengraph-image']:
         check(ADMIN_APP / f'{name}.png', (1200,630), 'RGB')
         assert (ADMIN_APP / f'{name}.png').stat().st_size < 1_000_000
-        assert (ADMIN_APP / f'{name}.alt.txt').read_text().strip() == 'LociDrop – notes pinned to real places'
+        assert (ADMIN_APP / f'{name}.alt.txt').read_text(encoding='utf-8').strip() == 'LociDrop – notes pinned to real places'
 
 
 def validate_illustrations():
@@ -82,7 +86,7 @@ def validate_illustrations():
     empty = ['EmptyDiscover', 'EmptyActivity', 'EmptySaved', 'EmptyBlocked', 'EmptyMyPosts', 'EmptyPublicProfile', 'EmptyMapNearby', 'ErrorGeneric']
     for name in onboarding + empty:
         folder = CATALOG / f'{name}.imageset'
-        contents = json.loads((folder / 'Contents.json').read_text())
+        contents = json.loads((folder / 'Contents.json').read_text(encoding='utf-8'))
         assert len(contents['images']) == 3
         assert {i['scale'] for i in contents['images']} == {'1x','2x','3x'}
         for entry in contents['images']:

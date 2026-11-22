@@ -11,6 +11,8 @@ trap 'rmdir "$LOCKDIR"' EXIT
 step() { echo "=== $* $(date +%H:%M:%S) ===" | tee -a "$LOG"; }
 fail() { echo "FAIL: $*" | tee -a "$LOG"; echo "Durdu. Claude'a 'verify bitti' yaz ve FAIL satırını gönder."; exit 1; }
 BR=$(git branch --show-current)
+# A detached HEAD has no branch to push; stop before spending minutes on tests.
+[ -n "$BR" ] || { echo "FAIL: detached HEAD; check out main first."; exit 1; }
 step "branch $BR"
 for f in .git/*.lock; do [ -e "$f" ] && fail "kilit dosyası var: $f"; done
 [ -z "$(git status --porcelain --untracked-files=no)" ] || { git status --short | head -20 | tee -a "$LOG"; fail "commit edilmemiş değişiklik var; önce commit et (ya da stash)"; }

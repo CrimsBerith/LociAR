@@ -13,6 +13,7 @@ import datetime as dt
 import fnmatch
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -141,7 +142,8 @@ def inventory(root: Path, catalog: dict, previous: dict) -> dict:
                   "lines": len(lines), "kind": file_kind, "units": units_for(name, catalog),
                   "reviews": old.get(name, {}).get("reviews", [])}
         record["reviewed_lines"] = reviewed_lines(record)
-        record["review_status"] = ("reviewed" if lines and record["reviewed_lines"] == len(lines) else "pending")
+        record["review_status"] = ("reviewed" if lines and record["reviewed_lines"] == len(lines)
+                                   else "partial" if record["reviewed_lines"] else "pending")
         record["stale_review_count"] = sum(r["sha256"] != record["sha256"] for r in record["reviews"])
         files.append(record)
         if file_kind in {"owned_source", "configuration_or_tool"} and path.suffix in TEXT_SUFFIXES:
@@ -252,11 +254,12 @@ def render_reports(root: Path, register: dict) -> None:
         for f in assigned:
             notes = [r["note"] for r in f["reviews"] if r["sha256"] == f["sha256"] and unit["id"] in r.get("units", [])]
             if notes:
-                lines.append(f"- [{f['path']}](<{root / f['path']}>) — " + " ".join(dict.fromkeys(notes)))
+                # Relative links: an absolute /Users/... path works only on the machine that rendered it.
+                lines.append(f"- [{f['path']}](<{os.path.relpath(root / f['path'], target.parent)}>) — " + " ".join(dict.fromkeys(notes)))
         lines += ["", "## 4. Başlangıç ölçümü ve kanıt", "", "Süreler yalnız ilgili cihaz/fixture için geçerlidir. Emulator mantıksal IO sayımı fatura değildir.", ""]
         for e in register["evidence"]:
             if unit["id"] in e["units"]:
-                lines.append(f"- {e['id']} · {e['kind']} · {e['result']} · {e.get('purpose', 'baseline')} · [{e['path']}](<{root / e['path']}>) — {e['note']}")
+                lines.append(f"- {e['id']} · {e['kind']} · {e['result']} · {e.get('purpose', 'baseline')} · [{e['path']}](<{os.path.relpath(root / e['path'], target.parent)}>) — {e['note']}")
         lines += ["", "## 5. Bulgular", ""]
         if not findings:
             lines.append("Bu pakette henüz kesinleştirilmiş bulgu kaydı yok. Bu ifade sorun bulunmadığı anlamına gelmez.")
@@ -289,9 +292,11 @@ def render_reports(root: Path, register: dict) -> None:
                      f"- Tam değerlendirilmiş paket: **{complete}/{len(register['units'])}**. Rapor dosyası oluşturmak değerlendirmeyi tamamlamaz.",
                      f"- Bulgu: {len(register['findings'])}; kanıt: {len(register['evidence'])}; uygulama kapısı: **{'açık' if not gate(register) else 'kapalı'}**.",
                      "", "| Paket | Başlık | Değerlendirme | Kaynak dosyası incelemesi |", "|---|---|---|---|"]
-        dashboard += [f"| [{u['id']}](<{root / 'docs/optimization' / u['report']}>) | {u['title']} | {u['assessment_status']} | {u['fully_reviewed_files']}/{u['file_count']} |" for u in register["units"]]
+        dashboard += [f"| [{u['id']}](<{os.path.relpath(root / 'docs/optimization' / u['report'], master.parent)}>) | {u['title']} | {u['assessment_status']} | {u['fully_reviewed_files']}/{u['file_count']} |" for u in register["units"]]
         dashboard += ["<!-- audit-status:end -->"]
-        master.write_text(re.sub(r"<!-- audit-status:start -->.*?<!-- audit-status:end -->", "\n".join(dashboard), master.read_text(), flags=re.DOTALL))
+        # A function replacement: backslashes in titles must not be read as group references.
+        block = "\n".join(dashboard)
+        master.write_text(re.sub(r"<!-- audit-status:start -->.*?<!-- audit-status:end -->", lambda _: block, master.read_text(encoding="utf-8"), flags=re.DOTALL), encoding="utf-8")
 
 
 def main() -> int:

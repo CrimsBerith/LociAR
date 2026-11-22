@@ -195,6 +195,7 @@ def _check_ttl(clean: dict, expected: dict, project_ids: set[str], fail) -> None
 def _check_functions(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
     resources = clean['resources']
     functions = {_resource_parts(item.get('name'), project_ids, 'functions'): item for item in resources['functions']}
+    functions.pop(None, None)  # outside us-central1 or malformed: never matches an expected function
     for name in sorted(expected['functions']):
         function = functions.get(name)
         if not function:
@@ -216,6 +217,16 @@ def _check_notifications(clean: dict, expected: dict, project_ids: set[str], fai
 def _check_scheduler(clean: dict, expected: dict, project_ids: set[str], fail) -> None:
     resources = clean['resources']
     jobs = {_resource_parts(item.get('name'), project_ids, 'jobs'): item for item in resources['scheduler']}
+    # A job in another region or with an unexpected name format maps to None: report it instead of
+    # letting several of them overwrite one dictionary key and pass silently.
+    # Other projects' jobs are not ours to judge; our own outside us-central1 or malformed ones are.
+    def foreign(name: Any) -> bool:
+        match = re.fullmatch(r'projects/([^/]+)/locations/[^/]+/jobs/[^/]+', name) if isinstance(name, str) else None
+        return bool(match) and match.group(1) not in project_ids
+    unparsed = [item.get('name') for item in resources['scheduler']
+                if _resource_parts(item.get('name'), project_ids, 'jobs') is None and not foreign(item.get('name'))]
+    for name in sorted(str(value) for value in unparsed):
+        fail('scheduler_unexpected', name, 'Scheduler job outside us-central1 or with an unexpected name; review and delete it.')
     for name, options in sorted(expected['schedules'].items()):
         job = jobs.get(f'firebase-schedule-{name}-{REGION}')
         if not job:

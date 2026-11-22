@@ -11,7 +11,14 @@ ROOT="$(pwd)"
 OUT="$ROOT/scripts/.e2e"
 mkdir -p "$OUT"
 SUMMARY="$OUT/summary-prod-rest.txt"
-DEVICE_ID="${DEVICE_ID:-$(xcrun devicectl list devices 2>/dev/null | grep available | awk '{print $3}' | head -1)}"
+if [ -z "${DEVICE_ID:-}" ]; then
+  # Column positions break on multi-word names ("iPhone 15 Pro"); read the UDID from the JSON listing.
+  xcrun devicectl list devices --json-output "$OUT/devices.json" >/dev/null 2>&1 || true
+  DEVICE_ID="$(python3 -c 'import json,sys
+try: ds=[d for d in json.load(open(sys.argv[1]))["result"]["devices"] if d.get("hardwareProperties",{}).get("deviceType")=="iPhone"]
+except Exception: ds=[]
+print(ds[0]["hardwareProperties"]["udid"] if len(ds)==1 else "")' "$OUT/devices.json")"
+fi
 [ -z "$DEVICE_ID" ] && { echo "HATA: bagli iPhone yok (DEVICE_ID=...)"; exit 1; }
 log() { echo "$(date +%H:%M:%S) $*" | tee -a "$SUMMARY"; }
 : > "$SUMMARY"
@@ -33,7 +40,7 @@ run_test() {
     -resultBundlePath "$OUT/$t.xcresult" > "$OUT/$t.log" 2>&1
   code=$?
   if [ "$code" -eq 0 ] && grep -q "Test Case .*$t.* passed" "$OUT/$t.log"; then log "  PASS $t"; return 0
-  elif grep -q "skipped" "$OUT/$t.log"; then log "  SKIP $t (zorunlu test tamamlanmadı)"; return 1
+  elif [ "$code" -eq 0 ] && grep -q "skipped" "$OUT/$t.log"; then log "  SKIP $t (zorunlu test tamamlanmadı)"; return 1
   else log "  FAIL $t (kod $code)"; grep -E "error: |XCTAssert|failed -|\[E2E\]|\[DEBUG\]|\[LociAR auth\]" "$OUT/$t.log" | head -15 | tee -a "$SUMMARY"; return 1; fi
 }
 

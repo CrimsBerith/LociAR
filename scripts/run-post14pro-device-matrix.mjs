@@ -230,11 +230,13 @@ async function runDevice(device, index, total) {
 
   const env = {
     ...process.env,
-    PATH: `/opt/homebrew/opt/node@22/bin:/opt/homebrew/opt/openjdk@21/bin:${process.env.PATH || ''}`,
-    JAVA_HOME: '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home',
+    // The developer's own PATH/JAVA_HOME win; Homebrew (Apple Silicon) defaults fill the gaps only.
+    PATH: `${process.env.PATH || ''}:/opt/homebrew/opt/node@22/bin:/opt/homebrew/opt/openjdk@21/bin`,
+    JAVA_HOME: process.env.JAVA_HOME || '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home',
     LOCIAR_TEST_SIMULATOR: device.udid,
     LOCIAR_TEST_OUTPUT: baseOutputDir,
-    LOCIAR_TEST_DERIVED_DATA: '/Users/khankartal/Library/Developer/Xcode/DerivedData/LociAR-bwrwirqnhlpcaufcrvegqbhlrzrz',
+    // Shared across devices so each build reuses the last one; never a path from one developer's Mac.
+    LOCIAR_TEST_DERIVED_DATA: process.env.LOCIAR_TEST_DERIVED_DATA || resolve(root, 'build/DerivedData-device-matrix'),
     LOCIAR_SIMULATOR_TESTS: TARGET_TESTS.join(','),
   };
 
@@ -319,7 +321,13 @@ async function main() {
   }
 
   const matrixSummaryPath = resolve(root, 'build/post14pro-device-testing-20261031/matrix-summary.json');
-  writeFileSync(matrixSummaryPath, JSON.stringify(results, null, 2));
+  // ONLY_DEVICE reruns one device: keep the other devices' earlier results in the summary.
+  let previous = [];
+  try { previous = JSON.parse(readFileSync(matrixSummaryPath, 'utf8')); } catch {}
+  const rerun = new Set(results.map(r => r.name));
+  const merged = [...(Array.isArray(previous) ? previous.filter(r => !rerun.has(r?.name)) : []), ...results];
+  mkdirSync(resolve(root, 'build/post14pro-device-testing-20261031'), { recursive: true });
+  writeFileSync(matrixSummaryPath, JSON.stringify(merged, null, 2));
 
   console.log(`\n======================================================================`);
   console.log(`[Matrix-Post14] ALL MODERN DEVICES COMPLETED`);
@@ -331,6 +339,11 @@ async function main() {
 
   const allPassed = results.every(r => r.success);
   process.exit(allPassed ? 0 : 1);
+}
+
+// Ctrl-C or a closed terminal: shut the simulators down like a failure would.
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => { ensureNoSimulatorsBooted(); process.exit(signal === 'SIGINT' ? 130 : 143); });
 }
 
 main().catch(err => {

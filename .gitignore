@@ -63,7 +63,6 @@ functions/lib/
 .kilocode/
 .cursor/
 .fuse_hidden*
-scripts/.github-push.log
 scripts/.e2e/
 scripts/.emulator*
 scripts/.diag-java.txt

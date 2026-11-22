@@ -46,9 +46,9 @@ Her adım önce sorar, istediğini atlarsın; hiçbir adım App Store'a gönderi
 
 1. Xcode → `LociAR` şeması → iPhone 16 Pro simülatörü → **Product → Test** (veya `bash scripts/ci-ios.sh`).
    Beklenen: tüm testler geçer, yalnız 2 fiziksel cihaz testi atlanır.
-2. Değişiklikleri commit edip dalı gönder: `scripts/commit-push-branch.command` (main'e doğrudan gönderen
-   `github-push.command` kullanma).
-3. PR #58'de bütün GitHub işleri ve SonarCloud yeşil olunca main'e birleştir. Arşiv bu commit'ten alınır.
+2. Değişiklikleri `main`'e commit et ve `scripts/verify.command` ile doğrulayıp gönder (AGENTS.md: tek dal,
+   rutin iş için PR yok).
+3. `main`'deki bütün GitHub işleri ve SonarCloud yeşil olunca arşiv bu commit'ten alınır.
 
 ## 2. Destek e-postası (karar verildi, ~5 dk)
 

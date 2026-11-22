@@ -60,14 +60,17 @@ def outlined_word(text, start_x, baseline, size, color, font):
 
 
 def main():
-    BRAND.mkdir(exist_ok=True)
+    for folder in (BRAND, ICON, WEB):
+        folder.mkdir(parents=True, exist_ok=True)
     master = svg(mark())
     (BRAND / 'logomark.svg').write_text(master)
     render(master, BRAND / 'logomark.png', 1024, 1024)
     main_icon = svg(f'<rect width="1024" height="1024" fill="{NIGHT}"/>' + mark())
     render(main_icon, ICON / 'App-Icon-1024x1024@1x.png', 1024, 1024, opaque=True)
-    for name, color in [('Dark', '#E9FFF8'), ('Tinted', '#E6E6E6')]:
-        render(svg(mark(color)), ICON / f'App-Icon-{name}-1024x1024@1x.png', 1024, 1024)
+    # Dark is the same opaque tile as the default icon (owner decision, 14 Nov 2026; validate_assets.py
+    # expects RGB). Tinted stays a transparent grayscale mark that iOS tints itself.
+    render(main_icon, ICON / 'App-Icon-Dark-1024x1024@1x.png', 1024, 1024, opaque=True)
+    render(svg(mark('#E6E6E6')), ICON / 'App-Icon-Tinted-1024x1024@1x.png', 1024, 1024)
     entries = []
     for variant in ['', 'Dark', 'Tinted']:
         entry = {'filename': f'App-Icon-{variant + "-" if variant else ""}1024x1024@1x.png', 'idiom': 'universal', 'platform': 'ios', 'size': '1024x1024'}
@@ -77,6 +80,15 @@ def main():
     (ICON / 'Contents.json').write_text(json.dumps({'images': entries, 'info': {'author': 'xcode', 'version': 1}}, indent=2) + '\n')
     font_path = Path(os.environ.get('LOCIAR_BRAND_FONT', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
     font = TTFont(font_path)
+    try:
+        export_wordmarks(font)
+    finally:
+        font.close()
+    export_web_icons(main_icon)
+    print('Brand masters, three icon appearances and web icons exported.')
+
+
+def export_wordmarks(font):
     for theme, color in [('light', '#F5F8FB'), ('dark', '#11161F')]:
         # Light names the lettering for dark surfaces; dark names lettering for light surfaces.
         first, x = outlined_word('Loci', 294, 187, 136, color, font)
@@ -85,6 +97,9 @@ def main():
         wordmark = svg(content, 860, 256)
         (BRAND / f'wordmark-{theme}.svg').write_text(wordmark)
         render(wordmark, BRAND / f'wordmark-{theme}.png', 860, 256)
+
+
+def export_web_icons(main_icon):
     render(main_icon, WEB / 'icon.png', 512, 512, opaque=True)
     render(main_icon, WEB / 'apple-icon.png', 180, 180, opaque=True)
     # Render each favicon size from vector rather than downscaling a large bitmap.
@@ -94,7 +109,8 @@ def main():
         # Next's ICO loader accepts RGBA PNG entries; opaque alpha is preserved.
         frames.append(Image.open(io.BytesIO(cairosvg.svg2png(bytestring=main_icon.encode(), output_width=size, output_height=size))).convert('RGBA'))
     frames[-1].save(WEB / 'favicon.ico', format='ICO', sizes=[(16,16), (32,32), (48,48)], append_images=frames[:-1])
-    print('Brand masters, three icon appearances and web icons exported.')
+    for frame in frames:
+        frame.close()
 
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ for key in LOCIAR_PRIVACY_URL LOCIAR_TERMS_URL LOCIAR_SUPPORT_URL; do
     continue
   fi
 
-  if ! status="$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 20 "$url")"; then
+  if ! status="$(curl -sS -L --proto-redir '=https' -o /dev/null -w '%{http_code}' --max-time 20 "$url")"; then
     echo "$key FAIL: network error for $url"
     failures=$((failures + 1))
     continue

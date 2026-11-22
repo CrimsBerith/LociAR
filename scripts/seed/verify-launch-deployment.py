@@ -6,7 +6,9 @@ import datetime
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
+import re
 import subprocess
 import urllib.parse
 import urllib.request
@@ -15,14 +17,17 @@ import zipfile
 PROJECT = 'lociar-2f38c'
 REGION = 'us-central1'
 ROOT = Path(__file__).resolve().parents[2]
-NAMES = '''readPublicContent onPostDensityWritten readNoteDensity everyFiveMinutes
-everyFifteenMinutes nightlyMaintenance onMaintenanceRequested ensureProfile updateHandle
-readDataPreferences setDataPreferences recordUserContext createPlaceNote readPlaceNoteRegions
-recordPlaceNoteVisit createPost deleteOwnPost recordPostView readActivity readLikeCount
-blockPostAuthor readAnonymousWorldMap markActivityRead onLikeCreated onLikeDeleted
-onCommentCreated onCommentDeleted onSaveCreated onSaveDeleted onFollowCreated onFollowDeleted
-onPostWritten onProfileUpdated registerPushToken unregisterPushToken onActivityCreated
-onReportCreated submitReport unlockDenseSpot'''.split()
+def deployed_names():
+    """Every exported function, read from functions/src/functionModules.ts (kept equal to index.ts by
+    functions/test/entry.test.mjs), so a new function can never be left out of the gate."""
+    source = (ROOT / 'functions/src/functionModules.ts').read_text(encoding='utf-8')
+    names = re.findall(r"^\s*(\w+):\s*'\./", source, flags=re.M)
+    if len(names) < 10:
+        raise SystemExit('Could not read the function list from functionModules.ts')
+    return names
+
+
+NAMES = deployed_names()
 
 
 def gcloud(*args):
@@ -47,6 +52,13 @@ def main():
              for p in (ROOT / 'functions/lib').rglob('*.js') if p.name != 'index.js'}
 
     def check(name):
+        # One unreadable source or API hiccup marks that function, not the whole report.
+        try:
+            return check_one(name)
+        except Exception as error:  # noqa: BLE001 - reported per function
+            return {'function': name, 'complete': False, 'problems': ['check_failed:' + type(error).__name__]}
+
+    def check_one(name):
         f = by_name.get(name)
         s = by_service.get(name.lower())
         result = {'function': name, 'complete': False, 'problems': []}
@@ -98,8 +110,11 @@ def main():
               'complete': all(r['complete'] for r in results) and actual_jobs == wanted_jobs,
               'post_writes': 0}
     output = opts.package / 'server-readiness.json'
-    output.write_text(json.dumps(report, indent=2) + '\n')
-    output.chmod(0o600)
+    # Created with owner-only permissions; no window where the report is world-readable.
+    fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    os.fchmod(fd, 0o600)
+    with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+        handle.write(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ('functions_checked', 'scheduler_exactly_three', 'complete', 'post_writes')}))
     raise SystemExit(0 if report['complete'] else 1)
 

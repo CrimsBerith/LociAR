@@ -16,13 +16,15 @@ from extract import EXCLUDE  # noqa: E402  keys deliberately left untranslated (
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 CATALOG = os.path.join(ROOT, 'LociAR', 'Resources', 'Localizable.xcstrings')
 LETTERS = re.compile(r'[A-Za-zÇĞİÖŞÜçğıöşü]')
-SPECIFIERS = re.compile(r'%(?:lld|@|d|lf|%)')
+# Also positional (%1$lld) and precision (%.1f) forms the compiler can emit.
+SPECIFIERS = re.compile(r'%(?:\d+\$)?(?:\.\d+)?(?:lld|ld|@|d|lf|f|%)')
 
 
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
-    catalog = set(json.load(open(CATALOG, encoding='utf-8'))['strings'])
+    with open(CATALOG, encoding='utf-8') as handle:
+        catalog = set(json.load(handle)['strings'])
     extracted = {}
     files = 0
     for dirpath, _, names in os.walk(sys.argv[1]):

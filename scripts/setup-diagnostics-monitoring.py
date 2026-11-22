@@ -164,7 +164,7 @@ def reconcile(api, email):
     final = api.list_all("alertPolicies")
     for spec in policy_specs(channel["name"]):
         actual = next((p for p in final if is_owned(p) and p.get("userLabels", {}).get("signal") == spec["userLabels"]["signal"]), None)
-        if not actual or any(actual.get(k) != spec[k] for k in ("enabled", "notificationChannels", "alertStrategy")):
+        if not actual or any(not contains(actual.get(k), spec[k]) for k in ("enabled", "notificationChannels", "alertStrategy")):
             raise RuntimeError("Policy read-back verification failed")
         if actual["conditions"][0].get("conditionMatchedLog") != spec["conditions"][0]["conditionMatchedLog"]:
             raise RuntimeError("Log filter read-back verification failed")
@@ -174,6 +174,13 @@ def reconcile(api, email):
         "verifiedPolicies": len(policy_specs(channel["name"])), "operations": operations, "customMetricsCreated": 0,
         "crashlyticsExportPrerequisite": "Enable separately in Firebase Integrations; not verified by this script",
         "schedulesCreated": 0, "budgetChanges": 0, "emailDeliveryTested": False}
+
+
+def contains(actual, expected):
+    """True when `actual` holds every field of `expected`; the API may add defaults of its own."""
+    if isinstance(expected, dict):
+        return isinstance(actual, dict) and all(contains(actual.get(key), value) for key, value in expected.items())
+    return actual == expected
 
 
 def main():
@@ -198,4 +205,8 @@ if __name__ == "__main__":
         main()
     except (RuntimeError, subprocess.CalledProcessError) as error:
         print(str(error) if isinstance(error, RuntimeError) else "gcloud authentication failed; no credentials printed", file=sys.stderr)
+        sys.exit(1)
+    except (ValueError, urllib.error.URLError) as error:
+        # Invalid JSON or a network failure: a one-line reason, not a traceback.
+        print(f"Monitoring API request failed: {type(error).__name__}", file=sys.stderr)
         sys.exit(1)

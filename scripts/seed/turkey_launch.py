@@ -19,7 +19,7 @@ AUTHOR = 'loci.guide'
 # Every item has an individually edited text. No modulo rotation or place-name
 # substitution: adding a pin requires adding its own reviewed editorial entry.
 def load_editorial():
-    data = json.loads((HERE / 'editorial/turkey-notes.json').read_text())
+    data = json.loads((HERE / 'editorial/turkey-notes.json').read_text(encoding='utf-8'))
     rows = data['items']
     if len({row['id'] for row in rows}) != len(rows):
         raise ValueError('duplicate editorial item ids')
@@ -111,10 +111,10 @@ def problems_for(items, existing):
 
 
 def build():
-    geometry = json.loads((HERE / 'launch-street-points.geojson').read_text())
+    geometry = json.loads((HERE / 'launch-street-points.geojson').read_text(encoding='utf-8'))
     points = {f['properties']['id']: f['properties']['points'] for f in geometry['features']}
     existing = []
-    for name in ['world-capitals', 'landmark-businesses']: existing += json.loads((HERE / f'{name}.json').read_text())['items']
+    for name in ['world-capitals', 'landmark-businesses']: existing += json.loads((HERE / f'{name}.json').read_text(encoding='utf-8'))['items']
     layers = {'A': [], 'B': []}
     for area, city, layer, notes, ar in AREAS:
         layers[layer] += area_items(area, city, layer, notes, ar, points[area])
@@ -130,8 +130,8 @@ def build():
         text = json.dumps(data, ensure_ascii=False, indent=1) + '\n'
         path = HERE / f'{name}.json'
         if '--check' in sys.argv:
-            if not path.exists() or path.read_text() != text: raise ValueError(f'{path.name} is out of date')
-        else: path.write_text(text)
+            if not path.exists() or path.read_text(encoding='utf-8') != text: raise ValueError(f'{path.name} is out of date')
+        else: path.write_text(text, encoding='utf-8')
         print(f"{name}: {sum(i['kind'] == 'note' for i in layers[layer])} notes + {sum(i['kind'] == 'ar' for i in layers[layer])} AR drafts; all held for review")
 
 

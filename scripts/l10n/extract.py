@@ -44,8 +44,18 @@ def comment_end(text, index, in_string):
         end = text.find('\n', index)
         return len(text) if end < 0 else end
     if text.startswith('/*', index):
-        end = text.find('*/', index)
-        return len(text) if end < 0 else end + 2
+        # Swift block comments nest: /* outer /* inner */ still outer */.
+        depth, cursor = 0, index
+        while cursor < len(text):
+            if text.startswith('/*', cursor):
+                depth, cursor = depth + 1, cursor + 2
+            elif text.startswith('*/', cursor):
+                depth, cursor = depth - 1, cursor + 2
+                if depth == 0:
+                    return cursor
+            else:
+                cursor += 1
+        return len(text)
     return None
 
 
@@ -157,7 +167,8 @@ def main():
             if not name.endswith('.swift') or name in SKIP_FILES: continue
             path = os.path.join(dirpath, name)
             rel = os.path.relpath(path, ROOT)
-            text = strip_comments(open(path, encoding='utf-8').read())
+            with open(path, encoding='utf-8') as handle:
+                text = strip_comments(handle.read())
             for m in LIT.finditer(text):
                 raw = m.group(1)
                 before = text[max(0, m.start() - 60):m.start()]

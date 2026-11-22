@@ -1,4 +1,4 @@
-import { forEachSequential, readPages } from './async.mjs';
+import { forEachLimited, readPages } from './async.mjs';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
@@ -46,16 +46,24 @@ async function scan(db, apply, FieldValue, Timestamp) {
     return { value: docs, next: docs.size < 200 ? undefined : docs.docs.at(-1) };
   });
   for await (const docs of pages) {
-    const wanted = docs.docs.map(doc => receiptFor({ id: doc.id, data: doc.data() })).filter(Boolean);
+    // Several flags from one reporter on one post share a receipt id: keep the first (oldest by id order).
+    const unique = new Map();
+    for (const receipt of docs.docs.map(doc => receiptFor({ id: doc.id, data: doc.data() })).filter(Boolean)) {
+      if (!unique.has(receipt.id)) unique.set(receipt.id, receipt);
+    }
+    const wanted = [...unique.values()];
     examined += docs.size;
     if (wanted.length) {
       const receipts = await db.getAll(...wanted.map(r => db.collection('report_receipts').doc(r.id)));
       const absent = wanted.filter((_, index) => !receipts[index].exists);
       missing += absent.length;
       if (apply && absent.length) {
-        const posts = await db.getAll(...absent.map(r => db.collection('posts').doc(r.target_id)));
-        await forEachSequential(absent, async (receipt, index) => {
-          const creator = posts[index].get('creator_id');
+        const postIds = [...new Set(absent.map(r => r.target_id))];
+        const postSnaps = await db.getAll(...postIds.map(id => db.collection('posts').doc(id)));
+        const creators = new Map(postIds.map((id, index) => [id, postSnaps[index].get('creator_id')]));
+        // Independent creates: a few at a time instead of one round trip after another.
+        await forEachLimited(absent, 10, async (receipt) => {
+          const creator = creators.get(receipt.target_id);
           try {
             await db.collection('report_receipts').doc(receipt.id).create({
               owner_luid: receipt.owner_luid, target_luid: typeof creator === 'string' ? creator : null,

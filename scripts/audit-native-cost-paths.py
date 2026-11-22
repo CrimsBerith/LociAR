@@ -13,9 +13,18 @@ import tempfile
 root = Path(__file__).resolve().parent.parent
 gif_file = root / "LociAR/DesignSystem/AnimatedGIFView.swift"
 region_file = root / "LociAR/AppCore/ArrivalRuntimePolicy.swift"
-gif = gif_file.read_text().split("actor GifDataCache {", 1)[1].split("\n/// Plays a GIF", 1)[0]
+def section(path, start, end=None):
+    """The source between two markers; a clear error, not an IndexError, when the code moved."""
+    text = path.read_text(encoding="utf-8")
+    if start not in text or (end is not None and end not in text.split(start, 1)[1]):
+        raise SystemExit(f"{path.name}: marker not found ({start!r}); update this audit to the current code.")
+    body = text.split(start, 1)[1]
+    return body.split(end, 1)[0] if end is not None else body
+
+
+gif = section(gif_file, "actor GifDataCache {", "\n/// Plays a GIF")
 gif = "actor GifDataCache {" + gif
-region = region_file.read_text().split("@MainActor\nfinal class ArrivalRegionRefreshCoordinator", 1)[1]
+region = section(region_file, "@MainActor\nfinal class ArrivalRegionRefreshCoordinator")
 region = "@MainActor\nfinal class ArrivalRegionRefreshCoordinator" + region.split("\n/// Complete restore plan", 1)[0]
 harness = r'''
 final class RequestCount: @unchecked Sendable {
@@ -93,8 +102,8 @@ with tempfile.TemporaryDirectory(prefix="lociar-native-cost-audit-") as director
     source = Path(directory) / "Audit.swift"
     binary = Path(directory) / "Audit"
     source.write_text("import Foundation\n" + gif + "\n" + region + "\n" + harness)
-    subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-swift-version", "6", str(source), "-o", str(binary)], check=True)
-    result = subprocess.run([str(binary)], check=True, capture_output=True, text=True)
+    subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-swift-version", "6", str(source), "-o", str(binary)], check=True, timeout=600)
+    result = subprocess.run([str(binary)], check=True, capture_output=True, text=True, timeout=300)
     print(result.stdout.strip())
     print(json.dumps({"extractedSourceSHA256": {
         str(gif_file.relative_to(root)): hashlib.sha256(gif.encode()).hexdigest(),

@@ -8,7 +8,12 @@ const GIT = '/usr/bin/git';
 
 // Keep findings value-free: CI logs must never reproduce the matched credential.
 const rules = [
-  ['private-key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g],
+  ['private-key', /-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED |DSA )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH |ENCRYPTED |DSA )?PRIVATE KEY-----/g],
+  // Provider key formats used by this project's services (Resend, Stripe, Google OAuth clients).
+  ['resend-key', /\bre_[A-Za-z0-9]{8,}_[A-Za-z0-9]{16,}\b/g],
+  ['stripe-secret', /\b(?:sk|rk)_live_[A-Za-z0-9]{16,}\b/g],
+  ['stripe-webhook-secret', /\bwhsec_[A-Za-z0-9]{24,}\b/g],
+  ['google-oauth-secret', /\bGOCSPX-[A-Za-z0-9_-]{20,}\b/g],
   ['service-account', /"type"\s*:\s*"service_account"/g],
   ['review-password', /\bReview_[A-Za-z0-9]+_\d{4}!/g],
   ['github-token', /\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})\b/g],
@@ -27,7 +32,9 @@ function sensitiveFile(path) {
   const name = basename(path);
   return (name === '.env' || name.startsWith('.env.')) && name !== '.env.example'
     || name === '.secret.local'
-    || name.endsWith('.credentials.json');
+    || name.endsWith('.credentials.json')
+    // Apple (.p8) and PKCS#12 (.p12/.pfx) key files have no business in the repository.
+    || /\.(?:p8|p12|pfx)$/i.test(name);
 }
 
 export function scanRepository(root) {
@@ -44,8 +51,12 @@ export function scanRepository(root) {
     if (!stat.isFile()) continue;
     if (sensitiveFile(path)) findings.push({ path, line: 1, rule: 'credential-file' });
     const bytes = readFileSync(absolute);
-    if (bytes.includes(0)) continue;
-    const source = bytes.toString('utf8');
+    // UTF-16 text (BOM) contains NUL bytes too; decode it instead of skipping it as binary.
+    const utf16 = bytes.length >= 2 && ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff));
+    if (!utf16 && bytes.includes(0)) continue;
+    const source = utf16
+      ? (bytes[0] === 0xff ? bytes.toString('utf16le') : Buffer.from(bytes).swap16().toString('utf16le'))
+      : bytes.toString('utf8');
     for (const [rule, pattern] of rules) {
       // Plain-text credential labels are only meaningful in human-written documents;
       // Swift/JS parameter labels like password: password are not literal secrets.
@@ -74,8 +85,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     } else {
       console.log('Secret scan passed (tracked and non-ignored files, including docs and tests).');
     }
-  } catch {
-    console.error('Secret scan could not complete. Run it in a readable Git repository.');
+  } catch (error) {
+    // The reason only (never file contents): a permission or Git error, not a finding.
+    console.error(`Secret scan could not complete (${error?.code ?? error?.name ?? 'error'}). Run it in a readable Git repository.`);
     process.exitCode = 2;
   }
 }

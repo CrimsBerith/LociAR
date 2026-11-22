@@ -40,30 +40,13 @@ if ask "Testleri çalıştırayım mı?"; then
 fi
 
 # ---------------------------------------------------------------- 2
-step "2/8  Commit ve gönderim (dal: $BRANCH, main'e değil)"
-echo "Mevcut değişiklikler korunur. Commit kapsamını önce git diff ile incele."
-if ask "Değişiklikleri commit edip GitHub'a göndereyim mi?"; then
-  GH="$(command -v gh || true)"; [[ -n "$GH" ]] && "$GH" auth setup-git --hostname github.com >/dev/null 2>&1
-  git add -A
-  git reset -q -- available_luxury_com_results.txt scripts/.prod-email.txt 2>/dev/null || true
-  if git diff --cached --quiet; then echo "Commit'lenecek değişiklik yok."; else
-    git commit -q -F - <<'MSG' || fail "Commit başarısız."
-fix(release): App Store 1.0 readiness
-
-- Hide creator-support payment entry points in Release builds until a provider is live
-  (App Review 2.1 / 3.1.1); Debug builds and UI tests keep them.
-- Support contact and review account move to alfagolab.com (lociar.app is not registered).
-- recordPostView applies the same active-account fences as the read path (bug audit B02).
-- Align submission guide, App Privacy table, age rating and review summaries with direct publishing.
-- Add the App Store go-live checklist and this preparation script.
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01PqaT2vHnVZEYNBrX6Ughta
-MSG
-  fi
-  git push -u origin "HEAD:$BRANCH" || fail "Gönderim başarısız."
-  echo "✅ Gönderildi. PR #58'de GitHub işleri yeşil olunca main'e birleştir."
+step "2/8  Çalışma kopyası"
+# Commit ve push bu betiğin işi değil (AGENTS.md): değişiklikler main'e verify.command ile gider.
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+  git status --short | head -20
+  fail "Commit edilmemiş değişiklik var. Önce commit et ve scripts/verify.command ile gönder."
 fi
+echo "✅ Çalışma kopyası temiz ($(git rev-parse --short HEAD), dal: $BRANCH)."
 
 # ---------------------------------------------------------------- 3
 step "3/8  Firebase girişi ve harcama sınırı"
@@ -119,7 +102,9 @@ step "8/8  App Review hesabı ve açılış içeriği"
 if command -v gcloud >/dev/null 2>&1 && ask "apple-review@locidrop.com hesabını açayım ve örnek içeriği yükleyeyim mi?"; then
   gcloud auth application-default print-access-token >/dev/null 2>&1 || gcloud auth application-default login || fail "Google kimliği yok."
   gcloud auth application-default set-quota-project "$PROJECT" >/dev/null 2>&1 || true
-  CRED="$HOME/Desktop/lociar-review-$STAMP.json"
+  # Not on the Desktop: it may sync to iCloud. Owner-only folder and file.
+  CRED_DIR="$HOME/.lociar"; mkdir -p "$CRED_DIR" && chmod 700 "$CRED_DIR"
+  CRED="$CRED_DIR/review-$STAMP.json"  # created exclusively with mode 600 by review-credentials.mjs
   (cd functions && REVIEW_CREDENTIALS_FILE="$CRED" FIREBASE_PROJECT_ID="$PROJECT" node scripts/provision-review-account.mjs) \
     || fail "İnceleme hesabı açılamadı."
   echo "Parola: $CRED (yalnız App Store Connect → Sign-In Information alanına gir; sonra dosyayı sil)."
