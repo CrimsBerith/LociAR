@@ -44,10 +44,9 @@ export default function UserInvitationPage() {
     if (password !== confirmation) { setMessage('Passwords must match.'); return; }
     setBusy(true); setMessage('');
     try {
-      // Set the password first: if Firebase refuses it (policy, stale sign-in) the invitation is still
-      // unused and the person can fix it and retry. Accepting first could leave an account without one.
-      // The iOS app uses email/password sign-in; create that credential without inventing a token handoff.
-      await updatePassword(user, password);
+      // Accept first. Changing the password moves the account's tokensValidAfterTime forward, and
+      // the route verifies with checkRevoked, which rejects any token whose auth_time predates it.
+      // Acceptance is replayable: if updatePassword fails, a retry re-accepts (no-op) and sets it again.
       // Acceptance is authorized by the fresh verified email-link ID token, not a browser cookie.
       const response = await fetch('/api/auth/invite', {
         method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
@@ -55,6 +54,8 @@ export default function UserInvitationPage() {
       });
       const result = await response.json() as { ok?: boolean; reason?: string };
       if (!response.ok || !result.ok) throw new Error(result.reason ?? 'Invitation could not be confirmed. Please retry.');
+      // The iOS app uses email/password sign-in; create that credential without inventing a token handoff.
+      await updatePassword(user, password);
       await signOut(clientAuth());
       setPassword(''); setConfirmation(''); setUser(null); setFinished(true);
     } catch (error) { setMessage(mutationError(error)); } finally { setBusy(false); }
