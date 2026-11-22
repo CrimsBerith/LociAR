@@ -740,5 +740,17 @@
  "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin.": "Sign in with Apple is turned off right now. You can sign in with email.",
  "Bağlantı yok. İnternetini kontrol edip tekrar dene.": "No connection. Check your internet and try again.",
  "Bu hesap kullanılamıyor. Destek ile iletişime geç.": "This account can't be used. Contact support.",
- "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "Sign in with Apple couldn't be completed right now. Try again. (%@)"
+ "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "Sign in with Apple couldn't be completed right now. Try again. (%@)",
+ "Tavşan": "Hare",
+ "Kaplumbağa": "Tortoise",
+ "Kedi": "Cat",
+ "Köpek": "Dog",
+ "Ayı": "Bear",
+ "Kuş": "Bird",
+ "Balık": "Fish",
+ "Yaprak": "Leaf",
+ "Yıldız": "Star",
+ "Ay": "Moon",
+ "Güneş": "Sun",
+ "Şimşek": "Lightning"
 }

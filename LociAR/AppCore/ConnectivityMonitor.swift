@@ -7,14 +7,18 @@ import Observation
 final class ConnectivityMonitor {
     private(set) var isOnline = true
     @ObservationIgnored private let monitor = NWPathMonitor()
-    @ObservationIgnored private let queue = DispatchQueue(label: "com.khankartal.lociar.connectivity")
 
     init() {
+        // Updates are delivered on the main queue in order. One unstructured Task per update
+        // could apply an older path after a newer one and leave the app showing the wrong state.
         monitor.pathUpdateHandler = { [weak self] path in
-            Task { @MainActor in self?.isOnline = path.status == .satisfied }
+            MainActor.assumeIsolated { self?.isOnline = path.status == .satisfied }
         }
-        monitor.start(queue: queue)
+        monitor.start(queue: .main)
     }
 
-    deinit { monitor.cancel() }
+    deinit {
+        monitor.pathUpdateHandler = nil
+        monitor.cancel()
+    }
 }

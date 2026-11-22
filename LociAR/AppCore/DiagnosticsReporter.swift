@@ -10,12 +10,16 @@ enum DiagnosticComponent: String, CaseIterable, Sendable {
     case backend, publishing, reading, accountDeletion, profile, push, regionMonitoring, ar
 
     nonisolated static func callable(_ name: String) -> Self {
+        // Names of the deployed callables (functions/src/functionModules.ts).
         switch name {
-        case "createPost", "createPlaceNote", "createComment": .publishing
-        case "readPublicContent", "listMapContent", "listNearbyPosts": .reading
+        case "createPost", "createPlaceNote", "beginWorldMapUpload", "deleteOwnPost": .publishing
+        case "readPublicContent", "readNoteDensity", "readActivity", "readLikeCount", "readAnonymousWorldMap",
+             "unlockDenseSpot", "recordPostView", "markActivityRead": .reading
         case "deleteAccount": .accountDeletion
-        case "ensureProfile", "updateHandle", "screenAvatar": .profile
+        case "ensureProfile", "updateHandle", "beginAvatarUpload", "screenAvatar": .profile
         case "registerPushToken", "unregisterPushToken": .push
+        case "readPlaceNoteRegions", "recordPlaceNoteVisit", "readCampaignRegions", "recordCampaignArrival",
+             "readCampaignZones", "recordCampaignStep": .regionMonitoring
         case "getArcoreToken", "registerCloudAnchor": .ar
         default: .backend
         }

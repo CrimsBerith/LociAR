@@ -740,5 +740,17 @@
  "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin.": "Appleでサインインは現在オフです。メールでサインインできます。",
  "Bağlantı yok. İnternetini kontrol edip tekrar dene.": "接続がありません。インターネットを確認してもう一度お試しください。",
  "Bu hesap kullanılamıyor. Destek ile iletişime geç.": "このアカウントは使用できません。サポートにお問い合わせください。",
- "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "Appleでサインインを完了できませんでした。もう一度お試しください。(%@)"
+ "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "Appleでサインインを完了できませんでした。もう一度お試しください。(%@)",
+ "Tavşan": "ウサギ",
+ "Kaplumbağa": "カメ",
+ "Kedi": "ネコ",
+ "Köpek": "イヌ",
+ "Ayı": "クマ",
+ "Kuş": "トリ",
+ "Balık": "サカナ",
+ "Yaprak": "葉っぱ",
+ "Yıldız": "星",
+ "Ay": "月",
+ "Güneş": "太陽",
+ "Şimşek": "稲妻"
 }

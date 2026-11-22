@@ -40,7 +40,8 @@ enum ARCameraHealth {
     ///   - lastFrameAt: when the latest frame arrived, if any.
     ///   - attempts: reruns already made since the feed was last healthy.
     nonisolated static func action(now: Date, expectedSince: Date, lastFrameAt: Date?, attempts: Int) -> Action {
-        if let lastFrameAt, now.timeIntervalSince(lastFrameAt) < stallThreshold { return .healthy }
+        // A negative interval (wall clock moved back) is not proof of a fresh frame: only 0..<threshold is healthy.
+        if let lastFrameAt, (0..<stallThreshold).contains(now.timeIntervalSince(lastFrameAt)) { return .healthy }
         let deliveredSinceExpected = lastFrameAt.map { $0 >= expectedSince } ?? false
         let base = deliveredSinceExpected ? (lastFrameAt ?? expectedSince) : expectedSince
         let limit: TimeInterval

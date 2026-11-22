@@ -740,5 +740,17 @@
  "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin.": "Iniciar sesión con Apple está desactivado ahora. Puedes iniciar sesión con tu correo.",
  "Bağlantı yok. İnternetini kontrol edip tekrar dene.": "Sin conexión. Revisa tu internet e inténtalo de nuevo.",
  "Bu hesap kullanılamıyor. Destek ile iletişime geç.": "Esta cuenta no se puede usar. Contacta con soporte.",
- "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "No se pudo completar el inicio de sesión con Apple. Inténtalo de nuevo. (%@)"
+ "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "No se pudo completar el inicio de sesión con Apple. Inténtalo de nuevo. (%@)",
+ "Tavşan": "Liebre",
+ "Kaplumbağa": "Tortuga",
+ "Kedi": "Gato",
+ "Köpek": "Perro",
+ "Ayı": "Oso",
+ "Kuş": "Pájaro",
+ "Balık": "Pez",
+ "Yaprak": "Hoja",
+ "Yıldız": "Estrella",
+ "Ay": "Luna",
+ "Güneş": "Sol",
+ "Şimşek": "Rayo"
 }

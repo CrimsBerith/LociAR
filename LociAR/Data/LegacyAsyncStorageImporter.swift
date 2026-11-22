@@ -47,23 +47,29 @@ struct LegacyAsyncStorageImporter {
             directories.append(documentsURL.appendingPathComponent("RCTAsyncLocalStorage", isDirectory: true))
         }
         var imported: [String: Data] = [:]
-        var skipped: [String] = []
+        var skipped: Set<String> = []
 
+        // Directories are listed newest layout first: the first one holding a key wins, so an
+        // older Documents copy can never overwrite the current Application Support value.
         for directory in directories {
             let manifestURL = directory.appendingPathComponent("manifest.json")
-            guard let data = try? Data(contentsOf: manifestURL),
+            guard Self.fileSize(manifestURL).map({ $0 <= Self.maximumFileBytes }) ?? false,
+                  let data = try? Data(contentsOf: manifestURL),
                   let manifest = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
 
             for (key, rawValue) in manifest {
                 guard Self.isSupported(key) else {
-                    skipped.append(key)
+                    skipped.insert(key)
                     continue
                 }
+                guard imported[key] == nil else { continue }
                 if let inline = rawValue as? String {
                     imported[key] = Data(inline.utf8)
                 } else if rawValue is NSNull {
                     let fileName = Self.storageFileName(for: key)
                     let valueURL = directory.appendingPathComponent(fileName)
+                    // A corrupt or unexpectedly huge legacy file must not be read into memory at launch.
+                    guard Self.fileSize(valueURL).map({ $0 <= Self.maximumFileBytes }) ?? false else { continue }
                     if let value = try? Data(contentsOf: valueURL) { imported[key] = value }
                 }
             }
@@ -73,8 +79,15 @@ struct LegacyAsyncStorageImporter {
         // Auth/session material is removed fail-closed before returning anything.
         let authKeys = imported.keys.filter(Self.isAuthMaterial)
         for key in authKeys { imported.removeValue(forKey: key) }
-        skipped.append(contentsOf: authKeys)
+        skipped.formUnion(authKeys)
         return LegacyImportResult(values: imported, skippedKeys: skipped.sorted())
+    }
+
+    /// Legacy AsyncStorage values were small JSON blobs; anything larger is not ours to load.
+    static let maximumFileBytes = 8 * 1024 * 1024
+
+    private static func fileSize(_ url: URL) -> Int? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int
     }
 
     func markCompleted() { userDefaults.set(true, forKey: Self.migrationMarker) }

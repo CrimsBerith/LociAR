@@ -66,6 +66,8 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
             if let location = manager.location,
                Self.isPublishable(location),
                location.horizontalAccuracy <= Self.preferredPublishAccuracyMeters {
+                // Remember it: if the overall timeout fires during the compass wait, this fix is the answer.
+                bestLocation = location
                 finishWithHeading(location)
             } else {
                 manager.startUpdatingLocation()
@@ -106,6 +108,8 @@ final class GeoPoseCaptureService: NSObject, @preconcurrency CLLocationManagerDe
             finish(makeGeoPose(from: location))
             return
         }
+        // A later but less accurate fix must not replace the one already waiting for the compass.
+        if let waiting = awaitingHeading, waiting.horizontalAccuracy <= location.horizontalAccuracy { return }
         awaitingHeading = location
         guard headingWait == nil else { return }
         headingWait = Task { @MainActor [weak self] in

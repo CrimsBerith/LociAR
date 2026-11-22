@@ -60,6 +60,8 @@ enum UITestFixtures {
         geoPose: GeoPose(latitude: 41.0082, longitude: 28.9784, altitude: 35, heading: 90, accuracy: 5)
     )
 
+#if DEBUG
+    /// Debug-only: renders a legacy photo layer for UI tests of old posts. Never compiled into Release.
     static var samplePhotoURL: URL {
         let tempDir = FileManager.default.temporaryDirectory
         let fileURL = tempDir.appendingPathComponent("loci_sample_wall_photo.jpg")
@@ -96,6 +98,7 @@ enum UITestFixtures {
         }
         return fileURL
     }
+#endif
 
     static var post: LociPost {
 #if DEBUG
@@ -115,6 +118,7 @@ enum UITestFixtures {
                 layers = [
                     EditLayer(id: UUID(), kind: .text, text: caption, assetURL: nil, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0)
                 ]
+#if DEBUG
             case "photo":
                 caption = "Tarihi taş duvarın özel anı fotoğrafı."
                 let photoURL = samplePhotoURL
@@ -122,6 +126,7 @@ enum UITestFixtures {
                 layers = [
                     EditLayer(id: UUID(), kind: .image, text: nil, assetURL: photoURL, points: [], colorHex: "#FFFFFF", opacity: 1, scale: 1, rotation: 0)
                 ]
+#endif
             default:
                 // Social media links were removed (9 Oct 2026); any other key falls back to a text post.
                 caption = "Bu tarihi taş duvar, mahallenin hafızasını taşıyor."
@@ -154,8 +159,9 @@ enum UITestFixtures {
         )
     }
 
-    static let comments = [
+    /// Computed like `post`, so relative timestamps stay relative to now.
+    static var comments: [LociComment] { [
         LociComment(id: UUID(), postID: post.id, userID: UUID(), username: "deniz", text: "Bu hikâyeyi bilmiyordum.", createdAt: Date().addingTimeInterval(-900)),
         LociComment(id: UUID(), postID: post.id, userID: UUID(), username: "arda", text: "Bir sonraki gelişimde AR’da bakacağım.", createdAt: Date().addingTimeInterval(-420))
-    ]
+    ] }
 }

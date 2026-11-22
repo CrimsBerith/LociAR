@@ -740,5 +740,17 @@
  "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin.": "Вход через Apple сейчас отключён. Можно войти по электронной почте.",
  "Bağlantı yok. İnternetini kontrol edip tekrar dene.": "Нет соединения. Проверьте интернет и попробуйте снова.",
  "Bu hesap kullanılamıyor. Destek ile iletişime geç.": "Эту учётную запись нельзя использовать. Обратитесь в поддержку.",
- "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "Не удалось завершить вход через Apple. Попробуйте снова. (%@)"
+ "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "Не удалось завершить вход через Apple. Попробуйте снова. (%@)",
+ "Tavşan": "Заяц",
+ "Kaplumbağa": "Черепаха",
+ "Kedi": "Кошка",
+ "Köpek": "Собака",
+ "Ayı": "Медведь",
+ "Kuş": "Птица",
+ "Balık": "Рыба",
+ "Yaprak": "Лист",
+ "Yıldız": "Звезда",
+ "Ay": "Луна",
+ "Güneş": "Солнце",
+ "Şimşek": "Молния"
 }

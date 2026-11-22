@@ -33,16 +33,17 @@ final class PlaceNoteAcknowledgementPump {
         let batch = Array(ids.filter { now >= nextAttempt[$0] ?? .distantPast }.prefix(3))
         guard !batch.isEmpty else { return }
         let epoch = UUID(); token = epoch
+        // Re-resolve the weak reference around every await: a strong `self` held across the sends
+        // would keep a discarded recovery object (and its closure) alive until the batch ends.
         task = Task { [weak self] in
-            guard let self else { return }
-            defer { if self.token == epoch { self.task = nil } }
             for id in batch {
-                guard self.token == epoch, !Task.isCancelled else { return }
+                guard let owner = self, owner.token == epoch, !Task.isCancelled else { break }
                 let succeeded = await send(id)
-                guard self.token == epoch, !Task.isCancelled else { return }
-                if succeeded { self.nextAttempt.removeValue(forKey: id) }
-                else { self.nextAttempt[id] = self.clock().addingTimeInterval(60) }
+                guard let current = self, current.token == epoch, !Task.isCancelled else { break }
+                if succeeded { current.nextAttempt.removeValue(forKey: id) }
+                else { current.nextAttempt[id] = current.clock().addingTimeInterval(60) }
             }
+            if let owner = self, owner.token == epoch { owner.task = nil }
         }
     }
 

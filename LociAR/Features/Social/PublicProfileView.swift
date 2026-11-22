@@ -39,6 +39,8 @@ struct PublicProfileView: View {
                         profileMetric(value: profile?.publicPostCount ?? posts.count, label: String(localized: "Not"))
                         profileMetric(value: profile?.followerCount ?? 0, label: String(localized: "Takipçi"))
                     }
+                    // Your own profile: following, blocking or reporting yourself is meaningless.
+                    if !isOwnProfile {
                     Button(following ? String(localized: "Takibi bırak") : String(localized: "Takip et")) { Task { await toggleFollow() } }
                         .buttonStyle(LociPrimaryButtonStyle())
                         .disabled(isFollowMutating || isBlockMutating || isBlocked)
@@ -57,6 +59,7 @@ struct PublicProfileView: View {
                         .font(.footnote)
                         .frame(maxWidth: .infinity, minHeight: LociTheme.Control.minimumTapTarget)
                         .accessibilityIdentifier("profile-report-user")
+                    }
                     if let message, !posts.isEmpty {
                         Text(message.localizedUI).font(.caption).foregroundStyle(LociTheme.secondaryText)
                     }
@@ -228,6 +231,11 @@ struct PublicProfileView: View {
         }
     }
 
+    private var isOwnProfile: Bool {
+        if case let .signedIn(viewer) = session.phase { return viewer.id == user.id }
+        return false
+    }
+
     private func toggleFollow() async {
         guard !isFollowMutating, !isBlockMutating else { return }
         guard case let .signedIn(viewer) = session.phase, container.isBackendConfigured else { return }
@@ -248,6 +256,9 @@ struct PublicProfileView: View {
             isBlocked = true
             following = false
             posts = []
+            // No "load more" into a blocked author's pages, and late page replies are discarded.
+            nextCursor = nil
+            pageGeneration += 1
             message = String(localized: "Kullanıcı engellendi.")
         } catch {
             message = String(localized: "Hesap engellenemedi. Tekrar dene.")

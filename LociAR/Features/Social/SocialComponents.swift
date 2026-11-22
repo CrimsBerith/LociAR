@@ -235,13 +235,14 @@ struct AccountRequiredView: View {
             .frame(maxWidth: .infinity)
         }
         .background(LociScreenBackground())
-        .onChange(of: isGuest) { _, guest in if !guest { showAccountCreation = false } }
+        // Also from signed-out (not only from a guest session): any completed member sign-in closes the sheet.
+        .onChange(of: isMember) { _, member in if member { showAccountCreation = false } }
         .sheet(isPresented: $showAccountCreation) { AuthView() }
         .accessibilityIdentifier("screen-account-required")
     }
 
-    private var isGuest: Bool {
-        if case let .signedIn(user) = session.phase { return user.isAnonymousAccount }
+    private var isMember: Bool {
+        if case let .signedIn(user) = session.phase { return !user.isAnonymousAccount }
         return false
     }
 }

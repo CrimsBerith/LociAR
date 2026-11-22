@@ -740,5 +740,17 @@
  "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin.": "“通过 Apple 登录”目前已关闭。你可以使用电子邮件登录。",
  "Bağlantı yok. İnternetini kontrol edip tekrar dene.": "无网络连接。请检查网络后重试。",
  "Bu hesap kullanılamıyor. Destek ile iletişime geç.": "此账户无法使用。请联系支持。",
- "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "目前无法完成“通过 Apple 登录”。请重试。(%@)"
+ "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "目前无法完成“通过 Apple 登录”。请重试。(%@)",
+ "Tavşan": "野兔",
+ "Kaplumbağa": "乌龟",
+ "Kedi": "猫",
+ "Köpek": "狗",
+ "Ayı": "熊",
+ "Kuş": "鸟",
+ "Balık": "鱼",
+ "Yaprak": "叶子",
+ "Yıldız": "星星",
+ "Ay": "月亮",
+ "Güneş": "太阳",
+ "Şimşek": "闪电"
 }

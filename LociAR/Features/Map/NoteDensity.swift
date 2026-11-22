@@ -284,6 +284,10 @@ struct MapNoteGroupSheet: View {
     @State private var readGeneration = 0
     @State private var reloadAfterCurrentRead = false
     @State private var isVisible = true
+    /// Under the AR / location filter a server page may hold only the other kind; fetch a few more pages
+    /// automatically so the sheet does not open empty while matching notes exist further down.
+    @State private var filteredAutoPages = 0
+    @State private var continueFilteredPaging = false
 
     // The server total counts every kind; under a filter the map group already carries the filtered count.
     private var noteCount: Int { locationNotesOnly == nil ? totalCount ?? group.count : group.count }
@@ -397,11 +401,16 @@ struct MapNoteGroupSheet: View {
     @MainActor private func load(reset: Bool, waitForFix: Bool = false) async {
         guard !isLoading, isVisible, !Task.isCancelled else { return }
         isLoading = true; message = nil
+        if reset { filteredAutoPages = 0 }
         defer {
             isLoading = false
             if reloadAfterCurrentRead {
                 reloadAfterCurrentRead = false
+                continueFilteredPaging = false
                 if isVisible, scenePhase == .active, isNear { Task { await load(reset: true) } }
+            } else if continueFilteredPaging {
+                continueFilteredPaging = false
+                if isVisible, scenePhase == .active, isNear { Task { await load(reset: false) } }
             }
         }
         if waitForFix {
@@ -434,6 +443,14 @@ struct MapNoteGroupSheet: View {
                 posts = reset ? received : posts + received.filter { incoming in !posts.contains { $0.id == incoming.id } }
                 nextOffset = page.nextOffset
                 pageToken = page.pageToken
+                if let wanted = locationNotesOnly {
+                    let matched = received.contains { $0.isLocationNote == wanted }
+                    if matched { filteredAutoPages = 0 }
+                    else if page.nextOffset != nil, filteredAutoPages < 5 {
+                        filteredAutoPages += 1
+                        continueFilteredPaging = true
+                    }
+                }
             } else { revokeReads() }
             if page.total == 0 { message = String(localized: "Yakında görünür post bulunamadı.") }
         } catch is CancellationError {

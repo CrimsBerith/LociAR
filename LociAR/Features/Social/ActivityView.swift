@@ -17,16 +17,18 @@ struct ActivityView: View {
     @State private var isLoadingMore = false
     @State private var isLoading = true
     @State private var loadID: UUID?
+    @State private var loadFailed = false
 
     var body: some View {
         Group {
             if isLoading {
                 LociLoadingView(title: String(localized: "Aktiviteler yükleniyor…"))
             } else if items.isEmpty {
+                // A failed load is not "no activity": say so and offer the retry.
                 LociEmptyState(
-                    title: String(localized: "Henüz aktivite yok"),
+                    title: loadFailed ? String(localized: "Bir sorun oluştu") : String(localized: "Henüz aktivite yok"),
                     message: message ?? String(localized: "Beğeni, yorum ve takip bildirimleri burada görünür."),
-                    symbol: "bell.slash",
+                    symbol: loadFailed ? "exclamationmark.triangle" : "bell.slash",
                     actionTitle: session.isLocalPreview || message == nil || !container.isBackendConfigured ? nil : String(localized: "Tekrar dene"),
                     action: session.isLocalPreview || message == nil ? nil : { Task { await load() } }
                 )
@@ -56,7 +58,11 @@ struct ActivityView: View {
                         .padding(.vertical, LociTheme.Spacing.xs)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
+                        // The whole row (Spacer included) is the target, and VoiceOver announces it as a button.
+                        .contentShape(Rectangle())
                         .onTapGesture { if let postID = item.postID { container.router.selectPost(id: postID) } }
+                        .accessibilityAddTraits(item.postID == nil ? AccessibilityTraits() : .isButton)
+                        .accessibilityAction { if let postID = item.postID { container.router.selectPost(id: postID) } }
                     }
                 }
                 .lociListStyle()
@@ -68,8 +74,10 @@ struct ActivityView: View {
         .onChange(of: refreshScope) { _, scope in
             if refreshGate.prepare(scope: scope, revision: ContentUpdates.shared.activityRevision) { items = []; nextCursor = nil }
         }
+        // A new activity revision does not clear the list here (that flashed the empty state); the
+        // next load clears it as it starts and shows the loading view instead.
         .onChange(of: ContentUpdates.shared.activityRevision) { _, value in
-            if loadedRevision != value { items = []; nextCursor = nil }
+            if loadedRevision != value { nextCursor = nil }
         }
         .visibleContentRefresh(gate: refreshGate, scope: refreshScope, revision: ContentUpdates.shared.activityRevision) { opening in
             await load(force: false, automatic: !opening)
@@ -124,7 +132,7 @@ struct ActivityView: View {
             let loaded = page.items
             guard isCurrentLoad(requestID, userID: user.id), revision == ContentUpdates.shared.activityRevision else { return }
             nextCursor = page.next
-            loadedRevision = revision; hasLoadedMore = false; succeeded = true
+            loadedRevision = revision; hasLoadedMore = false; succeeded = true; loadFailed = false
             items = loaded
             isLoading = false
             let unread = SocialActivity.unreadIDs(in: loaded)
@@ -140,6 +148,7 @@ struct ActivityView: View {
         } catch {
             guard isCurrentLoad(requestID, userID: user.id), revision == ContentUpdates.shared.activityRevision else { return }
             failure = error
+            loadFailed = true
             if let backend = error as? BackendCallError, case .rejected = backend { items = []; nextCursor = nil }
             message = String(localized: "Aktiviteler şu anda yüklenemiyor. Biraz sonra tekrar dene.")
         }
@@ -180,7 +189,13 @@ struct ActivityView: View {
             guard !Task.isCancelled, revision == ContentUpdates.shared.activityRevision, generation == pageGeneration, case let .signedIn(current) = session.phase, current.id == viewer.id else { return }
             pageSucceeded = true
             hasLoadedMore = true
-            var unique = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest }); for item in page.items { unique[item.id] = item }; items = unique.values.sorted { $0.createdAt > $1.createdAt }
+            var unique = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
+            for item in page.items {
+                // An overlapping page may carry an older unread snapshot: keep the read state we already have.
+                if let known = unique[item.id], known.readAt != nil, item.readAt == nil { continue }
+                unique[item.id] = item
+            }
+            items = unique.values.sorted { $0.createdAt > $1.createdAt }
             nextCursor = page.next
             let unread = SocialActivity.unreadIDs(in: page.items)
             if !unread.isEmpty {

@@ -60,6 +60,7 @@ struct ARDarkCameraNotice: View {
 }
 
 struct ARCameraBackdrop: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let failed: Bool
     let message: String
 
@@ -70,7 +71,7 @@ struct ARCameraBackdrop: View {
                 Image(systemName: failed ? "exclamationmark.triangle.fill" : "camera.aperture")
                     .font(.system(size: 38, weight: .semibold))
                     .foregroundStyle(failed ? LociTheme.warning : LociTheme.accent)
-                    .symbolEffect(.pulse, isActive: !failed)
+                    .symbolEffect(.pulse, isActive: !failed && !reduceMotion)
                 Text(failed ? String(localized: "Kamera görüntüsü alınamadı") : String(localized: "Canlı kamera hazırlanıyor"))
                     .font(.headline)
                 Text(message.localizedUI)

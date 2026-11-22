@@ -2,7 +2,10 @@ import SwiftUI
 
 struct OnboardingView: View {
     let onComplete: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentStep = 0
+    /// Page changes and completion animate only when the user has not asked for reduced motion.
+    private var transition: Animation? { reduceMotion ? nil : .easeInOut }
 
     private struct OnboardingStep {
         let title: String
@@ -40,7 +43,7 @@ struct OnboardingView: View {
                 HStack {
                     Spacer()
                     Button("Atla") {
-                        withAnimation(.easeInOut) { onComplete() }
+                        withAnimation(transition) { onComplete() }
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(LociTheme.secondaryText)
@@ -48,6 +51,8 @@ struct OnboardingView: View {
                     .padding(.top, LociTheme.Spacing.l)
                     .opacity(currentStep < steps.count - 1 ? 1 : 0)
                     .disabled(currentStep >= steps.count - 1)
+                    // Invisible on the last page: VoiceOver must not land on it either.
+                    .accessibilityHidden(currentStep >= steps.count - 1)
                 }
                 .frame(minHeight: 44)
 
@@ -71,7 +76,15 @@ struct OnboardingView: View {
         .accessibilityIdentifier("screen-onboarding")
     }
 
+    /// At large Dynamic Type sizes on compact phones the page scrolls instead of clipping its text.
     private func stepView(_ step: OnboardingStep) -> some View {
+        ViewThatFits(in: .vertical) {
+            stepContent(step)
+            ScrollView { stepContent(step) }
+        }
+    }
+
+    private func stepContent(_ step: OnboardingStep) -> some View {
         VStack(spacing: LociTheme.Spacing.xxl) {
             Spacer()
 
@@ -120,7 +133,7 @@ struct OnboardingView: View {
                     .frame(width: index == currentStep ? 22 : 8, height: 8)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: currentStep)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: currentStep)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: "\(currentStep + 1) / \(steps.count)"))
     }
@@ -137,7 +150,7 @@ struct OnboardingView: View {
                 .accessibilityIdentifier("onboarding-finish")
             } else {
                 Button {
-                    withAnimation(.easeInOut) {
+                    withAnimation(transition) {
                         currentStep += 1
                     }
                 } label: {
@@ -152,7 +165,7 @@ struct OnboardingView: View {
     /// Camera and location are requested in context (AR screen, map, publish), where the system
     /// prompt makes sense to the user; asking here out of context invites a denial.
     private func requestPermissionsAndFinish() {
-        withAnimation(.easeInOut) {
+        withAnimation(transition) {
             onComplete()
         }
     }

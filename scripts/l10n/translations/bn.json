@@ -740,5 +740,17 @@
  "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin.": "Apple দিয়ে সাইন ইন এখন বন্ধ। আপনি ইমেইল দিয়ে সাইন ইন করতে পারেন।",
  "Bağlantı yok. İnternetini kontrol edip tekrar dene.": "সংযোগ নেই। ইন্টারনেট দেখে আবার চেষ্টা করুন।",
  "Bu hesap kullanılamıyor. Destek ile iletişime geç.": "এই অ্যাকাউন্ট ব্যবহার করা যাবে না। সহায়তায় যোগাযোগ করুন।",
- "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "Apple দিয়ে সাইন ইন এখন সম্পন্ন হয়নি। আবার চেষ্টা করুন। (%@)"
+ "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "Apple দিয়ে সাইন ইন এখন সম্পন্ন হয়নি। আবার চেষ্টা করুন। (%@)",
+ "Tavşan": "খরগোশ",
+ "Kaplumbağa": "কচ্ছপ",
+ "Kedi": "বিড়াল",
+ "Köpek": "কুকুর",
+ "Ayı": "ভালুক",
+ "Kuş": "পাখি",
+ "Balık": "মাছ",
+ "Yaprak": "পাতা",
+ "Yıldız": "তারা",
+ "Ay": "চাঁদ",
+ "Güneş": "সূর্য",
+ "Şimşek": "বজ্র"
 }

@@ -252,9 +252,10 @@ private struct LociGlassSurface: ViewModifier {
                 .overlay(shape.stroke(LociTheme.glassBorder))
                 .shadow(color: Color.black.opacity(LociTheme.Depth.shadowOpacity), radius: LociTheme.Depth.floatingRadius, y: LociTheme.Depth.floatingOffset)
         } else {
+            // The tint belongs between the material and the content: as an overlay it dimmed the
+            // content itself and lowered text contrast.
             content
-                .background(.regularMaterial, in: shape)
-                .overlay(shape.fill(LociTheme.glassTint))
+                .background { shape.fill(.regularMaterial).overlay(shape.fill(LociTheme.glassTint)) }
                 .overlay(shape.stroke(LociTheme.glassBorder))
                 .shadow(color: Color.black.opacity(LociTheme.Depth.shadowOpacity), radius: LociTheme.Depth.floatingRadius, y: LociTheme.Depth.floatingOffset)
         }
@@ -394,7 +395,6 @@ struct LociScreenBackground: View {
 }
 
 struct LociCard<Content: View>: View {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     var appearance: LociSurfaceAppearance = .content
     @ViewBuilder var content: Content
 
@@ -654,6 +654,9 @@ struct LociPaginationFooter: View {
                 .padding(.vertical, LociTheme.Spacing.s)
                 .background(LociTheme.field, in: Capsule())
                 .overlay(Capsule().stroke(LociTheme.glassBorder))
+                // The visible capsule stays compact; the tap area meets the 44 pt minimum.
+                .frame(minHeight: LociTheme.Control.minimumTapTarget)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(isLoading || !isEnabled)
@@ -729,6 +732,7 @@ struct LociAvatar: View {
     var avatarURL: URL? = nil
     var size: CGFloat = 44
     @State private var storageAvatar: UIImage?
+    @State private var storageAvatarURL: URL?
 
     var body: some View {
         Group {
@@ -761,7 +765,9 @@ struct LociAvatar: View {
         .overlay(Circle().stroke(LociTheme.accent.opacity(0.18)))
         .accessibilityHidden(true)
         .task(id: avatarURL) {
-            storageAvatar = nil
+            // Reappearing with the same photo keeps it on screen while it is checked again;
+            // only a different URL clears it (no flash of the letter tile).
+            if storageAvatarURL != avatarURL { storageAvatar = nil }
             let generation = ClientReadCaches.generation
             guard let avatarURL, avatarURL.scheme == "storage" else { return }
             let data = await AvatarURLCache.shared.data(for: avatarURL)
@@ -769,6 +775,7 @@ struct LociAvatar: View {
             let image = if let data { await AvatarReference.thumbnail(from: data, maxPixelSize: Int((size * displayScale).rounded(.up))) } else { nil as UIImage? }
             guard !Task.isCancelled, ClientReadCaches.generation == generation else { return }
             storageAvatar = image
+            storageAvatarURL = avatarURL
         }
     }
 
@@ -809,9 +816,17 @@ struct LociAvatar: View {
     private var fallbackAvatar: some View {
         ZStack {
             Circle().fill(LociTheme.accent.opacity(0.14))
-            Text(String(handle.trimmingCharacters(in: CharacterSet(charactersIn: "@")).prefix(1)).uppercased())
-                .font(.system(size: size * 0.38, weight: .bold, design: .rounded))
-                .foregroundStyle(LociTheme.accent)
+            let initial = String(handle.trimmingCharacters(in: CharacterSet(charactersIn: "@").union(.whitespacesAndNewlines)).prefix(1)).uppercased()
+            if initial.isEmpty {
+                // No usable handle: a person symbol instead of an empty circle.
+                Image(systemName: "person.fill")
+                    .font(.system(size: size * 0.4, weight: .semibold))
+                    .foregroundStyle(LociTheme.accent)
+            } else {
+                Text(initial)
+                    .font(.system(size: size * 0.38, weight: .bold, design: .rounded))
+                    .foregroundStyle(LociTheme.accent)
+            }
         }
     }
 }
@@ -868,7 +883,9 @@ private struct VisibleContentRefresh: ViewModifier {
             .onAppear { visible = true }
             .onDisappear { visible = false }
             .onChange(of: container.connectivity.isOnline) { _, online in
-                if online, gate.connectionRestored() { connectionWake = UUID() }
+                // A hidden tab must not consume the reconnect: the visible one refreshes, and a tab
+                // that becomes visible later reloads through its own activation.
+                if online, visible, scenePhase == .active, gate.connectionRestored() { connectionWake = UUID() }
             }
             .task(id: activation) {
                 guard activation.active else { return }

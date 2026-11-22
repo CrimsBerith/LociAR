@@ -14,6 +14,7 @@ struct ProfileEditView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var photoSubmitted = false
+    @State private var photoLoad: Task<Void, Never>?
 
     init(user: LociUser) {
         self.user = user
@@ -63,6 +64,7 @@ struct ProfileEditView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Vazgeç") { dismiss() }
                         .foregroundStyle(LociTheme.secondaryText)
+                        .disabled(isSaving)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -80,9 +82,14 @@ struct ProfileEditView: View {
                     .accessibilityIdentifier("profile-edit-save")
                 }
             }
+            // Closing mid-save would hide the result of a request that still completes.
+            .interactiveDismissDisabled(isSaving)
             .onChange(of: pickedPhoto) { _, item in
-                Task { await loadPhoto(item) }
+                // A newer pick supersedes a slower earlier one.
+                photoLoad?.cancel()
+                photoLoad = Task { await loadPhoto(item) }
             }
+            .onDisappear { photoLoad?.cancel() }
             .alert("Fotoğraf incelemeye gönderildi", isPresented: $photoSubmitted) {
                 Button("Tamam") { dismiss() }
             } message: {
@@ -168,7 +175,10 @@ struct ProfileEditView: View {
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: LociTheme.Spacing.m), count: 6), spacing: LociTheme.Spacing.m) {
                 ForEach(AvatarReference.presets, id: \.self) { name in
+                    // Before any change, the preset the profile already uses is the selected one.
                     let selected = avatarChoice == .preset(name)
+                        || (avatarChoice == .unchanged && AvatarReference.presetName(user.avatarURL) == name)
+                    let spokenName = Self.presetLabel(name)
                     Button {
                         avatarChoice = .preset(name)
                         pickedPhoto = nil
@@ -178,7 +188,7 @@ struct ProfileEditView: View {
                             .overlay(Circle().stroke(selected ? LociTheme.accent : .clear, lineWidth: LociTheme.Stroke.emphasis))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Hazır avatar \(name)"))
+                    .accessibilityLabel(Text("Hazır avatar \(spokenName)"))
                     .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
@@ -204,14 +214,38 @@ struct ProfileEditView: View {
 
     private func loadPhoto(_ item: PhotosPickerItem?) async {
         guard let item else { return }
-        guard let data = try? await item.loadTransferable(type: Data.self),
-              let image = UIImage(data: data) else {
+        let data = try? await item.loadTransferable(type: Data.self)
+        // The preview is a small thumbnail decoded off the main actor (a full-size decode of a
+        // 48 MP photo blocked the UI); the original bytes still go to the upload.
+        var image: UIImage?
+        if let data { image = await AvatarReference.thumbnail(from: data, maxPixelSize: 512) }
+        guard !Task.isCancelled, pickedPhoto == item else { return }
+        guard let data, let image else {
             errorMessage = AuthFlowError.invalidPhoto.localizedDescription
             return
         }
         errorMessage = nil
         photoPreview = image
         avatarChoice = .photo(data)
+    }
+
+    /// Spoken name of a preset avatar; the stored key ("hare") is never read out.
+    static func presetLabel(_ name: String) -> String {
+        switch name {
+        case "hare": String(localized: "Tavşan")
+        case "tortoise": String(localized: "Kaplumbağa")
+        case "cat": String(localized: "Kedi")
+        case "dog": String(localized: "Köpek")
+        case "bear": String(localized: "Ayı")
+        case "bird": String(localized: "Kuş")
+        case "fish": String(localized: "Balık")
+        case "leaf": String(localized: "Yaprak")
+        case "star": String(localized: "Yıldız")
+        case "moon": String(localized: "Ay")
+        case "sun": String(localized: "Güneş")
+        case "bolt": String(localized: "Şimşek")
+        default: name
+        }
     }
 
     private func saveProfile() async {

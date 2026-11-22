@@ -740,5 +740,17 @@
  "Apple ile giriş şu anda kapalı. E-posta ile giriş yapabilirsin.": "La connexion avec Apple est désactivée pour le moment. Tu peux te connecter par e-mail.",
  "Bağlantı yok. İnternetini kontrol edip tekrar dene.": "Pas de connexion. Vérifie ta connexion Internet et réessaie.",
  "Bu hesap kullanılamıyor. Destek ile iletişime geç.": "Ce compte ne peut pas être utilisé. Contacte l'assistance.",
- "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "La connexion avec Apple n'a pas pu aboutir. Réessaie. (%@)"
+ "Apple ile giriş şu anda tamamlanamadı. Tekrar dene. (%@)": "La connexion avec Apple n'a pas pu aboutir. Réessaie. (%@)",
+ "Tavşan": "Lièvre",
+ "Kaplumbağa": "Tortue",
+ "Kedi": "Chat",
+ "Köpek": "Chien",
+ "Ayı": "Ours",
+ "Kuş": "Oiseau",
+ "Balık": "Poisson",
+ "Yaprak": "Feuille",
+ "Yıldız": "Étoile",
+ "Ay": "Lune",
+ "Güneş": "Soleil",
+ "Şimşek": "Éclair"
 }

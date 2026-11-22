@@ -83,6 +83,9 @@ final class PublishPostCoordinator: PublishPostUseCase {
             return .published(receipt)
         } catch let error as PostPublishError {
             let message = error.localizedDescription
+            // A forced background sync may have finished (and deleted the record) while this call
+            // was in flight; never write to a deleted model. Local assets stay for an edited retry.
+            guard !queue.isDeleted else { return .rejected(message) }
             queue.attemptCount = RetryPolicy.maximumAttempts
             queue.deadLetterReason = message
             queue.lastErrorMessage = message
@@ -90,6 +93,7 @@ final class PublishPostCoordinator: PublishPostUseCase {
             logger.error("Publish rejected post=\(postID.uuidString, privacy: .public) error=\(message, privacy: .public)")
             return .rejected(message)
         } catch BackendTransientError.servicePaused {
+            guard !queue.isDeleted else { return .queued(.servicePaused) }
             queue.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.servicePausedDelay)
             queue.lastErrorMessage = BackendTransientError.servicePaused.localizedDescription
             try modelContext.save()
@@ -98,6 +102,7 @@ final class PublishPostCoordinator: PublishPostUseCase {
         } catch is CancellationError {
             // Task cancellation (navigation away, backgrounding, etc.) should preserve
             // queue state without incrementing attemptCount or dead-lettering.
+            guard !queue.isDeleted else { return .queued(.backendUnavailable) }
             queue.nextAttemptAt = Date()
             do {
                 try modelContext.save()
@@ -107,6 +112,7 @@ final class PublishPostCoordinator: PublishPostUseCase {
             logger.info("Publish cancelled by caller post=\(postID.uuidString, privacy: .public)")
             return .queued(.backendUnavailable)
         } catch {
+            guard !queue.isDeleted else { return .queued(.backendUnavailable) }
             queue.attemptCount += 1
             queue.nextAttemptAt = Date().addingTimeInterval(RetryPolicy.delay(afterAttempt: queue.attemptCount))
             if RetryPolicy.shouldDeadLetter(afterAttempt: queue.attemptCount) {
