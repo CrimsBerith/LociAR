@@ -6,18 +6,22 @@ import { useSelectedUsers, writeSelection } from './UserSelection';
 
 export default function BulkNotificationForm() {
   const t = useT(), selected = useSelectedUsers();
-  const mutation = useRef(createMutationClient()), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
+  const [mutation] = useState(createMutationClient), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
+  // State updates are asynchronous; a ref blocks a second submit fired before the button re-renders disabled.
+  const inFlight = useRef(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (inFlight.current) return;
     const form = event.currentTarget, data = new FormData(form), target = data.get('target');
-    const handles = String(data.get('handles') ?? '').split(/[\s,;]+/).map(handle => handle.replace(/^@/, '').toLowerCase()).filter(Boolean);
+    const handles = [...new Set(String(data.get('handles') ?? '').split(/[\s,;]+/).map(handle => handle.replace(/^@/, '').toLowerCase()).filter(Boolean))];
     if (target === 'selected' && selected.length + handles.length === 0) { setMessage(t('Select at least one user.')); return; }
     if (target === 'all' && data.get('confirmAll') !== 'yes') { setMessage(t('Confirm the all-users send.')); return; }
+    inFlight.current = true;
     setBusy(true);
     setMessage('');
     try {
-      const { response, result } = await mutation.current.post('/api/admin/v1/campaigns', {
+      const { response, result } = await mutation.post('/api/admin/v1/campaigns', {
         action: 'notify-batch',
         target,
         ...(target === 'selected' ? { recipientIds: selected, ...(handles.length ? { handles } : {}) } : { confirmAll: true }),
@@ -26,7 +30,7 @@ export default function BulkNotificationForm() {
         reason: data.get('reason'),
       });
       if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : 'Notification batch could not be queued');
-      mutation.current.clear();
+      mutation.clear();
       const queued = (result.result ?? {}) as { recipientCount?: unknown };
       setMessage(target === 'all'
         ? t('All-users batch queued. Consent checks and delivery continue in the background.')
@@ -38,6 +42,7 @@ export default function BulkNotificationForm() {
     } catch (error) {
       setMessage(t(mutationError(error)));
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }

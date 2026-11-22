@@ -97,13 +97,16 @@ export function klipyPreviewFromItems(body: unknown): string | null {
 
 /** Maps all strokes into a `size`×`size` box, keeping aspect ratio. Returns SVG polyline `points` strings. */
 export function strokePolylines(strokes: DrawingStroke[], size = 160, pad = 8): Array<{ color: string; points: string }> {
-  const all = strokes.flatMap(s => s.points);
-  if (all.length === 0) return [];
-  const xs = all.map(p => p.x);
-  const ys = all.map(p => p.y);
-  const minX = Math.min(...xs);
-  const minY = Math.min(...ys);
-  const span = Math.max(Math.max(...xs) - minX, Math.max(...ys) - minY, 1e-6);
+  // One pass instead of spreading every coordinate into Math.min/max (a stack overflow at tens of thousands).
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const stroke of strokes) for (const p of stroke.points) {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  }
+  if (minX === Infinity) return [];
+  const span = Math.max(maxX - minX, maxY - minY, 1e-6);
   const scale = (size - pad * 2) / span;
   const fmt = (n: number) => Math.round(n * 10) / 10;
   return strokes.map(s => ({

@@ -18,11 +18,13 @@ export default function MagicLinkForm() {
     if (reason === 'admin_required') setMessage(t('An administrator session is required.'));
   }, [t]);
 
+  // One interval for the whole countdown, not a new one every second.
+  const counting = cooldown > 0;
   useEffect(() => {
-    if (cooldown <= 0) return;
+    if (!counting) return;
     const timer = window.setInterval(() => setCooldown(value => Math.max(0, value - 1)), 1_000);
     return () => window.clearInterval(timer);
-  }, [cooldown]);
+  }, [counting]);
 
   async function sendLink(event: React.FormEvent) {
     event.preventDefault();
@@ -33,13 +35,16 @@ export default function MagicLinkForm() {
         url: window.location.origin + '/auth/callback',
         handleCodeInApp: true,
       });
-      window.localStorage.setItem(ADMIN_EMAIL_STORAGE_KEY, target);
+      // The link is already sent; private browsing may refuse storage, and the callback can ask for the email.
+      try { window.localStorage.setItem(ADMIN_EMAIL_STORAGE_KEY, target); } catch { /* not required */ }
       setCooldown(60);
       setMessage(t('Sign-in email requested. Check your inbox and spam folder; older links expire immediately. The link can be opened in any browser.'));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('Sign-in link could not be sent.'));
+    } catch {
+      // Firebase error text names internal codes and endpoints; show the generic message.
+      setMessage(t('Sign-in link could not be sent.'));
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   const sendLabel = cooldown > 0 ? t('Retry in {seconds}s', { seconds: cooldown }) : t('Send secure sign-in link');

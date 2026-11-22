@@ -12,7 +12,9 @@ function readQuoted(text: string, start: number): { value: string; end: number }
 }
 
 /** RFC 4180-style rows: quoted fields with doubled quotes, LF or CRLF line ends. Blank rows are dropped. */
-export function parseCsvRows(text: string): string[][] {
+export function parseCsvRows(input: string): string[][] {
+  // Excel writes a UTF-8 byte order mark; left in place it becomes part of the first header.
+  const text = input.startsWith('\uFEFF') ? input.slice(1) : input;
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = '';

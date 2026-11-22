@@ -10,18 +10,25 @@ export default function CampaignAudience({ campaignId }: Readonly<{ campaignId: 
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
   const [notificationMode, setNotificationMode] = useState('immediate');
   const [title, setTitle] = useState('LociDrop'), [text, setText] = useState(''), [departureRadius, setDepartureRadius] = useState(150);
-  const mutation = useRef(createMutationClient());
+  const [mutation] = useState(createMutationClient);
+  const inFlight = useRef(false);
   async function inspect(after?: string) {
-    setBusy(true); setMessage(''); setCandidates([]);
+    if (inFlight.current) return;
+    inFlight.current = true; setBusy(true); setMessage('');
     try {
       const response = await fetch('/api/admin/v1/campaigns', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store', body: JSON.stringify({ action: 'audience', campaignId, reason, after }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? 'Audience could not be read');
-      const data = result.result as { candidates: Candidate[]; next: string | null };
-      setCandidates(data.candidates); setNext(data.next);
+        cache: 'no-store', signal: AbortSignal.timeout(30_000), body: JSON.stringify({ action: 'audience', campaignId, reason, after }) });
+      const result = await response.json().catch(() => null) as { error?: unknown; result?: { candidates?: unknown; next?: unknown } } | null;
+      if (!response.ok || !result) throw new Error(typeof result?.error === 'string' ? result.error : 'Audience could not be read');
+      const data = result.result;
+      if (!data || !Array.isArray(data.candidates)) throw new Error('Audience could not be read');
+      setCandidates(data.candidates as Candidate[]); setNext(typeof data.next === 'string' ? data.next : null);
       setMessage(t('This batch scans 25 location reports. Old, inaccurate or unconsented reports are excluded.'));
-    } catch (error) { setMessage(t(mutationError(error))); } finally { setBusy(false); }
+    } catch (error) {
+      // A failed page leaves no half-valid state: no candidates and no cursor into a page that was never shown.
+      setCandidates([]); setNext(null);
+      setMessage(t(error instanceof DOMException && error.name === 'TimeoutError' ? 'The connection was interrupted. Retry to safely check the same operation.' : mutationError(error)));
+    } finally { inFlight.current = false; setBusy(false); }
   }
   function assignmentMessage() {
     switch (notificationMode) {
@@ -39,15 +46,18 @@ export default function CampaignAudience({ campaignId }: Readonly<{ campaignId: 
       default: return t('Assign offer and notify this user');
     }
   }
+  const departureValid = Number.isInteger(departureRadius) && departureRadius >= 100 && departureRadius <= 500;
   async function notify(recipientId: string) {
-    setBusy(true); setMessage('');
+    if (inFlight.current) return;
+    if (notificationMode === 'departure' && !departureValid) { setMessage(t('Departure radius must be 100-500 m.')); return; }
+    inFlight.current = true; setBusy(true); setMessage('');
     try {
       const body = { action: 'notify', campaignId, recipientId, notificationMode, title: title.trim(), message: text.trim(),
         ...(notificationMode === 'departure' ? { departureRadius } : {}), reason };
-      const { response, result } = await mutation.current.post('/api/admin/v1/campaigns', body);
+      const { response, result } = await mutation.post('/api/admin/v1/campaigns', body);
       if (!response.ok) throw new Error(result.error ?? 'Offer could not be assigned');
-      setMessage(assignmentMessage()); mutation.current.clear('/api/admin/v1/campaigns', body);
-    } catch (error) { setMessage(t(mutationError(error))); } finally { setBusy(false); }
+      setMessage(assignmentMessage()); mutation.clear('/api/admin/v1/campaigns', body);
+    } catch (error) { setMessage(t(mutationError(error))); } finally { inFlight.current = false; setBusy(false); }
   }
   return <details><summary>{t('Find nearby eligible users')}</summary>
     <label>{t('Access and send reason')}<input value={reason} minLength={8} maxLength={1000} onChange={e => setReason(e.target.value)} /></label>

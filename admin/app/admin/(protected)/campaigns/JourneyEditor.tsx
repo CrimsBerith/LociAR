@@ -188,7 +188,11 @@ export default function JourneyEditor({ campaignId, lat, lng, areaRadius, saved,
           onClick={() => void sendTest(i)}>{t('Send test to my phone')}</button>
         {testStatus[s.id] ? <output>{testStatus[s.id]}</output> : <span className="muted">{t('Sends this title and message now, without the zone check, codes or step counters.')}</span>}
       </div> : null}
-      {steps.length > 1 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => old.filter((_, j) => j !== i))}>{t('Remove step')}</button> : null}
+      {steps.length > 1 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => {
+        // Steps that required the removed one would point at a missing id and never trigger.
+        const removed = old[i].id;
+        return old.filter((_, j) => j !== i).map(step => (step.requires === removed ? { ...step, requires: '' } : step));
+      })}>{t('Remove step')}</button> : null}
     </fieldset>)}
     {steps.length < 5 ? <button type="button" className="secondaryButton" onClick={() => setSteps(old => [...old, nextStep(old, lat, lng)])}>{t('Add step')}</button> : null}
     <label>{t('Reason')}<input value={reason} onChange={e => setReason(e.target.value)} minLength={8} maxLength={1000}/></label>

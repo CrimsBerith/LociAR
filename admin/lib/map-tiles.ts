@@ -12,8 +12,13 @@ export function project(lat: number, lng: number, zoom: number) {
 export function unproject(x: number, y: number, zoom: number): LatLng {
   const size = TILE * 2 ** zoom, n = Math.PI - 2 * Math.PI * y / size;
   const lng = ((x / size * 360) % 360 + 360) % 360 - 180;
-  return { lat: 180 / Math.PI * Math.atan(Math.sinh(n)), lng };
+  // Web Mercator ends at ±85.0511°; dragging past the edge must not reach the poles (cos → 0).
+  const lat = Math.max(-MAX_MERCATOR_LAT, Math.min(MAX_MERCATOR_LAT, 180 / Math.PI * Math.atan(Math.sinh(n))));
+  return { lat, lng };
 }
 
+export const MAX_MERCATOR_LAT = 85.05112878;
+
 /** Ground metres covered by one screen pixel at this latitude and zoom. */
-export const metersPerPixel = (lat: number, zoom: number) => 156_543.03392 * Math.cos(lat * Math.PI / 180) / 2 ** zoom;
+export const metersPerPixel = (lat: number, zoom: number) =>
+  156_543.03392 * Math.cos(Math.min(MAX_MERCATOR_LAT, Math.abs(lat)) * Math.PI / 180) / 2 ** zoom;

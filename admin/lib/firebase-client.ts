@@ -20,10 +20,14 @@ export async function persistServerSession(idToken: string): Promise<string> {
   const response = await fetch('/api/auth/session', {
     method: 'POST',
     credentials: 'same-origin',
+    signal: AbortSignal.timeout(30_000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken }),
   });
-  const result = await response.json() as { ok?: boolean; redirect?: string; reason?: string };
-  if (!response.ok || !result.ok) throw new Error(result.reason ?? 'session_failed');
-  return result.redirect ?? '/admin/mfa';
+  // A proxy error page (502/503) is not JSON: report a failed session, not a parse error.
+  const result = await response.json().catch(() => ({})) as { ok?: boolean; redirect?: unknown; reason?: unknown };
+  if (!response.ok || !result.ok) throw new Error(typeof result.reason === 'string' ? result.reason : 'session_failed');
+  // Only same-site admin paths: never follow a server-supplied absolute or protocol-relative URL.
+  const redirect = typeof result.redirect === 'string' && /^\/admin(?:[/?#]|$)/.test(result.redirect) ? result.redirect : '/admin/mfa';
+  return redirect;
 }

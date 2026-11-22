@@ -5,9 +5,12 @@ import { createMutationClient,mutationError } from '../../../../lib/client-mutat
 import AuthorPicker from '../users/AuthorPicker';
 import { useT } from '../../I18nProvider';
 export default function CommentForm({postId,commentId,initialAuthor='',initialText=''}:Readonly<{postId:string;commentId?:string;initialAuthor?:string;initialText?:string}>){
- const t=useT(),router=useRouter(),mutation=useRef(createMutationClient());const[authorId,setAuthorId]=useState(initialAuthor),[text,setText]=useState(initialText),[reason,setReason]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
- async function submit(action:'create'|'edit'|'delete'){setBusy(true);setMessage('');try{const{response,result}=await mutation.current.post(`/api/admin/v1/posts/${postId}/comments`,{action,authorId,text,reason,...(commentId?{commentId}:{})});
- if(!response.ok){ throw new Error(result.error??'Comment action failed'); }mutation.current.clear();setMessage(t('Comment saved and audited.'));if(!commentId){ setText(''); }router.refresh();}catch(error){setMessage(t(mutationError(error)));}finally{setBusy(false);}}
+ const t=useT(),router=useRouter(),[mutation]=useState(createMutationClient),inFlight=useRef(false);const[authorId,setAuthorId]=useState(initialAuthor),[text,setText]=useState(initialText),[reason,setReason]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
+ async function submit(action:'create'|'edit'|'delete'){
+  if(inFlight.current)return;
+  if(action!=='delete'&&!text.trim()){setMessage(t('Write a comment first.'));return;}
+  inFlight.current=true;setBusy(true);setMessage('');try{const{response,result}=await mutation.post(`/api/admin/v1/posts/${postId}/comments`,{action,authorId,text:action==='delete'?text:text.trim(),reason,...(commentId?{commentId}:{})});
+ if(!response.ok){ throw new Error(result.error??'Comment action failed'); }mutation.clear();setMessage(action==='delete'?t('Decision recorded in audit.'):t('Comment saved and audited.'));if(!commentId){ setText(''); }router.refresh();}catch(error){setMessage(t(mutationError(error)));}finally{inFlight.current=false;setBusy(false);}}
  return <form className="commentEditor" onSubmit={e=>{e.preventDefault();void submit(commentId?'edit':'create');}}>
  {commentId?<small>{t('Author')}: {authorId}</small>:<AuthorPicker value={authorId} onChange={setAuthorId}/>}
  <label>{t('Comment')}<textarea aria-label={t('Comment text')} value={text} onChange={e=>setText(e.target.value)} required minLength={1} maxLength={500}/></label>

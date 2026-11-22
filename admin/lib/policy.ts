@@ -47,6 +47,8 @@ export function originAllowed(origin: string | null, host: string | null, adminO
       return false;
     }
   }
+  // Without a configured origin only development may fall back to plain http on the same host.
+  if (url.protocol === 'http:' && process.env.NODE_ENV === 'production') return false;
   return Boolean(host) && url.host === host;
 }
 

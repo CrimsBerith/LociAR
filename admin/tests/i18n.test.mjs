@@ -44,3 +44,11 @@ test('translator keeps English, translates Turkish, fills placeholders and maps 
   assert.equal(tr('reason must be between 8 and 1000 characters'), 'Gerekçe 8–1000 karakter olmalı');
   assert.equal(tr('A string nobody translated'), 'A string nobody translated');
 });
+
+test('prototype member names translate as plain text', () => {
+  for (const lang of ['tr', 'en']) {
+    const t = translator(lang);
+    for (const key of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) assert.equal(t(key), key);
+    assert.equal(typeof t('constructor must be a string'), 'string');
+  }
+});

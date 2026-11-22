@@ -9,7 +9,7 @@ export default function ManagedProfileEditor({ luid, displayName: initialDisplay
   luid: string; displayName: string; bio: string;
 }) {
   const t = useT(), router = useRouter(), mutation = useRef(createMutationClient());
-  const photoKey = useRef('');
+  const photoKey = useRef(''), fileInput = useRef<HTMLInputElement>(null);
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [bio, setBio] = useState(initialBio);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -43,6 +43,7 @@ export default function ManagedProfileEditor({ luid, displayName: initialDisplay
       const result = await response.json().catch(() => ({})) as { status?: string; error?: string };
       if (!response.ok) throw new Error(result.error ?? t('Photo upload failed. Retry the same file.'));
       photoKey.current = ''; setPhoto(null);
+      if (fileInput.current) fileInput.current.value = '';
       if (result.status === 'rejected') setMessage(t('The photo did not pass safety screening.'));
       else if (result.status === 'superseded') setMessage(t('A newer photo upload replaced this one.'));
       else setMessage(t('Photo uploaded and passed automated safety screening.'));
@@ -59,8 +60,14 @@ export default function ManagedProfileEditor({ luid, displayName: initialDisplay
       <label>{t('Profile change reason')}<input value={reason} onChange={event => setReason(event.target.value)} required minLength={8} maxLength={1000} /></label>
       <button type="submit" disabled={!ready}>{t('Save managed profile')}</button>
     </form>
-    <label>{t('JPEG profile photo (3 MB maximum)')}<input type="file" accept="image/jpeg,.jpg,.jpeg" onChange={event => { setPhoto(event.currentTarget.files?.[0] ?? null); photoKey.current = ''; }} /></label>
+    <label>{t('JPEG profile photo (3 MB maximum)')}<input ref={fileInput} type="file" accept="image/jpeg,.jpg,.jpeg" onChange={event => {
+      const file = event.currentTarget.files?.[0] ?? null;
+      photoKey.current = '';
+      // The server rejects larger files anyway; refuse before uploading megabytes for nothing.
+      if (file && file.size > 3 * 1024 * 1024) { setPhoto(null); event.currentTarget.value = ''; setMessage(t('JPEG profile photo (3 MB maximum)')); return; }
+      setPhoto(file);
+    }} /></label>
     <button type="button" disabled={!ready || !photo} onClick={() => void uploadPhoto()}>{t('Upload profile photo')}</button>
-    {message ? <output aria-live="polite">{t(message)}</output> : null}
+    {message ? <output aria-live="polite">{message}</output> : null}
   </div>;
 }

@@ -62,7 +62,8 @@ export const projectId = () => adminApp().options.projectId as string;
 /** Firestore Timestamp / Date / string → ISO string for rendering. */
 export function iso(value: unknown): string {
   if (value instanceof Timestamp) return value.toDate().toISOString();
-  if (value instanceof Date) return value.toISOString();
+  // An invalid Date throws RangeError from toISOString(); render it like a missing value.
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? new Date(0).toISOString() : value.toISOString();
   if (typeof value === 'string') return value;
   return new Date(0).toISOString();
 }

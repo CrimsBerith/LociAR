@@ -35,12 +35,12 @@ export function hasTurkish(source: string): boolean {
 
 function translateText(lang: Lang, source: string): string {
   if (typeof source !== 'string' || !source) return source;
-  const code = CODES[source];
+  // Own properties only: a server message such as "constructor" must not resolve to Object.prototype members.
+  const code = Object.hasOwn(CODES, source) ? CODES[source] : undefined;
   // Keep the code visible next to the readable text for support and debugging.
   if (code) return `${lang === 'tr' ? code[1] : code[0]} (${source})`;
   if (lang === 'en') return source;
-  const direct = TR[source];
-  if (direct !== undefined) return direct;
+  if (Object.hasOwn(TR, source)) return TR[source];
   for (const [pattern, replace] of PATTERNS) {
     const match = pattern.exec(source);
     if (match) return replace(match);
@@ -57,7 +57,7 @@ const PATTERNS: Array<[RegExp, (match: RegExpExecArray) => string]> = [
 ];
 
 function fieldName(field: string): string {
-  return TR[field] ?? FIELD_NAMES[field] ?? field;
+  return (Object.hasOwn(TR, field) ? TR[field] : undefined) ?? (Object.hasOwn(FIELD_NAMES, field) ? FIELD_NAMES[field] : undefined) ?? field;
 }
 
 const FIELD_NAMES: Record<string, string> = {
@@ -137,6 +137,8 @@ const CODES: Record<string, readonly [string, string]> = {
 };
 
 const TR: Record<string, string> = {
+  'Write a comment first.': 'Önce bir yorum yaz.',
+  'Departure radius must be 100-500 m.': 'Ayrılış yarıçapı 100-500 m olmalı.',
   'Author attribution': 'Yazar görünürlüğü',
   'Show selected username': 'Seçilen kullanıcı adını göster',
   'Anonymous (managed content identities only)': 'Anonim (yalnızca yönetilen içerik kimlikleri)',

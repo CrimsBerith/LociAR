@@ -14,20 +14,24 @@ export default function AdminDecision({ endpoint, actions }: { endpoint: string;
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const mutation = useRef(createMutationClient());
+  const [mutation] = useState(createMutationClient);
+  const inFlight = useRef(false);
 
   async function decide(body: Record<string, unknown>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setMessage('');
     try {
-      const { response, result: payload } = await mutation.current.post(endpoint, { ...body, reason });
+      const { response, result: payload } = await mutation.post(endpoint, { ...body, reason });
       if (!response.ok) throw new Error(payload.error ?? t('Decision failed'));
       setMessage(t('Decision recorded in audit.'));
-      mutation.current.clear();
+      mutation.clear();
       router.refresh();
     } catch (error) {
       setMessage(t(mutationError(error)));
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }

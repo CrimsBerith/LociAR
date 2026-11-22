@@ -12,14 +12,19 @@ export default function KlipyGifPreview({ slug, appKey, failedLabel }: Readonly<
   const [state, setState] = useState<{ src: string | null; done: boolean }>({ src: null, done: false });
 
   useEffect(() => {
+    // A new slug never shows the previous GIF while its own lookup runs.
+    setState({ src: null, done: false });
     const url = klipyItemsUrl(appKey, slug);
     if (!url) { setState({ src: null, done: true }); return; }
     const controller = new AbortController();
+    let cancelled = false; // set by cleanup: a superseded lookup must not touch the new slug's state
+    const timeout = window.setTimeout(() => controller.abort(), 15_000);
     fetch(url, { signal: controller.signal, referrerPolicy: 'no-referrer', credentials: 'omit' })
       .then(response => (response.ok ? response.json() : null))
-      .then(body => setState({ src: klipyPreviewFromItems(body), done: true }))
-      .catch(() => { if (!controller.signal.aborted) setState({ src: null, done: true }); });
-    return () => controller.abort();
+      .then(body => { if (!cancelled) setState({ src: klipyPreviewFromItems(body), done: true }); })
+      .catch(() => { if (!cancelled) setState({ src: null, done: true }); })
+      .finally(() => window.clearTimeout(timeout));
+    return () => { cancelled = true; window.clearTimeout(timeout); controller.abort(); };
   }, [appKey, slug]);
 
   if (state.src) {

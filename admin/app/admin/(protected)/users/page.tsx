@@ -70,7 +70,8 @@ export default async function UsersPage({ searchParams }: Readonly<{ searchParam
                   {admin.permissions.has('notifications.send')
                     ? <input type="checkbox" name="recipientIds" value={user.id} data-notify={user.notifications_enabled ? 'on' : 'off'} aria-label={t('Select user @{handle}', { handle: String(user.handle) })} />
                     : null}
-                  {user.avatar_url ? <img className="managedUserAvatar" src={`/api/admin/v1/avatars/${encodeURIComponent(user.id)}/image`} alt="" loading="lazy" />
+                  {/* Only uploaded photos (storage://) have bytes to stream; presets use the letter tile. */}
+                  {typeof user.avatar_url === 'string' && user.avatar_url.startsWith('storage://') ? <img className="managedUserAvatar" src={`/api/admin/v1/avatars/${encodeURIComponent(user.id)}/image`} alt="" loading="lazy" />
                     : <span className="managedUserAvatar managedUserAvatarFallback" aria-hidden="true">{String(user.handle).slice(0, 1).toUpperCase()}</span>}
                   <span><b>@{String(user.handle)}</b>
                     {admin.permissions.has('notifications.send') ? <small>{user.notifications_enabled ? t('Notifications on') : t('Notifications off')}</small> : null}

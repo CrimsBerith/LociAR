@@ -4,15 +4,19 @@ import { useT } from '../../I18nProvider';
 export default function AuthorPicker({value,onChange,disabled=false}:Readonly<{value:string;onChange:(id:string)=>void;disabled?:boolean}>){
   const t=useT();
   const [query,setQuery]=useState(value),[users,setUsers]=useState<Array<{id:string;handle:string;managed:boolean}>>([]),[message,setMessage]=useState('');
+  // A parent reset (value cleared after a successful post) clears the search box too.
+  useEffect(()=>{if(!value)setQuery('');},[value]);
   useEffect(()=>{
-    if(disabled||query.trim().length<2){setUsers([]);return;}
+    if(disabled||query.trim().length<2){setUsers([]);setMessage('');return;}
     const controller=new AbortController();
     const timer=setTimeout(async()=>{
       try{
-        const response=await fetch('/api/admin/v1/users/lookup?q='+encodeURIComponent(query),{signal:controller.signal,cache:'no-store'});
-        const data=await response.json();if(!response.ok)throw new Error(data.error??'User lookup failed');
-        setUsers(data.users);setMessage(data.hasMore?'Narrow the handle prefix to find more users.':'');
-      }catch(error){if(!controller.signal.aborted)setMessage(error instanceof Error?error.message:'User lookup failed');}
+        const response=await fetch('/api/admin/v1/users/lookup?q='+encodeURIComponent(query),
+          {signal:AbortSignal.any([controller.signal,AbortSignal.timeout(15_000)]),cache:'no-store'});
+        const data=await response.json().catch(()=>null) as {users?:unknown;hasMore?:unknown;error?:unknown}|null;
+        if(!response.ok||!data||!Array.isArray(data.users))throw new Error(typeof data?.error==='string'?data.error:'User lookup failed');
+        setUsers(data.users as Array<{id:string;handle:string;managed:boolean}>);setMessage(data.hasMore?'Narrow the handle prefix to find more users.':'');
+      }catch(error){if(!controller.signal.aborted){setUsers([]);setMessage(error instanceof Error&&error.name!=='TimeoutError'?error.message:'User lookup failed');}}
     },250);
     return()=>{clearTimeout(timer);controller.abort();};
   },[query,disabled]);
