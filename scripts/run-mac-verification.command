@@ -43,6 +43,8 @@ FIREBASE="$(pwd)/functions/node_modules/.bin/firebase"
 
 # xcodebuild refuses to overwrite a result bundle from an earlier run.
 rm -rf build/ci-ios/*.xcresult
+# stale SwiftPM state: artifacts dir missing but workspace-state says present -> force re-resolve
+if [ ! -d build/ci-ios/SourcePackages/artifacts/grpc-binary/grpc/grpc.xcframework ]; then rm -rf build/ci-ios/SourcePackages/artifacts build/ci-ios/SourcePackages/workspace-state.json; fi
 step ios bash scripts/ci-ios.sh
 mkdir -p "$OUT/ci-ios" && cp build/ci-ios/*.log "$OUT/ci-ios/" 2>/dev/null || true
 step functions-rules bash -c "cd functions && '$FIREBASE' emulators:exec --config '../$CONFIG' --only firestore,storage --project demo-lociar 'node --test --test-concurrency=1 test/rules/*.test.mjs'"
