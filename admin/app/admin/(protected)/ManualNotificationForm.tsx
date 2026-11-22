@@ -15,8 +15,12 @@ export default function ManualNotificationForm({ recipientId }: Readonly<{ recip
       const { response, result } = await mutation.post('/api/admin/v1/campaigns', { action: 'notify', recipientId,
         title: data.get('title'), message: data.get('message'), reason: data.get('reason') });
       if (!response.ok) throw new Error(result.error ?? 'Notification could not be queued');
-      // Clear the form with the key: submitting the same text again must be a deliberate new notice.
-      mutation.clear(); form.reset(); setMessage(t('Queued. Check Campaigns for FCM attempt status.'));
+      // Clear the message with the key: sending the same text again must be a deliberate new notice.
+      // Title and reason stay for a follow-up notice to the same user.
+      mutation.clear();
+      const messageField = form.elements.namedItem('message');
+      if (messageField instanceof HTMLTextAreaElement) messageField.value = '';
+      setMessage(t('Queued. Check Campaigns for FCM attempt status.'));
     } catch (error) { setMessage(t(mutationError(error))); } finally { inFlight.current = false; setBusy(false); }
   }
   return <details><summary>{t('Send this user a notification')}</summary><form className="decisionForm" onSubmit={submit}>
