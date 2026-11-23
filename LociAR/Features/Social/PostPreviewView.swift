@@ -349,7 +349,9 @@ struct PostPreviewView: View {
                                 color: liked ? LociTheme.social : LociTheme.textPrimary, effectValue: liked)
             }
             .buttonStyle(.plain)
-            .disabled(isLikeMutating)
+            // Another author's location note takes likes and saves only during an on-site read;
+            // removing an earlier like or save stays possible.
+            .disabled(isLikeMutating || (reactionsNeedVisit && !liked))
             .accessibilityValue(liked ? String(localized: "Beğenildi") : String(localized: "Beğenilmedi"))
             .accessibilityIdentifier("post-like-button")
 
@@ -359,7 +361,7 @@ struct PostPreviewView: View {
                                 color: saved ? LociTheme.accent : LociTheme.textPrimary, effectValue: saved)
             }
             .buttonStyle(.plain)
-            .disabled(isSaveMutating)
+            .disabled(isSaveMutating || (reactionsNeedVisit && !saved))
             .accessibilityValue(saved ? String(localized: "Kaydedildi") : String(localized: "Kaydedilmedi"))
             .accessibilityIdentifier("post-save-button")
 
@@ -416,6 +418,15 @@ struct PostPreviewView: View {
 
     private var showsSupportEntryPoint: Bool {
         PostSupportAvailability.showsEntryPoints && !ownsPost && !post.isLocked
+    }
+
+    private var reactionsNeedVisit: Bool {
+        post.isLocationNote && post.isLocked && !ownsPost
+    }
+
+    /// The rules refuse reactions on another author's location note outside a reading session.
+    private var reactionFailureNeedsVisit: Bool {
+        post.isLocationNote && !ownsPost
     }
 
     private var hasMoreActions: Bool {
@@ -630,7 +641,8 @@ struct PostPreviewView: View {
         catch {
             liked.toggle()
             likeCount = max(0, likeCount + (next ? -1 : 1))
-            message = String(localized: "Beğeni güncellenemedi.")
+            message = next && reactionFailureNeedsVisit
+                ? String(localized: "Bu not konumunda açılır.") : String(localized: "Beğeni güncellenemedi.")
         }
     }
 
@@ -655,7 +667,11 @@ struct PostPreviewView: View {
         defer { isSaveMutating = false }
         await ensureMembership(userID: user.id)
         saveTaps += 1
-        do { try await container.social.setSaved(!saved, postID: post.id, userID: user.id); saved.toggle() } catch { message = String(localized: "Kaydetme durumu güncellenemedi.") }
+        let next = !saved
+        do { try await container.social.setSaved(next, postID: post.id, userID: user.id); saved = next } catch {
+            message = next && reactionFailureNeedsVisit
+                ? String(localized: "Bu not konumunda açılır.") : String(localized: "Kaydetme durumu güncellenemedi.")
+        }
     }
     private func addComment() async {
         guard !isCommentSending else { return }

@@ -64,23 +64,37 @@ test('email login challenges, sessions and rate limits are denied to every clien
   }
 });
 
-test('location notes keep likes available while content and comments require on-site access', async () => {
+test('location notes require on-site access for content, comments, likes, saves and collection adds (BUG-197)', async () => {
   const db = as(ALICE);
   await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { note_kind: 'location', notify_radius_m: 20, push_state: 'approved' }));
   await assertFails(getDoc(doc(db, 'posts', POST)), 'direct reads cannot bypass the proximity callable');
   await assertSucceeds(getDoc(doc(as(BOB), 'posts', POST)), 'the author retains access');
   await assertFails(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))), 'comments remain closed before on-site access');
+  const like = () => setDoc(doc(db, 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() });
+  const save = () => setDoc(doc(db, 'post_saves', `${ALICE}_${POST}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() });
+  await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'collections', 'alice-note-c'), { id: 'alice-note-c', owner_id: ALICE, title: 'x', visibility: 'private' }));
+  const collect = () => setDoc(doc(db, 'collection_items', `alice-note-c_${POST}`), { collection_id: 'alice-note-c', post_id: POST, owner_id: ALICE, sort_order: 1, created_at: serverTimestamp() });
+  await assertFails(like(), 'a location note cannot be liked from afar');
+  await assertFails(save(), 'a location note cannot be saved from afar');
+  await assertFails(collect(), 'a location note cannot be collected from afar');
   await assertFails(setDoc(doc(db, 'dense_spot_unlocks', `${ALICE}_note_${POST}`), { expires_at: new Date(Date.now() + 60_000) }));
   await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'map_group_sessions', 'private'), { owner_luid: ALICE, post_ids: [POST] }));
   await assertFails(getDoc(doc(db, 'map_group_sessions', 'private')));
   await assertFails(setDoc(doc(db, 'map_group_sessions', 'forged'), { owner_luid: ALICE, post_ids: [POST] }));
   await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'dense_spot_unlocks', `${ALICE}_note_${POST}`), { owner_luid: ALICE, kind: 'note_read', expires_at: new Date(Date.now() + 60_000) }));
   await assertSucceeds(getDoc(doc(db, 'comments', 'bob-own')));
+  await assertSucceeds(like(), 'an on-site reading session allows a like');
+  await assertSucceeds(save(), 'an on-site reading session allows a save');
+  await assertSucceeds(collect(), 'an on-site reading session allows a collection add');
   await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'dense_spot_unlocks', `${ALICE}_note_${POST}`), { expires_at: new Date(Date.now() - 60_000) }));
   await assertFails(getDocs(query(collection(db, 'comments'), where('post_id', '==', POST))), 'expired reading sessions do not expose comments');
-  const like = () => setDoc(doc(db, 'likes', `${POST}_${ALICE}`), { post_id: POST, user_id: ALICE, created_at: serverTimestamp() });
-  await assertSucceeds(like());
-  await assertSucceeds(deleteDoc(doc(db, 'likes', `${POST}_${ALICE}`)));
+  await assertSucceeds(deleteDoc(doc(db, 'likes', `${POST}_${ALICE}`)), 'an earlier like can always be removed');
+  await assertSucceeds(deleteDoc(doc(db, 'post_saves', `${ALICE}_${POST}`)), 'an earlier save can always be removed');
+  await assertFails(like(), 'an expired reading session does not allow a new like');
+  await env.withSecurityRulesDisabled(async ctx => {
+    await deleteDoc(doc(ctx.firestore(), 'collection_items', `alice-note-c_${POST}`));
+    await deleteDoc(doc(ctx.firestore(), 'collections', 'alice-note-c'));
+  });
   await env.withSecurityRulesDisabled(ctx => updateDoc(doc(ctx.firestore(), 'posts', POST), { note_kind: null, notify_radius_m: null, push_state: null }));
 });
 

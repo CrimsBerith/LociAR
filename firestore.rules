@@ -109,6 +109,7 @@ service cloud.firestore {
         && request.resource.data.user_id == me()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
+        && noteCommentsOpen(request.resource.data.post_id)
         && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
@@ -126,6 +127,7 @@ service cloud.firestore {
         && request.resource.data.user_id == me()
         && createdNow()
         && postIsPublicActive(request.resource.data.post_id)
+        && noteCommentsOpen(request.resource.data.post_id)
         && !blockedOnPost(request.resource.data.post_id)
         && notSuspended();
       allow update: if false;
@@ -171,6 +173,8 @@ service cloud.firestore {
         || (resource != null && resource.data.blocker_id == me()));
     }
 
+    // A location note opens comments, likes, saves and collection adds only during an on-site
+    // reading session (or for its author), so ranking cannot be changed from afar (BUG-197).
     function noteCommentsOpen(postId) {
       let post = get(/databases/$(database)/documents/posts/$(postId)).data;
       return post.get('note_kind', '') != 'location' || post.creator_id == me()
@@ -242,6 +246,7 @@ service cloud.firestore {
         && request.resource.data.sort_order is int
         && createdNow()
         && request.resource.data.post_id is string
+        && noteCommentsOpen(request.resource.data.post_id)
         && !blockedOnPost(request.resource.data.post_id)
         && (postIsPublicActive(request.resource.data.post_id) || post(request.resource.data.post_id).creator_id == me())
         && get(/databases/$(database)/documents/collections/$(request.resource.data.collection_id)).data.owner_id == me();
