@@ -17,7 +17,6 @@ service firebase.storage {
       return claim.state == 'draft' && claim.creator_id == request.auth.token.luid;
     }
     function under(mb) { return request.resource.size < mb * 1024 * 1024; }
-    function isImage() { return request.resource.contentType.matches('image/(jpeg|png|heic|webp)'); }
 
     // Photo/video posts were removed: no uploads to the legacy post-layer-assets / post-video-assets
     // folders. Owners may still delete leftovers.
@@ -45,7 +44,7 @@ service firebase.storage {
       allow read: if signedIn() && uuid(postId) && mapAccess(postId, luid, file);
       // One file per anchor (`<anchorId>.lociarmap`); createPost removes the unpublished ones.
       allow create: if resource == null && activeOwner(luid) && uuid(postId) && draftNotReclaimed(postId) && under(20)
-        && request.resource.size > 0 && file.matches('[0-9a-fA-F-]{36}\\.lociarmap')
+        && request.resource.size > 0 && file.matches('[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.lociarmap')
         && request.resource.contentType == 'application/x-lociarmap';
       allow update: if false;
       allow delete: if activeOwner(luid) && draftNotReclaimed(postId);
@@ -73,7 +72,7 @@ service firebase.storage {
     match /avatars/{luid}/pending/{file} {
       allow read: if false;
       allow create: if resource == null && activeOwner(luid) && under(3) && request.resource.contentType == 'image/jpeg'
-        && file.matches('[0-9a-f-]{36}\\.jpg') && ownsUploadSlot(luid, file);
+        && file.matches('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.jpg') && ownsUploadSlot(luid, file);
       allow update, delete: if false;
     }
     match /avatars/{luid}/current/{file} {
