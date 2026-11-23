@@ -27,7 +27,9 @@ if (ip?.length !== 4 || ip.some(n => !Number.isInteger(n) || n < 0 || n > 255) |
     || !(ip[0] === 10 || (ip[0] === 172 && ip[1] >= 16 && ip[1] <= 31) || (ip[0] === 192 && ip[1] === 168))) {
   throw new Error('Set LOCIAR_TEST_LAN_IP to a private LAN IPv4 address.');
 }
-for (const port of [9099, 8080, 9199, 5001, 4400, 4500, 9150]) {
+const firestorePort = Number(process.env.LOCIAR_FIRESTORE_EMULATOR_PORT ?? 8080);
+if (!Number.isInteger(firestorePort) || firestorePort < 1024 || firestorePort > 65535) throw new Error('Invalid LOCIAR_FIRESTORE_EMULATOR_PORT.');
+for (const port of [9099, firestorePort, 9199, 5001, 4400, 4500, 9150]) {
   const r = run('/usr/sbin/lsof', ['-t', '-nP', '-iTCP:' + port, '-sTCP:LISTEN']);
   if (r.status === 0 && r.stdout.trim()) throw new Error('Port ' + port + ' is occupied; stop its owner before starting.');
   if (r.status !== 0 && r.status !== 1) throw new Error('Could not inspect port ' + port + '.');
@@ -54,12 +56,13 @@ writeFileSync(join(frozen, '.env.demo-lociar'), 'APPLE_TEAM_ID=EMULATOR\nAPPLE_K
 const config = JSON.parse(readFileSync('firebase.json'));
 config.firestore.rules = resolve('firestore.rules'); config.firestore.indexes = resolve('firestore.indexes.json'); config.storage.rules = resolve('storage.rules');
 config.functions = [{ source: 'functions', codebase: 'default', runtime: 'nodejs22' }];
+config.emulators.firestore.port = firestorePort;
 for (const value of Object.values(config.emulators)) if (value && typeof value === 'object' && 'host' in value) value.host = host;
 const configFile = join(out, 'firebase.json'); writeFileSync(configFile, JSON.stringify(config), { mode: 0o600 });
 writeFileSync('scripts/.emulator-host.txt', host + '\n', { mode: 0o600 });
 console.log('Disposable demo backend: ' + out);
 console.log('For the Debug iPhone build, pass these build settings:');
-console.log(['LOCIAR_EMULATOR_HOST=' + host, 'LOCIAR_FIREBASE_PROJECT_ID=demo-lociar',
+console.log(['LOCIAR_EMULATOR_HOST=' + host, 'LOCIAR_EMULATOR_FIRESTORE_PORT=' + firestorePort, 'LOCIAR_FIREBASE_PROJECT_ID=demo-lociar',
   'LOCIAR_FIREBASE_STORAGE_BUCKET=demo-lociar.firebasestorage.app', 'LOCIAR_FIREBASE_API_KEY=AIza' + 'A'.repeat(35),
   'LOCIAR_FIREBASE_GOOGLE_APP_ID=1:123456789012:ios:abcdef0123456789', 'LOCIAR_FIREBASE_GCM_SENDER_ID=123456789012'].join('\n'));
 console.log('Set the app Run environment LOCIAR_DEMO_EMULATOR_HTTP=1. The phone and Mac must share Wi-Fi. Ctrl+C stops this backend.');

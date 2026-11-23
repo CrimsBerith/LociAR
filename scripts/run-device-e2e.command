@@ -18,6 +18,10 @@ if [ -z "${DEVICE_ID:-}" ]; then
 fi
 PROJECT_ID="demo-lociar"
 AUTH="127.0.0.1:9099"
+# 8080 can be held by another local service; LOCIAR_FIRESTORE_EMULATOR_PORT moves the Firestore emulator.
+FIRESTORE_PORT="${LOCIAR_FIRESTORE_EMULATOR_PORT:-8080}"
+case "$FIRESTORE_PORT" in ''|*[!0-9]*) echo "HATA: geçersiz LOCIAR_FIRESTORE_EMULATOR_PORT"; exit 1 ;; esac
+{ [ "$FIRESTORE_PORT" -ge 1024 ] && [ "$FIRESTORE_PORT" -le 65535 ]; } || { echo "HATA: geçersiz LOCIAR_FIRESTORE_EMULATOR_PORT"; exit 1; }
 log() { echo "$(date +%H:%M:%S) $*" | tee -a "$SUMMARY"; }
 : > "$SUMMARY"
 
@@ -57,7 +61,7 @@ else
     log "HATA: mevcut emulator yalnız 127.0.0.1'de. Sahibinden durdurmasını isteyin."
     exit 1
   fi
-  for port in 9099 8080 9199 5001 4400 4500 9150; do
+  for port in 9099 "$FIRESTORE_PORT" 9199 5001 4400 4500 9150; do
     if lsof -ti tcp:$port -sTCP:LISTEN >/dev/null 2>&1; then
       log "HATA: $port portu kullanımda; mevcut servisi sahibi durdurmalı."
       exit 1
@@ -67,7 +71,7 @@ else
   log "Functions build + emulator baslatiliyor..."
   ( cd functions && npm run build >/dev/null 2>&1 ) || { log "HATA: functions build"; exit 1; }
   # firebase.json binds loopback only; the phone needs the LAN, so this run gets its own config.
-  node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync("firebase.json"));for(const v of Object.values(c.emulators))if(v&&typeof v==="object"&&"host" in v)v.host="0.0.0.0";fs.writeFileSync(".firebase.device-e2e.json",JSON.stringify(c))' || { log "HATA: emulator config"; exit 1; }
+  FIRESTORE_PORT="$FIRESTORE_PORT" node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync("firebase.json"));c.emulators.firestore.port=Number(process.env.FIRESTORE_PORT);for(const v of Object.values(c.emulators))if(v&&typeof v==="object"&&"host" in v)v.host="0.0.0.0";fs.writeFileSync(".firebase.device-e2e.json",JSON.stringify(c))' || { log "HATA: emulator config"; exit 1; }
   nohup ./functions/node_modules/.bin/firebase emulators:start --config .firebase.device-e2e.json --only auth,firestore,storage,functions \
     --project "$PROJECT_ID" > "$ROOT/scripts/.emulator.log" 2>&1 &
   EMULATOR_PID=$!
@@ -117,6 +121,7 @@ PY
 COMMON=(-project LociAR.xcodeproj -scheme LociAR -configuration Debug -destination "id=$DEVICE_ID" -allowProvisioningUpdates -parallel-testing-enabled NO -derivedDataPath "$OUT/DerivedData"
   "INFOPLIST_FILE=$OUT/Info-Debug.plist"
   "LOCIAR_EMULATOR_HOST=$LAN_IP"
+  "LOCIAR_EMULATOR_FIRESTORE_PORT=$FIRESTORE_PORT"
   "LOCIAR_FIREBASE_PROJECT_ID=$PROJECT_ID"
   "LOCIAR_FIREBASE_STORAGE_BUCKET=$PROJECT_ID.firebasestorage.app"
   "LOCIAR_FIREBASE_API_KEY=AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -125,10 +130,11 @@ COMMON=(-project LociAR.xcodeproj -scheme LociAR -configuration Debug -destinati
 log "build-for-testing..."
 xcodebuild build-for-testing "${COMMON[@]}" > "$OUT/build.log" 2>&1 || { log "HATA: build-for-testing (scripts/.e2e/build.log)"; grep -E "error:" "$OUT/build.log" | head -20 | tee -a "$SUMMARY"; exit 1; }
 log "build OK"
-python3 - "$OUT/DerivedData/Build/Products/Debug-iphoneos/LociAR.app/Info.plist" "$LAN_IP" <<'PY' || exit 1
+python3 - "$OUT/DerivedData/Build/Products/Debug-iphoneos/LociAR.app/Info.plist" "$LAN_IP" "$FIRESTORE_PORT" <<'PY' || exit 1
 import plistlib,sys
 with open(sys.argv[1], "rb") as f: d=plistlib.load(f)
 assert d["LOCIAR_EMULATOR_HOST"]==sys.argv[2]
+assert d["LOCIAR_EMULATOR_FIRESTORE_PORT"]==sys.argv[3]
 assert d["LOCIAR_FIREBASE_PROJECT_ID"]=="demo-lociar"
 assert d["LOCIAR_FIREBASE_STORAGE_BUCKET"]=="demo-lociar.firebasestorage.app"
 assert d["LOCIAR_FIREBASE_API_KEY"]=="AIza"+"A"*35

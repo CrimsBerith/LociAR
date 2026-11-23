@@ -841,6 +841,58 @@ extension AuthGateUITests {
         XCTAssertEqual(identity.value as? String, "1", "Yeni not yeniden anonim başlamalı.")
     }
 
+    /// Screen-recording walkthrough for the KLIPY production-key request (paced; run on the simulator).
+    func testEmulator10KlipyDemoWalkthrough() throws {
+        guard !e2eEmail.isEmpty else { throw XCTSkip("E2E_EMAIL yok") }
+        continueAfterFailure = false
+        let pause: (TimeInterval) -> Void = { RunLoop.current.run(until: Date().addingTimeInterval($0)) }
+        let app = XCUIApplication()
+        app.launchArguments += ["UITEST_EDITOR_PREVIEW", "UITEST_OPEN_EDITOR_DIRECTLY"]
+        addPrivacyAlertMonitor()
+        app.launch()
+        e2eAllowSystemAlerts()
+        XCTAssertTrue(app.navigationBars["İçerik oluştur"].waitForExistence(timeout: 20), "Editör açılmadı.")
+        pause(2.5)
+        scrollUntilHittable(app.buttons["create-gif-add"], in: app)
+        pause(1.5)
+        app.buttons["create-gif-add"].tap()
+        XCTAssertTrue(app.navigationBars["GIF seç"].waitForExistence(timeout: 10))
+        let results = app.buttons.matching(identifier: "gif-result")
+        XCTAssertTrue(results.firstMatch.waitForExistence(timeout: 40), "KLIPY trend GIF'leri yüklenmedi.")
+        pause(4) // trending + "Powered by KLIPY"
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        pause(1.5)
+        search.typeText("kedi")
+        XCTAssertTrue(results.firstMatch.waitForExistence(timeout: 40), "Arama sonuç döndürmedi.")
+        pause(4)
+        app.swipeUp(); pause(2.5)
+        app.swipeUp(); pause(2.5)
+        app.swipeDown(); app.swipeDown(); pause(1.5)
+        results.firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["create-gif-preview"].waitForExistence(timeout: 20))
+        pause(4) // selected GIF + attribution mark
+        let publish = app.buttons["create-publish"]
+        scrollUntilHittable(publish, in: app)
+        pause(1.5)
+        XCTAssertTrue(publish.isEnabled, "Yayınla pasif.")
+        publish.tap()
+        let resultAlert = app.alerts["LociDrop"]
+        XCTAssertTrue(resultAlert.waitForExistence(timeout: 45), "GIF yayın sonucu gelmedi.")
+        guard resultAlert.staticTexts["Post yayınlandı. Keşfet ve profilinde görünür."].exists else {
+            let alertText = resultAlert.staticTexts.allElementsBoundByIndex
+                .map(\.label)
+                .filter { !$0.isEmpty && $0 != "LociDrop" }
+                .joined(separator: " · ")
+            XCTFail("GIF postu yayınlanmadı: \(alertText)")
+            return
+        }
+        pause(4) // GIF sent: show the result
+        resultAlert.buttons["Tamam"].tap()
+        pause(4)
+    }
+
     func testEmulator09DeleteAccount() async throws {
         guard !e2eEmail.isEmpty else { throw XCTSkip("E2E_EMAIL yok") }
         let fixtureEnabled = ProcessInfo.processInfo.environment["E2E_FIXTURE_URL"] != nil
