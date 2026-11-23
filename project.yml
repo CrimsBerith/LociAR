@@ -107,7 +107,6 @@ targets:
       # Crashlytics needs the dSYMs to symbolicate crash reports. Release (archive) builds only; the
       # app has no GoogleService-Info.plist, so the Firebase app id comes from the xcconfig.
       - name: Upload Crashlytics symbols
-        basedOnDependencyAnalysis: false
         showEnvVars: false
         inputFiles:
           - $(SRCROOT)/scripts/upload-crashlytics-symbols.sh
@@ -115,8 +114,11 @@ targets:
           - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}
           - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist
           - $(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)
+        # The stamp lets Xcode skip the phase when the dSYM and binary are unchanged.
+        outputFiles:
+          - $(DERIVED_FILE_DIR)/crashlytics-symbols.stamp
         script: |
-          /bin/sh "${SRCROOT}/scripts/upload-crashlytics-symbols.sh"
+          /bin/sh "${SRCROOT}/scripts/upload-crashlytics-symbols.sh" && touch "${DERIVED_FILE_DIR}/crashlytics-symbols.stamp"
     scheme:
       testTargets:
         - LociARTests

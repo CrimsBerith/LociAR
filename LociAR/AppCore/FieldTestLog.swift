@@ -62,7 +62,7 @@ enum FieldTestLog {
     }
 
     nonisolated static func write(_ data: Data, to url: URL, synchronously: Bool = false) {
-        let work = {
+        let work: @Sendable () -> Void = {
             let manager = FileManager.default
             try? manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             if let size = (try? manager.attributesOfItem(atPath: url.path))?[.size] as? Int, size > maxBytes {

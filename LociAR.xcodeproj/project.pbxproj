@@ -1028,7 +1028,6 @@
 /* Begin PBXShellScriptBuildPhase section */
 		9E66095199CC5939E780693D /* Upload Crashlytics symbols */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -1045,10 +1044,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/crashlytics-symbols.stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"${SRCROOT}/scripts/upload-crashlytics-symbols.sh\"\n";
+			shellScript = "/bin/sh \"${SRCROOT}/scripts/upload-crashlytics-symbols.sh\" && touch \"${DERIVED_FILE_DIR}/crashlytics-symbols.stamp\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
