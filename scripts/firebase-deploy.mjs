@@ -16,6 +16,16 @@ const REGION = 'us-central1';
 export const RETIRED_FUNCTIONS = Object.freeze(['searchGifs', 'retryAccountDeletions', 'retryAvatarDeletions', 'retryRemovedMedia',
   'expireScheduledNotes', 'cleanupPostMedia', 'reconcilePostCounters', 'reconcileNoteDensity']);
 
+/**
+ * Creator support payments stay off (owner decision, 8 Nov 2026; AGENTS.md): these payment functions are not
+ * deployed, and the run removes any that are live (the 24 Nov 2026 deploy created them by mistake).
+ * supportStripeWebhook and supportCheckoutReturn were live before that decision and keep being deployed.
+ * Turning payments on (owner request only) means removing names from this list in the same change.
+ */
+export const UNDEPLOYED_PAYMENT_FUNCTIONS = Object.freeze(['beginApplePostSupport', 'confirmApplePostSupport',
+  'supportAppleNotifications', 'readSupportCatalog', 'beginExternalPostSupport', 'refreshStripePostSupport',
+  'readMyPostSupport', 'readMySupportEarnings', 'beginCryptoPostSupport', 'supportCryptoWebhook']);
+
 /** Retired functions still deployed in the region, from `firebase functions:list --json` output. */
 export function retiredFunctionsToDelete(listOutput, retired = RETIRED_FUNCTIONS, exported = []) {
   let listed;
@@ -31,7 +41,8 @@ export function functionDeploymentBatches(root = REPOSITORY_ROOT, size = 1) {
   if (!Number.isInteger(size) || size < 1 || size > 10) throw new Error('Function batches must contain 1 to 10 functions.');
   const source = readFileSync(path.join(root, 'functions/src/index.ts'), 'utf8');
   const names = [...new Set([...source.matchAll(/export\s*\{([^}]+)\}\s*from/g)]
-    .flatMap(match => match[1].split(',').map(name => name.trim().split(/\s+as\s+/).at(-1)).filter(Boolean)))];
+    .flatMap(match => match[1].split(',').map(name => name.trim().split(/\s+as\s+/).at(-1)).filter(Boolean)))]
+    .filter(name => !UNDEPLOYED_PAYMENT_FUNCTIONS.includes(name));
   if (!names.length || names.some(name => !/^[A-Za-z_$][\w$]*$/.test(name))) throw new Error('Function export inventory could not be derived.');
   return Array.from({ length: Math.ceil(names.length / size) }, (_, i) => names.slice(i * size, (i + 1) * size));
 }
@@ -113,7 +124,8 @@ export function deploy({ dryRun = false, planOnly = false, alias, resumeFrom, re
   }
   // Only after every current function is live: remove the retired ones (and with them their Scheduler jobs).
   const listed = run(['functions:list', '--project', PROJECT, '--json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
-  const retired = retiredFunctionsToDelete(listed.stdout, RETIRED_FUNCTIONS, batches.flat());
+  const retired = [...retiredFunctionsToDelete(listed.stdout, RETIRED_FUNCTIONS, batches.flat()),
+    ...retiredFunctionsToDelete(listed.stdout, UNDEPLOYED_PAYMENT_FUNCTIONS, batches.flat())];
   if (retired.length) run(['functions:delete', ...retired, '--region', REGION, '--project', PROJECT, '--force', '--non-interactive']);
   if (head) rmSync(path.join(root, RESUME_FILE), { force: true });
 }

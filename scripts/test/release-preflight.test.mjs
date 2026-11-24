@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkPrerequisites, completedTests, emulatorEnvironment, preflight, releaseSteps, runSteps } from '../release-preflight.mjs';
-import { deploy, deploymentEnvironment, functionDeploymentBatches, RESUME_FILE, RETIRED_FUNCTIONS, retiredFunctionsToDelete, savedResume } from '../firebase-deploy.mjs';
+import { deploy, deploymentEnvironment, functionDeploymentBatches, RESUME_FILE, RETIRED_FUNCTIONS, retiredFunctionsToDelete, savedResume, UNDEPLOYED_PAYMENT_FUNCTIONS } from '../firebase-deploy.mjs';
 
 const NO_FUNCTIONS = JSON.stringify({ status: 'success', result: [] });
 const ok = args => ({ status: 0, ...(args[0] === 'functions:list' ? { stdout: NO_FUNCTIONS } : {}) });
@@ -265,4 +265,22 @@ test('a failed retry leaves a resume marker for the same commit only', () => {
     writeFileSync(path.join(root, RESUME_FILE), 'not json');
     assert.equal(savedResume(root, 'abc'), undefined);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('payment functions stay off: never deployed, and removed when a deploy finds them live', () => {
+  const names = functionDeploymentBatches().flat();
+  for (const name of UNDEPLOYED_PAYMENT_FUNCTIONS) assert.equal(names.includes(name), false, name + ' must not be deployed');
+  for (const name of ['supportStripeWebhook', 'supportCheckoutReturn', 'createPost']) assert.ok(names.includes(name));
+  const source = readFileSync(new URL('../../functions/src/index.ts', import.meta.url), 'utf8');
+  for (const name of UNDEPLOYED_PAYMENT_FUNCTIONS) assert.ok(source.includes(name), name + ' is still exported for the explicit payment deploy');
+  const live = JSON.stringify({ result: [
+    { id: 'readSupportCatalog', region: 'us-central1' }, { id: 'supportCryptoWebhook', region: 'us-central1' },
+    { id: 'createPost', region: 'us-central1' }, { id: 'searchGifs', region: 'us-central1' }] });
+  const calls = [];
+  deploy({ env: {}, validate() {}, runner(command, args) {
+    calls.push(args);
+    return args[0] === 'functions:list' ? { status: 0, stdout: live } : ok(args);
+  } });
+  const removal = calls.find(args => args[0] === 'functions:delete');
+  assert.deepEqual(removal.slice(1, removal.indexOf('--region')).sort(), ['readSupportCatalog', 'searchGifs', 'supportCryptoWebhook']);
 });

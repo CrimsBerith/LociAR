@@ -127,6 +127,8 @@ Open `LociAR.xcodeproj` at the repo root. After `project.yml` edits: `xcodegen g
   stay hidden in normal Debug and Release builds (`PostSupportAvailability.releaseBuilds = false`,
   `LociAR/Data/PostSupportClient.swift`). Only authenticated payment UI-test fixtures explicitly launched with
   `UITEST_SUPPORT_UI` keep them, using fake payments; general UI tests keep the entries hidden.
+  `scripts/firebase-deploy.mjs` does not deploy the payment functions (`UNDEPLOYED_PAYMENT_FUNCTIONS`, owner decision
+  8 Nov 2026) and deletes any that are live; only `supportStripeWebhook` and `supportCheckoutReturn` stay deployed.
   Re-enable only at the owner's explicit request, with a live provider and updated terms, privacy, App Privacy
   (Purchases) and App Review notes. Go-live checklist: `docs/release/APP_STORE_GO_LIVE_2026-10-26.md`.
 - **Crash reporting:** Firebase Crashlytics enabled.
