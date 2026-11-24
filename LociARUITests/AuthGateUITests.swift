@@ -723,8 +723,7 @@ final class AuthGateUITests: XCTestCase {
         let support = app.buttons["post-support-button"]
         scrollUntilHittable(support, in: app, maxSwipes: 10)
         XCTAssertTrue(support.isHittable)
-        support.tap()
-        XCTAssertTrue(app.navigationBars["Yazara destek ol"].waitForExistence(timeout: 5))
+        XCTAssertTrue(tap(support, until: app.navigationBars["Yazara destek ol"]))
         let retry = app.buttons["Tekrar dene"]
         scrollUntilHittable(retry, in: app, maxSwipes: 10)
         XCTAssertTrue(retry.isHittable)

@@ -98,7 +98,7 @@ final class ReadabilityRegressionUITests: XCTestCase {
             let button = picker.buttons[option]
             XCTAssertTrue(button.exists, "Missing appearance option: \(option)")
             button.tap()
-            XCTAssertTrue(button.isSelected || (button.value as? String) == "1", "Option \(option) should be selected after tap")
+            XCTAssertTrue(waitUntilSelected(button), "Option \(option) should be selected after tap")
             record(app, name: "settings-appearance-\(option)")
         }
 

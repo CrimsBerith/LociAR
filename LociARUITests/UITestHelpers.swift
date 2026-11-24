@@ -439,3 +439,28 @@ extension AuthGateUITests {
         return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 }
+
+extension XCTestCase {
+    /// Taps `control` and waits for `result`. A tap can be absorbed while a scroll view is still settling
+    /// (common on slow CI simulators at large text sizes), so one more tap is made if nothing appeared.
+    @MainActor @discardableResult
+    func tap(_ control: XCUIElement, until result: XCUIElement, timeout: TimeInterval = 8) -> Bool {
+        control.tap()
+        if result.waitForExistence(timeout: timeout) { return true }
+        guard control.exists, control.isHittable else { return false }
+        control.tap()
+        return result.waitForExistence(timeout: timeout)
+    }
+
+    /// Segmented-control selection is published after SwiftUI re-renders (a colour-scheme change redraws the
+    /// whole window), so poll briefly instead of reading the trait right after the tap.
+    @MainActor
+    func waitUntilSelected(_ button: XCUIElement, timeout: TimeInterval = 5) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if button.isSelected || (button.value as? String) == "1" { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        } while Date() < deadline
+        return false
+    }
+}
