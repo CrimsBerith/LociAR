@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -102,11 +102,34 @@ export function checkPrerequisites(runner = spawnSync) {
   if (result.error || result.status !== 0 || !major || Number(major[1]) < 21) throw new Error('Java 21 or newer is required; security-rule tests cannot be skipped.');
 }
 
-export function preflight({ planOnly = false, runner = spawnSync, root = REPOSITORY_ROOT, env = process.env } = {}) {
+/** Port 8080 is the Firestore emulator default; another local service (for example a proxy) may hold it. */
+export function firestorePortBusy(port, probe = spawnSync) {
+  const result = probe('lsof', ['-nP', '-iTCP:' + port, '-sTCP:LISTEN', '-t'], { encoding: 'utf8' });
+  return !result.error && result.status === 0 && Boolean(String(result.stdout ?? '').trim());
+}
+
+/**
+ * Moves only the Firestore emulator to LOCIAR_FIRESTORE_EMULATOR_PORT (default 8280) in a throwaway
+ * config when 8080 is taken. The emulator npm scripts read LOCIAR_FIREBASE_CONFIG; deploy config is untouched.
+ */
+export function emulatorEnvironment(env, root = REPOSITORY_ROOT, { busy = port => firestorePortBusy(port) } = {}) {
+  if (env.LOCIAR_FIREBASE_CONFIG || !busy(8080)) return env;
+  const port = Number(env.LOCIAR_FIRESTORE_EMULATOR_PORT ?? 8280);
+  if (!Number.isInteger(port) || port < 1024 || port > 65535 || port === 8080) throw new Error('Invalid LOCIAR_FIRESTORE_EMULATOR_PORT.');
+  if (busy(port)) throw new Error('Ports 8080 and ' + port + ' are both in use; set LOCIAR_FIRESTORE_EMULATOR_PORT to a free port.');
+  const config = JSON.parse(readFileSync(path.join(root, 'firebase.json'), 'utf8'));
+  config.emulators.firestore.port = port;
+  const file = path.join(root, '.firebase.preflight.json');
+  writeFileSync(file, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+  console.log('Port 8080 is in use; the Firestore emulator runs on ' + port + ' (' + path.basename(file) + ').');
+  return { ...env, LOCIAR_FIREBASE_CONFIG: file };
+}
+
+export function preflight({ planOnly = false, runner = spawnSync, root = REPOSITORY_ROOT, env = process.env, emulatorEnv = emulatorEnvironment } = {}) {
   const steps = releaseSteps(root);
   if (planOnly) return steps;
   checkPrerequisites(runner);
-  runSteps(steps, { runner, env });
+  runSteps(steps, { runner, env: emulatorEnv(env, root) });
   return steps;
 }
 

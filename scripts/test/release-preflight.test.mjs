@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { checkPrerequisites, completedTests, preflight, releaseSteps, runSteps } from '../release-preflight.mjs';
+import { checkPrerequisites, completedTests, emulatorEnvironment, preflight, releaseSteps, runSteps } from '../release-preflight.mjs';
 import { deploy, deploymentEnvironment, functionDeploymentBatches, RETIRED_FUNCTIONS, retiredFunctionsToDelete } from '../firebase-deploy.mjs';
 
 const NO_FUNCTIONS = JSON.stringify({ status: 'success', result: [] });
@@ -205,4 +205,24 @@ test('retired functions are deleted by name, last, and only while they are still
     'a name exported again is live code');
   const exported = functionDeploymentBatches().flat();
   assert.deepEqual(RETIRED_FUNCTIONS.filter(name => exported.includes(name)), [], 'retired names are not exported');
+});
+
+test('a busy 8080 moves only the Firestore emulator into a throwaway config', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'preflight-'));
+  try {
+    writeFileSync(path.join(root, 'firebase.json'), JSON.stringify({ firestore: { rules: 'firestore.rules' }, emulators: { firestore: { host: '127.0.0.1', port: 8080 }, auth: { port: 9099 } } }));
+    const free = emulatorEnvironment({ A: '1' }, root, { busy: () => false });
+    assert.deepEqual(free, { A: '1' });
+    const moved = emulatorEnvironment({}, root, { busy: port => port === 8080 });
+    assert.equal(moved.LOCIAR_FIREBASE_CONFIG, path.join(root, '.firebase.preflight.json'));
+    const written = JSON.parse(readFileSync(moved.LOCIAR_FIREBASE_CONFIG, 'utf8'));
+    assert.equal(written.emulators.firestore.port, 8280);
+    assert.equal(written.emulators.auth.port, 9099);
+    assert.equal(written.firestore.rules, 'firestore.rules');
+    assert.equal(emulatorEnvironment({ LOCIAR_FIRESTORE_EMULATOR_PORT: '9180' }, root, { busy: port => port === 8080 }).LOCIAR_FIREBASE_CONFIG, moved.LOCIAR_FIREBASE_CONFIG);
+    assert.equal(JSON.parse(readFileSync(moved.LOCIAR_FIREBASE_CONFIG, 'utf8')).emulators.firestore.port, 9180);
+    assert.throws(() => emulatorEnvironment({}, root, { busy: () => true }), /both in use/);
+    assert.throws(() => emulatorEnvironment({ LOCIAR_FIRESTORE_EMULATOR_PORT: '80' }, root, { busy: port => port === 8080 }), /Invalid/);
+    assert.deepEqual(emulatorEnvironment({ LOCIAR_FIREBASE_CONFIG: '/x.json' }, root, { busy: () => true }), { LOCIAR_FIREBASE_CONFIG: '/x.json' });
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

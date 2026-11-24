@@ -9,11 +9,11 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
-    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-lociar \"node --test --test-concurrency=1 test/rules/*.test.mjs\"",
+    "test:rules": "firebase emulators:exec --config \"${LOCIAR_FIREBASE_CONFIG:-../firebase.json}\" --only firestore,storage --project demo-lociar \"node --test --test-concurrency=1 test/rules/*.test.mjs\"",
     "test:cost": "npm run build && firebase emulators:exec --only firestore --project demo-lociar \"node --test --test-concurrency=1 test/cost/*.test.mjs\"",
     "test:support": "npm run build && firebase emulators:exec --only firestore --project demo-lociar \"node --test --test-concurrency=1 test/support/*.test.mjs\"",
-    "test:emulator": "npm run build && node test/integration/prepare-env.mjs && firebase emulators:exec --only auth,firestore,storage,functions --project demo-lociar \"node --test --test-concurrency=1 test/integration/*.test.mjs\"",
-    "test:notes": "npm run build && node test/integration/prepare-env.mjs && firebase emulators:exec --only auth,firestore,storage,functions --project demo-lociar \"node --test --test-concurrency=1 test/notes/*.test.mjs\""
+    "test:emulator": "npm run build && node test/integration/prepare-env.mjs && firebase emulators:exec --config \"${LOCIAR_FIREBASE_CONFIG:-../firebase.json}\" --only auth,firestore,storage,functions --project demo-lociar \"node --test --test-concurrency=1 test/integration/*.test.mjs\"",
+    "test:notes": "npm run build && node test/integration/prepare-env.mjs && firebase emulators:exec --config \"${LOCIAR_FIREBASE_CONFIG:-../firebase.json}\" --only auth,firestore,storage,functions --project demo-lociar \"node --test --test-concurrency=1 test/notes/*.test.mjs\""
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",
