@@ -255,19 +255,14 @@ test('a busy 8080 moves only the Firestore emulator into a throwaway config', ()
 test('a failed retry leaves a resume marker for the same commit only', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'deploy-resume-'));
   try {
-    writeFileSync(path.join(root, 'x'), '');
-    const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname);
-    const batches = functionDeploymentBatches(repoRoot);
-    const target = batches[3][0];
-    const tmpRoot = root;
-    // Use the repository's function inventory with a temporary marker directory.
-    assert.throws(() => deploy({ env: {}, root: repoRoot, resumeHead: undefined, validate() {}, sleep() {}, runner(command, args) {
+    const target = functionDeploymentBatches()[3][0];
+    assert.throws(() => deploy({ env: {}, validate() {}, sleep() {}, runner(command, args) {
       return args.includes('functions:' + target) ? { status: 5 } : ok(args);
-    } }), /continues from/);
-    writeFileSync(path.join(tmpRoot, RESUME_FILE), JSON.stringify({ head: 'abc', function: target }));
-    assert.equal(savedResume(tmpRoot, 'abc'), target);
-    assert.equal(savedResume(tmpRoot, 'def'), undefined);
-    writeFileSync(path.join(tmpRoot, RESUME_FILE), 'not json');
-    assert.equal(savedResume(tmpRoot, 'abc'), undefined);
+    } }), new RegExp('continues from ' + target));
+    writeFileSync(path.join(root, RESUME_FILE), JSON.stringify({ head: 'abc', function: target }));
+    assert.equal(savedResume(root, 'abc'), target);
+    assert.equal(savedResume(root, 'def'), undefined);
+    writeFileSync(path.join(root, RESUME_FILE), 'not json');
+    assert.equal(savedResume(root, 'abc'), undefined);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

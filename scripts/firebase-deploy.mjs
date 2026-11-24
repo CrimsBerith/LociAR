@@ -115,7 +115,7 @@ export function deploy({ dryRun = false, planOnly = false, alias, resumeFrom, re
   const listed = run(['functions:list', '--project', PROJECT, '--json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
   const retired = retiredFunctionsToDelete(listed.stdout, RETIRED_FUNCTIONS, batches.flat());
   if (retired.length) run(['functions:delete', ...retired, '--region', REGION, '--project', PROJECT, '--force', '--non-interactive']);
-  rmSync(path.join(root, RESUME_FILE), { force: true });
+  if (head) rmSync(path.join(root, RESUME_FILE), { force: true });
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
