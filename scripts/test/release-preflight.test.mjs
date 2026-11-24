@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkPrerequisites, completedTests, emulatorEnvironment, preflight, releaseSteps, runSteps } from '../release-preflight.mjs';
-import { deploy, deploymentEnvironment, functionDeploymentBatches, RETIRED_FUNCTIONS, retiredFunctionsToDelete } from '../firebase-deploy.mjs';
+import { deploy, deploymentEnvironment, functionDeploymentBatches, RESUME_FILE, RETIRED_FUNCTIONS, retiredFunctionsToDelete, savedResume } from '../firebase-deploy.mjs';
 
 const NO_FUNCTIONS = JSON.stringify({ status: 'success', result: [] });
 const ok = args => ({ status: 0, ...(args[0] === 'functions:list' ? { stdout: NO_FUNCTIONS } : {}) });
@@ -104,13 +104,38 @@ test('deployment visits every exported function exactly once in bounded sequenti
   for (const size of [0, 11, 1.5]) assert.throws(() => functionDeploymentBatches(undefined, size));
 });
 
-test('a failed function batch stops subsequent batches and retains the deployment error status', () => {
-  const calls = [];
-  assert.throws(() => deploy({ env: {}, validate() {}, runner(command, args) {
+test('a failed function batch is retried once, then stops subsequent batches and retains the deployment error status', () => {
+  const calls = []; const waits = [];
+  const first = functionDeploymentBatches()[0][0];
+  assert.throws(() => deploy({ env: {}, validate() {}, sleep: s => waits.push(s), runner(command, args) {
     calls.push(args);
-    return { status: calls.length === 3 ? 29 : 0 };
-  } }), error => error.exitCode === 29);
-  assert.equal(calls.length, 3);
+    return { status: args.includes('functions:' + first) ? 29 : 0 };
+  } }), error => error.exitCode === 29 && error.message.includes('--resume-from=' + first));
+  assert.equal(calls.length, 4);
+  assert.deepEqual(waits, [30]);
+});
+
+test('a transient function failure succeeds on the retry and the deploy continues', () => {
+  const calls = []; let failed = false;
+  deploy({ env: {}, validate() {}, sleep() {}, runner(command, args) {
+    calls.push(args);
+    if (args[0] === 'deploy' && args.includes('functions:' + functionDeploymentBatches()[1][0]) && !failed) { failed = true; return { status: 1 }; }
+    return ok(args);
+  } });
+  const deploys = calls.filter(args => args[0] === 'deploy').length;
+  assert.equal(deploys, 1 + functionDeploymentBatches().length + 1);
+});
+
+test('resume skips rules and earlier functions but still runs the local checks', () => {
+  const calls = []; let checked = 0;
+  const batches = functionDeploymentBatches();
+  const from = batches[5][0];
+  deploy({ env: {}, resumeFrom: from, validate() { checked++; }, runner(command, args) { calls.push(args); return ok(args); } });
+  assert.equal(checked, 1);
+  const deploys = calls.filter(args => args[0] === 'deploy').map(args => args[args.indexOf('--only') + 1]);
+  assert.equal(deploys.includes('firestore,storage'), false);
+  assert.deepEqual(deploys, batches.slice(5).map(batch => batch.map(name => 'functions:' + name).join(',')));
+  assert.throws(() => deploy({ env: {}, resumeFrom: 'noSuchFunction', validate() { throw new Error('must not validate'); }, runner() { throw new Error('must not run'); } }), /Unknown function/);
 });
 
 test('complete Node and Playwright summaries accept every passing test, with terminal colors', () => {
@@ -224,5 +249,25 @@ test('a busy 8080 moves only the Firestore emulator into a throwaway config', ()
     assert.throws(() => emulatorEnvironment({}, root, { busy: () => true }), /both in use/);
     assert.throws(() => emulatorEnvironment({ LOCIAR_FIRESTORE_EMULATOR_PORT: '80' }, root, { busy: port => port === 8080 }), /Invalid/);
     assert.deepEqual(emulatorEnvironment({ LOCIAR_FIREBASE_CONFIG: '/x.json' }, root, { busy: () => true }), { LOCIAR_FIREBASE_CONFIG: '/x.json' });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a failed retry leaves a resume marker for the same commit only', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'deploy-resume-'));
+  try {
+    writeFileSync(path.join(root, 'x'), '');
+    const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname);
+    const batches = functionDeploymentBatches(repoRoot);
+    const target = batches[3][0];
+    const tmpRoot = root;
+    // Use the repository's function inventory with a temporary marker directory.
+    assert.throws(() => deploy({ env: {}, root: repoRoot, resumeHead: undefined, validate() {}, sleep() {}, runner(command, args) {
+      return args.includes('functions:' + target) ? { status: 5 } : ok(args);
+    } }), /continues from/);
+    writeFileSync(path.join(tmpRoot, RESUME_FILE), JSON.stringify({ head: 'abc', function: target }));
+    assert.equal(savedResume(tmpRoot, 'abc'), target);
+    assert.equal(savedResume(tmpRoot, 'def'), undefined);
+    writeFileSync(path.join(tmpRoot, RESUME_FILE), 'not json');
+    assert.equal(savedResume(tmpRoot, 'abc'), undefined);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

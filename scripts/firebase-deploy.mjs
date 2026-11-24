@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -51,7 +51,36 @@ export function deploymentEnvironment(env = process.env, alias) {
   return result;
 }
 
-export function deploy({ dryRun = false, planOnly = false, alias, runner = spawnSync, validate = preflight, env = process.env, root = REPOSITORY_ROOT } = {}) {
+/** Interrupted-run marker: a double-clicked rerun on the same commit continues where the last run stopped. */
+export const RESUME_FILE = '.firebase-deploy-resume.json';
+
+export function savedResume(root, head) {
+  const file = path.join(root, RESUME_FILE);
+  if (!existsSync(file)) return undefined;
+  try {
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    return saved.head === head && typeof saved.function === 'string' ? saved.function : undefined;
+  } catch { return undefined; }
+}
+
+function currentHead(root, runner) {
+  const head = runner('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
+  const dirty = runner('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: root, encoding: 'utf8' });
+  if (head.status !== 0 || dirty.status !== 0 || String(dirty.stdout ?? '').trim()) return undefined;
+  return String(head.stdout ?? '').trim() || undefined;
+}
+
+const pause = seconds => { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000); };
+
+/**
+ * resumeFrom continues an interrupted run at that function: the rules and earlier functions are already
+ * live, so they are not redeployed. The local checks still run first. A failed function deploy is retried
+ * once after 30 s, because single Firebase API requests fail transiently during long sequential deploys.
+ */
+export function deploy({ dryRun = false, planOnly = false, alias, resumeFrom, resumeHead, runner = spawnSync, validate = preflight, env = process.env, root = REPOSITORY_ROOT, sleep = pause } = {}) {
+  const batches = functionDeploymentBatches(root);
+  const start = resumeFrom === undefined ? 0 : batches.findIndex(batch => batch.includes(resumeFrom));
+  if (start < 0) throw new Error('Unknown function for --resume-from: ' + resumeFrom);
   validate({ planOnly, runner, root, env });
   if (planOnly) { console.log('Plan only: checks and deployment were not run.'); return; }
   if (dryRun) { console.log('Dry run: all local checks passed; no live authentication or deployment was attempted.'); return; }
@@ -66,24 +95,43 @@ export function deploy({ dryRun = false, planOnly = false, alias, runner = spawn
     }
     return result;
   };
-  const batches = functionDeploymentBatches(root);
-  for (const args of [
-    ['apps:list', '--project', PROJECT, '--non-interactive'],
-    ['deploy', '--only', 'firestore,storage', '--project', PROJECT, '--non-interactive'],
-    ...batches.map(batch => ['deploy', '--only', batch.map(name => 'functions:' + name).join(','), '--project', PROJECT, '--non-interactive']),
-  ]) run(args);
+  const head = resumeHead;
+  run(['apps:list', '--project', PROJECT, '--non-interactive']);
+  if (start === 0) run(['deploy', '--only', 'firestore,storage', '--project', PROJECT, '--non-interactive']);
+  for (const batch of batches.slice(start)) {
+    const args = ['deploy', '--only', batch.map(name => 'functions:' + name).join(','), '--project', PROJECT, '--non-interactive'];
+    try { run(args); } catch {
+      console.error('Retrying ' + batch.join(', ') + ' once in 30 s.');
+      sleep(30);
+      try { run(args); } catch (error) {
+        if (head) writeFileSync(path.join(root, RESUME_FILE), JSON.stringify({ head, function: batch[0] }) + '\n');
+        error.message += ' Running scripts/firebase-deploy.command again on this commit continues from ' + batch[0] +
+          ' (or pass --resume-from=' + batch[0] + ').';
+        throw error;
+      }
+    }
+  }
   // Only after every current function is live: remove the retired ones (and with them their Scheduler jobs).
   const listed = run(['functions:list', '--project', PROJECT, '--json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
   const retired = retiredFunctionsToDelete(listed.stdout, RETIRED_FUNCTIONS, batches.flat());
   if (retired.length) run(['functions:delete', ...retired, '--region', REGION, '--project', PROJECT, '--force', '--non-interactive']);
+  rmSync(path.join(root, RESUME_FILE), { force: true });
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
     const aliasFlag = args.find(arg => arg.startsWith('--gcp-alias='));
-    if (args.some(arg => !['--dry-run', '--plan'].includes(arg) && arg !== aliasFlag)) throw new Error('Usage: bash scripts/firebase-deploy.command [--dry-run|--plan] [--gcp-alias=alias]');
+    const resumeFlag = args.find(arg => arg.startsWith('--resume-from='));
+    if (args.some(arg => !['--dry-run', '--plan'].includes(arg) && arg !== aliasFlag && arg !== resumeFlag)) throw new Error('Usage: bash scripts/firebase-deploy.command [--dry-run|--plan] [--gcp-alias=alias] [--resume-from=functionName]');
     if (args.includes('--plan')) for (const step of preflight({ planOnly: true })) console.log(step.label + ': ' + JSON.stringify([step.command, ...step.args]));
-    deploy({ dryRun: args.includes('--dry-run'), planOnly: args.includes('--plan'), alias: aliasFlag?.slice('--gcp-alias='.length) });
+    const live = !args.includes('--dry-run') && !args.includes('--plan');
+    const head = live ? currentHead(REPOSITORY_ROOT, spawnSync) : undefined;
+    let resumeFrom = resumeFlag?.slice('--resume-from='.length);
+    if (live && resumeFrom === undefined && head) {
+      resumeFrom = savedResume(REPOSITORY_ROOT, head);
+      if (resumeFrom) console.log('Continuing the interrupted deploy of this commit from ' + resumeFrom + ' (rules and earlier functions are live).');
+    }
+    deploy({ dryRun: !live && args.includes('--dry-run'), planOnly: args.includes('--plan'), alias: aliasFlag?.slice('--gcp-alias='.length), resumeFrom, resumeHead: head });
   } catch (error) { console.error(error.message); process.exitCode = error.exitCode ?? 1; }
 }

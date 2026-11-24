@@ -121,6 +121,7 @@ build/claude-run/
 .firebase.device-e2e.json
 .firebase.verify.json
 .firebase.preflight.json
+.firebase-deploy-resume.json
 scripts/.mac-verify/
 # build/ may be a symlink to another volume
 /build
