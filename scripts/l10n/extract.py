@@ -129,6 +129,8 @@ EXCLUDE = {
     'GeospatialAccuracy', 'CFBundleShortVersionString', 'CFBundleVersion', 'LociARStagedMedia', 'LociARWorldMaps', 'RCTAsyncLocalStorage', 'RCTAsyncLocalStorage_V1',
     'RNCAsyncLocalStorage_V1', 'Legacy dead-letter', '^[a-z0-9_.]{3,30}$', 'cannot publish', 'protected zone', 'verified Apple',
     'verified Apple, Google, or email identity', '18+ content', 'E', 'LociAR Pin',
+    # Language tags passed to Firebase Auth email templates (AppConfiguration.firebaseEmailLanguage).
+    'Base', 'zh-Hans', 'zh-Hant', 'zh-CN', 'zh-TW',
     '⚠️ Yetki yok (token / ARCore API)', '✅ VPS mevcut', '❌ VPS yok', '❓ Bilinmiyor',
     'ARCore kapsam kontrolü (debug)', 'ARCore kapsamı', 'Kontrol ediliyor…', 'VPS kapsamını kontrol et', 'Loci', '%lld', '%lld/500', '%lld/220', '%@ / %lld', 'Only text', 'Only one GIF', 'Only KLIPY GIFs are supported', 'Powered by KLIPY', 'Search KLIPY', 'gif,jpg,mp4',
     'Physical AR world lock evidence is incomplete',

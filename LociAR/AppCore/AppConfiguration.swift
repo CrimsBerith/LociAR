@@ -139,10 +139,24 @@ struct AppConfiguration: Sendable {
         options.storageBucket = firebase.storageBucket
         options.bundleID = Bundle.main.bundleIdentifier ?? "com.khankartal.lociar"
         FirebaseApp.configure(options: options)
+        // Verification and password-reset emails follow the app language; without this Firebase sends
+        // every user the console's template language (Turkish).
+        Auth.auth().languageCode = Self.firebaseEmailLanguage(Bundle.main.preferredLocalizations.first)
 #if DEBUG
         connectEmulatorsIfConfigured(functionsRegion: firebase.functionsRegion)
 #endif
         return true
+    }
+
+    /// Firebase Auth email templates take BCP-47 language tags; the string catalog calls Chinese "zh-Hans".
+    nonisolated static func firebaseEmailLanguage(_ localization: String?) -> String? {
+        guard let localization = localization?.trimmingCharacters(in: .whitespaces),
+              !localization.isEmpty, localization != "Base" else { return nil }
+        switch localization {
+        case "zh-Hans": return "zh-CN"
+        case "zh-Hant": return "zh-TW"
+        default: return localization
+        }
     }
 
 #if DEBUG

@@ -152,6 +152,16 @@ final class StoreReadinessTests: XCTestCase {
         XCTAssertTrue(Geohash.coverPrefixes(latitude: 41, longitude: 29, radiusMeters: 8_000_000).isEmpty)
     }
 
+    func testAuthEmailsUseTheAppLanguage() {
+        XCTAssertEqual(AppConfiguration.firebaseEmailLanguage("tr"), "tr")
+        XCTAssertEqual(AppConfiguration.firebaseEmailLanguage("en"), "en")
+        XCTAssertEqual(AppConfiguration.firebaseEmailLanguage("de"), "de")
+        XCTAssertEqual(AppConfiguration.firebaseEmailLanguage("zh-Hans"), "zh-CN")
+        XCTAssertNil(AppConfiguration.firebaseEmailLanguage(nil))
+        XCTAssertNil(AppConfiguration.firebaseEmailLanguage(""))
+        XCTAssertNil(AppConfiguration.firebaseEmailLanguage("Base"))
+    }
+
     func testLegalURLLoaderRejectsPlaceholdersAndRequiresHTTPS() {
         XCTAssertNil(AppConfiguration.publicHTTPSURL(nil))
         XCTAssertNil(AppConfiguration.publicHTTPSURL(""))
