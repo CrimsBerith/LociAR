@@ -106,7 +106,7 @@
 ## 3. Initial Technical Debt & Risk Assessment
 
 1. **Physical iPhone Sensors**: AR camera relocalization and high-precision heading can only be verified on a physical iPhone in the field. Simulators mock camera frames and heading.
-2. **Apple Review Account Provisioning**: The live review account (`apple-review@alfagolab.com`) must be provisioned via `scripts/provision-review-account.mjs` before submission.
+2. **Apple Review Account Provisioning**: The live review account (`apple-review@locidrop.com`) must be provisioned via `scripts/provision-review-account.mjs` before submission.
 3. **Creator Support Payments**: Remain intentionally disabled (`releaseBuilds = false`). Verified by `StoreReadinessTests.testNormalBuildsHideCreatorSupportUntilExplicitlyEnabled`.
 
 ---

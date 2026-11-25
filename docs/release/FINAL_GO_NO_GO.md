@@ -59,7 +59,7 @@
   - **A15 Sign-Off**: **APPROVED / NO VETO** (Recorded in `FINAL_RED_TEAM_REPORT.md`).
 - **App Review Notes & Links**:
   - Reviewer guide in `REVIEW_NOTES.md`.
-  - Demo reviewer account `apple-review@alfagolab.com` prepared.
+  - Demo reviewer account `apple-review@locidrop.com` prepared (moved from `apple-review@alfagolab.com` on 25 Nov 2026).
   - Creator support payments verified completely disabled in release builds (`PostSupportAvailability.releaseBuilds = false`).
 - **Release / Hotfix / Rollback Owner**:
   - Release Owner: A00 / Engineering Team (`support@alfagolab.com`).
@@ -74,6 +74,6 @@
 2. **App Store Connect Build Upload**:
    - Run `sh scripts/app-store-hazirla.command` or execute `xcodebuild archive` + `upload-crashlytics-symbols.sh` to submit the signed build to TestFlight.
 3. **Provision Live Review Account Password**:
-   - Run `node scripts/provision-review-account.mjs apple-review@alfagolab.com` on the deployment machine to generate the live password, and paste it into App Store Connect -> App Review Information.
+   - Run `REVIEW_CREDENTIALS_FILE=$HOME/.lociar/review-<date>.json node scripts/provision-review-account.mjs` (account `apple-review@locidrop.com`) on the deployment machine to generate the live password, and paste it into App Store Connect -> App Review Information.
 4. **Initiate App Store Review**:
    - In App Store Connect, attach the uploaded build to Version 1.0.0, confirm the Privacy nutrition labels match `PrivacyInfo.xcprivacy`, and click **Submit for Review**.

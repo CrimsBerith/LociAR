@@ -107,7 +107,7 @@ In accordance with `IOS_APPSTORE_MULTI_AGENT_MASTER_ROADMAP_2026.md`, this maste
 
 ### A14: App Store / TestFlight / ASO Specialist
 - **Store Metadata**: Complete description, keywords, support URL, privacy policy URL, and App Review instructions prepared.
-- **Reviewer Demo**: Dedicated reviewer credentials provisioned at `apple-review@alfagolab.com` with seeded demo content.
+- **Reviewer Demo**: Dedicated reviewer credentials provisioned at `apple-review@locidrop.com` with seeded demo content.
 - **Status**: **PASS**.
 
 ### A15: Independent Red Team / Final QA Specialist

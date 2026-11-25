@@ -58,8 +58,8 @@ inceleme notları ve rehber güncellendi. Yapılacaklar:
 
 - Hostinger'da `support@alfagolab.com` kutusunun gerçekten e-posta aldığını dene (başka adresten test e-postası).
 - 4.3'teki admin yayını yasal sayfaları yeni adresle canlıya çıkarır.
-- İnceleme hesabı da `apple-review@alfagolab.com` oldu (5. adım): eski `apple-review@lociar.app` hesabının parola
-  sıfırlama e-postaları, alan adını kim alırsa ona gider. Yeni hesap açılınca eskisini Firebase Auth'tan sil.
+- İnceleme hesabı `apple-review@locidrop.com` (25 Kasım sahip kararı; aynı Firebase kullanıcısı, `apple_review` profili ve
+  örnek içerik `apple-review@alfagolab.com` adresinden taşındı). Eski `apple-review@lociar.app` hesabı yok.
 
 ## 3. Google Cloud: erişim ve harcama sınırı (~10 dk)
 
@@ -105,12 +105,11 @@ inceleme notları ve rehber güncellendi. Yapılacaklar:
 
 ## 5. İnceleme hesabı ve açılış içeriği (~20 dk)
 
-1. `REVIEW_CREDENTIALS_FILE=$HOME/lociar-review.json FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/provision-review-account.mjs`
-   → `apple-review@alfagolab.com` hesabı açılır, parola depo dışındaki bu dosyaya yazılır; yalnız App Store
-   Connect → Sign-In Information alanına girilir. Sonra eski `apple-review@lociar.app` hesabını Firebase Auth'tan sil.
-2. Hesapla uygulamada bir kez giriş yap (profil oluşsun), sonra
-   `FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/seed-review-content.mjs apple-review@alfagolab.com`
-   (Apple Park ve İstanbul örnekleri).
+1. `REVIEW_CREDENTIALS_FILE=$HOME/.lociar/review-<tarih>.json FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/provision-review-account.mjs`
+   → `apple-review@locidrop.com` hesabını açar veya parolasını yeniler (profil ve `apple_review` adı dahil); parola depo
+   dışındaki bu dosyaya yazılır, yalnız App Store Connect → Sign-In Information alanına girilir. 25 Kasım'da yapıldı.
+2. `FIREBASE_PROJECT_ID=lociar-2f38c node functions/scripts/seed-review-content.mjs apple-review@locidrop.com`
+   (Apple Park ve İstanbul örnekleri; tekrar çalıştırmak aynı postların üzerine yazar). 25 Kasım'da yapıldı.
 3. Açılış seed'i: `scripts/load-launch-seed.command` (varsayılan: başkentler + işletme notları;
    [LAUNCH_SEED.md](LAUNCH_SEED.md)). Kontrol: haritada Cupertino ve İstanbul boş açılmıyor.
 
