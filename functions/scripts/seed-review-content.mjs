@@ -24,12 +24,12 @@ function geohash(lat, lng, precision = 10) {
 }
 
 const PLACES = [
-  { lat: 41.0335, lng: 28.9780, caption: 'İstiklal Caddesi · LociAR tanıtım notu' },
+  { lat: 41.0335, lng: 28.9780, caption: 'İstiklal Caddesi · LociDrop tanıtım notu' },
   { lat: 41.0256, lng: 28.9744, caption: 'Galata Kulesi manzarası' },
   { lat: 41.0130, lng: 28.9810, caption: 'Gülhane Parkı\'nda mekânsal hikâye' },
   { lat: 41.0422, lng: 29.0083, caption: 'Beşiktaş sahil yürüyüşü' },
-  { lat: 37.3349, lng: -122.0090, caption: 'Welcome to LociAR · Apple Park Visitor Center' },
-  { lat: 37.3318, lng: -122.0312, caption: 'LociAR demo note · Cupertino' },
+  { lat: 37.3349, lng: -122.0090, caption: 'Welcome to LociDrop · Apple Park Visitor Center' },
+  { lat: 37.3318, lng: -122.0312, caption: 'LociDrop demo note · Cupertino' },
   { lat: 37.3230, lng: -122.0322, caption: 'Spatial story sample · Main Street' },
 ];
 
