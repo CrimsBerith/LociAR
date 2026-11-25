@@ -56,7 +56,7 @@ const wasCreated = await db.runTransaction(async tx => {
     handle,
     display_name: 'Apple Reviewer',
     avatar_url: null,
-    bio: 'Official App Review account for LociAR',
+    bio: 'Official App Review account for LociDrop',
     follower_count: 0,
     following_count: 0,
     public_post_count: 0,
