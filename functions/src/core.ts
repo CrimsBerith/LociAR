@@ -26,6 +26,13 @@ setGlobalOptions({ region: REGION, maxInstances: 1, minInstances: 0, cpu: 'gcf_g
 export const CALLABLE_MAX_INSTANCES = 4;
 
 /**
+ * Map reads (readPublicContent, readNoteDensity) run on every map pan and note open, so a launch burst
+ * queued behind 4 concurrency-1 instances first. 10 x 0.167 vCPU stays far inside the 20 vCPU quota and
+ * idle cost is unchanged (minInstances 0). Owner decision, 25 Nov 2026.
+ */
+export const MAP_READ_MAX_INSTANCES = 10;
+
+/**
  * Social Firestore triggers (likes, comments, saves, follows, post/profile writes, activity push).
  * Every handler is idempotent and re-reads current state inside a transaction, so parallel
  * instances cannot double-count or apply stale order. One instance queued a launch burst

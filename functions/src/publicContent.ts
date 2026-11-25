@@ -1,7 +1,7 @@
 import { chunks, forEachSequential, readPages } from './async';
 import { scalarText } from './values';
 import { onCall } from 'firebase-functions/v2/https';
-import { db, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, Timestamp, FieldValue, isUUID } from './core';
+import { db, requireCaller, HttpsError, ENFORCE_APP_CHECK, MAP_READ_MAX_INSTANCES, Timestamp, FieldValue, isUUID } from './core';
 import { isPublicActive } from './counters';
 import { distanceMeters, geohashCoverPrefixes } from './geo';
 import { info } from 'firebase-functions/logger';
@@ -81,7 +81,7 @@ function decode(value:unknown,scope:string):{id:string;date:Timestamp}|null{
  }catch{throw new HttpsError('invalid-argument','Invalid page cursor');}}
 /** Public projections apply both block directions, legacy age checks and permanent deletion
  * fences. Incoming block records themselves never become readable by another client. */
-export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInstances:CALLABLE_MAX_INSTANCES,timeoutSeconds:60},async request=>{
+export const readPublicContent=onCall({enforceAppCheck:ENFORCE_APP_CHECK,maxInstances:MAP_READ_MAX_INSTANCES,timeoutSeconds:60},async request=>{
  const caller=requireCaller(request);const body=(request.data??{})as Record<string,unknown>,mode=scalarText(body.mode??'discover');
  if (mode === 'own_receipt') return readOwnReceipt(body, caller.luid);
  if (!['eligible_authors', 'profile', 'single', 'search_profiles', 'nearby', 'map_groups', 'map_group', 'saved', 'collection', 'comments', 'discover', 'creator', 'blocked'].includes(mode)) {

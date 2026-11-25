@@ -30,8 +30,12 @@ test('no function scales without a ceiling and none keeps a warm instance', () =
   }
 });
 
-test('callables keep 4 instances', () => {
+// Map reads run on every pan and note open, so they scale further (owner decision, 25 Nov 2026).
+const MAP_READ_CALLABLES = new Set(['readPublicContent', 'readNoteDensity']);
+
+test('callables keep 4 instances; the map read callables scale to 10', () => {
+  for (const name of MAP_READ_CALLABLES) assert.ok(functions[name]?.__endpoint?.callableTrigger, `${name} is a callable`);
   for (const [name, fn] of Object.entries(functions)) {
-    if (fn?.__endpoint?.callableTrigger) assert.equal(fn.__endpoint.maxInstances, 4, name);
+    if (fn?.__endpoint?.callableTrigger) assert.equal(fn.__endpoint.maxInstances, MAP_READ_CALLABLES.has(name) ? 10 : 4, name);
   }
 });

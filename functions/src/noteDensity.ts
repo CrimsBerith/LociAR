@@ -1,7 +1,7 @@
 import { forEachSequential } from './async';
 import { onCall } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
-import { db, FieldValue, Timestamp, requireCaller, HttpsError, ENFORCE_APP_CHECK, CALLABLE_MAX_INSTANCES, logger } from './core';
+import { db, FieldValue, Timestamp, requireCaller, HttpsError, ENFORCE_APP_CHECK, MAP_READ_MAX_INSTANCES, logger } from './core';
 import { isPublicActive } from './counters';
 import { repairSpotCount, syncSpotMembership } from './denseSpots';
 import { refreshArea } from './campaignJourneys';
@@ -114,7 +114,7 @@ export async function reconcileNoteDensity() {
  * the view, merged on screen) and the count bubbles from 7.
  * Only non-empty cells are read through a bounded set of prefix range queries.
  */
-export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES, timeoutSeconds: 30 }, async request => {
+export const readNoteDensity = onCall({ enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: MAP_READ_MAX_INSTANCES, timeoutSeconds: 30 }, async request => {
   const started = Date.now();
   const caller = requireCaller(request), b = request.data as Record<string, unknown>;
   const box = b?.box, precision = b?.precision;
