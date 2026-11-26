@@ -19,18 +19,18 @@
     "@apple/app-store-server-library": "^3.1.0",
     "@google-cloud/functions-framework": "5.0.5",
     "@google-cloud/vision": "^5.3.7",
-    "firebase-admin": "^14.5.0",
+    "firebase-admin": "^14.5.1",
     "firebase-functions": "^7.4.0",
     "google-auth-library": "^10.9.1",
-    "stripe": "^23.1.0",
-    "tldts": "7.4.22",
+    "stripe": "^23.2.0",
+    "tldts": "7.5.5",
     "uuid": "^11.1.1"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
     "@types/node": "^22.10.0",
     "firebase": "^12.3.0",
-    "firebase-tools": "^15.33.0",
+    "firebase-tools": "^15.37.0",
     "typescript": "^5.9.2"
   },
   "overrides": {
