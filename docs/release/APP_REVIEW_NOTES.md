@@ -6,7 +6,7 @@ Owner: release manager. Update this file whenever permissions, background modes 
 
 This is the **only** notes text for the submission (it replaces the older text in `APP_STORE_SUBMISSION_GUIDE.md` §6; both together exceed Apple's 4,000-character limit). About 3,600 characters with the video link.
 
-Before pasting: replace `<VIDEO_LINK>` with the screen recording from section 6 (an unlisted link, or attach the file under App Review Information → Attachment and write "see attachment"). The demo account (`apple-review@locidrop.com`) and its password go only into the **Sign-In Information** fields, never into these notes. Run `node functions/scripts/seed-review-content.mjs apple-review@locidrop.com` once against production so the sample posts and location notes exist.
+Before submitting: attach the section 6 screen recording under App Review Information → Attachment (the notes already point to it; owner decision 27 Nov 2026). The demo account (`apple-review@locidrop.com`) and its password go only into the **Sign-In Information** fields, never into these notes. Run `node functions/scripts/seed-review-content.mjs apple-review@locidrop.com` once against production so the sample posts and location notes exist.
 
 ```
 LociDrop lets people leave short notes, in AR on real surfaces or at the exact spot where they stand, so the next visitor gets useful local tips ("Wi-Fi password is at the counter"). Notes are text and/or one KLIPY GIF (PG-13 at most): no photos, videos or links. LociAR has no chat or private messaging.
@@ -20,7 +20,7 @@ Sign in with the demo account in the sign-in fields (or Sign in with Apple) and 
 2. Map > "Leave a location note": the position settles within seconds (outdoors, "Refine with camera" gives 1-5 m); write text and tap "Post here".
 3. Share tab (physical ARKit iPhone): acknowledge the Google AR notice, aim at a surface, tap "Anchor to surface", add text, then "Publish on the surface".
 4. Profile > Settings: "Notifications" and the separate "Campaigns and offers" switch, each with its explanation.
-Arriving at a note with the app closed cannot be reproduced remotely; see the video: <VIDEO_LINK>
+Arriving at a note with the app closed cannot be reproduced remotely; see the attached screen recording (App Review Information > Attachment).
 
 LOCATION: TWO SEPARATE LEVELS, BOTH OPTIONAL
 While Using (asked on the map or note composer): shows notes around the user, saves a note at their position, opens AR content in place. The whole app works at this level.
