@@ -1,5 +1,7 @@
 import { onCall } from 'firebase-functions/v2/https';
-import { ImageAnnotatorClient } from '@google-cloud/vision';
+// Type only: the Vision SDK is the heaviest dependency, so it loads on the first screening instead of in
+// every function's cold start (index.ts loads all modules).
+import type { ImageAnnotatorClient } from '@google-cloud/vision';
 import { randomUUID } from 'node:crypto';
 import { assertServiceEnabled, logger, safeErrorCode, analyticsEventDoc, bucket, db, CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, FieldValue, requireCaller, Timestamp } from './core';
 import { isAccountDeleting, requireActiveAccount } from './profileGuard';
@@ -127,7 +129,7 @@ async function screenAvatarObject(luid: string, id: string, path: string): Promi
   let verdict: 'accepted' | 'rejected' = 'rejected';
   let annotation: SafeSearch = null;
   try {
-    vision ??= new ImageAnnotatorClient();
+    vision ??= new (await import('@google-cloud/vision')).ImageAnnotatorClient();
     const [result] = await vision.safeSearchDetection(`gs://${bucketName}/${path}`);
     annotation = result.safeSearchAnnotation as SafeSearch;
     verdict = judgeSafeSearch(annotation);

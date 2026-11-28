@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import type { DocumentSnapshot } from 'firebase-admin/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { onCall, onRequest } from 'firebase-functions/v2/https';
@@ -16,15 +16,23 @@ export async function loadSupportSettings() {
   return supportSettings((await db.collection('system').doc('post_support').get()).data());
 }
 
-function stripeClient(settings: SupportSettings) {
+/** The SDK loads on first use: index.ts loads every module, so a top-level import slowed every cold start. */
+let stripeSdk: Promise<typeof Stripe> | undefined;
+export function loadStripe(): Promise<typeof Stripe> {
+  stripeSdk ??= import('stripe').then(module => module.default, error => { stripeSdk = undefined; throw error; });
+  return stripeSdk;
+}
+
+async function stripeClient(settings: SupportSettings) {
   const key = SUPPORT_STRIPE_SECRET_KEY.value();
   if (!supportStripeKeyMatchesEnvironment(key, settings.environment)) throw new HttpsError('failed-precondition', 'Payment environment is not configured');
-  return new Stripe(key, { maxNetworkRetries: 1, timeout: 10_000 });
+  const StripeSdk = await loadStripe();
+  return new StripeSdk(key, { maxNetworkRetries: 1, timeout: 10_000 });
 }
 
 export async function supportPrices(settings: SupportSettings) {
   if (!settings.stripeEnabled) return [];
-  const stripe = stripeClient(settings);
+  const stripe = await stripeClient(settings);
   return Promise.all(Object.entries(settings.stripePrices).map(async ([productId, priceId]) => {
     const price = await stripe.prices.retrieve(priceId);
     if (!price.active || price.type !== 'one_time' || price.billing_scheme !== 'per_unit'
@@ -58,7 +66,7 @@ export const beginExternalPostSupport = onCall(options, async request => {
   if (!supportCheckoutChannelAllowed(settings, data.channel, data.storefront, request.app?.appId)) {
     throw new HttpsError('permission-denied', 'External checkout is unavailable in this storefront');
   }
-  const stripe = stripeClient(settings);
+  const stripe = await stripeClient(settings);
   if (settings.environment === 'production') {
     const account = await stripe.accounts.retrieveCurrent();
     if (account.country !== settings.merchantCountry || !account.charges_enabled || !account.details_submitted) {
@@ -162,9 +170,9 @@ export const refreshStripePostSupport = onCall(options, async request => {
   const settings = await loadSupportSettings();
   if (intent.get('environment') !== settings.environment) throw new HttpsError('failed-precondition', 'Wrong payment environment');
   if (intent.get('checkout_session_id')) {
-    await reconcileStripeSupport(stripeClient(settings), intent.id, intent.get('checkout_session_id'), settings);
+    await reconcileStripeSupport(await stripeClient(settings), intent.id, intent.get('checkout_session_id'), settings);
   } else if (intent.get('stripe_price_id') && intent.get('expires_at').toMillis() >= Date.now() + 30 * 60_000) {
-    await createStripeSupportCheckout(stripeClient(settings), intent);
+    await createStripeSupportCheckout(await stripeClient(settings), intent);
   }
   return readSupportReceipt(caller, { intentId: intent.id });
 });
@@ -175,10 +183,10 @@ export const supportStripeWebhook = onRequest({ maxInstances: CALLABLE_MAX_INSTA
   const signature = request.header('stripe-signature');
   if (!signature || request.rawBody.length > 1_000_000) { response.status(400).end(); return; }
   let event: Stripe.Event;
-  try { event = Stripe.webhooks.constructEvent(request.rawBody, signature, SUPPORT_STRIPE_WEBHOOK_SECRET.value()); }
+  try { event = (await loadStripe()).webhooks.constructEvent(request.rawBody, signature, SUPPORT_STRIPE_WEBHOOK_SECRET.value()); }
   catch { response.status(400).send('Invalid signature'); return; }
   try {
-    const settings = await loadSupportSettings(), stripe = stripeClient(settings);
+    const settings = await loadSupportSettings(), stripe = await stripeClient(settings);
     if (event.livemode !== (settings.environment === 'production')) { response.status(400).end(); return; }
     if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
       await fulfillSupportCheckout(stripe, event.data.object.id, settings);

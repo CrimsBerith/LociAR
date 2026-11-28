@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { Environment, SignedDataVerifier, type JWSTransactionDecodedPayload } from '@apple/app-store-server-library';
+import type { Environment, JWSTransactionDecodedPayload, SignedDataVerifier } from '@apple/app-store-server-library';
 import { onCall, onRequest } from 'firebase-functions/v2/https';
 import { CALLABLE_MAX_INSTANCES, ENFORCE_APP_CHECK, HttpsError, isUUID, requireCaller } from './core';
 import { createSupportIntent } from './supportAccess';
@@ -10,12 +10,16 @@ import { supportProduct, supportSplit, type SupportSettings } from './supportPol
 
 const options = { enforceAppCheck: ENFORCE_APP_CHECK, maxInstances: CALLABLE_MAX_INSTANCES };
 let appleRoot: Buffer | undefined; // read once per instance, not per purchase
-function verifier(settings: SupportSettings) {
+/** Values of the SDK's Environment enum. The SDK itself loads on first use, not in every cold start. */
+export const APPLE_ENVIRONMENT = { production: 'Production', sandbox: 'Sandbox' } as const;
+const appleEnvironment = (settings: SupportSettings) =>
+  (settings.environment === 'production' ? APPLE_ENVIRONMENT.production : APPLE_ENVIRONMENT.sandbox) as Environment;
+
+async function verifier(settings: SupportSettings): Promise<SignedDataVerifier> {
   appleRoot ??= readFileSync(join(__dirname, '../certificates/AppleRootCA-G3.cer'));
   const roots = [appleRoot];
-  return new SignedDataVerifier(roots, true,
-    settings.environment === 'production' ? Environment.PRODUCTION : Environment.SANDBOX,
-    'com.khankartal.lociar', settings.appleId || undefined);
+  const { SignedDataVerifier: Verifier } = await import('@apple/app-store-server-library');
+  return new Verifier(roots, true, appleEnvironment(settings), 'com.khankartal.lociar', settings.appleId || undefined);
 }
 
 export function appleSupportPayment(transaction: JWSTransactionDecodedPayload, settings: SupportSettings) {
@@ -24,7 +28,7 @@ export function appleSupportPayment(transaction: JWSTransactionDecodedPayload, s
       || typeof transaction.transactionId !== 'string' || !/^\d{1,64}$/.test(transaction.transactionId)
       || !Number.isSafeInteger(transaction.purchaseDate) || Number(transaction.purchaseDate) > Date.now() + 60_000
       || !/^[A-Z]{3}$/.test(transaction.currency ?? '')
-      || transaction.environment !== (settings.environment === 'production' ? Environment.PRODUCTION : Environment.SANDBOX)) {
+      || transaction.environment !== appleEnvironment(settings)) {
     throw new Error('Invalid Apple support transaction');
   }
   const productId = supportProduct(transaction.productId);
@@ -46,7 +50,7 @@ export const confirmApplePostSupport = onCall({ ...options, timeoutSeconds: 60 }
   const settings = await loadSupportSettings();
   // Finishing an already paid purchase remains possible when the new-purchase switch is off.
   let transaction: JWSTransactionDecodedPayload;
-  try { transaction = await verifier(settings).verifyAndDecodeTransaction(signed); }
+  try { transaction = await (await verifier(settings)).verifyAndDecodeTransaction(signed); }
   catch { throw new HttpsError('permission-denied', 'Transaction verification failed'); }
   const payment = appleSupportPayment(transaction, settings);
   if (transaction.revocationDate) await reverseSupport(payment.id, payment.grossMilliunits);
@@ -57,7 +61,7 @@ export const supportAppleNotifications = onRequest({ maxInstances: CALLABLE_MAX_
   if (request.method !== 'POST') { response.status(405).end(); return; }
   const signed = request.body?.signedPayload;
   if (typeof signed !== 'string' || signed.length > 100_000) { response.status(400).end(); return; }
-  const settings = await loadSupportSettings(), check = verifier(settings);
+  const settings = await loadSupportSettings(), check = await verifier(settings);
   let notification;
   try { notification = await check.verifyAndDecodeNotification(signed); }
   catch { response.status(400).end(); return; }
