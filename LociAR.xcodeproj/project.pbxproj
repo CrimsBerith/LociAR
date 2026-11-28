@@ -1524,7 +1524,7 @@
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 12.19.3;
+				minimumVersion = 13.2.0;
 			};
 		};
 		FB2574BDD18EEA0DBCE31169 /* XCRemoteSwiftPackageReference "arcore-ios-sdk" */ = {
