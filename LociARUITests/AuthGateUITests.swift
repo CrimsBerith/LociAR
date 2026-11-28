@@ -370,9 +370,16 @@ final class AuthGateUITests: XCTestCase {
             XCTAssertTrue(identity.waitForExistence(timeout: 5))
             XCTAssertEqual(identity.value as? String, "1")
             capture(app, name: editor ? "ar-note-anonymous-default" : "location-note-anonymous-default")
+            // A tap while the scroll is still settling can miss the switch (CI, 26 Nov 2026): retry only
+            // when the value is still on, so a slow but successful first tap is never undone.
+            let attributed = { XCTWaiter.wait(for: [XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "value == '0'"), object: identity)], timeout: 5) == .completed }
             identity.coordinate(withNormalizedOffset: CGVector(dx: 0.84, dy: 0.5)).tap()
-            let attributed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '0'"), object: identity)
-            XCTAssertEqual(XCTWaiter.wait(for: [attributed], timeout: 5), .completed)
+            if !attributed(), identity.value as? String == "1" {
+                scrollUntilHittable(identity, in: app, maxSwipes: 4)
+                identity.coordinate(withNormalizedOffset: CGVector(dx: 0.84, dy: 0.5)).tap()
+            }
+            XCTAssertTrue(attributed())
             XCTAssertTrue(app.staticTexts[editor ? "Kullanıcı adın notta görünür." : "Kullanıcı adın, notun ve konumu hemen paylaşılır."].exists)
             capture(app, name: editor ? "ar-note-username-selected" : "location-note-username-selected")
             app.terminate()
